@@ -345,6 +345,7 @@ class Go3DApp {
         this.roomIdInput = document.getElementById('roomIdInput');
         this.copyLinkBtn = document.getElementById('copyLinkBtn');
         this.shareLinkInput = document.getElementById('shareLinkInput');
+        this.applyUrlSettings();
         this.logic = this.createLogic();
         this.renderer = new Go3DRenderer(this);
         this.network = new GoNetworkManager(this, { publicGameUrl: PUBLIC_GAME_URL, storagePrefix: STORAGE_PREFIX });
@@ -356,6 +357,32 @@ class Go3DApp {
         this.timerInterval = null;
         this.bindEvents();
         this.updateUI();
+        this.tryJoinSharedRoomFromUrl();
+    }
+
+    applyUrlSettings() {
+        const params = new URLSearchParams(window.location.search);
+        const mode = String(params.get('mode') || '').toLowerCase();
+        if (mode === 'r3' || mode === 't2') this.modeSelect.value = mode;
+
+        const size = params.get('size');
+        if (['9', '13', '19'].includes(size)) this.sizeSelect.value = size;
+
+        const timer = params.get('timer');
+        if ([...this.timerSelect.options].some((option) => option.value === timer)) {
+            this.timerSelect.value = timer;
+        }
+    }
+
+    tryJoinSharedRoomFromUrl() {
+        const roomId = new URLSearchParams(window.location.search).get('room');
+        if (!roomId) return;
+        this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
+        this.roomIdInput.value = roomId;
+        this.lockSettings();
+        this.setStatus('Joining shared online room...');
+        window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
     }
 
     createLogic() {

@@ -126,12 +126,20 @@
                     const key = badge.dataset.popularityKey;
                     const count = counts[key] || 0;
                     const disabledZero = key === 'dimension-4d' || key === 'game-4dchess';
-                    const text = state === 'available' || disabledZero ? String(count) : '--';
-                    badge.textContent = `${text} waiting`;
                     badge.dataset.state = state;
-                    badge.title = state === 'available'
-                        ? `${count} online matchmaking ${count === 1 ? 'waiter' : 'waiters'}`
-                        : 'Live matchmaking count unavailable';
+                    if (disabledZero) {
+                        badge.textContent = `${count} waiting`;
+                        badge.title = 'Not available yet';
+                    } else if (state === 'available') {
+                        badge.textContent = `${count} waiting`;
+                        badge.title = `${count} online matchmaking ${count === 1 ? 'waiter' : 'waiters'}`;
+                    } else if (state === 'loading') {
+                        badge.textContent = 'checking...';
+                        badge.title = 'Checking live matchmaking count';
+                    } else {
+                        badge.textContent = 'server needed';
+                        badge.title = 'Live waiting counts need a deployed matchmaking/presence server. The public PeerJS cloud does not expose peer listing here.';
+                    }
                 });
             }
 

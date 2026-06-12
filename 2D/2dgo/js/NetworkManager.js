@@ -215,6 +215,32 @@ export class GoNetworkManager {
         });
     }
 
+    resumeOrJoinRoom(rawRoomId) {
+        const roomId = this.extractRoomId(rawRoomId);
+        if (!roomId) {
+            window.alert('Enter a room code or shared link.');
+            return;
+        }
+        const stored = this.getStoredRoomSession(roomId);
+        if (stored?.color === 'black') {
+            this.resumeHostRoom(roomId);
+            return;
+        }
+        this.joinRoom(roomId);
+    }
+
+    resumeHostRoom(roomId) {
+        this.close({ silent: true });
+        this.isHost = true;
+        this.myColor = 'black';
+        this.roomId = roomId;
+        this.app.setOnlineColor('black');
+        this.setRoomInfo(roomId, this.buildShareUrl(roomId));
+        this.app.setStatus(`Room ${roomId} ready again. Black waits for White.`);
+        this.createHostPeer(0, roomId);
+        this.app.updateUI();
+    }
+
     joinRoom(rawRoomId) {
         const roomId = this.extractRoomId(rawRoomId);
         if (!roomId) {
@@ -321,7 +347,7 @@ export class GoNetworkManager {
             return;
         }
         if (data.type === 'wrongGame') {
-            this.app.setStatus('That room was created for a different Go mode/settings.');
+            this.app.setStatus('That room was created for a different Go game.');
             this.close({ silent: true });
         }
     }
@@ -360,8 +386,7 @@ export class GoNetworkManager {
     }
 
     gameKey() {
-        const settings = this.app.getNetworkSettings();
-        return `${settings.variant}-${settings.mode}-s${settings.size}`;
+        return '2dgo';
     }
 
     generateRoomCode() {
@@ -384,7 +409,11 @@ export class GoNetworkManager {
     buildShareUrl(roomId) {
         const isLocalPage = ['127.0.0.1', 'localhost'].includes(window.location.hostname) || window.location.protocol === 'file:';
         const url = new URL(isLocalPage ? this.publicGameUrl : window.location.href);
+        const settings = this.app.getNetworkSettings();
         url.searchParams.set('room', roomId);
+        url.searchParams.set('mode', settings.mode);
+        url.searchParams.set('size', String(settings.size));
+        url.searchParams.set('timer', String(settings.timer || 0));
         url.hash = '';
         return url.toString();
     }
@@ -404,6 +433,16 @@ export class GoNetworkManager {
             window.localStorage.setItem(`${this.storagePrefix}${roomId}`, JSON.stringify({ roomId, color, updatedAt: Date.now() }));
         } catch {
             // Local storage is optional for reconnect convenience.
+        }
+    }
+
+    getStoredRoomSession(roomId) {
+        if (!roomId) return null;
+        try {
+            const raw = window.localStorage.getItem(`${this.storagePrefix}${roomId}`);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
         }
     }
 
@@ -476,12 +515,16 @@ export class GoNetworkManager {
 
     handleError(err) {
         this.clearConnectionTimer();
-        if (this.isMatchmaking && ['peer-unavailable', 'network', 'socket-error', 'socket-closed', 'disconnected', 'server-error'].includes(err?.type || '')) {
+        const type = err?.type || err?.message || 'unknown';
+        if (this.isMatchmaking && ['peer-unavailable', 'network', 'socket-error', 'socket-closed', 'disconnected', 'server-error', 'webrtc'].includes(type)) {
             this.retryMatchmaking(this.matchmakingIndex + 1);
             return;
         }
         this.stopMatchmaking();
-        this.app.setStatus(`Online connection error: ${err?.type || err?.message || 'unknown'}`);
+        const message = type === 'webrtc'
+            ? 'WebRTC could not connect these two networks. Keep the host room open, try another network, or use a reliable TURN relay.'
+            : `Online connection error: ${type}`;
+        this.app.setStatus(message);
         this.app.updateUI();
     }
 }

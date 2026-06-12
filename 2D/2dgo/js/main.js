@@ -36,6 +36,7 @@ class Go2DApp {
         this.copyLinkBtn = document.getElementById('copyLinkBtn');
         this.shareLinkInput = document.getElementById('shareLinkInput');
 
+        this.applyUrlSettings();
         this.logic = new GoGameLogic({ size: this.boardSize(), topology: this.boundarySelect.value, dimension: 2, komi: KOMI });
         this.network = new GoNetworkManager(this, { publicGameUrl: PUBLIC_GAME_URL, storagePrefix: STORAGE_PREFIX });
         this.myColor = null;
@@ -50,6 +51,33 @@ class Go2DApp {
         this.bindEvents();
         this.resize();
         this.updateUI();
+        this.tryJoinSharedRoomFromUrl();
+    }
+
+    applyUrlSettings() {
+        const params = new URLSearchParams(window.location.search);
+        const size = params.get('size');
+        if (['9', '13', '19'].includes(size)) this.sizeSelect.value = size;
+
+        const timer = params.get('timer');
+        if ([...this.timerSelect.options].some((option) => option.value === timer)) {
+            this.timerSelect.value = timer;
+        }
+
+        const mode = String(params.get('mode') || params.get('boundary') || '').toLowerCase();
+        if (mode === 'pbcx' || mode === 'pbc-x') this.boundarySelect.value = 'pbc-x';
+        if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
+    }
+
+    tryJoinSharedRoomFromUrl() {
+        const roomId = new URLSearchParams(window.location.search).get('room');
+        if (!roomId) return;
+        this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
+        this.roomIdInput.value = roomId;
+        this.lockSettings();
+        this.setStatus('Joining shared online room...');
+        window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
     }
 
     boardSize() {
