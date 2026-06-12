@@ -1,15 +1,18 @@
 import { RP2ThreeJSRenderer } from './RP2ThreeJSRenderer.js';
 import { RP2NetworkManager } from './RP2NetworkManager.js';
 import { applyLanguage, hasTranslation, t } from './i18n.js';
+import { createPiece, PROMOTION_TYPES } from './BoardSetup.js';
 import {
-    BOARD_HEIGHT,
-    BOARD_WIDTH,
-    createPiece,
-    HOME_ROWS,
-    MAIN_ROW,
-    PAWN_DIR,
-    PROMOTION_TYPES
-} from './BoardSetup.js';
+    RP2_BOARD_HEIGHT,
+    RP2_BOARD_WIDTH,
+    RP2_HOME_ROWS,
+    RP2_KING_ROW_TYPES,
+    RP2_PAWN_DIR,
+    rp2Antipode,
+    rp2CentralFiles,
+    rp2PawnFiles,
+    rp2SideSupportFiles
+} from './RP2Config.js';
 
 const PIECE_ICONS = {
     white: { K: 'K', Q: 'Q', R: 'R', B: 'B', N: 'N', P: 'P' },
@@ -82,23 +85,72 @@ export class RP2ChessGame {
 
     createEmptyBoard() {
         return Array.from({ length: 2 }, () =>
-            Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null))
+            Array.from({ length: this.boardHeight() }, () => Array(this.boardWidth()).fill(null))
         );
     }
 
     setupBoard3D() {
         this.board = this.createEmptyBoard();
-        for (let x = 0; x < BOARD_WIDTH; x++) {
-            this.setPiece(x, HOME_ROWS.white, 0, createPiece('white', MAIN_ROW[x]));
-            this.setPiece(x, HOME_ROWS.white - 1, 0, createPiece('white', 'P'));
-            this.setPiece(x, 0, 1, createPiece('white', 'P'));
-
-            this.setPiece(x, HOME_ROWS.black, 0, createPiece('black', MAIN_ROW[x]));
-            this.setPiece(x, HOME_ROWS.black + 1, 0, createPiece('black', 'P'));
-            this.setPiece(x, BOARD_HEIGHT - 1, 1, createPiece('black', 'P'));
+        for (const { x, y, type } of this.createWhiteInitialPieces()) {
+            this.setPiece(x, y, 0, createPiece('white', type));
+            const mirror = this.antipodeCoord(x, y);
+            this.setPiece(mirror.x, mirror.y, 0, createPiece('black', type));
         }
         this.enPassantTarget = null;
         this.renderer.renderPieces3D(this.board);
+    }
+
+    createWhiteInitialPieces() {
+        const pieces = [];
+        const homeRow = this.homeRow('white');
+
+        for (const y of [homeRow - 1, homeRow + 1]) {
+            for (const x of this.pawnFiles()) {
+                pieces.push({ x, y, type: 'P' });
+            }
+        }
+
+        for (const x of this.sideSupportFiles()) {
+            pieces.push({ x, y: homeRow, type: 'P' });
+        }
+
+        this.centralPieceFiles().forEach((x, index) => {
+            pieces.push({ x, y: homeRow, type: RP2_KING_ROW_TYPES[index] });
+        });
+
+        return pieces;
+    }
+
+    boardWidth() {
+        return RP2_BOARD_WIDTH;
+    }
+
+    boardHeight() {
+        return RP2_BOARD_HEIGHT;
+    }
+
+    homeRow(color) {
+        return RP2_HOME_ROWS[color];
+    }
+
+    pawnDirection(color) {
+        return RP2_PAWN_DIR[color];
+    }
+
+    centralPieceFiles() {
+        return rp2CentralFiles(this.boardWidth());
+    }
+
+    sideSupportFiles() {
+        return rp2SideSupportFiles(this.boardWidth());
+    }
+
+    pawnFiles() {
+        return rp2PawnFiles(this.boardWidth());
+    }
+
+    antipodeCoord(x, y) {
+        return rp2Antipode(x, y, this.boardWidth(), this.boardHeight());
     }
 
     animate = () => {
@@ -249,7 +301,7 @@ export class RP2ChessGame {
         this.enPassantTarget = legalMove.pawnDoubleJump
             ? {
                 x: legalMove.passThrough?.x ?? toCoord.x,
-                y: legalMove.passThrough?.y ?? this.wrapY(fromCoord.y + PAWN_DIR[piece.color]),
+                y: legalMove.passThrough?.y ?? this.wrapY(fromCoord.y + this.pawnDirection(piece.color)),
                 sheet: legalMove.passThrough?.sheet ?? toCoord.sheet,
                 capturePos: { x: toCoord.x, y: toCoord.y, sheet: toCoord.sheet },
                 color: piece.color
@@ -349,7 +401,7 @@ export class RP2ChessGame {
 
     getPawnMoves(x, y, sheet, forAttack) {
         const piece = this.getPiece(x, y, sheet);
-        const direction = PAWN_DIR[piece.color];
+        const direction = this.pawnDirection(piece.color);
         const moves = [];
 
         for (const dx of [-1, 1]) {
@@ -415,7 +467,7 @@ export class RP2ChessGame {
             let currentSheet = sheet;
             const seenTargets = new Set();
 
-            for (let step = 0; step < BOARD_WIDTH * BOARD_HEIGHT * 2; step++) {
+            for (let step = 0; step < this.boardWidth() * this.boardHeight() * 2; step++) {
                 const targetCoord = this.nextLineStep(cx, cy, currentSheet, dx, dy);
                 cx = targetCoord.x;
                 cy = targetCoord.y;
@@ -493,49 +545,59 @@ export class RP2ChessGame {
         const king = this.getPiece(x, y, sheet);
         if (!king || king.type !== 'K' || king.hasMoved || sheet !== 0) return [];
 
-        const homeRow = HOME_ROWS[king.color];
-        if (y !== homeRow || x !== 4 || this.isInCheck(king.color)) return [];
+        const homeRow = this.homeRow(king.color);
+        const kingX = this.homePieceFiles(king.color, 'K')[0];
+        const queenX = this.homePieceFiles(king.color, 'Q')[0];
+        if (kingX === undefined || queenX === undefined || y !== homeRow || x !== kingX || this.isInCheck(king.color)) return [];
 
-        const options = [
-            {
-                side: 'kingside',
-                rookFrom: { x: 7, y: homeRow, sheet: 0 },
-                rookTo: { x: 5, y: homeRow, sheet: 0 },
-                kingTo: { x: 6, y: homeRow, sheet: 0 },
-                clearX: [5, 6],
-                kingPath: [{ x: 5, y: homeRow, sheet: 0 }, { x: 6, y: homeRow, sheet: 0 }]
-            },
-            {
-                side: 'queenside',
-                rookFrom: { x: 0, y: homeRow, sheet: 0 },
-                rookTo: { x: 3, y: homeRow, sheet: 0 },
-                kingTo: { x: 2, y: homeRow, sheet: 0 },
-                clearX: [1, 2, 3],
-                kingPath: [{ x: 3, y: homeRow, sheet: 0 }, { x: 2, y: homeRow, sheet: 0 }]
-            }
-        ];
         const moves = [];
-
-        for (const option of options) {
-            const rook = this.getPiece(option.rookFrom.x, option.rookFrom.y, 0);
+        for (const rookX of this.homePieceFiles(king.color, 'R')) {
+            const rook = this.getPiece(rookX, homeRow, 0);
             if (!rook || rook.color !== king.color || rook.type !== 'R' || rook.hasMoved) continue;
-            if (!option.clearX.every((pathX) => !this.getPiece(pathX, homeRow, 0))) continue;
+
+            const step = rookX > kingX ? 1 : -1;
+            const kingToX = kingX + step * 2;
+            const rookToX = kingX + step;
+            if (!this.inBounds(kingToX, homeRow) || !this.inBounds(rookToX, homeRow)) continue;
+
+            const clearX = this.filesBetween(kingX, rookX);
+            if (!clearX.every((pathX) => !this.getPiece(pathX, homeRow, 0))) continue;
 
             const enemy = this.opponentOf(king.color);
-            if (!option.kingPath.every((square) => !this.isSquareAttacked(square.x, square.y, square.sheet, enemy))) continue;
+            const kingPath = [kingX + step, kingToX].map((pathX) => ({ x: pathX, y: homeRow, sheet: 0 }));
+            if (!kingPath.every((square) => !this.isSquareAttacked(square.x, square.y, square.sheet, enemy))) continue;
 
+            const side = Math.sign(queenX - kingX) === Math.sign(rookX - kingX) ? 'queenside' : 'kingside';
             moves.push({
-                ...option.kingTo,
+                x: kingToX,
+                y: homeRow,
+                sheet: 0,
                 capture: false,
                 castling: {
-                    side: option.side,
-                    rookFrom: option.rookFrom,
-                    rookTo: option.rookTo
+                    side,
+                    rookFrom: { x: rookX, y: homeRow, sheet: 0 },
+                    rookTo: { x: rookToX, y: homeRow, sheet: 0 }
                 }
             });
         }
 
         return moves;
+    }
+
+    homePieceFiles(color, type) {
+        const whiteFiles = this.centralPieceFiles()
+            .filter((_, index) => RP2_KING_ROW_TYPES[index] === type);
+        const files = color === 'white'
+            ? whiteFiles
+            : whiteFiles.map((file) => this.antipodeCoord(file, this.homeRow('white')).x);
+        return files.sort((a, b) => a - b);
+    }
+
+    filesBetween(fromX, toX) {
+        const step = toX > fromX ? 1 : -1;
+        const files = [];
+        for (let x = fromX + step; x !== toX; x += step) files.push(x);
+        return files;
     }
 
     wouldLeaveKingInCheck(fromX, fromY, fromSheet, move) {
@@ -1101,33 +1163,33 @@ export class RP2ChessGame {
         const boundaryCrossings = [];
         let guard = 0;
 
-        while ((nx < 0 || nx >= BOARD_WIDTH || ny < 0 || ny >= BOARD_HEIGHT) && guard < 8) {
+        while ((nx < 0 || nx >= this.boardWidth() || ny < 0 || ny >= this.boardHeight()) && guard < this.boardWidth() + this.boardHeight()) {
             if (nx < 0) {
                 const fromSheet = ns;
                 boundaryCrossings.push(this.createBoundaryCrossing(fromSheet, 'left', this.wrapY(ny)));
-                nx += BOARD_WIDTH;
-                ny = BOARD_HEIGHT - 1 - ny;
+                nx += this.boardWidth();
+                ny = this.boardHeight() - 1 - ny;
                 ndy = -ndy;
                 ns = 1 - ns;
-            } else if (nx >= BOARD_WIDTH) {
+            } else if (nx >= this.boardWidth()) {
                 const fromSheet = ns;
                 boundaryCrossings.push(this.createBoundaryCrossing(fromSheet, 'right', this.wrapY(ny)));
-                nx -= BOARD_WIDTH;
-                ny = BOARD_HEIGHT - 1 - ny;
+                nx -= this.boardWidth();
+                ny = this.boardHeight() - 1 - ny;
                 ndy = -ndy;
                 ns = 1 - ns;
             } else if (ny < 0) {
                 const fromSheet = ns;
                 boundaryCrossings.push(this.createBoundaryCrossing(fromSheet, 'top', this.wrapX(nx)));
-                ny += BOARD_HEIGHT;
-                nx = BOARD_WIDTH - 1 - nx;
+                ny += this.boardHeight();
+                nx = this.boardWidth() - 1 - nx;
                 ndx = -ndx;
                 ns = 1 - ns;
-            } else if (ny >= BOARD_HEIGHT) {
+            } else if (ny >= this.boardHeight()) {
                 const fromSheet = ns;
                 boundaryCrossings.push(this.createBoundaryCrossing(fromSheet, 'bottom', this.wrapX(nx)));
-                ny -= BOARD_HEIGHT;
-                nx = BOARD_WIDTH - 1 - nx;
+                ny -= this.boardHeight();
+                nx = this.boardWidth() - 1 - nx;
                 ndx = -ndx;
                 ns = 1 - ns;
             }
@@ -1147,7 +1209,7 @@ export class RP2ChessGame {
     }
 
     inBounds(x, y) {
-        return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
+        return x >= 0 && x < this.boardWidth() && y >= 0 && y < this.boardHeight();
     }
 
     canonicalCoord(x, y, sheet = 0) {
@@ -1165,7 +1227,7 @@ export class RP2ChessGame {
     }
 
     isBoundaryCell(x, y) {
-        return x === 0 || x === BOARD_WIDTH - 1 || y === 0 || y === BOARD_HEIGHT - 1;
+        return x === 0 || x === this.boardWidth() - 1 || y === 0 || y === this.boardHeight() - 1;
     }
 
     isValidCell(x, y, sheet = 0) {
@@ -1174,25 +1236,25 @@ export class RP2ChessGame {
     }
 
     *validCells() {
-        for (let y = 0; y < BOARD_HEIGHT; y++) {
-            for (let x = 0; x < BOARD_WIDTH; x++) {
+        for (let y = 0; y < this.boardHeight(); y++) {
+            for (let x = 0; x < this.boardWidth(); x++) {
                 yield { x, y, sheet: 0 };
             }
         }
 
-        for (let y = 0; y < BOARD_HEIGHT; y++) {
-            for (let x = 0; x < BOARD_WIDTH; x++) {
+        for (let y = 0; y < this.boardHeight(); y++) {
+            for (let x = 0; x < this.boardWidth(); x++) {
                 if (this.isBoundaryCell(x, y)) yield { x, y, sheet: 1 };
             }
         }
     }
 
     wrapX(value) {
-        return ((value % BOARD_WIDTH) + BOARD_WIDTH) % BOARD_WIDTH;
+        return ((value % this.boardWidth()) + this.boardWidth()) % this.boardWidth();
     }
 
     wrapY(value) {
-        return ((value % BOARD_HEIGHT) + BOARD_HEIGHT) % BOARD_HEIGHT;
+        return ((value % this.boardHeight()) + this.boardHeight()) % this.boardHeight();
     }
 
     sameCoord(a, b) {
@@ -1233,7 +1295,10 @@ export class RP2ChessGame {
     }
 
     isPromotionSquare(color, x, y, sheet = 0) {
-        return sheet === 0 && y === HOME_ROWS[this.opponentOf(color)];
+        const coord = this.canonicalCoord(x, y, sheet);
+        return coord.sheet === 0
+            && coord.y === this.homeRow(this.opponentOf(color))
+            && this.centralPieceFiles().includes(coord.x);
     }
 
     tr(key, params = {}) {

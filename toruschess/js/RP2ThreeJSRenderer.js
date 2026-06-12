@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { TorusThreeJSRenderer } from './TorusThreeJSRenderer.js';
 import {
-    BOARD_HEIGHT,
-    BOARD_WIDTH,
-    HOME_ROWS,
-    PAWN_DIR
-} from './BoardSetup.js';
+    RP2_BOARD_HEIGHT,
+    RP2_BOARD_WIDTH,
+    RP2_HOME_ROWS,
+    RP2_PAWN_DIR
+} from './RP2Config.js';
 
 export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     constructor(game) {
@@ -50,10 +50,11 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     addSheetBase(sheet) {
-        const width = this.boardSpan();
+        const width = this.boardSpanX();
+        const height = this.boardSpanZ();
         const center = this.sheetOffset(sheet);
         const base = new THREE.Mesh(
-            new THREE.BoxGeometry(width + 0.18, 0.055, width + 0.18),
+            new THREE.BoxGeometry(width + 0.18, 0.055, height + 0.18),
             new THREE.MeshStandardMaterial({
                 color: 0x31434c,
                 metalness: 0.08,
@@ -87,7 +88,7 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
         });
 
         for (const sheet of [0, 1]) {
-            for (let y = 0; y < BOARD_HEIGHT; y++) {
+            for (let y = 0; y < this.boardHeight(); y++) {
                 for (const side of ['left', 'right']) {
                     const rail = new THREE.Mesh(
                         new THREE.BoxGeometry(0.12, 0.08, this.cellSize * 0.74),
@@ -100,7 +101,7 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
                 }
             }
 
-            for (let x = 0; x < BOARD_WIDTH; x++) {
+            for (let x = 0; x < this.boardWidth(); x++) {
                 for (const side of ['top', 'bottom']) {
                     const rail = new THREE.Mesh(
                         new THREE.BoxGeometry(this.cellSize * 0.74, 0.08, 0.12),
@@ -117,12 +118,12 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
 
     addGlueLinks() {
         for (const sheet of [0, 1]) {
-            for (let y = 0; y < BOARD_HEIGHT; y++) {
+            for (let y = 0; y < this.boardHeight(); y++) {
                 this.addBoundaryLink(sheet, 'left', y);
                 this.addBoundaryLink(sheet, 'right', y);
             }
 
-            for (let x = 0; x < BOARD_WIDTH; x++) {
+            for (let x = 0; x < this.boardWidth(); x++) {
                 this.addBoundaryLink(sheet, 'top', x);
                 this.addBoundaryLink(sheet, 'bottom', x);
             }
@@ -132,16 +133,16 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     addBoundaryLink(fromSheet, side, index) {
         const toSheet = 1 - fromSheet;
         const toSide = this.oppositeSide(side);
-        const reversedIndex = side === 'left' || side === 'right'
-            ? BOARD_HEIGHT - 1 - index
-            : BOARD_WIDTH - 1 - index;
+        const horizontal = side === 'left' || side === 'right';
+        const reversedIndex = horizontal
+            ? this.boardHeight() - 1 - index
+            : this.boardWidth() - 1 - index;
         const start = this.edgePoint(side, index, fromSheet, 0.18);
         const end = this.edgePoint(toSide, reversedIndex, toSheet, 0.2);
         const midpoint = start.clone().add(end).multiplyScalar(0.5);
         const control = midpoint.clone();
-        control.y += 1.2 + Math.abs(index - 3.5) * 0.04;
-
-        const horizontal = side === 'left' || side === 'right';
+        const maxIndex = horizontal ? this.boardHeight() - 1 : this.boardWidth() - 1;
+        control.y += 1.2 + Math.abs(index - maxIndex / 2) * 0.04;
         const lineMaterial = new THREE.LineBasicMaterial({
             color: horizontal ? 0x67e8f9 : 0xfbbf24,
             transparent: true,
@@ -208,11 +209,12 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
         };
         const cone = new THREE.ConeGeometry(0.06, 0.2, 18);
         const yAxis = new THREE.Vector3(0, 1, 0);
+        const centralGuideFiles = this.sampleValues(this.centralPieceFiles(), 4);
 
         for (const color of ['white', 'black']) {
-            const row = HOME_ROWS[color];
-            const direction = PAWN_DIR[color];
-            for (const x of [1, 3, 5, 7]) {
+            const row = this.homeRow(color);
+            const direction = this.pawnDirection(color);
+            for (const x of centralGuideFiles) {
                 const pose = this.getCellPose(x, row, 0.24, 0);
                 const tangent = pose.tangentV.clone().multiplyScalar(direction).normalize();
                 const arrow = new THREE.Mesh(cone, guideMaterial[color]);
@@ -224,11 +226,12 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
             }
         }
 
-        const boundaryRows = { white: 0, black: BOARD_HEIGHT - 1 };
+        const boundaryRows = { white: 0, black: this.boardHeight() - 1 };
+        const boundaryGuideFiles = this.sampleIndices(this.boardWidth(), 4);
         for (const color of ['white', 'black']) {
             const row = boundaryRows[color];
-            const direction = PAWN_DIR[color];
-            for (const x of [0, 2, 4, 6]) {
+            const direction = this.pawnDirection(color);
+            for (const x of boundaryGuideFiles) {
                 const pose = this.getCellPose(x, row, 0.24, 1);
                 const tangent = pose.tangentV.clone().multiplyScalar(direction).normalize();
                 const arrow = new THREE.Mesh(cone, guideMaterial[color]);
@@ -244,19 +247,23 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     addBoardLabels() {
         this.labelGroup.clear();
 
+        const centerX = Math.floor(this.boardWidth() / 2);
+        const centerY = Math.floor(this.boardHeight() / 2);
         const boundary = this.createTextSprite('RP2', 0x86efac, 54);
-        boundary.position.copy(this.getCellPose(4, 4, 0.42, 1).position);
+        boundary.position.copy(this.getCellPose(centerX, centerY, 0.42, 1).position);
         boundary.scale.set(0.34, 0.34, 0.34);
         this.labelGroup.add(boundary);
 
-        for (let i = 0; i < BOARD_WIDTH; i++) {
-            const xLabel = this.createTextSprite(String(i), 0xc9d7df, 52);
-            xLabel.position.copy(this.bottomEdgePoint(i, 0.36, 0));
+        for (let x = 0; x < this.boardWidth(); x++) {
+            const xLabel = this.createTextSprite(String(x), 0xc9d7df, 52);
+            xLabel.position.copy(this.bottomEdgePoint(x, 0.36, 0));
             xLabel.scale.set(0.28, 0.28, 0.28);
             this.labelGroup.add(xLabel);
+        }
 
-            const yLabel = this.createTextSprite(String(i), 0xc9d7df, 52);
-            yLabel.position.copy(this.leftEdgePoint(i, 0.36, 0));
+        for (let y = 0; y < this.boardHeight(); y++) {
+            const yLabel = this.createTextSprite(String(y), 0xc9d7df, 52);
+            yLabel.position.copy(this.leftEdgePoint(y, 0.36, 0));
             yLabel.scale.set(0.28, 0.28, 0.28);
             this.labelGroup.add(yLabel);
         }
@@ -356,9 +363,48 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     sheetOffset(sheet = 0) {
+        const spread = this.sheetSeparation();
         return Number(sheet) === 1
-            ? new THREE.Vector3(0, this.sheetRise, -this.sheetSpread * 0.5)
-            : new THREE.Vector3(0, 0, this.sheetSpread * 0.5);
+            ? new THREE.Vector3(0, this.sheetRise, -spread * 0.5)
+            : new THREE.Vector3(0, 0, spread * 0.5);
+    }
+
+    boardWidth() {
+        return this.game?.boardWidth?.() ?? RP2_BOARD_WIDTH;
+    }
+
+    boardHeight() {
+        return this.game?.boardHeight?.() ?? RP2_BOARD_HEIGHT;
+    }
+
+    homeRow(color) {
+        return this.game?.homeRow?.(color) ?? RP2_HOME_ROWS[color];
+    }
+
+    pawnDirection(color) {
+        return this.game?.pawnDirection?.(color) ?? RP2_PAWN_DIR[color];
+    }
+
+    centralPieceFiles() {
+        return this.game?.centralPieceFiles?.() ?? this.sampleIndices(this.boardWidth(), 4);
+    }
+
+    sampleIndices(count, targetCount) {
+        return this.sampleValues(Array.from({ length: count }, (_, index) => index), targetCount);
+    }
+
+    sampleValues(values, targetCount) {
+        if (values.length <= targetCount) return values;
+        const sampled = new Set();
+        for (let i = 0; i < targetCount; i++) {
+            const index = Math.round((i * (values.length - 1)) / (targetCount - 1));
+            sampled.add(values[index]);
+        }
+        return [...sampled];
+    }
+
+    sheetSeparation() {
+        return Math.max(this.sheetSpread, this.boardSpanZ() * 0.54);
     }
 
     boardStep() {
@@ -366,15 +412,23 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     boardSpan() {
-        return BOARD_WIDTH * this.cellSize + (BOARD_WIDTH - 1) * this.cellGap;
+        return this.boardSpanX();
+    }
+
+    boardSpanX() {
+        return this.boardWidth() * this.cellSize + (this.boardWidth() - 1) * this.cellGap;
+    }
+
+    boardSpanZ() {
+        return this.boardHeight() * this.cellSize + (this.boardHeight() - 1) * this.cellGap;
     }
 
     cellX(x) {
-        return (x - (BOARD_WIDTH - 1) / 2) * this.boardStep();
+        return (x - (this.boardWidth() - 1) / 2) * this.boardStep();
     }
 
     cellZ(y) {
-        return (y - (BOARD_HEIGHT - 1) / 2) * this.boardStep();
+        return (y - (this.boardHeight() - 1) / 2) * this.boardStep();
     }
 
     boardLeft() {
@@ -382,7 +436,7 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     boardRight() {
-        return this.cellX(BOARD_WIDTH - 1) + this.cellSize / 2;
+        return this.cellX(this.boardWidth() - 1) + this.cellSize / 2;
     }
 
     boardTop() {
@@ -390,7 +444,7 @@ export class RP2ThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     boardBottom() {
-        return this.cellZ(BOARD_HEIGHT - 1) + this.cellSize / 2;
+        return this.cellZ(this.boardHeight() - 1) + this.cellSize / 2;
     }
 
     edgePoint(side, index, sheet = 0, lift = 0.12) {
