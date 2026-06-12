@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,5 +31,6 @@ copy(join(root, 'index.html'), join(output, 'index.html'));
 copy(join(root, 'css'), join(output, 'css'));
 copy(join(root, '2dchess', 'dist'), join(output, '2dchess'));
 copy(join(root, 'toruschess', 'dist'), join(output, 'toruschess'));
+writeFileSync(join(output, '.nojekyll'), '');
 
 console.log(`Website bundle ready: ${output}`);
