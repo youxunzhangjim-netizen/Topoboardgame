@@ -4,11 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "local": "vite --host 127.0.0.1 --port 5173 --open",
+    "local": "vite --host 127.0.0.1 --port 5174 --open",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "verify:render": "node tools/verify-render.mjs",
-    "verify:rules": "node tools/verify-rules.mjs"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

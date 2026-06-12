@@ -1,5 +1,4 @@
 import { hasTranslation, t } from './i18n.js';
-import { createPiece, PIECE_TYPES } from './BoardSetup.js';
 
 const CONNECTION_TIMEOUT_MS = 45000;
 const ROOM_CODE_RETRIES = 10;
@@ -8,12 +7,12 @@ const MATCHMAKING_HOST_WAIT_MS = 25000;
 const MATCHMAKING_JOIN_TIMEOUT_MS = 12000;
 const MATCHMAKING_RETRY_MS = 850;
 const MATCHMAKING_SLOT_COUNT = 12;
-const ROOM_STORAGE_PREFIX = '2dchess:room:';
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/2dchess/';
 const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'
 };
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dchess/';
+const ROOM_STORAGE_PREFIX = '3dchess:cube:room:';
 const PEER_OPTIONS = {
     host: '0.peerjs.com',
     port: 443,
@@ -34,7 +33,7 @@ const PEER_OPTIONS = {
     }
 };
 
-export class NetworkManager {
+export class CubeNetworkManager {
     constructor(game) {
         this.game = game;
         this.peer = null;
@@ -53,11 +52,11 @@ export class NetworkManager {
     }
 
     variantKey() {
-        return '2dchess';
+        return 'cube';
     }
 
     gameKey() {
-        return this.variantKey();
+        return `3dchess-${this.variantKey()}`;
     }
 
     createRoom() {
@@ -285,14 +284,12 @@ export class NetworkManager {
     createHostPeer(attempt, fixedRoomCode = '', options = {}) {
         const roomCode = fixedRoomCode || this.generateRoomCode();
         let peer;
-
         try {
             peer = this.createPeer(roomCode);
         } catch (err) {
             this.handlePeerError(err);
             return;
         }
-
         this.peer = peer;
 
         peer.on('open', (id) => {
@@ -321,7 +318,6 @@ export class NetworkManager {
 
         peer.on('error', (err) => {
             if (this.peer !== peer) return;
-
             if (err?.type === 'unavailable-id' && options.fallbackJoin) {
                 if (!peer.destroyed) peer.destroy();
                 if (this.peer === peer) this.peer = null;
@@ -399,7 +395,6 @@ export class NetworkManager {
             this.handlePeerError(err);
             return;
         }
-
         this.peer = peer;
 
         peer.on('open', () => {
@@ -464,7 +459,7 @@ export class NetworkManager {
             try {
                 previous.close();
             } catch {
-                // The previous data channel may already be closed.
+                // PeerJS may already have closed the old data channel.
             }
         }
 
@@ -693,10 +688,7 @@ export class NetworkManager {
             capturedPieces: {
                 white: [...this.game.capturedPieces.white],
                 black: [...this.game.capturedPieces.black]
-            },
-            enPassantTarget: this.game.enPassantTarget ? { ...this.game.enPassantTarget } : null,
-            halfMoveClock: this.game.halfMoveClock,
-            positionHistory: [...this.game.positionHistory]
+            }
         };
     }
 
@@ -721,11 +713,9 @@ export class NetworkManager {
             white: Array.isArray(state.capturedPieces?.white) ? [...state.capturedPieces.white] : [],
             black: Array.isArray(state.capturedPieces?.black) ? [...state.capturedPieces.black] : []
         };
-        this.game.enPassantTarget = state.enPassantTarget ? { ...state.enPassantTarget } : null;
-        this.game.halfMoveClock = Number(state.halfMoveClock) || 0;
-        this.game.positionHistory = Array.isArray(state.positionHistory) ? [...state.positionHistory] : [];
         this.game.selectedSquare = null;
         this.game.legalMoves = [];
+        this.game.pendingMoveTarget = null;
 
         if (this.game.timerInterval) {
             clearInterval(this.game.timerInterval);
@@ -735,9 +725,10 @@ export class NetworkManager {
             this.game.startTimer();
         }
 
+        this.game.renderer.renderPieces3D(this.game.board);
+        this.game.renderer.clearHighlights();
         this.game.lockGameSettings();
         this.game.updateBoundaryInfo();
-        this.game.renderBoard();
         this.game.updateTimerDisplay();
         this.game.updateUI();
         if (persist) this.persistState();
@@ -787,7 +778,7 @@ export class NetworkManager {
         try {
             window.localStorage.setItem(this.storageKey(session.roomId), JSON.stringify(session));
         } catch {
-            // Some browsers block localStorage in private contexts.
+            // Some browsers block storage in private contexts; reconnect still works while the page is open.
         }
     }
 
@@ -818,14 +809,23 @@ export class NetworkManager {
     }
 
     cloneBoard(board) {
-        return board.map((row) => row.map((piece) => this.clonePiece(piece)));
+        return board.map((layer) =>
+            layer.map((row) =>
+                row.map((piece) => this.clonePiece(piece))
+            )
+        );
     }
 
     clonePiece(piece) {
         if (!piece) return null;
-        const type = PIECE_TYPES.includes(piece.type) ? piece.type : 'P';
+        const type = ['K', 'Q', 'R', 'B', 'N', 'P'].includes(piece.type) ? piece.type : 'P';
         const color = piece.color === 'black' ? 'black' : 'white';
-        return createPiece(color, type, Boolean(piece.hasMoved));
+        return {
+            color,
+            type,
+            display: color === 'white' ? type : type.toLowerCase(),
+            hasMoved: Boolean(piece.hasMoved)
+        };
     }
 
     generateRoomCode() {
@@ -841,7 +841,7 @@ export class NetworkManager {
         return new window.Peer(id, PEER_OPTIONS);
     }
 
-    close({ silent = false, stopMatchmaking = true } = {}) {
+    close({ silent = false, forget = false, stopMatchmaking = true } = {}) {
         if (stopMatchmaking) this.stopMatchmaking();
         this.clearConnectionTimer();
 
@@ -858,6 +858,10 @@ export class NetworkManager {
         this.isConnected = false;
         this.myColor = null;
         this.roomId = '';
+
+        if (forget) {
+            // Stored online sessions are normally kept so players can resume by room code.
+        }
 
         if (!silent) {
             this.clearRoomInfo();
@@ -883,6 +887,7 @@ export class NetworkManager {
     buildShareUrl(roomId) {
         const isLocalPage = ['127.0.0.1', 'localhost'].includes(window.location.hostname) || window.location.protocol === 'file:';
         const url = new URL(isLocalPage ? PUBLIC_GAME_URL : window.location.href);
+        url.searchParams.set('variant', this.variantKey());
         url.searchParams.set('room', roomId);
         url.hash = '';
         return url.toString();

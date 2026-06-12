@@ -47,7 +47,7 @@ const VARIANTS = {
 };
 
 const DEFAULT_VARIANT = 'torus';
-const STORAGE_KEY = 'toruschess:selectedVariant';
+const STORAGE_KEY = '3dchess:selectedVariant';
 
 export class ChessGame {
     constructor() {

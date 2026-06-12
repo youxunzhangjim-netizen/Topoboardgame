@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>8x8x8 3D Chess</title>
+    <title>3D Chess</title>
     <link rel="stylesheet" href="./css/styles.css">
     <script type="importmap">
         {
@@ -17,7 +17,7 @@
     <script>
         if (window.location.protocol === 'file:') {
             window.addEventListener('DOMContentLoaded', () => {
-                const text = 'Local file mode blocks the 3D board. In VS Code, run: npm.cmd run local';
+                const text = 'Local file mode blocks the 3D torus board. Run: npm.cmd run local';
                 const status = document.getElementById('gameStatus');
                 const frame = document.querySelector('.board-frame');
 
@@ -33,20 +33,12 @@
     </script>
 </head>
 <body>
-    <a class="space-home-link" href="../" aria-label="Back to Space Chess picker">Home</a>
-
-    <div class="language-switch" aria-label="Language" data-i18n-aria-label="language.label">
-        <button type="button" class="lang-option active" data-lang-option="en" aria-pressed="true" title="English" data-i18n-title="language.english">En</button>
-        <span class="lang-divider" aria-hidden="true">|</span>
-        <button type="button" class="lang-option" data-lang-option="zh" aria-pressed="false" title="Chinese" data-i18n-title="language.chinese">&#20013;</button>
-    </div>
-
     <main class="app-shell">
         <section class="play-area">
             <header class="top-bar">
                 <div>
-                    <h1 data-i18n="app.title">8x8x8 3D Chess</h1>
-                    <p data-i18n="app.tagline">Local and online cubic chess with full 3D movement.</p>
+                    <h1 data-i18n="app.title">Torus Chess</h1>
+                    <p data-i18n="app.tagline">2D chess on a longer 3D torus: 8 cells around the short side and a 14-row route through the extended direction.</p>
                 </div>
             </header>
 
@@ -55,14 +47,14 @@
                 <div class="timer-section">
                     <div class="player-timer active" id="whiteTimerBox">
                         <span class="timer-label" data-i18n="colors.white">White</span>
-                        <span class="timer-value" id="whiteTimer">5:00</span>
+                        <span class="timer-value" id="whiteTimer">10:00</span>
                     </div>
                     <div class="player-timer" id="blackTimerBox">
                         <span class="timer-label" data-i18n="colors.black">Black</span>
-                        <span class="timer-value" id="blackTimer">5:00</span>
+                        <span class="timer-value" id="blackTimer">10:00</span>
                     </div>
                 </div>
-                <div class="boundary-display" id="boundaryMode">Forbidden</div>
+                <div class="boundary-display" id="boundaryMode">T2 periodic</div>
             </div>
 
             <div class="captured-pieces-container">
@@ -77,7 +69,7 @@
             </div>
 
             <div class="board-frame">
-                <canvas id="gameCanvas" aria-label="3D chess board" data-i18n-aria-label="app.canvasLabel"></canvas>
+                <canvas id="gameCanvas" aria-label="3D torus chess board" data-i18n-aria-label="app.canvasLabel"></canvas>
             </div>
 
             <section class="move-picker" aria-label="Move picker" data-i18n-aria-label="app.movePickerLabel">
@@ -98,7 +90,10 @@
         </section>
 
         <aside class="sidebar">
-            <h2 data-i18n="controls.title">Game Controls</h2>
+            <div class="sidebar-header">
+                <h2 data-i18n="controls.title">Game Controls</h2>
+                <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker">Home</a>
+            </div>
 
             <div class="status-card">
                 <div class="status-line" id="gameStatus">Select a white piece to begin.</div>
@@ -115,6 +110,8 @@
 
             <div class="online-controls" id="onlineControls">
                 <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
+                <button class="online-btn match" id="findMatchBtn" data-i18n="online.findMatch">Find Match</button>
+                <div class="divider-text" data-i18n="online.privateRoom">PRIVATE ROOM</div>
                 <button class="online-btn create" id="createRoomBtn" data-i18n="online.createRoom">Create Room</button>
                 <div class="divider-text" data-i18n="online.or">OR</div>
                 <input type="text" id="roomIdInput" autocomplete="off" placeholder="5-digit room code or shared link" data-i18n-placeholder="online.roomInput">
@@ -131,23 +128,31 @@
             </div>
 
             <div class="control-group">
-                <label for="boundarySelect" data-i18n="controls.boundary">Boundary Condition</label>
-                <select id="boundarySelect">
+                <label for="boardGameSelect" data-i18n="controls.boardGame">Board Game</label>
+                <select id="boardGameSelect">
+                    <option value="torus">T2 Torus Chess</option>
+                    <option value="cube">R3 3D Chess</option>
+                    <option value="rp2">RP2 Chess</option>
+                    <option value="mobius">Mobius Chess</option>
+                </select>
+                <select id="boundarySelect" hidden aria-hidden="true" tabindex="-1">
                     <option value="forbidden" data-i18n="boundary.names.forbidden">Forbidden</option>
                     <option value="reflection" data-i18n="boundary.names.reflection">Reflection</option>
-                    <option value="periodic" data-i18n="boundary.names.periodic">Periodic</option>
+                    <option value="periodic" selected data-i18n="boundary.names.periodic">Periodic</option>
+                    <option value="rp2" data-i18n="boundary.names.rp2">RP2 antipodal</option>
+                    <option value="mobius" data-i18n="boundary.names.mobius">Mobius twist</option>
                 </select>
             </div>
             <div class="boundary-info" id="boundaryInfo">
-                Forbidden: pieces cannot move outside the 8x8x8 cube.
+                T2 uses 112 playable blocks shown as an 8-cell short winding and a 14-row long direction. The six extra blank rows sit between the initial armies, and both directions wrap periodically.
             </div>
 
             <div class="control-group">
                 <label for="timerSelect" data-i18n="controls.timer">Timer per Player</label>
                 <select id="timerSelect">
                     <option value="0" data-i18n="timer.noTimer">No Timer</option>
-                    <option value="300" selected data-i18n="timer.fiveMinutes">5 Minutes</option>
-                    <option value="600" data-i18n="timer.tenMinutes">10 Minutes</option>
+                    <option value="300" data-i18n="timer.fiveMinutes">5 Minutes</option>
+                    <option value="600" selected data-i18n="timer.tenMinutes">10 Minutes</option>
                     <option value="900" data-i18n="timer.fifteenMinutes">15 Minutes</option>
                     <option value="1800" data-i18n="timer.thirtyMinutes">30 Minutes</option>
                     <option value="3600" data-i18n="timer.oneHour">1 Hour</option>
@@ -172,11 +177,9 @@
             </section>
 
             <section class="panel">
-                <h3 data-i18n="rules.title">3D Movement</h3>
+                <h3 data-i18n="rules.title">Torus Rules</h3>
                 <div class="rules-text" data-i18n="rules.text">
-                    Rook: axes. Bishop: plane and body diagonals. Queen: all straight 3D lines.
-                    Knight: 2-1 jumps on any plane. King: one cell in any direction.
-                    Pawn: forward on X, Y, or Z, captures forward diagonals, and promotes only on the opponent's Y or Z home face inside the bottom three rows.
+                    Rooks, bishops, queens, knights, kings, castling, en passant, check, and mate use 2D chess movement on 112 torus blocks. The board is 8 columns by 14 periodic rows, with the six extra blank rows placed between the initial armies so the king rows start opposite each other. Pawns promote when they reach the opponent home row.
                 </div>
             </section>
         </aside>

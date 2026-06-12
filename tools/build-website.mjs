@@ -21,7 +21,7 @@ function copy(from, to) {
 }
 
 run(['run', 'build', '--workspace', '2dchess']);
-run(['run', 'build', '--workspace', 'toruschess']);
+run(['run', 'build', '--workspace', '3dchess']);
 
 const output = join(root, 'dist');
 rmSync(output, { recursive: true, force: true });
@@ -29,8 +29,12 @@ mkdirSync(output, { recursive: true });
 
 copy(join(root, 'index.html'), join(output, 'index.html'));
 copy(join(root, 'css'), join(output, 'css'));
-copy(join(root, '2dchess', 'dist'), join(output, '2dchess'));
-copy(join(root, 'toruschess', 'dist'), join(output, 'toruschess'));
+mkdirSync(join(output, '2D'), { recursive: true });
+mkdirSync(join(output, '3D'), { recursive: true });
+mkdirSync(join(output, '4D'), { recursive: true });
+copy(join(root, '2D', '2dchess', 'dist'), join(output, '2D', '2dchess'));
+copy(join(root, '3D', '3dchess', 'dist'), join(output, '3D', '3dchess'));
+copy(join(root, '4D'), join(output, '4D'));
 writeFileSync(join(output, '.nojekyll'), '');
 
 console.log(`Website bundle ready: ${output}`);

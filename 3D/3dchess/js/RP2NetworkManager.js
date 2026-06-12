@@ -11,8 +11,8 @@ const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'
 };
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/toruschess/';
-const ROOM_STORAGE_PREFIX = 'toruschess:cube:room:';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dchess/';
+const ROOM_STORAGE_PREFIX = '3dchess:rp2:room:';
 const PEER_OPTIONS = {
     host: '0.peerjs.com',
     port: 443,
@@ -33,7 +33,7 @@ const PEER_OPTIONS = {
     }
 };
 
-export class CubeNetworkManager {
+export class RP2NetworkManager {
     constructor(game) {
         this.game = game;
         this.peer = null;
@@ -52,11 +52,11 @@ export class CubeNetworkManager {
     }
 
     variantKey() {
-        return 'cube';
+        return 'rp2';
     }
 
     gameKey() {
-        return `toruschess-${this.variantKey()}`;
+        return `3dchess-${this.variantKey()}`;
     }
 
     createRoom() {
@@ -459,7 +459,7 @@ export class CubeNetworkManager {
             try {
                 previous.close();
             } catch {
-                // PeerJS may already have closed the old data channel.
+                // PeerJS can already have closed the old data channel.
             }
         }
 
@@ -679,6 +679,7 @@ export class CubeNetworkManager {
             board: this.cloneBoard(this.game.board),
             currentPlayer: this.game.currentPlayer,
             boundaryCondition: this.game.boundaryCondition,
+            enPassantTarget: this.cloneTarget(this.game.enPassantTarget),
             timerEnabled: this.game.timerEnabled,
             timeLimit: this.game.timeLimit,
             timeRemaining: { ...this.game.timeRemaining },
@@ -700,9 +701,8 @@ export class CubeNetworkManager {
         }
 
         this.game.currentPlayer = state.currentPlayer === 'black' ? 'black' : 'white';
-        this.game.boundaryCondition = ['forbidden', 'reflection', 'periodic'].includes(state.boundaryCondition)
-            ? state.boundaryCondition
-            : 'forbidden';
+        this.game.boundaryCondition = 'rp2';
+        this.game.enPassantTarget = this.cloneTarget(state.enPassantTarget);
         this.game.timerEnabled = Boolean(state.timerEnabled);
         this.game.timeLimit = Number(state.timeLimit) || 0;
         this.syncClocks(state.timeRemaining || { white: this.game.timeLimit, black: this.game.timeLimit });
@@ -809,10 +809,18 @@ export class CubeNetworkManager {
     }
 
     cloneBoard(board) {
+        if (!Array.isArray(board?.[0]?.[0])) {
+            const cloned = this.game.createEmptyBoard();
+            for (let y = 0; y < board.length; y++) {
+                for (let x = 0; x < board[y].length; x++) {
+                    cloned[0][y][x] = this.clonePiece(board[y][x]);
+                }
+            }
+            return cloned;
+        }
+
         return board.map((layer) =>
-            layer.map((row) =>
-                row.map((piece) => this.clonePiece(piece))
-            )
+            layer.map((row) => row.map((piece) => this.clonePiece(piece)))
         );
     }
 
@@ -820,12 +828,29 @@ export class CubeNetworkManager {
         if (!piece) return null;
         const type = ['K', 'Q', 'R', 'B', 'N', 'P'].includes(piece.type) ? piece.type : 'P';
         const color = piece.color === 'black' ? 'black' : 'white';
-        return {
+        const cloned = {
             color,
             type,
             display: color === 'white' ? type : type.toLowerCase(),
             hasMoved: Boolean(piece.hasMoved)
         };
+        if (type === 'P' && (piece.pawnDirection === 1 || piece.pawnDirection === -1)) {
+            cloned.pawnDirection = piece.pawnDirection;
+        }
+        return cloned;
+    }
+
+    cloneTarget(target) {
+        if (!target || typeof target !== 'object') return null;
+        const cloned = {};
+        for (const [key, value] of Object.entries(target)) {
+            if (value && typeof value === 'object') {
+                cloned[key] = { ...value };
+            } else {
+                cloned[key] = value;
+            }
+        }
+        return cloned;
     }
 
     generateRoomCode() {
@@ -841,7 +866,7 @@ export class CubeNetworkManager {
         return new window.Peer(id, PEER_OPTIONS);
     }
 
-    close({ silent = false, forget = false, stopMatchmaking = true } = {}) {
+    close({ silent = false, stopMatchmaking = true } = {}) {
         if (stopMatchmaking) this.stopMatchmaking();
         this.clearConnectionTimer();
 
@@ -858,10 +883,6 @@ export class CubeNetworkManager {
         this.isConnected = false;
         this.myColor = null;
         this.roomId = '';
-
-        if (forget) {
-            // Stored online sessions are normally kept so players can resume by room code.
-        }
 
         if (!silent) {
             this.clearRoomInfo();

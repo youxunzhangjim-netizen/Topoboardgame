@@ -1,4 +1,5 @@
 import { hasTranslation, t } from './i18n.js';
+import { createPiece, PIECE_TYPES } from './BoardSetup.js';
 
 const CONNECTION_TIMEOUT_MS = 45000;
 const ROOM_CODE_RETRIES = 10;
@@ -7,12 +8,12 @@ const MATCHMAKING_HOST_WAIT_MS = 25000;
 const MATCHMAKING_JOIN_TIMEOUT_MS = 12000;
 const MATCHMAKING_RETRY_MS = 850;
 const MATCHMAKING_SLOT_COUNT = 12;
+const ROOM_STORAGE_PREFIX = '2dchess:room:';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/2D/2dchess/';
 const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'
 };
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/toruschess/';
-const ROOM_STORAGE_PREFIX = 'toruschess:rp2:room:';
 const PEER_OPTIONS = {
     host: '0.peerjs.com',
     port: 443,
@@ -33,7 +34,7 @@ const PEER_OPTIONS = {
     }
 };
 
-export class RP2NetworkManager {
+export class NetworkManager {
     constructor(game) {
         this.game = game;
         this.peer = null;
@@ -52,11 +53,11 @@ export class RP2NetworkManager {
     }
 
     variantKey() {
-        return 'rp2';
+        return '2dchess';
     }
 
     gameKey() {
-        return `toruschess-${this.variantKey()}`;
+        return this.variantKey();
     }
 
     createRoom() {
@@ -284,12 +285,14 @@ export class RP2NetworkManager {
     createHostPeer(attempt, fixedRoomCode = '', options = {}) {
         const roomCode = fixedRoomCode || this.generateRoomCode();
         let peer;
+
         try {
             peer = this.createPeer(roomCode);
         } catch (err) {
             this.handlePeerError(err);
             return;
         }
+
         this.peer = peer;
 
         peer.on('open', (id) => {
@@ -318,6 +321,7 @@ export class RP2NetworkManager {
 
         peer.on('error', (err) => {
             if (this.peer !== peer) return;
+
             if (err?.type === 'unavailable-id' && options.fallbackJoin) {
                 if (!peer.destroyed) peer.destroy();
                 if (this.peer === peer) this.peer = null;
@@ -395,6 +399,7 @@ export class RP2NetworkManager {
             this.handlePeerError(err);
             return;
         }
+
         this.peer = peer;
 
         peer.on('open', () => {
@@ -459,7 +464,7 @@ export class RP2NetworkManager {
             try {
                 previous.close();
             } catch {
-                // PeerJS can already have closed the old data channel.
+                // The previous data channel may already be closed.
             }
         }
 
@@ -679,7 +684,6 @@ export class RP2NetworkManager {
             board: this.cloneBoard(this.game.board),
             currentPlayer: this.game.currentPlayer,
             boundaryCondition: this.game.boundaryCondition,
-            enPassantTarget: this.cloneTarget(this.game.enPassantTarget),
             timerEnabled: this.game.timerEnabled,
             timeLimit: this.game.timeLimit,
             timeRemaining: { ...this.game.timeRemaining },
@@ -689,7 +693,10 @@ export class RP2NetworkManager {
             capturedPieces: {
                 white: [...this.game.capturedPieces.white],
                 black: [...this.game.capturedPieces.black]
-            }
+            },
+            enPassantTarget: this.game.enPassantTarget ? { ...this.game.enPassantTarget } : null,
+            halfMoveClock: this.game.halfMoveClock,
+            positionHistory: [...this.game.positionHistory]
         };
     }
 
@@ -701,8 +708,9 @@ export class RP2NetworkManager {
         }
 
         this.game.currentPlayer = state.currentPlayer === 'black' ? 'black' : 'white';
-        this.game.boundaryCondition = 'rp2';
-        this.game.enPassantTarget = this.cloneTarget(state.enPassantTarget);
+        this.game.boundaryCondition = ['forbidden', 'reflection', 'periodic'].includes(state.boundaryCondition)
+            ? state.boundaryCondition
+            : 'forbidden';
         this.game.timerEnabled = Boolean(state.timerEnabled);
         this.game.timeLimit = Number(state.timeLimit) || 0;
         this.syncClocks(state.timeRemaining || { white: this.game.timeLimit, black: this.game.timeLimit });
@@ -713,9 +721,11 @@ export class RP2NetworkManager {
             white: Array.isArray(state.capturedPieces?.white) ? [...state.capturedPieces.white] : [],
             black: Array.isArray(state.capturedPieces?.black) ? [...state.capturedPieces.black] : []
         };
+        this.game.enPassantTarget = state.enPassantTarget ? { ...state.enPassantTarget } : null;
+        this.game.halfMoveClock = Number(state.halfMoveClock) || 0;
+        this.game.positionHistory = Array.isArray(state.positionHistory) ? [...state.positionHistory] : [];
         this.game.selectedSquare = null;
         this.game.legalMoves = [];
-        this.game.pendingMoveTarget = null;
 
         if (this.game.timerInterval) {
             clearInterval(this.game.timerInterval);
@@ -725,10 +735,9 @@ export class RP2NetworkManager {
             this.game.startTimer();
         }
 
-        this.game.renderer.renderPieces3D(this.game.board);
-        this.game.renderer.clearHighlights();
         this.game.lockGameSettings();
         this.game.updateBoundaryInfo();
+        this.game.renderBoard();
         this.game.updateTimerDisplay();
         this.game.updateUI();
         if (persist) this.persistState();
@@ -778,7 +787,7 @@ export class RP2NetworkManager {
         try {
             window.localStorage.setItem(this.storageKey(session.roomId), JSON.stringify(session));
         } catch {
-            // Some browsers block storage in private contexts; reconnect still works while the page is open.
+            // Some browsers block localStorage in private contexts.
         }
     }
 
@@ -809,48 +818,14 @@ export class RP2NetworkManager {
     }
 
     cloneBoard(board) {
-        if (!Array.isArray(board?.[0]?.[0])) {
-            const cloned = this.game.createEmptyBoard();
-            for (let y = 0; y < board.length; y++) {
-                for (let x = 0; x < board[y].length; x++) {
-                    cloned[0][y][x] = this.clonePiece(board[y][x]);
-                }
-            }
-            return cloned;
-        }
-
-        return board.map((layer) =>
-            layer.map((row) => row.map((piece) => this.clonePiece(piece)))
-        );
+        return board.map((row) => row.map((piece) => this.clonePiece(piece)));
     }
 
     clonePiece(piece) {
         if (!piece) return null;
-        const type = ['K', 'Q', 'R', 'B', 'N', 'P'].includes(piece.type) ? piece.type : 'P';
+        const type = PIECE_TYPES.includes(piece.type) ? piece.type : 'P';
         const color = piece.color === 'black' ? 'black' : 'white';
-        const cloned = {
-            color,
-            type,
-            display: color === 'white' ? type : type.toLowerCase(),
-            hasMoved: Boolean(piece.hasMoved)
-        };
-        if (type === 'P' && (piece.pawnDirection === 1 || piece.pawnDirection === -1)) {
-            cloned.pawnDirection = piece.pawnDirection;
-        }
-        return cloned;
-    }
-
-    cloneTarget(target) {
-        if (!target || typeof target !== 'object') return null;
-        const cloned = {};
-        for (const [key, value] of Object.entries(target)) {
-            if (value && typeof value === 'object') {
-                cloned[key] = { ...value };
-            } else {
-                cloned[key] = value;
-            }
-        }
-        return cloned;
+        return createPiece(color, type, Boolean(piece.hasMoved));
     }
 
     generateRoomCode() {
@@ -908,7 +883,6 @@ export class RP2NetworkManager {
     buildShareUrl(roomId) {
         const isLocalPage = ['127.0.0.1', 'localhost'].includes(window.location.hostname) || window.location.protocol === 'file:';
         const url = new URL(isLocalPage ? PUBLIC_GAME_URL : window.location.href);
-        url.searchParams.set('variant', this.variantKey());
         url.searchParams.set('room', roomId);
         url.hash = '';
         return url.toString();

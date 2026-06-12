@@ -1,10 +1,9 @@
 {
-  "name": "gameprojects",
+  "name": "topological-boardgame",
   "private": true,
   "workspaces": [
-    "2dchess",
-    "3dchess",
-    "toruschess"
+    "2D/2dchess",
+    "3D/3dchess"
   ],
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5172",
@@ -12,10 +11,10 @@
     "build": "node tools/build-website.mjs",
     "build:2d": "npm run build --workspace 2dchess",
     "build:3d": "npm run build --workspace 3dchess",
-    "build:3dspace": "npm run build --workspace toruschess",
+    "build:3dspace": "npm run build --workspace 3dchess",
     "dev:2d": "npm run dev --workspace 2dchess",
     "dev:3d": "npm run dev --workspace 3dchess",
-    "dev:3dspace": "npm run dev --workspace toruschess"
+    "dev:3dspace": "npm run dev --workspace 3dchess"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

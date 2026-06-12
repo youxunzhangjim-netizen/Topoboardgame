@@ -1,7 +1,7 @@
 import { TorusNetworkManager } from './TorusNetworkManager.js';
 
-const ROOM_STORAGE_PREFIX = 'toruschess:mobius:room:';
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/toruschess/';
+const ROOM_STORAGE_PREFIX = '3dchess:mobius:room:';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dchess/';
 
 export class MobiusNetworkManager extends TorusNetworkManager {
     variantKey() {

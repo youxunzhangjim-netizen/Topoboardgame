@@ -11,8 +11,8 @@ const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'
 };
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/toruschess/';
-const ROOM_STORAGE_PREFIX = 'toruschess:torus:room:';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dchess/';
+const ROOM_STORAGE_PREFIX = '3dchess:torus:room:';
 const PEER_OPTIONS = {
     host: '0.peerjs.com',
     port: 443,
@@ -56,7 +56,7 @@ export class TorusNetworkManager {
     }
 
     gameKey() {
-        return `toruschess-${this.variantKey()}`;
+        return `3dchess-${this.variantKey()}`;
     }
 
     createRoom() {
