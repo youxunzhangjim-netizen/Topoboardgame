@@ -1,0 +1,43 @@
+## 8x8x8 3D Chess
+
+A browser-based 3D chess game with local play and online room-link multiplayer.
+
+## Run Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open the Vite URL, usually:
+
+```text
+http://127.0.0.1:5173/
+```
+
+Do not use the old `Downloads/Chess-with-Multiplayer.html` file. The working project is this folder.
+
+## Online Play
+
+1. Open the site.
+2. Select `Online Multiplayer`.
+3. Player 1 clicks `Create Room`.
+4. Copy the generated room link.
+5. Player 2 opens that link. The game auto-joins as Black.
+6. White moves first after both browsers show connected.
+
+Online play uses GitHub Pages for hosting and PeerJS/WebRTC for the live player connection. GitHub Pages is static hosting, so it cannot run a random matchmaking server by itself. This project supports invite-link rooms; true public matchmaking would need a small backend service.
+
+## Deploy To GitHub Pages
+
+Push this project to the `main` branch of a GitHub repository.
+
+In the GitHub repository settings, open `Pages` and use:
+
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: / (root)
+```
+
+After GitHub finishes publishing, open the Pages URL and use the online room links from there.
