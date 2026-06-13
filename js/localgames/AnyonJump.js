@@ -8,6 +8,7 @@ import {
 } from '../anyon/AnyonAlgebra.js';
 import {
     appendBraidGenerator,
+    attemptUnbraid as applyUnbraidGenerator,
     attachBraidMemory,
     braidGeneratorIndex,
     braidSignFromDirection,
@@ -118,7 +119,7 @@ export class AnyonJumpGame {
             measurementHistory: [],
             noiseHistory: []
         };
-        attachBraidMemory(token);
+        attachBraidMemory(token, {}, this.config);
         this.tokens.set(tokenId, token);
         this.worldlines.set(tokenId, [cloneCoord(normalized)]);
         return token;
@@ -213,6 +214,73 @@ export class AnyonJumpGame {
         if (effect.effect === 'add_braid_token') this.braidTokens[owner] += effect.delta;
         if (effect.effect === 'score_bonus') this.score[owner] += effect.delta;
         if (effect.effect === 'flip_parity') this.parity[owner] = this.parity[owner] ? 0 : 1;
+    }
+
+    braidGeneratorFor(token, targetId, { path = [], direction = [], sign = null, index = null } = {}) {
+        const resolvedDirection = direction.length
+            ? direction
+            : (path.length > 1 ? path[1].map((value, axis) => value - path[0][axis]) : []);
+        return {
+            generator: 'sigma',
+            index: index ?? braidGeneratorIndex([...this.tokens.keys(), targetId], token.id, targetId),
+            sign: sign == null ? braidSignFromDirection(resolvedDirection) : sign,
+            targetId,
+            tick: this.moveNumber
+        };
+    }
+
+    canAttemptUnbraid(token, target) {
+        if (!target) return { ok: true };
+        if (target.owner === token.owner && !this.config.allowFriendlyUnbraid) {
+            return { ok: false, error: 'Friendly unbraid targets are disabled.' };
+        }
+        if (target.owner !== token.owner && !this.config.allowOpponentUnbraid) {
+            return { ok: false, error: 'Opponent unbraid targets are disabled.' };
+        }
+        return { ok: true };
+    }
+
+    attemptUnbraid(tokenId, targetId, { player = this.currentPlayer, path = [], direction = [], sign = null, index = null } = {}) {
+        const token = this.tokens.get(tokenId);
+        if (!token) return { ok: false, error: 'Unknown token.' };
+        if (token.owner !== player) return { ok: false, error: 'Choose one of your own anyons.' };
+        const target = this.tokens.get(targetId) || null;
+        const allowed = this.canAttemptUnbraid(token, target);
+        if (!allowed.ok) return allowed;
+
+        const resolvedPath = path.length
+            ? path.map(cloneCoord)
+            : (target ? [cloneCoord(token.coord), cloneCoord(target.coord)] : [cloneCoord(token.coord)]);
+        const resolvedDirection = direction.length
+            ? direction
+            : (resolvedPath.length > 1 ? resolvedPath[1].map((value, axis) => value - resolvedPath[0][axis]) : []);
+        const beforeWord = token.braidWord.map((entry) => ({ ...entry }));
+        const generator = this.braidGeneratorFor(token, targetId, {
+            path: resolvedPath,
+            direction: resolvedDirection,
+            sign,
+            index
+        });
+        const unbraid = applyUnbraidGenerator(token, generator, this.config);
+        const cost = this.config.unbraidActionCost;
+        if (cost > 0) {
+            this.moveNumber += cost;
+            this.currentPlayer = otherOwner(token.owner);
+        }
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player: token.owner,
+            kind: 'attempt_unbraid',
+            tokenId,
+            targetId,
+            path: resolvedPath,
+            direction: resolvedDirection,
+            beforeWord,
+            unbraid
+        };
+        this.history.unshift(event);
+        return { ok: true, event };
     }
 
     move(tokenId, toCoord) {

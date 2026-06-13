@@ -13,7 +13,11 @@ export const BRAID_CANCELLATION_MODES = Object.freeze([
 export const DEFAULT_BRAID_MEMORY_CONFIG = Object.freeze({
     braidMemoryMode: 'word_exact',
     maxBraidWordLength: 12,
-    braidCancellationMode: 'adjacent_inverse_only'
+    braidCancellationMode: 'adjacent_inverse_only',
+    allowOpponentUnbraid: true,
+    allowFriendlyUnbraid: true,
+    requireReverseInverseOrder: true,
+    unbraidActionCost: 1
 });
 
 function integer(value, fallback, min = 0, max = 1024) {
@@ -45,7 +49,16 @@ export function normalizeBraidMemoryConfig(config = {}) {
             0,
             256
         ),
-        braidCancellationMode: normalizeBraidCancellationMode(config.braidCancellationMode)
+        braidCancellationMode: normalizeBraidCancellationMode(config.braidCancellationMode),
+        allowOpponentUnbraid: config.allowOpponentUnbraid ?? DEFAULT_BRAID_MEMORY_CONFIG.allowOpponentUnbraid,
+        allowFriendlyUnbraid: config.allowFriendlyUnbraid ?? DEFAULT_BRAID_MEMORY_CONFIG.allowFriendlyUnbraid,
+        requireReverseInverseOrder: config.requireReverseInverseOrder ?? DEFAULT_BRAID_MEMORY_CONFIG.requireReverseInverseOrder,
+        unbraidActionCost: integer(
+            config.unbraidActionCost,
+            DEFAULT_BRAID_MEMORY_CONFIG.unbraidActionCost,
+            0,
+            16
+        )
     };
 }
 
@@ -65,6 +78,14 @@ export function inverseGenerator(generator) {
         ...normalized,
         sign: normalized.sign === 1 ? -1 : 1
     };
+}
+
+export function fullInverseBraidWord(word = []) {
+    return [...word].reverse().map((generator) => inverseGenerator(generator));
+}
+
+export function nextRequiredUnbraidGenerator(word = []) {
+    return word.length ? inverseGenerator(word[word.length - 1]) : null;
 }
 
 export function generatorsAreInverse(first, second) {
@@ -106,10 +127,10 @@ export function defineBraidMemoryAccessors(token) {
     return token;
 }
 
-export function attachBraidMemory(token, values = {}) {
+export function attachBraidMemory(token, values = {}, config = {}) {
     if (!token) return token;
     token.braidWord = Array.isArray(values.braidWord)
-        ? simplifyBraidWord(values.braidWord)
+        ? simplifyBraidWord(values.braidWord, config)
         : [];
     token.braidHistory = Array.isArray(values.braidHistory)
         ? values.braidHistory.map((entry) => createBraidGenerator(entry))
@@ -122,10 +143,16 @@ export function attachBraidMemory(token, values = {}) {
 
 export function appendBraidGenerator(token, generator, config = {}) {
     const normalizedConfig = normalizeBraidMemoryConfig(config);
-    attachBraidMemory(token, token);
+    attachBraidMemory(token, token, normalizedConfig);
+    const beforeWord = token.braidWord.map((entry) => ({ ...entry }));
+    const previousLast = beforeWord[beforeWord.length - 1] || null;
     if (normalizedConfig.braidMemoryMode === 'off') {
         return {
             appended: null,
+            previousLast,
+            cancelledInverse: false,
+            successfulPartialUnbraid: false,
+            fullyUnbraided: false,
             braidWord: [...token.braidWord],
             isBraided: token.isBraided
         };
@@ -152,16 +179,48 @@ export function appendBraidGenerator(token, generator, config = {}) {
         token.braidWord = simplifyBraidWord(token.braidWord, normalizedConfig);
     }
 
+    const cancelledInverse = normalizedConfig.braidMemoryMode !== 'abelian_parity'
+        && generatorsAreInverse(previousLast, normalized)
+        && token.braidWord.length === Math.max(0, beforeWord.length - 1);
+
     return {
         appended: normalized,
+        previousLast,
+        cancelledInverse,
+        successfulPartialUnbraid: cancelledInverse,
+        fullyUnbraided: token.braidWord.length === 0,
         braidWord: token.braidWord.map((entry) => ({ ...entry })),
         isBraided: token.isBraided
     };
 }
 
+export function attemptUnbraid(token, generator, config = {}) {
+    const normalizedConfig = normalizeBraidMemoryConfig(config);
+    attachBraidMemory(token, token, normalizedConfig);
+    const expected = nextRequiredUnbraidGenerator(token.braidWord);
+    const normalized = createBraidGenerator(generator);
+    const beforeLength = token.braidWord.length;
+    const result = appendBraidGenerator(token, normalized, normalizedConfig);
+    const reverseOrderRespected = !normalizedConfig.requireReverseInverseOrder
+        || !expected
+        || generatorsAreInverse(result.previousLast, normalized);
+    return {
+        action: 'attempt_unbraid',
+        expected,
+        attempted: normalized,
+        beforeLength,
+        afterLength: token.braidWord.length,
+        successfulPartialUnbraid: result.successfulPartialUnbraid && reverseOrderRespected,
+        fullyUnbraided: token.braidWord.length === 0,
+        wrongOrder: beforeLength > 0 && !result.successfulPartialUnbraid,
+        braidWord: result.braidWord,
+        isBraided: token.isBraided
+    };
+}
+
 export function mergeBraidMemory(target, source, config = {}) {
-    attachBraidMemory(target, target);
-    attachBraidMemory(source, source);
+    attachBraidMemory(target, target, config);
+    attachBraidMemory(source, source, config);
     target.braidHistory.push(...source.braidHistory.map((entry) => ({ ...entry })));
     target.braidedWith = [...new Set([...target.braidedWith, ...source.braidedWith])];
     target.braidWord = simplifyBraidWord([...target.braidWord, ...source.braidWord], config);

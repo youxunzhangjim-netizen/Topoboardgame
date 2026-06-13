@@ -387,6 +387,11 @@ h2 {
     box-shadow: 0 0 0 3px rgba(66, 198, 255, 0.85), 0 0 28px rgba(66, 198, 255, 0.4);
 }
 
+.anyon.braided {
+    outline: 2px solid rgba(242, 196, 100, 0.9);
+    outline-offset: 2px;
+}
+
 .stone.hidden, .anyon.hidden {
     color: #f2c464;
     border-style: dashed;

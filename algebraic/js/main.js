@@ -324,9 +324,11 @@ function renderAnyonToken(cell, coord) {
     const node = document.createElement('span');
     node.className = `anyon ${token.owner}`;
     if (token.id === selectedToken) node.classList.add('selected');
+    if (token.isBraided) node.classList.add('braided');
     if (token.revealed === false) node.classList.add('hidden');
     node.textContent = token.revealed === false ? '?' : token.anyonType;
-    node.title = `${token.id} ${token.owner} ${token.anyonType}; ${game.time?.tooltipForEntity(token) || ''}`;
+    const braidInfo = token.isBraided ? ` braid word ${token.braidWord.length}` : ' unbraided';
+    node.title = `${token.id} ${token.owner} ${token.anyonType};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
 
@@ -345,6 +347,26 @@ function handleCellClick(coord) {
     }
 
     const token = game.tokenAt(coord);
+    if (token && selectedToken && token.id !== selectedToken) {
+        const selected = game.tokens.get(selectedToken);
+        const path = selected ? [selected.coord, coord] : [];
+        const direction = selected ? coord.map((value, axis) => value - selected.coord[axis]) : [];
+        const result = game.attemptUnbraid(selectedToken, token.id, { path, direction });
+        if (result.ok) {
+            selectedToken = '';
+            hoverCoord = null;
+            els.statusText.textContent = result.event.unbraid.fullyUnbraided
+                ? 'Full inverse sequence completed; token is unbraided.'
+                : result.event.unbraid.successfulPartialUnbraid
+                    ? 'Correct inverse generator applied; braid word shortened.'
+                    : 'Wrong unbraid path/order; braid word grew.';
+        } else {
+            els.statusText.textContent = result.error;
+        }
+        render();
+        return;
+    }
+
     if (token && token.owner === game.currentPlayer) {
         selectedToken = token.id;
         els.statusText.textContent = `Selected ${token.id} (${token.anyonType}).`;
@@ -472,7 +494,7 @@ function updateStatus() {
 function renderLegend() {
     const items = game.mode === 'clifford_reversi'
         ? ['X,Y,Z Pauli labels', '? hidden until measured', 'Gold outline: flip preview', 'H/S transforms on flips', 'Twisted seams apply H']
-        : ['e,m,psi toric anyons', '? hidden until measured', 'Blue path: jump line', 'Diamond: fusion site', 'Braid token for e around m'];
+        : ['e,m,psi toric anyons', '? hidden until measured', 'Blue path: jump line', 'Click target: attempt unbraid', 'Braid word cancels only by inverse order'];
     els.legend.innerHTML = items.map((item) => `<span>${item}</span>`).join('');
 }
 
@@ -491,10 +513,19 @@ function renderHistory() {
             const time = event.time?.applied ? `; t${event.time.after.tick} phase ${event.time.phase}` : '';
             item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
         } else {
-            const braid = event.braid?.phase === -1 ? ' braid -1' : '';
-            const fusion = event.fusion?.resolved ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}` : '';
-            const time = event.time?.applied ? ` t${event.time.after.tick} phase ${event.time.phase}` : '';
-            item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${fusion}${time}.`;
+            if (event.kind === 'attempt_unbraid') {
+                const result = event.unbraid.fullyUnbraided
+                    ? 'fully unbraided'
+                    : event.unbraid.successfulPartialUnbraid
+                        ? 'partial inverse'
+                        : 'wrong order';
+                item.textContent = `#${event.number} ${event.player} attempt_unbraid ${event.tokenId} around ${event.targetId}: ${result}, word ${event.unbraid.afterLength}.`;
+            } else {
+                const braid = event.braid?.phase === -1 ? ' braid -1' : '';
+                const fusion = event.fusion?.resolved ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}` : '';
+                const time = event.time?.applied ? ` t${event.time.after.tick} phase ${event.time.phase}` : '';
+                item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${fusion}${time}.`;
+            }
         }
         els.historyList.append(item);
     }

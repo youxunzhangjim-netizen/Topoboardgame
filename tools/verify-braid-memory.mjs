@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import {
     appendBraidGenerator,
+    attemptUnbraid,
     attachBraidMemory,
     braidGeneratorIndex,
+    fullInverseBraidWord,
     generatorsAreInverse,
     inverseGenerator,
+    nextRequiredUnbraidGenerator,
     simplifyBraidWord
 } from '../js/anyon/BraidMemory.js';
 import { createToricAnyonLoopsGame } from '../js/anyon/AnyonEngine.js';
@@ -23,6 +26,18 @@ assert.deepEqual(simplifyBraidWord([
     inverse
 ]).map((entry) => entry.index), [2, 3, 2], 'Non-adjacent inverse pairs do not cancel.');
 
+const word = [
+    { generator: 'sigma', index: 1, sign: 1, targetId: 'a', tick: 1 },
+    { generator: 'sigma', index: 2, sign: 1, targetId: 'b', tick: 2 },
+    { generator: 'sigma', index: 1, sign: 1, targetId: 'a', tick: 3 }
+];
+assert.deepEqual(fullInverseBraidWord(word), [
+    { generator: 'sigma', index: 1, sign: -1, targetId: 'a', tick: 3 },
+    { generator: 'sigma', index: 2, sign: -1, targetId: 'b', tick: 2 },
+    { generator: 'sigma', index: 1, sign: -1, targetId: 'a', tick: 1 }
+]);
+assert.deepEqual(nextRequiredUnbraidGenerator(word), { generator: 'sigma', index: 1, sign: -1, targetId: 'a', tick: 3 });
+
 const token = attachBraidMemory({ id: 'e1', owner: 'black', anyonType: 'e', vertex: [0, 0] });
 assert.equal(token.isBraided, false);
 appendBraidGenerator(token, generator);
@@ -33,6 +48,21 @@ appendBraidGenerator(token, inverse);
 assert.equal(token.isBraided, false);
 assert.equal(token.braidWord.length, 0);
 assert.equal(token.braidHistory.length, 2, 'History preserves both events after word cancellation.');
+
+const orderedToken = attachBraidMemory({ id: 'ordered', owner: 'black', anyonType: 'e', vertex: [0, 0] });
+for (const entry of word) appendBraidGenerator(orderedToken, entry);
+const wrong = attemptUnbraid(orderedToken, { generator: 'sigma', index: 2, sign: -1, targetId: 'b', tick: 4 });
+assert.equal(wrong.successfulPartialUnbraid, false);
+assert.equal(wrong.wrongOrder, true);
+assert.equal(orderedToken.braidWord.length, 4, 'Wrong unbraid order appends instead of clearing.');
+const wrongInverse = inverseGenerator(wrong.attempted);
+const wrongRepair = attemptUnbraid(orderedToken, wrongInverse);
+assert.equal(wrongRepair.successfulPartialUnbraid, true, 'The wrong attempt can itself be unbraided by its inverse.');
+for (const entry of fullInverseBraidWord(word)) {
+    const result = attemptUnbraid(orderedToken, entry);
+    assert.equal(result.successfulPartialUnbraid, true);
+}
+assert.equal(orderedToken.isBraided, false, 'Full reverse inverse sequence empties the braid word.');
 
 const parityToken = attachBraidMemory({ id: 'p1', owner: 'black', anyonType: 'e', vertex: [0, 0] });
 appendBraidGenerator(parityToken, generator, { braidMemoryMode: 'abelian_parity' });
@@ -51,6 +81,11 @@ assert.equal(jumpResult.ok, true);
 assert.equal(jump.tokens.get('b1').braidWord.length, 1);
 assert.equal(jump.tokens.get('b1').braidedWith[0], 'w1');
 assert.equal(jump.exportState().tokens.find((entry) => entry.id === 'b1').isBraided, true);
+const jumpUnbraid = jump.attemptUnbraid('b1', 'w1', { player: 'black', sign: -1 });
+assert.equal(jumpUnbraid.ok, true);
+assert.equal(jumpUnbraid.event.kind, 'attempt_unbraid');
+assert.equal(jumpUnbraid.event.unbraid.successfulPartialUnbraid, true);
+assert.equal(jump.tokens.get('b1').isBraided, false);
 
 const loopGame = createToricAnyonLoopsGame({ width: 4, height: 4 });
 loopGame.addToken({ id: 'e1', owner: 'black', vertex: [3, 0], anyonType: 'e' });
@@ -60,5 +95,8 @@ assert.equal(loopMove.ok, true);
 assert.equal(loopGame.tokens.get('e1').braidWord.length, 1);
 assert.equal(loopGame.tokens.get('e1').braidWord[0].targetId, 'm1');
 assert.equal(loopGame.exportState().tokens.find((entry) => entry.id === 'e1').isBraided, true);
+const loopUnbraid = loopGame.attemptUnbraid('e1', 'm1', { player: 'black', sign: 1 });
+assert.equal(loopUnbraid.ok, true);
+assert.equal(loopUnbraid.event.unbraid.fullyUnbraided, true);
 
 console.log('Braid memory verification passed.');
