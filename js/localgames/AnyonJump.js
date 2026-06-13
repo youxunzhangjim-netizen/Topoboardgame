@@ -13,6 +13,7 @@ import {
     sumHomology
 } from '../topology/GraphTopologies.js';
 import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
+import { FloquetEngine } from '../time/FloquetEngine.js';
 
 export const ANYON_JUMP_MODE = 'anyon_jump';
 
@@ -53,6 +54,11 @@ export class AnyonJumpGame {
         this.moveNumber = 0;
         this.fusionSites = new Set();
         this.probability = new ProbabilityEngine(options.probability || {});
+        this.time = new FloquetEngine({
+            topology: this.topology,
+            config: options.time || options.floquet || {},
+            game: this
+        });
         this.setupInitialPosition();
     }
 
@@ -98,6 +104,10 @@ export class AnyonJumpGame {
             hiddenState,
             revealed,
             stability: Number.isFinite(Number(stability)) ? Number(stability) : 1,
+            age: 0,
+            energy: 0,
+            phaseLabel: 0,
+            cooldown: 0,
             measurementHistory: [],
             noiseHistory: []
         };
@@ -260,6 +270,7 @@ export class AnyonJumpGame {
         this.history.unshift(event);
         this.currentPlayer = otherOwner(token.owner);
         event.noise = this.maybeApplyNoise('after_move', token.owner);
+        event.time = this.maybeApplyTime('after_move', token.owner);
         return { ok: true, event };
     }
 
@@ -285,6 +296,18 @@ export class AnyonJumpGame {
             });
         }
         return events;
+    }
+
+    maybeApplyTime(trigger, player = this.currentPlayer) {
+        const completedRound = player === 'white';
+        if (!this.time?.shouldUpdate(trigger, { player, completedRound })) return null;
+        return this.time.applyTimeEvolution({
+            trigger,
+            player,
+            completedRound,
+            tokens: this.tokens,
+            game: this
+        });
     }
 
     measureAnyonCharge(tokenIds = [], player = this.currentPlayer) {
@@ -357,7 +380,8 @@ export class AnyonJumpGame {
             fusionOutcomes: this.fusionOutcomes,
             topologicalSectors: this.topologicalSectors,
             history: this.history,
-            probability: this.probability.exportState({ fusionOutcomes: this.fusionOutcomes })
+            probability: this.probability.exportState({ fusionOutcomes: this.fusionOutcomes }),
+            time: this.time.exportState()
         };
     }
 }

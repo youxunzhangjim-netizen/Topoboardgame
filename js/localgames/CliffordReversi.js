@@ -9,6 +9,7 @@ import {
     sumHomology
 } from '../topology/GraphTopologies.js';
 import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
+import { FloquetEngine } from '../time/FloquetEngine.js';
 
 export const CLIFFORD_REVERSI_MODE = 'clifford_reversi';
 
@@ -26,6 +27,11 @@ function cloneStone(stone) {
         hiddenState: stone.hiddenState ? { ...stone.hiddenState } : null,
         revealed: stone.revealed ?? true,
         stability: stone.stability ?? 1,
+        age: Number.isFinite(Number(stone.age)) ? Number(stone.age) : 0,
+        energy: Number.isFinite(Number(stone.energy)) ? Number(stone.energy) : 0,
+        phaseLabel: Number.isFinite(Number(stone.phaseLabel)) ? Number(stone.phaseLabel) : 0,
+        cooldown: Number.isFinite(Number(stone.cooldown)) ? Number(stone.cooldown) : 0,
+        temporaryAlgebra: Array.isArray(stone.temporaryAlgebra) ? [...stone.temporaryAlgebra] : [],
         measurementHistory: Array.isArray(stone.measurementHistory) ? [...stone.measurementHistory] : [],
         noiseHistory: Array.isArray(stone.noiseHistory) ? [...stone.noiseHistory] : []
     } : null;
@@ -46,6 +52,11 @@ export class CliffordReversiGame {
         this.history = [];
         this.positionHistory = [];
         this.probability = new ProbabilityEngine(options.probability || {});
+        this.time = new FloquetEngine({
+            topology: this.topology,
+            config: options.time || options.floquet || {},
+            game: this
+        });
         this.setupInitialPosition();
         this.recordPosition('setup');
     }
@@ -87,6 +98,11 @@ export class CliffordReversiGame {
             hiddenState: stone.hiddenState || null,
             revealed: stone.revealed ?? true,
             stability: Number.isFinite(Number(stone.stability)) ? Number(stone.stability) : 1,
+            age: Number.isFinite(Number(stone.age)) ? Number(stone.age) : 0,
+            energy: Number.isFinite(Number(stone.energy)) ? Number(stone.energy) : 0,
+            phaseLabel: Number.isFinite(Number(stone.phaseLabel)) ? Number(stone.phaseLabel) : 0,
+            cooldown: Number.isFinite(Number(stone.cooldown)) ? Number(stone.cooldown) : 0,
+            temporaryAlgebra: Array.isArray(stone.temporaryAlgebra) ? [...stone.temporaryAlgebra] : [],
             measurementHistory: Array.isArray(stone.measurementHistory) ? [...stone.measurementHistory] : [],
             noiseHistory: Array.isArray(stone.noiseHistory) ? [...stone.noiseHistory] : []
         });
@@ -214,7 +230,8 @@ export class CliffordReversiGame {
         this.history.unshift(event);
         this.currentPlayer = otherPlayer(player);
         event.noise = this.maybeApplyNoise('after_move', player);
-        this.recordPosition('move');
+        event.time = this.maybeApplyTime('after_move', player);
+        this.recordPosition(event.time?.applied ? 'time' : 'move');
         return { ok: true, event };
     }
 
@@ -224,6 +241,8 @@ export class CliffordReversiGame {
         this.history.unshift(event);
         this.currentPlayer = otherPlayer(player);
         event.noise = this.maybeApplyNoise('after_move', player);
+        event.time = this.maybeApplyTime('after_move', player);
+        this.recordPosition(event.time?.applied ? 'time' : 'pass');
         return { ok: true, event };
     }
 
@@ -251,6 +270,18 @@ export class CliffordReversiGame {
         }
         this.recordPosition('noise');
         return events;
+    }
+
+    maybeApplyTime(trigger, player = this.currentPlayer) {
+        const completedRound = player === 'white';
+        if (!this.time?.shouldUpdate(trigger, { player, completedRound })) return null;
+        return this.time.applyTimeEvolution({
+            trigger,
+            player,
+            completedRound,
+            board: this.board,
+            game: this
+        });
     }
 
     connectedGroup(coord) {
@@ -328,7 +359,8 @@ export class CliffordReversiGame {
             counts: this.counts(),
             history: this.history,
             positionHistory: this.positionHistory,
-            probability: this.probability.exportState()
+            probability: this.probability.exportState(),
+            time: this.time.exportState()
         };
     }
 }

@@ -240,6 +240,10 @@ h2 {
     border-color: rgba(62, 230, 138, 0.7);
 }
 
+.cell.fielded {
+    box-shadow: inset 0 0 0 2px rgba(242, 196, 100, 0.45), 0 0 14px rgba(242, 196, 100, 0.16);
+}
+
 .coord {
     position: absolute;
     left: 4px;
@@ -313,6 +317,36 @@ h2 {
     margin: 0;
     color: var(--muted);
     line-height: 1.45;
+}
+
+.time-status {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.phase-timeline {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.phase-timeline span {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.phase-timeline span.active {
+    border-color: rgba(66, 198, 255, 0.85);
+    color: var(--text);
+    background: rgba(66, 198, 255, 0.18);
 }
 
 .legend {

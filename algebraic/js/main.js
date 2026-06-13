@@ -18,6 +18,9 @@ const els = {
     noiseRateInput: document.querySelector('#noiseRateInput'),
     measurementErrorInput: document.querySelector('#measurementErrorInput'),
     applyNoiseSelect: document.querySelector('#applyNoiseSelect'),
+    floquetModeSelect: document.querySelector('#floquetModeSelect'),
+    timeUpdateSelect: document.querySelector('#timeUpdateSelect'),
+    timePeriodInput: document.querySelector('#timePeriodInput'),
     noiseSeedInput: document.querySelector('#noiseSeedInput'),
     anyonFlipControl: document.querySelector('#anyonFlipControl'),
     anyonFlipSelect: document.querySelector('#anyonFlipSelect'),
@@ -25,6 +28,7 @@ const els = {
     passButton: document.querySelector('#passButton'),
     measureButton: document.querySelector('#measureButton'),
     manualNoiseButton: document.querySelector('#manualNoiseButton'),
+    manualTimeButton: document.querySelector('#manualTimeButton'),
     exportButton: document.querySelector('#exportButton'),
     layerPanel: document.querySelector('#layerPanel'),
     zLayerInput: document.querySelector('#zLayerInput'),
@@ -38,6 +42,8 @@ const els = {
     whiteCount: document.querySelector('#whiteCount'),
     blackBraid: document.querySelector('#blackBraid'),
     whiteBraid: document.querySelector('#whiteBraid'),
+    timeStatus: document.querySelector('#timeStatus'),
+    phaseTimeline: document.querySelector('#phaseTimeline'),
     statusText: document.querySelector('#statusText'),
     historyList: document.querySelector('#historyList'),
     stochasticList: document.querySelector('#stochasticList'),
@@ -75,13 +81,49 @@ function probabilityConfig() {
     };
 }
 
+function centerCoord(offsetX = 0, offsetY = 0) {
+    const config = topologyConfig();
+    const x = Math.max(0, Math.min(config.width - 1, Math.floor(config.width / 2) + offsetX));
+    const y = Math.max(0, Math.min(config.height - 1, Math.floor(config.height / 2) + offsetY));
+    if (config.topology === 'flat_4d_grid') {
+        return [
+            x,
+            y,
+            Math.floor(Number(els.zSizeInput.value) / 2),
+            Math.floor(Number(els.wSizeInput.value) / 2)
+        ];
+    }
+    return [x, y];
+}
+
+function timeConfig() {
+    const floquetMode = els.floquetModeSelect.value;
+    const updateMode = els.timeUpdateSelect.value;
+    const hDefect = centerCoord(0, 0);
+    const sDefect = centerCoord(1, 0);
+    return {
+        floquetMode,
+        updateMode,
+        period: Number(els.timePeriodInput.value) || 4,
+        markedVertices: [hDefect],
+        hDefectVertices: [hDefect],
+        sDefectVertices: [sDefect],
+        seamAutomorphismVertices: [hDefect],
+        rechargeRate: 0.1,
+        decayRate: 0.92,
+        diffusionRate: 0.15,
+        virasoro_CFT_N2: floquetMode === 'virasoro'
+    };
+}
+
 function createGame() {
     selectedToken = '';
     hoverCoord = null;
     const options = {
         topology: topologyConfig(),
         defaultFlipTransform: els.transformSelect.value,
-        probability: probabilityConfig()
+        probability: probabilityConfig(),
+        time: timeConfig()
     };
     game = els.modeSelect.value === 'anyon_jump'
         ? new AnyonJumpGame(options)
@@ -147,6 +189,7 @@ function render() {
     renderBoard();
     renderStats();
     renderLegend();
+    renderTimePanel();
     renderHistory();
     renderStochasticLog();
     renderExport();
@@ -180,9 +223,15 @@ function renderBoard() {
         if (jumpPath.has(key)) cell.classList.add('jump-path');
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
         const vertexState = game.probability?.getVertexState(coord);
+        const timeState = game.time?.getVertexState(coord);
         if (vertexState?.noiseLevel > 0 || vertexState?.stress > 0) cell.classList.add('noisy');
+        if (timeState && (Math.abs(timeState.stress) > 0.001 || Math.abs(timeState.potential) > 0.001 || Math.abs(timeState.charge) > 0.001)) {
+            cell.classList.add('fielded');
+        }
         if (vertexState?.measured) cell.classList.add('measured');
-        cell.title = game.topology.displayCoord(coord);
+        cell.title = timeState
+            ? `${game.topology.displayCoord(coord)} stress=${timeState.stress.toFixed(2)} potential=${timeState.potential.toFixed(2)} charge=${timeState.charge.toFixed(2)}`
+            : game.topology.displayCoord(coord);
         cell.addEventListener('mouseenter', () => {
             hoverCoord = coord;
             updateBoardHighlights();
@@ -230,7 +279,13 @@ function updateBoardHighlights() {
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
         const vertexState = game.probability?.getVertexState(coord);
+        const timeState = game.time?.getVertexState(coord);
         cell.classList.toggle('noisy', Boolean(vertexState?.noiseLevel > 0 || vertexState?.stress > 0));
+        cell.classList.toggle('fielded', Boolean(timeState && (
+            Math.abs(timeState.stress) > 0.001
+            || Math.abs(timeState.potential) > 0.001
+            || Math.abs(timeState.charge) > 0.001
+        )));
         cell.classList.toggle('measured', Boolean(vertexState?.measured));
     });
 }
@@ -242,6 +297,7 @@ function renderReversiStone(cell, coord) {
     node.className = `stone ${stone.color}`;
     if (stone.revealed === false || stone.pauliLabel === 'unknown') node.classList.add('hidden');
     node.textContent = stone.revealed === false || stone.pauliLabel === 'unknown' ? '?' : stone.pauliLabel;
+    node.title = `${stone.color} ${stone.pauliLabel}; ${game.time?.tooltipForEntity(stone) || ''}`;
     cell.append(node);
 }
 
@@ -253,7 +309,7 @@ function renderAnyonToken(cell, coord) {
     if (token.id === selectedToken) node.classList.add('selected');
     if (token.revealed === false) node.classList.add('hidden');
     node.textContent = token.revealed === false ? '?' : token.anyonType;
-    node.title = `${token.id} ${token.owner} ${token.anyonType}`;
+    node.title = `${token.id} ${token.owner} ${token.anyonType}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
 
@@ -264,7 +320,7 @@ function handleCellClick(coord) {
             transform: els.transformSelect.value
         });
         els.statusText.textContent = result.ok
-            ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}.`
+            ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`
             : result.error;
         if (result.ok) hoverCoord = null;
         render();
@@ -288,7 +344,7 @@ function handleCellClick(coord) {
         hoverCoord = null;
         els.statusText.textContent = result.event.braid?.effect?.effect === 'add_braid_token'
             ? 'Jump recorded a nontrivial braid token.'
-            : `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}.`;
+            : `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`;
     } else {
         els.statusText.textContent = result.error;
     }
@@ -323,6 +379,21 @@ function applyNoiseNow() {
     render();
 }
 
+function applyTimeNow() {
+    const result = game.time?.applyTimeEvolution({
+        trigger: 'manual',
+        player: game.currentPlayer,
+        board: game.board,
+        tokens: game.tokens,
+        game
+    });
+    els.statusText.textContent = result?.applied
+        ? `Time step applied phase ${result.phase}; tick is now ${result.after.tick}.`
+        : 'Time layer is off.';
+    if (result?.applied && game.mode === 'clifford_reversi') game.recordPosition('manual-time');
+    render();
+}
+
 function renderStats() {
     if (game.mode === 'clifford_reversi') {
         const counts = game.counts();
@@ -337,6 +408,22 @@ function renderStats() {
     els.whiteCount.textContent = tokens.filter((token) => token.owner === 'white').length;
     els.blackBraid.textContent = game.braidTokens.black;
     els.whiteBraid.textContent = game.braidTokens.white;
+}
+
+function renderTimePanel() {
+    if (!game?.time) {
+        els.timeStatus.textContent = 'Time layer off.';
+        els.phaseTimeline.innerHTML = '';
+        return;
+    }
+    const state = game.time.gameTime;
+    const config = game.time.config;
+    els.timeStatus.textContent = config.floquetMode === 'off' || config.updateMode === 'off'
+        ? 'Time layer off.'
+        : `tick ${state.tick}, round ${state.round}, phase ${state.phase}/${state.period - 1}, ${config.floquetMode}, ${config.updateMode}`;
+    els.phaseTimeline.innerHTML = game.time.phaseTimeline()
+        .map((item) => `<span class="${item.active ? 'active' : ''}" title="${item.label}">${item.phase}</span>`)
+        .join('');
 }
 
 function updateStatus() {
@@ -378,11 +465,13 @@ function renderHistory() {
         } else if (event.type === 'pass') {
             item.textContent = `#${event.number} ${event.player} passed.`;
         } else if (game.mode === 'clifford_reversi') {
-            item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y}).`;
+            const time = event.time?.applied ? `; t${event.time.after.tick} phase ${event.time.phase}` : '';
+            item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
         } else {
             const braid = event.braid?.phase === -1 ? ' braid -1' : '';
             const fusion = event.fusion?.resolved ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}` : '';
-            item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${fusion}.`;
+            const time = event.time?.applied ? ` t${event.time.after.tick} phase ${event.time.phase}` : '';
+            item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${fusion}${time}.`;
         }
         els.historyList.append(item);
     }
@@ -437,6 +526,8 @@ for (const control of [
     els.noiseModeSelect,
     els.pauliNoiseTypeSelect,
     els.applyNoiseSelect,
+    els.floquetModeSelect,
+    els.timeUpdateSelect,
     els.anyonFlipSelect
 ]) {
     control.addEventListener('change', createGame);
@@ -444,6 +535,7 @@ for (const control of [
 els.noiseRateInput.addEventListener('change', createGame);
 els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
+els.timePeriodInput.addEventListener('change', createGame);
 els.transformSelect.addEventListener('change', render);
 els.pauliSelect.addEventListener('change', render);
 els.zLayerInput.addEventListener('input', render);
@@ -451,6 +543,7 @@ els.wLayerInput.addEventListener('input', render);
 els.newGameButton.addEventListener('click', createGame);
 els.measureButton.addEventListener('click', measureTarget);
 els.manualNoiseButton.addEventListener('click', applyNoiseNow);
+els.manualTimeButton.addEventListener('click', applyTimeNow);
 els.passButton.addEventListener('click', () => {
     if (game?.mode === 'clifford_reversi') {
         game.pass();

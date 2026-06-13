@@ -107,6 +107,28 @@
                 </select>
             </label>
             <label>
+                Floquet Mode
+                <select id="floquetModeSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="basic">Basic</option>
+                    <option value="clifford">Clifford</option>
+                    <option value="virasoro">Virasoro</option>
+                    <option value="anyon">Anyon</option>
+                </select>
+            </label>
+            <label>
+                Time Update
+                <select id="timeUpdateSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="after_move">After Move</option>
+                    <option value="after_full_round">After Round</option>
+                </select>
+            </label>
+            <label>
+                Period M
+                <input id="timePeriodInput" type="number" min="1" max="16" step="1" value="4">
+            </label>
+            <label>
                 RNG Seed
                 <input id="noiseSeedInput" type="text" value="topology-seed">
             </label>
@@ -121,6 +143,7 @@
             <button id="passButton" type="button">Pass</button>
             <button id="measureButton" type="button">Measure Target</button>
             <button id="manualNoiseButton" type="button">Noise Tick</button>
+            <button id="manualTimeButton" type="button">Time Step</button>
             <button id="exportButton" type="button">Export JSON</button>
         </section>
 
@@ -163,6 +186,12 @@
                         <span>Braid White</span>
                         <strong id="whiteBraid">0</strong>
                     </div>
+                </section>
+
+                <section>
+                    <h2>Discrete Time / Floquet</h2>
+                    <p id="timeStatus" class="time-status">Time layer off.</p>
+                    <div id="phaseTimeline" class="phase-timeline"></div>
                 </section>
 
                 <section>
