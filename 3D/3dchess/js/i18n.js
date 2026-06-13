@@ -180,8 +180,6 @@ const DICTIONARY = {
             fifteenMinutes: '15 Minutes',
             thirtyMinutes: '30 Minutes',
             oneHour: '1 Hour',
-            twoHours: '2 Hours',
-            threeHours: '3 Hours',
             twentyFourHours: '24 Hours'
         },
         history: {
@@ -390,8 +388,6 @@ const DICTIONARY = {
             fifteenMinutes: '15 分鐘',
             thirtyMinutes: '30 分鐘',
             oneHour: '1 小時',
-            twoHours: '2 小時',
-            threeHours: '3 小時',
             twentyFourHours: '24 小時'
         },
         history: {

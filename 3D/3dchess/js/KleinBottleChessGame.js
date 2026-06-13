@@ -2,6 +2,7 @@ import { createPiece } from './BoardSetup.js';
 import {
     KLEIN_BOARD_HEIGHT,
     KLEIN_BOARD_WIDTH,
+    KLEIN_CENTRAL_FILES,
     KLEIN_HOME_ROWS,
     KLEIN_PAWN_DIR,
     KLEIN_TOPOLOGY,
@@ -82,13 +83,25 @@ export class KleinBottleChessGame extends TorusChessGame {
         return KLEIN_PAWN_DIR[color] ?? 1;
     }
 
+    homeRow(color) {
+        return this.homeRowFor(color);
+    }
+
+    pawnDirection(color) {
+        return KLEIN_PAWN_DIR[color] ?? 1;
+    }
+
+    centralPieceFiles() {
+        return [...KLEIN_CENTRAL_FILES];
+    }
+
     getPawnMoves(x, y, sheet, forAttack) {
         const piece = this.getPiece(x, y, sheet);
         const direction = KLEIN_PAWN_DIR[piece.color];
         const moves = [];
 
         for (const dx of [-1, 1]) {
-            const target = this.resolveTarget(x + dx, y + direction, sheet);
+            const target = this.resolveTarget(x + dx, y + direction, sheet, dx, direction);
             if (forAttack) {
                 moves.push({ ...target, capture: true });
                 continue;
@@ -101,7 +114,7 @@ export class KleinBottleChessGame extends TorusChessGame {
         }
 
         if (!forAttack) {
-            const forward = this.resolveTarget(x, y + direction, sheet);
+            const forward = this.resolveTarget(x, y + direction, sheet, 0, direction);
             if (!this.sameCoord({ x, y, sheet }, forward)
                 && !this.getPiece(forward.x, forward.y, forward.sheet)) {
                 moves.push({ ...forward, capture: false });
@@ -117,16 +130,27 @@ export class KleinBottleChessGame extends TorusChessGame {
         const limit = this.boardWidth() * this.boardHeight();
 
         for (const [dx, dy] of directions) {
+            let cx = x;
+            let cy = y;
+            let currentSheet = sheet;
+            let currentDx = dx;
+            let currentDy = dy;
             const seenTargets = new Set();
-            for (let step = 1; step <= limit; step++) {
-                const targetCoord = this.resolveTarget(x + dx * step, y + dy * step, sheet);
+            for (let step = 0; step < limit; step++) {
+                const targetCoord = this.nextLineStep(cx, cy, currentSheet, currentDx, currentDy);
+                cx = targetCoord.x;
+                cy = targetCoord.y;
+                currentSheet = targetCoord.sheet;
+                currentDx = targetCoord.dx;
+                currentDy = targetCoord.dy;
+
                 if (this.sameCoord(targetCoord, { x, y, sheet })) break;
 
-                const key = `${targetCoord.sheet},${targetCoord.x},${targetCoord.y}`;
+                const key = `${currentSheet},${cx},${cy},${currentDx},${currentDy}`;
                 if (seenTargets.has(key)) break;
                 seenTargets.add(key);
 
-                const target = this.getPiece(targetCoord.x, targetCoord.y, targetCoord.sheet);
+                const target = this.getPiece(cx, cy, currentSheet);
                 if (!target) {
                     moves.push({ ...targetCoord, capture: false });
                     continue;
@@ -148,7 +172,7 @@ export class KleinBottleChessGame extends TorusChessGame {
         const moves = [];
 
         for (const [dx, dy] of offsets) {
-            const target = this.resolveTarget(x + dx, y + dy, sheet);
+            const target = this.resolveTarget(x + dx, y + dy, sheet, dx, dy);
             if (this.sameCoord({ x, y, sheet }, target)) continue;
             this.addLeaperMove(moves, target, piece, forAttack);
         }
@@ -163,7 +187,7 @@ export class KleinBottleChessGame extends TorusChessGame {
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (dx === 0 && dy === 0) continue;
-                const target = this.resolveTarget(x + dx, y + dy, sheet);
+                const target = this.resolveTarget(x + dx, y + dy, sheet, dx, dy);
                 if (this.sameCoord({ x, y, sheet }, target)) continue;
                 this.addLeaperMove(moves, target, piece, forAttack);
             }
@@ -176,8 +200,49 @@ export class KleinBottleChessGame extends TorusChessGame {
         return [];
     }
 
-    resolveTarget(x, y) {
-        return normalizeKlein(x, y, this.boardWidth(), this.boardHeight());
+    nextLineStep(x, y, sheet, dx, dy) {
+        return this.resolveTarget(x + dx, y + dy, sheet, dx, dy);
+    }
+
+    resolveTarget(x, y, sheet = 0, dx = 0, dy = 0) {
+        let nx = x;
+        let ny = y;
+        let ndx = dx;
+        const boundaryCrossings = [];
+        let guard = 0;
+
+        while ((nx < 0 || nx >= this.boardWidth() || ny < 0 || ny >= this.boardHeight())
+            && guard < this.boardWidth() + this.boardHeight()) {
+            if (nx < 0) {
+                boundaryCrossings.push(this.createBoundaryCrossing('left', this.wrapY(ny)));
+                nx += this.boardWidth();
+            } else if (nx >= this.boardWidth()) {
+                boundaryCrossings.push(this.createBoundaryCrossing('right', this.wrapY(ny)));
+                nx -= this.boardWidth();
+            } else if (ny < 0) {
+                boundaryCrossings.push(this.createBoundaryCrossing('top', this.wrapX(nx)));
+                ny += this.boardHeight();
+                nx = this.boardWidth() - 1 - nx;
+                ndx = -ndx;
+            } else if (ny >= this.boardHeight()) {
+                boundaryCrossings.push(this.createBoundaryCrossing('bottom', this.wrapX(nx)));
+                ny -= this.boardHeight();
+                nx = this.boardWidth() - 1 - nx;
+                ndx = -ndx;
+            }
+            guard++;
+        }
+
+        const coord = this.canonicalCoord(nx, ny, sheet);
+        return {
+            x: coord.x,
+            y: coord.y,
+            sheet: coord.sheet,
+            dx: ndx,
+            dy,
+            boundaryCrossings,
+            valid: true
+        };
     }
 
     canonicalCoord(x, y) {
@@ -210,5 +275,22 @@ export class KleinBottleChessGame extends TorusChessGame {
 
     isPromotionSquare(color, x, y, sheet = 0) {
         return Number(sheet) === 0 && kleinIsPromotionSquare(color, x, y);
+    }
+
+    createBoundaryCrossing(side, index) {
+        const normalized = side === 'left' || side === 'right'
+            ? this.wrapY(index)
+            : this.wrapX(index);
+        return {
+            key: this.boundaryCrossingKey(0, side, normalized),
+            fromSheet: 0,
+            toSheet: 0,
+            side,
+            index: normalized
+        };
+    }
+
+    boundaryCrossingKey(sheet, side, index) {
+        return `0:${side}:${index}`;
     }
 }
