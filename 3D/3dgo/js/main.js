@@ -946,7 +946,7 @@ class Go3DApp {
     }
 
     resetGame({ broadcast = false } = {}) {
-        if (this.settingsLocked && !broadcast && this.gameStarted) return;
+        if (!broadcast && !this.canChangeSettings()) return;
         this.logic = this.createLogic();
         this.gameStarted = false;
         this.settingsLocked = this.network?.isConnected || false;
@@ -973,6 +973,7 @@ class Go3DApp {
                 this.stopTimer();
                 this.setStatus(tr('status.timedOut', { color: this.colorName(color), winner: this.colorName(this.logic.winner) }));
                 this.broadcastState();
+                this.updateUI();
             }
             this.updateTimerDisplay();
         }, 1000);
@@ -989,6 +990,15 @@ class Go3DApp {
         return this.network.isConnected && this.myColor === color;
     }
 
+    hasActiveGame() {
+        return this.gameStarted && !this.logic.gameOver;
+    }
+
+    canChangeSettings() {
+        if (this.logic.gameOver) return true;
+        return !this.hasActiveGame() && !this.network.isConnected;
+    }
+
     lockSettings() {
         this.settingsLocked = true;
         this.modeSelect.disabled = true;
@@ -997,11 +1007,19 @@ class Go3DApp {
     }
 
     unlockSettingsIfLocal() {
-        if (this.gameStarted || this.network.isConnected) return;
+        if (!this.canChangeSettings()) return;
         this.settingsLocked = false;
         this.modeSelect.disabled = false;
         this.sizeSelect.disabled = false;
         this.timerSelect.disabled = false;
+    }
+
+    updateSettingsLockState() {
+        const locked = !this.canChangeSettings();
+        this.settingsLocked = locked;
+        this.modeSelect.disabled = locked;
+        this.sizeSelect.disabled = locked;
+        this.timerSelect.disabled = locked;
     }
 
     updateOnlineControls() {
@@ -1017,6 +1035,7 @@ class Go3DApp {
     }
 
     updateUI() {
+        this.updateSettingsLockState();
         const isR3 = this.logic.topology === 'r3';
         const isSphere = this.logic.topology === SPHERE_GO_TOPOLOGY;
         const isKlein = this.logic.topology === KLEIN_BOTTLE_TOPOLOGY;

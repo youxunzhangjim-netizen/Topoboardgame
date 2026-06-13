@@ -242,7 +242,7 @@ class Go2DApp {
     }
 
     resetGame({ broadcast = false } = {}) {
-        if (this.settingsLocked && !broadcast && this.gameStarted) return;
+        if (!broadcast && !this.canChangeSettings()) return;
         this.logic.reset({ size: this.boardSize(), topology: this.boundarySelect.value, dimension: 2, komi: KOMI });
         this.gameStarted = false;
         this.settingsLocked = this.network.isConnected;
@@ -270,6 +270,7 @@ class Go2DApp {
                 this.stopTimer();
                 this.setStatus(`${this.capitalize(color)} ran out of time. ${this.capitalize(this.logic.winner)} wins.`);
                 this.broadcastState();
+                this.updateUI();
             }
             this.updateTimerDisplay();
         }, 1000);
@@ -445,6 +446,15 @@ class Go2DApp {
         return this.network.isConnected && this.myColor === color;
     }
 
+    hasActiveGame() {
+        return this.gameStarted && !this.logic.gameOver;
+    }
+
+    canChangeSettings() {
+        if (this.logic.gameOver) return true;
+        return !this.hasActiveGame() && !this.network.isConnected;
+    }
+
     lockSettings() {
         this.settingsLocked = true;
         this.sizeSelect.disabled = true;
@@ -453,11 +463,19 @@ class Go2DApp {
     }
 
     unlockSettingsIfLocal() {
-        if (this.gameStarted || this.network.isConnected) return;
+        if (!this.canChangeSettings()) return;
         this.settingsLocked = false;
         this.sizeSelect.disabled = false;
         this.boundarySelect.disabled = false;
         this.timerSelect.disabled = false;
+    }
+
+    updateSettingsLockState() {
+        const locked = !this.canChangeSettings();
+        this.settingsLocked = locked;
+        this.sizeSelect.disabled = locked;
+        this.boundarySelect.disabled = locked;
+        this.timerSelect.disabled = locked;
     }
 
     updateOnlineControls() {
@@ -473,6 +491,7 @@ class Go2DApp {
     }
 
     updateUI() {
+        this.updateSettingsLockState();
         const topology = normalizeTopology(this.logic.topology);
         const periodic = topology === 'pbc';
         const klein = topology === 'klein';
@@ -660,4 +679,4 @@ class Go2DApp {
     }
 }
 
-new Go2DApp();
+window.go2dApp = new Go2DApp();

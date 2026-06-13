@@ -108,14 +108,17 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-4dgo">0 waiting</span>
                     </a>
-                    <a class="game-option" href="./algebraic/">
-                        <span class="game-option-copy">
-                            <strong>Algebraic Modes</strong>
-                            <small>Clifford Reversi and Anyon Jump</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-algebraic">0 waiting</span>
-                    </a>
                 </section>
+            </div>
+
+            <div class="extra-mode-row" aria-label="Extra board game modes">
+                <a class="extra-mode-card" href="./algebraic/">
+                    <span class="extra-mode-copy">
+                        <strong>Algebraic Modes</strong>
+                        <small>Clifford Reversi and Anyon Jump on topology graphs</small>
+                    </span>
+                    <span class="game-count-badge" data-popularity-key="game-algebraic">0 waiting</span>
+                </a>
             </div>
         </section>
     </main>
@@ -148,8 +151,7 @@
                 '3dchess': '3d',
                 '3dgo': '3d',
                 '4dchess': '4d',
-                '4dgo': '4d',
-                algebraic: '4d'
+                '4dgo': '4d'
             };
             const EMPTY_COUNTS = {
                 'dimension-2d': 0,
@@ -201,10 +203,10 @@
 
                     const game = GAME_BY_VARIANT[match[1]];
                     const dimension = DIMENSION_BY_GAME[game];
-                    if (!game || !dimension) continue;
+                    if (!game) continue;
 
                     counts[`game-${game}`] += 1;
-                    counts[`dimension-${dimension}`] += 1;
+                    if (dimension) counts[`dimension-${dimension}`] += 1;
                 }
 
                 return counts;

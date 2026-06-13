@@ -300,8 +300,17 @@ export class ChessGame {
         }
     }
 
+    hasActiveGame() {
+        return this.gameStarted && !this.gameOver;
+    }
+
+    canChangeSettings() {
+        if (this.gameOver) return true;
+        return !this.hasActiveGame() && !this.network.isConnected;
+    }
+
     unlockGameSettings() {
-        const canUnlock = this.gameMode !== 'online' && !this.network.isConnected;
+        const canUnlock = this.canChangeSettings();
         for (const id of ['boundarySelect', 'timerSelect', 'gameModeSelect']) {
             const el = document.getElementById(id);
             if (el) el.disabled = !canUnlock;
@@ -543,6 +552,7 @@ export class ChessGame {
         this.clearSelection();
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.setStatus(key, params);
+        this.unlockGameSettings();
         this.renderBoard();
         this.updateUI();
     }
@@ -620,7 +630,7 @@ export class ChessGame {
 
     attachEventListeners() {
         document.getElementById('gameModeSelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = this.gameMode;
                 alert(this.tr('alerts.modeLocked'));
                 return;
@@ -670,7 +680,7 @@ export class ChessGame {
         });
 
         document.getElementById('boundarySelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = this.boundaryCondition;
                 alert(this.tr('alerts.boundaryLocked'));
                 return;
@@ -683,7 +693,7 @@ export class ChessGame {
         });
 
         document.getElementById('timerSelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = String(this.timeLimit);
                 alert(this.tr('alerts.timerLocked'));
                 return;

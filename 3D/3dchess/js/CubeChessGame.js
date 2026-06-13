@@ -290,8 +290,17 @@ export class CubeChessGame {
         }
     }
 
+    hasActiveGame() {
+        return this.gameStarted && !this.gameOver;
+    }
+
+    canChangeSettings() {
+        if (this.gameOver) return true;
+        return !this.hasActiveGame() && !this.network.isConnected;
+    }
+
     unlockGameSettings() {
-        const canUnlock = this.gameMode !== 'online' && !this.network.isConnected;
+        const canUnlock = this.canChangeSettings();
         for (const id of ['boundarySelect', 'timerSelect', 'gameModeSelect']) {
             const el = document.getElementById(id);
             if (el) el.disabled = !canUnlock;
@@ -982,6 +991,7 @@ export class CubeChessGame {
         this.clearSelection();
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.setStatus(key, params);
+        this.unlockGameSettings();
         this.updateUI();
     }
 
@@ -1072,7 +1082,7 @@ export class CubeChessGame {
         document.getElementById('cameraReset').addEventListener('click', () => this.renderer.resetCamera());
 
         document.getElementById('gameModeSelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = this.gameMode;
                 alert(this.tr('alerts.modeLocked'));
                 return;
@@ -1122,7 +1132,7 @@ export class CubeChessGame {
         });
 
         document.getElementById('boundarySelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = this.boundaryCondition;
                 alert(this.tr('alerts.boundaryLocked'));
                 return;
@@ -1133,7 +1143,7 @@ export class CubeChessGame {
         });
 
         document.getElementById('timerSelect').addEventListener('change', (event) => {
-            if (this.gameStarted || this.network.isConnected) {
+            if (!this.canChangeSettings()) {
                 event.target.value = String(this.timeLimit);
                 alert(this.tr('alerts.timerLocked'));
                 return;
