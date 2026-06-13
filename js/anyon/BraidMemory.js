@@ -102,9 +102,81 @@ export function generatorsAreInverse(first, second) {
         && left.sign === -right.sign;
 }
 
+function generatorComparable(a, b) {
+    if (a.generator !== b.generator) return false;
+    if (a.sign !== b.sign) return false;
+    return true;
+}
+
+function generatorOrderKey(generator) {
+    return [
+        generator.generator,
+        String(generator.index).padStart(4, '0'),
+        generator.sign < 0 ? '1' : '0',
+        generator.targetId
+    ].join(':');
+}
+
+function braidTripleKey(triple) {
+    return triple.map(generatorOrderKey).join('|');
+}
+
+function relationEquivalentTriple(triple) {
+    const [a, b, c] = triple;
+    if (a.generator !== b.generator || b.generator !== c.generator) return null;
+    if (a.sign !== b.sign || b.sign !== c.sign) return null;
+    if (a.index !== c.index || a.targetId !== c.targetId) return null;
+    if (Math.abs(a.index - b.index) !== 1) return null;
+    return [
+        { ...b },
+        { ...a },
+        { ...b }
+    ];
+}
+
+function simplifyBraidGroupRelations(word = []) {
+    const simplified = word.map((entry) => createBraidGenerator(entry));
+    let changed = true;
+    let guard = simplified.length * simplified.length + 8;
+    while (changed && guard > 0) {
+        changed = false;
+        guard--;
+
+        for (let index = 0; index < simplified.length - 1; index++) {
+            if (generatorsAreInverse(simplified[index], simplified[index + 1])) {
+                simplified.splice(index, 2);
+                changed = true;
+                index = Math.max(-1, index - 2);
+            }
+        }
+
+        for (let index = 0; index < simplified.length - 1; index++) {
+            const left = simplified[index];
+            const right = simplified[index + 1];
+            if (generatorComparable(left, right)
+                && Math.abs(left.index - right.index) > 1
+                && generatorOrderKey(right) < generatorOrderKey(left)) {
+                simplified[index] = right;
+                simplified[index + 1] = left;
+                changed = true;
+            }
+        }
+
+        for (let index = 0; index < simplified.length - 2; index++) {
+            const triple = simplified.slice(index, index + 3);
+            const equivalent = relationEquivalentTriple(triple);
+            if (equivalent && braidTripleKey(equivalent) < braidTripleKey(triple)) {
+                simplified.splice(index, 3, ...equivalent);
+                changed = true;
+            }
+        }
+    }
+    return simplified;
+}
+
 export function simplifyBraidWord(word = [], config = {}) {
     const normalizedConfig = normalizeBraidMemoryConfig(config);
-    const simplified = [];
+    let simplified = [];
     for (const generator of word) {
         const normalized = createBraidGenerator(generator);
         const previous = simplified[simplified.length - 1];
@@ -114,9 +186,29 @@ export function simplifyBraidWord(word = [], config = {}) {
             simplified.push(normalized);
         }
     }
+    if (normalizedConfig.braidCancellationMode === 'braid_group_relations') {
+        simplified = simplifyBraidGroupRelations(simplified);
+    }
 
     if (normalizedConfig.maxBraidWordLength <= 0) return [];
     return simplified.slice(-normalizedConfig.maxBraidWordLength);
+}
+
+export function braidGeneratorToText(generator, { displayBase = 1 } = {}) {
+    if (!generator) return '';
+    const normalized = createBraidGenerator(generator);
+    const index = normalized.index + displayBase;
+    return normalized.sign < 0 ? `σ${index}^-1` : `σ${index}`;
+}
+
+export function braidWordToText(word = [], options = {}) {
+    return word.length
+        ? word.map((generator) => braidGeneratorToText(generator, options)).join(' ')
+        : 'identity';
+}
+
+export function requiredInverseBraidWordText(word = [], options = {}) {
+    return braidWordToText(fullInverseBraidWord(word), options);
 }
 
 export function defineBraidMemoryAccessors(token) {

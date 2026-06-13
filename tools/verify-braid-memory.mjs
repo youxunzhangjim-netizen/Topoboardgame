@@ -3,11 +3,14 @@ import {
     appendBraidGenerator,
     attemptUnbraid,
     attachBraidMemory,
+    braidGeneratorToText,
     braidGeneratorIndex,
+    braidWordToText,
     fullInverseBraidWord,
     generatorsAreInverse,
     inverseGenerator,
     nextRequiredUnbraidGenerator,
+    requiredInverseBraidWordText,
     simplifyBraidWord
 } from '../js/anyon/BraidMemory.js';
 import { detectTopologyBraidEvents } from '../js/anyon/BraidPathDetector.js';
@@ -40,6 +43,10 @@ assert.deepEqual(fullInverseBraidWord(word), [
     { generator: 'sigma', index: 1, sign: -1, targetId: 'a', tick: 1 }
 ]);
 assert.deepEqual(nextRequiredUnbraidGenerator(word), { generator: 'sigma', index: 1, sign: -1, targetId: 'a', tick: 3 });
+assert.equal(braidGeneratorToText({ generator: 'sigma', index: 0, sign: 1 }), 'σ1');
+assert.equal(braidGeneratorToText({ generator: 'sigma', index: 0, sign: -1 }), 'σ1^-1');
+assert.equal(braidWordToText(word), 'σ2 σ3 σ2');
+assert.equal(requiredInverseBraidWordText(word), 'σ2^-1 σ3^-1 σ2^-1');
 
 const token = attachBraidMemory({ id: 'e1', owner: 'black', anyonType: 'e', vertex: [0, 0] });
 assert.equal(token.isBraided, false);
@@ -66,6 +73,29 @@ for (const entry of fullInverseBraidWord(word)) {
     assert.equal(result.successfulPartialUnbraid, true);
 }
 assert.equal(orderedToken.isBraided, false, 'Full reverse inverse sequence empties the braid word.');
+
+const exactToken = attachBraidMemory({ id: 'exact', owner: 'black', anyonType: 'e', vertex: [0, 0] });
+appendBraidGenerator(exactToken, { generator: 'sigma', index: 0, sign: 1, targetId: 'a' }, { braidMemoryMode: 'word_exact' });
+appendBraidGenerator(exactToken, { generator: 'sigma', index: 1, sign: 1, targetId: 'b' }, { braidMemoryMode: 'word_exact' });
+appendBraidGenerator(exactToken, { generator: 'sigma', index: 0, sign: 1, targetId: 'a' }, { braidMemoryMode: 'word_exact' });
+assert.equal(braidWordToText(exactToken.braidWord), 'σ1 σ2 σ1');
+assert.equal(requiredInverseBraidWordText(exactToken.braidWord), 'σ1^-1 σ2^-1 σ1^-1');
+const wrongExact = attemptUnbraid(exactToken, { generator: 'sigma', index: 1, sign: -1, targetId: 'b' }, { braidMemoryMode: 'word_exact' });
+assert.equal(wrongExact.successfulPartialUnbraid, false);
+assert.equal(wrongExact.wrongOrder, true);
+assert.equal(exactToken.braidWord.length, 4, 'Wrong exact-word inverse attempts append.');
+
+const relationWord = simplifyBraidWord([
+    { generator: 'sigma', index: 3, sign: 1, targetId: 'far' },
+    { generator: 'sigma', index: 0, sign: 1, targetId: 'near' }
+], { braidCancellationMode: 'braid_group_relations' });
+assert.deepEqual(relationWord.map((entry) => entry.index), [0, 3], 'Far-apart generators commute in relation mode.');
+const braidRelationWord = simplifyBraidWord([
+    { generator: 'sigma', index: 1, sign: 1, targetId: 'b' },
+    { generator: 'sigma', index: 0, sign: 1, targetId: 'a' },
+    { generator: 'sigma', index: 1, sign: 1, targetId: 'b' }
+], { braidCancellationMode: 'braid_group_relations' });
+assert.deepEqual(braidRelationWord.map((entry) => entry.index), [0, 1, 0], 'Adjacent braid relation normalizes to the stable representative.');
 
 const parityToken = attachBraidMemory({ id: 'p1', owner: 'black', anyonType: 'e', vertex: [0, 0] });
 const parityFirst = appendBraidGenerator(parityToken, generator, { braidMemoryMode: 'abelian_parity' });
@@ -152,6 +182,25 @@ assert.equal(trivialResult.ok, true);
 assert.equal(trivialJump.tokens.get('e1').braidParity, 0, 'e around e is trivial in abelian parity mode.');
 assert.equal(trivialJump.tokens.get('e1').isBraided, false);
 assert.equal(trivialResult.event.braid.skipped, 'abelian_trivial_mutual_braid');
+
+const exactJump = new AnyonJumpGame({
+    topology: { topology: 'torus', width: 4, height: 4 },
+    config: { braidMemoryMode: 'word_exact' }
+});
+exactJump.tokens.clear();
+exactJump.worldlines.clear();
+exactJump.addToken({ id: 'x1', owner: 'black', coord: [0, 0], anyonType: 'e' });
+exactJump.addToken({ id: 'x2', owner: 'white', coord: [1, 0], anyonType: 'm' });
+const exactJumpResult = exactJump.move('x1', [2, 0]);
+assert.equal(exactJumpResult.ok, true);
+assert.equal(exactJump.tokens.get('x1').braidWord.length, 1);
+assert.equal(exactJump.tokens.get('x1').braidParity, 0, 'Word-exact mode does not use Z2 parity.');
+const exactWrong = exactJump.attemptUnbraid('x1', 'x2', { player: 'black', sign: 1 });
+assert.equal(exactWrong.ok, true);
+assert.equal(exactWrong.event.unbraid.successfulPartialUnbraid, false);
+assert.equal(exactJump.tokens.get('x1').braidWord.length, 2);
+const exactRepair = exactJump.attemptUnbraid('x1', 'x2', { player: 'white', sign: -1 });
+assert.equal(exactRepair.ok, false, 'Only the moving token owner can unbraid.');
 
 const loopGame = createToricAnyonLoopsGame({ width: 4, height: 4 });
 loopGame.addToken({ id: 'e1', owner: 'black', vertex: [3, 0], anyonType: 'e' });

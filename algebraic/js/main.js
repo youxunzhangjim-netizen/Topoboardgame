@@ -1,5 +1,10 @@
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
+import {
+    braidWordToText,
+    nextRequiredUnbraidGenerator,
+    requiredInverseBraidWordText
+} from '../../js/anyon/BraidMemory.js';
 
 const els = {
     modeSelect: document.querySelector('#modeSelect'),
@@ -15,6 +20,10 @@ const els = {
     transformSelect: document.querySelector('#transformSelect'),
     pauliControl: document.querySelector('#pauliControl'),
     transformControl: document.querySelector('#transformControl'),
+    braidMemoryControl: document.querySelector('#braidMemoryControl'),
+    braidMemoryModeSelect: document.querySelector('#braidMemoryModeSelect'),
+    braidCancellationControl: document.querySelector('#braidCancellationControl'),
+    braidCancellationModeSelect: document.querySelector('#braidCancellationModeSelect'),
     noiseModeSelect: document.querySelector('#noiseModeSelect'),
     pauliNoiseControl: document.querySelector('#pauliNoiseControl'),
     pauliNoiseTypeSelect: document.querySelector('#pauliNoiseTypeSelect'),
@@ -123,12 +132,21 @@ function timeConfig() {
     };
 }
 
+function anyonConfig() {
+    return {
+        braidMemoryMode: els.braidMemoryModeSelect.value,
+        braidCancellationMode: els.braidCancellationModeSelect.value,
+        requireReverseInverseOrder: true
+    };
+}
+
 function createGame() {
     selectedToken = '';
     hoverCoord = null;
     const options = {
         topology: topologyConfig(),
         defaultFlipTransform: els.transformSelect.value,
+        config: anyonConfig(),
         probability: probabilityConfig(),
         time: timeConfig()
     };
@@ -189,6 +207,8 @@ function render() {
     els.topologyHint.textContent = game.topology.seamSummary();
     els.pauliControl.hidden = isAnyon;
     els.transformControl.hidden = isAnyon;
+    els.braidMemoryControl.hidden = !isAnyon;
+    els.braidCancellationControl.hidden = !isAnyon || els.braidMemoryModeSelect.value !== 'word_exact';
     els.passButton.hidden = isAnyon;
     const is4D = els.topologySelect.value === 'flat_4d_grid';
     const noiseEnabled = els.noiseModeSelect.value !== 'off';
@@ -227,6 +247,7 @@ function renderBoard() {
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
+    const cancelTargetId = cancelTargetForSelectedToken();
 
     for (const coord of visibleCells()) {
         const key = coordKey(coord);
@@ -236,6 +257,8 @@ function renderBoard() {
         cell.dataset.coord = JSON.stringify(coord);
         cell.dataset.key = key;
         if (legalReversi.has(key) || legalAnyonTargets.has(key)) cell.classList.add('legal');
+        const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
+        if (token && token.id === cancelTargetId) cell.classList.add('cancel-latest');
         if (previewFlips.has(key)) cell.classList.add('preview-flip');
         if (jumpPath.has(key)) cell.classList.add('jump-path');
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
@@ -287,11 +310,14 @@ function updateBoardHighlights() {
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
+    const cancelTargetId = cancelTargetForSelectedToken();
 
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
+        const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
         cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key));
+        cell.classList.toggle('cancel-latest', Boolean(token && token.id === cancelTargetId));
         cell.classList.toggle('preview-flip', previewFlips.has(key));
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
@@ -305,6 +331,16 @@ function updateBoardHighlights() {
         )));
         cell.classList.toggle('measured', Boolean(vertexState?.measured));
     });
+}
+
+function cancelTargetForSelectedToken() {
+    if (game?.mode !== 'anyon_jump' || !selectedToken) return '';
+    const token = game.tokens.get(selectedToken);
+    if (!token) return '';
+    if (game.config?.braidMemoryMode === 'abelian_parity') {
+        return token.braidParity === 1 ? (token.braidedWith[token.braidedWith.length - 1] || '') : '';
+    }
+    return nextRequiredUnbraidGenerator(token.braidWord)?.targetId || '';
 }
 
 function renderReversiStone(cell, coord) {
@@ -329,7 +365,9 @@ function renderAnyonToken(cell, coord) {
     node.textContent = token.revealed === false ? '?' : token.anyonType;
     const parity = token.braidParity || 0;
     const inverseInfo = parity === 1 || token.isBraided ? '; inverse loop available' : '';
-    const braidInfo = ` parity ${parity}; braid word ${token.braidWord.length}${inverseInfo}`;
+    const word = braidWordToText(token.braidWord);
+    const required = requiredInverseBraidWordText(token.braidWord);
+    const braidInfo = ` parity ${parity}; braid word ${word}; required inverse ${required}${inverseInfo}`;
     node.title = `${token.id} ${token.owner} ${token.anyonType};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
@@ -491,7 +529,9 @@ function updateStatus() {
         const inverse = token && ((token.braidParity || 0) === 1 || token.isBraided)
             ? ' Click a braid target to try the inverse loop.'
             : '';
-        els.statusText.textContent = `Selected ${selectedToken}: parity ${token?.braidParity || 0}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${inverse}`;
+        const next = token ? nextRequiredUnbraidGenerator(token.braidWord) : null;
+        const cancel = next ? ` Next cancel: ${braidWordToText([next])} around ${next.targetId}.` : '';
+        els.statusText.textContent = `Selected ${selectedToken}: parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}`;
     } else {
         els.statusText.textContent = 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
@@ -588,7 +628,9 @@ for (const control of [
     els.applyNoiseSelect,
     els.floquetModeSelect,
     els.timeUpdateSelect,
-    els.anyonFlipSelect
+    els.anyonFlipSelect,
+    els.braidMemoryModeSelect,
+    els.braidCancellationModeSelect
 ]) {
     control.addEventListener('change', createGame);
 }

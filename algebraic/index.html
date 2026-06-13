@@ -90,6 +90,20 @@
                             <option value="S">S</option>
                         </select>
                     </label>
+                    <label id="braidMemoryControl">
+                        Braid Memory
+                        <select id="braidMemoryModeSelect">
+                            <option value="abelian_parity">Abelian Parity</option>
+                            <option value="word_exact" selected>Word Exact</option>
+                        </select>
+                    </label>
+                    <label id="braidCancellationControl">
+                        Cancellation
+                        <select id="braidCancellationModeSelect">
+                            <option value="adjacent_inverse_only" selected>Adjacent Inverse</option>
+                            <option value="braid_group_relations">Braid Relations</option>
+                        </select>
+                    </label>
                 </div>
                 <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
             </div>
