@@ -133,6 +133,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-4dgo">0 waiting</span>
                     </a>
+                    <a class="game-option" href="./4D/4dreversi/">
+                        <span class="game-option-copy">
+                            <strong data-i18n="games.4dreversi.title">4D Reversi</strong>
+                            <small data-i18n="games.4dreversi.desc">5^4 graph Reversi slices</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-4dreversi">0 waiting</span>
+                    </a>
                 </section>
             </div>
 
@@ -201,6 +208,7 @@
                         '3dgo': { title: '3D Go', desc: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, and S2 Go' },
                         '3dreversi': { title: '3D Reversi', desc: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, and S2 Reversi' },
                         '4dgo': { title: '4D Go', desc: '5^4 graph Go slices' },
+                        '4dreversi': { title: '4D Reversi', desc: '5^4 graph Reversi slices' },
                         clifford: { title: 'Clifford Reversi', desc: 'Pauli-labelled Reversi with topology-aware flips' },
                         anyon: { title: 'Anyon Jump Chess', desc: 'Jump-game braiding, fusion, and unbraiding' },
                         virasoro: { title: 'Virasoro Go', desc: 'Graph Go with optional stress actions L_n' }
@@ -299,6 +307,12 @@
                     availableTitle: '{count} online matchmaking {noun}'
                 }
             });
+            Object.assign(LAUNCHER_I18N.en.games, {
+                '4dreversi': { title: '4D Reversi', desc: '5^4 graph Reversi slices' }
+            });
+            Object.assign(LAUNCHER_I18N.zh.games, {
+                '4dreversi': { title: '4D 黑白棋', desc: '5^4 graph Reversi 切片' }
+            });
             const PEER_LIST_URL = 'https://0.peerjs.com/peerjs/peers';
             const PEER_VERSION = '1.5.5';
             const MATCHMAKING_BUCKET_MS = 60000;
@@ -321,6 +335,7 @@
                 '3dreversi': '3dreversi',
                 kleingo: '2dgo',
                 '4dgo': '4dgo',
+                '4dreversi': '4dreversi',
                 clifford_reversi: 'clifford_reversi',
                 anyon_jump: 'anyon_jump',
                 virasoro_go: 'virasoro_go'
@@ -332,7 +347,8 @@
                 '3dchess': '3d',
                 '3dgo': '3d',
                 '3dreversi': '3d',
-                '4dgo': '4d'
+                '4dgo': '4d',
+                '4dreversi': '4d'
             };
             const EMPTY_COUNTS = {
                 'dimension-2d': 0,
@@ -345,6 +361,7 @@
                 'game-3dgo': 0,
                 'game-3dreversi': 0,
                 'game-4dgo': 0,
+                'game-4dreversi': 0,
                 'game-clifford_reversi': 0,
                 'game-anyon_jump': 0,
                 'game-virasoro_go': 0

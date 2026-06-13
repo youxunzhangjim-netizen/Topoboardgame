@@ -14,6 +14,7 @@ export const REVERSI_TOPOLOGIES = {
     R3: 'r3',
     T3: 't3',
     R3_RANDOM: 'r3_random',
+    R4: 'r4',
     T2: 't2',
     SPHERE: 'sphere'
 };
@@ -167,6 +168,10 @@ function is3DReversiTopology(topology) {
         topology === REVERSI_TOPOLOGIES.R3_RANDOM;
 }
 
+function is4DReversiTopology(topology) {
+    return topology === REVERSI_TOPOLOGIES.R4;
+}
+
 export function createReversiTopology(options = {}) {
     const topology = normalizeReversiTopology(options.topology);
     const size = normalizeReversiSize(options.size, {
@@ -174,11 +179,14 @@ export function createReversiTopology(options = {}) {
         min: options.minSize || 4,
         max: options.maxSize || 30
     });
-    const dimension = is3DReversiTopology(topology) ? 3 : 2;
+    const dimension = is4DReversiTopology(topology) ? 4 : is3DReversiTopology(topology) ? 3 : 2;
     const width = normalizeReversiSize(options.width ?? size, { fallback: size, min: 4, max: options.maxSize || 30 });
     const height = normalizeReversiSize(options.height ?? size, { fallback: size, min: 4, max: options.maxSize || 30 });
-    const depth = dimension === 3
+    const depth = dimension >= 3
         ? normalizeReversiSize(options.depth ?? size, { fallback: size, min: 4, max: options.maxSize || 30 })
+        : 1;
+    const wSize = dimension === 4
+        ? normalizeReversiSize(options.wSize ?? options.nw ?? size, { fallback: size, min: 4, max: options.maxSize || 30 })
         : 1;
     const directions = createDirections(dimension);
     const hasRandomBoundary = topology === REVERSI_TOPOLOGIES.RANDOM || topology === REVERSI_TOPOLOGIES.R3_RANDOM;
@@ -198,20 +206,22 @@ export function createReversiTopology(options = {}) {
         width,
         height,
         depth,
+        wSize,
         directions,
         randomBoundarySeed,
         randomBoundaryMap,
-        totalVertices: width * height * depth,
+        totalVertices: width * height * depth * wSize,
         key: coordinateKey,
         contains(coord) {
             if (!Array.isArray(coord) || coord.length < dimension) return false;
             if (coord[0] < 0 || coord[0] >= width) return false;
             if (coord[1] < 0 || coord[1] >= height) return false;
-            if (dimension === 3 && (coord[2] < 0 || coord[2] >= depth)) return false;
+            if (dimension >= 3 && (coord[2] < 0 || coord[2] >= depth)) return false;
+            if (dimension === 4 && (coord[3] < 0 || coord[3] >= wSize)) return false;
             return true;
         },
         normalize(coord) {
-            const [x, y, z = 0] = coord;
+            const [x, y, z = 0, w = 0] = coord;
             if (topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2) {
                 return [mod(x, width), mod(y, height)];
             }
@@ -232,6 +242,10 @@ export function createReversiTopology(options = {}) {
             if (topology === REVERSI_TOPOLOGIES.R3 || topology === REVERSI_TOPOLOGIES.R3_RANDOM) {
                 if (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth) return null;
                 return [x, y, z];
+            }
+            if (topology === REVERSI_TOPOLOGIES.R4) {
+                if (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth || w < 0 || w >= wSize) return null;
+                return [x, y, z, w];
             }
             if (x < 0 || x >= width || y < 0 || y >= height) return null;
             return [x, y];
@@ -268,6 +282,16 @@ export function createReversiTopology(options = {}) {
         },
         allCoords() {
             const coords = [];
+            if (dimension === 4) {
+                for (let w = 0; w < wSize; w += 1) {
+                    for (let z = 0; z < depth; z += 1) {
+                        for (let y = 0; y < height; y += 1) {
+                            for (let x = 0; x < width; x += 1) coords.push([x, y, z, w]);
+                        }
+                    }
+                }
+                return coords;
+            }
             if (dimension === 3) {
                 for (let z = 0; z < depth; z += 1) {
                     for (let y = 0; y < height; y += 1) {
@@ -292,6 +316,7 @@ export function normalizeReversiTopology(value) {
     if (['r3', '3d', 'cube'].includes(text)) return REVERSI_TOPOLOGIES.R3;
     if (['t3', 't3_pbc', 't3-pbc', 'pbc3d', '3d_pbc', '3dpbc'].includes(text)) return REVERSI_TOPOLOGIES.T3;
     if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', '3drbc', 'random3d'].includes(text)) return REVERSI_TOPOLOGIES.R3_RANDOM;
+    if (['r4', '4d', 'flat_4d_reversi', 'flat4d', '4d_reversi'].includes(text)) return REVERSI_TOPOLOGIES.R4;
     if (['t2', 'torus', 'torus2d'].includes(text)) return REVERSI_TOPOLOGIES.T2;
     if (['s2', 'sphere', 'sphere_latitude_ring'].includes(text)) return REVERSI_TOPOLOGIES.SPHERE;
     return REVERSI_TOPOLOGIES.OPEN_2D;
@@ -325,6 +350,26 @@ export class ReversiGame {
         const highX = midX;
         const lowY = midY - 1;
         const highY = midY;
+
+        if (this.topology.dimension === 4) {
+            const midZ = Math.floor(this.topology.depth / 2);
+            const lowZ = midZ - 1;
+            const highZ = midZ;
+            const midW = Math.floor(this.topology.wSize / 2);
+            const lowW = midW - 1;
+            const highW = midW;
+            for (const w of [lowW, highW]) {
+                for (const z of [lowZ, highZ]) {
+                    for (const y of [lowY, highY]) {
+                        for (const x of [lowX, highX]) {
+                            const color = (x + y + z + w) % 2 === 0 ? REVERSI_COLORS.WHITE : REVERSI_COLORS.BLACK;
+                            this.set([x, y, z, w], { color });
+                        }
+                    }
+                }
+            }
+            return;
+        }
 
         if (this.topology.dimension === 3) {
             const midZ = Math.floor(this.topology.depth / 2);
@@ -493,6 +538,7 @@ export class ReversiGame {
             width: this.topology.width,
             height: this.topology.height,
             depth: this.topology.depth,
+            wSize: this.topology.wSize,
             randomBoundarySeed: this.topology.randomBoundarySeed,
             randomBoundaryMap: [...this.topology.randomBoundaryMap.entries()],
             currentPlayer: this.currentPlayer,
@@ -513,6 +559,7 @@ export class ReversiGame {
             width: state.width,
             height: state.height,
             depth: state.depth,
+            wSize: state.wSize,
             randomBoundarySeed: state.randomBoundarySeed,
             randomBoundaryMap: state.randomBoundaryMap
         });

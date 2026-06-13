@@ -39,6 +39,21 @@ assert.equal(captureResult.ok, true, 'axis-neighbor capture should be legal');
 assert.equal(captureResult.captured, 1, 'single surrounded 4D stone should be captured');
 assert.equal(capture.board[capture.indexFromCoord([1, 1, 1, 1])], COLORS.empty);
 
+const threeDimensionalShell = new Flat4DGoGame({ nx: 3, ny: 3, nz: 3, nw: 3, komi: 0 });
+threeDimensionalShell.board[threeDimensionalShell.indexFromCoord([1, 1, 1, 1])] = COLORS.white;
+for (const coord of [[0, 1, 1, 1], [2, 1, 1, 1], [1, 0, 1, 1], [1, 2, 1, 1], [1, 1, 0, 1], [1, 1, 2, 1]]) {
+    threeDimensionalShell.board[threeDimensionalShell.indexFromCoord(coord)] = COLORS.black;
+}
+const shellGroup = threeDimensionalShell.getGroupAndLiberties(
+    threeDimensionalShell.board,
+    threeDimensionalShell.indexFromCoord([1, 1, 1, 1])
+);
+assert.deepEqual(
+    [...shellGroup.liberties].map((index) => key(threeDimensionalShell.coordFromIndex(index))).sort(),
+    ['1,1,1,0', '1,1,1,2'],
+    'enclosing only the 3D six-face shell must leave the two w-direction 4D liberties open'
+);
+
 const suicide = new Flat4DGoGame({ nx: 3, ny: 3, nz: 3, nw: 3, komi: 0 });
 for (const coord of [[0, 1, 1, 1], [2, 1, 1, 1], [1, 0, 1, 1], [1, 2, 1, 1], [1, 1, 0, 1], [1, 1, 2, 1], [1, 1, 1, 0], [1, 1, 1, 2]]) {
     suicide.board[suicide.indexFromCoord(coord)] = COLORS.black;

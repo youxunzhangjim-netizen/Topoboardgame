@@ -160,7 +160,25 @@ class Go4DApp {
             return;
         }
         const group = this.logic.getGroupAndLiberties(this.logic.board, this.selectedIndex);
-        this.selectionEl.textContent = `${this.capitalize(valueToColor(value))} group at (${coord.join(',')}): ${group.group.size} stones, ${group.liberties.size} liberties.`;
+        const split = this.libertyAxisSummary(group);
+        this.selectionEl.textContent = `${this.capitalize(valueToColor(value))} group at (${coord.join(',')}): ${group.group.size} stones, ${group.liberties.size} liberties (${split.visibleAxes} in x/y/z, ${split.wAxis} in w).`;
+    }
+
+    libertyAxisSummary(group) {
+        const xyz = new Set();
+        const wAxis = new Set();
+        for (const liberty of group.liberties) {
+            const libertyCoord = this.logic.coordFromIndex(liberty);
+            for (const stone of group.group) {
+                const stoneCoord = this.logic.coordFromIndex(stone);
+                const diffs = libertyCoord.map((value, axis) => value - stoneCoord[axis]);
+                const changedAxes = diffs.reduce((axes, diff, axis) => diff === 0 ? axes : [...axes, axis], []);
+                if (changedAxes.length !== 1) continue;
+                if (changedAxes[0] === 3) wAxis.add(liberty);
+                else xyz.add(liberty);
+            }
+        }
+        return { visibleAxes: xyz.size, wAxis: wAxis.size };
     }
 
     selectionSets() {

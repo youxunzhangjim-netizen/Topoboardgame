@@ -81,11 +81,11 @@
 
             <section class="panel">
                 <h3>Rules</h3>
-                <div class="rules-text">Every (x,y,z,w) coordinate is a playable vertex. Liberties are only the eight possible 4D axis-neighbors inside the board; no diagonal liberties. Captures, suicide, superko, and territory use this graph.</div>
+                <div class="rules-text">Every (x,y,z,w) coordinate is a playable vertex. Liberties are only the eight possible 4D axis-neighbors inside the board; no diagonal liberties. A six-face enclosure in one 3D slice is not a capture if the two w-direction liberties remain open. Captures, suicide, superko, and territory use this full 4D graph.</div>
             </section>
         </aside>
     </main>
 
-    <script type="module" src="./js/main.js"></script>
+    <script type="module" src="./js/main.js?v=20260614-4d-liberties"></script>
 </body>
 </html>

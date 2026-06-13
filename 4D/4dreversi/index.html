@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Reversi</title>
+    <link rel="stylesheet" href="../4dgo/css/styles.css?v=20260614-4d-reversi">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="play-area">
+            <header class="top-bar">
+                <div>
+                    <h1>4D Reversi</h1>
+                    <p>Flat graph Reversi on configurable (x,y,z,w) boards. Default size: 5 x 5 x 5 x 5.</p>
+                </div>
+            </header>
+
+            <div class="game-info-bar">
+                <div class="turn-pill" id="playerTurn">Black to play</div>
+                <div class="boundary-display" id="topologyMode">flat_4d_reversi</div>
+            </div>
+
+            <div class="captured-pieces-container">
+                <div class="captured-side active" id="blackScoreBox">
+                    <div class="captured-label">Black</div>
+                    <div class="capture-count" id="blackScore">8 stones</div>
+                </div>
+                <div class="captured-side" id="whiteScoreBox">
+                    <div class="captured-label">White</div>
+                    <div class="capture-count" id="whiteScore">8 stones</div>
+                </div>
+            </div>
+
+            <div class="board-panel">
+                <div id="sliceGrid" class="slice-grid" aria-label="4D Reversi slice boards"></div>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Game Controls</h2>
+                <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker">Home</a>
+            </div>
+
+            <div class="status-card">
+                <div class="status-line" id="gameStatus">Select a highlighted vertex for Black.</div>
+                <div class="status-line muted" id="selectionStatus">No active selection.</div>
+            </div>
+
+            <div class="dimension-controls">
+                <label>Nx <input id="nxInput" type="number" min="4" max="9" value="5"></label>
+                <label>Ny <input id="nyInput" type="number" min="4" max="9" value="5"></label>
+                <label>Nz <input id="nzInput" type="number" min="4" max="9" value="5"></label>
+                <label>Nw <input id="nwInput" type="number" min="4" max="9" value="5"></label>
+            </div>
+
+            <div class="control-group">
+                <label for="zoomLayerSelect">Zoom Layer</label>
+                <select id="zoomLayerSelect">
+                    <option value="all">All layers</option>
+                </select>
+            </div>
+
+            <div class="control-grid">
+                <button id="passBtn" type="button">Pass</button>
+                <button id="newGameBtn" type="button">New Game</button>
+            </div>
+
+            <section class="panel">
+                <h3>Move History</h3>
+                <div id="moveHistoryList" class="move-history"></div>
+            </section>
+
+            <section class="panel">
+                <h3>Rules</h3>
+                <div class="rules-text">Every (x,y,z,w) coordinate is a playable Reversi vertex. Legal moves bracket opponent chains along 4D topology-aware rays. There are 80 possible ray directions on an interior 4D point.</div>
+            </section>
+        </aside>
+    </main>
+
+    <script type="module" src="./js/main.js?v=20260614-4d-reversi"></script>
+</body>
+</html>
