@@ -35,8 +35,8 @@ class Reversi3DApp {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || 'r3');
         this.modeSelect.value = ['r3', 't2', 'sphere'].includes(mode) ? mode : 'r3';
-        const rawSize = Number(params.get('size'));
-        if (Number.isFinite(rawSize)) this.setSizeSelection(rawSize);
+        const size = params.get('size');
+        if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
     }
 
     setSizeSelection(value) {

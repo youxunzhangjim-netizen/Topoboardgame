@@ -51,6 +51,15 @@ try {
     assert.ok(state.cells >= 4, 'Expected rendered cells.');
     assert.equal(state.exportHasMode, true, 'Expected JSON export to contain the mode name.');
 
+    await page.locator('#rulesIntroButton').click();
+    const rulesState = await page.evaluate(() => ({
+        visible: !document.querySelector('#rulesIntroPanel')?.hidden,
+        text: document.querySelector('#rulesIntroPanel')?.textContent || ''
+    }));
+    assert.equal(rulesState.visible, true, 'Expected rules intro panel to open.');
+    assert.match(rulesState.text, /Clifford Reversi/);
+    assert.match(rulesState.text, /Toric code fusion/);
+
     await page.locator('.cell.legal').first().click();
     const reversiState = await page.evaluate(() => ({
         moveNumber: JSON.parse(document.querySelector('#exportText').value).moveNumber,
@@ -71,7 +80,7 @@ try {
     assert.equal(anyonState.mode, 'anyon_jump');
     assert.equal(anyonState.moveNumber, 1, 'Expected a real pointer click to move an anyon.');
     assert.equal(logs.some((line) => line.startsWith('pageerror')), false, logs.join('\n'));
-    console.log(JSON.stringify({ state, reversiState, anyonState, logs }, null, 2));
+    console.log(JSON.stringify({ state, rulesVisible: rulesState.visible, reversiState, anyonState, logs }, null, 2));
 } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

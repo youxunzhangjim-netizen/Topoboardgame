@@ -144,7 +144,21 @@
             <button id="measureButton" type="button">Measure Target</button>
             <button id="manualNoiseButton" type="button">Noise Tick</button>
             <button id="manualTimeButton" type="button">Time Step</button>
+            <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
             <button id="exportButton" type="button">Export JSON</button>
+        </section>
+
+        <section class="rules-intro-panel" id="rulesIntroPanel" hidden>
+            <div>
+                <h2>Algebraic Rules</h2>
+                <p><strong>Clifford Reversi:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets an opponent chain along a topology-aware ray. Bracketed stones flip color; their Pauli labels transform by H or S. Twisted seams can also transport labels.</p>
+                <p><strong>Pauli labels:</strong> X, Y, and Z describe local algebra states. H swaps X and Z while Y stays Y. S maps X to Y, Y to X, and Z stays Z.</p>
+            </div>
+            <div>
+                <h2>Fusion Rules</h2>
+                <p><strong>Anyon Jump:</strong> tokens hop to adjacent empty vertices or jump over one occupied neighbor. Jumping over mutually nontrivial toric anyons can add braid tokens. On twist seams, e and m can exchange.</p>
+                <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, psi x psi = 1, e x m = psi, e x psi = m, m x psi = e, and 1 x a = a. Vacuum fusion can remove the fused pair.</p>
+            </div>
         </section>
 
         <section class="layer-panel" id="layerPanel" hidden>

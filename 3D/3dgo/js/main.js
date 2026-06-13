@@ -807,7 +807,7 @@ class Go3DApp {
         }
 
         const size = params.get('size');
-        if (Number.isFinite(Number(size))) this.setSizeSelection(size);
+        if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
 
         const timer = params.get('timer');
         if ([...this.timerSelect.options].some((option) => option.value === timer)) {

@@ -31,8 +31,8 @@ class Reversi2DApp {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
         this.boundarySelect.value = ['open2d', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
-        const rawSize = Number(params.get('size'));
-        if (Number.isFinite(rawSize)) this.setSizeSelection(rawSize);
+        const size = params.get('size');
+        if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
     }
 
     setSizeSelection(value) {

@@ -29,6 +29,8 @@ const els = {
     measureButton: document.querySelector('#measureButton'),
     manualNoiseButton: document.querySelector('#manualNoiseButton'),
     manualTimeButton: document.querySelector('#manualTimeButton'),
+    rulesIntroButton: document.querySelector('#rulesIntroButton'),
+    rulesIntroPanel: document.querySelector('#rulesIntroPanel'),
     exportButton: document.querySelector('#exportButton'),
     layerPanel: document.querySelector('#layerPanel'),
     zLayerInput: document.querySelector('#zLayerInput'),
@@ -394,6 +396,12 @@ function applyTimeNow() {
     render();
 }
 
+function toggleRulesIntro() {
+    const hidden = !els.rulesIntroPanel.hidden;
+    els.rulesIntroPanel.hidden = hidden;
+    els.rulesIntroButton.setAttribute('aria-expanded', String(!hidden));
+}
+
 function renderStats() {
     if (game.mode === 'clifford_reversi') {
         const counts = game.counts();
@@ -544,6 +552,7 @@ els.newGameButton.addEventListener('click', createGame);
 els.measureButton.addEventListener('click', measureTarget);
 els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
+els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
 els.passButton.addEventListener('click', () => {
     if (game?.mode === 'clifford_reversi') {
         game.pass();
