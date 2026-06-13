@@ -46,7 +46,7 @@ button, select, input, textarea {
 
 .top-bar {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 18px;
 }
@@ -316,17 +316,32 @@ h2 {
 }
 
 .board-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
     gap: 12px;
     margin-bottom: 12px;
 }
 
-.board-header span {
+.board-title {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.board-title strong {
+    font-size: 18px;
+}
+
+.board-title span {
     color: var(--muted);
     font-size: 12px;
-    text-align: right;
+    text-align: left;
+}
+
+.board-turn-card {
+    min-width: 96px;
+    padding: 8px 10px;
 }
 
 .board {

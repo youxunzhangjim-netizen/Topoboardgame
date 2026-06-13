@@ -45,11 +45,13 @@ try {
     const state = await page.evaluate(() => ({
         title: document.querySelector('#modeTitle')?.textContent,
         cells: document.querySelectorAll('.cell').length,
-        exportHasMode: document.querySelector('#exportText')?.value.includes('clifford_reversi')
+        exportHasMode: document.querySelector('#exportText')?.value.includes('clifford_reversi'),
+        currentParentClass: document.querySelector('#currentPlayer')?.closest('.board-header')?.className || ''
     }));
     assert.equal(state.title, 'Clifford Reversi');
     assert.ok(state.cells >= 4, 'Expected rendered cells.');
     assert.equal(state.exportHasMode, true, 'Expected JSON export to contain the mode name.');
+    assert.match(state.currentParentClass, /board-header/, 'Current turn card should sit in the board header.');
 
     await page.locator('#rulesIntroButton').click();
     const rulesState = await page.evaluate(() => ({

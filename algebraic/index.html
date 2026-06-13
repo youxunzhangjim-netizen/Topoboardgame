@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algebraic Board Games</title>
-    <link rel="stylesheet" href="./css/styles.css?v=20260613-virasoro-anyon-phase">
+    <link rel="stylesheet" href="./css/styles.css?v=20260613-turn-card-board">
 </head>
 <body>
     <main class="app-shell">
@@ -13,10 +13,6 @@
             <div>
                 <p class="eyebrow">Topological Board Game</p>
                 <h1>Algebraic Local Modes</h1>
-            </div>
-            <div class="turn-card">
-                <span>Current</span>
-                <strong id="currentPlayer">Black</strong>
             </div>
         </header>
 
@@ -332,8 +328,14 @@
         <section class="game-layout">
             <div class="board-wrap">
                 <div class="board-header">
-                    <strong id="modeTitle">Clifford Reversi</strong>
-                    <span id="topologyHint">Torus: x and y wrap periodically.</span>
+                    <div class="turn-card board-turn-card">
+                        <span>Current</span>
+                        <strong id="currentPlayer">Black</strong>
+                    </div>
+                    <div class="board-title">
+                        <strong id="modeTitle">Clifford Reversi</strong>
+                        <span id="topologyHint">Torus: x and y wrap periodically.</span>
+                    </div>
                 </div>
                 <div id="board" class="board" aria-label="Algebraic game board"></div>
                 <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
@@ -424,6 +426,6 @@
             </aside>
         </section>
     </main>
-    <script type="module" src="./js/main.js?v=20260613-virasoro-anyon-phase"></script>
+    <script type="module" src="./js/main.js?v=20260613-turn-card-board"></script>
 </body>
 </html>
