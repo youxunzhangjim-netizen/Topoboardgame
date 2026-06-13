@@ -101,6 +101,7 @@ class Reversi3DRenderer {
         const topology = logic.topology;
         const signature = [
             topology.topology,
+            topology.lattice,
             topology.width,
             topology.height,
             topology.depth
@@ -114,22 +115,37 @@ class Reversi3DRenderer {
         this.pointPositions = [];
         this.nodePoints = null;
 
-        if (isR3LikeTopology(topology.topology)) this.buildR3(topology.width, topology.height, topology.depth);
+        if (isR3LikeTopology(topology.topology)) this.buildR3(topology);
         else if (topology.topology === 't2') this.buildTorus(topology.width, topology.height);
         else this.buildSphere(topology.width, topology.height);
 
         this.resetCamera();
     }
 
-    buildR3(width, height, depth) {
+    buildR3(topology) {
+        const { width, height, depth, lattice } = topology;
         const linePositions = [];
         const addSegment = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
-        for (let z = 0; z < depth; z += 1) {
-            for (let y = 0; y < height; y += 1) addSegment(this.r3Position([0, y, z], { width, height, depth }), this.r3Position([width - 1, y, z], { width, height, depth }));
-            for (let x = 0; x < width; x += 1) addSegment(this.r3Position([x, 0, z], { width, height, depth }), this.r3Position([x, height - 1, z], { width, height, depth }));
-        }
-        for (let x = 0; x < width; x += 1) {
-            for (let y = 0; y < height; y += 1) addSegment(this.r3Position([x, y, 0], { width, height, depth }), this.r3Position([x, y, depth - 1], { width, height, depth }));
+        if (lattice === 'hcp') {
+            const drawn = new Set();
+            for (const coord of topology.allCoords()) {
+                for (const direction of topology.directionsFor(coord)) {
+                    const next = topology.step(coord, direction);
+                    if (!next) continue;
+                    const edgeKey = [coord.join(','), next.join(',')].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    addSegment(this.r3Position(coord, topology), this.r3Position(next, topology));
+                }
+            }
+        } else {
+            for (let z = 0; z < depth; z += 1) {
+                for (let y = 0; y < height; y += 1) addSegment(this.r3Position([0, y, z], topology), this.r3Position([width - 1, y, z], topology));
+                for (let x = 0; x < width; x += 1) addSegment(this.r3Position([x, 0, z], topology), this.r3Position([x, height - 1, z], topology));
+            }
+            for (let x = 0; x < width; x += 1) {
+                for (let y = 0; y < height; y += 1) addSegment(this.r3Position([x, y, 0], topology), this.r3Position([x, y, depth - 1], topology));
+            }
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
@@ -143,7 +159,7 @@ class Reversi3DRenderer {
             for (let y = 0; y < height; y += 1) {
                 for (let x = 0; x < width; x += 1) {
                     const coord = [x, y, z];
-                    const p = this.r3Position(coord, { width, height, depth });
+                    const p = this.r3Position(coord, topology);
                     this.pointCoords.push(coord);
                     this.pointPositions.push(p);
                     pointPositions.push(p.x, p.y, p.z);
@@ -154,7 +170,7 @@ class Reversi3DRenderer {
             color: 0xdff8ff,
             opacity: 0.82
         });
-        const axes = new THREE.AxesHelper(this.r3Scale({ width, height, depth }) * Math.max(width, height, depth) * 0.62);
+        const axes = new THREE.AxesHelper(this.r3Scale(topology) * Math.max(width, height, depth) * 0.62);
         axes.material.depthTest = false;
         axes.renderOrder = 3;
         this.boardGroup.add(axes);
@@ -409,10 +425,12 @@ class Reversi3DRenderer {
         const centerX = (topology.width - 1) / 2;
         const centerY = (topology.height - 1) / 2;
         const centerZ = (topology.depth - 1) / 2;
+        const hcpOffsetX = topology.lattice === 'hcp' ? ((coord[2] % 2) * 0.5 + (coord[1] % 2) * 0.5) : 0;
+        const hcpOffsetY = topology.lattice === 'hcp' ? coord[2] * 0.18 : 0;
         return new THREE.Vector3(
-            (coord[0] - centerX) * scale,
-            (coord[2] - centerZ) * scale,
-            (coord[1] - centerY) * scale
+            (coord[0] + hcpOffsetX - centerX) * scale,
+            (coord[2] * (topology.lattice === 'hcp' ? 0.82 : 1) - centerZ + hcpOffsetY) * scale,
+            ((coord[1] - centerY) * (topology.lattice === 'hcp' ? 0.866 : 1)) * scale
         );
     }
 
@@ -470,6 +488,8 @@ class Reversi3DRenderer {
 class Reversi3DApp {
     constructor() {
         this.modeSelect = document.getElementById('spaceSelect');
+        this.latticeGroup = document.getElementById('latticeControlGroup');
+        this.latticeSelect = document.getElementById('latticeSelect');
         this.sizeSelect = document.getElementById('boardSizeSelect');
         this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.layerGroup = document.getElementById('layerControlGroup');
@@ -502,6 +522,8 @@ class Reversi3DApp {
         this.modeSelect.value = ['r3', 't3', 'r3_random', 't2', 'sphere'].includes(mode) ? mode : 'r3';
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
+        const lattice = String(params.get('lattice') || '').toLowerCase();
+        if (lattice === 'hcp') this.latticeSelect.value = 'hcp';
     }
 
     setSizeSelection(value) {
@@ -520,6 +542,7 @@ class Reversi3DApp {
     createLogic() {
         return new ReversiGame({
             topology: this.modeSelect.value,
+            lattice: this.currentLattice(),
             size: this.boardSize(),
             maxSize: 19
         });
@@ -527,6 +550,7 @@ class Reversi3DApp {
 
     bindEvents() {
         this.modeSelect.addEventListener('change', () => this.resetGame());
+        this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.sizeSelect.addEventListener('change', () => {
             this.updateCustomSizeVisibility();
             this.resetGame();
@@ -548,6 +572,13 @@ class Reversi3DApp {
         this.layerGroup.hidden = true;
         this.layerInfo.textContent = 'Full 3D board';
         this.layerSelect.value = '0';
+        const mode = this.modeSelect.value;
+        this.latticeGroup.hidden = mode !== 'r3';
+        if (mode !== 'r3') this.latticeSelect.value = 'square';
+    }
+
+    currentLattice() {
+        return this.modeSelect.value === 'r3' && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
     }
 
     resetGame() {
@@ -593,15 +624,18 @@ class Reversi3DApp {
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const mode = this.modeSelect.value;
+        const lattice = this.currentLattice();
         const modeText = {
-            r3: 'R3 Standard',
+            r3: lattice === 'hcp' ? 'R3 HCP' : 'R3 Standard',
             t3: 'T3 PBC',
             r3_random: '3D RBC',
             t2: 'T2',
             sphere: 'S2'
         };
         const modeInfo = {
-            r3: 'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.',
+            r3: lattice === 'hcp'
+                ? 'R3 HCP uses offset hexagonal close-packed layers with 12 nearest-neighbor bracket directions.'
+                : 'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.',
             t3: 'T3 PBC wraps x, y, and z, so every cubic axis is periodic.',
             r3_random: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             t2: 'T2 is rendered as a solid rotatable torus. Both board directions wrap on the surface.',

@@ -105,7 +105,40 @@ try {
     assert.ok(mobileStats.canvasWidth >= 320 && mobileStats.canvasHeight >= 360, 'Mobile canvas should remain visible.');
     assert.equal(logs.some((line) => line.startsWith('pageerror')), false, logs.join('\n'));
 
-    console.log(JSON.stringify({ canvasStats, mobileStats }, null, 2));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`http://127.0.0.1:${port}/?mode=r3&size=8&lattice=hcp`, { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => window.reversi3dApp?.renderer?.nodePoints);
+    await page.waitForTimeout(350);
+    const hcpStats = await page.evaluate(() => {
+        const source = document.getElementById('reversiBoard');
+        const copy = document.createElement('canvas');
+        copy.width = source.width;
+        copy.height = source.height;
+        const context = copy.getContext('2d');
+        context.drawImage(source, 0, 0);
+        const data = context.getImageData(0, 0, copy.width, copy.height).data;
+        let brightPixels = 0;
+        for (let index = 0; index < data.length; index += 4 * 37) {
+            const max = Math.max(data[index], data[index + 1], data[index + 2]);
+            if (max > 42) brightPixels += 1;
+        }
+        return {
+            lattice: window.reversi3dApp.logic.topology.lattice,
+            nodeCount: window.reversi3dApp.renderer.pointCoords.length,
+            display: document.querySelector('#modeDisplay')?.textContent,
+            latticeVisible: getComputedStyle(document.querySelector('#latticeControlGroup')).display !== 'none',
+            selectedLattice: document.querySelector('#latticeSelect')?.value,
+            brightPixels
+        };
+    });
+    assert.equal(hcpStats.lattice, 'hcp', 'R3 Reversi should construct an HCP topology when HCP is selected.');
+    assert.equal(hcpStats.selectedLattice, 'hcp');
+    assert.equal(hcpStats.latticeVisible, true, 'The HCP lattice selector should be visible for R3 mode.');
+    assert.equal(hcpStats.nodeCount, 512, 'R3 HCP size 8 should expose 8^3 pickable graph points.');
+    assert.match(hcpStats.display, /HCP/);
+    assert.ok(hcpStats.brightPixels > 40, 'Expected nonblank HCP board pixels.');
+
+    console.log(JSON.stringify({ canvasStats, mobileStats, hcpStats }, null, 2));
 } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

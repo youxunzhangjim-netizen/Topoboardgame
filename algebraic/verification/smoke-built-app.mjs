@@ -77,6 +77,32 @@ try {
     assert.equal(randomBoundaryState.topology, 'random_boundary');
     assert.match(randomBoundaryState.hint, /2D RBC|random boundary/i);
 
+    await page.selectOption('#topologySelect', 'flat');
+    await page.selectOption('#latticeSelect', 'honeycomb');
+    const honeycombState = await page.evaluate(() => {
+        const cells = [...document.querySelectorAll('#board .cell')].map((cell) => {
+            const rect = cell.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+        });
+        const lefts = cells.map((cell) => cell.left);
+        const tops = cells.map((cell) => cell.top);
+        return {
+            className: document.querySelector('#board')?.className || '',
+            count: cells.length,
+            xSpread: Math.max(...lefts) - Math.min(...lefts),
+            ySpread: Math.max(...tops) - Math.min(...tops),
+            minWidth: Math.min(...cells.map((cell) => cell.width)),
+            minHeight: Math.min(...cells.map((cell) => cell.height)),
+            visibleCells: cells.filter((cell) => cell.width > 8 && cell.height > 8).length
+        };
+    });
+    assert.match(honeycombState.className, /lattice-hex-cells/, 'Clifford honeycomb Reversi should use hex-cell rendering.');
+    assert.equal(honeycombState.count, 64, 'Default Clifford honeycomb board should still expose 64 cells.');
+    assert.ok(honeycombState.xSpread > 320, 'Honeycomb Reversi should spread across the x axis, not collapse into strips.');
+    assert.ok(honeycombState.ySpread > 320, 'Honeycomb Reversi should spread across the y axis, not collapse into strips.');
+    assert.ok(honeycombState.minWidth > 10 && honeycombState.minHeight > 10, 'Honeycomb cells should have visible hex patch sizes.');
+    assert.equal(honeycombState.visibleCells, 64, 'Every honeycomb Reversi cell should be visibly placed.');
+
     await page.selectOption('#topologySelect', 'torus');
     const torus3DState = await page.evaluate(() => ({
         canvasVisible: !document.querySelector('#algebraic3dBoard')?.hidden,

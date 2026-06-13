@@ -60,6 +60,14 @@
                 </select>
             </div>
 
+            <div class="control-group" id="latticeControlGroup">
+                <label for="latticeSelect">Lattice</label>
+                <select id="latticeSelect">
+                    <option value="square" selected>Standard</option>
+                    <option value="hcp">HCP</option>
+                </select>
+            </div>
+
             <div class="boundary-info">
                 Boundary labels: Standard stops at the board edge; PBC wraps opposite sides; RBC uses one fixed random boundary map.
             </div>
@@ -158,6 +166,6 @@
             }, 2600);
         })();
     </script>
-    <script type="module" src="./js/main.js?v=20260614-boundary-modes-1"></script>
+    <script type="module" src="./js/main.js?v=20260615-hcp-lattice"></script>
 </body>
 </html>

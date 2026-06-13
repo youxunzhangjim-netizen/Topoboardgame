@@ -525,6 +525,14 @@ function isSameCoord(a, b) {
 
 function specialLatticePoint(coord, width, height, lattice) {
     const displayY = height - 1 - coord[1];
+    if (lattice === 'hex_cells') {
+        const rawWidth = Math.max(1, 0.75 * (width - 1) + 1);
+        const rawHeight = Math.max(1, height + 0.5);
+        return {
+            x: 5 + 90 * (0.75 * coord[0] + 0.5) / rawWidth,
+            y: 5 + 90 * (displayY + 0.5 + (coord[0] % 2) * 0.5) / rawHeight
+        };
+    }
     if (lattice === 'honeycomb') {
         const rawWidth = Math.max(1, (width - 1) * Math.sqrt(3) / 2);
         const rawHeight = Math.max(1, height - 0.5);
@@ -589,7 +597,9 @@ function appendHoneycombEdges(width, height) {
 
 function applySpecialLatticeCellLayout(cell, coord, width, height, lattice) {
     const point = specialLatticePoint(coord, width, height, lattice);
-    const cellSize = lattice === 'honeycomb'
+    const cellSize = lattice === 'hex_cells'
+        ? Math.min(12, 82 / Math.max(width * 0.78, height))
+        : lattice === 'honeycomb'
         ? Math.min(10, 76 / Math.max(width, height))
         : Math.min(13, 94 / Math.max(width, height));
     cell.style.left = `${point.x - cellSize / 2}%`;
