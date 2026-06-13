@@ -69,6 +69,7 @@ const els = {
     phaseTimeline: document.querySelector('#phaseTimeline'),
     statusText: document.querySelector('#statusText'),
     historyList: document.querySelector('#historyList'),
+    braidEventList: document.querySelector('#braidEventList'),
     stochasticList: document.querySelector('#stochasticList'),
     legend: document.querySelector('#legend'),
     exportText: document.querySelector('#exportText')
@@ -77,6 +78,8 @@ const els = {
 let game = null;
 let selectedToken = '';
 let hoverCoord = null;
+let lastCancellation = null;
+let lastWrongUnbraid = null;
 
 function topologyConfig() {
     return {
@@ -158,6 +161,8 @@ function anyonConfig() {
 function createGame() {
     selectedToken = '';
     hoverCoord = null;
+    lastCancellation = null;
+    lastWrongUnbraid = null;
     const options = {
         topology: topologyConfig(),
         defaultFlipTransform: els.transformSelect.value,
@@ -246,6 +251,7 @@ function render() {
     renderLegend();
     renderTimePanel();
     renderHistory();
+    renderBraidEventLog();
     renderStochasticLog();
     renderExport();
 }
@@ -265,7 +271,9 @@ function renderBoard() {
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
+    const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
+    const warningTargets = wrongUnbraidTargetIds();
 
     for (const coord of visibleCells()) {
         const key = coordKey(coord);
@@ -276,7 +284,19 @@ function renderBoard() {
         cell.dataset.key = key;
         if (legalReversi.has(key) || legalAnyonTargets.has(key)) cell.classList.add('legal');
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
-        if (token && token.id === cancelTargetId) cell.classList.add('cancel-latest');
+        if (braidTrail.has(key)) cell.classList.add('braid-trail');
+        if (token) {
+            const status = braidStatusForToken(token);
+            cell.classList.add(`braid-status-${status}`);
+            if (token.id === cancelTargetId) cell.classList.add('cancel-latest', 'legal-unbraid');
+            if (warningTargets.has(token.id)) cell.classList.add('wrong-unbraid');
+            if (lastCancellation && [lastCancellation.movingTokenId, lastCancellation.targetId].includes(token.id)) {
+                cell.classList.add('cancellation-flash');
+            }
+            if (lastWrongUnbraid && [lastWrongUnbraid.movingTokenId, lastWrongUnbraid.targetId].includes(token.id)) {
+                cell.classList.add('wrong-unbraid-flash');
+            }
+        }
         if (previewFlips.has(key)) cell.classList.add('preview-flip');
         if (jumpPath.has(key)) cell.classList.add('jump-path');
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
@@ -328,14 +348,24 @@ function updateBoardHighlights() {
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
+    const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
+    const warningTargets = wrongUnbraidTargetIds();
 
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
         cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key));
+        cell.classList.toggle('braid-trail', braidTrail.has(key));
+        for (const status of ['trivial', 'braided', 'partially_unbraided']) {
+            cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
+        }
         cell.classList.toggle('cancel-latest', Boolean(token && token.id === cancelTargetId));
+        cell.classList.toggle('legal-unbraid', Boolean(token && token.id === cancelTargetId));
+        cell.classList.toggle('wrong-unbraid', Boolean(token && warningTargets.has(token.id)));
+        cell.classList.toggle('cancellation-flash', Boolean(token && lastCancellation && [lastCancellation.movingTokenId, lastCancellation.targetId].includes(token.id)));
+        cell.classList.toggle('wrong-unbraid-flash', Boolean(token && lastWrongUnbraid && [lastWrongUnbraid.movingTokenId, lastWrongUnbraid.targetId].includes(token.id)));
         cell.classList.toggle('preview-flip', previewFlips.has(key));
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
@@ -361,6 +391,38 @@ function cancelTargetForSelectedToken() {
     return nextRequiredUnbraidGenerator(token.braidWord)?.targetId || '';
 }
 
+function wrongUnbraidTargetIds() {
+    if (game?.mode !== 'anyon_jump' || !selectedToken) return new Set();
+    const selected = game.tokens.get(selectedToken);
+    if (!selected || (!selected.isBraided && Number(selected.braidParity || 0) === 0)) return new Set();
+    const cancelTarget = cancelTargetForSelectedToken();
+    return new Set([...game.tokens.values()]
+        .filter((token) => token.id !== selectedToken && token.id !== cancelTarget)
+        .map((token) => token.id));
+}
+
+function braidTrailCells() {
+    if (game?.mode !== 'anyon_jump') return new Set();
+    const cells = new Set();
+    for (const event of game.braidEventLog || []) {
+        for (const coord of event.path || []) cells.add(coordKey(coord));
+    }
+    for (const event of game.history || []) {
+        for (const braid of event.braidEvents || []) {
+            for (const coord of braid.path || []) cells.add(coordKey(coord));
+        }
+    }
+    return cells;
+}
+
+function braidStatusForToken(token) {
+    return game?.braidStatusForToken?.(token) || ((token?.isBraided || Number(token?.braidParity || 0) === 1) ? 'braided' : 'trivial');
+}
+
+function braidStatusLabel(token) {
+    return braidStatusForToken(token).replaceAll('_', ' ');
+}
+
 function renderReversiStone(cell, coord) {
     const stone = game.getStone(coord);
     if (!stone) return;
@@ -377,6 +439,7 @@ function renderAnyonToken(cell, coord) {
     if (!token) return;
     const node = document.createElement('span');
     node.className = `anyon ${token.owner}`;
+    node.classList.add(`status-${braidStatusForToken(token)}`);
     if (token.id === selectedToken) node.classList.add('selected');
     if ((token.braidParity || 0) === 1 || token.isBraided) node.classList.add('braided');
     if (token.revealed === false) node.classList.add('hidden');
@@ -388,7 +451,7 @@ function renderAnyonToken(cell, coord) {
     const channel = fusionChannelDisplay(token);
     const channelInfo = channel ? `; fusion channel ${channel}` : '';
     const measured = token.measurementHistory?.length ? `; measurements ${token.measurementHistory.length}` : '';
-    const braidInfo = ` parity ${parity}; braid word ${word}; required inverse ${required}${channelInfo}${measured}${inverseInfo}`;
+    const braidInfo = ` status ${braidStatusLabel(token)}; parity ${parity}; braid word ${word}; required inverse ${required}${channelInfo}${measured}${inverseInfo}`;
     node.title = `${token.id} ${token.owner} ${token.anyonType};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
@@ -414,6 +477,13 @@ function handleCellClick(coord) {
         const direction = selected ? coord.map((value, axis) => value - selected.coord[axis]) : [];
         const result = game.attemptUnbraid(selectedToken, token.id, { path, direction });
         if (result.ok) {
+            if (result.event.unbraid.successfulPartialUnbraid || result.event.unbraid.fullyUnbraided) {
+                lastCancellation = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
+                lastWrongUnbraid = null;
+            } else {
+                lastWrongUnbraid = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
+                lastCancellation = null;
+            }
             selectedToken = '';
             hoverCoord = null;
             els.statusText.textContent = result.event.unbraid.fullyUnbraided
@@ -440,6 +510,14 @@ function handleCellClick(coord) {
     }
     const result = game.move(selectedToken, coord);
     if (result.ok) {
+        if (result.event.braid?.unbraid?.successfulPartialUnbraid || result.event.braid?.fullyUnbraided) {
+            lastCancellation = {
+                movingTokenId: selectedToken,
+                targetId: result.event.braid.targetId,
+                tick: Date.now()
+            };
+            lastWrongUnbraid = null;
+        }
         selectedToken = '';
         hoverCoord = null;
         if (result.event.fusion?.blocked) {
@@ -560,7 +638,11 @@ function updateStatus() {
         const cancel = next ? ` Next cancel: ${braidWordToText([next])} around ${next.targetId}.` : '';
         const channel = token ? fusionChannelDisplay(token) : '';
         const channelText = channel ? `, channel ${channel}` : '';
-        els.statusText.textContent = `Selected ${selectedToken}: parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}`;
+        const hoveredToken = hoverCoord ? game.tokenAt(hoverCoord) : null;
+        const warning = hoveredToken && hoveredToken.id !== selectedToken && wrongUnbraidTargetIds().has(hoveredToken.id)
+            ? ` Warning: attempting this unbraid appends ${braidWordToText([game.braidGeneratorFor(token, hoveredToken.id, { path: [token.coord, hoveredToken.coord] })])} instead of cancelling.`
+            : '';
+        els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}`;
     } else {
         els.statusText.textContent = 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
@@ -645,6 +727,34 @@ function renderStochasticLog() {
         const outcome = event.outcome?.applied || event.outcome?.triggered ? 'hit' : 'miss';
         item.textContent = `t${event.tick} ${event.type} p=${event.probability} ${outcome}${target ? ` target ${target}` : ''}.`;
         els.stochasticList.append(item);
+    }
+}
+
+function renderBraidEventLog() {
+    if (!els.braidEventList) return;
+    els.braidEventList.innerHTML = '';
+    const events = game.mode === 'anyon_jump' ? [...(game.braidEventLog || [])].slice(-18).reverse() : [];
+    if (!events.length) {
+        const item = document.createElement('li');
+        item.textContent = game.mode === 'anyon_jump'
+            ? 'No braid or unbraid events yet.'
+            : 'Braid memory is available in Anyon Jump.';
+        els.braidEventList.append(item);
+        return;
+    }
+    for (const event of events) {
+        const item = document.createElement('li');
+        const generator = event.generator ? braidWordToText([event.generator]) : 'none';
+        const result = event.cancellationOccurred
+            ? 'cancelled'
+            : event.wrongOrder
+                ? 'appended'
+                : event.skipped || 'recorded';
+        const channel = event.fusionChannelBefore !== event.fusionChannelAfter
+            ? ` channel ${event.fusionChannelBefore || '?'}->${event.fusionChannelAfter || '?'}`
+            : '';
+        item.textContent = `t${event.tick} ${event.player} ${event.type} ${event.movingTokenId}->${event.targetId || 'cycle'} ${generator}: ${result}, word ${event.braidWordBefore.length}->${event.braidWordAfter.length}${channel}.`;
+        els.braidEventList.append(item);
     }
 }
 

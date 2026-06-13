@@ -275,6 +275,8 @@ const exactWrong = exactJump.attemptUnbraid('x1', 'x2', { player: 'black', sign:
 assert.equal(exactWrong.ok, true);
 assert.equal(exactWrong.event.unbraid.successfulPartialUnbraid, false);
 assert.equal(exactJump.tokens.get('x1').braidWord.length, 2);
+assert.equal(exactJump.exportState().statistics.failedInverseAttempts, 1);
+assert.equal(exactJump.exportState().unbraidAttempts.length, 1);
 const exactRepair = exactJump.attemptUnbraid('x1', 'x2', { player: 'white', sign: -1 });
 assert.equal(exactRepair.ok, false, 'Only the moving token owner can unbraid.');
 
@@ -308,6 +310,18 @@ assert.equal(inverseResult.ok, true);
 assert.equal(inverseJump.tokens.get('i1').braidWord.length, 0);
 assert.equal(inverseResult.event.braid.unbraid.successfulPartialUnbraid, true);
 assert.equal(inverseJump.tokens.get('i1').captureUnlocks.includes('i2'), true);
+const inverseExport = inverseJump.exportState();
+assert.ok(inverseExport.initialState, 'Research export includes initial state.');
+assert.ok(inverseExport.finalState, 'Research export includes final state.');
+assert.ok(inverseExport.braidEventLog.length >= 2, 'Research export includes braid/unbraid event log.');
+assert.equal(inverseExport.braidEventLog.at(-1).movingTokenId, 'i1');
+assert.equal(inverseExport.braidEventLog.at(-1).targetId, 'i2');
+assert.deepEqual(inverseExport.braidEventLog.at(-1).braidWordAfter, []);
+assert.equal(inverseExport.braidEventLog.at(-1).cancellationOccurred, true);
+assert.equal(inverseExport.statistics.totalBraids, 1);
+assert.equal(inverseExport.statistics.successfulUnbraids >= 1, true);
+assert.equal(inverseExport.statistics.finalNumberOfBraidedPieces, 0);
+assert.ok(Array.isArray(inverseExport.windingNumbers), 'Research export includes winding numbers.');
 
 const shieldJump = new AnyonJumpGame({
     topology: { topology: 'flat', width: 4, height: 3 },

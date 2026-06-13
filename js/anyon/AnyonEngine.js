@@ -30,6 +30,26 @@ import {
 } from './BraidedCapture.js';
 import { detectTopologyBraidEvents } from './BraidPathDetector.js';
 
+function cloneValue(value) {
+    if (Array.isArray(value)) return value.map(cloneValue);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneValue(entry)]));
+    }
+    return value;
+}
+
+function cloneVertex(vertex) {
+    return Array.isArray(vertex) ? [...vertex] : vertex;
+}
+
+function cloneWord(word = []) {
+    return Array.isArray(word) ? word.map((entry) => ({ ...entry })) : [];
+}
+
+function fusionChannelState(token) {
+    return token?.hiddenFusionState?.currentChannel ?? token?.fusionChannel ?? null;
+}
+
 export class AnyonGameEngine {
     constructor({ topology = createRectTorusTopology(), config = {}, players = ['black', 'white'] } = {}) {
         this.topology = topology;
@@ -45,7 +65,10 @@ export class AnyonGameEngine {
         this.turn = 0;
         this.fusionChannels = [];
         this.events = [];
+        this.braidEventLog = [];
+        this.unbraidAttempts = [];
         this.defects = Array.isArray(topology?.defects) ? [...topology.defects] : [];
+        this.initialState = this.snapshotState('initial');
     }
 
     addToken({ id, owner = this.currentPlayer, vertex, anyonType = '1', metadata = {} }) {
@@ -148,10 +171,25 @@ export class AnyonGameEngine {
 
     applyBraid(movingToken, event, player = movingToken.owner) {
         const target = this.tokens.get(event.targetId) || event.target || { id: event.targetId, defect: true };
+        const beforeWord = cloneWord(movingToken.braidWord);
+        const beforeFusionChannel = fusionChannelState(movingToken);
         const phase = target?.anyonType
             ? mutualBraidPhase(movingToken.anyonType, target.anyonType, this.config.anyonModel)
             : 1;
         if (this.config.braidMemoryMode === 'abelian_parity' && phase !== -1) {
+            this.recordBraidEvent({
+                type: 'braid',
+                player,
+                movingToken,
+                target,
+                sourceEvent: event,
+                generator: null,
+                beforeWord,
+                afterWord: cloneWord(movingToken.braidWord),
+                skipped: 'abelian_trivial_mutual_braid',
+                beforeFusionChannel,
+                afterFusionChannel: fusionChannelState(movingToken)
+            });
             return {
                 ...event,
                 around: event.targetId,
@@ -172,7 +210,7 @@ export class AnyonGameEngine {
         });
         const effect = braidEffectForPhase(phase, this.config);
         if (effect.effect !== 'none') this.applyBraidEffect(player, effect);
-        return {
+        const applied = {
             ...memory,
             around: event.targetId,
             targetType: target?.anyonType || target?.type || event.reason,
@@ -180,6 +218,21 @@ export class AnyonGameEngine {
             effect,
             captureUnlockGranted
         };
+        this.recordBraidEvent({
+            type: memory.cancelledInverse ? 'unbraid' : 'braid',
+            player,
+            movingToken,
+            target,
+            sourceEvent: event,
+            generator: memory.braidGenerator,
+            beforeWord,
+            afterWord: memory.braidWord,
+            cancellationOccurred: memory.cancelledInverse,
+            fullyUnbraided: memory.fullyUnbraided,
+            beforeFusionChannel,
+            afterFusionChannel: fusionChannelState(movingToken)
+        });
+        return applied;
     }
 
     applyBraidEffect(player, effect) {
@@ -235,6 +288,7 @@ export class AnyonGameEngine {
         if (!allowed.ok) return allowed;
 
         const beforeWord = token.braidWord.map((entry) => ({ ...entry }));
+        const beforeFusionChannel = fusionChannelState(token);
         const generator = this.braidGeneratorFor(token, targetId, { path, direction, sign, index });
         const unbraid = applyUnbraidGenerator(token, generator, this.config, { target });
         const captureUnlockGranted = recordUnbraidCaptureUnlock(token, targetId, unbraid);
@@ -255,6 +309,22 @@ export class AnyonGameEngine {
             captureUnlockGranted
         };
         this.events.push(event);
+        const unbraidLog = this.recordBraidEvent({
+            type: 'attempt_unbraid',
+            player,
+            movingToken: token,
+            target,
+            sourceEvent: event,
+            generator: unbraid.attempted,
+            beforeWord,
+            afterWord: unbraid.braidWord,
+            cancellationOccurred: unbraid.successfulPartialUnbraid,
+            fullyUnbraided: unbraid.fullyUnbraided,
+            wrongOrder: unbraid.wrongOrder,
+            beforeFusionChannel,
+            afterFusionChannel: fusionChannelState(token)
+        });
+        this.unbraidAttempts.push(unbraidLog);
         return { ok: true, event };
     }
 
@@ -309,20 +379,130 @@ export class AnyonGameEngine {
         return this.players[(index + 1 + this.players.length) % this.players.length] || player;
     }
 
+    braidStatusForToken(token) {
+        const wordLength = token?.braidWord?.length || 0;
+        const parity = Number(token?.braidParity || 0);
+        if (wordLength === 0 && parity === 0) return 'trivial';
+        return (token?.braidHistory?.length || 0) > wordLength ? 'partially_unbraided' : 'braided';
+    }
+
+    tokenSnapshot(token) {
+        return {
+            ...cloneValue(token),
+            vertex: cloneVertex(token.vertex),
+            metadata: { ...(token.metadata || {}) },
+            braidStatus: this.braidStatusForToken(token)
+        };
+    }
+
+    snapshotState(label = 'state') {
+        return {
+            label,
+            currentPlayer: this.currentPlayer,
+            turn: this.turn,
+            tokens: [...this.tokens.values()].map((token) => this.tokenSnapshot(token)),
+            worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneVertex)])),
+            braidTokens: { ...this.braidTokens },
+            parity: { ...this.parity },
+            score: { ...this.score }
+        };
+    }
+
+    recordBraidEvent({
+        type = 'braid',
+        player = this.currentPlayer,
+        movingToken,
+        target = null,
+        sourceEvent = {},
+        generator = null,
+        beforeWord = [],
+        afterWord = [],
+        cancellationOccurred = false,
+        fullyUnbraided = false,
+        wrongOrder = false,
+        skipped = null,
+        beforeFusionChannel = null,
+        afterFusionChannel = null
+    } = {}) {
+        const entry = {
+            tick: this.turn,
+            player,
+            type,
+            movingTokenId: movingToken?.id || sourceEvent.id || sourceEvent.movingId || '',
+            targetId: target?.id || sourceEvent.targetId || '',
+            generator: generator ? { ...generator } : null,
+            sign: generator?.sign ?? sourceEvent.sign ?? null,
+            braidWordBefore: cloneWord(beforeWord),
+            braidWordAfter: cloneWord(afterWord),
+            cancellationOccurred: Boolean(cancellationOccurred),
+            fullyUnbraided: Boolean(fullyUnbraided),
+            wrongOrder: Boolean(wrongOrder),
+            skipped,
+            fusionChannelBefore: beforeFusionChannel,
+            fusionChannelAfter: afterFusionChannel,
+            path: Array.isArray(sourceEvent.path) ? sourceEvent.path.map(cloneVertex) : []
+        };
+        this.braidEventLog.push(entry);
+        return entry;
+    }
+
+    braidHistories() {
+        return [...this.tokens.values()].map((token) => ({
+            id: token.id,
+            owner: token.owner,
+            anyonType: token.anyonType,
+            braidStatus: this.braidStatusForToken(token),
+            braidParity: token.braidParity || 0,
+            braidWord: cloneWord(token.braidWord),
+            braidHistory: cloneWord(token.braidHistory)
+        }));
+    }
+
+    braidStatistics() {
+        const tokens = [...this.tokens.values()];
+        const wordLengths = tokens.map((token) => token.braidWord?.length || 0);
+        const totalLength = wordLengths.reduce((sum, length) => sum + length, 0);
+        const unbraids = this.braidEventLog.filter((event) => event.type === 'unbraid' || event.type === 'attempt_unbraid');
+        return {
+            totalBraids: this.braidEventLog.filter((event) => event.type === 'braid' && !event.skipped).length,
+            totalUnbraids: unbraids.length,
+            successfulUnbraids: unbraids.filter((event) => event.cancellationOccurred || event.fullyUnbraided).length,
+            failedInverseAttempts: this.braidEventLog.filter((event) => event.wrongOrder).length,
+            averageBraidWordLength: tokens.length ? totalLength / tokens.length : 0,
+            longestBraidWord: wordLengths.length ? Math.max(...wordLengths) : 0,
+            finalNumberOfBraidedPieces: tokens.filter((token) => this.braidStatusForToken(token) !== 'trivial').length
+        };
+    }
+
     exportState() {
+        const finalState = this.snapshotState('final');
         return {
             config: { ...this.config },
             players: [...this.players],
             currentPlayer: this.currentPlayer,
-            tokens: [...this.tokens.values()].map((token) => ({ ...token, vertex: [...token.vertex], metadata: { ...token.metadata } })),
-            worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map((vertex) => [...vertex])])),
+            initialState: cloneValue(this.initialState),
+            finalState,
+            tokens: [...this.tokens.values()].map((token) => this.tokenSnapshot(token)),
+            worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneVertex)])),
             braidTokens: { ...this.braidTokens },
             parity: { ...this.parity },
             score: { ...this.score },
+            winner: this.score.black === this.score.white ? null : (this.score.black > this.score.white ? 'black' : 'white'),
             disabledUntilTurn: { ...this.disabledUntilTurn },
             turn: this.turn,
             fusionChannels: this.fusionChannels.map((channel) => ({ ...channel })),
-            events: this.events.map((event) => ({ ...event }))
+            fusionOutcomes: this.events.map((event) => event.fusion).filter(Boolean),
+            braidHistories: this.braidHistories(),
+            braidEventLog: this.braidEventLog.map(cloneValue),
+            unbraidAttempts: this.unbraidAttempts.map(cloneValue),
+            topologicalSectorChanges: this.events
+                .map((event) => event.braid?.winding ? { id: event.id, winding: { ...event.braid.winding } } : null)
+                .filter(Boolean),
+            windingNumbers: this.events
+                .map((event) => event.braid?.winding ? { id: event.id, winding: { ...event.braid.winding } } : null)
+                .filter(Boolean),
+            statistics: this.braidStatistics(),
+            events: this.events.map(cloneValue)
         };
     }
 }

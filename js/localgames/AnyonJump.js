@@ -44,6 +44,22 @@ function cloneCoord(coord) {
     return [...coord];
 }
 
+function cloneValue(value) {
+    if (Array.isArray(value)) return value.map(cloneValue);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneValue(entry)]));
+    }
+    return value;
+}
+
+function cloneBraidWord(word = []) {
+    return Array.isArray(word) ? word.map((entry) => ({ ...entry })) : [];
+}
+
+function fusionChannelState(token) {
+    return token?.hiddenFusionState?.currentChannel ?? token?.fusionChannel ?? null;
+}
+
 function defaultTypesForModel(model = 'toric_code') {
     if (model === 'ising') return ['sigma', 'sigma', 'psi'];
     if (model === 'fibonacci') return ['tau'];
@@ -74,6 +90,8 @@ export class AnyonJumpGame {
         this.parity = { black: 0, white: 0 };
         this.fusionOutcomes = [];
         this.history = [];
+        this.braidEventLog = [];
+        this.unbraidAttempts = [];
         this.topologicalSectors = [];
         this.moveNumber = 0;
         this.fusionSites = new Set();
@@ -84,6 +102,7 @@ export class AnyonJumpGame {
             game: this
         });
         this.setupInitialPosition();
+        this.initialState = this.snapshotState('initial');
     }
 
     setupInitialPosition() {
@@ -239,11 +258,13 @@ export class AnyonJumpGame {
 
     applyBraid(movingToken, event) {
         const target = this.tokens.get(event.targetId) || event.target || { id: event.targetId, defect: true };
+        const beforeWord = cloneBraidWord(movingToken.braidWord);
+        const beforeFusionChannel = fusionChannelState(movingToken);
         const phase = target?.anyonType
             ? mutualBraidPhase(movingToken.anyonType, target.anyonType, this.config.anyonModel)
             : 1;
         if (this.config.braidMemoryMode === 'abelian_parity' && phase !== -1) {
-            return {
+            const skipped = {
                 ...event,
                 jumpedId: event.reason === 'jump_over' ? event.targetId : null,
                 jumpedType: event.reason === 'jump_over' ? target?.anyonType : null,
@@ -252,9 +273,27 @@ export class AnyonJumpGame {
                 effect: { phase, effect: 'none', delta: 0 },
                 braidGenerator: null,
                 braidParity: movingToken.braidParity || 0,
-                braidWord: movingToken.braidWord.map((entry) => ({ ...entry })),
+                braidWord: cloneBraidWord(movingToken.braidWord),
                 isBraided: movingToken.isBraided,
                 skipped: 'abelian_trivial_mutual_braid'
+            };
+            this.recordBraidEvent({
+                kind: 'braid',
+                player: movingToken.owner,
+                movingToken,
+                target,
+                sourceEvent: event,
+                generator: null,
+                beforeWord,
+                afterWord: cloneBraidWord(movingToken.braidWord),
+                cancelledInverse: false,
+                fullyUnbraided: !movingToken.isBraided,
+                beforeFusionChannel,
+                afterFusionChannel: fusionChannelState(movingToken),
+                skipped: skipped.skipped
+            });
+            return {
+                ...skipped
             };
         }
         const memory = applyBraidToMemory(movingToken, target, event, this.config);
@@ -264,7 +303,7 @@ export class AnyonJumpGame {
         });
         const effect = braidEffectForPhase(phase, this.config);
         if (effect.effect !== 'none') this.applyBraidEffect(movingToken.owner, effect);
-        return {
+        const applied = {
             ...memory,
             jumpedId: event.reason === 'jump_over' ? event.targetId : null,
             jumpedType: event.reason === 'jump_over' ? target?.anyonType : null,
@@ -280,6 +319,22 @@ export class AnyonJumpGame {
                 }
                 : null
         };
+        this.recordBraidEvent({
+            kind: memory.cancelledInverse ? 'unbraid' : 'braid',
+            player: movingToken.owner,
+            movingToken,
+            target,
+            sourceEvent: event,
+            generator: memory.braidGenerator,
+            beforeWord,
+            afterWord: memory.braidWord,
+            cancelledInverse: memory.cancelledInverse,
+            fullyUnbraided: memory.fullyUnbraided,
+            beforeFusionChannel,
+            afterFusionChannel: fusionChannelState(movingToken),
+            skipped: null
+        });
+        return applied;
     }
 
     braidGeneratorFor(token, targetId, { path = [], direction = [], sign = null, index = null } = {}) {
@@ -321,6 +376,7 @@ export class AnyonJumpGame {
             ? direction
             : (resolvedPath.length > 1 ? resolvedPath[1].map((value, axis) => value - resolvedPath[0][axis]) : []);
         const beforeWord = token.braidWord.map((entry) => ({ ...entry }));
+        const beforeFusionChannel = fusionChannelState(token);
         const generator = this.braidGeneratorFor(token, targetId, {
             path: resolvedPath,
             direction: resolvedDirection,
@@ -348,6 +404,22 @@ export class AnyonJumpGame {
             captureUnlockGranted
         };
         this.history.unshift(event);
+        const unbraidLog = this.recordBraidEvent({
+            kind: 'attempt_unbraid',
+            player: token.owner,
+            movingToken: token,
+            target,
+            sourceEvent: event,
+            generator: unbraid.attempted,
+            beforeWord,
+            afterWord: unbraid.braidWord,
+            cancelledInverse: unbraid.successfulPartialUnbraid,
+            fullyUnbraided: unbraid.fullyUnbraided,
+            beforeFusionChannel,
+            afterFusionChannel: fusionChannelState(token),
+            wrongOrder: unbraid.wrongOrder
+        });
+        this.unbraidAttempts.push(unbraidLog);
         return { ok: true, event };
     }
 
@@ -452,6 +524,108 @@ export class AnyonJumpGame {
         return { ok: true, events };
     }
 
+    braidStatusForToken(token) {
+        const wordLength = token?.braidWord?.length || 0;
+        const parity = Number(token?.braidParity || 0);
+        if (wordLength === 0 && parity === 0) return 'trivial';
+        const historyLength = token?.braidHistory?.length || 0;
+        return historyLength > wordLength ? 'partially_unbraided' : 'braided';
+    }
+
+    recordBraidEvent({
+        kind = 'braid',
+        player = this.currentPlayer,
+        movingToken,
+        target = null,
+        sourceEvent = {},
+        generator = null,
+        beforeWord = [],
+        afterWord = [],
+        cancelledInverse = false,
+        fullyUnbraided = false,
+        beforeFusionChannel = null,
+        afterFusionChannel = null,
+        skipped = null,
+        wrongOrder = false
+    } = {}) {
+        const entry = {
+            tick: this.moveNumber,
+            player,
+            type: kind,
+            movingTokenId: movingToken?.id || sourceEvent.tokenId || sourceEvent.movingId || '',
+            targetId: target?.id || sourceEvent.targetId || '',
+            generator: generator ? { ...generator } : null,
+            sign: generator?.sign ?? sourceEvent.sign ?? null,
+            braidWordBefore: cloneBraidWord(beforeWord),
+            braidWordAfter: cloneBraidWord(afterWord),
+            cancellationOccurred: Boolean(cancelledInverse),
+            fullyUnbraided: Boolean(fullyUnbraided),
+            wrongOrder: Boolean(wrongOrder),
+            skipped,
+            fusionChannelBefore: beforeFusionChannel,
+            fusionChannelAfter: afterFusionChannel,
+            path: Array.isArray(sourceEvent.path) ? sourceEvent.path.map(cloneCoord) : [],
+            reason: sourceEvent.reason || sourceEvent.kind || kind
+        };
+        this.braidEventLog.push(entry);
+        return entry;
+    }
+
+    tokenSnapshot(token) {
+        return {
+            ...cloneValue(token),
+            coord: cloneCoord(token.coord),
+            braidStatus: this.braidStatusForToken(token),
+            fusionChannelDisplay: token.hiddenFusionState?.revealed ? token.hiddenFusionState.currentChannel : token.fusionChannel
+        };
+    }
+
+    snapshotState(label = 'state') {
+        return {
+            label,
+            currentPlayer: this.currentPlayer,
+            moveNumber: this.moveNumber,
+            braidTokens: { ...this.braidTokens },
+            score: { ...this.score },
+            parity: { ...this.parity },
+            tokens: [...this.tokens.values()].map((token) => this.tokenSnapshot(token)),
+            fusionSites: [...this.fusionSites].map((key) => key.split(',').map(Number)),
+            worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneCoord)]))
+        };
+    }
+
+    braidStatistics() {
+        const tokens = [...this.tokens.values()];
+        const wordLengths = tokens.map((token) => token.braidWord?.length || 0);
+        const totalLength = wordLengths.reduce((sum, length) => sum + length, 0);
+        const unbraids = this.braidEventLog.filter((event) => event.type === 'unbraid' || event.type === 'attempt_unbraid');
+        return {
+            totalBraids: this.braidEventLog.filter((event) => event.type === 'braid' && !event.skipped).length,
+            totalUnbraids: unbraids.length,
+            successfulUnbraids: unbraids.filter((event) => event.cancellationOccurred || event.fullyUnbraided).length,
+            failedInverseAttempts: this.braidEventLog.filter((event) => event.wrongOrder).length,
+            averageBraidWordLength: tokens.length ? totalLength / tokens.length : 0,
+            longestBraidWord: wordLengths.length ? Math.max(...wordLengths) : 0,
+            finalNumberOfBraidedPieces: tokens.filter((token) => this.braidStatusForToken(token) !== 'trivial').length
+        };
+    }
+
+    braidHistories() {
+        return [...this.tokens.values()].map((token) => ({
+            id: token.id,
+            owner: token.owner,
+            anyonType: token.anyonType,
+            braidStatus: this.braidStatusForToken(token),
+            braidParity: token.braidParity || 0,
+            braidWord: cloneBraidWord(token.braidWord),
+            braidHistory: cloneBraidWord(token.braidHistory),
+            requiredInverse: token.braidWord?.length ? cloneBraidWord([...token.braidWord].reverse().map((entry) => ({
+                ...entry,
+                sign: entry.sign === 1 ? -1 : 1
+            }))) : []
+        }));
+    }
+
     maybeApplyNoise(trigger, player = this.currentPlayer) {
         if (!this.probability?.shouldApplyNoise(trigger, this.currentPlayer)) return [];
         return this.applyNoiseCycle({ player, tick: this.moveNumber, trigger });
@@ -552,6 +726,7 @@ export class AnyonJumpGame {
     }
 
     exportState() {
+        const finalState = this.snapshotState('final');
         return {
             mode: this.mode,
             topology: {
@@ -564,11 +739,20 @@ export class AnyonJumpGame {
             braidTokens: { ...this.braidTokens },
             score: { ...this.score },
             parity: { ...this.parity },
-            tokens: [...this.tokens.values()].map((token) => ({ ...token, coord: cloneCoord(token.coord) })),
+            winner: this.score.black === this.score.white ? null : (this.score.black > this.score.white ? 'black' : 'white'),
+            initialState: cloneValue(this.initialState),
+            finalState,
+            tokens: [...this.tokens.values()].map((token) => this.tokenSnapshot(token)),
             fusionSites: [...this.fusionSites].map((key) => key.split(',').map(Number)),
             worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneCoord)])),
+            braidHistories: this.braidHistories(),
+            braidEventLog: this.braidEventLog.map(cloneValue),
+            unbraidAttempts: this.unbraidAttempts.map(cloneValue),
             fusionOutcomes: this.fusionOutcomes,
+            windingNumbers: this.topologicalSectors.map((sector) => ({ number: sector.number, tokenId: sector.tokenId, winding: { ...sector.winding } })),
             topologicalSectors: this.topologicalSectors,
+            topologicalSectorChanges: this.topologicalSectors,
+            statistics: this.braidStatistics(),
             history: this.history,
             probability: this.probability.exportState({ fusionOutcomes: this.fusionOutcomes }),
             time: this.time.exportState()
