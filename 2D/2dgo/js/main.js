@@ -568,14 +568,14 @@ class Go2DApp {
         const periodic = topology === 'pbc';
         const klein = topology === 'klein';
         const random = topology === 'random';
-        this.boundaryEl.textContent = random ? 'Random' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'OBC';
+        this.boundaryEl.textContent = random ? '2D RBC' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'Standard';
         this.boundaryInfoEl.textContent = random
-            ? 'Random boundary uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.'
+            ? '2D RBC uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.'
             : klein
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x.'
             : periodic
                 ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'
-                : 'OBC uses ordinary open board edges.';
+                : 'Standard uses ordinary open board edges.';
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? 'Counting pending' : `${this.capitalize(this.logic.currentPlayer)} to play`;
         this.blackCapturedEl.textContent = `${this.logic.captures.black} ${this.logic.captures.black === 1 ? 'stone' : 'stones'}`;
         this.whiteCapturedEl.textContent = `${this.logic.captures.white} ${this.logic.captures.white === 1 ? 'stone' : 'stones'}`;

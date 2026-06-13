@@ -679,6 +679,8 @@ export class CubeNetworkManager {
             board: this.cloneBoard(this.game.board),
             currentPlayer: this.game.currentPlayer,
             boundaryCondition: this.game.boundaryCondition,
+            randomBoundarySeed: this.game.randomBoundarySeed || '',
+            randomBoundaryMap: this.game.randomBoundaryEntries?.() || [],
             timerEnabled: this.game.timerEnabled,
             timeLimit: this.game.timeLimit,
             timeRemaining: { ...this.game.timeRemaining },
@@ -700,9 +702,13 @@ export class CubeNetworkManager {
         }
 
         this.game.currentPlayer = state.currentPlayer === 'black' ? 'black' : 'white';
-        this.game.boundaryCondition = ['forbidden', 'reflection', 'periodic'].includes(state.boundaryCondition)
+        this.game.boundaryCondition = ['forbidden', 'periodic', 'random', 'reflection'].includes(state.boundaryCondition)
             ? state.boundaryCondition
             : 'forbidden';
+        this.game.configureRandomBoundary?.({
+            seed: String(state.randomBoundarySeed || ''),
+            entries: Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : null
+        });
         this.game.timerEnabled = Boolean(state.timerEnabled);
         this.game.timeLimit = Number(state.timeLimit) || 0;
         this.syncClocks(state.timeRemaining || { white: this.game.timeLimit, black: this.game.timeLimit });

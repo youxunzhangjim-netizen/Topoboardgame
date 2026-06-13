@@ -1,6 +1,7 @@
 import { CubeThreeJSRenderer } from './CubeThreeJSRenderer.js';
 import { CubeNetworkManager } from './CubeNetworkManager.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
+import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 
 const SIZE = 8;
 const MAIN_ROW = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'];
@@ -19,6 +20,59 @@ const CAPTURED_ICON_LOOKUP = Object.entries(CAPTURED_ICONS).reduce((lookup, [col
     return lookup;
 }, {});
 
+function cubeRandomSeed() {
+    return `chess-3d-rbc:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function cubeInBounds(x, y, z) {
+    return x >= 0 && x < SIZE && y >= 0 && y < SIZE && z >= 0 && z < SIZE;
+}
+
+function cubeRandomExitKey(x, y, z, dx, dy, dz) {
+    return `${x},${y},${z}:${Math.sign(dx)},${Math.sign(dy)},${Math.sign(dz)}`;
+}
+
+function cubeBoundaryTargets() {
+    const targets = [];
+    for (let z = 0; z < SIZE; z++) {
+        for (let y = 0; y < SIZE; y++) {
+            for (let x = 0; x < SIZE; x++) {
+                if (x === 0 || y === 0 || z === 0 || x === SIZE - 1 || y === SIZE - 1 || z === SIZE - 1) {
+                    targets.push([x, y, z]);
+                }
+            }
+        }
+    }
+    return targets;
+}
+
+function createCubeRandomBoundaryMap(seed = cubeRandomSeed()) {
+    const rng = new SeededRandom(seed);
+    const targets = cubeBoundaryTargets();
+    const entries = [];
+    for (let z = 0; z < SIZE; z++) {
+        for (let y = 0; y < SIZE; y++) {
+            for (let x = 0; x < SIZE; x++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            if (dx === 0 && dy === 0 && dz === 0) continue;
+                            if (cubeInBounds(x + dx, y + dy, z + dz)) continue;
+                            let target = targets[rng.integer(targets.length)] || [x, y, z];
+                            if (targets.length > 1 && target[0] === x && target[1] === y && target[2] === z) {
+                                const index = targets.findIndex(([tx, ty, tz]) => tx === x && ty === y && tz === z);
+                                target = targets[(index + 1) % targets.length];
+                            }
+                            entries.push([cubeRandomExitKey(x, y, z, dx, dy, dz), target]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return entries;
+}
+
 export class CubeChessGame {
     constructor() {
         this.board = this.createEmptyBoard();
@@ -27,6 +81,8 @@ export class CubeChessGame {
         this.currentPlayer = 'white';
         this.moveHistory = [];
         this.boundaryCondition = 'forbidden';
+        this.randomBoundarySeed = '';
+        this.randomBoundaryMap = new Map();
         this.gameOver = false;
         this.showMoveHints = true;
         this.capturedPieces = { white: [], black: [] };
@@ -57,6 +113,7 @@ export class CubeChessGame {
             boundarySelect.disabled = false;
             boundarySelect.value = this.boundaryCondition;
         }
+        this.configureRandomBoundary();
         if (timerSelect) timerSelect.value = String(this.timeLimit);
         this.renderer.init3D();
         this.setupBoard3D();
@@ -119,6 +176,26 @@ export class CubeChessGame {
         requestAnimationFrame(this.animate);
         this.renderer.animate();
     };
+
+    configureRandomBoundary({ fresh = false, seed = '', entries = null } = {}) {
+        if (this.boundaryCondition !== 'random') {
+            this.randomBoundarySeed = '';
+            this.randomBoundaryMap = new Map();
+            return;
+        }
+
+        if (!fresh && !entries && this.randomBoundaryMap instanceof Map && this.randomBoundaryMap.size > 0) return;
+        const nextSeed = seed || cubeRandomSeed();
+        const boundaryState = entries
+            ? { seed: seed || this.randomBoundarySeed || 'imported-3d-rbc', entries }
+            : { seed: nextSeed, entries: createCubeRandomBoundaryMap(nextSeed) };
+        this.randomBoundarySeed = boundaryState.seed;
+        this.randomBoundaryMap = new Map(boundaryState.entries);
+    }
+
+    randomBoundaryEntries() {
+        return this.randomBoundaryMap instanceof Map ? [...this.randomBoundaryMap.entries()] : [];
+    }
 
     async handleSquareClick(x, y, z) {
         if (this.gameOver) return;
@@ -423,11 +500,11 @@ export class CubeChessGame {
 
         if (!forAttack) {
             for (const [dx, dy, dz] of forwardAxes) {
-                const one = this.resolveTarget(x + dx, y + dy, z + dz);
+                const one = this.resolveTarget(x + dx, y + dy, z + dz, x, y, z, [dx, dy, dz]);
                 if (one && !this.getPiece(one.x, one.y, one.z)) {
                     moves.push({ ...one, capture: false });
 
-                    const two = this.resolveTarget(x + dx * 2, y + dy * 2, z + dz * 2);
+                    const two = this.resolveTarget(x + dx * 2, y + dy * 2, z + dz * 2, x, y, z, [dx, dy, dz]);
                     if (!piece.hasMoved && two && !this.sameCoord({ x, y, z }, two) && !this.getPiece(two.x, two.y, two.z)) {
                         moves.push({ ...two, capture: false });
                     }
@@ -436,7 +513,7 @@ export class CubeChessGame {
         }
 
         for (const [dx, dy, dz] of this.getPawnCaptureVectors(dir)) {
-            const target = this.resolveTarget(x + dx, y + dy, z + dz);
+            const target = this.resolveTarget(x + dx, y + dy, z + dz, x, y, z, [dx, dy, dz]);
             if (!target) continue;
 
             if (forAttack) {
@@ -551,7 +628,7 @@ export class CubeChessGame {
 
         for (const offset of offsets) {
             const [dx, dy, dz] = offset.split(',').map(Number);
-            const target = this.resolveTarget(x + dx, y + dy, z + dz);
+            const target = this.resolveTarget(x + dx, y + dy, z + dz, x, y, z, [dx, dy, dz]);
             if (!target || this.sameCoord({ x, y, z }, target)) continue;
             this.addLeaperMove(moves, target, piece, forAttack);
         }
@@ -567,7 +644,7 @@ export class CubeChessGame {
             for (let dy = -1; dy <= 1; dy++) {
                 for (let dz = -1; dz <= 1; dz++) {
                     if (dx === 0 && dy === 0 && dz === 0) continue;
-                    const target = this.resolveTarget(x + dx, y + dy, z + dz);
+                    const target = this.resolveTarget(x + dx, y + dy, z + dz, x, y, z, [dx, dy, dz]);
                     if (!target || this.sameCoord({ x, y, z }, target)) continue;
                     this.addLeaperMove(moves, target, piece, forAttack);
                 }
@@ -608,6 +685,15 @@ export class CubeChessGame {
             };
         }
 
+        if (this.boundaryCondition === 'random') {
+            const nx = x + dx;
+            const ny = y + dy;
+            const nz = z + dz;
+            if (this.inBounds(nx, ny, nz)) return { x: nx, y: ny, z: nz, dx, dy, dz };
+            const target = this.randomBoundaryTarget(x, y, z, dx, dy, dz);
+            return target ? { ...target, dx, dy, dz } : null;
+        }
+
         let nx = x + dx;
         let ny = y + dy;
         let nz = z + dz;
@@ -631,7 +717,7 @@ export class CubeChessGame {
         return { x: nx, y: ny, z: nz, dx: ndx, dy: ndy, dz: ndz };
     }
 
-    resolveTarget(x, y, z) {
+    resolveTarget(x, y, z, fromX = null, fromY = null, fromZ = null, direction = null) {
         if (this.boundaryCondition === 'forbidden') {
             return this.inBounds(x, y, z) ? { x, y, z } : null;
         }
@@ -644,11 +730,24 @@ export class CubeChessGame {
             };
         }
 
+        if (this.boundaryCondition === 'random') {
+            if (this.inBounds(x, y, z)) return { x, y, z };
+            if (![fromX, fromY, fromZ].every(Number.isInteger)) return null;
+            const [dx, dy, dz] = direction || [x - fromX, y - fromY, z - fromZ];
+            return this.randomBoundaryTarget(fromX, fromY, fromZ, dx, dy, dz);
+        }
+
         return {
             x: this.reflectCoord(x),
             y: this.reflectCoord(y),
             z: this.reflectCoord(z)
         };
+    }
+
+    randomBoundaryTarget(x, y, z, dx, dy, dz) {
+        const key = cubeRandomExitKey(x, y, z, dx, dy, dz);
+        const target = this.randomBoundaryMap.get(key);
+        return target ? { x: target[0], y: target[1], z: target[2] } : null;
     }
 
     wouldLeaveKingInCheck(fromX, fromY, fromZ, toX, toY, toZ, castling = null) {
@@ -996,6 +1095,7 @@ export class CubeChessGame {
     }
 
     resetGame({ keepOnline = false, remote = false } = {}) {
+        this.configureRandomBoundary({ fresh: this.boundaryCondition === 'random' && !remote });
         this.setupBoard3D();
         this.selectedSquare = null;
         this.legalMoves = [];
@@ -1138,6 +1238,7 @@ export class CubeChessGame {
                 return;
             }
             this.boundaryCondition = event.target.value;
+            this.configureRandomBoundary({ fresh: this.boundaryCondition === 'random' });
             this.updateBoundaryInfo();
             this.updateUI();
         });

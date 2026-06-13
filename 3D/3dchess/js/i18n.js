@@ -159,18 +159,20 @@ const DICTIONARY = {
         },
         boundary: {
             names: {
-                forbidden: 'Forbidden',
+                forbidden: 'Standard',
+                random: '3D RBC',
                 reflection: 'Reflection',
-                periodic: 'Periodic',
+                periodic: 'T3 PBC',
                 rp2: 'RP2 antipodal',
                 mobius: 'Mobius twist',
                 sphere: 'S2 sphere',
                 klein: 'Klein bottle'
             },
             info: {
-                forbidden: 'Forbidden: pieces cannot move outside the 8x8x8 cube.',
+                forbidden: 'Standard: pieces cannot move outside the 8x8x8 cube.',
+                random: '3D RBC: each cube-boundary exit direction maps to one fixed random boundary cell for this game.',
                 reflection: 'Reflection: a move that reaches an edge bounces back into the cube.',
-                periodic: 'Periodic: leaving one side wraps the move to the opposite side.'
+                periodic: 'T3 PBC: leaving one cube face wraps to the opposite face in x, y, and z.'
             }
         },
         timer: {
@@ -440,6 +442,17 @@ const DICTIONARY = {
         }
     }
 };
+
+Object.assign(DICTIONARY.zh.boundary.names, {
+    forbidden: '標準',
+    random: '3D RBC',
+    periodic: 'T3 週期'
+});
+Object.assign(DICTIONARY.zh.boundary.info, {
+    forbidden: '標準：棋子不能走出 8x8x8 立方體。',
+    random: '3D RBC：每個立方體邊界出口方向會固定映射到一個隨機邊界格。',
+    periodic: 'T3 週期：從任一立方體面離開會從相對面進入。'
+});
 
 export const I18N = {
     current: DEFAULT_LANGUAGE,

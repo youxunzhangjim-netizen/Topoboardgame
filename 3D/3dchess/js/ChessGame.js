@@ -111,7 +111,7 @@ const VARIANTS = {
     }
 };
 
-const DEFAULT_VARIANT = 'torus';
+const DEFAULT_VARIANT = 'cube';
 const STORAGE_KEY = '3dchess:selectedVariant';
 
 function normalizeVariant(value) {
@@ -161,7 +161,7 @@ export class ChessGame {
         if (boundarySelect) {
             boundarySelect.querySelectorAll('option').forEach((option) => {
                 const variantBoundary = VARIANTS[this.variant].boundaryValue;
-                const sharedCubeOption = ['forbidden', 'reflection', 'periodic'].includes(option.value);
+                const sharedCubeOption = ['forbidden', 'periodic', 'random', 'reflection'].includes(option.value);
                 option.hidden = this.variant === 'cube'
                     ? !sharedCubeOption
                     : option.value !== variantBoundary;

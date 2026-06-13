@@ -65,7 +65,7 @@ try {
     assert.match(rulesState.parentClass, /board-wrap/, 'Rules intro panel should live inside the board/game area.');
     assert.match(rulesState.text, /Clifford Reversi/);
     assert.doesNotMatch(rulesState.text, /Toric code fusion/);
-    assert.equal(await page.locator('#topologySelect option[value="random_boundary"]').count(), 1, 'Random Boundary should be available in the topology selector.');
+    assert.equal(await page.locator('#topologySelect option[value="random_boundary"]').count(), 1, '2D RBC should be available in the topology selector.');
     await page.selectOption('#topologySelect', 'random_boundary');
     const randomBoundaryState = await page.evaluate(() => {
         const exportState = JSON.parse(document.querySelector('#exportText').value);
@@ -75,7 +75,7 @@ try {
         };
     });
     assert.equal(randomBoundaryState.topology, 'random_boundary');
-    assert.match(randomBoundaryState.hint, /Random boundary/);
+    assert.match(randomBoundaryState.hint, /2D RBC|random boundary/i);
 
     await page.locator('.cell.legal').first().click();
     const reversiState = await page.evaluate(() => ({

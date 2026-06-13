@@ -13,6 +13,11 @@ import {
     normalizePauliLabel,
     setPauliLabel
 } from '../../../js/algebra/PauliAlgebra.js';
+import { SeededRandom } from '../../../js/probability/SeededRandom.js';
+
+export const R3_STANDARD_TOPOLOGY = 'r3';
+export const T3_PBC_TOPOLOGY = 't3';
+export const R3_RANDOM_TOPOLOGY = 'r3_random';
 
 export const COLORS = {
     empty: 0,
@@ -34,18 +39,70 @@ export function valueToColor(value) {
     return '';
 }
 
+function randomSeed() {
+    return `go-3d-rbc:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function boundaryTargets3D(size) {
+    const targets = [];
+    for (let z = 0; z < size; z++) {
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (x === 0 || y === 0 || z === 0 || x === size - 1 || y === size - 1 || z === size - 1) {
+                    targets.push([x, y, z]);
+                }
+            }
+        }
+    }
+    return targets;
+}
+
+function randomExitKey3D(coord, axis, delta) {
+    return `${coord.join(',')}:${axis}:${Math.sign(delta)}`;
+}
+
+function createRandomBoundaryMap3D(size, seed = randomSeed()) {
+    const rng = new SeededRandom(seed);
+    const targets = boundaryTargets3D(size);
+    const entries = [];
+    for (let z = 0; z < size; z++) {
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const coord = [x, y, z];
+                for (let axis = 0; axis < 3; axis++) {
+                    for (const delta of [-1, 1]) {
+                        const raw = coord[axis] + delta;
+                        if (raw >= 0 && raw < size) continue;
+                        let target = targets[rng.integer(targets.length)] || coord;
+                        if (targets.length > 1 && target[0] === x && target[1] === y && target[2] === z) {
+                            const index = targets.findIndex(([tx, ty, tz]) => tx === target[0] && ty === target[1] && tz === target[2]);
+                            target = targets[(index + 1) % targets.length];
+                        }
+                        entries.push([randomExitKey3D(coord, axis, delta), target]);
+                    }
+                }
+            }
+        }
+    }
+    return entries;
+}
+
 export class GoGameLogic {
     constructor(options = {}) {
         this.reset(options);
     }
 
-    reset({ size = 9, width = size, height = size, dimension = 2, topology = 'open2d', komi = 7.5 } = {}) {
+    reset({ size = 9, width = size, height = size, dimension = 2, topology = 'open2d', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null } = {}) {
         this.size = Number(size) || 9;
         this.width = Number(width) || this.size;
         this.height = Number(height) || this.size;
         this.dimension = Number(dimension) || 2;
         this.topology = topology || 'open2d';
         this.komi = Number.isFinite(Number(komi)) ? Number(komi) : 7.5;
+        this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (randomBoundarySeed || randomSeed()) : '';
+        this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
+            ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
+            : new Map();
         this.total = this.dimension === 3 ? this.size ** 3 : this.width * this.height;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
@@ -106,6 +163,7 @@ export class GoGameLogic {
 
     isWrapAxis(axis) {
         if (this.topology === 't2') return axis === 0 || axis === 1;
+        if (this.topology === T3_PBC_TOPOLOGY) return axis === 0 || axis === 1 || axis === 2;
         if (this.topology === 'pbc-x') return axis === 0;
         return false;
     }
@@ -113,6 +171,11 @@ export class GoGameLogic {
     stepCoord(coord, axis, delta) {
         const next = [...coord];
         next[axis] += delta;
+        if (this.topology === R3_RANDOM_TOPOLOGY && this.dimension === 3) {
+            if (next[axis] >= 0 && next[axis] < this.size) return next;
+            const target = this.randomBoundaryMap.get(randomExitKey3D(coord, axis, delta));
+            return target ? [...target] : null;
+        }
         if (next[axis] < 0 || next[axis] >= this.size) {
             if (!this.isWrapAxis(axis)) return null;
             next[axis] = (next[axis] + this.size) % this.size;
@@ -349,6 +412,8 @@ export class GoGameLogic {
             dimension: this.dimension,
             topology: this.topology,
             komi: this.komi,
+            randomBoundarySeed: this.randomBoundarySeed,
+            randomBoundaryMap: [...this.randomBoundaryMap.entries()],
             board: Array.from(this.board),
             pauliLabels: [...this.pauliLabels],
             cliffordGoEnabled: this.cliffordGoEnabled,
@@ -374,6 +439,10 @@ export class GoGameLogic {
         this.dimension = Number(state.dimension) || 2;
         this.topology = state.topology || 'open2d';
         this.komi = Number.isFinite(Number(state.komi)) ? Number(state.komi) : 7.5;
+        this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (state.randomBoundarySeed || randomSeed()) : '';
+        this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
+            ? new Map(Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
+            : new Map();
         this.total = this.dimension === 3 ? this.size ** 3 : this.width * this.height;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');

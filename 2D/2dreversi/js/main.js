@@ -279,14 +279,14 @@ class Reversi2DApp {
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const topology = this.boundarySelect.value;
-        this.boundaryEl.textContent = topology === 'random' ? 'Random' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'OBC';
+        this.boundaryEl.textContent = topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         this.boundaryInfoEl.textContent = topology === 'random'
-            ? 'Random boundary uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'
+            ? '2D RBC uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'
             : topology === 'klein'
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped.'
             : topology === 'pbc'
                 ? 'PBC identifies both left-right and top-bottom edges.'
-                : 'OBC uses ordinary open board edges.';
+                : 'Standard uses ordinary open board edges.';
         if (this.logic.gameOver) this.setStatus(this.resultText());
         this.renderHistory();
         this.render();

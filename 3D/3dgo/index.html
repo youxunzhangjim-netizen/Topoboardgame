@@ -21,7 +21,7 @@
             <header class="top-bar">
                 <div>
                     <h1 data-i18n="app.title">3D Go</h1>
-                    <p data-i18n="app.tagline">R3 lattice, T2 torus, S2 sphere, and Klein bottle Go with 9, 13, and 19 scale options.</p>
+                    <p data-i18n="app.tagline">R3 standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, and Klein bottle Go with 9, 13, and 19 scale options.</p>
                 </div>
             </header>
 
@@ -31,7 +31,7 @@
                     <div class="player-timer active" id="blackTimerBox"><span data-i18n="colors.black">Black</span><strong id="blackTimer">10:00</strong></div>
                     <div class="player-timer" id="whiteTimerBox"><span data-i18n="colors.white">White</span><strong id="whiteTimer">10:00</strong></div>
                 </div>
-                <div class="boundary-display" id="modeDisplay">R3 Go</div>
+                <div class="boundary-display" id="modeDisplay">R3 Standard Go</div>
             </div>
 
             <div class="captured-pieces-container">
@@ -101,7 +101,9 @@
             <div class="control-group">
                 <label for="goModeSelect" data-i18n="controls.goSpace">Go Space</label>
                 <select id="goModeSelect">
-                    <option value="r3" selected data-i18n="mode.r3Option">R3 Go</option>
+                    <option value="r3" selected data-i18n="mode.r3Option">R3 Standard Go</option>
+                    <option value="t3" data-i18n="mode.t3Option">T3 PBC Go</option>
+                    <option value="r3_random" data-i18n="mode.r3RandomOption">3D RBC Go</option>
                     <option value="t2" data-i18n="mode.t2Option">T2 Torus Go</option>
                     <option value="sphere" data-i18n="mode.sphereOption">S2 Sphere Go</option>
                 </select>
@@ -125,7 +127,7 @@
                 </select>
                 <input id="customBoardSizeInput" type="number" min="2" max="39" step="1" value="19" hidden>
             </div>
-            <div class="boundary-info" id="modeInfo">R3 uses open boundaries in x, y, and z. T2 wraps both torus directions.</div>
+            <div class="boundary-info" id="modeInfo">R3 Standard uses ordinary open boundaries in x, y, and z. T3 PBC wraps x, y, and z. 3D RBC uses a fixed random boundary map.</div>
 
             <div class="control-group">
                 <label for="timerSelect" data-i18n="controls.timer">Timer per Player</label>

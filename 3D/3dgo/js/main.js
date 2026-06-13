@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { COLORS, GoGameLogic, otherColor, valueToColor } from './GoGame.js';
+import {
+    COLORS,
+    GoGameLogic,
+    otherColor,
+    R3_RANDOM_TOPOLOGY,
+    R3_STANDARD_TOPOLOGY,
+    T3_PBC_TOPOLOGY,
+    valueToColor
+} from './GoGame.js';
 import { GoNetworkManager } from './NetworkManager.js';
 import {
     createTorusSurfaceData,
@@ -18,6 +26,22 @@ const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/
 const STORAGE_PREFIX = '3dgo:room:';
 const KOMI = 7.5;
 const LANGUAGE_STORAGE_KEY = '3dgo:language';
+
+const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY]);
+
+function isR3LikeTopology(topology) {
+    return R3_LIKE_TOPOLOGIES.has(topology);
+}
+
+function normalizeGoMode(value) {
+    const mode = String(value || '').toLowerCase();
+    if (['s2', 'sphere'].includes(mode)) return 'sphere';
+    if (['t3', 't3go', 'pbc3d', '3d_pbc'].includes(mode)) return T3_PBC_TOPOLOGY;
+    if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d'].includes(mode)) return R3_RANDOM_TOPOLOGY;
+    if (['t2', 't2go', 'torus'].includes(mode)) return 't2';
+    if (['klein', 'klein_bottle'].includes(mode)) return 'klein';
+    return R3_STANDARD_TOPOLOGY;
+}
 
 const I18N = {
     en: {
@@ -52,6 +76,35 @@ const I18N = {
         score: { draw: '和局', wins: ({ color }) => color + '獲勝', winsBy: ({ color, margin }) => color + '勝 ' + margin, summary: ({ black, white, komi, result }) => '黑方 ' + black + '，白方 ' + white + '，含貼目 ' + komi + '。' + result }
     }
 };
+
+Object.assign(I18N.en.app, {
+    tagline: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, and Klein bottle Go with 9, 13, and 19 scale options.'
+});
+Object.assign(I18N.en.mode, {
+    r3Option: 'R3 Standard Go',
+    t3Option: 'T3 PBC Go',
+    r3RandomOption: '3D RBC Go',
+    r3Display: ({ size }) => size + '^3 R3 Standard Go',
+    t3Display: ({ size }) => size + '^3 T3 PBC Go',
+    r3RandomDisplay: ({ size }) => size + '^3 3D RBC Go',
+    r3Info: 'R3 Standard uses ordinary open boundaries in x, y, and z.',
+    t3Info: 'T3 PBC wraps x, y, and z, so every cubic axis is periodic.',
+    r3RandomInfo: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.'
+});
+Object.assign(I18N.zh.app, {
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與克萊因瓶圍棋，支援 9、13、19 尺度。'
+});
+Object.assign(I18N.zh.mode, {
+    r3Option: 'R3 標準圍棋',
+    t3Option: 'T3 週期圍棋',
+    r3RandomOption: '3D RBC 圍棋',
+    r3Display: ({ size }) => size + '^3 R3 標準圍棋',
+    t3Display: ({ size }) => size + '^3 T3 週期圍棋',
+    r3RandomDisplay: ({ size }) => size + '^3 3D RBC 圍棋',
+    r3Info: 'R3 標準在 x、y、z 三個方向使用普通開放邊界。',
+    t3Info: 'T3 週期會在 x、y、z 三個方向全部週期連接。',
+    r3RandomInfo: '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。'
+});
 
 let currentLanguage = (() => {
     try {
@@ -188,7 +241,7 @@ class Go3DRenderer {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
-        if (logic.topology === 'r3') this.buildR3(logic.size);
+        if (isR3LikeTopology(logic.topology)) this.buildR3(logic.size);
         else if (logic.topology === 't2') this.buildTorus(logic.size);
         else if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) this.buildKlein(logic.width, logic.height);
         else if (view === '2d') this.buildSphereFlat(logic.width, logic.height);
@@ -600,7 +653,7 @@ class Go3DRenderer {
 
     addStoneInstances(positions, color, logic) {
         if (!positions.length) return;
-        const radius = logic.topology === 'r3'
+        const radius = isR3LikeTopology(logic.topology)
             ? (logic.size <= 9 ? 0.18 : logic.size <= 13 ? 0.13 : 0.095)
             : (logic.size <= 9 ? 0.16 : logic.size <= 13 ? 0.13 : 0.105);
         const stoneGeometry = new THREE.SphereGeometry(radius, 24, 16);
@@ -637,7 +690,7 @@ class Go3DRenderer {
         const index = logic.indexFromCoord(coord);
         if (index < 0 || logic.board[index] !== COLORS.empty) return;
         const p = this.positionForCoord(coord, logic);
-        const radius = logic.topology === 'r3'
+        const radius = isR3LikeTopology(logic.topology)
             ? (logic.size <= 9 ? 0.2 : logic.size <= 13 ? 0.145 : 0.105)
             : (logic.size <= 9 ? 0.18 : logic.size <= 13 ? 0.145 : 0.115);
         const mesh = new THREE.Mesh(
@@ -802,9 +855,7 @@ class Go3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = String(params.get('mode') || '').toLowerCase();
-        if (mode === 'r3' || mode === 't2' || mode === 'sphere' || mode === 's2') {
-            this.modeSelect.value = mode === 's2' ? 'sphere' : mode;
-        }
+        if (mode) this.modeSelect.value = normalizeGoMode(mode);
 
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
@@ -827,10 +878,10 @@ class Go3DApp {
     }
 
     createLogic() {
-        const mode = this.modeSelect?.value || 'r3';
+        const mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY);
         const size = this.boardSize();
-        const topology = mode === 'r3'
-            ? 'r3'
+        const topology = isR3LikeTopology(mode)
+            ? mode
             : mode === 'sphere'
                 ? SPHERE_GO_TOPOLOGY
                 : mode === 'klein' ? KLEIN_BOTTLE_TOPOLOGY : 't2';
@@ -838,7 +889,7 @@ class Go3DApp {
             size,
             width: size,
             height: mode === 'klein' ? 19 : size,
-            dimension: mode === 'r3' ? 3 : 2,
+            dimension: isR3LikeTopology(mode) ? 3 : 2,
             topology,
             komi: KOMI
         });
@@ -1081,10 +1132,12 @@ class Go3DApp {
 
     updateUI() {
         this.updateSettingsLockState();
-        const isR3 = this.logic.topology === 'r3';
+        const isR3Like = isR3LikeTopology(this.logic.topology);
         const isSphere = this.logic.topology === SPHERE_GO_TOPOLOGY;
         const isKlein = this.logic.topology === KLEIN_BOTTLE_TOPOLOGY;
-        const modeKey = isR3 ? 'r3' : isSphere ? 'sphere' : isKlein ? 'klein' : 't2';
+        const modeKey = isR3Like
+            ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : 'r3')
+            : isSphere ? 'sphere' : isKlein ? 'klein' : 't2';
         this.modeDisplay.textContent = tr(`mode.${modeKey}Display`, {
             size: this.logic.size,
             width: this.logic.width,
@@ -1235,9 +1288,9 @@ class Go3DApp {
     }
 
     getNetworkSettings() {
-        const mode = ['r3', 't2', 'sphere'].includes(this.modeSelect.value) ? this.modeSelect.value : 'r3';
+        const mode = normalizeGoMode(this.modeSelect.value);
         return {
-            variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : 'r3go',
+            variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : 'r3go',
             mode,
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
@@ -1263,7 +1316,9 @@ class Go3DApp {
             ? 't2'
             : this.logic.topology === SPHERE_GO_TOPOLOGY
                 ? 'sphere'
-                : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY ? 'klein' : 'r3';
+                : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY
+                    ? 'klein'
+                    : isR3LikeTopology(this.logic.topology) ? this.logic.topology : R3_STANDARD_TOPOLOGY;
         this.setSizeSelection(this.logic.size);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
         this.timeLimit = Number(state.timeLimit) || 0;

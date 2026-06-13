@@ -97,13 +97,13 @@
             <div class="control-group">
                 <label for="boundarySelect">Boundary Condition</label>
                 <select id="boundarySelect">
-                    <option value="open2d" selected>OBC Open</option>
+                    <option value="open2d" selected>Standard</option>
                     <option value="pbc">PBC All Sides</option>
                     <option value="klein">Klein Bottle</option>
-                    <option value="random">Random Boundary</option>
+                    <option value="random">2D RBC</option>
                 </select>
             </div>
-            <div class="boundary-info" id="boundaryInfo">OBC uses ordinary board edges. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. Random boundary creates one fixed random boundary map for this game.</div>
+            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
 
             <div class="control-group">
                 <label for="timerSelect">Timer per Player</label>

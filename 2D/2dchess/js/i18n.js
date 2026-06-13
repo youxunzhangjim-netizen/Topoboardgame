@@ -9,7 +9,7 @@ const DICTIONARY = {
         },
         app: {
             title: '2D Chess with Boundary Conditions',
-            subtitle: 'Local and online multiplayer with forbidden, open, reflection, periodic, and random boundaries.'
+            subtitle: 'Local and online multiplayer with standard, open, periodic, reflection, and 2D RBC boundaries.'
         },
         colors: {
             white: 'White',
@@ -95,18 +95,18 @@ const DICTIONARY = {
         },
         boundary: {
             names: {
-                forbidden: 'Forbidden',
+                forbidden: 'Standard',
                 open: 'Open',
                 reflection: 'Reflection',
                 periodic: 'Periodic',
-                random: 'Random'
+                random: '2D RBC'
             },
             info: {
-                forbidden: '<strong>Forbidden:</strong> Pieces cannot move outside the board.',
+                forbidden: '<strong>Standard:</strong> Pieces cannot move outside the board.',
                 open: '<strong>Open:</strong> A piece may follow a legal movement path across any edge. It is then removed as a suicide. A king suicide loses immediately.',
                 reflection: '<strong>Reflection:</strong> Pieces reflect around the left/right edge-square centers.',
                 periodic: '<strong>Periodic:</strong> Board wraps around left/right edges.',
-                random: '<strong>Random:</strong> Each edge-exit direction maps to a fixed random boundary square for the whole game.'
+                random: '<strong>2D RBC:</strong> Each edge-exit direction maps to a fixed random boundary square for the whole game.'
             },
             edges: {
                 top: 'top edge',
