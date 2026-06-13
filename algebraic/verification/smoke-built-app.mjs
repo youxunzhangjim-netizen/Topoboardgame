@@ -50,8 +50,28 @@ try {
     assert.equal(state.title, 'Clifford Reversi');
     assert.ok(state.cells >= 4, 'Expected rendered cells.');
     assert.equal(state.exportHasMode, true, 'Expected JSON export to contain the mode name.');
+
+    await page.locator('.cell.legal').first().click();
+    const reversiState = await page.evaluate(() => ({
+        moveNumber: JSON.parse(document.querySelector('#exportText').value).moveNumber,
+        blackCount: document.querySelector('#blackCount')?.textContent
+    }));
+    assert.equal(reversiState.moveNumber, 1, 'Expected a real pointer click to place a Clifford Reversi stone.');
+    assert.equal(reversiState.blackCount, '4', 'Expected Clifford Reversi to flip one white stone.');
+
+    await page.selectOption('#modeSelect', 'anyon_jump');
+    await page.locator('.anyon.black').first().locator('xpath=..').click();
+    const selected = await page.evaluate(() => document.querySelectorAll('.cell.legal').length);
+    assert.ok(selected > 0, 'Expected selecting an anyon to reveal legal jump-game actions.');
+    await page.locator('.cell.legal').first().click();
+    const anyonState = await page.evaluate(() => ({
+        mode: JSON.parse(document.querySelector('#exportText').value).mode,
+        moveNumber: JSON.parse(document.querySelector('#exportText').value).moveNumber
+    }));
+    assert.equal(anyonState.mode, 'anyon_jump');
+    assert.equal(anyonState.moveNumber, 1, 'Expected a real pointer click to move an anyon.');
     assert.equal(logs.some((line) => line.startsWith('pageerror')), false, logs.join('\n'));
-    console.log(JSON.stringify({ state, logs }, null, 2));
+    console.log(JSON.stringify({ state, reversiState, anyonState, logs }, null, 2));
 } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

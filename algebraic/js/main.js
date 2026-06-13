@@ -143,6 +143,8 @@ function renderBoard() {
         const cell = document.createElement('button');
         cell.type = 'button';
         cell.className = 'cell';
+        cell.dataset.coord = JSON.stringify(coord);
+        cell.dataset.key = key;
         if (legalReversi.has(key) || legalAnyonTargets.has(key)) cell.classList.add('legal');
         if (previewFlips.has(key)) cell.classList.add('preview-flip');
         if (jumpPath.has(key)) cell.classList.add('jump-path');
@@ -150,12 +152,12 @@ function renderBoard() {
         cell.title = game.topology.displayCoord(coord);
         cell.addEventListener('mouseenter', () => {
             hoverCoord = coord;
-            renderBoard();
+            updateBoardHighlights();
             updateStatus();
         });
         cell.addEventListener('mouseleave', () => {
             hoverCoord = null;
-            renderBoard();
+            updateBoardHighlights();
             updateStatus();
         });
         cell.addEventListener('click', () => handleCellClick(coord));
@@ -172,6 +174,29 @@ function renderBoard() {
         els.board.append(cell);
     }
     updateStatus();
+}
+
+function updateBoardHighlights() {
+    if (!game) return;
+    const preview = currentReversiPreview();
+    const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
+    const legalReversi = game.mode === 'clifford_reversi'
+        ? new Set(game.legalMoves(game.currentPlayer, els.transformSelect.value).map((move) => coordKey(move.coord)))
+        : new Set();
+    const legalAnyon = game.mode === 'anyon_jump' && selectedToken
+        ? game.legalActionsForToken(selectedToken)
+        : [];
+    const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
+    const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
+
+    els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
+        const key = cell.dataset.key;
+        const coord = JSON.parse(cell.dataset.coord);
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key));
+        cell.classList.toggle('preview-flip', previewFlips.has(key));
+        cell.classList.toggle('jump-path', jumpPath.has(key));
+        cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
+    });
 }
 
 function renderReversiStone(cell, coord) {
@@ -203,6 +228,7 @@ function handleCellClick(coord) {
         els.statusText.textContent = result.ok
             ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}.`
             : result.error;
+        if (result.ok) hoverCoord = null;
         render();
         return;
     }
@@ -220,7 +246,8 @@ function handleCellClick(coord) {
     }
     const result = game.move(selectedToken, coord);
     if (result.ok) {
-        selectedToken = game.tokens.has(selectedToken) ? selectedToken : '';
+        selectedToken = '';
+        hoverCoord = null;
         els.statusText.textContent = result.event.braid?.effect?.effect === 'add_braid_token'
             ? 'Jump recorded a nontrivial braid token.'
             : `${capitalize(result.event.kind)} completed.`;
