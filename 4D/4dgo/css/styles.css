@@ -24,18 +24,18 @@ body {
 }
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; padding: 14px; }
 .play-area, .sidebar { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-.play-area { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 12px; padding: 14px; }
+.play-area { min-width: 0; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; gap: 12px; padding: 14px; }
 .top-bar h1, .sidebar h2, .panel h3 { margin: 0; letter-spacing: 0; }
 .top-bar h1 { font-size: 30px; }
 .top-bar p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
 .game-info-bar, .status-card, .panel, .boundary-display { border: 1px solid rgba(224, 232, 220, 0.14); border-radius: 8px; background: rgba(13, 17, 22, 0.62); }
 .game-info-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; }
 .turn-pill, .boundary-display { min-height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid rgba(72, 199, 244, 0.38); border-radius: 999px; color: #e0f7ff; font-weight: 800; }
-.timer-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.player-timer { display: grid; gap: 3px; padding: 8px 10px; border: 1px solid rgba(224, 232, 220, 0.13); border-radius: 7px; background: rgba(10, 14, 18, 0.55); }
-.player-timer span, .muted { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
-.player-timer strong { font-size: 18px; }
-.player-timer.active { border-color: rgba(242, 196, 100, 0.78); }
+.captured-pieces-container { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.captured-side { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid rgba(224, 232, 220, 0.13); border-radius: 8px; background: rgba(10, 14, 18, 0.55); }
+.captured-side.active { border-color: rgba(242, 196, 100, 0.78); }
+.captured-label, .muted { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.capture-count { font-size: 18px; font-weight: 900; }
 .board-panel { min-height: 520px; padding: 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(12, 15, 19, 0.58), rgba(12, 15, 19, 0.9)); overflow: auto; }
 .slice-grid { display: grid; gap: 14px; align-items: start; justify-content: center; min-width: max-content; }
 .slice-board { display: grid; gap: 6px; padding: 9px; border: 1px solid rgba(224, 232, 220, 0.14); border-radius: 8px; background: rgba(10, 14, 18, 0.72); }

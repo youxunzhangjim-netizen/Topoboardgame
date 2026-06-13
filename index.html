@@ -17,7 +17,10 @@
     <div class="launcher-background-torus" aria-hidden="true">
         <canvas id="launcherTorusCanvas"></canvas>
     </div>
-    <div class="launcher-author" aria-label="Author">You-Xun Zhang</div>
+    <div class="launcher-author" aria-label="Author">
+        <span>You-Xun Zhang</span>
+        <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
+    </div>
 
     <main class="launcher-shell">
         <section class="launcher-hero" aria-labelledby="launcherTitle">
@@ -51,7 +54,7 @@
                     <a class="game-option" href="./2D/2dgo/">
                         <span class="game-option-copy">
                             <strong>2D Go</strong>
-                            <small>OBC and full x/y PBC Go</small>
+                            <small>OBC, PBC, and Klein bottle Go</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2dgo">-- waiting</span>
                     </a>
@@ -105,6 +108,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-4dgo">0 waiting</span>
                     </a>
+                    <a class="game-option" href="./algebraic/">
+                        <span class="game-option-copy">
+                            <strong>Algebraic Modes</strong>
+                            <small>Clifford Reversi and Anyon Jump</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-algebraic">0 waiting</span>
+                    </a>
                 </section>
             </div>
         </section>
@@ -127,8 +137,10 @@
                 r3go: '3dgo',
                 t2go: '3dgo',
                 s2go: '3dgo',
-                kleingo: '3dgo',
-                '4dgo': '4dgo'
+                kleingo: '2dgo',
+                '4dgo': '4dgo',
+                clifford_reversi: 'algebraic',
+                anyon_jump: 'algebraic'
             };
             const DIMENSION_BY_GAME = {
                 '2dchess': '2d',
@@ -136,7 +148,8 @@
                 '3dchess': '3d',
                 '3dgo': '3d',
                 '4dchess': '4d',
-                '4dgo': '4d'
+                '4dgo': '4d',
+                algebraic: '4d'
             };
             const EMPTY_COUNTS = {
                 'dimension-2d': 0,
@@ -147,7 +160,8 @@
                 'game-3dchess': 0,
                 'game-3dgo': 0,
                 'game-4dchess': 0,
-                'game-4dgo': 0
+                'game-4dgo': 0,
+                'game-algebraic': 0
             };
 
             function setBadgeState(state, counts = EMPTY_COUNTS) {

@@ -18,11 +18,18 @@
 
             <div class="game-info-bar">
                 <div class="turn-pill" id="playerTurn">Black to play</div>
-                <div class="timer-section">
-                    <div class="player-timer active" id="blackTimerBox"><span>Black</span><strong id="blackCaptured">0</strong></div>
-                    <div class="player-timer" id="whiteTimerBox"><span>White</span><strong id="whiteCaptured">0</strong></div>
-                </div>
                 <div class="boundary-display" id="topologyMode">flat_4d_go</div>
+            </div>
+
+            <div class="captured-pieces-container">
+                <div class="captured-side active" id="blackTimerBox">
+                    <div class="captured-label">Captured by Black</div>
+                    <div class="capture-count" id="blackCaptured">0 stones</div>
+                </div>
+                <div class="captured-side" id="whiteTimerBox">
+                    <div class="captured-label">Captured by White</div>
+                    <div class="capture-count" id="whiteCaptured">0 stones</div>
+                </div>
             </div>
 
             <div class="board-panel">

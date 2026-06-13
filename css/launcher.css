@@ -62,12 +62,24 @@ body::before {
     right: 16px;
     bottom: 14px;
     z-index: 2;
+    display: grid;
+    gap: 3px;
+    justify-items: end;
     color: rgba(237, 244, 246, 0.68);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0;
     text-transform: none;
-    pointer-events: none;
+}
+
+.launcher-author a {
+    color: rgba(56, 189, 248, 0.74);
+    text-decoration: none;
+    pointer-events: auto;
+}
+
+.launcher-author a:hover {
+    color: rgba(237, 244, 246, 0.9);
 }
 
 .launcher-shell {

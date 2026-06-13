@@ -790,7 +790,7 @@ class Go3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = String(params.get('mode') || '').toLowerCase();
-        if (mode === 'r3' || mode === 't2' || mode === 'sphere' || mode === 's2' || mode === 'klein') {
+        if (mode === 'r3' || mode === 't2' || mode === 'sphere' || mode === 's2') {
             this.modeSelect.value = mode === 's2' ? 'sphere' : mode;
         }
 
@@ -1171,9 +1171,9 @@ class Go3DApp {
     }
 
     getNetworkSettings() {
-        const mode = ['r3', 't2', 'sphere', 'klein'].includes(this.modeSelect.value) ? this.modeSelect.value : 'r3';
+        const mode = ['r3', 't2', 'sphere'].includes(this.modeSelect.value) ? this.modeSelect.value : 'r3';
         return {
-            variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : mode === 'klein' ? 'kleingo' : 'r3go',
+            variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : 'r3go',
             mode,
             size: Number(this.sizeSelect.value) || 19,
             timer: Number(this.timerSelect.value) || 0

@@ -56,11 +56,11 @@ class Go4DApp {
         this.gridEl.addEventListener('pointerover', (event) => {
             const button = event.target.closest('button[data-coord]');
             this.hoverIndex = button ? this.logic.indexFromCoord(JSON.parse(button.dataset.coord)) : -1;
-            this.render();
+            this.updateBoardHighlights();
         });
         this.gridEl.addEventListener('pointerleave', () => {
             this.hoverIndex = -1;
-            this.render();
+            this.updateBoardHighlights();
         });
     }
 
@@ -138,8 +138,8 @@ class Go4DApp {
 
     updateUI() {
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : `${this.capitalize(this.logic.currentPlayer)} to play`;
-        this.blackCapturedEl.textContent = String(this.logic.captures.black);
-        this.whiteCapturedEl.textContent = String(this.logic.captures.white);
+        this.blackCapturedEl.textContent = `${this.logic.captures.black} ${this.logic.captures.black === 1 ? 'stone' : 'stones'}`;
+        this.whiteCapturedEl.textContent = `${this.logic.captures.white} ${this.logic.captures.white === 1 ? 'stone' : 'stones'}`;
         this.blackTimerBox.classList.toggle('active', this.logic.currentPlayer === 'black' && !this.logic.gameOver);
         this.whiteTimerBox.classList.toggle('active', this.logic.currentPlayer === 'white' && !this.logic.gameOver);
         this.renderSelectionSummary();
@@ -220,6 +220,17 @@ class Go4DApp {
                 this.gridEl.append(slice);
             }
         }
+    }
+
+    updateBoardHighlights() {
+        const { group, liberties } = this.selectionSets();
+        this.gridEl.querySelectorAll('button.vertex[data-coord]').forEach((button) => {
+            const index = this.logic.indexFromCoord(JSON.parse(button.dataset.coord));
+            button.classList.toggle('selected', index === this.selectedIndex);
+            button.classList.toggle('hover', index === this.hoverIndex);
+            button.classList.toggle('group', group.has(index));
+            button.classList.toggle('liberty', liberties.has(index));
+        });
     }
 
     renderHistory() {

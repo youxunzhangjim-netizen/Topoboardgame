@@ -70,6 +70,7 @@ class Go2DApp {
 
         const mode = String(params.get('mode') || params.get('boundary') || '').toLowerCase();
         if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(mode)) this.boundarySelect.value = 'pbc';
+        if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(mode)) this.boundarySelect.value = 'klein';
         if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
     }
 
@@ -305,6 +306,7 @@ class Go2DApp {
         ctx.stroke();
 
         if (this.logic.topology === 'pbc') this.drawPeriodicBoundary(rect);
+        if (this.logic.topology === 'klein') this.drawKleinBoundary(rect);
 
         for (const [x, y] of this.starPoints(n)) {
             const p = this.coordToPixel([x, y]);
@@ -364,6 +366,49 @@ class Go2DApp {
         ctx.lineTo((left + right) / 2 - marker * 0.6, bottom);
         ctx.moveTo((left + right) / 2, bottom + marker);
         ctx.lineTo((left + right) / 2 + marker * 0.6, bottom);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    drawKleinBoundary(rect) {
+        const ctx = this.ctx;
+        const offset = rect.step * 0.36;
+        const left = rect.x - offset;
+        const top = rect.y - offset;
+        const right = rect.x + rect.span + offset;
+        const bottom = rect.y + rect.span + offset;
+        const marker = Math.max(6, rect.step * 0.18);
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(94, 234, 212, 0.92)';
+        ctx.lineWidth = Math.max(2, rect.step * 0.06);
+        ctx.setLineDash([10, 8]);
+        ctx.strokeRect(left, top, right - left, bottom - top);
+        ctx.setLineDash([]);
+
+        ctx.strokeStyle = 'rgba(242, 196, 100, 0.92)';
+        ctx.lineWidth = Math.max(1, rect.step * 0.025);
+        const stride = Math.max(1, Math.ceil(this.logic.size / 9));
+        for (let i = 0; i < this.logic.size; i += stride) {
+            const x = rect.x + i * rect.step;
+            const mirroredX = rect.x + (this.logic.size - 1 - i) * rect.step;
+            ctx.beginPath();
+            ctx.moveTo(x, top - marker * 0.35);
+            ctx.lineTo(mirroredX, bottom + marker * 0.35);
+            ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(94, 234, 212, 0.92)';
+        ctx.lineWidth = Math.max(2, rect.step * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(left - marker, (top + bottom) / 2);
+        ctx.lineTo(left, (top + bottom) / 2 - marker * 0.6);
+        ctx.moveTo(left - marker, (top + bottom) / 2);
+        ctx.lineTo(left, (top + bottom) / 2 + marker * 0.6);
+        ctx.moveTo(right + marker, (top + bottom) / 2);
+        ctx.lineTo(right, (top + bottom) / 2 - marker * 0.6);
+        ctx.moveTo(right + marker, (top + bottom) / 2);
+        ctx.lineTo(right, (top + bottom) / 2 + marker * 0.6);
         ctx.stroke();
         ctx.restore();
     }
@@ -428,11 +473,15 @@ class Go2DApp {
     }
 
     updateUI() {
-        const periodic = normalizeTopology(this.logic.topology) === 'pbc';
-        this.boundaryEl.textContent = periodic ? 'PBC x/y' : 'OBC';
-        this.boundaryInfoEl.textContent = periodic
-            ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'
-            : 'OBC uses ordinary open board edges.';
+        const topology = normalizeTopology(this.logic.topology);
+        const periodic = topology === 'pbc';
+        const klein = topology === 'klein';
+        this.boundaryEl.textContent = klein ? 'Klein' : periodic ? 'PBC x/y' : 'OBC';
+        this.boundaryInfoEl.textContent = klein
+            ? 'Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x.'
+            : periodic
+                ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'
+                : 'OBC uses ordinary open board edges.';
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? 'Counting pending' : `${this.capitalize(this.logic.currentPlayer)} to play`;
         this.blackCapturedEl.textContent = `${this.logic.captures.black} ${this.logic.captures.black === 1 ? 'stone' : 'stones'}`;
         this.whiteCapturedEl.textContent = `${this.logic.captures.white} ${this.logic.captures.white === 1 ? 'stone' : 'stones'}`;
@@ -571,7 +620,7 @@ class Go2DApp {
     getNetworkSettings() {
         return {
             variant: '2dgo',
-            mode: this.boundarySelect.value === 'pbc' ? 'pbc' : 'obc',
+            mode: normalizeTopology(this.boundarySelect.value),
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
         };

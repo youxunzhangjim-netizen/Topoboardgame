@@ -7,7 +7,8 @@
     "2D/2dgo",
     "3D/3dchess",
     "3D/3dgo",
-    "4D/4dgo"
+    "4D/4dgo",
+    "algebraic"
   ],
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5172",
@@ -24,7 +25,9 @@
     "dev:2dgo": "npm run dev --workspace 2dgo",
     "dev:3dgo": "npm run dev --workspace 3dgo",
     "build:4dgo": "npm run build --workspace 4dgo",
-    "dev:4dgo": "npm run dev --workspace 4dgo"
+    "dev:4dgo": "npm run dev --workspace 4dgo",
+    "build:algebraic": "npm run build --workspace algebraic-games",
+    "dev:algebraic": "npm run dev --workspace algebraic-games"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

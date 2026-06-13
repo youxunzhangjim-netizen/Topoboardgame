@@ -27,7 +27,12 @@ export function valueToColor(value) {
 export function normalizeTopology(topology) {
     const value = String(topology || '').toLowerCase();
     if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(value)) return 'pbc';
+    if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(value)) return 'klein';
     return 'open2d';
+}
+
+function wrap(value, size) {
+    return ((value % size) + size) % size;
 }
 
 export class GoGameLogic {
@@ -95,6 +100,14 @@ export class GoGameLogic {
     }
 
     stepCoord(coord, axis, delta) {
+        if (this.topology === 'klein' && this.dimension === 2) {
+            const [x, y] = coord;
+            if (axis === 0) return [wrap(x + delta, this.size), y];
+            const nextY = y + delta;
+            if (nextY < 0) return [this.size - 1 - x, this.size - 1];
+            if (nextY >= this.size) return [this.size - 1 - x, 0];
+            return [x, nextY];
+        }
         const next = [...coord];
         next[axis] += delta;
         if (next[axis] < 0 || next[axis] >= this.size) {
@@ -112,7 +125,7 @@ export class GoGameLogic {
                 if (next) neighbors.push(next);
             }
         }
-        return neighbors;
+        return [...new Map(neighbors.map((neighbor) => [this.coordKey(neighbor), neighbor])).values()];
     }
 
     neighborsFromIndex(index) {

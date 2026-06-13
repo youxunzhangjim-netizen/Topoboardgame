@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algebraic Board Games</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="top-bar">
+            <a class="home-link" href="../">Home</a>
+            <div>
+                <p class="eyebrow">Topological Board Game</p>
+                <h1>Algebraic Local Modes</h1>
+            </div>
+            <div class="turn-card">
+                <span>Current</span>
+                <strong id="currentPlayer">Black</strong>
+            </div>
+        </header>
+
+        <section class="control-panel" aria-label="Game controls">
+            <label>
+                Mode
+                <select id="modeSelect">
+                    <option value="clifford_reversi">Clifford Reversi</option>
+                    <option value="anyon_jump">Anyon Jump</option>
+                </select>
+            </label>
+            <label>
+                Topology
+                <select id="topologySelect">
+                    <option value="flat">Flat</option>
+                    <option value="torus" selected>Torus</option>
+                    <option value="klein_bottle">Klein Bottle</option>
+                    <option value="rp2">RP2</option>
+                    <option value="sphere_latitude">S2 Latitude</option>
+                    <option value="flat_4d_grid">4D Grid</option>
+                </select>
+            </label>
+            <label>
+                Width / Nx
+                <input id="widthInput" type="number" min="2" max="24" value="8">
+            </label>
+            <label>
+                Height / Ny
+                <input id="heightInput" type="number" min="2" max="24" value="8">
+            </label>
+            <label>
+                Nz
+                <input id="zSizeInput" type="number" min="1" max="8" value="2">
+            </label>
+            <label>
+                Nw
+                <input id="wSizeInput" type="number" min="1" max="8" value="2">
+            </label>
+            <label id="pauliControl">
+                Pauli
+                <select id="pauliSelect">
+                    <option>X</option>
+                    <option>Y</option>
+                    <option>Z</option>
+                </select>
+            </label>
+            <label id="transformControl">
+                Flip Transform
+                <select id="transformSelect">
+                    <option value="H">H</option>
+                    <option value="S">S</option>
+                </select>
+            </label>
+            <button id="newGameButton" type="button">New Game</button>
+            <button id="passButton" type="button">Pass</button>
+            <button id="exportButton" type="button">Export JSON</button>
+        </section>
+
+        <section class="layer-panel" id="layerPanel" hidden>
+            <label>
+                z layer
+                <input id="zLayerInput" type="range" min="0" max="1" value="0">
+            </label>
+            <label>
+                w layer
+                <input id="wLayerInput" type="range" min="0" max="1" value="0">
+            </label>
+            <span id="layerLabel">(z,w) = (0,0)</span>
+        </section>
+
+        <section class="game-layout">
+            <div class="board-wrap">
+                <div class="board-header">
+                    <strong id="modeTitle">Clifford Reversi</strong>
+                    <span id="topologyHint">Torus: x and y wrap periodically.</span>
+                </div>
+                <div id="board" class="board" aria-label="Algebraic game board"></div>
+            </div>
+
+            <aside class="side-panel">
+                <section class="stat-grid">
+                    <div>
+                        <span>Black</span>
+                        <strong id="blackCount">0</strong>
+                    </div>
+                    <div>
+                        <span>White</span>
+                        <strong id="whiteCount">0</strong>
+                    </div>
+                    <div>
+                        <span>Braid Black</span>
+                        <strong id="blackBraid">0</strong>
+                    </div>
+                    <div>
+                        <span>Braid White</span>
+                        <strong id="whiteBraid">0</strong>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Local Rule Preview</h2>
+                    <p id="statusText">Choose a legal move.</p>
+                    <div id="legend" class="legend"></div>
+                </section>
+
+                <section>
+                    <h2>Move History</h2>
+                    <ol id="historyList" class="history-list"></ol>
+                </section>
+
+                <section>
+                    <h2>Research Export</h2>
+                    <textarea id="exportText" readonly spellcheck="false"></textarea>
+                </section>
+            </aside>
+        </section>
+    </main>
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
