@@ -8,6 +8,7 @@ import {
     createGraphTopology,
     sumHomology
 } from '../topology/GraphTopologies.js';
+import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
 
 export const CLIFFORD_REVERSI_MODE = 'clifford_reversi';
 
@@ -19,7 +20,15 @@ function otherPlayer(player) {
 }
 
 function cloneStone(stone) {
-    return stone ? { color: stone.color, pauliLabel: stone.pauliLabel } : null;
+    return stone ? {
+        color: stone.color,
+        pauliLabel: stone.pauliLabel,
+        hiddenState: stone.hiddenState ? { ...stone.hiddenState } : null,
+        revealed: stone.revealed ?? true,
+        stability: stone.stability ?? 1,
+        measurementHistory: Array.isArray(stone.measurementHistory) ? [...stone.measurementHistory] : [],
+        noiseHistory: Array.isArray(stone.noiseHistory) ? [...stone.noiseHistory] : []
+    } : null;
 }
 
 export class CliffordReversiGame {
@@ -36,6 +45,7 @@ export class CliffordReversiGame {
         this.moveNumber = 0;
         this.history = [];
         this.positionHistory = [];
+        this.probability = new ProbabilityEngine(options.probability || {});
         this.setupInitialPosition();
         this.recordPosition('setup');
     }
@@ -71,7 +81,15 @@ export class CliffordReversiGame {
         const normalized = this.topology.normalize(coord);
         if (!normalized) return false;
         const label = normalizePauliLabel(stone.pauliLabel || stone.pauli || DEFAULT_LABELS[this.board.size % DEFAULT_LABELS.length], 'X');
-        this.board.set(coordKey(normalized), { color: stone.color, pauliLabel: label });
+        this.board.set(coordKey(normalized), {
+            color: stone.color,
+            pauliLabel: label,
+            hiddenState: stone.hiddenState || null,
+            revealed: stone.revealed ?? true,
+            stability: Number.isFinite(Number(stone.stability)) ? Number(stone.stability) : 1,
+            measurementHistory: Array.isArray(stone.measurementHistory) ? [...stone.measurementHistory] : [],
+            noiseHistory: Array.isArray(stone.noiseHistory) ? [...stone.noiseHistory] : []
+        });
         return true;
     }
 
@@ -195,6 +213,7 @@ export class CliffordReversiGame {
         };
         this.history.unshift(event);
         this.currentPlayer = otherPlayer(player);
+        event.noise = this.maybeApplyNoise('after_move', player);
         this.recordPosition('move');
         return { ok: true, event };
     }
@@ -204,7 +223,78 @@ export class CliffordReversiGame {
         const event = { mode: this.mode, type: 'pass', number: this.moveNumber, player };
         this.history.unshift(event);
         this.currentPlayer = otherPlayer(player);
+        event.noise = this.maybeApplyNoise('after_move', player);
         return { ok: true, event };
+    }
+
+    maybeApplyNoise(trigger, player = this.currentPlayer) {
+        if (!this.probability?.shouldApplyNoise(trigger, this.currentPlayer)) return [];
+        return this.applyNoiseCycle({ player, tick: this.moveNumber, trigger });
+    }
+
+    applyNoiseCycle({ player = this.currentPlayer, tick = null, trigger = 'manual' } = {}) {
+        if (!this.probability?.isEnabled()) return [];
+        const resolvedTick = tick == null ? this.probability.nextTick() : this.probability.nextTick(tick);
+        const events = this.probability.applyPauliNoiseToMap(this.board, {
+            player,
+            tick: resolvedTick,
+            topology: this.topology
+        });
+        if (events.length && trigger === 'manual') {
+            this.history.unshift({
+                mode: this.mode,
+                type: 'noise',
+                number: this.moveNumber,
+                player,
+                noiseEvents: events.length
+            });
+        }
+        this.recordPosition('noise');
+        return events;
+    }
+
+    connectedGroup(coord) {
+        const normalized = this.topology.normalize(coord);
+        if (!normalized) return [];
+        const startKey = coordKey(normalized);
+        const start = this.board.get(startKey);
+        if (!start) return [];
+        const group = [];
+        const queue = [normalized];
+        const seen = new Set([startKey]);
+        while (queue.length) {
+            const current = queue.shift();
+            const currentKey = coordKey(current);
+            group.push({ coord: current, key: currentKey, entity: this.board.get(currentKey) });
+            for (const neighbor of this.topology.neighbors(current)) {
+                const key = coordKey(neighbor);
+                if (seen.has(key)) continue;
+                const stone = this.board.get(key);
+                if (!stone || stone.color !== start.color) continue;
+                seen.add(key);
+                queue.push(neighbor);
+            }
+        }
+        return group;
+    }
+
+    measurePauliParity(coord, player = this.currentPlayer) {
+        const group = this.connectedGroup(coord);
+        if (!group.length) return { ok: false, error: 'Measure a connected Pauli group by targeting a stone.' };
+        const measurement = this.probability.measurePauliParity({
+            entities: group.map(({ key, entity }) => ({ key, entity })),
+            vertices: group.map(({ coord: vertex }) => vertex),
+            player,
+            tick: this.probability.nextTick()
+        });
+        this.history.unshift({
+            mode: this.mode,
+            type: 'measurement',
+            number: this.moveNumber,
+            player,
+            measurement
+        });
+        return { ok: true, measurement };
     }
 
     counts() {
@@ -237,7 +327,8 @@ export class CliffordReversiGame {
             board: [...this.board.entries()].map(([key, stone]) => ({ key, coord: key.split(',').map(Number), ...stone })),
             counts: this.counts(),
             history: this.history,
-            positionHistory: this.positionHistory
+            positionHistory: this.positionHistory,
+            probability: this.probability.exportState()
         };
     }
 }

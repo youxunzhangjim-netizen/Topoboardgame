@@ -105,7 +105,7 @@ h2 {
 
 .control-panel, .layer-panel {
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 10px;
     padding: 12px;
     border: 1px solid var(--line);
@@ -232,6 +232,14 @@ h2 {
     pointer-events: none;
 }
 
+.cell.noisy {
+    box-shadow: inset 0 0 0 2px rgba(255, 115, 115, 0.5);
+}
+
+.cell.measured {
+    border-color: rgba(62, 230, 138, 0.7);
+}
+
 .coord {
     position: absolute;
     left: 4px;
@@ -268,6 +276,11 @@ h2 {
 
 .anyon.selected {
     box-shadow: 0 0 0 3px rgba(66, 198, 255, 0.85), 0 0 28px rgba(66, 198, 255, 0.4);
+}
+
+.stone.hidden, .anyon.hidden {
+    color: #f2c464;
+    border-style: dashed;
 }
 
 .side-panel {

@@ -12,6 +12,7 @@ import {
     coordsEqual,
     sumHomology
 } from '../topology/GraphTopologies.js';
+import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
 
 export const ANYON_JUMP_MODE = 'anyon_jump';
 
@@ -51,6 +52,7 @@ export class AnyonJumpGame {
         this.topologicalSectors = [];
         this.moveNumber = 0;
         this.fusionSites = new Set();
+        this.probability = new ProbabilityEngine(options.probability || {});
         this.setupInitialPosition();
     }
 
@@ -79,15 +81,25 @@ export class AnyonJumpGame {
         this.fusionSites.add(coordKey(center));
     }
 
-    addToken({ id, owner = this.currentPlayer, coord, anyonType = 'e' }) {
+    addToken({ id, owner = this.currentPlayer, coord, anyonType = 'e', hiddenState = null, revealed = true, stability = 1 }) {
         const normalized = this.topology.normalize(coord);
         if (!normalized) return null;
-        const tokenId = id || `a${this.tokens.size + 1}`;
+        let tokenId = id || `a${this.tokens.size + 1}`;
+        let suffix = this.tokens.size + 1;
+        while (this.tokens.has(tokenId)) {
+            suffix += 1;
+            tokenId = `a${suffix}`;
+        }
         const token = {
             id: tokenId,
             owner,
             coord: normalized,
-            anyonType: normalizeAnyonType(anyonType, this.config.anyonModel)
+            anyonType: normalizeAnyonType(anyonType, this.config.anyonModel),
+            hiddenState,
+            revealed,
+            stability: Number.isFinite(Number(stability)) ? Number(stability) : 1,
+            measurementHistory: [],
+            noiseHistory: []
         };
         this.tokens.set(tokenId, token);
         this.worldlines.set(tokenId, [cloneCoord(normalized)]);
@@ -247,7 +259,51 @@ export class AnyonJumpGame {
         };
         this.history.unshift(event);
         this.currentPlayer = otherOwner(token.owner);
+        event.noise = this.maybeApplyNoise('after_move', token.owner);
         return { ok: true, event };
+    }
+
+    maybeApplyNoise(trigger, player = this.currentPlayer) {
+        if (!this.probability?.shouldApplyNoise(trigger, this.currentPlayer)) return [];
+        return this.applyNoiseCycle({ player, tick: this.moveNumber, trigger });
+    }
+
+    applyNoiseCycle({ player = this.currentPlayer, tick = null, trigger = 'manual' } = {}) {
+        if (!this.probability?.isEnabled()) return [];
+        const resolvedTick = tick == null ? this.probability.nextTick() : this.probability.nextTick(tick);
+        const events = this.probability.applyAnyonNoiseToGame(this, {
+            player,
+            tick: resolvedTick
+        });
+        if (events.length && trigger === 'manual') {
+            this.history.unshift({
+                mode: this.mode,
+                type: 'noise',
+                number: this.moveNumber,
+                player,
+                noiseEvents: events.length
+            });
+        }
+        return events;
+    }
+
+    measureAnyonCharge(tokenIds = [], player = this.currentPlayer) {
+        const tokens = tokenIds.map((id) => this.tokens.get(id)).filter(Boolean);
+        if (!tokens.length) return { ok: false, error: 'Select at least one anyon to measure total charge.' };
+        const measurement = this.probability.measureAnyonTotalCharge({
+            tokens,
+            player,
+            model: this.config.anyonModel,
+            tick: this.probability.nextTick()
+        });
+        this.history.unshift({
+            mode: this.mode,
+            type: 'measurement',
+            number: this.moveNumber,
+            player,
+            measurement
+        });
+        return { ok: true, measurement };
     }
 
     resolveFusion(tokenId) {
@@ -300,7 +356,8 @@ export class AnyonJumpGame {
             worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneCoord)])),
             fusionOutcomes: this.fusionOutcomes,
             topologicalSectors: this.topologicalSectors,
-            history: this.history
+            history: this.history,
+            probability: this.probability.exportState({ fusionOutcomes: this.fusionOutcomes })
         };
     }
 }

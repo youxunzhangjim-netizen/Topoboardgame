@@ -33,7 +33,8 @@
     "build:4dgo": "npm run build --workspace 4dgo",
     "dev:4dgo": "npm run dev --workspace 4dgo",
     "build:algebraic": "npm run build --workspace algebraic-games",
-    "dev:algebraic": "npm run dev --workspace algebraic-games"
+    "dev:algebraic": "npm run dev --workspace algebraic-games",
+    "verify:probability": "node tools/verify-probability-engine.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5",

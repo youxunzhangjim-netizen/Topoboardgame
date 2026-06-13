@@ -70,8 +70,57 @@
                     <option value="S">S</option>
                 </select>
             </label>
+            <label>
+                Noise Mode
+                <select id="noiseModeSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="pauli">Pauli</option>
+                    <option value="anyon_pair_creation">Anyon Pair</option>
+                    <option value="measurement_error">Measurement Error</option>
+                    <option value="field_noise">Field Noise</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </label>
+            <label id="pauliNoiseControl">
+                Pauli Noise
+                <select id="pauliNoiseTypeSelect">
+                    <option value="depolarizingNoise" selected>Depolarizing</option>
+                    <option value="bitFlipNoise">Bit Flip</option>
+                    <option value="phaseFlipNoise">Phase Flip</option>
+                    <option value="erasureNoise">Erasure</option>
+                </select>
+            </label>
+            <label>
+                Noise p
+                <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0.05">
+            </label>
+            <label>
+                Measure q
+                <input id="measurementErrorInput" type="number" min="0" max="1" step="0.01" value="0.02">
+            </label>
+            <label>
+                Apply Noise
+                <select id="applyNoiseSelect">
+                    <option value="after_move" selected>After Move</option>
+                    <option value="after_full_round">After Round</option>
+                    <option value="after_floquet_cycle">Manual Cycle</option>
+                </select>
+            </label>
+            <label>
+                RNG Seed
+                <input id="noiseSeedInput" type="text" value="topology-seed">
+            </label>
+            <label id="anyonFlipControl">
+                e/m Flip
+                <select id="anyonFlipSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="on">On</option>
+                </select>
+            </label>
             <button id="newGameButton" type="button">New Game</button>
             <button id="passButton" type="button">Pass</button>
+            <button id="measureButton" type="button">Measure Target</button>
+            <button id="manualNoiseButton" type="button">Noise Tick</button>
             <button id="exportButton" type="button">Export JSON</button>
         </section>
 
@@ -125,6 +174,11 @@
                 <section>
                     <h2>Move History</h2>
                     <ol id="historyList" class="history-list"></ol>
+                </section>
+
+                <section>
+                    <h2>Stochastic Event Log</h2>
+                    <ol id="stochasticList" class="history-list"></ol>
                 </section>
 
                 <section>
