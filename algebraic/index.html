@@ -21,131 +21,175 @@
         </header>
 
         <section class="control-panel" aria-label="Game controls">
-            <label>
-                Mode
-                <select id="modeSelect">
-                    <option value="clifford_reversi">Clifford Reversi</option>
-                    <option value="anyon_jump">Anyon Jump</option>
-                </select>
-            </label>
-            <label>
-                Topology
-                <select id="topologySelect">
-                    <option value="flat">Flat</option>
-                    <option value="torus" selected>Torus</option>
-                    <option value="klein_bottle">Klein Bottle</option>
-                    <option value="rp2">RP2</option>
-                    <option value="sphere_latitude">S2 Latitude</option>
-                    <option value="flat_4d_grid">4D Grid</option>
-                </select>
-            </label>
-            <label>
-                Width / Nx
-                <input id="widthInput" type="number" min="2" max="24" value="8">
-            </label>
-            <label>
-                Height / Ny
-                <input id="heightInput" type="number" min="2" max="24" value="8">
-            </label>
-            <label>
-                Nz
-                <input id="zSizeInput" type="number" min="1" max="8" value="2">
-            </label>
-            <label>
-                Nw
-                <input id="wSizeInput" type="number" min="1" max="8" value="2">
-            </label>
-            <label id="pauliControl">
-                Pauli
-                <select id="pauliSelect">
-                    <option>X</option>
-                    <option>Y</option>
-                    <option>Z</option>
-                </select>
-            </label>
-            <label id="transformControl">
-                Flip Transform
-                <select id="transformSelect">
-                    <option value="H">H</option>
-                    <option value="S">S</option>
-                </select>
-            </label>
-            <label>
-                Noise Mode
-                <select id="noiseModeSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="pauli">Pauli</option>
-                    <option value="anyon_pair_creation">Anyon Pair</option>
-                    <option value="measurement_error">Measurement Error</option>
-                    <option value="field_noise">Field Noise</option>
-                    <option value="custom">Custom</option>
-                </select>
-            </label>
-            <label id="pauliNoiseControl">
-                Pauli Noise
-                <select id="pauliNoiseTypeSelect">
-                    <option value="depolarizingNoise" selected>Depolarizing</option>
-                    <option value="bitFlipNoise">Bit Flip</option>
-                    <option value="phaseFlipNoise">Phase Flip</option>
-                    <option value="erasureNoise">Erasure</option>
-                </select>
-            </label>
-            <label>
-                Noise p
-                <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0.05">
-            </label>
-            <label>
-                Measure q
-                <input id="measurementErrorInput" type="number" min="0" max="1" step="0.01" value="0.02">
-            </label>
-            <label>
-                Apply Noise
-                <select id="applyNoiseSelect">
-                    <option value="after_move" selected>After Move</option>
-                    <option value="after_full_round">After Round</option>
-                    <option value="after_floquet_cycle">Manual Cycle</option>
-                </select>
-            </label>
-            <label>
-                Floquet Mode
-                <select id="floquetModeSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="basic">Basic</option>
-                    <option value="clifford">Clifford</option>
-                    <option value="virasoro">Virasoro</option>
-                    <option value="anyon">Anyon</option>
-                </select>
-            </label>
-            <label>
-                Time Update
-                <select id="timeUpdateSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="after_move">After Move</option>
-                    <option value="after_full_round">After Round</option>
-                </select>
-            </label>
-            <label>
-                Period M
-                <input id="timePeriodInput" type="number" min="1" max="16" step="1" value="4">
-            </label>
-            <label>
-                RNG Seed
-                <input id="noiseSeedInput" type="text" value="topology-seed">
-            </label>
-            <label id="anyonFlipControl">
-                e/m Flip
-                <select id="anyonFlipSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="on">On</option>
-                </select>
-            </label>
-            <button id="newGameButton" type="button">New Game</button>
-            <button id="passButton" type="button">Pass</button>
-            <button id="measureButton" type="button">Measure Target</button>
-            <button id="manualNoiseButton" type="button">Noise Tick</button>
-            <button id="manualTimeButton" type="button">Time Step</button>
-            <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
-            <button id="exportButton" type="button">Export JSON</button>
+            <div class="control-section section-game">
+                <h2>Game</h2>
+                <div class="control-fields two-col">
+                    <label>
+                        Mode
+                        <select id="modeSelect">
+                            <option value="clifford_reversi">Clifford Reversi</option>
+                            <option value="anyon_jump">Anyon Jump</option>
+                        </select>
+                    </label>
+                    <label>
+                        Topology
+                        <select id="topologySelect">
+                            <option value="flat">Flat</option>
+                            <option value="torus" selected>Torus</option>
+                            <option value="klein_bottle">Klein Bottle</option>
+                            <option value="rp2">RP2</option>
+                            <option value="sphere_latitude">S2 Latitude</option>
+                            <option value="flat_4d_grid">4D Grid</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-section section-board">
+                <h2>Board</h2>
+                <div class="control-fields two-col">
+                    <label>
+                        Width / Nx
+                        <input id="widthInput" type="number" min="2" max="24" value="8">
+                    </label>
+                    <label>
+                        Height / Ny
+                        <input id="heightInput" type="number" min="2" max="24" value="8">
+                    </label>
+                </div>
+                <details class="control-details" id="geometryDetails">
+                    <summary>4D size</summary>
+                    <div class="control-fields two-col">
+                        <label id="zSizeControl">
+                            Nz
+                            <input id="zSizeInput" type="number" min="1" max="8" value="2">
+                        </label>
+                        <label id="wSizeControl">
+                            Nw
+                            <input id="wSizeInput" type="number" min="1" max="8" value="2">
+                        </label>
+                    </div>
+                </details>
+            </div>
+
+            <div class="control-section section-algebra">
+                <h2>Algebra</h2>
+                <div class="control-fields two-col">
+                    <label id="pauliControl">
+                        Pauli
+                        <select id="pauliSelect">
+                            <option>X</option>
+                            <option>Y</option>
+                            <option>Z</option>
+                        </select>
+                    </label>
+                    <label id="transformControl">
+                        Flip Transform
+                        <select id="transformSelect">
+                            <option value="H">H</option>
+                            <option value="S">S</option>
+                        </select>
+                    </label>
+                </div>
+                <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
+            </div>
+
+            <div class="control-section section-dynamics">
+                <h2>Dynamics</h2>
+                <div class="control-fields two-col">
+                    <label>
+                        Noise
+                        <select id="noiseModeSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="pauli">Pauli</option>
+                            <option value="anyon_pair_creation">Anyon Pair</option>
+                            <option value="measurement_error">Measurement Error</option>
+                            <option value="field_noise">Field Noise</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </label>
+                    <label>
+                        Floquet
+                        <select id="floquetModeSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="basic">Basic</option>
+                            <option value="clifford">Clifford</option>
+                            <option value="virasoro">Virasoro</option>
+                            <option value="anyon">Anyon</option>
+                        </select>
+                    </label>
+                </div>
+                <details class="control-details" id="noiseDetails">
+                    <summary>Noise settings</summary>
+                    <div class="control-fields two-col">
+                        <label id="pauliNoiseControl">
+                            Pauli Noise
+                            <select id="pauliNoiseTypeSelect">
+                                <option value="depolarizingNoise" selected>Depolarizing</option>
+                                <option value="bitFlipNoise">Bit Flip</option>
+                                <option value="phaseFlipNoise">Phase Flip</option>
+                                <option value="erasureNoise">Erasure</option>
+                            </select>
+                        </label>
+                        <label>
+                            Apply Noise
+                            <select id="applyNoiseSelect">
+                                <option value="after_move" selected>After Move</option>
+                                <option value="after_full_round">After Round</option>
+                                <option value="after_floquet_cycle">Manual Cycle</option>
+                            </select>
+                        </label>
+                        <label>
+                            Noise p
+                            <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0.05">
+                        </label>
+                        <label>
+                            Measure q
+                            <input id="measurementErrorInput" type="number" min="0" max="1" step="0.01" value="0.02">
+                        </label>
+                        <label>
+                            RNG Seed
+                            <input id="noiseSeedInput" type="text" value="topology-seed">
+                        </label>
+                        <label id="anyonFlipControl">
+                            e/m Flip
+                            <select id="anyonFlipSelect">
+                                <option value="off" selected>Off</option>
+                                <option value="on">On</option>
+                            </select>
+                        </label>
+                    </div>
+                </details>
+                <details class="control-details" id="timeDetails">
+                    <summary>Time settings</summary>
+                    <div class="control-fields two-col">
+                        <label>
+                            Time Update
+                            <select id="timeUpdateSelect">
+                                <option value="off" selected>Off</option>
+                                <option value="after_move">After Move</option>
+                                <option value="after_full_round">After Round</option>
+                            </select>
+                        </label>
+                        <label>
+                            Period M
+                            <input id="timePeriodInput" type="number" min="1" max="16" step="1" value="4">
+                        </label>
+                    </div>
+                </details>
+            </div>
+
+            <div class="control-section section-actions">
+                <h2>Actions</h2>
+                <div class="button-grid">
+                    <button id="newGameButton" type="button">New Game</button>
+                    <button id="passButton" type="button">Pass</button>
+                    <button id="measureButton" type="button">Measure</button>
+                    <button id="manualNoiseButton" type="button">Noise Tick</button>
+                    <button id="manualTimeButton" type="button">Time Step</button>
+                    <button id="exportButton" type="button">Export JSON</button>
+                </div>
+            </div>
         </section>
 
         <section class="rules-intro-panel" id="rulesIntroPanel" hidden>

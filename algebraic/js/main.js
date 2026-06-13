@@ -6,7 +6,10 @@ const els = {
     topologySelect: document.querySelector('#topologySelect'),
     widthInput: document.querySelector('#widthInput'),
     heightInput: document.querySelector('#heightInput'),
+    geometryDetails: document.querySelector('#geometryDetails'),
+    zSizeControl: document.querySelector('#zSizeControl'),
     zSizeInput: document.querySelector('#zSizeInput'),
+    wSizeControl: document.querySelector('#wSizeControl'),
     wSizeInput: document.querySelector('#wSizeInput'),
     pauliSelect: document.querySelector('#pauliSelect'),
     transformSelect: document.querySelector('#transformSelect'),
@@ -18,7 +21,9 @@ const els = {
     noiseRateInput: document.querySelector('#noiseRateInput'),
     measurementErrorInput: document.querySelector('#measurementErrorInput'),
     applyNoiseSelect: document.querySelector('#applyNoiseSelect'),
+    noiseDetails: document.querySelector('#noiseDetails'),
     floquetModeSelect: document.querySelector('#floquetModeSelect'),
+    timeDetails: document.querySelector('#timeDetails'),
     timeUpdateSelect: document.querySelector('#timeUpdateSelect'),
     timePeriodInput: document.querySelector('#timePeriodInput'),
     noiseSeedInput: document.querySelector('#noiseSeedInput'),
@@ -185,6 +190,16 @@ function render() {
     els.pauliControl.hidden = isAnyon;
     els.transformControl.hidden = isAnyon;
     els.passButton.hidden = isAnyon;
+    const is4D = els.topologySelect.value === 'flat_4d_grid';
+    const noiseEnabled = els.noiseModeSelect.value !== 'off';
+    const timeEnabled = els.floquetModeSelect.value !== 'off';
+    els.geometryDetails.hidden = !is4D;
+    els.zSizeControl.hidden = !is4D;
+    els.wSizeControl.hidden = !is4D;
+    els.noiseDetails.hidden = !noiseEnabled;
+    els.timeDetails.hidden = !timeEnabled;
+    els.manualNoiseButton.hidden = !noiseEnabled;
+    els.manualTimeButton.hidden = !timeEnabled;
     els.pauliNoiseControl.hidden = !['pauli', 'custom'].includes(els.noiseModeSelect.value);
     els.anyonFlipControl.hidden = !isAnyon;
 

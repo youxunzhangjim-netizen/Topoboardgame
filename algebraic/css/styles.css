@@ -113,6 +113,80 @@ h2 {
     background: var(--panel);
 }
 
+.control-section {
+    display: grid;
+    grid-column: span 3;
+    align-content: start;
+    gap: 9px;
+    min-width: 0;
+    padding-right: 10px;
+    border-right: 1px solid rgba(218, 232, 224, 0.1);
+}
+
+.control-section h2 {
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 1000;
+    text-transform: uppercase;
+}
+
+.section-algebra {
+    grid-column: span 2;
+}
+
+.section-dynamics {
+    grid-column: span 4;
+    border-right: 0;
+}
+
+.section-actions {
+    grid-column: 1 / -1;
+    padding-right: 0;
+    border-right: 0;
+    border-top: 1px solid rgba(218, 232, 224, 0.1);
+    padding-top: 10px;
+}
+
+.control-fields {
+    display: grid;
+    gap: 8px;
+}
+
+.control-fields.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.control-details {
+    display: grid;
+    gap: 8px;
+}
+
+.control-details[hidden] {
+    display: none;
+}
+
+.control-details summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.control-details[open] summary {
+    color: var(--text);
+}
+
+.control-details > .control-fields {
+    margin-top: 7px;
+}
+
 .rules-intro-panel {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -420,7 +494,14 @@ textarea {
 
 @media (max-width: 1080px) {
     .control-panel {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .control-section,
+    .section-algebra,
+    .section-dynamics {
+        grid-column: span 3;
+        border-right: 0;
     }
 
     .game-layout {
@@ -438,6 +519,19 @@ textarea {
     }
 
     .control-panel, .layer-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .control-section,
+    .section-algebra,
+    .section-dynamics,
+    .section-actions {
+        grid-column: 1 / -1;
+        border-right: 0;
+    }
+
+    .control-fields.two-col,
+    .button-grid {
         grid-template-columns: 1fr 1fr;
     }
 
