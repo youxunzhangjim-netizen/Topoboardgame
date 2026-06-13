@@ -388,6 +388,7 @@ export class GoNetworkManager {
         return [
             this.safeSetting(settings.variant),
             this.safeSetting(settings.mode),
+            this.safeSetting(settings.lattice),
             `s${settings.size}`,
             `t${settings.timer}`
         ].join('-');
@@ -420,6 +421,7 @@ export class GoNetworkManager {
         const settings = this.app.getNetworkSettings();
         url.searchParams.set('room', roomId);
         url.searchParams.set('mode', settings.mode);
+        url.searchParams.set('lattice', settings.lattice);
         url.searchParams.set('size', String(settings.size));
         url.searchParams.set('timer', String(settings.timer || 0));
         url.hash = '';

@@ -1,9 +1,50 @@
 import assert from 'node:assert/strict';
 import {
+    BCC_LATTICE,
+    FCC_LATTICE,
     GoGameLogic,
+    HCP_LATTICE,
     R3_RANDOM_TOPOLOGY,
+    R3_STANDARD_TOPOLOGY,
+    SIMPLE_CUBIC_LATTICE,
     T3_PBC_TOPOLOGY
 } from '../js/GoGame.js';
+
+const simpleCubic = new GoGameLogic({
+    size: 9,
+    dimension: 3,
+    topology: R3_STANDARD_TOPOLOGY,
+    lattice: SIMPLE_CUBIC_LATTICE
+});
+assert.equal(simpleCubic.neighborsFromCoord([4, 4, 4]).length, 6, 'Simple cubic has six nearest neighbors.');
+
+const bcc = new GoGameLogic({
+    size: 9,
+    dimension: 3,
+    topology: R3_STANDARD_TOPOLOGY,
+    lattice: BCC_LATTICE
+});
+assert.equal(bcc.containsCoord([4, 4, 4]), true);
+assert.equal(bcc.containsCoord([4, 4, 5]), false, 'BCC hides coordinates outside the corner/body-center sublattices.');
+assert.equal(bcc.neighborsFromCoord([4, 4, 4]).length, 8, 'BCC has eight body-diagonal nearest neighbors.');
+
+const fcc = new GoGameLogic({
+    size: 9,
+    dimension: 3,
+    topology: R3_STANDARD_TOPOLOGY,
+    lattice: FCC_LATTICE
+});
+assert.equal(fcc.containsCoord([4, 4, 4]), true);
+assert.equal(fcc.containsCoord([4, 4, 5]), false, 'FCC hides odd-parity coordinates.');
+assert.equal(fcc.neighborsFromCoord([4, 4, 4]).length, 12, 'FCC has twelve face-diagonal nearest neighbors.');
+
+const hcp = new GoGameLogic({
+    size: 9,
+    dimension: 3,
+    topology: R3_STANDARD_TOPOLOGY,
+    lattice: HCP_LATTICE
+});
+assert.equal(hcp.neighborsFromCoord([4, 4, 4]).length, 12, 'HCP has six in-plane and six adjacent-layer nearest neighbors.');
 
 const t3 = new GoGameLogic({ size: 9, dimension: 3, topology: T3_PBC_TOPOLOGY });
 assert.deepEqual(t3.stepCoord([0, 4, 4], 0, -1), [8, 4, 4], 'T3 wraps the x axis.');
@@ -20,5 +61,10 @@ assert.deepEqual(
     '3D RBC maps are deterministic for the same seed.'
 );
 assert.equal(first.neighborsFromCoord([0, 4, 4]).length, 6, '3D RBC edge points still expose six graph-neighbor directions.');
+
+const restored = new GoGameLogic();
+restored.importState(fcc.exportState());
+assert.equal(restored.lattice, FCC_LATTICE, '3D lattice survives state export/import.');
+assert.equal(restored.playableCoords().length, fcc.playableCoords().length);
 
 console.log('3D Go R3 boundary checks passed.');

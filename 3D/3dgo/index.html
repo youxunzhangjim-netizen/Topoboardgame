@@ -109,6 +109,19 @@
                 </select>
             </div>
 
+            <div class="control-group" id="latticeGroup">
+                <label for="latticeSelect" data-i18n="controls.lattice">Lattice</label>
+                <select id="latticeSelect">
+                    <option value="sc" selected>Standard / Simple Cubic</option>
+                    <option value="bcc">BCC</option>
+                    <option value="fcc">FCC</option>
+                    <option value="hcp">HCP</option>
+                    <option value="square">Standard / Square</option>
+                    <option value="honeycomb">Honeycomb</option>
+                    <option value="triangular">Triangular</option>
+                </select>
+            </div>
+
             <div class="control-group" id="sphereViewGroup" hidden>
                 <label for="sphereViewSelect" data-i18n="controls.sphereView">Sphere View</label>
                 <select id="sphereViewSelect">
@@ -172,6 +185,6 @@
         </aside>
     </main>
 
-    <script type="module" src="./js/main.js"></script>
+    <script type="module" src="./js/main.js?v=20260614-lattice-graphs"></script>
 </body>
 </html>

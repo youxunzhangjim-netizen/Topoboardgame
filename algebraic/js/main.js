@@ -517,6 +517,26 @@ function appendHoneycombEdges(width, height) {
     svg.classList.add('lattice-edge-layer');
     svg.setAttribute('viewBox', '0 0 100 100');
     svg.setAttribute('aria-hidden', 'true');
+    for (let x = 0; x <= width - 3; x += 2) {
+        for (let y = 0; y <= height - 2; y++) {
+            const faceCoords = [
+                [x, y],
+                [x + 1, y],
+                [x + 2, y],
+                [x + 2, y + 1],
+                [x + 1, y + 1],
+                [x, y + 1]
+            ];
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.classList.add('honeycomb-face');
+            if ((x / 2 + y) % 2 === 1) polygon.classList.add('alternate');
+            polygon.setAttribute('points', faceCoords.map((coord) => {
+                const point = specialLatticePoint(coord, width, height, 'honeycomb');
+                return `${point.x},${point.y}`;
+            }).join(' '));
+            svg.append(polygon);
+        }
+    }
     const drawn = new Set();
     for (const coord of game.topology.vertices()) {
         const fromKey = coordKey(coord);

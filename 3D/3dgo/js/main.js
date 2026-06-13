@@ -1,11 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
+    BCC_LATTICE,
     COLORS,
+    FCC_LATTICE,
     GoGameLogic,
+    HCP_LATTICE,
+    HONEYCOMB_LATTICE,
     otherColor,
     R3_RANDOM_TOPOLOGY,
     R3_STANDARD_TOPOLOGY,
+    SIMPLE_CUBIC_LATTICE,
+    SQUARE_LATTICE,
+    TRIANGULAR_LATTICE,
     T3_PBC_TOPOLOGY,
     valueToColor
 } from './GoGame.js';
@@ -51,7 +58,7 @@ const I18N = {
         app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, and Klein bottle Go with 9, 13, and 19 scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
-        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', resetCamera: 'Reset Camera', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
+        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', resetCamera: 'Reset Camera', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
         online: { localStatus: 'Local pass and play', findMatch: 'Find Match', privateRoom: 'PRIVATE ROOM', createRoom: 'Create Room', or: 'OR', roomInput: '5-digit room code or shared link', joinRoom: 'Join Room', roomCode: 'Room Code', copy: 'Copy', copied: 'Copied', onlineAs: ({ color }) => 'Online as ' + color },
         chat: { title: 'Online Chat', empty: 'Connect online to chat.', placeholder: 'Message online opponent', send: 'Send', player: 'Player', connectFirst: 'Connect online before chatting.' },
         mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The first and last latitude rings have degree 3; there are no playable pole nodes or pole-crossing links.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
@@ -67,7 +74,7 @@ const I18N = {
         app: { title: '3D 圍棋', tagline: 'R3 格點、T2 環面、S2 球面與克萊因瓶圍棋，支援 9、13、19 尺寸。' },
         colors: { black: '黑方', white: '白方' },
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
-        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', resetCamera: '重設視角', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
+        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', resetCamera: '重設視角', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
         online: { localStatus: '本地輪流', findMatch: '尋找配對', privateRoom: '私人房間', createRoom: '建立房間', or: '或', roomInput: '5 位房間碼或分享連結', joinRoom: '加入房間', roomCode: '房間碼', copy: '複製', copied: '已複製', onlineAs: ({ color }) => '線上身分：' + color },
         mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。最南與最北緯度環的節點度數為 3；南北極沒有可落子節點，也沒有穿越極點的連線。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
         timer: { none: '無計時', five: '5 分鐘', ten: '10 分鐘', thirty: '30 分鐘', hour: '1 小時', oneDay: '1 天' },
@@ -215,6 +222,8 @@ class Go3DRenderer {
         this.width = 0;
         this.height = 0;
         this.view = '';
+        this.lattice = '';
+        this.pointerGesture = null;
         this.clock = new THREE.Clock();
         this.initLights();
         this.bind();
@@ -238,9 +247,11 @@ class Go3DRenderer {
 
     bind() {
         window.addEventListener('resize', () => this.resize());
+        this.canvas.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
         this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
         this.canvas.addEventListener('pointerleave', () => this.setHover(null));
-        this.canvas.addEventListener('click', (event) => this.handleClick(event));
+        this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
+        this.canvas.addEventListener('pointercancel', () => { this.pointerGesture = null; });
     }
 
     resize() {
@@ -267,11 +278,13 @@ class Go3DRenderer {
             && this.size === logic.size
             && this.width === logic.width
             && this.height === logic.height
+            && this.lattice === logic.lattice
             && this.view === view) return;
         this.mode = logic.topology;
         this.size = logic.size;
         this.width = logic.width;
         this.height = logic.height;
+        this.lattice = logic.lattice;
         this.view = view;
         this.controls.enableRotate = !(logic.topology === KLEIN_BOTTLE_TOPOLOGY
             || (logic.topology === SPHERE_GO_TOPOLOGY && view === '2d'));
@@ -280,8 +293,8 @@ class Go3DRenderer {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
-        if (isR3LikeTopology(logic.topology)) this.buildR3(logic.size);
-        else if (logic.topology === 't2') this.buildTorus(logic.size);
+        if (isR3LikeTopology(logic.topology)) this.buildR3(logic);
+        else if (logic.topology === 't2') this.buildTorus(logic);
         else if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) this.buildKlein(logic.width, logic.height);
         else if (view === '2d') this.buildSphereFlat(logic.width, logic.height);
         else this.buildSphere(logic.width, logic.height);
@@ -522,44 +535,44 @@ class Go3DRenderer {
         }
     }
 
-    buildR3(size) {
+    buildR3(logic) {
+        const size = logic.size;
         const linePositions = [];
-        const scale = this.r3Scale(size);
         const material = new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.26 });
-        const addSegment = (a, b) => {
-            linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
-        };
-        for (let z = 0; z < size; z++) {
-            for (let y = 0; y < size; y++) addSegment(this.r3Position([0, y, z], size), this.r3Position([size - 1, y, z], size));
-            for (let x = 0; x < size; x++) addSegment(this.r3Position([x, 0, z], size), this.r3Position([x, size - 1, z], size));
-        }
-        for (let x = 0; x < size; x++) {
-            for (let y = 0; y < size; y++) addSegment(this.r3Position([x, y, 0], size), this.r3Position([x, y, size - 1], size));
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                if (neighbor.some((value, axis) => Math.abs(value - coord[axis]) > 1)) continue;
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const a = this.r3Position(coord, size, logic.lattice);
+                const b = this.r3Position(neighbor, size, logic.lattice);
+                linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+            }
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(geometry, material));
 
         const pointPositions = [];
-        for (let z = 0; z < size; z++) {
-            for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                    const coord = [x, y, z];
-                    const p = this.r3Position(coord, size);
-                    this.pointCoords.push(coord);
-                    this.pointPositions.push(p);
-                    pointPositions.push(p.x, p.y, p.z);
-                }
-            }
+        for (const coord of logic.playableCoords()) {
+            const p = this.r3Position(coord, size, logic.lattice);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(p);
+            pointPositions.push(p.x, p.y, p.z);
         }
         this.addNodePoints(pointPositions, size <= 9 ? 0.06 : size <= 13 ? 0.045 : 0.034);
+        const scale = this.r3Scale(size);
         const axes = new THREE.AxesHelper(scale * (size - 1) * 0.65);
         axes.material.depthTest = false;
         axes.renderOrder = 3;
         this.boardGroup.add(axes);
     }
 
-    buildTorus(size) {
+    buildTorus(logic) {
+        const size = logic.size;
         const surfaceData = createTorusSurfaceData();
         const surfaceGeometry = new THREE.BufferGeometry();
         surfaceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(surfaceData.positions, 3));
@@ -586,25 +599,50 @@ class Go3DRenderer {
             opacity: 0.82,
             depthWrite: false
         });
-        for (let y = 0; y < size; y++) this.boardGroup.add(this.torusLine(size, 'x', y, gridMaterial));
-        for (let x = 0; x < size; x++) this.boardGroup.add(this.torusLine(size, 'y', x, gridMaterial));
+        const linePositions = [];
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                let dx = neighbor[0] - coord[0];
+                let dy = neighbor[1] - coord[1];
+                if (dx > size / 2) dx -= size;
+                if (dx < -size / 2) dx += size;
+                if (dy > size / 2) dy -= size;
+                if (dy < -size / 2) dy += size;
+                let previous = this.torusPosition(coord, size, 0.04).position;
+                for (let step = 1; step <= 4; step++) {
+                    const t = step / 4;
+                    const current = this.torusPosition(
+                        [coord[0] + dx * t, coord[1] + dy * t],
+                        size,
+                        0.04
+                    ).position;
+                    linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
+                    previous = current;
+                }
+            }
+        }
+        const gridGeometry = new THREE.BufferGeometry();
+        gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        this.boardGroup.add(new THREE.LineSegments(gridGeometry, gridMaterial));
 
         const pointPositions = [];
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const coord = [x, y];
-                const p = this.torusPosition(coord, size, 0.055).position;
-                this.pointCoords.push(coord);
-                this.pointPositions.push(p);
-                pointPositions.push(p.x, p.y, p.z);
-            }
+        for (const coord of logic.playableCoords()) {
+            const p = this.torusPosition(coord, size, 0.055).position;
+            this.pointCoords.push(coord);
+            this.pointPositions.push(p);
+            pointPositions.push(p.x, p.y, p.z);
         }
         this.addNodePoints(
             pointPositions,
             size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
             { color: 0x24130b, opacity: 0.96 }
         );
-        this.addTorusStarPoints(size);
+        if (logic.lattice === SQUARE_LATTICE) this.addTorusStarPoints(size);
     }
 
     torusLine(size, varyingAxis, fixedValue, material) {
@@ -752,11 +790,48 @@ class Go3DRenderer {
     }
 
     handlePointerMove(event) {
+        if (this.pointerGesture) {
+            this.pointerGesture.distance = Math.max(
+                this.pointerGesture.distance,
+                Math.hypot(event.clientX - this.pointerGesture.x, event.clientY - this.pointerGesture.y)
+            );
+        }
         const coord = this.pickCoord(event);
         this.setHover(coord);
     }
 
-    handleClick(event) {
+    handlePointerDown(event) {
+        this.pointerGesture = {
+            x: event.clientX,
+            y: event.clientY,
+            distance: 0,
+            cameraPosition: this.camera.position.clone(),
+            cameraQuaternion: this.camera.quaternion.clone(),
+            target: this.controls.target.clone()
+        };
+    }
+
+    settleClickCamera(gesture) {
+        const damping = this.controls.enableDamping;
+        this.controls.enableDamping = false;
+        this.controls.update();
+        this.camera.position.copy(gesture.cameraPosition);
+        this.camera.quaternion.copy(gesture.cameraQuaternion);
+        this.controls.target.copy(gesture.target);
+        this.controls.update();
+        this.controls.enableDamping = damping;
+    }
+
+    handlePointerUp(event) {
+        const gesture = this.pointerGesture;
+        this.pointerGesture = null;
+        if (!gesture) return;
+        const distance = Math.max(
+            gesture.distance,
+            Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y)
+        );
+        if (distance > 5) return;
+        this.settleClickCamera(gesture);
         const coord = this.pickCoord(event);
         if (coord) this.app.playAt(coord);
     }
@@ -777,7 +852,7 @@ class Go3DRenderer {
             }
             return this.spherePosition(coord, logic.width, logic.height, 0.18);
         }
-        return this.r3Position(coord, logic.size);
+        return this.r3Position(coord, logic.size, logic.lattice);
     }
 
     spherePosition(coord, width, height, lift = 0) {
@@ -798,9 +873,22 @@ class Go3DRenderer {
         return 7.8 / Math.max(1, size - 1);
     }
 
-    r3Position(coord, size) {
+    r3Position(coord, size, lattice = SIMPLE_CUBIC_LATTICE) {
         const scale = this.r3Scale(size);
         const center = (size - 1) / 2;
+        if (lattice === HCP_LATTICE) {
+            const layerShiftX = coord[2] % 2 ? 0.5 : 0;
+            const layerShiftZ = coord[2] % 2 ? Math.sqrt(3) / 6 : 0;
+            const planeX = coord[0] + coord[1] * 0.5 + layerShiftX;
+            const planeZ = coord[1] * Math.sqrt(3) / 2 + layerShiftZ;
+            const centerX = center * 1.5 + 0.25;
+            const centerZ = center * Math.sqrt(3) / 2 + Math.sqrt(3) / 12;
+            return new THREE.Vector3(
+                (planeX - centerX) * scale * 0.68,
+                (coord[2] - center) * scale * Math.sqrt(2 / 3),
+                (planeZ - centerZ) * scale * 0.68
+            );
+        }
         return new THREE.Vector3((coord[0] - center) * scale, (coord[2] - center) * scale, (coord[1] - center) * scale);
     }
 
@@ -842,6 +930,8 @@ class Go3DRenderer {
 class Go3DApp {
     constructor() {
         this.modeSelect = document.getElementById('goModeSelect');
+        this.latticeGroup = document.getElementById('latticeGroup');
+        this.latticeSelect = document.getElementById('latticeSelect');
         this.sphereViewSelect = document.getElementById('sphereViewSelect');
         this.sphereViewGroup = document.getElementById('sphereViewGroup');
         this.sizeSelect = document.getElementById('boardSizeSelect');
@@ -874,6 +964,7 @@ class Go3DApp {
         this.chatInput = document.getElementById('chatInput');
         this.chatSendBtn = document.getElementById('chatSendBtn');
         this.applyUrlSettings();
+        this.syncLatticeOptions();
         this.logic = this.createLogic();
         this.renderer = new Go3DRenderer(this);
         this.network = new GoNetworkManager(this, { publicGameUrl: PUBLIC_GAME_URL, storagePrefix: STORAGE_PREFIX });
@@ -903,6 +994,51 @@ class Go3DApp {
         if ([...this.timerSelect.options].some((option) => option.value === timer)) {
             this.timerSelect.value = timer;
         }
+        const lattice = String(params.get('lattice') || '').toLowerCase();
+        if ([SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE].includes(lattice)) {
+            this.latticeSelect.value = lattice;
+        }
+    }
+
+    syncLatticeOptions(mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY)) {
+        const allowed = mode === R3_STANDARD_TOPOLOGY
+            ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
+            : mode === 't2'
+                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
+                : [];
+        this.latticeGroup.hidden = allowed.length === 0;
+        for (const option of this.latticeSelect.options) {
+            option.hidden = !allowed.includes(option.value);
+            option.disabled = !allowed.includes(option.value);
+        }
+        if (allowed.length && !allowed.includes(this.latticeSelect.value)) {
+            this.latticeSelect.value = allowed[0];
+        }
+        return allowed.length ? this.latticeSelect.value : (isR3LikeTopology(mode) ? SIMPLE_CUBIC_LATTICE : SQUARE_LATTICE);
+    }
+
+    latticeName(lattice = this.logic?.lattice || this.latticeSelect.value) {
+        return ({
+            [SQUARE_LATTICE]: 'Square',
+            [HONEYCOMB_LATTICE]: 'Honeycomb',
+            [TRIANGULAR_LATTICE]: 'Triangular',
+            [SIMPLE_CUBIC_LATTICE]: 'Simple Cubic',
+            [BCC_LATTICE]: 'BCC',
+            [FCC_LATTICE]: 'FCC',
+            [HCP_LATTICE]: 'HCP'
+        })[lattice] || lattice;
+    }
+
+    latticeInfo(lattice = this.logic?.lattice) {
+        return ({
+            [SQUARE_LATTICE]: ' Square surface nodes have four wrapped neighbors.',
+            [HONEYCOMB_LATTICE]: ' Honeycomb surface nodes have three wrapped neighbors.',
+            [TRIANGULAR_LATTICE]: ' Triangular surface nodes have six wrapped neighbors.',
+            [SIMPLE_CUBIC_LATTICE]: ' Simple-cubic sites have six nearest neighbors.',
+            [BCC_LATTICE]: ' BCC sites use eight body-diagonal nearest neighbors.',
+            [FCC_LATTICE]: ' FCC sites use twelve face-diagonal nearest neighbors.',
+            [HCP_LATTICE]: ' HCP sites use six in-plane and six adjacent-layer nearest neighbors.'
+        })[lattice] || '';
     }
 
     tryJoinSharedRoomFromUrl() {
@@ -918,6 +1054,7 @@ class Go3DApp {
 
     createLogic() {
         const mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY);
+        const lattice = this.syncLatticeOptions(mode);
         const size = this.boardSize();
         const topology = isR3LikeTopology(mode)
             ? mode
@@ -930,6 +1067,7 @@ class Go3DApp {
             height: mode === 'klein' ? 19 : size,
             dimension: isR3LikeTopology(mode) ? 3 : 2,
             topology,
+            lattice,
             komi: KOMI
         });
     }
@@ -958,7 +1096,11 @@ class Go3DApp {
     }
 
     bindEvents() {
-        this.modeSelect.addEventListener('change', () => this.resetGame());
+        this.modeSelect.addEventListener('change', () => {
+            this.syncLatticeOptions();
+            this.resetGame();
+        });
+        this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.sphereViewSelect.addEventListener('change', () => {
             this.renderer.mode = '';
             this.renderer.renderStones(this.logic);
@@ -1134,6 +1276,7 @@ class Go3DApp {
     lockSettings() {
         this.settingsLocked = true;
         this.modeSelect.disabled = true;
+        this.latticeSelect.disabled = true;
         this.sizeSelect.disabled = true;
         if (this.customSizeInput) this.customSizeInput.disabled = true;
         this.timerSelect.disabled = true;
@@ -1143,6 +1286,7 @@ class Go3DApp {
         if (!this.canChangeSettings()) return;
         this.settingsLocked = false;
         this.modeSelect.disabled = false;
+        this.latticeSelect.disabled = false;
         this.sizeSelect.disabled = false;
         if (this.customSizeInput) this.customSizeInput.disabled = false;
         this.timerSelect.disabled = false;
@@ -1152,6 +1296,7 @@ class Go3DApp {
         const locked = !this.canChangeSettings();
         this.settingsLocked = locked;
         this.modeSelect.disabled = locked;
+        this.latticeSelect.disabled = locked;
         this.sizeSelect.disabled = locked;
         if (this.customSizeInput) this.customSizeInput.disabled = locked;
         this.timerSelect.disabled = locked;
@@ -1177,12 +1322,12 @@ class Go3DApp {
         const modeKey = isR3Like
             ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : 'r3')
             : isSphere ? 'sphere' : isKlein ? 'klein' : 't2';
-        this.modeDisplay.textContent = tr(`mode.${modeKey}Display`, {
+        this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
             size: this.logic.size,
             width: this.logic.width,
             height: this.logic.height
-        });
-        this.modeInfo.textContent = tr(`mode.${modeKey}Info`);
+        })} · ${this.latticeName()}`;
+        this.modeInfo.textContent = tr(`mode.${modeKey}Info`) + this.latticeInfo();
         this.sphereViewGroup.hidden = !isSphere;
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? tr('status.countingPending') : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
         this.blackCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.black });
@@ -1331,6 +1476,7 @@ class Go3DApp {
         return {
             variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : 'r3go',
             mode,
+            lattice: this.latticeSelect.value,
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
         };
@@ -1358,6 +1504,8 @@ class Go3DApp {
                 : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY
                     ? 'klein'
                     : isR3LikeTopology(this.logic.topology) ? this.logic.topology : R3_STANDARD_TOPOLOGY;
+        this.syncLatticeOptions(this.modeSelect.value);
+        this.latticeSelect.value = this.logic.lattice;
         this.setSizeSelection(this.logic.size);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
         this.timeLimit = Number(state.timeLimit) || 0;

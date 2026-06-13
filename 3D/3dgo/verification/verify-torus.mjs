@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { GoGameLogic } from '../js/GoGame.js';
+import {
+    GoGameLogic,
+    HONEYCOMB_LATTICE,
+    SQUARE_LATTICE,
+    TRIANGULAR_LATTICE
+} from '../js/GoGame.js';
 import {
     createTorusSurfaceData,
     TORUS_MAJOR_RADIUS,
@@ -13,7 +18,7 @@ const close = (actual, expected, message) => {
 };
 const coordKey = (coord) => coord.join(',');
 
-const torus = new GoGameLogic({ size: 19, dimension: 2, topology: 't2' });
+const torus = new GoGameLogic({ size: 19, dimension: 2, topology: 't2', lattice: SQUARE_LATTICE });
 const cornerNeighbors = new Set(torus.neighborsFromCoord([0, 0]).map(coordKey));
 assert.deepEqual(
     [...cornerNeighbors].sort(),
@@ -26,6 +31,30 @@ for (let y = 0; y < torus.size; y++) {
         assert.equal(torus.neighborsFromCoord([x, y]).length, 4, `T2 degree should be 4 at (${x},${y})`);
     }
 }
+
+const triangular = new GoGameLogic({
+    size: 19,
+    dimension: 2,
+    topology: 't2',
+    lattice: TRIANGULAR_LATTICE
+});
+assert.equal(triangular.neighborsFromCoord([0, 0]).length, 6, 'Triangular T2 has six wrapped neighbors.');
+assert.ok(
+    triangular.neighborsFromCoord([0, 0]).some((coord) => coordKey(coord) === '1,18'),
+    'Triangular diagonal edges wrap across the torus seam.'
+);
+
+const honeycomb = new GoGameLogic({
+    size: 19,
+    dimension: 2,
+    topology: 't2',
+    lattice: HONEYCOMB_LATTICE
+});
+assert.equal(honeycomb.neighborsFromCoord([0, 0]).length, 3, 'Honeycomb T2 has three wrapped neighbors.');
+assert.ok(
+    honeycomb.neighborsFromCoord([0, 0]).some((coord) => coordKey(coord) === '18,0'),
+    'Honeycomb horizontal edges cover the periodic torus seam.'
+);
 
 const size = 8;
 const outer = torusFrame([0, 0], size);

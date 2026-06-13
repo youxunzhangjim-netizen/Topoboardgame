@@ -363,6 +363,8 @@ class Go2DApp {
         ctx.fillStyle = wood;
         ctx.fillRect(0, 0, rect.size, rect.size);
 
+        if (this.logic.lattice === 'honeycomb') this.drawHoneycombFaces(rect);
+
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
         ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' ? 0.045 : 0.035));
         ctx.beginPath();
@@ -435,6 +437,35 @@ class Go2DApp {
             const p = this.coordToPixel(this.logic.coordFromIndex(index));
             this.drawStone(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : 0.42), color);
         }
+    }
+
+    drawHoneycombFaces(rect) {
+        const ctx = this.ctx;
+        const n = this.logic.size;
+        ctx.save();
+        for (let x = 0; x <= n - 3; x += 2) {
+            for (let y = 0; y <= n - 2; y++) {
+                const vertices = [
+                    [x, y],
+                    [x + 1, y],
+                    [x + 2, y],
+                    [x + 2, y + 1],
+                    [x + 1, y + 1],
+                    [x, y + 1]
+                ].map((coord) => this.coordToPixel(coord));
+                ctx.beginPath();
+                vertices.forEach((point, index) => {
+                    if (index === 0) ctx.moveTo(point.x, point.y);
+                    else ctx.lineTo(point.x, point.y);
+                });
+                ctx.closePath();
+                ctx.fillStyle = (x / 2 + y) % 2 === 0
+                    ? 'rgba(244, 205, 139, 0.34)'
+                    : 'rgba(123, 72, 31, 0.13)';
+                ctx.fill();
+            }
+        }
+        ctx.restore();
     }
 
     drawPeriodicBoundary(rect) {

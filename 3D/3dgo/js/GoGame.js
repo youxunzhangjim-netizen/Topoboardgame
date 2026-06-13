@@ -18,6 +18,47 @@ import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
 export const R3_RANDOM_TOPOLOGY = 'r3_random';
+export const SQUARE_LATTICE = 'square';
+export const HONEYCOMB_LATTICE = 'honeycomb';
+export const TRIANGULAR_LATTICE = 'triangular';
+export const SIMPLE_CUBIC_LATTICE = 'sc';
+export const BCC_LATTICE = 'bcc';
+export const FCC_LATTICE = 'fcc';
+export const HCP_LATTICE = 'hcp';
+
+const SQUARE_DIRECTIONS = Object.freeze([
+    Object.freeze([1, 0]),
+    Object.freeze([-1, 0]),
+    Object.freeze([0, 1]),
+    Object.freeze([0, -1])
+]);
+
+const TRIANGULAR_DIRECTIONS = Object.freeze([
+    ...SQUARE_DIRECTIONS,
+    Object.freeze([1, -1]),
+    Object.freeze([-1, 1])
+]);
+
+const SIMPLE_CUBIC_DIRECTIONS = Object.freeze([
+    Object.freeze([1, 0, 0]),
+    Object.freeze([-1, 0, 0]),
+    Object.freeze([0, 1, 0]),
+    Object.freeze([0, -1, 0]),
+    Object.freeze([0, 0, 1]),
+    Object.freeze([0, 0, -1])
+]);
+
+const BCC_DIRECTIONS = Object.freeze(
+    [-1, 1].flatMap((dx) =>
+        [-1, 1].flatMap((dy) =>
+            [-1, 1].map((dz) => Object.freeze([dx, dy, dz]))))
+);
+
+const FCC_DIRECTIONS = Object.freeze([
+    ...[-1, 1].flatMap((a) => [-1, 1].map((b) => Object.freeze([a, b, 0]))),
+    ...[-1, 1].flatMap((a) => [-1, 1].map((b) => Object.freeze([a, 0, b]))),
+    ...[-1, 1].flatMap((a) => [-1, 1].map((b) => Object.freeze([0, a, b])))
+]);
 
 export const COLORS = {
     empty: 0,
@@ -41,6 +82,29 @@ export function valueToColor(value) {
 
 function randomSeed() {
     return `go-3d-rbc:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizeLattice(lattice, dimension) {
+    const value = String(lattice || '').toLowerCase();
+    if (dimension === 3) {
+        if ([BCC_LATTICE, FCC_LATTICE, HCP_LATTICE].includes(value)) return value;
+        return SIMPLE_CUBIC_LATTICE;
+    }
+    if ([HONEYCOMB_LATTICE, TRIANGULAR_LATTICE].includes(value)) return value;
+    return SQUARE_LATTICE;
+}
+
+function hcpDirections(coord) {
+    const layerSign = coord[2] % 2 === 0 ? -1 : 1;
+    return [
+        ...TRIANGULAR_DIRECTIONS.map(([dx, dy]) => [dx, dy, 0]),
+        [0, 0, 1],
+        [layerSign, 0, 1],
+        [0, layerSign, 1],
+        [0, 0, -1],
+        [layerSign, 0, -1],
+        [0, layerSign, -1]
+    ];
 }
 
 function boundaryTargets3D(size) {
@@ -92,12 +156,13 @@ export class GoGameLogic {
         this.reset(options);
     }
 
-    reset({ size = 9, width = size, height = size, dimension = 2, topology = 'open2d', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null } = {}) {
+    reset({ size = 9, width = size, height = size, dimension = 2, topology = 'open2d', lattice = '', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null } = {}) {
         this.size = Number(size) || 9;
         this.width = Number(width) || this.size;
         this.height = Number(height) || this.size;
         this.dimension = Number(dimension) || 2;
         this.topology = topology || 'open2d';
+        this.lattice = normalizeLattice(lattice, this.dimension);
         this.komi = Number.isFinite(Number(komi)) ? Number(komi) : 7.5;
         this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (randomBoundarySeed || randomSeed()) : '';
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
@@ -154,11 +219,43 @@ export class GoGameLogic {
         if (this.topology === KLEIN_BOTTLE_TOPOLOGY) {
             return kleinContainsCoord(coord, this.width, this.height);
         }
-        return Array.isArray(coord)
+        const inside = Array.isArray(coord)
             && coord.length === this.dimension
             && coord.every((value, axis) => Number.isInteger(value)
                 && value >= 0
                 && value < (this.dimension === 3 ? this.size : axis === 0 ? this.width : this.height));
+        if (!inside || this.dimension !== 3 || this.topology !== R3_STANDARD_TOPOLOGY) return inside;
+        if (this.lattice === BCC_LATTICE) {
+            return coord[0] % 2 === coord[1] % 2 && coord[1] % 2 === coord[2] % 2;
+        }
+        if (this.lattice === FCC_LATTICE) return (coord[0] + coord[1] + coord[2]) % 2 === 0;
+        return true;
+    }
+
+    playableCoords() {
+        const coords = [];
+        if (this.dimension === 3) {
+            for (let z = 0; z < this.size; z++) {
+                for (let y = 0; y < this.size; y++) {
+                    for (let x = 0; x < this.size; x++) {
+                        const coord = [x, y, z];
+                        if (this.containsCoord(coord)) coords.push(coord);
+                    }
+                }
+            }
+            return coords;
+        }
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) coords.push([x, y]);
+        }
+        return coords;
+    }
+
+    isPlayableIndex(index) {
+        return Number.isInteger(index)
+            && index >= 0
+            && index < this.board.length
+            && this.containsCoord(this.coordFromIndex(index));
     }
 
     isWrapAxis(axis) {
@@ -169,35 +266,58 @@ export class GoGameLogic {
     }
 
     stepCoord(coord, axis, delta) {
-        const next = [...coord];
-        next[axis] += delta;
+        const direction = Array(this.dimension).fill(0);
+        direction[axis] = delta;
+        return this.stepDirection(coord, direction);
+    }
+
+    stepDirection(coord, direction) {
+        const next = coord.map((value, axis) => value + (direction[axis] || 0));
         if (this.topology === R3_RANDOM_TOPOLOGY && this.dimension === 3) {
+            const changedAxes = direction
+                .map((value, axis) => value ? axis : -1)
+                .filter((axis) => axis >= 0);
+            if (changedAxes.length !== 1) return null;
+            const axis = changedAxes[0];
             if (next[axis] >= 0 && next[axis] < this.size) return next;
-            const target = this.randomBoundaryMap.get(randomExitKey3D(coord, axis, delta));
+            const target = this.randomBoundaryMap.get(randomExitKey3D(coord, axis, direction[axis]));
             return target ? [...target] : null;
         }
-        if (next[axis] < 0 || next[axis] >= this.size) {
+        for (let axis = 0; axis < this.dimension; axis++) {
+            const axisSize = this.dimension === 3 ? this.size : axis === 0 ? this.width : this.height;
+            if (next[axis] >= 0 && next[axis] < axisSize) continue;
             if (!this.isWrapAxis(axis)) return null;
-            next[axis] = (next[axis] + this.size) % this.size;
+            next[axis] = (next[axis] + axisSize) % axisSize;
         }
-        return next;
+        return this.containsCoord(next) ? next : null;
+    }
+
+    latticeDirections(coord) {
+        if (this.dimension === 2) {
+            if (this.lattice === TRIANGULAR_LATTICE) return TRIANGULAR_DIRECTIONS;
+            if (this.lattice === HONEYCOMB_LATTICE) {
+                return [[1, 0], [-1, 0], [0, coord[0] % 2 === 0 ? 1 : -1]];
+            }
+            return SQUARE_DIRECTIONS;
+        }
+        if (this.lattice === BCC_LATTICE) return BCC_DIRECTIONS;
+        if (this.lattice === FCC_LATTICE) return FCC_DIRECTIONS;
+        if (this.lattice === HCP_LATTICE) return hcpDirections(coord);
+        return SIMPLE_CUBIC_DIRECTIONS;
     }
 
     neighborsFromCoord(coord) {
+        if (!this.containsCoord(coord)) return [];
         if (this.topology === SPHERE_GO_TOPOLOGY) {
             return sphereLatitudeRingNeighbors(coord, this.width, this.height);
         }
         if (this.topology === KLEIN_BOTTLE_TOPOLOGY) {
             return kleinBottleNeighbors(coord, this.width, this.height);
         }
-        const neighbors = [];
-        for (let axis = 0; axis < this.dimension; axis++) {
-            for (const delta of [-1, 1]) {
-                const next = this.stepCoord(coord, axis, delta);
-                if (next) neighbors.push(next);
-            }
-        }
-        return neighbors;
+        return [...new Map(this.latticeDirections(coord)
+            .map((direction) => this.stepDirection(coord, direction))
+            .filter(Boolean)
+            .map((neighbor) => [this.coordKey(neighbor), neighbor])).values()];
     }
 
     neighborsFromIndex(index) {
@@ -362,6 +482,7 @@ export class GoGameLogic {
         const visited = new Set();
 
         for (let index = 0; index < this.board.length; index++) {
+            if (!this.isPlayableIndex(index)) continue;
             const value = this.board[index];
             if (value === COLORS.black) score.black++;
             if (value === COLORS.white) score.white++;
@@ -411,6 +532,7 @@ export class GoGameLogic {
             height: this.height,
             dimension: this.dimension,
             topology: this.topology,
+            lattice: this.lattice,
             komi: this.komi,
             randomBoundarySeed: this.randomBoundarySeed,
             randomBoundaryMap: [...this.randomBoundaryMap.entries()],
@@ -438,6 +560,7 @@ export class GoGameLogic {
         this.height = Number(state.height) || this.size;
         this.dimension = Number(state.dimension) || 2;
         this.topology = state.topology || 'open2d';
+        this.lattice = normalizeLattice(state.lattice, this.dimension);
         this.komi = Number.isFinite(Number(state.komi)) ? Number(state.komi) : 7.5;
         this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (state.randomBoundarySeed || randomSeed()) : '';
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY

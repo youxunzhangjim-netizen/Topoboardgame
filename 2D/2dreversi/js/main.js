@@ -248,11 +248,11 @@ class Reversi2DApp {
 
     drawHexCell(coord, rect) {
         const center = this.hexCenter(coord, rect);
-        this.traceHex(center, rect.radius * 0.96);
-        this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? '#2f6b55' : '#245745';
+        this.traceHex(center, rect.radius * 0.94);
+        this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? '#367c62' : '#255d49';
         this.ctx.fill();
-        this.ctx.strokeStyle = 'rgba(5, 12, 14, 0.72)';
-        this.ctx.lineWidth = Math.max(1, rect.radius * 0.045);
+        this.ctx.strokeStyle = 'rgba(3, 9, 12, 0.92)';
+        this.ctx.lineWidth = Math.max(1.25, rect.radius * 0.075);
         this.ctx.stroke();
     }
 
