@@ -175,11 +175,33 @@ class Go2DApp {
         const cssSize = this.canvas.width / Math.min(window.devicePixelRatio || 1, 2);
         const margin = Math.max(28, cssSize * 0.07);
         const span = cssSize - margin * 2;
+        if (this.logic.lattice === 'honeycomb') {
+            const rawWidth = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
+            const rawHeight = Math.max(1, this.logic.size - 0.5);
+            const step = span / Math.max(rawWidth, rawHeight);
+            const spanX = rawWidth * step;
+            const spanY = rawHeight * step;
+            return {
+                x: (cssSize - spanX) / 2,
+                y: (cssSize - spanY) / 2,
+                span: Math.max(spanX, spanY),
+                spanX,
+                spanY,
+                step,
+                size: cssSize
+            };
+        }
         return { x: margin, y: margin, span, step: span / (this.logic.size - 1), size: cssSize };
     }
 
     coordToPixel(coord) {
         const rect = this.boardRect();
+        if (this.logic.lattice === 'honeycomb') {
+            return {
+                x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
+                y: rect.y + (coord[1] + (coord[0] % 2) * 0.5) * rect.step
+            };
+        }
         return {
             x: rect.x + coord[0] * rect.step,
             y: rect.y + coord[1] * rect.step
@@ -191,6 +213,21 @@ class Go2DApp {
         const rect = this.boardRect();
         const x = event.clientX - bounds.left;
         const y = event.clientY - bounds.top;
+        if (this.logic.lattice === 'honeycomb') {
+            let nearest = null;
+            let nearestDistance = Infinity;
+            for (let gy = 0; gy < this.logic.size; gy++) {
+                for (let gx = 0; gx < this.logic.size; gx++) {
+                    const point = this.coordToPixel([gx, gy]);
+                    const distance = Math.hypot(point.x - x, point.y - y);
+                    if (distance < nearestDistance) {
+                        nearest = [gx, gy];
+                        nearestDistance = distance;
+                    }
+                }
+            }
+            return nearestDistance <= Math.max(14, rect.step * 0.38) ? nearest : null;
+        }
         const gx = Math.round((x - rect.x) / rect.step);
         const gy = Math.round((y - rect.y) / rect.step);
         if (gx < 0 || gy < 0 || gx >= this.logic.size || gy >= this.logic.size) return null;
@@ -327,7 +364,7 @@ class Go2DApp {
         ctx.fillRect(0, 0, rect.size, rect.size);
 
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
-        ctx.lineWidth = Math.max(1, rect.step * 0.035);
+        ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' ? 0.045 : 0.035));
         ctx.beginPath();
         if (this.logic.lattice !== 'square') {
             const drawn = new Set();
@@ -359,6 +396,18 @@ class Go2DApp {
         }
         ctx.stroke();
 
+        if (this.logic.lattice === 'honeycomb') {
+            ctx.fillStyle = 'rgba(42, 27, 14, 0.88)';
+            for (let y = 0; y < n; y++) {
+                for (let x = 0; x < n; x++) {
+                    const point = this.coordToPixel([x, y]);
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, Math.max(1.7, rect.step * 0.035), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
         if (this.logic.topology === 'pbc') this.drawPeriodicBoundary(rect);
         if (this.logic.topology === 'klein') this.drawKleinBoundary(rect);
         if (this.logic.topology === 'random') this.drawRandomBoundary(rect);
@@ -374,7 +423,7 @@ class Go2DApp {
         if (this.hoverCoord && this.logic.board[this.logic.indexFromCoord(this.hoverCoord)] === COLORS.empty && !this.logic.gameOver) {
             const p = this.coordToPixel(this.hoverCoord);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, rect.step * 0.36, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.28 : 0.36), 0, Math.PI * 2);
             ctx.fillStyle = this.logic.currentPlayer === 'black' ? 'rgba(0, 0, 0, 0.24)' : 'rgba(255, 255, 255, 0.44)';
             ctx.fill();
         }
@@ -384,7 +433,7 @@ class Go2DApp {
             if (!value) continue;
             const color = valueToColor(value);
             const p = this.coordToPixel(this.logic.coordFromIndex(index));
-            this.drawStone(p.x, p.y, rect.step * 0.42, color);
+            this.drawStone(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : 0.42), color);
         }
     }
 
@@ -393,8 +442,8 @@ class Go2DApp {
         const offset = rect.step * 0.34;
         const left = rect.x - offset;
         const top = rect.y - offset;
-        const right = rect.x + rect.span + offset;
-        const bottom = rect.y + rect.span + offset;
+        const right = rect.x + (rect.spanX || rect.span) + offset;
+        const bottom = rect.y + (rect.spanY || rect.span) + offset;
         const marker = Math.max(6, rect.step * 0.18);
 
         ctx.save();
@@ -430,8 +479,8 @@ class Go2DApp {
         const offset = rect.step * 0.36;
         const left = rect.x - offset;
         const top = rect.y - offset;
-        const right = rect.x + rect.span + offset;
-        const bottom = rect.y + rect.span + offset;
+        const right = rect.x + (rect.spanX || rect.span) + offset;
+        const bottom = rect.y + (rect.spanY || rect.span) + offset;
         const marker = Math.max(6, rect.step * 0.18);
 
         ctx.save();
@@ -473,8 +522,8 @@ class Go2DApp {
         const offset = rect.step * 0.4;
         const left = rect.x - offset;
         const top = rect.y - offset;
-        const right = rect.x + rect.span + offset;
-        const bottom = rect.y + rect.span + offset;
+        const right = rect.x + (rect.spanX || rect.span) + offset;
+        const bottom = rect.y + (rect.spanY || rect.span) + offset;
 
         ctx.save();
         ctx.strokeStyle = 'rgba(216, 180, 254, 0.88)';

@@ -39,6 +39,10 @@ assert.deepEqual(
     ['3,4', '4,5', '5,4'],
     'Even honeycomb columns should connect to the next row'
 );
+assert.ok(
+    neighborKeys(honeycomb, [4, 5]).has('4,4'),
+    'Honeycomb graph edges are reciprocal.'
+);
 
 const triangular = new GoGameLogic({ size: 9, dimension: 2, topology: 'pbc', lattice: 'triangular' });
 assert.deepEqual(

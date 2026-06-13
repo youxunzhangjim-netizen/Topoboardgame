@@ -137,6 +137,19 @@ class Reversi2DApp {
         const bounds = this.canvas.getBoundingClientRect();
         const x = (event.clientX - bounds.left) * (this.canvas.clientWidth / bounds.width);
         const y = (event.clientY - bounds.top) * (this.canvas.clientHeight / bounds.height);
+        if (this.logic.topology.lattice === 'honeycomb') {
+            let nearest = null;
+            let nearestDistance = Infinity;
+            for (const coord of this.logic.topology.allCoords()) {
+                const center = this.hexCenter(coord, this.lastRect);
+                const distance = Math.hypot(center.x - x, center.y - y);
+                if (distance < nearestDistance) {
+                    nearest = coord;
+                    nearestDistance = distance;
+                }
+            }
+            return nearestDistance <= this.lastRect.radius ? nearest : null;
+        }
         const col = Math.floor((x - this.lastRect.left) / this.lastRect.step);
         const row = Math.floor((y - this.lastRect.top) / this.lastRect.step);
         if (col < 0 || row < 0 || col >= this.logic.topology.width || row >= this.logic.topology.height) return null;
@@ -148,6 +161,22 @@ class Reversi2DApp {
         const height = this.canvas.clientHeight || width;
         const margin = Math.max(18, Math.min(width, height) * 0.045);
         const usable = Math.min(width, height) - margin * 2;
+        if (this.logic.topology.lattice === 'honeycomb') {
+            const n = this.logic.topology.width;
+            const rawWidth = 1.5 * (n - 1) + 2;
+            const rawHeight = Math.sqrt(3) * (1.5 * (n - 1) + 1);
+            const radius = usable / Math.max(rawWidth, rawHeight);
+            const boardWidth = rawWidth * radius;
+            const boardHeight = rawHeight * radius;
+            return {
+                left: (width - boardWidth) / 2,
+                top: (height - boardHeight) / 2,
+                right: (width + boardWidth) / 2,
+                bottom: (height + boardHeight) / 2,
+                radius,
+                step: radius * 2
+            };
+        }
         const step = usable / this.logic.topology.width;
         return {
             left: (width - step * this.logic.topology.width) / 2,
@@ -170,19 +199,22 @@ class Reversi2DApp {
         const legalMoves = new Map(this.logic.legalMoves().map((move) => [this.logic.key(move.coord), move]));
         const n = this.logic.topology.width;
 
-        for (let y = 0; y < n; y += 1) {
-            for (let x = 0; x < n; x += 1) {
-                const px = rect.left + x * rect.step;
-                const py = rect.top + y * rect.step;
-                ctx.fillStyle = (x + y) % 2 === 0 ? '#2f6b55' : '#245745';
-                ctx.fillRect(px, py, rect.step, rect.step);
-                ctx.strokeStyle = 'rgba(5, 12, 14, 0.58)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(px, py, rect.step, rect.step);
+        if (this.logic.topology.lattice === 'honeycomb') {
+            for (const coord of this.logic.topology.allCoords()) this.drawHexCell(coord, rect);
+        } else {
+            for (let y = 0; y < n; y += 1) {
+                for (let x = 0; x < n; x += 1) {
+                    const px = rect.left + x * rect.step;
+                    const py = rect.top + y * rect.step;
+                    ctx.fillStyle = (x + y) % 2 === 0 ? '#2f6b55' : '#245745';
+                    ctx.fillRect(px, py, rect.step, rect.step);
+                    ctx.strokeStyle = 'rgba(5, 12, 14, 0.58)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(px, py, rect.step, rect.step);
+                }
             }
         }
 
-        if (this.logic.topology.lattice === 'honeycomb') this.drawHoneycombLinks(rect);
         this.drawTopologyHints(rect);
         for (const coord of this.logic.topology.allCoords()) {
             const stone = this.logic.get(coord);
@@ -194,40 +226,40 @@ class Reversi2DApp {
         }
     }
 
-    drawHoneycombLinks(rect) {
-        const ctx = this.ctx;
-        const drawn = new Set();
-        ctx.save();
-        ctx.strokeStyle = 'rgba(224, 247, 255, 0.34)';
-        ctx.lineWidth = Math.max(1.5, rect.step * 0.035);
-        ctx.beginPath();
-        for (const coord of this.logic.topology.allCoords()) {
-            const fromKey = this.logic.key(coord);
-            const fromX = rect.left + (coord[0] + 0.5) * rect.step;
-            const fromY = rect.top + (coord[1] + 0.5) * rect.step;
-            for (const direction of this.logic.topology.directions) {
-                const neighbor = this.logic.topology.step(coord, direction);
-                if (!neighbor) continue;
-                if (Math.abs(neighbor[0] - coord[0]) > 1 || Math.abs(neighbor[1] - coord[1]) > 1) continue;
-                const toKey = this.logic.key(neighbor);
-                const edgeKey = [fromKey, toKey].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                ctx.moveTo(fromX, fromY);
-                ctx.lineTo(
-                    rect.left + (neighbor[0] + 0.5) * rect.step,
-                    rect.top + (neighbor[1] + 0.5) * rect.step
-                );
-            }
+    hexCenter(coord, rect) {
+        const [x, y] = coord;
+        return {
+            x: rect.left + rect.radius + 1.5 * rect.radius * x,
+            y: rect.top + Math.sqrt(3) * rect.radius * (0.5 + y + x / 2)
+        };
+    }
+
+    traceHex(center, radius) {
+        this.ctx.beginPath();
+        for (let side = 0; side < 6; side++) {
+            const angle = Math.PI / 3 * side;
+            const x = center.x + radius * Math.cos(angle);
+            const y = center.y + radius * Math.sin(angle);
+            if (side === 0) this.ctx.moveTo(x, y);
+            else this.ctx.lineTo(x, y);
         }
-        ctx.stroke();
-        ctx.restore();
+        this.ctx.closePath();
+    }
+
+    drawHexCell(coord, rect) {
+        const center = this.hexCenter(coord, rect);
+        this.traceHex(center, rect.radius * 0.96);
+        this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? '#2f6b55' : '#245745';
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'rgba(5, 12, 14, 0.72)';
+        this.ctx.lineWidth = Math.max(1, rect.radius * 0.045);
+        this.ctx.stroke();
     }
 
     drawTopologyHints(rect) {
         const ctx = this.ctx;
-        const right = rect.left + this.logic.topology.width * rect.step;
-        const bottom = rect.top + this.logic.topology.height * rect.step;
+        const right = rect.right || rect.left + this.logic.topology.width * rect.step;
+        const bottom = rect.bottom || rect.top + this.logic.topology.height * rect.step;
         ctx.save();
         ctx.strokeStyle = this.boundarySelect.value === 'klein' ? 'rgba(242, 196, 100, 0.82)' : this.boundarySelect.value === 'random' ? 'rgba(216, 180, 254, 0.86)' : 'rgba(72, 199, 244, 0.68)';
         ctx.lineWidth = Math.max(1.5, rect.step * 0.035);
@@ -261,10 +293,15 @@ class Reversi2DApp {
     }
 
     drawStone(coord, color, rect) {
-        const [x, y] = coord;
-        const cx = rect.left + (x + 0.5) * rect.step;
-        const cy = rect.top + (y + 0.5) * rect.step;
-        const radius = rect.step * 0.39;
+        const center = this.logic.topology.lattice === 'honeycomb'
+            ? this.hexCenter(coord, rect)
+            : {
+                x: rect.left + (coord[0] + 0.5) * rect.step,
+                y: rect.top + (coord[1] + 0.5) * rect.step
+            };
+        const cx = center.x;
+        const cy = center.y;
+        const radius = this.logic.topology.lattice === 'honeycomb' ? rect.radius * 0.58 : rect.step * 0.39;
         const gradient = this.ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.45, radius * 0.1, cx, cy, radius);
         if (color === 'black') {
             gradient.addColorStop(0, '#5a646d');
@@ -285,20 +322,32 @@ class Reversi2DApp {
     }
 
     drawLegalDot(coord, rect) {
-        const [x, y] = coord;
-        const cx = rect.left + (x + 0.5) * rect.step;
-        const cy = rect.top + (y + 0.5) * rect.step;
+        const center = this.logic.topology.lattice === 'honeycomb'
+            ? this.hexCenter(coord, rect)
+            : {
+                x: rect.left + (coord[0] + 0.5) * rect.step,
+                y: rect.top + (coord[1] + 0.5) * rect.step
+            };
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, Math.max(4, rect.step * 0.11), 0, Math.PI * 2);
+        this.ctx.arc(center.x, center.y, Math.max(4, rect.step * 0.11), 0, Math.PI * 2);
         this.ctx.fillStyle = 'rgba(242, 196, 100, 0.8)';
         this.ctx.fill();
     }
 
     drawHover(coord, rect) {
-        const [x, y] = coord;
         this.ctx.strokeStyle = 'rgba(224, 247, 255, 0.92)';
         this.ctx.lineWidth = Math.max(2, rect.step * 0.05);
-        this.ctx.strokeRect(rect.left + x * rect.step + 2, rect.top + y * rect.step + 2, rect.step - 4, rect.step - 4);
+        if (this.logic.topology.lattice === 'honeycomb') {
+            this.traceHex(this.hexCenter(coord, rect), rect.radius * 0.82);
+            this.ctx.stroke();
+        } else {
+            this.ctx.strokeRect(
+                rect.left + coord[0] * rect.step + 2,
+                rect.top + coord[1] * rect.step + 2,
+                rect.step - 4,
+                rect.step - 4
+            );
+        }
     }
 
     updateUI() {
@@ -312,7 +361,7 @@ class Reversi2DApp {
         const topology = this.boundarySelect.value;
         this.boundaryEl.textContent = topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.topology.lattice === 'honeycomb'
-            ? ' Honeycomb uses three topology-aware rays; only chains lying on those graph rays flip.'
+            ? ' Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.'
             : ' Square uses the usual eight 2D rays.';
         this.boundaryInfoEl.textContent = (topology === 'random'
             ? '2D RBC uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'

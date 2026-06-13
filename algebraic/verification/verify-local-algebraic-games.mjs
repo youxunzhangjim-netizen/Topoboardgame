@@ -26,6 +26,10 @@ const honeycomb = createGraphTopology({ topology: 'flat', lattice: 'honeycomb', 
 assert.equal(honeycomb.lattice, 'honeycomb');
 assert.equal(honeycomb.neighbors([2, 2]).length, 3, 'Honeycomb interior vertex has three graph neighbors.');
 assert.deepEqual(honeycomb.rayDirections(), [[1, 0], [-1, 0], [0, 1]], 'Honeycomb rays use only graph-edge directions.');
+assert.ok(honeycomb.neighbors([2, 3]).some((coord) => coord.join(',') === '2,2'), 'Honeycomb graph edges are reciprocal.');
+const hexCells = createGraphTopology({ topology: 'flat', lattice: 'hex_cells', width: 6, height: 6 });
+assert.equal(hexCells.neighbors([2, 2]).length, 6, 'Hex-cell centers have six axial neighbors.');
+assert.equal(hexCells.rayDirections().length, 6, 'Hex-cell Reversi exposes six axial rays.');
 const triangular = createGraphTopology({ topology: 'torus', lattice: 'triangular', width: 6, height: 6 });
 assert.equal(triangular.lattice, 'triangular');
 assert.equal(triangular.neighbors([2, 2]).length, 6, 'Triangular interior vertex has six graph neighbors.');
@@ -51,6 +55,11 @@ assert.equal(preview.flips[0].after.pauliLabel, 'Z', 'H maps flipped X to Z.');
 const placed = reversi.place([2, 3], { player: 'black', pauliLabel: 'Y', transform: 'H' });
 assert.equal(placed.ok, true, 'Clifford Reversi move succeeds.');
 assert.equal(reversi.getStone([3, 3]).color, 'black', 'Bracketed stone flips color.');
+const hexReversi = new CliffordReversiGame({
+    topology: { topology: 'flat', lattice: 'hex_cells', width: 8, height: 8 }
+});
+assert.equal(hexReversi.topology.rayDirections().length, 6, 'Clifford Reversi uses six rays between hex-cell centers.');
+assert.ok(hexReversi.legalMoves('black', 'H').length > 0, 'Hex-cell Clifford Reversi opening has legal moves.');
 const randomReversi = new CliffordReversiGame({
     topology: {
         topology: 'random_boundary',

@@ -146,7 +146,7 @@ function createRandomBoundaryMap(width, height, directions, seed = randomSeed(),
         for (let x = 0; x < width; x++) {
             for (const direction of directions) {
                 const resolvedDirection = lattice === 'honeycomb' && direction[0] === 0 && Math.abs(direction[1] || 0) === 1
-                    ? [0, x % 2 === 0 ? 1 : -1]
+                    ? [0, (x + y) % 2 === 0 ? 1 : -1]
                     : direction;
                 const raw = [x + (resolvedDirection[0] || 0), y + (resolvedDirection[1] || 0)];
                 if (inside(raw, [width, height])) continue;
@@ -226,7 +226,7 @@ function normalizeRP2Coord(rawCoord, sizes) {
 function create2DTopology(config) {
     const name = config.topology;
     const latticeValue = String(config.lattice || 'square').toLowerCase();
-    const lattice = latticeValue === 'honeycomb' || latticeValue === 'triangular' ? latticeValue : 'square';
+    const lattice = ['honeycomb', 'hex_cells', 'triangular'].includes(latticeValue) ? latticeValue : 'square';
     const width = integer(config.width, 8, 2, 32);
     const height = integer(config.height, 8, 2, 32);
     const sizes = [width, height];
@@ -242,7 +242,7 @@ function create2DTopology(config) {
                 height,
                 lattice === 'honeycomb'
                     ? HONEYCOMB_DIRECTIONS
-                    : lattice === 'triangular' ? TRIANGULAR_DIRECTIONS : RAYS_2D,
+                    : lattice === 'triangular' || lattice === 'hex_cells' ? TRIANGULAR_DIRECTIONS : RAYS_2D,
                 randomBoundarySeed,
                 lattice
             ))
@@ -265,7 +265,7 @@ function create2DTopology(config) {
         const from = normalize(fromCoord);
         if (!from) return null;
         const resolvedDirection = lattice === 'honeycomb' && direction[0] === 0 && Math.abs(direction[1] || 0) === 1
-            ? [0, from[0] % 2 === 0 ? 1 : -1]
+            ? [0, (from[0] + from[1]) % 2 === 0 ? 1 : -1]
             : direction;
         const rawTo = addCoord(from, resolvedDirection);
         if (name === 'random_boundary' && !inside(rawTo, sizes)) {
@@ -326,14 +326,14 @@ function create2DTopology(config) {
             return (
                 lattice === 'honeycomb'
                     ? HONEYCOMB_DIRECTIONS
-                    : lattice === 'triangular' ? TRIANGULAR_DIRECTIONS : CARDINAL_2D
+                    : lattice === 'triangular' || lattice === 'hex_cells' ? TRIANGULAR_DIRECTIONS : CARDINAL_2D
             ).map((direction) => [...direction]);
         },
         rayDirections() {
             return (
                 lattice === 'honeycomb'
                     ? HONEYCOMB_DIRECTIONS
-                    : lattice === 'triangular' ? TRIANGULAR_DIRECTIONS : RAYS_2D
+                    : lattice === 'triangular' || lattice === 'hex_cells' ? TRIANGULAR_DIRECTIONS : RAYS_2D
             ).map((direction) => [...direction]);
         },
         step,
@@ -379,6 +379,8 @@ function create2DTopology(config) {
         seamSummary() {
             const latticeText = lattice === 'honeycomb'
                 ? ' Honeycomb lattice: each interior vertex has three graph neighbors.'
+                : lattice === 'hex_cells'
+                    ? ' Hex-cell lattice: pieces occupy hexagon centers and use six axial graph rays.'
                 : lattice === 'triangular'
                     ? ' Triangular lattice: each interior vertex has six graph neighbors; capture requires enclosing every exposed graph liberty.'
                     : '';

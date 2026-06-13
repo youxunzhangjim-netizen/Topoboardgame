@@ -279,7 +279,12 @@ function syncModeControls() {
 
 function topologyConfig() {
     const topology = els.topologySelect.value;
-    const lattice = topology === 'flat_4d_grid' ? 'square' : (els.latticeSelect?.value || 'square');
+    const selectedLattice = els.latticeSelect?.value || 'square';
+    const lattice = topology === 'flat_4d_grid'
+        ? 'square'
+        : selectedMode() === 'clifford_reversi' && selectedLattice === 'honeycomb'
+            ? 'hex_cells'
+            : selectedLattice;
     if (els.latticeControl) els.latticeControl.hidden = topology === 'flat_4d_grid';
     return {
         topology,
@@ -489,6 +494,61 @@ function isSameCoord(a, b) {
     return a && b && coordKey(a) === coordKey(b);
 }
 
+function specialLatticePoint(coord, width, height, lattice) {
+    const displayY = height - 1 - coord[1];
+    if (lattice === 'honeycomb') {
+        const rawWidth = Math.max(1, (width - 1) * Math.sqrt(3) / 2);
+        const rawHeight = Math.max(1, height - 0.5);
+        return {
+            x: 5 + 90 * (coord[0] * Math.sqrt(3) / 2) / rawWidth,
+            y: 5 + 90 * (displayY + (coord[0] % 2) * 0.5) / rawHeight
+        };
+    }
+    const rawWidth = Math.max(1, 1.5 * (width - 1) + 2);
+    const rawHeight = Math.max(1, Math.sqrt(3) * (1.5 * (height - 1) + 1));
+    return {
+        x: 5 + 90 * (1 + 1.5 * coord[0]) / rawWidth,
+        y: 5 + 90 * (Math.sqrt(3) * (0.5 + displayY + coord[0] / 2)) / rawHeight
+    };
+}
+
+function appendHoneycombEdges(width, height) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('lattice-edge-layer');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('aria-hidden', 'true');
+    const drawn = new Set();
+    for (const coord of game.topology.vertices()) {
+        const fromKey = coordKey(coord);
+        const from = specialLatticePoint(coord, width, height, 'honeycomb');
+        for (const neighbor of game.topology.neighbors(coord)) {
+            if (Math.abs(neighbor[0] - coord[0]) > 1 || Math.abs(neighbor[1] - coord[1]) > 1) continue;
+            const edgeKey = [fromKey, coordKey(neighbor)].sort().join('|');
+            if (drawn.has(edgeKey)) continue;
+            drawn.add(edgeKey);
+            const to = specialLatticePoint(neighbor, width, height, 'honeycomb');
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', String(from.x));
+            line.setAttribute('y1', String(from.y));
+            line.setAttribute('x2', String(to.x));
+            line.setAttribute('y2', String(to.y));
+            svg.append(line);
+        }
+    }
+    els.board.append(svg);
+}
+
+function applySpecialLatticeCellLayout(cell, coord, width, height, lattice) {
+    const point = specialLatticePoint(coord, width, height, lattice);
+    const cellSize = lattice === 'honeycomb'
+        ? Math.min(10, 76 / Math.max(width, height))
+        : Math.min(13, 94 / Math.max(width, height));
+    cell.style.left = `${point.x - cellSize / 2}%`;
+    cell.style.top = `${point.y - cellSize / 2}%`;
+    cell.style.width = `${cellSize}%`;
+    cell.style.height = `${cellSize}%`;
+}
+
 function currentReversiPreview() {
     if (!hoverCoord || game.mode !== 'clifford_reversi') return null;
     return game.previewMove(hoverCoord, game.currentPlayer, els.transformSelect.value);
@@ -538,10 +598,15 @@ function render() {
 }
 
 function renderBoard() {
-    const [width] = game.topology.sizes;
+    const [width, height] = game.topology.sizes;
+    const honeycombNodes = game.topology.lattice === 'honeycomb';
+    const hexCells = game.topology.lattice === 'hex_cells';
     els.board.style.gridTemplateColumns = `repeat(${width}, minmax(0, 1fr))`;
     els.board.classList.toggle('lattice-triangular', game.topology.lattice === 'triangular');
+    els.board.classList.toggle('lattice-honeycomb-nodes', honeycombNodes);
+    els.board.classList.toggle('lattice-hex-cells', hexCells);
     els.board.innerHTML = '';
+    if (honeycombNodes) appendHoneycombEdges(width, height);
 
     const preview = currentReversiPreview();
     const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
@@ -571,6 +636,9 @@ function renderBoard() {
         cell.className = 'cell';
         cell.dataset.coord = JSON.stringify(coord);
         cell.dataset.key = key;
+        if (honeycombNodes || hexCells) {
+            applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
+        }
         if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
         const goStone = game.mode === 'virasoro_go' ? game.getStone(coord) : null;

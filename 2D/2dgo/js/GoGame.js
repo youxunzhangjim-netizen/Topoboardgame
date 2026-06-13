@@ -84,7 +84,7 @@ function randomDirectionKey(coord, direction) {
 function latticeDirections(lattice, coord) {
     if (lattice === 'triangular') return TRIANGULAR_DIRECTIONS;
     if (lattice === 'honeycomb') {
-        return [[1, 0], [-1, 0], [0, coord[0] % 2 === 0 ? 1 : -1]];
+        return [[1, 0], [-1, 0], [0, (coord[0] + coord[1]) % 2 === 0 ? 1 : -1]];
     }
     return SQUARE_DIRECTIONS;
 }

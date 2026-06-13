@@ -379,6 +379,83 @@ h2 {
     );
 }
 
+.board.lattice-honeycomb-nodes,
+.board.lattice-hex-cells {
+    position: relative;
+    display: block;
+    overflow: hidden;
+}
+
+.lattice-edge-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.lattice-edge-layer line {
+    stroke: rgba(137, 166, 179, 0.68);
+    stroke-width: 0.34;
+}
+
+.board.lattice-honeycomb-nodes .cell,
+.board.lattice-hex-cells .cell {
+    position: absolute;
+}
+
+.board.lattice-honeycomb-nodes .cell {
+    border: 0;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(224, 247, 255, 0.88) 0 7%,
+        rgba(27, 38, 49, 0.18) 8% 38%,
+        transparent 39%
+    );
+    overflow: visible;
+}
+
+.board.lattice-honeycomb-nodes .cell:nth-child(odd) {
+    background: radial-gradient(
+        circle,
+        rgba(224, 247, 255, 0.88) 0 7%,
+        rgba(27, 38, 49, 0.18) 8% 38%,
+        transparent 39%
+    );
+}
+
+.board.lattice-honeycomb-nodes .cell:hover {
+    box-shadow: 0 0 0 2px rgba(66, 198, 255, 0.65);
+}
+
+.board.lattice-honeycomb-nodes .cell.legal {
+    outline: 0;
+    background: radial-gradient(
+        circle,
+        rgba(62, 230, 138, 0.96) 0 10%,
+        rgba(62, 230, 138, 0.2) 11% 23%,
+        transparent 24%
+    );
+}
+
+.board.lattice-hex-cells .cell {
+    clip-path: polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0 50%);
+    border: 0;
+    border-radius: 0;
+    background: #245745;
+    box-shadow: inset 0 0 0 2px rgba(5, 12, 14, 0.48);
+}
+
+.board.lattice-hex-cells .cell:nth-child(odd) {
+    background: #2f6b55;
+}
+
+.board.lattice-honeycomb-nodes .coord,
+.board.lattice-hex-cells .coord {
+    display: none;
+}
+
 .cell:hover {
     border-color: rgba(66, 198, 255, 0.72);
 }
