@@ -3,6 +3,7 @@ import {
     normalizePauliLabel,
     setPauliLabel
 } from '../../../js/algebra/PauliAlgebra.js';
+import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 
 export const COLORS = {
     empty: 0,
@@ -28,6 +29,7 @@ export function normalizeTopology(topology) {
     const value = String(topology || '').toLowerCase();
     if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(value)) return 'pbc';
     if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(value)) return 'klein';
+    if (['random', 'random_boundary', 'random-boundary', 'randomboundary'].includes(value)) return 'random';
     return 'open2d';
 }
 
@@ -35,16 +37,58 @@ function wrap(value, size) {
     return ((value % size) + size) % size;
 }
 
+function randomSeed() {
+    return `go-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function boundaryTargets(size) {
+    const targets = [];
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            if (x === 0 || y === 0 || x === size - 1 || y === size - 1) targets.push([x, y]);
+        }
+    }
+    return targets;
+}
+
+function randomExitKey(coord, axis, delta) {
+    return `${coord[0]},${coord[1]}:${axis}:${Math.sign(delta)}`;
+}
+
+function createRandomBoundaryMap(size, seed = randomSeed()) {
+    const rng = new SeededRandom(seed);
+    const targets = boundaryTargets(size);
+    const entries = [];
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            for (const [axis, delta] of [[0, -1], [0, 1], [1, -1], [1, 1]]) {
+                const raw = axis === 0 ? x + delta : y + delta;
+                if (raw >= 0 && raw < size) continue;
+                let target = targets[rng.integer(targets.length)] || [x, y];
+                if (targets.length > 1 && target[0] === x && target[1] === y) {
+                    target = targets[(targets.findIndex(([tx, ty]) => tx === target[0] && ty === target[1]) + 1) % targets.length];
+                }
+                entries.push([randomExitKey([x, y], axis, delta), target]);
+            }
+        }
+    }
+    return entries;
+}
+
 export class GoGameLogic {
     constructor(options = {}) {
         this.reset(options);
     }
 
-    reset({ size = 9, dimension = 2, topology = 'open2d', komi = 7.5 } = {}) {
+    reset({ size = 9, dimension = 2, topology = 'open2d', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null } = {}) {
         this.size = Number(size) || 9;
         this.dimension = Number(dimension) || 2;
         this.topology = normalizeTopology(topology);
         this.komi = Number.isFinite(Number(komi)) ? Number(komi) : 7.5;
+        this.randomBoundarySeed = this.topology === 'random' ? (randomBoundarySeed || randomSeed()) : '';
+        this.randomBoundaryMap = this.topology === 'random'
+            ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap(this.size, this.randomBoundarySeed))
+            : new Map();
         this.total = this.size ** this.dimension;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
@@ -100,6 +144,13 @@ export class GoGameLogic {
     }
 
     stepCoord(coord, axis, delta) {
+        if (this.topology === 'random' && this.dimension === 2) {
+            const next = [...coord];
+            next[axis] += delta;
+            if (next[axis] >= 0 && next[axis] < this.size) return next;
+            const target = this.randomBoundaryMap.get(randomExitKey(coord, axis, delta));
+            return target ? [...target] : null;
+        }
         if (this.topology === 'klein' && this.dimension === 2) {
             const [x, y] = coord;
             if (axis === 0) return [wrap(x + delta, this.size), y];
@@ -132,6 +183,17 @@ export class GoGameLogic {
         return this.neighborsFromCoord(this.coordFromIndex(index))
             .map((coord) => this.indexFromCoord(coord))
             .filter((value) => value >= 0);
+    }
+
+    randomBoundaryLinks(limit = 28) {
+        if (this.topology !== 'random') return [];
+        return [...this.randomBoundaryMap.entries()].slice(0, limit).map(([key, target]) => {
+            const [coordText] = key.split(':');
+            return {
+                from: coordText.split(',').map(Number),
+                to: [...target]
+            };
+        });
     }
 
     serializeBoard(board = this.board) {
@@ -337,6 +399,8 @@ export class GoGameLogic {
             size: this.size,
             dimension: this.dimension,
             topology: this.topology,
+            randomBoundarySeed: this.randomBoundarySeed,
+            randomBoundaryMap: [...this.randomBoundaryMap.entries()],
             komi: this.komi,
             board: Array.from(this.board),
             pauliLabels: [...this.pauliLabels],
@@ -360,6 +424,10 @@ export class GoGameLogic {
         this.size = Number(state.size) || 9;
         this.dimension = Number(state.dimension) || 2;
         this.topology = normalizeTopology(state.topology);
+        this.randomBoundarySeed = this.topology === 'random' ? (state.randomBoundarySeed || randomSeed()) : '';
+        this.randomBoundaryMap = this.topology === 'random'
+            ? new Map(Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : createRandomBoundaryMap(this.size, this.randomBoundarySeed))
+            : new Map();
         this.komi = Number.isFinite(Number(state.komi)) ? Number(state.komi) : 7.5;
         this.total = this.size ** this.dimension;
         this.board = new Uint8Array(this.total);

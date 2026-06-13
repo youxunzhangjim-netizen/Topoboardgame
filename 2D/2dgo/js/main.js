@@ -72,6 +72,7 @@ class Go2DApp {
         const mode = String(params.get('mode') || params.get('boundary') || '').toLowerCase();
         if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(mode)) this.boundarySelect.value = 'pbc';
         if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(mode)) this.boundarySelect.value = 'klein';
+        if (['random', 'random_boundary', 'random-boundary'].includes(mode)) this.boundarySelect.value = 'random';
         if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
     }
 
@@ -335,6 +336,7 @@ class Go2DApp {
 
         if (this.logic.topology === 'pbc') this.drawPeriodicBoundary(rect);
         if (this.logic.topology === 'klein') this.drawKleinBoundary(rect);
+        if (this.logic.topology === 'random') this.drawRandomBoundary(rect);
 
         for (const [x, y] of this.starPoints(n)) {
             const p = this.coordToPixel([x, y]);
@@ -441,6 +443,35 @@ class Go2DApp {
         ctx.restore();
     }
 
+    drawRandomBoundary(rect) {
+        const ctx = this.ctx;
+        const offset = rect.step * 0.4;
+        const left = rect.x - offset;
+        const top = rect.y - offset;
+        const right = rect.x + rect.span + offset;
+        const bottom = rect.y + rect.span + offset;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(216, 180, 254, 0.88)';
+        ctx.lineWidth = Math.max(2, rect.step * 0.055);
+        ctx.setLineDash([7, 7]);
+        ctx.strokeRect(left, top, right - left, bottom - top);
+        ctx.setLineDash([]);
+
+        ctx.globalAlpha = 0.68;
+        ctx.lineWidth = Math.max(1, rect.step * 0.018);
+        ctx.strokeStyle = 'rgba(192, 132, 252, 0.82)';
+        for (const link of this.logic.randomBoundaryLinks(30)) {
+            const from = this.coordToPixel(link.from);
+            const to = this.coordToPixel(link.to);
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     drawStone(x, y, radius, color) {
         const ctx = this.ctx;
         const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.45, radius * 0.12, x, y, radius);
@@ -536,8 +567,11 @@ class Go2DApp {
         const topology = normalizeTopology(this.logic.topology);
         const periodic = topology === 'pbc';
         const klein = topology === 'klein';
-        this.boundaryEl.textContent = klein ? 'Klein' : periodic ? 'PBC x/y' : 'OBC';
-        this.boundaryInfoEl.textContent = klein
+        const random = topology === 'random';
+        this.boundaryEl.textContent = random ? 'Random' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'OBC';
+        this.boundaryInfoEl.textContent = random
+            ? 'Random boundary uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.'
+            : klein
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x.'
             : periodic
                 ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'

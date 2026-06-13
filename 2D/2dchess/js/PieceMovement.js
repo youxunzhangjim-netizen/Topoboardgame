@@ -1,4 +1,53 @@
+import { SeededRandom } from '../../../js/probability/SeededRandom.js';
+
 const SIZE = 8;
+const RANDOM_BOUNDARY_DIRECTIONS = [
+    [-1, -1], [-1, 0], [-1, 1],
+    [0, -1], [0, 1],
+    [1, -1], [1, 0], [1, 1]
+];
+
+function randomSeed() {
+    return `chess-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function boundaryTargets() {
+    const targets = [];
+    for (let r = 0; r < SIZE; r += 1) {
+        for (let c = 0; c < SIZE; c += 1) {
+            if (r === 0 || c === 0 || r === SIZE - 1 || c === SIZE - 1) targets.push([r, c]);
+        }
+    }
+    return targets;
+}
+
+export function randomChessExitKey(row, col, dr, dc) {
+    return `${row},${col}:${Math.sign(dr || 0)},${Math.sign(dc || 0)}`;
+}
+
+export function createRandomChessBoundaryState(seed = randomSeed()) {
+    const rng = new SeededRandom(seed);
+    const targets = boundaryTargets();
+    const entries = [];
+
+    for (let r = 0; r < SIZE; r += 1) {
+        for (let c = 0; c < SIZE; c += 1) {
+            for (const [dr, dc] of RANDOM_BOUNDARY_DIRECTIONS) {
+                const rawR = r + dr;
+                const rawC = c + dc;
+                if (rawR >= 0 && rawR < SIZE && rawC >= 0 && rawC < SIZE) continue;
+                let target = targets[rng.integer(targets.length)] || [r, c];
+                if (targets.length > 1 && target[0] === r && target[1] === c) {
+                    const index = targets.findIndex(([tr, tc]) => tr === target[0] && tc === target[1]);
+                    target = targets[(index + 1) % targets.length];
+                }
+                entries.push([randomChessExitKey(r, c, dr, dc), target]);
+            }
+        }
+    }
+
+    return { seed, entries };
+}
 
 export class PieceMovement {
     constructor(game) {
@@ -52,6 +101,21 @@ export class PieceMovement {
         for (const dc of [-1, 1]) {
             const targetRow = row + direction;
             const targetCol = col + dc;
+            if (this.game.boundaryCondition === 'random') {
+                const resolved = this.applyBoundary(targetRow, targetCol, row, col, [direction, dc]);
+                if (!resolved.valid || resolved.offBoard || (resolved.r === row && resolved.c === col)) continue;
+                if (forAttack) {
+                    moves.push({ r: resolved.r, c: resolved.c, capture: true });
+                    continue;
+                }
+
+                const target = this.game.getPiece(resolved.r, resolved.c);
+                if (target && target.color !== piece.color && target.type !== 'K') {
+                    moves.push({ r: resolved.r, c: resolved.c, capture: true });
+                }
+                continue;
+            }
+
             if (!this.inBounds(targetRow, targetCol)) continue;
 
             if (forAttack) {
@@ -68,16 +132,19 @@ export class PieceMovement {
         if (forAttack) return moves;
 
         const oneRow = row + direction;
-        const oneStep = this.applyBoundary(oneRow, col);
+        const oneStep = this.applyBoundary(oneRow, col, row, col, [direction, 0]);
         if (oneStep.valid && oneStep.offBoard) {
             moves.push(this.suicideMove(oneRow, col));
-        } else if (oneStep.valid && !this.game.getPiece(oneStep.r, oneStep.c)) {
-            moves.push({ r: oneRow, c: col, capture: false });
+        } else if (oneStep.valid && !(oneStep.r === row && oneStep.c === col) && !this.game.getPiece(oneStep.r, oneStep.c)) {
+            moves.push({ r: oneStep.r, c: oneStep.c, capture: false });
 
             const startRow = piece.color === 'white' ? 6 : 1;
             const twoRow = row + direction * 2;
-            if (row === startRow && this.inBounds(twoRow, col) && !this.game.getPiece(twoRow, col)) {
-                moves.push({ r: twoRow, c: col, capture: false, pawnDoubleJump: true });
+            const twoStep = this.game.boundaryCondition === 'random'
+                ? this.applyBoundary(twoRow, col, oneStep.r, oneStep.c, [direction, 0])
+                : { valid: this.inBounds(twoRow, col), r: twoRow, c: col };
+            if (row === startRow && twoStep.valid && !this.game.getPiece(twoStep.r, twoStep.c)) {
+                moves.push({ r: twoStep.r, c: twoStep.c, capture: false, pawnDoubleJump: true });
             }
         }
 
@@ -99,6 +166,10 @@ export class PieceMovement {
     }
 
     getLineMoves(row, col, directions, forAttack) {
+        if (this.game.boundaryCondition === 'random') {
+            return this.getRandomLineMoves(row, col, directions, forAttack);
+        }
+
         const piece = this.game.getPiece(row, col);
         const moves = [];
 
@@ -136,13 +207,47 @@ export class PieceMovement {
         return moves;
     }
 
+    getRandomLineMoves(row, col, directions, forAttack) {
+        const piece = this.game.getPiece(row, col);
+        const moves = [];
+
+        for (const [dr, dc] of directions) {
+            const seenTargets = new Set();
+            let current = { r: row, c: col };
+
+            for (let step = 1; step <= SIZE * SIZE; step += 1) {
+                const resolved = this.applyBoundary(current.r + dr, current.c + dc, current.r, current.c, [dr, dc]);
+                if (!resolved.valid || resolved.offBoard) break;
+                if (resolved.r === row && resolved.c === col) break;
+
+                const key = `${resolved.r},${resolved.c}`;
+                if (seenTargets.has(key)) break;
+                seenTargets.add(key);
+
+                const target = this.game.getPiece(resolved.r, resolved.c);
+                if (!target) {
+                    moves.push({ r: resolved.r, c: resolved.c, capture: false });
+                    current = { r: resolved.r, c: resolved.c };
+                    continue;
+                }
+
+                if (target.color !== piece.color && (forAttack || target.type !== 'K')) {
+                    moves.push({ r: resolved.r, c: resolved.c, capture: true });
+                }
+                break;
+            }
+        }
+
+        return moves;
+    }
+
     getKnightMoves(row, col, forAttack) {
         const piece = this.game.getPiece(row, col);
         const offsets = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
         const moves = [];
 
         for (const [dr, dc] of offsets) {
-            const target = this.applyBoundary(row + dr, col + dc);
+            const target = this.applyBoundary(row + dr, col + dc, row, col, [dr, dc]);
             if (!target.valid || (target.r === row && target.c === col)) continue;
             if (target.offBoard) {
                 if (!forAttack) moves.push(this.suicideMove(target.r, target.c));
@@ -161,7 +266,7 @@ export class PieceMovement {
         for (let dr = -1; dr <= 1; dr++) {
             for (let dc = -1; dc <= 1; dc++) {
                 if (dr === 0 && dc === 0) continue;
-                const target = this.applyBoundary(row + dr, col + dc);
+                const target = this.applyBoundary(row + dr, col + dc, row, col, [dr, dc]);
                 if (!target.valid || (target.r === row && target.c === col)) continue;
                 if (target.offBoard) {
                     if (!forAttack) moves.push(this.suicideMove(target.r, target.c));
@@ -342,10 +447,20 @@ export class PieceMovement {
         return null;
     }
 
-    applyBoundary(row, col) {
+    applyBoundary(row, col, fromRow = null, fromCol = null, direction = null) {
         if (this.game.boundaryCondition === 'open') {
             const offBoard = row < 0 || row >= SIZE || col < 0 || col >= SIZE;
             return { valid: true, offBoard, r: row, c: col };
+        }
+
+        if (this.game.boundaryCondition === 'random') {
+            if (this.inBounds(row, col)) return { valid: true, r: row, c: col };
+            if (!this.inBounds(fromRow, fromCol)) return { valid: false, r: row, c: col };
+
+            const dr = direction?.[0] ?? row - fromRow;
+            const dc = direction?.[1] ?? col - fromCol;
+            const target = this.game.randomBoundaryMap?.get(randomChessExitKey(fromRow, fromCol, dr, dc));
+            return target ? { valid: true, r: target[0], c: target[1], randomBoundary: true } : { valid: false, r: row, c: col };
         }
 
         if (row < 0 || row >= SIZE) return { valid: false, r: row, c: col };

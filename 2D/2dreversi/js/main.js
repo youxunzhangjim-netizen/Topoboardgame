@@ -30,13 +30,13 @@ class Reversi2DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
-        this.boundarySelect.value = ['open2d', 'pbc', 'klein'].includes(mode) ? mode : 'open2d';
+        this.boundarySelect.value = ['open2d', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
         const rawSize = Number(params.get('size'));
         if (Number.isFinite(rawSize)) this.setSizeSelection(rawSize);
     }
 
     setSizeSelection(value) {
-        const size = normalizeReversiSize(value, { fallback: 8, max: 30 });
+        const size = normalizeReversiSize(value, { fallback: 12, max: 30 });
         const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
         this.sizeSelect.value = option ? String(size) : 'custom';
         this.customSizeInput.value = String(size);
@@ -45,7 +45,7 @@ class Reversi2DApp {
 
     boardSize() {
         const source = this.sizeSelect.value === 'custom' ? this.customSizeInput.value : this.sizeSelect.value;
-        return normalizeReversiSize(source, { fallback: 8, max: 30 });
+        return normalizeReversiSize(source, { fallback: 12, max: 30 });
     }
 
     createLogic() {
@@ -194,7 +194,7 @@ class Reversi2DApp {
         const right = rect.left + this.logic.topology.width * rect.step;
         const bottom = rect.top + this.logic.topology.height * rect.step;
         ctx.save();
-        ctx.strokeStyle = this.boundarySelect.value === 'klein' ? 'rgba(242, 196, 100, 0.82)' : 'rgba(72, 199, 244, 0.68)';
+        ctx.strokeStyle = this.boundarySelect.value === 'klein' ? 'rgba(242, 196, 100, 0.82)' : this.boundarySelect.value === 'random' ? 'rgba(216, 180, 254, 0.86)' : 'rgba(72, 199, 244, 0.68)';
         ctx.lineWidth = Math.max(1.5, rect.step * 0.035);
         ctx.setLineDash([rect.step * 0.35, rect.step * 0.22]);
         if (this.boundarySelect.value === 'pbc') {
@@ -206,6 +206,25 @@ class Reversi2DApp {
             ctx.moveTo(right, bottom + 7);
             ctx.lineTo(rect.left, bottom + 7);
             ctx.stroke();
+        } else if (this.boundarySelect.value === 'random') {
+            ctx.strokeRect(rect.left - 5, rect.top - 5, right - rect.left + 10, bottom - rect.top + 10);
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 0.62;
+            ctx.lineWidth = Math.max(1, rect.step * 0.018);
+            for (const link of this.logic.topology.randomBoundaryLinks(30)) {
+                const from = {
+                    x: rect.left + (link.from[0] + 0.5) * rect.step,
+                    y: rect.top + (link.from[1] + 0.5) * rect.step
+                };
+                const to = {
+                    x: rect.left + (link.to[0] + 0.5) * rect.step,
+                    y: rect.top + (link.to[1] + 0.5) * rect.step
+                };
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            }
         }
         ctx.restore();
     }
@@ -260,8 +279,10 @@ class Reversi2DApp {
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const topology = this.boundarySelect.value;
-        this.boundaryEl.textContent = topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'OBC';
-        this.boundaryInfoEl.textContent = topology === 'klein'
+        this.boundaryEl.textContent = topology === 'random' ? 'Random' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'OBC';
+        this.boundaryInfoEl.textContent = topology === 'random'
+            ? 'Random boundary uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'
+            : topology === 'klein'
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped.'
             : topology === 'pbc'
                 ? 'PBC identifies both left-right and top-bottom edges.'
@@ -279,6 +300,7 @@ class Reversi2DApp {
         this.historyEl.innerHTML = this.logic.moveHistory.slice(0, 80).map((move) => {
             if (move.type === 'move') return `<div class="move-history-item">${move.number}. ${this.capitalize(move.color)} (${move.coord.map((v) => v + 1).join(',')}) flipped ${move.flipped}</div>`;
             if (move.type === 'pass') return `<div class="move-history-item">${this.capitalize(move.color)} ${move.automatic ? 'auto-passed' : 'passed'}</div>`;
+            if (move.type === 'no-move-end') return `<div class="move-history-item">${this.capitalize(move.color)} has no legal moves. Final count.</div>`;
             return '';
         }).join('');
     }

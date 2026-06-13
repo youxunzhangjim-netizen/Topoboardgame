@@ -1,5 +1,5 @@
 import { BoardSetup, BOARD_THEMES, PIECE_GLYPHS, PROMOTION_TYPES, createPiece } from './BoardSetup.js';
-import { PieceMovement } from './PieceMovement.js';
+import { PieceMovement, createRandomChessBoundaryState } from './PieceMovement.js';
 import { NetworkManager } from './NetworkManager.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
 
@@ -13,6 +13,8 @@ export class ChessGame {
         this.currentPlayer = 'white';
         this.moveHistory = [];
         this.boundaryCondition = 'forbidden';
+        this.randomBoundarySeed = '';
+        this.randomBoundaryMap = new Map();
         this.gameOver = false;
         this.showMoveHints = true;
         this.capturedPieces = { white: [], black: [] };
@@ -52,6 +54,26 @@ export class ChessGame {
     setupBoard() {
         this.board = BoardSetup.createInitialBoard();
         this.positionHistory = [this.getBoardHash()];
+    }
+
+    configureRandomBoundary({ fresh = false, seed = '', entries = null } = {}) {
+        if (this.boundaryCondition !== 'random') {
+            this.randomBoundarySeed = '';
+            this.randomBoundaryMap = new Map();
+            return;
+        }
+
+        if (!fresh && !entries && this.randomBoundaryMap instanceof Map && this.randomBoundaryMap.size > 0) return;
+
+        const state = Array.isArray(entries)
+            ? { seed: seed || this.randomBoundarySeed || 'imported-random-boundary', entries }
+            : createRandomChessBoundaryState(seed || undefined);
+        this.randomBoundarySeed = state.seed;
+        this.randomBoundaryMap = new Map(state.entries);
+    }
+
+    randomBoundaryEntries() {
+        return this.randomBoundaryMap instanceof Map ? [...this.randomBoundaryMap.entries()] : [];
     }
 
     checkUrlForRoomId() {
@@ -559,6 +581,7 @@ export class ChessGame {
 
     resetGame({ keepOnline = false, remote = false } = {}) {
         this.setupBoard();
+        this.configureRandomBoundary({ fresh: this.boundaryCondition === 'random' });
         this.selectedSquare = null;
         this.legalMoves = [];
         this.currentPlayer = 'white';
@@ -686,6 +709,7 @@ export class ChessGame {
                 return;
             }
             this.boundaryCondition = event.target.value;
+            this.configureRandomBoundary({ fresh: this.boundaryCondition === 'random' });
             this.positionHistory = [this.getBoardHash()];
             this.updateBoundaryInfo();
             this.renderBoard();

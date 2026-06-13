@@ -44,12 +44,12 @@
             <div class="control-group">
                 <label for="boardSizeSelect">Board Size</label>
                 <select id="boardSizeSelect">
-                    <option value="8" selected>8 x 8</option>
+                    <option value="8">8 x 8</option>
                     <option value="10">10 x 10</option>
-                    <option value="12">12 x 12</option>
+                    <option value="12" selected>12 x 12</option>
                     <option value="custom">Custom</option>
                 </select>
-                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="30" step="1" value="8" hidden>
+                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="30" step="1" value="12" hidden>
             </div>
 
             <div class="control-group">
@@ -58,9 +58,10 @@
                     <option value="open2d" selected>OBC Open</option>
                     <option value="pbc">PBC All Sides</option>
                     <option value="klein">Klein Bottle</option>
+                    <option value="random">Random Boundary</option>
                 </select>
             </div>
-            <div class="boundary-info" id="boundaryInfo">OBC uses ordinary board edges. PBC connects both directions. Klein connects top-bottom with an x-flip.</div>
+            <div class="boundary-info" id="boundaryInfo">OBC uses ordinary board edges. PBC connects both directions. Klein connects top-bottom with an x-flip. Random boundary creates one fixed random boundary map for this game.</div>
 
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>

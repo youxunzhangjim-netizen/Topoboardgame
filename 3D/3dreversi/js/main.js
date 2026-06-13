@@ -40,7 +40,7 @@ class Reversi3DApp {
     }
 
     setSizeSelection(value) {
-        const size = normalizeReversiSize(value, { fallback: 8, max: 19 });
+        const size = normalizeReversiSize(value, { fallback: 12, max: 19 });
         const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
         this.sizeSelect.value = option ? String(size) : 'custom';
         this.customSizeInput.value = String(size);
@@ -49,7 +49,7 @@ class Reversi3DApp {
 
     boardSize() {
         const source = this.sizeSelect.value === 'custom' ? this.customSizeInput.value : this.sizeSelect.value;
-        return normalizeReversiSize(source, { fallback: 8, max: 19 });
+        return normalizeReversiSize(source, { fallback: 12, max: 19 });
     }
 
     createLogic() {
@@ -325,6 +325,7 @@ class Reversi3DApp {
         this.historyEl.innerHTML = this.logic.moveHistory.slice(0, 80).map((move) => {
             if (move.type === 'move') return `<div class="move-history-item">${move.number}. ${this.capitalize(move.color)} (${move.coord.map((v) => v + 1).join(',')}) flipped ${move.flipped}</div>`;
             if (move.type === 'pass') return `<div class="move-history-item">${this.capitalize(move.color)} ${move.automatic ? 'auto-passed' : 'passed'}</div>`;
+            if (move.type === 'no-move-end') return `<div class="move-history-item">${this.capitalize(move.color)} has no legal moves. Final count.</div>`;
             return '';
         }).join('');
     }
