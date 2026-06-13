@@ -75,7 +75,7 @@
 
             <div class="control-section section-algebra">
                 <h2>Algebra</h2>
-                <div class="control-fields two-col">
+                <div class="control-fields algebra-mode-fields" id="cliffordAlgebraControls" data-controls-mode="clifford">
                     <label id="pauliControl">
                         Pauli
                         <select id="pauliSelect">
@@ -98,6 +98,8 @@
                             <option value="off">Off</option>
                         </select>
                     </label>
+                </div>
+                <div class="control-fields algebra-mode-fields" id="anyonAlgebraControls" data-controls-mode="anyon" hidden>
                     <label id="braidMemoryControl">
                         Braid Memory
                         <select id="braidMemoryModeSelect">
@@ -121,6 +123,34 @@
                             <option value="braid_group_relations">Braid Relations</option>
                         </select>
                     </label>
+                    <details class="control-details" id="braidedCaptureDetails">
+                        <summary>Braided capture</summary>
+                        <div class="control-fields three-col">
+                            <label>
+                                Shield
+                                <select id="braidedPieceShieldSelect">
+                                    <option value="off" selected>Off</option>
+                                    <option value="on">On</option>
+                                </select>
+                            </label>
+                            <label>
+                                Need Unbraid
+                                <select id="captureRequiresUnbraidSelect">
+                                    <option value="off" selected>Off</option>
+                                    <option value="on">On</option>
+                                </select>
+                            </label>
+                            <label>
+                                Penalty
+                                <select id="braidedPiecePenaltySelect">
+                                    <option value="off" selected>Off</option>
+                                    <option value="on">On</option>
+                                </select>
+                            </label>
+                        </div>
+                    </details>
+                </div>
+                <div class="control-fields algebra-mode-fields" id="virasoroAlgebraControls" data-controls-mode="virasoro" hidden>
                     <label id="virasoroLayerControl">
                         Virasoro Layer
                         <select id="virasoroLayerSelect">
@@ -171,32 +201,6 @@
                         </select>
                     </label>
                 </div>
-                <details class="control-details" id="braidedCaptureDetails">
-                    <summary>Braided capture</summary>
-                    <div class="control-fields three-col">
-                        <label>
-                            Shield
-                            <select id="braidedPieceShieldSelect">
-                                <option value="off" selected>Off</option>
-                                <option value="on">On</option>
-                            </select>
-                        </label>
-                        <label>
-                            Need Unbraid
-                            <select id="captureRequiresUnbraidSelect">
-                                <option value="off" selected>Off</option>
-                                <option value="on">On</option>
-                            </select>
-                        </label>
-                        <label>
-                            Penalty
-                            <select id="braidedPiecePenaltySelect">
-                                <option value="off" selected>Off</option>
-                                <option value="on">On</option>
-                            </select>
-                        </label>
-                    </div>
-                </details>
                 <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
             </div>
 
@@ -319,7 +323,7 @@
                     <span id="topologyHint">Torus: x and y wrap periodically.</span>
                 </div>
                 <div id="board" class="board" aria-label="Algebraic game board"></div>
-                <section class="rules-intro-panel" id="rulesIntroPanel" hidden>
+                <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
                     <div data-rules-mode="clifford">
                         <h2>Clifford Reversi Rules</h2>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>

@@ -176,8 +176,12 @@ h2 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.section-algebra > .control-fields.two-col {
+.section-algebra > .algebra-mode-fields {
     grid-template-columns: repeat(4, minmax(160px, 1fr));
+}
+
+.algebra-mode-fields > .control-details {
+    grid-column: 1 / -1;
 }
 
 .button-grid {
@@ -227,8 +231,12 @@ h2 {
     overflow: auto;
 }
 
-.rules-intro-panel[hidden] {
+.rules-intro-panel[aria-hidden="true"] {
     display: none;
+}
+
+.rules-intro-panel.is-open {
+    display: grid;
 }
 
 .rules-intro-panel div {
@@ -682,7 +690,7 @@ textarea {
         grid-column: span 3;
     }
 
-    .section-algebra > .control-fields.two-col {
+    .section-algebra > .algebra-mode-fields {
         grid-template-columns: repeat(3, minmax(150px, 1fr));
     }
 
@@ -716,7 +724,7 @@ textarea {
 
     .control-fields.two-col,
     .control-fields.three-col,
-    .section-algebra > .control-fields.two-col,
+    .section-algebra > .algebra-mode-fields,
     .button-grid {
         grid-template-columns: 1fr 1fr;
     }

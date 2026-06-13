@@ -53,7 +53,7 @@ try {
 
     await page.locator('#rulesIntroButton').click();
     const rulesState = await page.evaluate(() => ({
-        visible: !document.querySelector('#rulesIntroPanel')?.hidden,
+        visible: document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') !== 'true',
         parentClass: document.querySelector('#rulesIntroPanel')?.parentElement?.className || '',
         text: [...document.querySelectorAll('#rulesIntroPanel [data-rules-mode]:not([hidden])')]
             .map((node) => node.textContent || '')
@@ -73,6 +73,16 @@ try {
     assert.equal(reversiState.blackCount, '4', 'Expected Clifford Reversi to flip one white stone.');
 
     await page.selectOption('#modeSelect', 'anyon_jump');
+    const anyonControlState = await page.evaluate(() => ({
+        cliffordDisplay: getComputedStyle(document.querySelector('#cliffordAlgebraControls')).display,
+        anyonDisplay: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display,
+        virasoroDisplay: getComputedStyle(document.querySelector('#virasoroAlgebraControls')).display,
+        rulesButton: document.querySelector('#rulesIntroButton')?.textContent
+    }));
+    assert.equal(anyonControlState.cliffordDisplay, 'none', 'Anyon mode should hide Clifford algebra controls.');
+    assert.notEqual(anyonControlState.anyonDisplay, 'none', 'Anyon mode should show Anyon algebra controls.');
+    assert.equal(anyonControlState.virasoroDisplay, 'none', 'Anyon mode should hide Virasoro algebra controls.');
+    assert.equal(anyonControlState.rulesButton, 'Anyon Rules');
     await page.locator('.anyon.black').first().locator('xpath=..').click();
     const selected = await page.evaluate(() => document.querySelectorAll('.cell.legal').length);
     assert.ok(selected > 0, 'Expected selecting an anyon to reveal legal jump-game actions.');
@@ -89,6 +99,9 @@ try {
         title: document.querySelector('#modeTitle')?.textContent,
         modeControlHidden: document.querySelector('#modeControl')?.hidden,
         pauliHidden: document.querySelector('#pauliControl')?.hidden,
+        cliffordDisplay: getComputedStyle(document.querySelector('#cliffordAlgebraControls')).display,
+        anyonDisplay: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display,
+        virasoroDisplay: getComputedStyle(document.querySelector('#virasoroAlgebraControls')).display,
         braidVisible: !document.querySelector('#braidMemoryControl')?.hidden,
         rulesText: [...document.querySelectorAll('#rulesIntroPanel [data-rules-mode]:not([hidden])')]
             .map((node) => node.textContent || '')
@@ -97,6 +110,9 @@ try {
     assert.equal(fixedAnyonState.title, 'Anyon Jump Chess');
     assert.equal(fixedAnyonState.modeControlHidden, true, 'Fixed launcher mode should hide the mixed mode selector.');
     assert.equal(fixedAnyonState.pauliHidden, true, 'Anyon Jump should hide Pauli Reversi controls.');
+    assert.equal(fixedAnyonState.cliffordDisplay, 'none');
+    assert.notEqual(fixedAnyonState.anyonDisplay, 'none');
+    assert.equal(fixedAnyonState.virasoroDisplay, 'none');
     assert.equal(fixedAnyonState.braidVisible, true, 'Anyon Jump should show braid controls.');
     assert.match(fixedAnyonState.rulesText, /Toric code fusion/);
     assert.match(fixedAnyonState.rulesText, /Vacuum 1/);
@@ -150,6 +166,9 @@ try {
         title: document.querySelector('#modeTitle')?.textContent,
         modeControlHidden: document.querySelector('#modeControl')?.hidden,
         virasoroVisible: !document.querySelector('#virasoroActionControl')?.hidden,
+        cliffordDisplay: getComputedStyle(document.querySelector('#cliffordAlgebraControls')).display,
+        anyonDisplay: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display,
+        virasoroDisplay: getComputedStyle(document.querySelector('#virasoroAlgebraControls')).display,
         pauliHidden: document.querySelector('#pauliControl')?.hidden,
         pauliDisplay: getComputedStyle(document.querySelector('#pauliControl')).display,
         braidHidden: document.querySelector('#braidMemoryControl')?.hidden,
@@ -162,6 +181,9 @@ try {
     assert.equal(fixedGoState.title, 'Virasoro Go');
     assert.equal(fixedGoState.modeControlHidden, true, 'Fixed Virasoro Go mode should hide the mixed mode selector.');
     assert.equal(fixedGoState.virasoroVisible, true, 'Virasoro Go should show Virasoro controls.');
+    assert.equal(fixedGoState.cliffordDisplay, 'none', 'Virasoro Go should hide Clifford algebra group.');
+    assert.equal(fixedGoState.anyonDisplay, 'none', 'Virasoro Go should hide Anyon algebra group.');
+    assert.notEqual(fixedGoState.virasoroDisplay, 'none', 'Virasoro Go should show Virasoro algebra group.');
     assert.equal(fixedGoState.pauliHidden, true, 'Virasoro Go should hide Clifford Pauli controls.');
     assert.equal(fixedGoState.pauliDisplay, 'none', 'Hidden Clifford controls should not occupy layout space.');
     assert.equal(fixedGoState.braidHidden, true, 'Virasoro Go should hide Anyon braid controls.');
@@ -170,7 +192,7 @@ try {
     assert.match(fixedGoState.rulesText, /Virasoro Go Rules/);
     await page.locator('#rulesIntroButton').click();
     const visibleVirasoroRules = await page.evaluate(() => ({
-        visible: !document.querySelector('#rulesIntroPanel')?.hidden,
+        visible: document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') !== 'true',
         text: [...document.querySelectorAll('#rulesIntroPanel [data-rules-mode]:not([hidden])')]
             .map((node) => node.textContent || '')
             .join(' ')

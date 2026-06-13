@@ -21,6 +21,9 @@ const els = {
     wSizeInput: document.querySelector('#wSizeInput'),
     pauliSelect: document.querySelector('#pauliSelect'),
     transformSelect: document.querySelector('#transformSelect'),
+    cliffordAlgebraControls: document.querySelector('#cliffordAlgebraControls'),
+    anyonAlgebraControls: document.querySelector('#anyonAlgebraControls'),
+    virasoroAlgebraControls: document.querySelector('#virasoroAlgebraControls'),
     pauliControl: document.querySelector('#pauliControl'),
     transformControl: document.querySelector('#transformControl'),
     phaseSignControl: document.querySelector('#phaseSignControl'),
@@ -156,6 +159,9 @@ function syncModeControls() {
     const isClifford = mode === 'clifford_reversi';
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (els.modeControl) els.modeControl.hidden = Boolean(FIXED_MODE);
+    if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isClifford;
+    if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !isAnyon;
+    if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = !isVirasoroGo;
 
     if (isVirasoroGo) {
         els.noiseModeSelect.value = 'off';
@@ -918,16 +924,24 @@ function applyTimeNow() {
     render();
 }
 
-function toggleRulesIntro() {
+function rulesIntroIsOpen() {
+    return els.rulesIntroPanel?.getAttribute('aria-hidden') !== 'true';
+}
+
+function setRulesIntroOpen(open) {
     syncModeControls();
-    const shouldOpen = els.rulesIntroPanel.hidden;
-    els.rulesIntroPanel.hidden = !shouldOpen;
-    els.rulesIntroButton.setAttribute('aria-expanded', String(shouldOpen));
-    if (shouldOpen) {
+    els.rulesIntroPanel.classList.toggle('is-open', open);
+    els.rulesIntroPanel.setAttribute('aria-hidden', String(!open));
+    els.rulesIntroButton.setAttribute('aria-expanded', String(open));
+    if (open) {
         window.requestAnimationFrame(() => {
             els.rulesIntroPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         });
     }
+}
+
+function toggleRulesIntro() {
+    setRulesIntroOpen(!rulesIntroIsOpen());
 }
 
 function renderStats() {
