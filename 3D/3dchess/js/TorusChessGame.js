@@ -45,6 +45,7 @@ export class TorusChessGame {
         this.pendingMoveTarget = null;
         this.statusKey = 'status.start';
         this.statusParams = {};
+        this.chatMessages = [];
 
         this.renderer = this.createRenderer();
         this.network = this.createNetwork();
@@ -288,6 +289,9 @@ export class TorusChessGame {
             this.setPiece(legalMove.capturePos.x, legalMove.capturePos.y, legalMove.capturePos.sheet || 0, null);
         }
         piece.hasMoved = true;
+        if (piece.type === 'P' && legalMove.flipPawnDirection) {
+            piece.pawnDirection = -this.pawnForwardDirection(piece, fromCoord.y, fromCoord.sheet);
+        }
 
         if (castling) {
             const rook = this.getPiece(castling.rookFrom.x, castling.rookFrom.y, castling.rookFrom.sheet || 0);
@@ -791,6 +795,7 @@ export class TorusChessGame {
 
         this.renderStatus();
         this.renderHistory();
+        this.renderChatMessages();
         this.renderMovePicker();
         this.updateTimerDisplay();
     }
@@ -898,6 +903,88 @@ export class TorusChessGame {
             .map((entry, index) => `<div class="move-history-item">${index + 1}. ${this.formatHistoryEntry(entry)}</div>`)
             .join('');
         history.scrollTop = history.scrollHeight;
+    }
+
+    renderChatMessages() {
+        const messages = document.getElementById('chatMessages');
+        const input = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('chatSendBtn');
+        const canChat = this.gameMode === 'online' && this.network?.isConnected;
+
+        if (input) input.disabled = !canChat;
+        if (sendBtn) sendBtn.disabled = !canChat;
+        if (!messages) return;
+
+        if (this.chatMessages.length === 0) {
+            messages.innerHTML = `<div class="chat-empty">${this.escapeHTML(this.tr('chat.empty'))}</div>`;
+            return;
+        }
+
+        messages.innerHTML = this.chatMessages.map((message) => {
+            const mine = message.senderId && this.network?.peer?.id && message.senderId === this.network.peer.id;
+            const author = this.chatAuthorName(message.author);
+            const time = message.time ? new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            return `
+                <div class="chat-message${mine ? ' mine' : ''}">
+                    <div class="chat-meta">${this.escapeHTML(author)}${time ? ` - ${this.escapeHTML(time)}` : ''}</div>
+                    <div class="chat-text">${this.escapeHTML(message.text || '')}</div>
+                </div>
+            `;
+        }).join('');
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    chatAuthorName(author) {
+        if (author === 'white' || author === 'black') return this.tr(`colors.${author}`);
+        return author || this.tr('chat.player');
+    }
+
+    escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char]);
+    }
+
+    sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input?.value.trim();
+        if (!text) return;
+
+        if (this.gameMode !== 'online' || !this.network?.isConnected) {
+            this.setStatus('chat.connectFirst');
+            this.updateUI();
+            return;
+        }
+
+        const message = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            author: this.myColor || this.currentPlayer,
+            senderId: this.network.peer?.id || '',
+            text,
+            time: Date.now()
+        };
+        this.receiveChatMessage(message);
+        this.network.sendChat(message);
+        if (input) input.value = '';
+    }
+
+    receiveChatMessage(message) {
+        if (!message || typeof message.text !== 'string') return;
+        const cleaned = {
+            id: message.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            author: message.author || 'player',
+            senderId: message.senderId || '',
+            text: message.text.slice(0, 240),
+            time: message.time || Date.now()
+        };
+        if (this.chatMessages.some((existing) => existing.id === cleaned.id)) return;
+        this.chatMessages.push(cleaned);
+        if (this.chatMessages.length > 80) this.chatMessages.shift();
+        this.renderChatMessages();
     }
 
     updateBoundaryInfo() {
@@ -1061,6 +1148,13 @@ export class TorusChessGame {
                 document.execCommand('copy');
             }
             this.setStatus('status.roomLinkCopied');
+        });
+
+        document.getElementById('chatSendBtn')?.addEventListener('click', () => this.sendChatMessage());
+        document.getElementById('chatInput')?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            event.preventDefault();
+            this.sendChatMessage();
         });
 
         document.getElementById('boundarySelect').addEventListener('change', (event) => {

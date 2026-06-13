@@ -586,6 +586,13 @@ export class TorusNetworkManager {
         });
     }
 
+    sendChat(message) {
+        this.sendMessage({
+            type: 'chat',
+            message
+        });
+    }
+
     sendMessage(data) {
         if (this.connection && this.isConnected) {
             this.connection.send(data);
@@ -644,6 +651,10 @@ export class TorusNetworkManager {
 
             case 'drawDeclined':
                 this.game.setStatus('online.drawDeclined');
+                break;
+
+            case 'chat':
+                this.game.receiveChatMessage(data.message || data);
                 break;
 
             case 'roomFull':

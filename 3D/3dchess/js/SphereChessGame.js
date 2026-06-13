@@ -92,6 +92,7 @@ export class SphereChessGame extends TorusChessGame {
         for (const dx of [-1, 1]) {
             const target = this.resolveTarget(x + dx, y + direction, sheet, dx, direction);
             if (!target.valid) continue;
+            if (target.poleCrossings % 2 === 1) target.flipPawnDirection = true;
 
             if (forAttack) {
                 moves.push({ ...target, capture: true });
@@ -108,9 +109,11 @@ export class SphereChessGame extends TorusChessGame {
 
         const one = this.resolveTarget(x, y + direction, sheet, 0, direction);
         if (one.valid && !this.getPiece(one.x, one.y, one.sheet)) {
+            if (one.poleCrossings % 2 === 1) one.flipPawnDirection = true;
             moves.push({ ...one, capture: false });
 
-            const two = this.resolveTarget(one.x, one.y + direction, one.sheet, 0, direction);
+            const nextDirection = one.flipPawnDirection ? -direction : direction;
+            const two = this.resolveTarget(one.x, one.y + nextDirection, one.sheet, 0, nextDirection);
             const onOrigin = piece.originY === undefined
                 ? !piece.hasMoved
                 : piece.originY === y && (piece.originSheet ?? 0) === sheet;
@@ -152,14 +155,16 @@ export class SphereChessGame extends TorusChessGame {
         for (const [dx, dy] of directions) {
             let cx = x;
             let cy = y;
+            let currentDy = dy;
             const seenTargets = new Set();
 
             for (let step = 0; step < this.boardWidth() * this.boardHeight() * 2; step++) {
-                const targetCoord = this.resolveTarget(cx + dx, cy + dy, sheet, dx, dy);
+                const targetCoord = this.resolveTarget(cx + dx, cy + currentDy, sheet, dx, currentDy);
                 if (!targetCoord.valid) break;
 
                 cx = targetCoord.x;
                 cy = targetCoord.y;
+                if (targetCoord.poleCrossings % 2 === 1) currentDy *= -1;
 
                 if (this.sameCoord(targetCoord, { x, y, sheet })) break;
 
@@ -226,11 +231,7 @@ export class SphereChessGame extends TorusChessGame {
     }
 
     canonicalCoord(x, y, sheet = 0) {
-        return {
-            x: this.wrapX(x),
-            y,
-            sheet: 0
-        };
+        return sphereResolveTarget(x, y, this.boardWidth(), this.boardHeight());
     }
 
     isValidCell(x, y, sheet = 0) {

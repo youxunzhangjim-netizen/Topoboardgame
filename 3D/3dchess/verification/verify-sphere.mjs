@@ -37,6 +37,10 @@ for (const [index, x] of centralFiles.entries()) {
 }
 assert.equal(whiteMap.get('3,3')?.type, 'P', 'white side-support pawn at (3,3)');
 assert.equal(whiteMap.get('12,3')?.type, 'P', 'white side-support pawn at (12,3)');
+assert.equal(whiteMap.get('3,2')?.type, 'P', 'white upper-left corner-support pawn at (3,2)');
+assert.equal(whiteMap.get('12,2')?.type, 'P', 'white upper-right corner-support pawn at (12,2)');
+assert.equal(whiteMap.get('3,4')?.type, 'P', 'white lower-left corner-support pawn at (3,4)');
+assert.equal(whiteMap.get('12,4')?.type, 'P', 'white lower-right corner-support pawn at (12,4)');
 assert.equal(whiteMap.has('0,3'), false, 'x=0 should be empty in white setup');
 assert.equal(whiteMap.has('15,3'), false, 'x=15 should be empty in white setup');
 
@@ -81,7 +85,19 @@ function rayTargets(x, y, dx, dy) {
 const wrappedHorizontal = rayTargets(15, 5, 1, 0);
 assert.equal(wrappedHorizontal[0].x, 0, 'horizontal ray should wrap from x=15 to x=0');
 assert.equal(wrappedHorizontal[0].y, 5, 'horizontal wrap should keep the same latitude row');
-assert.equal(rayTargets(6, 1, 0, -1).length, 0, 'vertical rays should stop before the north polar cap');
-assert.equal(rayTargets(6, 14, 0, 1).length, 0, 'vertical rays should stop before the south polar cap');
+const northCrossing = sphereResolveTarget(6, 0);
+assert.deepEqual(
+    { x: northCrossing.x, y: northCrossing.y },
+    { x: 14, y: 1 },
+    'north-pole crossing should emerge on the antipodal longitude'
+);
+const southCrossing = sphereResolveTarget(6, 15);
+assert.deepEqual(
+    { x: southCrossing.x, y: southCrossing.y },
+    { x: 14, y: 14 },
+    'south-pole crossing should emerge on the antipodal longitude'
+);
+assert.equal(northCrossing.crossedPole, true, 'north-pole target should report a pole crossing');
+assert.equal(southCrossing.crossedPole, true, 'south-pole target should report a pole crossing');
 
 console.log('Sphere chess verification passed.');

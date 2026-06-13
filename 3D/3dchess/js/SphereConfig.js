@@ -49,12 +49,30 @@ export function sphereIsPlayable(x, y, width = SPHERE_BOARD_WIDTH, height = SPHE
 }
 
 export function sphereResolveTarget(x, y, width = SPHERE_BOARD_WIDTH, height = SPHERE_BOARD_HEIGHT) {
-    const nx = sphereWrapX(x, width);
+    let nx = x;
+    let ny = y;
+    let poleCrossings = 0;
+    const minY = SPHERE_PLAYABLE_MIN_Y;
+    const maxY = height - 2;
+
+    while (ny < minY || ny > maxY) {
+        if (ny < minY) {
+            ny = minY - ny;
+        } else {
+            ny = maxY * 2 + 1 - ny;
+        }
+        nx += width / 2;
+        poleCrossings++;
+    }
+
+    nx = sphereWrapX(nx, width);
     return {
         x: nx,
-        y,
+        y: ny,
         sheet: 0,
-        valid: sphereIsPlayable(nx, y, width, height)
+        poleCrossings,
+        crossedPole: poleCrossings > 0,
+        valid: sphereIsPlayable(nx, ny, width, height)
     };
 }
 
@@ -71,6 +89,8 @@ export function createSphereWhiteInitialPieces(width = SPHERE_BOARD_WIDTH) {
 
     for (const x of sphereSideSupportFiles(width)) {
         pieces.push({ color: 'white', type: 'P', x, y: homeRow });
+        pieces.push({ color: 'white', type: 'P', x, y: homeRow - 1 });
+        pieces.push({ color: 'white', type: 'P', x, y: homeRow + 1 });
     }
 
     centralFiles.forEach((x, index) => {

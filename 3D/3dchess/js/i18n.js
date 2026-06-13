@@ -133,18 +133,28 @@ const DICTIONARY = {
             roomId: 'Room Code',
             copy: 'Copy'
         },
+        chat: {
+            title: 'Online Chat',
+            empty: 'Connect online to chat.',
+            placeholder: 'Message online opponent',
+            send: 'Send',
+            player: 'Player',
+            connectFirst: 'Connect online before chatting.'
+        },
         topology: {
             names: {
                 periodic: 'T2 periodic',
                 rp2: 'RP2 antipodal',
                 mobius: 'Mobius twist',
-                sphere: 'S1 sphere'
+                sphere: 'S2 sphere',
+                klein: 'Klein bottle'
             },
             info: {
                 periodic: 'T2 uses 112 playable blocks shown as an 8-cell short winding and a 14-row long direction. The six extra blank rows sit between the initial armies, and both directions wrap periodically.',
                 rp2: 'RP2 uses one 12x14 fundamental board. Crossing a boundary lands on the opposite edge with the matched coordinate reversed, and the raised cage arrows show the antipodal gluing.',
                 mobius: 'Mobius uses two full 8x8 surface sides. The lateral x edges are open; crossing the winding y edge reverses x and lands on the opposite side. The armies start on matching coordinates on opposite normals.',
-                sphere: 'Sphere chess uses 16 longitudes and 16 latitude rows. Longitude wraps periodically. Polar cap rows are empty/non-playable. Armies start on opposite hemispheres. Pawns promote only by entering the opponent\'s original 8-piece king-row block.'
+                sphere: 'Sphere chess uses 16 longitudes and 16 latitude rows. Longitude wraps periodically. Polar cap rows stay empty, while legal movement crosses a pole to the antipodal longitude. Each army has four extra corner-support pawns. Pawns promote only on the opponent\'s original 8-piece king-row block.',
+                klein: 'Klein bottle chess uses a 12x16 board with no boundary. Left and right wrap normally; crossing the top or bottom reverses x. Pawns promote only on the opponent original central 8-piece king row.'
             }
         },
         boundary: {
@@ -154,7 +164,8 @@ const DICTIONARY = {
                 periodic: 'Periodic',
                 rp2: 'RP2 antipodal',
                 mobius: 'Mobius twist',
-                sphere: 'S1 sphere'
+                sphere: 'S2 sphere',
+                klein: 'Klein bottle'
             },
             info: {
                 forbidden: 'Forbidden: pieces cannot move outside the 8x8x8 cube.',
@@ -347,12 +358,14 @@ const DICTIONARY = {
             names: {
                 periodic: 'T2 週期',
                 rp2: 'RP2 对映',
-                mobius: 'Mobius 扭轉'
+                mobius: 'Mobius 扭轉',
+                sphere: 'S2 球面'
             },
             info: {
                 periodic: 'T2 使用 112 個可用格：短方向 8 格、長方向 14 行。初始雙方之間加入六行空格，兩個方向皆為週期連接。',
                 rp2: 'RP2 使用一個 12x14 基本棋盤。越過邊界會到達對邊並反轉對應座標，升起的箭頭顯示對映黏合。',
-                mobius: 'Mobius 使用兩個完整 8x8 表面。橫向 x 邊界開放；穿過纏繞 y 邊界會反轉 x 並到達另一面。'
+                mobius: 'Mobius 使用兩個完整 8x8 表面。橫向 x 邊界開放；穿過纏繞 y 邊界會反轉 x 並到達另一面。',
+                sphere: '球面棋使用 16 條經度與 16 列緯度。經度方向週期連接；兩極帽列保持空白，但合法走法可穿越極點並從對蹠經度出現。每方增加四枚角落支援兵。'
             }
         },
         boundary: {
@@ -361,7 +374,8 @@ const DICTIONARY = {
                 reflection: '反射',
                 periodic: '週期',
                 rp2: 'RP2 对映',
-                mobius: 'Mobius 扭轉'
+                mobius: 'Mobius 扭轉',
+                sphere: 'S2 球面'
             },
             info: {
                 forbidden: '禁止越界：棋子不能走出 8x8x8 立方體。',

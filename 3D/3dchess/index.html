@@ -142,6 +142,7 @@
                     <option value="rp2">RP2 Chess</option>
                     <option value="mobius">Mobius Chess</option>
                     <option value="sphere">S2 Sphere Chess</option>
+                    <option value="klein">Klein Bottle Chess</option>
                 </select>
                 <select id="boundarySelect" hidden aria-hidden="true" tabindex="-1">
                     <option value="forbidden" data-i18n="boundary.names.forbidden">Forbidden</option>
@@ -149,7 +150,8 @@
                     <option value="periodic" selected data-i18n="boundary.names.periodic">Periodic</option>
                     <option value="rp2" data-i18n="boundary.names.rp2">RP2 antipodal</option>
                     <option value="mobius" data-i18n="boundary.names.mobius">Mobius twist</option>
-                    <option value="sphere" data-i18n="boundary.names.sphere">S1 sphere</option>
+                    <option value="sphere" data-i18n="boundary.names.sphere">S2 sphere</option>
+                    <option value="klein_bottle" data-i18n="boundary.names.klein">Klein bottle</option>
                 </select>
             </div>
             <div class="boundary-info" id="boundaryInfo">
@@ -177,6 +179,17 @@
                 <button id="offerDrawBtn" class="warning" data-i18n="controls.offerDraw">Offer Draw</button>
                 <button id="surrenderBtn" class="danger" data-i18n="controls.surrender">Surrender</button>
             </div>
+
+            <section class="panel chat-panel">
+                <h3 data-i18n="chat.title">Online Chat</h3>
+                <div id="chatMessages" class="chat-messages" aria-live="polite">
+                    <div class="chat-empty" data-i18n="chat.empty">Connect online to chat.</div>
+                </div>
+                <div class="chat-compose">
+                    <input id="chatInput" type="text" maxlength="240" autocomplete="off" placeholder="Message online opponent" data-i18n-placeholder="chat.placeholder">
+                    <button id="chatSendBtn" type="button" data-i18n="chat.send">Send</button>
+                </div>
+            </section>
 
             <section class="panel">
                 <h3 data-i18n="history.title">Move History</h3>
