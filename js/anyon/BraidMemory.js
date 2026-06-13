@@ -30,6 +30,10 @@ function normalizeSign(sign) {
     return Number(sign) < 0 ? -1 : 1;
 }
 
+function normalizeParity(value) {
+    return Number(value) % 2 === 1 ? 1 : 0;
+}
+
 export function normalizeBraidMemoryMode(mode = DEFAULT_BRAID_MEMORY_CONFIG.braidMemoryMode) {
     return BRAID_MEMORY_MODES.includes(mode) ? mode : DEFAULT_BRAID_MEMORY_CONFIG.braidMemoryMode;
 }
@@ -121,7 +125,8 @@ export function defineBraidMemoryAccessors(token) {
         enumerable: true,
         configurable: true,
         get() {
-            return Array.isArray(this.braidWord) && this.braidWord.length > 0;
+            return normalizeParity(this.braidParity) === 1
+                || (Array.isArray(this.braidWord) && this.braidWord.length > 0);
         }
     });
     return token;
@@ -129,9 +134,14 @@ export function defineBraidMemoryAccessors(token) {
 
 export function attachBraidMemory(token, values = {}, config = {}) {
     if (!token) return token;
+    const normalizedConfig = normalizeBraidMemoryConfig(config);
     token.braidWord = Array.isArray(values.braidWord)
-        ? simplifyBraidWord(values.braidWord, config)
+        ? simplifyBraidWord(values.braidWord, normalizedConfig)
         : [];
+    token.braidParity = normalizeParity(values.braidParity);
+    if (normalizedConfig.braidMemoryMode === 'abelian_parity' && values.braidParity == null) {
+        token.braidParity = token.braidWord.length % 2;
+    }
     token.braidHistory = Array.isArray(values.braidHistory)
         ? values.braidHistory.map((entry) => createBraidGenerator(entry))
         : [];
@@ -146,10 +156,14 @@ export function appendBraidGenerator(token, generator, config = {}) {
     attachBraidMemory(token, token, normalizedConfig);
     const beforeWord = token.braidWord.map((entry) => ({ ...entry }));
     const previousLast = beforeWord[beforeWord.length - 1] || null;
+    const beforeParity = normalizeParity(token.braidParity);
     if (normalizedConfig.braidMemoryMode === 'off') {
         return {
             appended: null,
             previousLast,
+            beforeParity,
+            braidParity: beforeParity,
+            parityToggled: false,
             cancelledInverse: false,
             successfulPartialUnbraid: false,
             fullyUnbraided: false,
@@ -165,6 +179,7 @@ export function appendBraidGenerator(token, generator, config = {}) {
     }
 
     if (normalizedConfig.braidMemoryMode === 'abelian_parity') {
+        token.braidParity = beforeParity ? 0 : 1;
         const sameTargetIndex = token.braidWord.findIndex((entry) =>
             entry.generator === normalized.generator
             && entry.index === normalized.index
@@ -182,13 +197,22 @@ export function appendBraidGenerator(token, generator, config = {}) {
     const cancelledInverse = normalizedConfig.braidMemoryMode !== 'abelian_parity'
         && generatorsAreInverse(previousLast, normalized)
         && token.braidWord.length === Math.max(0, beforeWord.length - 1);
+    const parityToggled = normalizedConfig.braidMemoryMode === 'abelian_parity'
+        && beforeParity !== normalizeParity(token.braidParity);
 
     return {
         appended: normalized,
         previousLast,
+        beforeParity,
+        braidParity: normalizeParity(token.braidParity),
+        parityToggled,
         cancelledInverse,
-        successfulPartialUnbraid: cancelledInverse,
-        fullyUnbraided: token.braidWord.length === 0,
+        successfulPartialUnbraid: normalizedConfig.braidMemoryMode === 'abelian_parity'
+            ? beforeParity === 1 && normalizeParity(token.braidParity) === 0
+            : cancelledInverse,
+        fullyUnbraided: normalizedConfig.braidMemoryMode === 'abelian_parity'
+            ? normalizeParity(token.braidParity) === 0
+            : token.braidWord.length === 0,
         braidWord: token.braidWord.map((entry) => ({ ...entry })),
         isBraided: token.isBraided
     };
@@ -211,6 +235,8 @@ export function applyBraid(token, target, braidEvent = {}, config = {}) {
         braidGenerator: memory.appended,
         cancelledInverse: memory.cancelledInverse,
         fullyUnbraided: memory.fullyUnbraided,
+        braidParity: memory.braidParity,
+        parityToggled: memory.parityToggled,
         braidWord: memory.braidWord,
         isBraided: memory.isBraided
     };
@@ -222,7 +248,25 @@ export function attemptUnbraid(token, generator, config = {}) {
     const expected = nextRequiredUnbraidGenerator(token.braidWord);
     const normalized = createBraidGenerator(generator);
     const beforeLength = token.braidWord.length;
+    const beforeParity = normalizeParity(token.braidParity);
     const result = appendBraidGenerator(token, normalized, normalizedConfig);
+    if (normalizedConfig.braidMemoryMode === 'abelian_parity') {
+        return {
+            action: 'attempt_unbraid',
+            expected: null,
+            attempted: normalized,
+            beforeLength,
+            beforeParity,
+            afterLength: token.braidWord.length,
+            braidParity: normalizeParity(token.braidParity),
+            parityToggled: result.parityToggled,
+            successfulPartialUnbraid: beforeParity === 1 && normalizeParity(token.braidParity) === 0,
+            fullyUnbraided: normalizeParity(token.braidParity) === 0,
+            wrongOrder: false,
+            braidWord: result.braidWord,
+            isBraided: token.isBraided
+        };
+    }
     const reverseOrderRespected = !normalizedConfig.requireReverseInverseOrder
         || !expected
         || generatorsAreInverse(result.previousLast, normalized);
@@ -231,7 +275,10 @@ export function attemptUnbraid(token, generator, config = {}) {
         expected,
         attempted: normalized,
         beforeLength,
+        beforeParity,
         afterLength: token.braidWord.length,
+        braidParity: normalizeParity(token.braidParity),
+        parityToggled: result.parityToggled,
         successfulPartialUnbraid: result.successfulPartialUnbraid && reverseOrderRespected,
         fullyUnbraided: token.braidWord.length === 0,
         wrongOrder: beforeLength > 0 && !result.successfulPartialUnbraid,
@@ -246,6 +293,7 @@ export function mergeBraidMemory(target, source, config = {}) {
     target.braidHistory.push(...source.braidHistory.map((entry) => ({ ...entry })));
     target.braidedWith = [...new Set([...target.braidedWith, ...source.braidedWith])];
     target.braidWord = simplifyBraidWord([...target.braidWord, ...source.braidWord], config);
+    target.braidParity = normalizeParity(target.braidParity) ^ normalizeParity(source.braidParity);
     return target;
 }
 

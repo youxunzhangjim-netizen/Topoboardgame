@@ -324,10 +324,12 @@ function renderAnyonToken(cell, coord) {
     const node = document.createElement('span');
     node.className = `anyon ${token.owner}`;
     if (token.id === selectedToken) node.classList.add('selected');
-    if (token.isBraided) node.classList.add('braided');
+    if ((token.braidParity || 0) === 1 || token.isBraided) node.classList.add('braided');
     if (token.revealed === false) node.classList.add('hidden');
     node.textContent = token.revealed === false ? '?' : token.anyonType;
-    const braidInfo = token.isBraided ? ` braid word ${token.braidWord.length}` : ' unbraided';
+    const parity = token.braidParity || 0;
+    const inverseInfo = parity === 1 || token.isBraided ? '; inverse loop available' : '';
+    const braidInfo = ` parity ${parity}; braid word ${token.braidWord.length}${inverseInfo}`;
     node.title = `${token.id} ${token.owner} ${token.anyonType};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
@@ -485,7 +487,11 @@ function updateStatus() {
     }
     if (selectedToken) {
         const actions = game.legalActionsForToken(selectedToken);
-        els.statusText.textContent = `Selected ${selectedToken}: ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.`;
+        const token = game.tokens.get(selectedToken);
+        const inverse = token && ((token.braidParity || 0) === 1 || token.isBraided)
+            ? ' Click a braid target to try the inverse loop.'
+            : '';
+        els.statusText.textContent = `Selected ${selectedToken}: parity ${token?.braidParity || 0}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${inverse}`;
     } else {
         els.statusText.textContent = 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
@@ -494,7 +500,7 @@ function updateStatus() {
 function renderLegend() {
     const items = game.mode === 'clifford_reversi'
         ? ['X,Y,Z Pauli labels', '? hidden until measured', 'Gold outline: flip preview', 'H/S transforms on flips', 'Twisted seams apply H']
-        : ['e,m,psi toric anyons', '? hidden until measured', 'Blue path: jump line', 'Click target: attempt unbraid', 'Braid word cancels only by inverse order'];
+        : ['e,m,psi toric anyons', '? hidden until measured', 'Blue path: jump line', 'Parity 1: braided marker', 'Click target: inverse loop'];
     els.legend.innerHTML = items.map((item) => `<span>${item}</span>`).join('');
 }
 
@@ -519,7 +525,7 @@ function renderHistory() {
                     : event.unbraid.successfulPartialUnbraid
                         ? 'partial inverse'
                         : 'wrong order';
-                item.textContent = `#${event.number} ${event.player} attempt_unbraid ${event.tokenId} around ${event.targetId}: ${result}, word ${event.unbraid.afterLength}.`;
+                item.textContent = `#${event.number} ${event.player} attempt_unbraid ${event.tokenId} around ${event.targetId}: ${result}, parity ${event.unbraid.braidParity}, word ${event.unbraid.afterLength}.`;
             } else {
                 const braid = event.braid?.phase === -1 ? ' braid -1' : '';
                 const fusion = event.fusion?.resolved ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}` : '';

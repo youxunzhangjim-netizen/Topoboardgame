@@ -68,9 +68,14 @@ for (const entry of fullInverseBraidWord(word)) {
 assert.equal(orderedToken.isBraided, false, 'Full reverse inverse sequence empties the braid word.');
 
 const parityToken = attachBraidMemory({ id: 'p1', owner: 'black', anyonType: 'e', vertex: [0, 0] });
-appendBraidGenerator(parityToken, generator, { braidMemoryMode: 'abelian_parity' });
-appendBraidGenerator(parityToken, inverse, { braidMemoryMode: 'abelian_parity' });
+const parityFirst = appendBraidGenerator(parityToken, generator, { braidMemoryMode: 'abelian_parity' });
+assert.equal(parityFirst.braidParity, 1);
+assert.equal(parityToken.isBraided, true);
+const paritySecond = appendBraidGenerator(parityToken, inverse, { braidMemoryMode: 'abelian_parity' });
+assert.equal(paritySecond.braidParity, 0);
 assert.equal(parityToken.braidWord.length, 0, 'Abelian parity mode toggles matching generators.');
+assert.equal(parityToken.braidHistory.length, 2, 'Abelian mode keeps a braid event log.');
+assert.equal(parityToken.isBraided, false);
 
 assert.equal(braidGeneratorIndex(['c', 'a', 'b'], 'c', 'b'), 1);
 
@@ -125,6 +130,8 @@ jump.addToken({ id: 'b1', owner: 'black', coord: [0, 0], anyonType: 'e' });
 jump.addToken({ id: 'w1', owner: 'white', coord: [1, 0], anyonType: 'm' });
 const jumpResult = jump.move('b1', [2, 0]);
 assert.equal(jumpResult.ok, true);
+assert.equal(jump.config.braidMemoryMode, 'abelian_parity');
+assert.equal(jump.tokens.get('b1').braidParity, 1);
 assert.equal(jump.tokens.get('b1').braidWord.length, 1);
 assert.equal(jump.tokens.get('b1').braidedWith[0], 'w1');
 assert.equal(jump.exportState().tokens.find((entry) => entry.id === 'b1').isBraided, true);
@@ -132,7 +139,19 @@ const jumpUnbraid = jump.attemptUnbraid('b1', 'w1', { player: 'black', sign: -1 
 assert.equal(jumpUnbraid.ok, true);
 assert.equal(jumpUnbraid.event.kind, 'attempt_unbraid');
 assert.equal(jumpUnbraid.event.unbraid.successfulPartialUnbraid, true);
+assert.equal(jump.tokens.get('b1').braidParity, 0);
 assert.equal(jump.tokens.get('b1').isBraided, false);
+
+const trivialJump = new AnyonJumpGame({ topology: { topology: 'torus', width: 4, height: 4 } });
+trivialJump.tokens.clear();
+trivialJump.worldlines.clear();
+trivialJump.addToken({ id: 'e1', owner: 'black', coord: [0, 0], anyonType: 'e' });
+trivialJump.addToken({ id: 'e2', owner: 'white', coord: [1, 0], anyonType: 'e' });
+const trivialResult = trivialJump.move('e1', [2, 0]);
+assert.equal(trivialResult.ok, true);
+assert.equal(trivialJump.tokens.get('e1').braidParity, 0, 'e around e is trivial in abelian parity mode.');
+assert.equal(trivialJump.tokens.get('e1').isBraided, false);
+assert.equal(trivialResult.event.braid.skipped, 'abelian_trivial_mutual_braid');
 
 const loopGame = createToricAnyonLoopsGame({ width: 4, height: 4 });
 loopGame.addToken({ id: 'e1', owner: 'black', vertex: [3, 0], anyonType: 'e' });

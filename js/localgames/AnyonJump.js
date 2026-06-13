@@ -48,6 +48,7 @@ export class AnyonJumpGame {
         this.config = normalizeAnyonConfig({
             anyonModel: 'toric_code',
             braidEffect: 'add_braid_token',
+            braidMemoryMode: 'abelian_parity',
             vacuumFusionBehavior: 'remove',
             ...options.config
         });
@@ -219,10 +220,25 @@ export class AnyonJumpGame {
 
     applyBraid(movingToken, event) {
         const target = this.tokens.get(event.targetId) || event.target || { id: event.targetId, defect: true };
-        const memory = applyBraidToMemory(movingToken, target, event, this.config);
         const phase = target?.anyonType
             ? mutualBraidPhase(movingToken.anyonType, target.anyonType, this.config.anyonModel)
             : 1;
+        if (this.config.braidMemoryMode === 'abelian_parity' && phase !== -1) {
+            return {
+                ...event,
+                jumpedId: event.reason === 'jump_over' ? event.targetId : null,
+                jumpedType: event.reason === 'jump_over' ? target?.anyonType : null,
+                targetType: target?.anyonType || target?.type || event.reason,
+                phase,
+                effect: { phase, effect: 'none', delta: 0 },
+                braidGenerator: null,
+                braidParity: movingToken.braidParity || 0,
+                braidWord: movingToken.braidWord.map((entry) => ({ ...entry })),
+                isBraided: movingToken.isBraided,
+                skipped: 'abelian_trivial_mutual_braid'
+            };
+        }
+        const memory = applyBraidToMemory(movingToken, target, event, this.config);
         const effect = braidEffectForPhase(phase, this.config);
         if (effect.effect !== 'none') this.applyBraidEffect(movingToken.owner, effect);
         return {
