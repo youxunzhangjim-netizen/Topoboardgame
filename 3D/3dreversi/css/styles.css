@@ -94,9 +94,10 @@ body {
 }
 
 #reversiBoard {
-    width: min(76vh, 100%);
-    max-width: 900px;
-    aspect-ratio: 1;
+    display: block;
+    width: 100%;
+    height: min(76vh, 860px);
+    min-height: 420px;
     border-radius: 8px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
     touch-action: none;
@@ -142,5 +143,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media (max-width: 620px) {
     .app-shell { padding: 8px; }
     .game-info-bar { display: grid; grid-template-columns: 1fr; }
-    #reversiBoard { width: min(96vw, 100%); }
+    #reversiBoard {
+        height: min(76vh, 560px);
+        min-height: 360px;
+    }
 }
