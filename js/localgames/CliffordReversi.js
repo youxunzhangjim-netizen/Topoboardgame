@@ -1,7 +1,10 @@
 import {
+    normalizePauliSign,
     normalizePauliLabel,
+    transformSignedPauli,
     transformPauliLabel,
-    transportLabelAcrossEdges
+    transportLabelAcrossEdges,
+    transportSignedPauliAcrossEdges
 } from '../algebra/PauliAlgebra.js';
 import {
     coordKey,
@@ -24,6 +27,7 @@ function cloneStone(stone) {
     return stone ? {
         color: stone.color,
         pauliLabel: stone.pauliLabel,
+        pauliSign: normalizePauliSign(stone.pauliSign ?? stone.sign ?? 1),
         hiddenState: stone.hiddenState ? { ...stone.hiddenState } : null,
         revealed: stone.revealed ?? true,
         stability: stone.stability ?? 1,
@@ -47,6 +51,7 @@ export class CliffordReversiGame {
         this.topology = createGraphTopology(options.topology || options);
         this.currentPlayer = options.currentPlayer || 'black';
         this.defaultFlipTransform = options.defaultFlipTransform || 'H';
+        this.trackPhaseSigns = Boolean(options.trackPhaseSigns ?? options.config?.trackPhaseSigns);
         this.board = new Map();
         this.moveNumber = 0;
         this.history = [];
@@ -95,6 +100,7 @@ export class CliffordReversiGame {
         this.board.set(coordKey(normalized), {
             color: stone.color,
             pauliLabel: label,
+            pauliSign: normalizePauliSign(stone.pauliSign ?? stone.sign ?? 1),
             hiddenState: stone.hiddenState || null,
             revealed: stone.revealed ?? true,
             stability: Number.isFinite(Number(stone.stability)) ? Number(stone.stability) : 1,
@@ -162,16 +168,27 @@ export class CliffordReversiGame {
             if (!ray.bracketed) continue;
             rays.push({ direction, chain: ray.chain.map((item) => item.coord), edges: ray.edges });
             for (const item of ray.chain) {
+                const signedAfter = this.trackPhaseSigns
+                    ? transportSignedPauliAcrossEdges(
+                        transformSignedPauli(item.stone, transform, true),
+                        item.edges,
+                        true
+                    )
+                    : {
+                        pauliLabel: transportLabelAcrossEdges(
+                            transformPauliLabel(item.stone.pauliLabel, transform),
+                            item.edges
+                        ),
+                        pauliSign: normalizePauliSign(item.stone.pauliSign ?? 1)
+                    };
                 flips.push({
                     coord: item.coord,
                     key: item.key,
                     before: item.stone,
                     after: {
                         color: player,
-                        pauliLabel: transportLabelAcrossEdges(
-                            transformPauliLabel(item.stone.pauliLabel, transform),
-                            item.edges
-                        )
+                        pauliLabel: signedAfter.pauliLabel,
+                        pauliSign: signedAfter.pauliSign
                     },
                     transportEdges: item.edges
                 });
@@ -203,7 +220,7 @@ export class CliffordReversiGame {
         const preview = this.previewMove(coord, player, transform);
         if (!preview.legal) return { ok: false, error: 'Place a stone where it brackets at least one opponent chain.', preview };
 
-        this.setStone(preview.coord, { color: player, pauliLabel });
+        this.setStone(preview.coord, { color: player, pauliLabel, pauliSign: options.pauliSign ?? 1 });
         for (const flip of preview.flips) this.board.set(flip.key, flip.after);
 
         const edges = preview.rays.flatMap((ray) => ray.edges);

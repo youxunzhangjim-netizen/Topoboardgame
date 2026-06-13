@@ -66,6 +66,24 @@ export function transformPauliLabel(label, generator = 'identity') {
     return pairToPauli(applyClifford(label, generator));
 }
 
+export function normalizePauliSign(sign = 1) {
+    return Number(sign) < 0 ? -1 : 1;
+}
+
+export function transformSignedPauli(value = {}, generator = 'identity', trackSigns = true) {
+    const beforeLabel = normalizePauliLabel(value.pauliLabel || value.pauli || value.label, 'I');
+    const beforeSign = normalizePauliSign(value.pauliSign ?? value.sign ?? 1);
+    const transport = normalizeTransport(generator);
+    let afterSign = beforeSign;
+    if (trackSigns && (transport === 'H' || transport === 'S') && beforeLabel === 'Y') {
+        afterSign *= -1;
+    }
+    return {
+        pauliLabel: transformPauliLabel(beforeLabel, transport),
+        pauliSign: afterSign
+    };
+}
+
 export function normalizeTransport(transport = 'identity') {
     const value = String(transport || 'identity').trim();
     if (value === 'I' || value.toLowerCase() === 'id') return 'identity';
@@ -97,6 +115,15 @@ export function edgeTransport(edge = {}) {
 
 export function transportLabelAcrossEdges(label, edges = []) {
     return transportPauliLabel(label, edges.map(edgeTransport));
+}
+
+export function transportSignedPauliAcrossEdges(value = {}, edges = [], trackSigns = true) {
+    return edges
+        .map(edgeTransport)
+        .reduce((current, transport) => transformSignedPauli(current, transport, trackSigns), {
+            pauliLabel: normalizePauliLabel(value.pauliLabel || value.pauli || value.label, 'I'),
+            pauliSign: normalizePauliSign(value.pauliSign ?? value.sign ?? 1)
+        });
 }
 
 export function getPauliLabel(entity, fallback = 'I') {

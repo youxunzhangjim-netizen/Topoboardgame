@@ -118,22 +118,28 @@
                 </section>
             </div>
 
-            <div class="extra-mode-row" aria-label="Extra board game modes">
-                <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
-                    <span class="extra-mode-copy">
-                        <strong>Clifford Reversi</strong>
-                        <small>Pauli-labelled Reversi with topology-aware flips</small>
-                    </span>
-                    <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
-                </a>
-                <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
-                    <span class="extra-mode-copy">
-                        <strong>Anyon Jump Chess</strong>
-                        <small>Jump-game braiding, fusion, and unbraiding</small>
-                    </span>
-                    <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
-                </a>
-            </div>
+            <section class="algebraic-mode-panel" aria-labelledby="algebraicModeTitle">
+                <div class="algebraic-mode-heading">
+                    <strong id="algebraicModeTitle">Algebraic Mode</strong>
+                    <small>Choose one algebraic game. Each entry opens only its matching controls and rules.</small>
+                </div>
+                <div class="extra-mode-row" aria-label="Algebraic game modes">
+                    <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
+                        <span class="extra-mode-copy">
+                            <strong>Clifford Reversi</strong>
+                            <small>Pauli-labelled Reversi with topology-aware flips</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
+                    </a>
+                    <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
+                        <span class="extra-mode-copy">
+                            <strong>Anyon Jump Chess</strong>
+                            <small>Jump-game braiding, fusion, and unbraiding</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
+                    </a>
+                </div>
+            </section>
         </section>
     </main>
 

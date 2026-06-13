@@ -22,6 +22,8 @@ const els = {
     transformSelect: document.querySelector('#transformSelect'),
     pauliControl: document.querySelector('#pauliControl'),
     transformControl: document.querySelector('#transformControl'),
+    phaseSignControl: document.querySelector('#phaseSignControl'),
+    phaseSignSelect: document.querySelector('#phaseSignSelect'),
     braidMemoryControl: document.querySelector('#braidMemoryControl'),
     braidMemoryModeSelect: document.querySelector('#braidMemoryModeSelect'),
     anyonModelControl: document.querySelector('#anyonModelControl'),
@@ -49,6 +51,7 @@ const els = {
     newGameButton: document.querySelector('#newGameButton'),
     passButton: document.querySelector('#passButton'),
     measureButton: document.querySelector('#measureButton'),
+    unbraidHintButton: document.querySelector('#unbraidHintButton'),
     manualNoiseButton: document.querySelector('#manualNoiseButton'),
     manualTimeButton: document.querySelector('#manualTimeButton'),
     rulesIntroButton: document.querySelector('#rulesIntroButton'),
@@ -84,6 +87,11 @@ const els = {
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
     anyon_jump: 'Anyon Jump Chess'
+};
+const ANYON_SYMBOLS = {
+    psi: '\u03c8',
+    sigma: '\u03c3',
+    tau: '\u03c4'
 };
 const params = new URLSearchParams(window.location.search);
 const FIXED_MODE = normalizeMode(params.get('mode') || params.get('game') || params.get('algebraicMode'));
@@ -144,12 +152,14 @@ function syncModeControls() {
 
     els.pauliControl.hidden = isAnyon;
     els.transformControl.hidden = isAnyon;
+    els.phaseSignControl.hidden = isAnyon;
     els.braidMemoryControl.hidden = !isAnyon;
     els.anyonModelControl.hidden = !isAnyon;
     els.braidedCaptureDetails.hidden = !isAnyon;
     els.braidCancellationControl.hidden = !isAnyon
         || !['word_exact', 'nonabelian_fusion_channel'].includes(els.braidMemoryModeSelect.value);
     els.passButton.hidden = isAnyon;
+    els.unbraidHintButton.hidden = !isAnyon;
     if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon;
     if (els.braidEventSection) els.braidEventSection.hidden = !isAnyon;
@@ -220,6 +230,10 @@ function timeConfig() {
     };
 }
 
+function phaseSignsEnabled() {
+    return els.phaseSignSelect.value === 'on';
+}
+
 function anyonConfig() {
     if (els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel'
         && els.anyonModelSelect.value === 'toric_code') {
@@ -245,6 +259,7 @@ function createGame() {
     const options = {
         topology: topologyConfig(),
         defaultFlipTransform: els.transformSelect.value,
+        trackPhaseSigns: phaseSignsEnabled(),
         config: anyonConfig(),
         probability: probabilityConfig(),
         time: timeConfig()
@@ -397,6 +412,18 @@ function renderBoard() {
         if (game.mode === 'clifford_reversi') renderReversiStone(cell, coord);
         else renderAnyonToken(cell, coord);
 
+        if (token?.id === cancelTargetId) {
+            const badge = document.createElement('span');
+            badge.className = 'unbraid-badge';
+            badge.textContent = 'UNBRAID';
+            cell.append(badge);
+        } else if (token && warningTargets.has(token.id)) {
+            const badge = document.createElement('span');
+            badge.className = 'unbraid-badge wrong';
+            badge.textContent = 'APPEND';
+            cell.append(badge);
+        }
+
         const coordNode = document.createElement('span');
         coordNode.className = 'coord';
         coordNode.textContent = game.topology.dimensions === 4
@@ -501,8 +528,8 @@ function renderReversiStone(cell, coord) {
     const node = document.createElement('span');
     node.className = `stone ${stone.color}`;
     if (stone.revealed === false || stone.pauliLabel === 'unknown') node.classList.add('hidden');
-    node.textContent = stone.revealed === false || stone.pauliLabel === 'unknown' ? '?' : stone.pauliLabel;
-    node.title = `${stone.color} ${stone.pauliLabel}; ${game.time?.tooltipForEntity(stone) || ''}`;
+    node.textContent = stone.revealed === false || stone.pauliLabel === 'unknown' ? '?' : pauliDisplay(stone);
+    node.title = `${stone.color} ${pauliDisplay(stone)}; ${game.time?.tooltipForEntity(stone) || ''}`;
     cell.append(node);
 }
 
@@ -515,7 +542,7 @@ function renderAnyonToken(cell, coord) {
     if (token.id === selectedToken) node.classList.add('selected');
     if ((token.braidParity || 0) === 1 || token.isBraided) node.classList.add('braided');
     if (token.revealed === false) node.classList.add('hidden');
-    node.textContent = token.revealed === false ? '?' : token.anyonType;
+    node.textContent = token.revealed === false ? '?' : anyonDisplay(token.anyonType);
     const parity = token.braidParity || 0;
     const inverseInfo = parity === 1 || token.isBraided ? '; inverse loop available' : '';
     const word = braidWordToText(token.braidWord);
@@ -524,7 +551,7 @@ function renderAnyonToken(cell, coord) {
     const channelInfo = channel ? `; fusion channel ${channel}` : '';
     const measured = token.measurementHistory?.length ? `; measurements ${token.measurementHistory.length}` : '';
     const braidInfo = ` status ${braidStatusLabel(token)}; parity ${parity}; braid word ${word}; required inverse ${required}${channelInfo}${measured}${inverseInfo}`;
-    node.title = `${token.id} ${token.owner} ${token.anyonType};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
+    node.title = `${token.id} ${token.owner} ${anyonDisplay(token.anyonType)} (${token.anyonType});${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
 
@@ -547,7 +574,11 @@ function handleCellClick(coord) {
         const selected = game.tokens.get(selectedToken);
         const path = selected ? [selected.coord, coord] : [];
         const direction = selected ? coord.map((value, axis) => value - selected.coord[axis]) : [];
-        const result = game.attemptUnbraid(selectedToken, token.id, { path, direction });
+        const expected = selected ? nextRequiredUnbraidGenerator(selected.braidWord) : null;
+        const exactInverse = expected?.targetId === token.id
+            ? { sign: expected.sign, index: expected.index }
+            : {};
+        const result = game.attemptUnbraid(selectedToken, token.id, { path, direction, ...exactInverse });
         if (result.ok) {
             if (result.event.unbraid.successfulPartialUnbraid || result.event.unbraid.fullyUnbraided) {
                 lastCancellation = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
@@ -693,7 +724,8 @@ function updateStatus() {
     if (game.mode === 'clifford_reversi') {
         const preview = currentReversiPreview();
         if (preview?.legal) {
-            els.statusText.textContent = `${capitalize(game.currentPlayer)} can flip ${preview.flips.length} with ${els.transformSelect.value}.`;
+            const phase = phaseSignsEnabled() ? ' with phase signs' : '';
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} can flip ${preview.flips.length} with ${els.transformSelect.value}${phase}.`;
         } else if (!hoverCoord) {
             const moves = game.legalMoves(game.currentPlayer, els.transformSelect.value).length;
             els.statusText.textContent = `${capitalize(game.currentPlayer)} has ${moves} legal Clifford Reversi move${moves === 1 ? '' : 's'}.`;
@@ -722,17 +754,24 @@ function updateStatus() {
 
 function renderLegend() {
     const items = game.mode === 'clifford_reversi'
-        ? ['X,Y,Z Pauli labels', '? hidden until measured', 'Gold outline: flip preview', 'H/S transforms on flips', 'Twisted seams apply H']
+        ? [
+            phaseSignsEnabled() ? '+/- phase signs shown' : 'X,Y,Z Pauli labels',
+            '? hidden until measured',
+            'Gold outline: flip preview',
+            'H/S transforms on flips',
+            'Twisted seams apply H',
+            'Virasoro mode evolves graph stress T(v)'
+        ]
         : [
             els.anyonModelSelect.value === 'ising'
-                ? 'Ising anyons: 1, sigma, psi'
+                ? 'Ising anyons: 1, \u03c3, \u03c8'
                 : els.anyonModelSelect.value === 'fibonacci'
-                    ? 'Fibonacci anyons: 1, tau'
-                    : 'e,m,psi toric anyons',
+                    ? 'Fibonacci anyons: 1, \u03c4'
+                    : 'e,m,\u03c8 toric anyons',
             '? hidden until measured',
             'Blue path: jump line',
             'Braided marker: nontrivial memory',
-            'Click target: inverse loop'
+            'Green UNBRAID badge: next inverse loop'
         ];
     els.legend.innerHTML = items.map((item) => `<span>${item}</span>`).join('');
 }
@@ -845,6 +884,36 @@ function exportJson() {
     URL.revokeObjectURL(url);
 }
 
+function pauliDisplay(stone) {
+    if (!phaseSignsEnabled()) return stone.pauliLabel;
+    return `${Number(stone.pauliSign || 1) < 0 ? '-' : '+'}${stone.pauliLabel}`;
+}
+
+function anyonDisplay(type) {
+    return ANYON_SYMBOLS[type] || type;
+}
+
+function showUnbraidHint() {
+    if (game?.mode !== 'anyon_jump') return;
+    if (!selectedToken) {
+        els.statusText.textContent = 'Select a braided anyon first. A green UNBRAID badge will mark the next inverse target.';
+        return;
+    }
+    const token = game.tokens.get(selectedToken);
+    if (!token) return;
+    if (token.braidParity === 1 && game.config?.braidMemoryMode === 'abelian_parity') {
+        const targetId = cancelTargetForSelectedToken();
+        els.statusText.textContent = targetId
+            ? `Click the green UNBRAID badge on ${targetId} to toggle braid parity back to 0.`
+            : 'This token has parity 1 but no recorded target remains on the board.';
+        return;
+    }
+    const next = nextRequiredUnbraidGenerator(token.braidWord);
+    els.statusText.textContent = next
+        ? `Next inverse is ${braidWordToText([next])} around ${next.targetId}. Click that green UNBRAID target.`
+        : 'Selected token has trivial braid memory; no unbraid is needed.';
+}
+
 function capitalize(value) {
     return String(value || '').slice(0, 1).toUpperCase() + String(value || '').slice(1);
 }
@@ -875,12 +944,14 @@ els.noiseRateInput.addEventListener('change', createGame);
 els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
 els.timePeriodInput.addEventListener('change', createGame);
+els.phaseSignSelect.addEventListener('change', createGame);
 els.transformSelect.addEventListener('change', render);
 els.pauliSelect.addEventListener('change', render);
 els.zLayerInput.addEventListener('input', render);
 els.wLayerInput.addEventListener('input', render);
 els.newGameButton.addEventListener('click', createGame);
 els.measureButton.addEventListener('click', measureTarget);
+els.unbraidHintButton.addEventListener('click', showUnbraidHint);
 els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
 els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
