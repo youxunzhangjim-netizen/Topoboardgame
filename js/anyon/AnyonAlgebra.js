@@ -22,6 +22,8 @@ export const BRAID_EFFECTS = Object.freeze([
 
 export const DEFAULT_ANYON_CONFIG = Object.freeze({
     anyonModel: 'toric_code',
+    phaseModel: 'off',
+    generalAnyonGrade: 2,
     braidEffect: 'add_braid_token',
     enableFusionChannels: true,
     enablePathHistory: true,
@@ -85,6 +87,11 @@ export function normalizeAnyonType(type = '1', model = DEFAULT_ANYON_CONFIG.anyo
 export function normalizeAnyonConfig(config = {}) {
     const anyonModel = normalizeAnyonModel(config.anyonModel);
     const braidEffect = BRAID_EFFECTS.includes(config.braidEffect) ? config.braidEffect : DEFAULT_ANYON_CONFIG.braidEffect;
+    const phaseModel = config.phaseModel === 'zn_phase' ? 'zn_phase' : 'off';
+    const parsedGrade = Math.floor(Number(config.generalAnyonGrade));
+    const generalAnyonGrade = Number.isFinite(parsedGrade)
+        ? Math.max(2, Math.min(64, parsedGrade))
+        : DEFAULT_ANYON_CONFIG.generalAnyonGrade;
     const braidMemory = normalizeBraidMemoryConfig(config);
     const braidedCapture = normalizeBraidedCaptureConfig(config);
     return {
@@ -93,6 +100,8 @@ export function normalizeAnyonConfig(config = {}) {
         ...braidMemory,
         ...braidedCapture,
         anyonModel,
+        phaseModel,
+        generalAnyonGrade,
         braidEffect,
         enableFusionChannels: config.enableFusionChannels ?? DEFAULT_ANYON_CONFIG.enableFusionChannels,
         enablePathHistory: config.enablePathHistory ?? DEFAULT_ANYON_CONFIG.enablePathHistory,

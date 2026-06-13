@@ -132,6 +132,7 @@ try {
         anyonDisplay: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display,
         virasoroDisplay: getComputedStyle(document.querySelector('#virasoroAlgebraControls')).display,
         braidVisible: !document.querySelector('#braidMemoryControl')?.hidden,
+        anyonGradeHidden: document.querySelector('#anyonGradeControl')?.hidden,
         rulesText: [...document.querySelectorAll('#rulesIntroPanel [data-rules-mode]:not([hidden])')]
             .map((node) => node.textContent || '')
             .join(' ')
@@ -143,8 +144,16 @@ try {
     assert.notEqual(fixedAnyonState.anyonDisplay, 'none');
     assert.equal(fixedAnyonState.virasoroDisplay, 'none');
     assert.equal(fixedAnyonState.braidVisible, true, 'Anyon Jump should show braid controls.');
+    assert.equal(fixedAnyonState.anyonGradeHidden, true, 'Z_n phase grade control is hidden until that model is selected.');
     assert.match(fixedAnyonState.rulesText, /Toric code fusion/);
     assert.match(fixedAnyonState.rulesText, /Vacuum 1/);
+    assert.match(fixedAnyonState.rulesText, /General Z_n phase/);
+    await page.selectOption('#anyonModelSelect', 'zn_phase');
+    const zPhaseControlState = await page.evaluate(() => ({
+        anyonGradeHidden: document.querySelector('#anyonGradeControl')?.hidden,
+        config: JSON.parse(document.querySelector('#exportText').value).tokens[0]
+    }));
+    assert.equal(zPhaseControlState.anyonGradeHidden, false, 'General Z_n phase model should expose the grade n control.');
 
     const firstBlackAnyonCell = page.locator('.anyon.black').first().locator('xpath=..');
     await firstBlackAnyonCell.click();
@@ -234,6 +243,14 @@ try {
     assert.match(visibleVirasoroRules.text, /Stress pressure/);
     await page.locator('.cell.legal').first().click();
     await page.locator('.cell.legal').first().click();
+    const cftStoneState = await page.evaluate(() => ({
+        blackStones: document.querySelectorAll('.stone.go-stone.black').length,
+        cftBadges: document.querySelectorAll('.stone.go-stone .cft-badge').length,
+        firstTitle: document.querySelector('.stone.go-stone.black')?.getAttribute('title') || ''
+    }));
+    assert.ok(cftStoneState.blackStones >= 1, 'Virasoro Go stones should render on the board.');
+    assert.ok(cftStoneState.cftBadges >= 1, 'Virasoro Go stones should show CFT h badges.');
+    assert.match(cftStoneState.firstTitle, /h=/);
     await page.selectOption('#virasoroActionSelect', 'L0');
     await page.locator('.stone.black').first().locator('xpath=..').click();
     const goState = await page.evaluate(() => {

@@ -60,6 +60,18 @@ function cloneBraidWord(word = []) {
     return Array.isArray(word) ? word.map((entry) => ({ ...entry })) : [];
 }
 
+function positiveModulo(value, modulus) {
+    return ((value % modulus) + modulus) % modulus;
+}
+
+function signedPhaseText(numerator = 0, denominator = 2) {
+    const n = Math.max(2, Number(denominator) || 2);
+    const value = positiveModulo(Number(numerator) || 0, n);
+    if (value === 0) return '0';
+    const signed = value > n / 2 ? value - n : value;
+    return `${signed >= 0 ? '+' : '-'}${Math.abs(signed)}/${n}`;
+}
+
 function fusionChannelState(token) {
     return token?.hiddenFusionState?.currentChannel ?? token?.fusionChannel ?? null;
 }
@@ -141,7 +153,17 @@ export class AnyonJumpGame {
         this.fusionSites.add(coordKey(center));
     }
 
-    addToken({ id, owner = this.currentPlayer, coord, anyonType = 'e', hiddenState = null, revealed = true, stability = 1 }) {
+    addToken({
+        id,
+        owner = this.currentPlayer,
+        coord,
+        anyonType = 'e',
+        hiddenState = null,
+        revealed = true,
+        stability = 1,
+        anyonPhaseNumerator = 0,
+        anyonPhaseDenominator = null
+    }) {
         const normalized = this.topology.normalize(coord);
         if (!normalized) return null;
         let tokenId = id || `a${this.tokens.size + 1}`;
@@ -162,6 +184,10 @@ export class AnyonJumpGame {
             energy: 0,
             phaseLabel: 0,
             cooldown: 0,
+            anyonPhaseNumerator: this.phaseEnabled()
+                ? positiveModulo(Number(anyonPhaseNumerator) || 0, this.phaseDenominator())
+                : 0,
+            anyonPhaseDenominator: anyonPhaseDenominator || this.phaseDenominator(),
             measurementHistory: [],
             noiseHistory: []
         };
@@ -275,6 +301,36 @@ export class AnyonJumpGame {
         if (effect.effect === 'flip_parity') this.parity[owner] = this.parity[owner] ? 0 : 1;
     }
 
+    phaseEnabled() {
+        return this.config?.phaseModel === 'zn_phase';
+    }
+
+    phaseDenominator() {
+        return Math.max(2, Math.min(64, Math.floor(Number(this.config?.generalAnyonGrade) || 2)));
+    }
+
+    phaseSnapshot(token) {
+        const denominator = Math.max(2, Number(token?.anyonPhaseDenominator || this.phaseDenominator()));
+        const numerator = positiveModulo(Number(token?.anyonPhaseNumerator || 0), denominator);
+        return {
+            enabled: this.phaseEnabled(),
+            numerator,
+            denominator,
+            text: this.phaseEnabled() ? signedPhaseText(numerator, denominator) : '0'
+        };
+    }
+
+    applyGeneralPhase(token, sign = 1) {
+        const before = this.phaseSnapshot(token);
+        if (!this.phaseEnabled()) return { before, after: before, delta: 0 };
+        const denominator = this.phaseDenominator();
+        token.anyonPhaseDenominator = denominator;
+        const delta = Number(sign) < 0 ? -1 : 1;
+        token.anyonPhaseNumerator = positiveModulo(Number(token.anyonPhaseNumerator || 0) + delta, denominator);
+        const after = this.phaseSnapshot(token);
+        return { before, after, delta };
+    }
+
     applyBraid(movingToken, event) {
         const target = this.tokens.get(event.targetId) || event.target || { id: event.targetId, defect: true };
         const beforeWord = cloneBraidWord(movingToken.braidWord);
@@ -282,7 +338,7 @@ export class AnyonJumpGame {
         const phase = target?.anyonType
             ? mutualBraidPhase(movingToken.anyonType, target.anyonType, this.config.anyonModel)
             : 1;
-        if (this.config.braidMemoryMode === 'abelian_parity' && phase !== -1) {
+        if (!this.phaseEnabled() && this.config.braidMemoryMode === 'abelian_parity' && phase !== -1) {
             const skipped = {
                 ...event,
                 jumpedId: event.reason === 'jump_over' ? event.targetId : null,
@@ -316,6 +372,7 @@ export class AnyonJumpGame {
             };
         }
         const memory = applyBraidToMemory(movingToken, target, event, this.config);
+        const phaseShift = this.applyGeneralPhase(movingToken, memory.braidGenerator?.sign ?? event.sign ?? 1);
         const successfulUnbraid = Boolean(
             memory.cancelledInverse
             || memory.successfulPartialUnbraid
@@ -338,6 +395,7 @@ export class AnyonJumpGame {
             phase,
             effect,
             captureUnlockGranted,
+            anyonPhase: phaseShift,
             unbraid: successfulUnbraid || memory.fullyUnbraided
                 ? {
                     successfulPartialUnbraid: successfulUnbraid,
@@ -359,6 +417,8 @@ export class AnyonJumpGame {
             fullyUnbraided: memory.fullyUnbraided,
             beforeFusionChannel,
             afterFusionChannel: fusionChannelState(movingToken),
+            phaseBefore: phaseShift.before,
+            phaseAfter: phaseShift.after,
             skipped: null
         });
         return applied;
@@ -411,6 +471,7 @@ export class AnyonJumpGame {
             index
         });
         const unbraid = applyUnbraidGenerator(token, generator, this.config, { target });
+        const phaseShift = this.applyGeneralPhase(token, unbraid.attempted?.sign ?? generator.sign ?? -1);
         const phase = target?.anyonType
             ? mutualBraidPhase(token.anyonType, target.anyonType, this.config.anyonModel)
             : 1;
@@ -435,6 +496,7 @@ export class AnyonJumpGame {
             direction: resolvedDirection,
             beforeWord,
             unbraid,
+            anyonPhase: phaseShift,
             captureUnlockGranted
         };
         this.history.unshift(event);
@@ -451,6 +513,8 @@ export class AnyonJumpGame {
             fullyUnbraided: unbraid.fullyUnbraided,
             beforeFusionChannel,
             afterFusionChannel: fusionChannelState(token),
+            phaseBefore: phaseShift.before,
+            phaseAfter: phaseShift.after,
             wrongOrder: unbraid.wrongOrder
         });
         this.unbraidAttempts.push(unbraidLog);
@@ -581,6 +645,8 @@ export class AnyonJumpGame {
         fullyUnbraided = false,
         beforeFusionChannel = null,
         afterFusionChannel = null,
+        phaseBefore = null,
+        phaseAfter = null,
         skipped = null,
         wrongOrder = false
     } = {}) {
@@ -598,6 +664,8 @@ export class AnyonJumpGame {
             fullyUnbraided: Boolean(fullyUnbraided),
             wrongOrder: Boolean(wrongOrder),
             skipped,
+            anyonPhaseBefore: phaseBefore,
+            anyonPhaseAfter: phaseAfter,
             fusionChannelBefore: beforeFusionChannel,
             fusionChannelAfter: afterFusionChannel,
             path: Array.isArray(sourceEvent.path) ? sourceEvent.path.map(cloneCoord) : [],
@@ -653,6 +721,7 @@ export class AnyonJumpGame {
             anyonType: token.anyonType,
             braidStatus: this.braidStatusForToken(token),
             braidParity: token.braidParity || 0,
+            anyonPhase: this.phaseSnapshot(token),
             braidWord: cloneBraidWord(token.braidWord),
             braidHistory: cloneBraidWord(token.braidHistory),
             requiredInverse: token.braidWord?.length ? cloneBraidWord([...token.braidWord].reverse().map((entry) => ({

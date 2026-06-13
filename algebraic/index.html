@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algebraic Board Games</title>
-    <link rel="stylesheet" href="./css/styles.css?v=20260613-algebraic-ui-4">
+    <link rel="stylesheet" href="./css/styles.css?v=20260613-virasoro-anyon-phase">
 </head>
 <body>
     <main class="app-shell">
@@ -122,7 +122,12 @@
                             <option value="toric_code" selected>Toric Code</option>
                             <option value="ising">Ising</option>
                             <option value="fibonacci">Fibonacci</option>
+                            <option value="zn_phase">General Z_n Phase</option>
                         </select>
+                    </label>
+                    <label id="anyonGradeControl" hidden>
+                        Grade n
+                        <input id="anyonGradeInput" type="number" min="2" max="64" step="1" value="5">
                     </label>
                     <label id="braidCancellationControl">
                         Cancellation
@@ -343,12 +348,13 @@
                     <div data-rules-mode="anyon">
                         <h2>Anyon Jump Chess Rules</h2>
                         <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
-                        <p><strong>Symbols:</strong> toric code labels are 1, e, m, and ψ. Ising labels are 1, σ, and ψ. Fibonacci labels are 1 and τ. Board tokens use these Greek symbols directly.</p>
+                        <p><strong>Symbols:</strong> toric code labels are 1, e, m, and &psi;. Ising labels are 1, &sigma;, and &psi;. Fibonacci labels are 1 and &tau;. Board tokens use these Greek symbols directly.</p>
                         <p><strong>Vacuum 1:</strong> 1 is the trivial topological charge, meaning no nontrivial anyon remains. It acts like the identity in fusion: 1 x a = a.</p>
-                        <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator σi or σi^-1. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
+                        <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
                         <p><strong>Unbraiding:</strong> select a braided token. The valid target is marked with a green UNBRAID badge. Clicking that target applies the next inverse generator. Full unbraiding requires the reverse inverse sequence; a wrong target or wrong sign appends a new braid instead of clearing the word. A successful inverse also reduces the visible braid count.</p>
-                        <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, ψ x ψ = 1, e x m = ψ, e x ψ = m, and m x ψ = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
-                        <p><strong>Non-Abelian fusion:</strong> Ising uses σ x σ = 1 + ψ, σ x ψ = σ, and ψ x ψ = 1. Fibonacci uses τ x τ = 1 + τ. Measurements can reveal hidden channels when measurement rules are enabled.</p>
+                        <p><strong>General Z_n phase:</strong> this option keeps toric-code token types but adds an observable braid phase k/n. A positive braid adds +1/n, an inverse unbraid subtracts 1/n, and the token shows the signed net phase as a flat shadow under the piece.</p>
+                        <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, &psi; x &psi; = 1, e x m = &psi;, e x &psi; = m, and m x &psi; = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
+                        <p><strong>Non-Abelian fusion:</strong> Ising uses &sigma; x &sigma; = 1 + &psi;, &sigma; x &psi; = &sigma;, and &psi; x &psi; = 1. Fibonacci uses &tau; x &tau; = 1 + &tau;. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
                     </div>
                     <div data-rules-mode="virasoro">
@@ -418,6 +424,6 @@
             </aside>
         </section>
     </main>
-    <script type="module" src="./js/main.js?v=20260613-algebraic-ui-4"></script>
+    <script type="module" src="./js/main.js?v=20260613-virasoro-anyon-phase"></script>
 </body>
 </html>

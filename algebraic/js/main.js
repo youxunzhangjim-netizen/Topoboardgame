@@ -34,6 +34,8 @@ const els = {
     braidMemoryModeSelect: document.querySelector('#braidMemoryModeSelect'),
     anyonModelControl: document.querySelector('#anyonModelControl'),
     anyonModelSelect: document.querySelector('#anyonModelSelect'),
+    anyonGradeControl: document.querySelector('#anyonGradeControl'),
+    anyonGradeInput: document.querySelector('#anyonGradeInput'),
     braidCancellationControl: document.querySelector('#braidCancellationControl'),
     braidCancellationModeSelect: document.querySelector('#braidCancellationModeSelect'),
     virasoroLayerControl: document.querySelector('#virasoroLayerControl'),
@@ -205,6 +207,11 @@ function syncModeControls() {
     els.phaseSignControl.hidden = !isClifford;
     els.braidMemoryControl.hidden = !isAnyon;
     els.anyonModelControl.hidden = !isAnyon;
+    if (els.anyonGradeControl) els.anyonGradeControl.hidden = !isAnyon || els.anyonModelSelect.value !== 'zn_phase';
+    if (isAnyon && els.anyonModelSelect.value === 'zn_phase'
+        && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel') {
+        els.braidMemoryModeSelect.value = 'word_exact';
+    }
     els.braidedCaptureDetails.hidden = !isAnyon;
     els.braidCancellationControl.hidden = !isAnyon
         || !['word_exact', 'nonabelian_fusion_channel'].includes(els.braidMemoryModeSelect.value);
@@ -336,8 +343,16 @@ function anyonConfig() {
         && els.anyonModelSelect.value === 'toric_code') {
         els.anyonModelSelect.value = 'ising';
     }
+    if (els.anyonModelSelect.value === 'zn_phase'
+        && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel') {
+        els.braidMemoryModeSelect.value = 'word_exact';
+    }
+    const selectedAnyonModel = els.anyonModelSelect.value;
+    const useGeneralPhase = selectedAnyonModel === 'zn_phase';
     return {
-        anyonModel: els.anyonModelSelect.value,
+        anyonModel: useGeneralPhase ? 'toric_code' : selectedAnyonModel,
+        phaseModel: useGeneralPhase ? 'zn_phase' : 'off',
+        generalAnyonGrade: Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5))),
         braidMemoryMode: els.braidMemoryModeSelect.value,
         braidCancellationMode: els.braidCancellationModeSelect.value,
         requireReverseInverseOrder: true,
@@ -717,12 +732,23 @@ function renderGoStone(cell, coord) {
     const stone = game.getStone(coord);
     if (!stone) return;
     const node = document.createElement('span');
-    node.className = `stone ${stone.color}`;
+    node.className = `stone go-stone ${stone.color}`;
     const groupInfo = game.groupInfoAt(coord);
-    if (groupInfo?.unstable) node.classList.add('hidden');
-    node.textContent = groupInfo?.unstable ? '!' : '';
+    if (groupInfo?.unstable) node.classList.add('unstable');
+    const cft = document.createElement('span');
+    cft.className = 'cft-badge';
+    cft.textContent = groupInfo
+        ? `h=${formatNumber(groupInfo.h)}`
+        : 'h=0';
+    node.append(cft);
+    if (groupInfo?.unstable) {
+        const pressure = document.createElement('span');
+        pressure.className = 'cft-pressure';
+        pressure.textContent = `P=${formatNumber(groupInfo.unstable.enemyStressPressure)}`;
+        node.append(pressure);
+    }
     node.title = groupInfo
-        ? `${stone.color} group h=${groupInfo.h}; liberties=${groupInfo.liberties.size}${groupInfo.unstable ? `; unstable pressure=${groupInfo.unstable.enemyStressPressure}` : ''}`
+        ? `${stone.color} group h=${formatNumber(groupInfo.h)}; liberties=${groupInfo.liberties.size}; threshold h+c=${formatNumber((groupInfo.h || 0) + (game.virasoro?.config?.centralCharge || 0))}${groupInfo.unstable ? `; unstable pressure=${formatNumber(groupInfo.unstable.enemyStressPressure)}` : ''}`
         : stone.color;
     cell.append(node);
 }
@@ -746,7 +772,19 @@ function renderAnyonToken(cell, coord) {
     if (token.id === selectedToken) node.classList.add('selected');
     if ((token.braidParity || 0) === 1 || token.isBraided) node.classList.add('braided');
     if (token.revealed === false) node.classList.add('hidden');
-    node.textContent = token.revealed === false ? '?' : anyonDisplay(token.anyonType);
+    const phase = anyonPhaseDisplay(token);
+    if (phase.active) node.classList.add('phase-active', phase.sign > 0 ? 'phase-positive' : 'phase-negative');
+    const label = document.createElement('span');
+    label.className = 'anyon-label';
+    label.textContent = token.revealed === false ? '?' : anyonDisplay(token.anyonType);
+    node.append(label);
+    if (phase.active) {
+        const phaseNode = document.createElement('span');
+        phaseNode.className = 'phase-pancake';
+        phaseNode.textContent = phase.text;
+        phaseNode.title = `General Z_${phase.denominator} braid phase ${phase.text}`;
+        node.append(phaseNode);
+    }
     const parity = token.braidParity || 0;
     const inverseInfo = parity === 1 || token.isBraided ? '; inverse loop available' : '';
     const word = braidWordToText(token.braidWord);
@@ -754,7 +792,8 @@ function renderAnyonToken(cell, coord) {
     const channel = fusionChannelDisplay(token);
     const channelInfo = channel ? `; fusion channel ${channel}` : '';
     const measured = token.measurementHistory?.length ? `; measurements ${token.measurementHistory.length}` : '';
-    const braidInfo = ` status ${braidStatusLabel(token)}; parity ${parity}; braid word ${word}; required inverse ${required}${channelInfo}${measured}${inverseInfo}`;
+    const phaseInfo = phase.enabled ? `; Z_${phase.denominator} phase ${phase.active ? phase.text : '0'}` : '';
+    const braidInfo = ` status ${braidStatusLabel(token)}; parity ${parity}; braid word ${word}; required inverse ${required}${phaseInfo}${channelInfo}${measured}${inverseInfo}`;
     node.title = `${token.id} ${token.owner} ${anyonDisplay(token.anyonType)} (${token.anyonType});${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
@@ -1072,7 +1111,9 @@ function renderLegend() {
                 `c=${Number(els.centralChargeInput.value) || 1}, max N=${els.virasoroMaxModeSelect.value}`
             ]
             : [
-            els.anyonModelSelect.value === 'ising'
+            els.anyonModelSelect.value === 'zn_phase'
+                ? `General Z_${Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5)))} phase: braid +1/n, inverse -1/n`
+                : els.anyonModelSelect.value === 'ising'
                 ? 'Ising anyons: 1, \u03c3, \u03c8'
                 : els.anyonModelSelect.value === 'fibonacci'
                     ? 'Fibonacci anyons: 1, \u03c4'
@@ -1122,6 +1163,9 @@ function renderHistory() {
                 item.textContent = `#${event.number} ${event.player} attempt_unbraid ${event.tokenId} around ${event.targetId}: ${result}, parity ${event.unbraid.braidParity}, word ${event.unbraid.afterLength}${channel ? `, channel ${channel}` : ''}.`;
             } else {
                 const braid = event.braid?.phase === -1 ? ' braid -1' : '';
+                const anyonPhase = event.braid?.anyonPhase?.after?.text
+                    ? ` phase ${event.braid.anyonPhase.after.text}`
+                    : '';
                 const unbraid = event.braid?.unbraid?.successfulPartialUnbraid ? ' unbraid' : '';
                 const channel = event.braid?.fusionChannelUpdate?.afterChannel
                     ? ` channel ${event.braid.fusionChannelUpdate.afterChannel}`
@@ -1132,7 +1176,7 @@ function renderHistory() {
                         ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}`
                         : '';
                 const time = event.time?.applied ? ` t${event.time.after.tick} phase ${event.time.phase}` : '';
-                item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${unbraid}${channel}${fusion}${time}.`;
+                item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${unbraid}${anyonPhase}${channel}${fusion}${time}.`;
             }
         }
         els.historyList.append(item);
@@ -1182,7 +1226,10 @@ function renderBraidEventLog() {
         const channel = event.fusionChannelBefore !== event.fusionChannelAfter
             ? ` channel ${event.fusionChannelBefore || '?'}->${event.fusionChannelAfter || '?'}`
             : '';
-        item.textContent = `t${event.tick} ${event.player} ${event.type} ${event.movingTokenId}->${event.targetId || 'cycle'} ${generator}: ${result}, word ${event.braidWordBefore.length}->${event.braidWordAfter.length}${channel}.`;
+        const phase = event.anyonPhaseBefore || event.anyonPhaseAfter
+            ? `, phase ${event.anyonPhaseBefore?.text || '0'}->${event.anyonPhaseAfter?.text || '0'}`
+            : '';
+        item.textContent = `t${event.tick} ${event.player} ${event.type} ${event.movingTokenId}->${event.targetId || 'cycle'} ${generator}: ${result}, word ${event.braidWordBefore.length}->${event.braidWordAfter.length}${phase}${channel}.`;
         els.braidEventList.append(item);
     }
 }
@@ -1209,6 +1256,25 @@ function pauliDisplay(stone) {
 
 function anyonDisplay(type) {
     return ANYON_SYMBOLS[type] || type;
+}
+
+function formatNumber(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '0';
+    return Number(number.toFixed(2)).toString();
+}
+
+function anyonPhaseDisplay(token) {
+    const denominator = Math.max(2, Number(token?.anyonPhaseDenominator || game?.config?.generalAnyonGrade || 2));
+    const raw = ((Number(token?.anyonPhaseNumerator || 0) % denominator) + denominator) % denominator;
+    if (game?.config?.phaseModel !== 'zn_phase') {
+        return { enabled: false, active: false, numerator: raw, denominator, sign: 0, text: '0' };
+    }
+    if (raw === 0) return { enabled: true, active: false, numerator: raw, denominator, sign: 0, text: '0' };
+    const signed = raw > denominator / 2 ? raw - denominator : raw;
+    const sign = signed >= 0 ? 1 : -1;
+    const text = `${sign > 0 ? '+' : '-'}${Math.abs(signed)}/${denominator}`;
+    return { enabled: true, active: true, numerator: raw, denominator, sign, text };
 }
 
 function showUnbraidHint() {
@@ -1266,6 +1332,7 @@ for (const control of [
     els.anyonFlipSelect,
     els.braidMemoryModeSelect,
     els.anyonModelSelect,
+    els.anyonGradeInput,
     els.braidCancellationModeSelect,
     els.braidedPieceShieldSelect,
     els.captureRequiresUnbraidSelect,

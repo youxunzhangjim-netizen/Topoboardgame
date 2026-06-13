@@ -508,6 +508,44 @@ h2 {
     z-index: 1;
 }
 
+.stone.go-stone {
+    inset: 14%;
+    overflow: visible;
+}
+
+.stone.go-stone.unstable {
+    outline: 2px solid rgba(255, 115, 115, 0.92);
+    outline-offset: 2px;
+    box-shadow: 0 0 18px rgba(255, 115, 115, 0.34);
+}
+
+.cft-badge, .cft-pressure {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    border-radius: 999px;
+    border: 1px solid rgba(242, 196, 100, 0.72);
+    background: rgba(8, 11, 16, 0.84);
+    color: #f8df9c;
+    font-size: clamp(7px, 0.75vw, 10px);
+    font-weight: 1000;
+    line-height: 1.1;
+    padding: 2px 4px;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.cft-badge {
+    top: -5px;
+}
+
+.cft-pressure {
+    bottom: -6px;
+    border-color: rgba(255, 115, 115, 0.78);
+    color: #ffd9d9;
+}
+
 .stone.black, .anyon.black {
     color: #f8fbfd;
     background: radial-gradient(circle at 35% 28%, #3c4653, var(--black-stone) 62%);
@@ -541,6 +579,56 @@ h2 {
 .anyon.status-partially_unbraided {
     outline: 2px dashed rgba(62, 230, 138, 0.95);
     outline-offset: 2px;
+}
+
+.anyon.phase-active {
+    overflow: visible;
+}
+
+.anyon.phase-active::before {
+    content: "";
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -5px;
+    height: 8px;
+    border-radius: 999px;
+    filter: blur(0.5px);
+    pointer-events: none;
+}
+
+.anyon.phase-positive::before {
+    background: rgba(62, 230, 138, 0.55);
+    box-shadow: 0 0 16px rgba(62, 230, 138, 0.45);
+}
+
+.anyon.phase-negative::before {
+    background: rgba(255, 115, 115, 0.52);
+    box-shadow: 0 0 16px rgba(255, 115, 115, 0.42);
+}
+
+.anyon-label {
+    position: relative;
+    z-index: 2;
+}
+
+.phase-pancake {
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    transform: translateX(-50%);
+    z-index: 3;
+    min-width: 30px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    border: 1px solid rgba(238, 245, 247, 0.36);
+    background: rgba(8, 11, 16, 0.84);
+    color: #f8df9c;
+    font-size: clamp(7px, 0.8vw, 10px);
+    font-weight: 1000;
+    line-height: 1.15;
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 .stone.hidden, .anyon.hidden {

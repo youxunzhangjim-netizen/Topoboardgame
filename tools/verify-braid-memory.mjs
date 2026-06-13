@@ -248,6 +248,28 @@ assert.equal(jumpUnbraid.event.unbraid.successfulPartialUnbraid, true);
 assert.equal(jump.tokens.get('b1').braidParity, 0);
 assert.equal(jump.tokens.get('b1').isBraided, false);
 
+const phaseJump = new AnyonJumpGame({
+    topology: { topology: 'torus', width: 4, height: 4 },
+    config: {
+        phaseModel: 'zn_phase',
+        generalAnyonGrade: 5,
+        braidMemoryMode: 'word_exact'
+    }
+});
+phaseJump.tokens.clear();
+phaseJump.worldlines.clear();
+phaseJump.addToken({ id: 'p1', owner: 'black', coord: [0, 0], anyonType: 'e' });
+phaseJump.addToken({ id: 'q1', owner: 'white', coord: [1, 0], anyonType: 'm' });
+const phaseMove = phaseJump.move('p1', [2, 0]);
+assert.equal(phaseMove.ok, true);
+assert.equal(phaseJump.tokens.get('p1').anyonPhaseDenominator, 5);
+assert.equal(phaseJump.tokens.get('p1').anyonPhaseNumerator, 1, 'A positive braid adds +1/n phase.');
+assert.equal(phaseMove.event.braid.anyonPhase.after.text, '+1/5');
+const phaseUnbraid = phaseJump.attemptUnbraid('p1', 'q1', { player: 'black', sign: -1 });
+assert.equal(phaseUnbraid.ok, true);
+assert.equal(phaseJump.tokens.get('p1').anyonPhaseNumerator, 0, 'Inverse unbraid subtracts the Z_n phase.');
+assert.equal(phaseUnbraid.event.anyonPhase.after.text, '0');
+
 const trivialJump = new AnyonJumpGame({ topology: { topology: 'torus', width: 4, height: 4 } });
 trivialJump.tokens.clear();
 trivialJump.worldlines.clear();
