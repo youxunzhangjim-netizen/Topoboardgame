@@ -23,8 +23,10 @@ function copy(from, to) {
 
 run(['run', 'build', '--workspace', '2dchess']);
 run(['run', 'build', '--workspace', '2dgo']);
+run(['run', 'build', '--workspace', '2dreversi']);
 run(['run', 'build', '--workspace', '3dchess']);
 run(['run', 'build', '--workspace', '3dgo']);
+run(['run', 'build', '--workspace', '3dreversi']);
 run(['run', 'build', '--workspace', '4dgo']);
 run(['run', 'build', '--workspace', 'algebraic-games']);
 
@@ -48,8 +50,10 @@ mkdirSync(join(output, '3D'), { recursive: true });
 mkdirSync(join(output, '4D'), { recursive: true });
 copy(join(root, '2D', '2dchess', 'dist'), join(output, '2D', '2dchess'));
 copy(join(root, '2D', '2dgo', 'dist'), join(output, '2D', '2dgo'));
+copy(join(root, '2D', '2dreversi', 'dist'), join(output, '2D', '2dreversi'));
 copy(join(root, '3D', '3dchess', 'dist'), join(output, '3D', '3dchess'));
 copy(join(root, '3D', '3dgo', 'dist'), join(output, '3D', '3dgo'));
+copy(join(root, '3D', '3dreversi', 'dist'), join(output, '3D', '3dreversi'));
 copy(join(root, '4D', '4dgo', 'dist'), join(output, '4D', '4dgo'));
 copy(join(root, 'algebraic', 'dist'), join(output, 'algebraic'));
 writeFileSync(join(output, '.nojekyll'), '');

@@ -10,6 +10,7 @@ class Go2DApp {
         this.canvas = document.getElementById('goBoard');
         this.ctx = this.canvas.getContext('2d');
         this.sizeSelect = document.getElementById('boardSizeSelect');
+        this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.boundarySelect = document.getElementById('boundarySelect');
         this.timerSelect = document.getElementById('timerSelect');
         this.gameModeSelect = document.getElementById('gameModeSelect');
@@ -61,7 +62,7 @@ class Go2DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const size = params.get('size');
-        if (['9', '13', '19'].includes(size)) this.sizeSelect.value = size;
+        if (Number.isFinite(Number(size))) this.setSizeSelection(size);
 
         const timer = params.get('timer');
         if ([...this.timerSelect.options].some((option) => option.value === timer)) {
@@ -86,7 +87,26 @@ class Go2DApp {
     }
 
     boardSize() {
-        return Number(this.sizeSelect.value) || 19;
+        const source = this.sizeSelect.value === 'custom' ? this.customSizeInput?.value : this.sizeSelect.value;
+        return this.normalizedBoardSize(source);
+    }
+
+    normalizedBoardSize(value) {
+        const parsed = Math.floor(Number(value));
+        if (!Number.isFinite(parsed)) return 19;
+        return Math.min(39, Math.max(2, parsed));
+    }
+
+    setSizeSelection(value) {
+        const size = this.normalizedBoardSize(value);
+        const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
+        this.sizeSelect.value = option ? String(size) : 'custom';
+        if (this.customSizeInput) this.customSizeInput.value = String(size);
+        this.updateCustomSizeVisibility();
+    }
+
+    updateCustomSizeVisibility() {
+        if (this.customSizeInput) this.customSizeInput.hidden = this.sizeSelect.value !== 'custom';
     }
 
     bindEvents() {
@@ -94,7 +114,14 @@ class Go2DApp {
         this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
         this.canvas.addEventListener('pointerleave', () => { this.hoverCoord = null; this.render(); });
         this.canvas.addEventListener('click', (event) => this.handleBoardClick(event));
-        this.sizeSelect.addEventListener('change', () => this.resetGame());
+        this.sizeSelect.addEventListener('change', () => {
+            this.updateCustomSizeVisibility();
+            this.resetGame();
+        });
+        this.customSizeInput?.addEventListener('change', () => {
+            this.setSizeSelection(this.customSizeInput.value);
+            this.resetGame();
+        });
         this.boundarySelect.addEventListener('change', () => this.resetGame());
         this.timerSelect.addEventListener('change', () => this.resetGame());
         this.gameModeSelect.addEventListener('change', () => this.updateOnlineControls());
@@ -438,7 +465,18 @@ class Go2DApp {
     starPoints(size) {
         if (size === 9) return [2, 4, 6].flatMap((x) => [2, 4, 6].map((y) => [x, y]));
         if (size === 13) return [3, 6, 9].flatMap((x) => [3, 6, 9].map((y) => [x, y]));
-        return [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => [x, y]));
+        if (size === 19) return [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => [x, y]));
+        const center = Math.floor(size / 2);
+        const low = Math.max(1, Math.floor(size / 4));
+        const high = Math.min(size - 2, size - 1 - low);
+        return [...new Map([
+            [center, center],
+            [low, low],
+            [low, high],
+            [high, low],
+            [high, high]
+        ].filter(([x, y]) => x >= 0 && y >= 0 && x < size && y < size)
+            .map((coord) => [coord.join(','), coord])).values()];
     }
 
     canActFor(color) {
@@ -458,6 +496,7 @@ class Go2DApp {
     lockSettings() {
         this.settingsLocked = true;
         this.sizeSelect.disabled = true;
+        if (this.customSizeInput) this.customSizeInput.disabled = true;
         this.boundarySelect.disabled = true;
         this.timerSelect.disabled = true;
     }
@@ -466,6 +505,7 @@ class Go2DApp {
         if (!this.canChangeSettings()) return;
         this.settingsLocked = false;
         this.sizeSelect.disabled = false;
+        if (this.customSizeInput) this.customSizeInput.disabled = false;
         this.boundarySelect.disabled = false;
         this.timerSelect.disabled = false;
     }
@@ -474,6 +514,7 @@ class Go2DApp {
         const locked = !this.canChangeSettings();
         this.settingsLocked = locked;
         this.sizeSelect.disabled = locked;
+        if (this.customSizeInput) this.customSizeInput.disabled = locked;
         this.boundarySelect.disabled = locked;
         this.timerSelect.disabled = locked;
     }
@@ -659,7 +700,7 @@ class Go2DApp {
         if (!state?.logic) return;
         this.stopTimer();
         this.logic.importState(state.logic);
-        this.sizeSelect.value = String(this.logic.size);
+        this.setSizeSelection(this.logic.size);
         this.boundarySelect.value = normalizeTopology(this.logic.topology);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
         this.timeLimit = Number(state.timeLimit) || 0;

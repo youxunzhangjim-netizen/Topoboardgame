@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Reversi</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="play-area">
+            <header class="top-bar">
+                <div>
+                    <h1>3D Reversi</h1>
+                    <p>Common Reversi on R3, T2 torus, and S2 sphere topology graphs.</p>
+                </div>
+            </header>
+
+            <div class="game-info-bar">
+                <div class="turn-pill" id="playerTurn">Black to play</div>
+                <div class="score-strip">
+                    <div class="score-box black"><span>Black</span><strong id="blackScore">4</strong></div>
+                    <div class="score-box white"><span>White</span><strong id="whiteScore">4</strong></div>
+                </div>
+                <div class="boundary-display" id="modeDisplay">R3</div>
+            </div>
+
+            <div class="board-panel">
+                <canvas id="reversiBoard" aria-label="3D Reversi board"></canvas>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Game Controls</h2>
+                <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker">Home</a>
+            </div>
+
+            <div class="status-card">
+                <div class="status-line" id="gameStatus">Place a black stone on a highlighted square.</div>
+                <div class="status-line muted" id="moveSummary">8 stones on board</div>
+            </div>
+
+            <div class="control-group">
+                <label for="spaceSelect">Reversi Space</label>
+                <select id="spaceSelect">
+                    <option value="r3" selected>R3 Reversi</option>
+                    <option value="t2">T2 Torus Reversi</option>
+                    <option value="sphere">S2 Sphere Reversi</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="boardSizeSelect">Board Scale</label>
+                <select id="boardSizeSelect">
+                    <option value="8" selected>8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="19" step="1" value="8" hidden>
+            </div>
+
+            <div class="control-group" id="layerControlGroup">
+                <label for="layerSelect">Visible R3 z-layer</label>
+                <input id="layerSelect" type="range" min="0" max="7" step="1" value="4">
+                <div class="boundary-info" id="layerInfo">z = 5</div>
+            </div>
+
+            <div class="boundary-info" id="modeInfo">R3 uses a cubic graph. Moves can bracket along 26 topology-aware ray directions.</div>
+
+            <div class="control-grid">
+                <button id="passBtn" type="button">Pass</button>
+                <button id="newGameBtn" type="button">New Game</button>
+            </div>
+
+            <section class="panel">
+                <h3>Move History</h3>
+                <div class="move-history" id="moveHistoryList"></div>
+            </section>
+        </aside>
+    </main>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>

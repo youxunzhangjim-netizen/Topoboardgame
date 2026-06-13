@@ -58,6 +58,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2dgo">-- waiting</span>
                     </a>
+                    <a class="game-option" href="./2D/2dreversi/">
+                        <span class="game-option-copy">
+                            <strong>2D Reversi</strong>
+                            <small>OBC, PBC, and Klein bottle Reversi</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-2dreversi">-- waiting</span>
+                    </a>
                 </section>
 
                 <section class="dimension-card dimension-3d" aria-labelledby="dimension3dTitle">
@@ -83,6 +90,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-3dgo">-- waiting</span>
                     </a>
+                    <a class="game-option" href="./3D/3dreversi/">
+                        <span class="game-option-copy">
+                            <strong>3D Reversi</strong>
+                            <small>R3, T2, and S2 Reversi</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-3dreversi">-- waiting</span>
+                    </a>
                 </section>
 
                 <section class="dimension-card dimension-4d" aria-labelledby="dimension4dTitle">
@@ -93,13 +107,6 @@
                     <span class="dimension-copy">
                         <strong id="dimension4dTitle">4D</strong>
                         <small>Higher-dimensional boards</small>
-                    </span>
-                    <span class="game-option is-disabled" aria-disabled="true">
-                        <span class="game-option-copy">
-                            <strong>4D Chess</strong>
-                            <small>Not available yet</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-4dchess">0 waiting</span>
                     </span>
                     <a class="game-option" href="./4D/4dgo/">
                         <span class="game-option-copy">
@@ -132,6 +139,7 @@
             const GAME_BY_VARIANT = {
                 '2dchess': '2dchess',
                 '2dgo': '2dgo',
+                '2dreversi': '2dreversi',
                 cube: '3dchess',
                 torus: '3dchess',
                 rp2: '3dchess',
@@ -140,6 +148,10 @@
                 r3go: '3dgo',
                 t2go: '3dgo',
                 s2go: '3dgo',
+                r3reversi: '3dreversi',
+                t2reversi: '3dreversi',
+                s2reversi: '3dreversi',
+                '3dreversi': '3dreversi',
                 kleingo: '2dgo',
                 '4dgo': '4dgo',
                 clifford_reversi: 'algebraic',
@@ -148,9 +160,10 @@
             const DIMENSION_BY_GAME = {
                 '2dchess': '2d',
                 '2dgo': '2d',
+                '2dreversi': '2d',
                 '3dchess': '3d',
                 '3dgo': '3d',
-                '4dchess': '4d',
+                '3dreversi': '3d',
                 '4dgo': '4d'
             };
             const EMPTY_COUNTS = {
@@ -159,9 +172,10 @@
                 'dimension-4d': 0,
                 'game-2dchess': 0,
                 'game-2dgo': 0,
+                'game-2dreversi': 0,
                 'game-3dchess': 0,
                 'game-3dgo': 0,
-                'game-4dchess': 0,
+                'game-3dreversi': 0,
                 'game-4dgo': 0,
                 'game-algebraic': 0
             };
@@ -170,7 +184,7 @@
                 document.querySelectorAll('[data-popularity-key]').forEach((badge) => {
                     const key = badge.dataset.popularityKey;
                     const count = counts[key] || 0;
-                    const disabledZero = key === 'dimension-4d' || key === 'game-4dchess';
+                    const disabledZero = false;
                     badge.dataset.state = state;
                     if (disabledZero) {
                         badge.textContent = `${count} waiting`;

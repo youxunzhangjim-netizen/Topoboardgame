@@ -1,0 +1,16 @@
+{
+  "name": "2dreversi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5181",
+    "local": "vite --host 127.0.0.1 --port 5181 --open",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4181",
+    "verify": "node verification/verify-reversi.mjs"
+  },
+  "devDependencies": {
+    "vite": "^8.0.16"
+  }
+}

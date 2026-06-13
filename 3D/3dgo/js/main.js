@@ -552,7 +552,18 @@ class Go3DRenderer {
     starPoints(size) {
         if (size === 9) return [2, 4, 6].flatMap((x) => [2, 4, 6].map((y) => [x, y]));
         if (size === 13) return [3, 6, 9].flatMap((x) => [3, 6, 9].map((y) => [x, y]));
-        return [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => [x, y]));
+        if (size === 19) return [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => [x, y]));
+        const center = Math.floor(size / 2);
+        const low = Math.max(1, Math.floor(size / 4));
+        const high = Math.min(size - 2, size - 1 - low);
+        return [...new Map([
+            [center, center],
+            [low, low],
+            [low, high],
+            [high, low],
+            [high, high]
+        ].filter(([x, y]) => x >= 0 && y >= 0 && x < size && y < size)
+            .map((coord) => [coord.join(','), coord])).values()];
     }
 
     addNodePoints(positions, pointSize, options = {}) {
@@ -742,6 +753,7 @@ class Go3DApp {
         this.sphereViewSelect = document.getElementById('sphereViewSelect');
         this.sphereViewGroup = document.getElementById('sphereViewGroup');
         this.sizeSelect = document.getElementById('boardSizeSelect');
+        this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.timerSelect = document.getElementById('timerSelect');
         this.gameModeSelect = document.getElementById('gameModeSelect');
         this.onlineControls = document.getElementById('onlineControls');
@@ -795,7 +807,7 @@ class Go3DApp {
         }
 
         const size = params.get('size');
-        if (['9', '13', '19'].includes(size)) this.sizeSelect.value = size;
+        if (Number.isFinite(Number(size))) this.setSizeSelection(size);
 
         const timer = params.get('timer');
         if ([...this.timerSelect.options].some((option) => option.value === timer)) {
@@ -816,7 +828,7 @@ class Go3DApp {
 
     createLogic() {
         const mode = this.modeSelect?.value || 'r3';
-        const size = Number(this.sizeSelect?.value) || 19;
+        const size = this.boardSize();
         const topology = mode === 'r3'
             ? 'r3'
             : mode === 'sphere'
@@ -832,13 +844,43 @@ class Go3DApp {
         });
     }
 
+    boardSize() {
+        const source = this.sizeSelect.value === 'custom' ? this.customSizeInput?.value : this.sizeSelect.value;
+        return this.normalizedBoardSize(source);
+    }
+
+    normalizedBoardSize(value) {
+        const parsed = Math.floor(Number(value));
+        if (!Number.isFinite(parsed)) return 19;
+        return Math.min(39, Math.max(2, parsed));
+    }
+
+    setSizeSelection(value) {
+        const size = this.normalizedBoardSize(value);
+        const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
+        this.sizeSelect.value = option ? String(size) : 'custom';
+        if (this.customSizeInput) this.customSizeInput.value = String(size);
+        this.updateCustomSizeVisibility();
+    }
+
+    updateCustomSizeVisibility() {
+        if (this.customSizeInput) this.customSizeInput.hidden = this.sizeSelect.value !== 'custom';
+    }
+
     bindEvents() {
         this.modeSelect.addEventListener('change', () => this.resetGame());
         this.sphereViewSelect.addEventListener('change', () => {
             this.renderer.mode = '';
             this.renderer.renderStones(this.logic);
         });
-        this.sizeSelect.addEventListener('change', () => this.resetGame());
+        this.sizeSelect.addEventListener('change', () => {
+            this.updateCustomSizeVisibility();
+            this.resetGame();
+        });
+        this.customSizeInput?.addEventListener('change', () => {
+            this.setSizeSelection(this.customSizeInput.value);
+            this.resetGame();
+        });
         this.timerSelect.addEventListener('change', () => this.resetGame());
         this.gameModeSelect.addEventListener('change', () => this.updateOnlineControls());
         document.getElementById('cameraReset').addEventListener('click', () => this.renderer.resetCamera());
@@ -1003,6 +1045,7 @@ class Go3DApp {
         this.settingsLocked = true;
         this.modeSelect.disabled = true;
         this.sizeSelect.disabled = true;
+        if (this.customSizeInput) this.customSizeInput.disabled = true;
         this.timerSelect.disabled = true;
     }
 
@@ -1011,6 +1054,7 @@ class Go3DApp {
         this.settingsLocked = false;
         this.modeSelect.disabled = false;
         this.sizeSelect.disabled = false;
+        if (this.customSizeInput) this.customSizeInput.disabled = false;
         this.timerSelect.disabled = false;
     }
 
@@ -1019,6 +1063,7 @@ class Go3DApp {
         this.settingsLocked = locked;
         this.modeSelect.disabled = locked;
         this.sizeSelect.disabled = locked;
+        if (this.customSizeInput) this.customSizeInput.disabled = locked;
         this.timerSelect.disabled = locked;
     }
 
@@ -1194,7 +1239,7 @@ class Go3DApp {
         return {
             variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : 'r3go',
             mode,
-            size: Number(this.sizeSelect.value) || 19,
+            size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
         };
     }
@@ -1219,7 +1264,7 @@ class Go3DApp {
             : this.logic.topology === SPHERE_GO_TOPOLOGY
                 ? 'sphere'
                 : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY ? 'klein' : 'r3';
-        this.sizeSelect.value = String(this.logic.size);
+        this.setSizeSelection(this.logic.size);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
         this.timeLimit = Number(state.timeLimit) || 0;
         this.timeRemaining = {

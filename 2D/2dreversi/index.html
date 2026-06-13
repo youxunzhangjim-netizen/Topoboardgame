@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Reversi</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="play-area">
+            <header class="top-bar">
+                <div>
+                    <h1>2D Reversi</h1>
+                    <p>Common Reversi on open, periodic, and Klein bottle boards.</p>
+                </div>
+            </header>
+
+            <div class="game-info-bar">
+                <div class="turn-pill" id="playerTurn">Black to play</div>
+                <div class="score-strip">
+                    <div class="score-box black"><span>Black</span><strong id="blackScore">2</strong></div>
+                    <div class="score-box white"><span>White</span><strong id="whiteScore">2</strong></div>
+                </div>
+                <div class="boundary-display" id="boundaryMode">OBC</div>
+            </div>
+
+            <div class="board-panel">
+                <canvas id="reversiBoard" aria-label="2D Reversi board"></canvas>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Game Controls</h2>
+                <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker">Home</a>
+            </div>
+
+            <div class="status-card">
+                <div class="status-line" id="gameStatus">Place a black stone on a highlighted square.</div>
+                <div class="status-line muted" id="moveSummary">4 stones on board</div>
+            </div>
+
+            <div class="control-group">
+                <label for="boardSizeSelect">Board Size</label>
+                <select id="boardSizeSelect">
+                    <option value="8" selected>8 x 8</option>
+                    <option value="10">10 x 10</option>
+                    <option value="12">12 x 12</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="30" step="1" value="8" hidden>
+            </div>
+
+            <div class="control-group">
+                <label for="boundarySelect">Boundary Condition</label>
+                <select id="boundarySelect">
+                    <option value="open2d" selected>OBC Open</option>
+                    <option value="pbc">PBC All Sides</option>
+                    <option value="klein">Klein Bottle</option>
+                </select>
+            </div>
+            <div class="boundary-info" id="boundaryInfo">OBC uses ordinary board edges. PBC connects both directions. Klein connects top-bottom with an x-flip.</div>
+
+            <div class="control-grid">
+                <button id="passBtn" type="button">Pass</button>
+                <button id="newGameBtn" type="button">New Game</button>
+            </div>
+
+            <section class="panel">
+                <h3>Move History</h3>
+                <div class="move-history" id="moveHistoryList"></div>
+            </section>
+        </aside>
+    </main>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>

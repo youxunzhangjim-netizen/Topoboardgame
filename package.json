@@ -5,8 +5,10 @@
   "workspaces": [
     "2D/2dchess",
     "2D/2dgo",
+    "2D/2dreversi",
     "3D/3dchess",
     "3D/3dgo",
+    "3D/3dreversi",
     "4D/4dgo",
     "algebraic"
   ],
@@ -24,6 +26,10 @@
     "build:3dgo": "npm run build --workspace 3dgo",
     "dev:2dgo": "npm run dev --workspace 2dgo",
     "dev:3dgo": "npm run dev --workspace 3dgo",
+    "build:2dreversi": "npm run build --workspace 2dreversi",
+    "build:3dreversi": "npm run build --workspace 3dreversi",
+    "dev:2dreversi": "npm run dev --workspace 2dreversi",
+    "dev:3dreversi": "npm run dev --workspace 3dreversi",
     "build:4dgo": "npm run build --workspace 4dgo",
     "dev:4dgo": "npm run dev --workspace 4dgo",
     "build:algebraic": "npm run build --workspace algebraic-games",
