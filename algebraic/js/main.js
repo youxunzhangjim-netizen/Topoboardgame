@@ -131,6 +131,7 @@ const ANYON_SYMBOLS = {
 };
 const params = new URLSearchParams(window.location.search);
 const INITIAL_MODE = normalizeMode(params.get('mode') || params.get('game') || params.get('algebraicMode'));
+const INITIAL_TOPOLOGY = params.get('topology') || params.get('board') || '';
 const URL_PHYSICAL_PROBLEM_ID = params.get('physicalProblem') || params.get('problemId') || '';
 
 let game = null;
@@ -158,6 +159,9 @@ window.algebraic3dBoard = algebraic3d;
 if (INITIAL_MODE) {
     els.modeSelect.value = INITIAL_MODE;
     document.body.dataset.initialAlgebraicMode = INITIAL_MODE;
+}
+if (INITIAL_TOPOLOGY && [...els.topologySelect.options].some((option) => option.value === INITIAL_TOPOLOGY)) {
+    els.topologySelect.value = INITIAL_TOPOLOGY;
 }
 if (URL_PHYSICAL_PROBLEM_ID && els.physicalProblemSelect) {
     els.physicalProblemSelect.value = URL_PHYSICAL_PROBLEM_ID;
@@ -632,6 +636,10 @@ function render() {
     els.modeTitle.textContent = MODE_LABELS[mode];
     els.currentPlayer.textContent = capitalize(game.currentPlayer);
     els.topologyHint.textContent = game.topology.seamSummary();
+    if (els.topologySelect.value !== game.topology.name) {
+        const matchingOption = [...els.topologySelect.options].find((option) => option.value === game.topology.name);
+        if (matchingOption) els.topologySelect.value = game.topology.name;
+    }
     const is4D = els.topologySelect.value === 'flat_4d_grid';
     const isR3 = els.topologySelect.value === 'r3';
     const noiseEnabled = els.noiseModeSelect.value !== 'off';
@@ -661,15 +669,25 @@ function renderBoard() {
         els.board.hidden = true;
         algebraic3d.setVisible(true);
         renderAlgebraic3DBoard();
+        if (!algebraic3d.pointCoords?.length) {
+            algebraic3d.setVisible(false);
+            els.board.hidden = false;
+            renderFlatBoard();
+        }
         updateStatus();
         return;
     }
     algebraic3d.setVisible(false);
     els.board.hidden = false;
+    renderFlatBoard();
+}
+
+function renderFlatBoard() {
     const [width, height] = game.topology.sizes;
     const honeycombNodes = game.topology.lattice === 'honeycomb';
     const hexCells = game.topology.lattice === 'hex_cells';
     els.board.style.gridTemplateColumns = `repeat(${width}, minmax(0, 1fr))`;
+    els.board.classList.toggle('lattice-square', game.topology.lattice === 'square');
     els.board.classList.toggle('lattice-triangular', game.topology.lattice === 'triangular');
     els.board.classList.toggle('lattice-honeycomb-nodes', honeycombNodes);
     els.board.classList.toggle('lattice-hex-cells', hexCells);
@@ -1652,5 +1670,10 @@ els.passButton.addEventListener('click', () => {
     }
 });
 els.exportButton.addEventListener('click', exportJson);
+window.addEventListener('pageshow', () => {
+    if (!game) createGame();
+    else if (els.topologySelect.value !== game.topology.name) createGame();
+    else render();
+});
 
 createGame();
