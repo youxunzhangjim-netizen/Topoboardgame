@@ -1,5 +1,6 @@
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
+import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import {
     braidWordToText,
     nextRequiredUnbraidGenerator,
@@ -30,6 +31,18 @@ const els = {
     anyonModelSelect: document.querySelector('#anyonModelSelect'),
     braidCancellationControl: document.querySelector('#braidCancellationControl'),
     braidCancellationModeSelect: document.querySelector('#braidCancellationModeSelect'),
+    virasoroLayerControl: document.querySelector('#virasoroLayerControl'),
+    virasoroLayerSelect: document.querySelector('#virasoroLayerSelect'),
+    virasoroActionControl: document.querySelector('#virasoroActionControl'),
+    virasoroActionSelect: document.querySelector('#virasoroActionSelect'),
+    virasoroDirectionControl: document.querySelector('#virasoroDirectionControl'),
+    virasoroDirectionSelect: document.querySelector('#virasoroDirectionSelect'),
+    virasoroMaxModeControl: document.querySelector('#virasoroMaxModeControl'),
+    virasoroMaxModeSelect: document.querySelector('#virasoroMaxModeSelect'),
+    centralChargeControl: document.querySelector('#centralChargeControl'),
+    centralChargeInput: document.querySelector('#centralChargeInput'),
+    unstableRuleControl: document.querySelector('#unstableRuleControl'),
+    unstableRuleSelect: document.querySelector('#unstableRuleSelect'),
     braidedCaptureDetails: document.querySelector('#braidedCaptureDetails'),
     braidedPieceShieldSelect: document.querySelector('#braidedPieceShieldSelect'),
     captureRequiresUnbraidSelect: document.querySelector('#captureRequiresUnbraidSelect'),
@@ -42,6 +55,7 @@ const els = {
     applyNoiseSelect: document.querySelector('#applyNoiseSelect'),
     noiseDetails: document.querySelector('#noiseDetails'),
     floquetModeSelect: document.querySelector('#floquetModeSelect'),
+    dynamicsSection: document.querySelector('#dynamicsSection'),
     timeDetails: document.querySelector('#timeDetails'),
     timeUpdateSelect: document.querySelector('#timeUpdateSelect'),
     timePeriodInput: document.querySelector('#timePeriodInput'),
@@ -50,6 +64,7 @@ const els = {
     anyonFlipSelect: document.querySelector('#anyonFlipSelect'),
     newGameButton: document.querySelector('#newGameButton'),
     passButton: document.querySelector('#passButton'),
+    countButton: document.querySelector('#countButton'),
     measureButton: document.querySelector('#measureButton'),
     unbraidHintButton: document.querySelector('#unbraidHintButton'),
     manualNoiseButton: document.querySelector('#manualNoiseButton'),
@@ -81,12 +96,14 @@ const els = {
     legend: document.querySelector('#legend'),
     cliffordRules: document.querySelector('[data-rules-mode="clifford"]'),
     anyonRules: document.querySelector('[data-rules-mode="anyon"]'),
+    virasoroRules: document.querySelector('[data-rules-mode="virasoro"]'),
     exportText: document.querySelector('#exportText')
 };
 
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
-    anyon_jump: 'Anyon Jump Chess'
+    anyon_jump: 'Anyon Jump Chess',
+    virasoro_go: 'Virasoro Go'
 };
 const ANYON_SYMBOLS = {
     psi: '\u03c8',
@@ -111,6 +128,7 @@ if (FIXED_MODE) {
 function normalizeMode(value) {
     if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
     if (value === 'clifford' || value === 'reversi') return 'clifford_reversi';
+    if (value === 'go' || value === 'virasoro' || value === 'virasoro_go_game') return 'virasoro_go';
     return Object.hasOwn(MODE_LABELS, value) ? value : '';
 }
 
@@ -133,38 +151,70 @@ function setAllowedSelectValues(select, allowedValues, fallback = 'off') {
 function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
+    const isVirasoroGo = mode === 'virasoro_go';
+    const isClifford = mode === 'clifford_reversi';
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (els.modeControl) els.modeControl.hidden = Boolean(FIXED_MODE);
 
-    setAllowedSelectValues(
-        els.noiseModeSelect,
-        isAnyon
-            ? ['off', 'anyon_pair_creation', 'measurement_error', 'field_noise', 'custom']
-            : ['off', 'pauli', 'measurement_error', 'field_noise', 'custom']
-    );
-    setAllowedSelectValues(
-        els.floquetModeSelect,
-        isAnyon
-            ? ['off', 'basic', 'anyon', 'virasoro']
-            : ['off', 'basic', 'clifford', 'virasoro']
-    );
+    if (isVirasoroGo) {
+        els.noiseModeSelect.value = 'off';
+        els.floquetModeSelect.value = 'off';
+    } else {
+        setAllowedSelectValues(
+            els.noiseModeSelect,
+            isAnyon
+                ? ['off', 'anyon_pair_creation', 'measurement_error', 'field_noise', 'custom']
+                : ['off', 'pauli', 'measurement_error', 'field_noise', 'custom']
+        );
+        setAllowedSelectValues(
+            els.floquetModeSelect,
+            isAnyon
+                ? ['off', 'basic', 'anyon', 'virasoro']
+                : ['off', 'basic', 'clifford', 'virasoro']
+        );
+    }
     if (!isAnyon) els.anyonFlipSelect.value = 'off';
 
-    els.pauliControl.hidden = isAnyon;
-    els.transformControl.hidden = isAnyon;
-    els.phaseSignControl.hidden = isAnyon;
+    els.pauliControl.hidden = !isClifford;
+    els.transformControl.hidden = !isClifford;
+    els.phaseSignControl.hidden = !isClifford;
     els.braidMemoryControl.hidden = !isAnyon;
     els.anyonModelControl.hidden = !isAnyon;
     els.braidedCaptureDetails.hidden = !isAnyon;
     els.braidCancellationControl.hidden = !isAnyon
         || !['word_exact', 'nonabelian_fusion_channel'].includes(els.braidMemoryModeSelect.value);
+    els.virasoroLayerControl.hidden = !isVirasoroGo;
+    els.virasoroActionControl.hidden = !isVirasoroGo;
+    els.virasoroDirectionControl.hidden = !isVirasoroGo
+        || !['L-1', 'L-2'].includes(els.virasoroActionSelect.value);
+    els.virasoroMaxModeControl.hidden = !isVirasoroGo;
+    els.centralChargeControl.hidden = !isVirasoroGo;
+    els.unstableRuleControl.hidden = !isVirasoroGo;
     els.passButton.hidden = isAnyon;
+    els.countButton.hidden = !isVirasoroGo;
+    els.measureButton.hidden = isVirasoroGo;
     els.unbraidHintButton.hidden = !isAnyon;
+    els.dynamicsSection.hidden = isVirasoroGo;
+    setAllowedSelectValues(
+        els.virasoroActionSelect,
+        Number(els.virasoroMaxModeSelect.value) >= 2
+            ? ['play', 'L-1', 'L0', 'L1', 'L-2', 'L2']
+            : ['play', 'L-1', 'L0', 'L1'],
+        'play'
+    );
+    setAllowedSelectValues(
+        els.virasoroDirectionSelect,
+        els.topologySelect.value === 'flat_4d_grid'
+            ? ['1,0', '-1,0', '0,1', '0,-1', '0,0,1,0', '0,0,-1,0', '0,0,0,1', '0,0,0,-1']
+            : ['1,0', '-1,0', '0,1', '0,-1'],
+        '1,0'
+    );
     if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon;
     if (els.braidEventSection) els.braidEventSection.hidden = !isAnyon;
-    if (els.cliffordRules) els.cliffordRules.hidden = isAnyon;
+    if (els.cliffordRules) els.cliffordRules.hidden = !isClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon;
+    if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo;
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
     return mode;
 }
@@ -234,6 +284,23 @@ function phaseSignsEnabled() {
     return els.phaseSignSelect.value === 'on';
 }
 
+function virasoroConfig() {
+    return {
+        enabled: els.virasoroLayerSelect.value === 'on',
+        centralCharge: Number(els.centralChargeInput.value) || 1,
+        maxMode: Number(els.virasoroMaxModeSelect.value) || 1,
+        removeUnstable: els.unstableRuleSelect.value === 'remove'
+    };
+}
+
+function selectedDirection() {
+    const parts = String(els.virasoroDirectionSelect.value || '1,0').split(',').map(Number);
+    if (els.topologySelect.value === 'flat_4d_grid') {
+        return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts[3] || 0];
+    }
+    return [parts[0] || 0, parts[1] || 0];
+}
+
 function anyonConfig() {
     if (els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel'
         && els.anyonModelSelect.value === 'toric_code') {
@@ -261,12 +328,13 @@ function createGame() {
         defaultFlipTransform: els.transformSelect.value,
         trackPhaseSigns: phaseSignsEnabled(),
         config: anyonConfig(),
+        virasoro: virasoroConfig(),
         probability: probabilityConfig(),
         time: timeConfig()
     };
-    game = mode === 'anyon_jump'
-        ? new AnyonJumpGame(options)
-        : new CliffordReversiGame(options);
+    if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
+    else if (mode === 'virasoro_go') game = new VirasoroGoGame(options);
+    else game = new CliffordReversiGame(options);
     normalizeLayerControls();
     render();
 }
@@ -310,6 +378,18 @@ function isSameCoord(a, b) {
 function currentReversiPreview() {
     if (!hoverCoord || game.mode !== 'clifford_reversi') return null;
     return game.previewMove(hoverCoord, game.currentPlayer, els.transformSelect.value);
+}
+
+function currentVirasoroPreview() {
+    if (!hoverCoord || game.mode !== 'virasoro_go') return null;
+    const action = els.virasoroActionSelect.value;
+    if (action === 'play') return null;
+    return game.previewVirasoroAction({
+        action,
+        coord: hoverCoord,
+        direction: selectedDirection(),
+        player: game.currentPlayer
+    });
 }
 
 function render() {
@@ -361,6 +441,13 @@ function renderBoard() {
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
     const warningTargets = wrongUnbraidTargetIds();
+    const virasoroPreview = currentVirasoroPreview();
+    const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
+    const legalGoTargets = game.mode === 'virasoro_go'
+        ? new Set(els.virasoroActionSelect.value === 'play'
+            ? game.legalMoves().map(coordKey)
+            : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
+        : new Set();
 
     for (const coord of visibleCells()) {
         const key = coordKey(coord);
@@ -369,8 +456,9 @@ function renderBoard() {
         cell.className = 'cell';
         cell.dataset.coord = JSON.stringify(coord);
         cell.dataset.key = key;
-        if (legalReversi.has(key) || legalAnyonTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
+        const goStone = game.mode === 'virasoro_go' ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
         if (token) {
             const status = braidStatusForToken(token);
@@ -386,7 +474,17 @@ function renderBoard() {
         }
         if (previewFlips.has(key)) cell.classList.add('preview-flip');
         if (jumpPath.has(key)) cell.classList.add('jump-path');
+        if (virasoroAffected.has(key)) cell.classList.add('stress-preview');
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
+        if (game.mode === 'virasoro_go') {
+            const stress = game.stressAt(coord);
+            const groupInfo = goStone ? game.groupInfoAt(coord) : null;
+            if (stress.stress > 0) {
+                cell.classList.add('stressed');
+                cell.style.setProperty('--stress-level', String(stress.stress));
+            }
+            if (groupInfo?.unstable) cell.classList.add('unstable-group');
+        }
         const vertexState = game.probability?.getVertexState(coord);
         const timeState = game.time?.getVertexState(coord);
         if (vertexState?.noiseLevel > 0 || vertexState?.stress > 0) cell.classList.add('noisy');
@@ -394,9 +492,7 @@ function renderBoard() {
             cell.classList.add('fielded');
         }
         if (vertexState?.measured) cell.classList.add('measured');
-        cell.title = timeState
-            ? `${game.topology.displayCoord(coord)} stress=${timeState.stress.toFixed(2)} potential=${timeState.potential.toFixed(2)} charge=${timeState.charge.toFixed(2)}`
-            : game.topology.displayCoord(coord);
+        cell.title = cellTooltip(coord, { timeState, goStone });
         cell.addEventListener('mouseenter', () => {
             hoverCoord = coord;
             updateBoardHighlights();
@@ -410,7 +506,10 @@ function renderBoard() {
         cell.addEventListener('click', () => handleCellClick(coord));
 
         if (game.mode === 'clifford_reversi') renderReversiStone(cell, coord);
-        else renderAnyonToken(cell, coord);
+        else if (game.mode === 'anyon_jump') renderAnyonToken(cell, coord);
+        else renderGoStone(cell, coord);
+
+        if (game.mode === 'virasoro_go') renderStress(cell, coord);
 
         if (token?.id === cancelTargetId) {
             const badge = document.createElement('span');
@@ -450,12 +549,20 @@ function updateBoardHighlights() {
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
     const warningTargets = wrongUnbraidTargetIds();
+    const virasoroPreview = currentVirasoroPreview();
+    const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
+    const legalGoTargets = game.mode === 'virasoro_go'
+        ? new Set(els.virasoroActionSelect.value === 'play'
+            ? game.legalMoves().map(coordKey)
+            : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
+        : new Set();
 
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key));
+        const goStone = game.mode === 'virasoro_go' ? game.getStone(coord) : null;
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
@@ -467,7 +574,12 @@ function updateBoardHighlights() {
         cell.classList.toggle('wrong-unbraid-flash', Boolean(token && lastWrongUnbraid && [lastWrongUnbraid.movingTokenId, lastWrongUnbraid.targetId].includes(token.id)));
         cell.classList.toggle('preview-flip', previewFlips.has(key));
         cell.classList.toggle('jump-path', jumpPath.has(key));
+        cell.classList.toggle('stress-preview', virasoroAffected.has(key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
+        const stress = game.mode === 'virasoro_go' ? game.stressAt(coord) : null;
+        const groupInfo = game.mode === 'virasoro_go' && goStone ? game.groupInfoAt(coord) : null;
+        cell.classList.toggle('stressed', Boolean(stress?.stress > 0));
+        cell.classList.toggle('unstable-group', Boolean(groupInfo?.unstable));
         const vertexState = game.probability?.getVertexState(coord);
         const timeState = game.time?.getVertexState(coord);
         cell.classList.toggle('noisy', Boolean(vertexState?.noiseLevel > 0 || vertexState?.stress > 0));
@@ -533,6 +645,30 @@ function renderReversiStone(cell, coord) {
     cell.append(node);
 }
 
+function renderGoStone(cell, coord) {
+    const stone = game.getStone(coord);
+    if (!stone) return;
+    const node = document.createElement('span');
+    node.className = `stone ${stone.color}`;
+    const groupInfo = game.groupInfoAt(coord);
+    if (groupInfo?.unstable) node.classList.add('hidden');
+    node.textContent = groupInfo?.unstable ? '!' : '';
+    node.title = groupInfo
+        ? `${stone.color} group h=${groupInfo.h}; liberties=${groupInfo.liberties.size}${groupInfo.unstable ? `; unstable pressure=${groupInfo.unstable.enemyStressPressure}` : ''}`
+        : stone.color;
+    cell.append(node);
+}
+
+function renderStress(cell, coord) {
+    const state = game.stressAt(coord);
+    if (!state || state.stress <= 0) return;
+    const node = document.createElement('span');
+    node.className = 'stress-value';
+    node.textContent = Number(state.stress.toFixed(1)).toString();
+    node.title = `T=${state.stress.toFixed(2)}${state.owner ? ` controlled by ${state.owner}` : ''}`;
+    cell.append(node);
+}
+
 function renderAnyonToken(cell, coord) {
     const token = game.tokenAt(coord);
     if (!token) return;
@@ -555,6 +691,24 @@ function renderAnyonToken(cell, coord) {
     cell.append(node);
 }
 
+function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
+    if (game.mode === 'virasoro_go') {
+        const stress = game.stressAt(coord);
+        const groupInfo = goStone ? game.groupInfoAt(coord) : null;
+        const stressText = `T=${stress.stress.toFixed(2)}${stress.owner ? ` owner=${stress.owner}` : ''}`;
+        if (groupInfo) {
+            const unstable = groupInfo.unstable
+                ? ` unstable: pressure ${groupInfo.unstable.enemyStressPressure.toFixed(2)} > h+c ${groupInfo.unstable.threshold.toFixed(2)}`
+                : '';
+            return `${game.topology.displayCoord(coord)} ${goStone.color} group h=${groupInfo.h}, liberties=${groupInfo.liberties.size}; ${stressText}${unstable}`;
+        }
+        return `${game.topology.displayCoord(coord)} empty; ${stressText}`;
+    }
+    return timeState
+        ? `${game.topology.displayCoord(coord)} stress=${timeState.stress.toFixed(2)} potential=${timeState.potential.toFixed(2)} charge=${timeState.charge.toFixed(2)}`
+        : game.topology.displayCoord(coord);
+}
+
 function handleCellClick(coord) {
     if (game.mode === 'clifford_reversi') {
         const result = game.place(coord, {
@@ -565,6 +719,31 @@ function handleCellClick(coord) {
             ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`
             : result.error;
         if (result.ok) hoverCoord = null;
+        render();
+        return;
+    }
+
+    if (game.mode === 'virasoro_go') {
+        const action = els.virasoroActionSelect.value;
+        const result = action === 'play' || els.virasoroLayerSelect.value === 'off'
+            ? game.tryPlay(coord, game.currentPlayer)
+            : game.applyVirasoroAction({
+                action,
+                coord,
+                direction: selectedDirection(),
+                player: game.currentPlayer
+            });
+        if (result.ok) {
+            hoverCoord = null;
+            if (action === 'play' || els.virasoroLayerSelect.value === 'off') {
+                els.statusText.textContent = `Placed Go stone; captured ${result.captured || 0}.`;
+            } else {
+                const unstableCount = result.instability?.unstableGroups?.length || 0;
+                els.statusText.textContent = `${action} applied to ${result.event.affected.length} stress vertex${result.event.affected.length === 1 ? '' : 'es'}${unstableCount ? `; ${unstableCount} group${unstableCount === 1 ? '' : 's'} unstable` : ''}.`;
+            }
+        } else {
+            els.statusText.textContent = result.error;
+        }
         render();
         return;
     }
@@ -639,6 +818,10 @@ function handleCellClick(coord) {
 }
 
 function measureTarget() {
+    if (game.mode === 'virasoro_go') {
+        els.statusText.textContent = 'Virasoro Go uses stress actions instead of measurement actions.';
+        return;
+    }
     if (game.mode === 'clifford_reversi') {
         const target = hoverCoord || [...game.board.keys()][0]?.split(',').map(Number);
         const result = game.measurePauliParity(target, game.currentPlayer);
@@ -659,6 +842,10 @@ function measureTarget() {
 }
 
 function applyNoiseNow() {
+    if (typeof game.applyNoiseCycle !== 'function') {
+        els.statusText.textContent = 'Noise is not available for this mode.';
+        return;
+    }
     const events = game.applyNoiseCycle({ player: game.currentPlayer, trigger: 'manual' });
     els.statusText.textContent = events.length
         ? `Noise tick logged ${events.length} random event${events.length === 1 ? '' : 's'}.`
@@ -692,6 +879,14 @@ function renderStats() {
         const counts = game.counts();
         els.blackCount.textContent = counts.black;
         els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = '0';
+        els.whiteBraid.textContent = '0';
+        return;
+    }
+    if (game.mode === 'virasoro_go') {
+        const counts = game.counts();
+        els.blackCount.textContent = `${counts.black} (${game.captures.black})`;
+        els.whiteCount.textContent = `${counts.white} (${game.captures.white})`;
         els.blackBraid.textContent = '0';
         els.whiteBraid.textContent = '0';
         return;
@@ -732,6 +927,23 @@ function updateStatus() {
         }
         return;
     }
+    if (game.mode === 'virasoro_go') {
+        const action = els.virasoroActionSelect.value;
+        if (hoverCoord && action !== 'play') {
+            const preview = currentVirasoroPreview();
+            els.statusText.textContent = preview?.ok
+                ? `${action} will affect ${preview.affected.length} stress vertex${preview.affected.length === 1 ? '' : 'es'}.`
+                : (preview?.error || `Choose a valid target for ${action}.`);
+        } else if (action === 'play') {
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} to play Go. Captures: black ${game.captures.black}, white ${game.captures.white}.`;
+        } else {
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} may use ${action}. Select a ${['L1', 'L2'].includes(action) ? 'target empty vertex' : 'friendly group'}.`;
+        }
+        if (game.scoringPending) {
+            els.statusText.textContent = 'Two passes made. Each player can press Count to agree and finish scoring.';
+        }
+        return;
+    }
     if (selectedToken) {
         const actions = game.legalActionsForToken(selectedToken);
         const token = game.tokens.get(selectedToken);
@@ -762,7 +974,15 @@ function renderLegend() {
             'Twisted seams apply H',
             'Virasoro mode evolves graph stress T(v)'
         ]
-        : [
+        : game.mode === 'virasoro_go'
+            ? [
+                'Go stones use graph liberties',
+                'T(v) badge: Virasoro stress',
+                'Gold outline: affected stress preview',
+                'Red outline: unstable group warning',
+                `c=${Number(els.centralChargeInput.value) || 1}, max N=${els.virasoroMaxModeSelect.value}`
+            ]
+            : [
             els.anyonModelSelect.value === 'ising'
                 ? 'Ising anyons: 1, \u03c3, \u03c8'
                 : els.anyonModelSelect.value === 'fibonacci'
@@ -786,10 +1006,19 @@ function renderHistory() {
         } else if (event.type === 'noise') {
             item.textContent = `${event.player} manual noise tick: ${event.noiseEvents} random event${event.noiseEvents === 1 ? '' : 's'}.`;
         } else if (event.type === 'pass') {
-            item.textContent = `#${event.number} ${event.player} passed.`;
+            item.textContent = `#${event.number} ${event.player || event.color} passed.`;
         } else if (game.mode === 'clifford_reversi') {
             const time = event.time?.applied ? `; t${event.time.after.tick} phase ${event.time.phase}` : '';
             item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
+        } else if (game.mode === 'virasoro_go') {
+            if (event.type === 'play') {
+                item.textContent = `#${event.number} ${event.color} played ${event.coord.join(',')}; captured ${event.captured}.`;
+            } else if (event.type === 'virasoro') {
+                const unstable = event.instability?.unstableGroups?.length || 0;
+                item.textContent = `#${event.number} ${event.color} ${event.action} at ${event.coord?.join(',') || 'none'} affected ${event.affected?.length || 0}${unstable ? `; unstable ${unstable}` : ''}.`;
+            } else if (event.type === 'score') {
+                item.textContent = `score: black ${event.score.black}, white ${event.score.white}; winner ${event.winner}.`;
+            }
         } else {
             if (event.kind === 'attempt_unbraid') {
                 const result = event.unbraid.fullyUnbraided
@@ -914,6 +1143,21 @@ function showUnbraidHint() {
         : 'Selected token has trivial braid memory; no unbraid is needed.';
 }
 
+function handleCount() {
+    if (game?.mode !== 'virasoro_go') return;
+    const agreeingPlayer = game.currentPlayer;
+    const result = game.agreeToCount(agreeingPlayer);
+    if (result.ok && !result.score) {
+        game.currentPlayer = agreeingPlayer === 'black' ? 'white' : 'black';
+    }
+    els.statusText.textContent = result.ok
+        ? (result.score
+            ? `Final score: black ${result.score.black}, white ${result.score.white}. Winner: ${result.winner}.`
+            : `${capitalize(agreeingPlayer)} agreed to count. ${capitalize(game.currentPlayer)} must agree too.`)
+        : result.error;
+    render();
+}
+
 function capitalize(value) {
     return String(value || '').slice(0, 1).toUpperCase() + String(value || '').slice(1);
 }
@@ -936,7 +1180,10 @@ for (const control of [
     els.braidCancellationModeSelect,
     els.braidedPieceShieldSelect,
     els.captureRequiresUnbraidSelect,
-    els.braidedPiecePenaltySelect
+    els.braidedPiecePenaltySelect,
+    els.virasoroLayerSelect,
+    els.virasoroMaxModeSelect,
+    els.unstableRuleSelect
 ]) {
     control.addEventListener('change', createGame);
 }
@@ -945,12 +1192,16 @@ els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
 els.timePeriodInput.addEventListener('change', createGame);
 els.phaseSignSelect.addEventListener('change', createGame);
+els.centralChargeInput.addEventListener('change', createGame);
+els.virasoroActionSelect.addEventListener('change', render);
+els.virasoroDirectionSelect.addEventListener('change', render);
 els.transformSelect.addEventListener('change', render);
 els.pauliSelect.addEventListener('change', render);
 els.zLayerInput.addEventListener('input', render);
 els.wLayerInput.addEventListener('input', render);
 els.newGameButton.addEventListener('click', createGame);
 els.measureButton.addEventListener('click', measureTarget);
+els.countButton.addEventListener('click', handleCount);
 els.unbraidHintButton.addEventListener('click', showUnbraidHint);
 els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
@@ -958,6 +1209,10 @@ els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
 els.passButton.addEventListener('click', () => {
     if (game?.mode === 'clifford_reversi') {
         game.pass();
+        render();
+    } else if (game?.mode === 'virasoro_go') {
+        const result = game.pass(game.currentPlayer);
+        els.statusText.textContent = result.ok ? `${capitalize(result.event.color)} passed.` : result.error;
         render();
     }
 });

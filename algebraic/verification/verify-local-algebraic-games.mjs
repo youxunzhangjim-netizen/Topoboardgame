@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
+import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import { createGraphTopology } from '../../js/topology/GraphTopologies.js';
 import { nextRequiredUnbraidGenerator } from '../../js/anyon/BraidMemory.js';
 
@@ -66,5 +67,26 @@ twist.addToken({ id: 'k1', owner: 'black', coord: [1, 3], anyonType: 'e' });
 const twistMove = twist.move('k1', [2, 0]);
 assert.equal(twistMove.ok, true, 'Klein seam hop succeeds.');
 assert.equal(twist.tokens.get('k1').anyonType, 'm', 'Klein twist seam maps e to m.');
+
+const go = new VirasoroGoGame({
+    topology: { topology: 'flat', width: 5, height: 5 },
+    virasoro: { enabled: true, centralCharge: 1, maxMode: 1 }
+});
+assert.equal(go.tryPlay([1, 1], 'black').ok, true, 'Graph Go black move succeeds.');
+assert.equal(go.tryPlay([0, 1], 'white').ok, true, 'Graph Go white reply succeeds.');
+assert.equal(go.tryPlay([2, 1], 'black').ok, true, 'Graph Go keeps normal play sequence.');
+go.currentPlayer = 'black';
+const l0 = go.applyVirasoroAction({ action: 'L0', coord: [1, 1], player: 'black' });
+assert.equal(l0.ok, true, 'Virasoro L0 action succeeds on a friendly group.');
+assert.ok(l0.event.affected.length > 0, 'L0 adds stress to liberties.');
+const stressedLiberty = l0.event.affected.find((entry) => entry.after > entry.before);
+assert.equal(go.stressAt(stressedLiberty.coord).owner, 'black', 'Virasoro stress records the controlling player.');
+go.currentPlayer = 'white';
+const whiteGroup = go.groupInfoAt([0, 1]);
+for (const liberty of whiteGroup.liberties) {
+    go.virasoro.setStress(liberty, 3, 'black');
+}
+const instability = go.virasoro.evaluateInstability();
+assert.ok(instability.unstableGroups.some((group) => group.color === 'white'), 'Enemy stress pressure can mark a group unstable.');
 
 console.log('Algebraic local game verification passed.');

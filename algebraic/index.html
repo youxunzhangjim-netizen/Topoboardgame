@@ -29,6 +29,7 @@
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
+                            <option value="virasoro_go">Virasoro Go</option>
                         </select>
                     </label>
                     <label>
@@ -120,6 +121,55 @@
                             <option value="braid_group_relations">Braid Relations</option>
                         </select>
                     </label>
+                    <label id="virasoroLayerControl">
+                        Virasoro Layer
+                        <select id="virasoroLayerSelect">
+                            <option value="on" selected>On</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label id="virasoroActionControl">
+                        Go Turn
+                        <select id="virasoroActionSelect">
+                            <option value="play" selected>Place Stone</option>
+                            <option value="L-1">L_-1 Shift</option>
+                            <option value="L0">L_0 Add</option>
+                            <option value="L1">L_1 Focus</option>
+                            <option value="L-2">L_-2 Shift</option>
+                            <option value="L2">L_2 Focus</option>
+                        </select>
+                    </label>
+                    <label id="virasoroDirectionControl">
+                        Direction
+                        <select id="virasoroDirectionSelect">
+                            <option value="1,0">+x</option>
+                            <option value="-1,0">-x</option>
+                            <option value="0,1">+y</option>
+                            <option value="0,-1">-y</option>
+                            <option value="0,0,1,0">+z</option>
+                            <option value="0,0,-1,0">-z</option>
+                            <option value="0,0,0,1">+w</option>
+                            <option value="0,0,0,-1">-w</option>
+                        </select>
+                    </label>
+                    <label id="virasoroMaxModeControl">
+                        Max Mode N
+                        <select id="virasoroMaxModeSelect">
+                            <option value="1" selected>N = 1</option>
+                            <option value="2">N = 2</option>
+                        </select>
+                    </label>
+                    <label id="centralChargeControl">
+                        Central Charge c
+                        <input id="centralChargeInput" type="number" min="0" max="64" step="0.1" value="1">
+                    </label>
+                    <label id="unstableRuleControl">
+                        Unstable Rule
+                        <select id="unstableRuleSelect">
+                            <option value="warning" selected>Warning Only</option>
+                            <option value="remove">Remove Group</option>
+                        </select>
+                    </label>
                 </div>
                 <details class="control-details" id="braidedCaptureDetails">
                     <summary>Braided capture</summary>
@@ -150,7 +200,7 @@
                 <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
             </div>
 
-            <div class="control-section section-dynamics">
+            <div class="control-section section-dynamics" id="dynamicsSection">
                 <h2>Dynamics</h2>
                 <div class="control-fields two-col">
                     <label>
@@ -240,6 +290,7 @@
                 <div class="button-grid">
                     <button id="newGameButton" type="button">New Game</button>
                     <button id="passButton" type="button">Pass</button>
+                    <button id="countButton" type="button">Count</button>
                     <button id="measureButton" type="button">Measure</button>
                     <button id="unbraidHintButton" type="button">Unbraid Hint</button>
                     <button id="manualNoiseButton" type="button">Noise Tick</button>
@@ -267,6 +318,16 @@
                 <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, ψ x ψ = 1, e x m = ψ, e x ψ = m, m x ψ = e, and 1 x a = a. Vacuum fusion removes or replaces tokens according to config.</p>
                 <p><strong>Non-Abelian fusion:</strong> Ising uses σ x σ = 1 + ψ, σ x ψ = σ, and ψ x ψ = 1. Fibonacci uses τ x τ = 1 + τ. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                 <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
+            </div>
+            <div data-rules-mode="virasoro">
+                <h2>Virasoro Go Rules</h2>
+                <p><strong>Base Go:</strong> this mode uses ordinary graph-Go rules. Stones live on graph vertices. Connected groups, liberties, captures, suicide rejection, superko, two-pass counting, and area scoring all use graph adjacency from the selected topology.</p>
+                <p><strong>Optional Virasoro layer:</strong> every vertex has a stress value T(v), initially 0. Each connected stone group has conformal weight h = group_size / 2. The central charge c defaults to 1. With max mode N = 1, the enabled actions are L_-1, L_0, and L_1. With N = 2, L_-2 and L_2 are also available.</p>
+                <p><strong>Turn choice:</strong> a player may place a normal Go stone, pass, agree to count after two passes, or spend the turn on one Virasoro action when the layer is on. Normal Go captures still happen only by zero liberties.</p>
+                <p><strong>L_-1:</strong> choose a friendly connected group and a graph direction. For each empty liberty adjacent to the group, move up to one unit of stress from that liberty to the next empty vertex along that direction. L_-2 does the same shift over two graph steps.</p>
+                <p><strong>L_0:</strong> choose a friendly connected group. Add +1 stress to every empty liberty adjacent to that group. The stress is marked as controlled by the acting player.</p>
+                <p><strong>L_1:</strong> choose an empty target vertex. Move up to one unit of stress from each empty neighboring vertex into the target. L_2 pulls from distance-two axis neighbors.</p>
+                <p><strong>Stress pressure:</strong> for a group, enemyStressPressure is the sum of T(v) over empty liberties controlled by the opponent. If enemyStressPressure &gt; h + c, the group is marked unstable. By default this is a warning marker only; the optional Remove Group setting enables experimental removal.</p>
             </div>
         </section>
 

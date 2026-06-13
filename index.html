@@ -138,6 +138,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
                     </a>
+                    <a class="extra-mode-card" href="./algebraic/?mode=virasoro_go">
+                        <span class="extra-mode-copy">
+                            <strong>Virasoro Go</strong>
+                            <small>Graph Go with optional stress actions L_n</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-virasoro_go">0 waiting</span>
+                    </a>
                 </div>
             </section>
         </section>
@@ -168,7 +175,8 @@
                 kleingo: '2dgo',
                 '4dgo': '4dgo',
                 clifford_reversi: 'clifford_reversi',
-                anyon_jump: 'anyon_jump'
+                anyon_jump: 'anyon_jump',
+                virasoro_go: 'virasoro_go'
             };
             const DIMENSION_BY_GAME = {
                 '2dchess': '2d',
@@ -191,7 +199,8 @@
                 'game-3dreversi': 0,
                 'game-4dgo': 0,
                 'game-clifford_reversi': 0,
-                'game-anyon_jump': 0
+                'game-anyon_jump': 0,
+                'game-virasoro_go': 0
             };
 
             function setBadgeState(state, counts = EMPTY_COUNTS) {

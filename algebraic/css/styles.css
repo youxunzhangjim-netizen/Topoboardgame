@@ -170,7 +170,7 @@ h2 {
 
 .button-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -380,6 +380,38 @@ h2 {
 
 .cell.fielded {
     box-shadow: inset 0 0 0 2px rgba(242, 196, 100, 0.45), 0 0 14px rgba(242, 196, 100, 0.16);
+}
+
+.cell.stressed {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(242, 196, 100, 0.24), transparent 72%),
+        rgba(27, 38, 49, 0.88);
+}
+
+.cell.stress-preview {
+    outline: 2px solid rgba(242, 196, 100, 0.78);
+    outline-offset: -4px;
+}
+
+.cell.unstable-group {
+    border-color: rgba(255, 115, 115, 0.9);
+    box-shadow: inset 0 0 0 2px rgba(255, 115, 115, 0.42), 0 0 18px rgba(255, 115, 115, 0.18);
+}
+
+.stress-value {
+    position: absolute;
+    right: 4px;
+    top: 3px;
+    z-index: 2;
+    min-width: 20px;
+    padding: 1px 4px;
+    border-radius: 999px;
+    background: rgba(8, 11, 16, 0.76);
+    color: #f8df9c;
+    font-size: clamp(8px, 0.95vw, 11px);
+    font-weight: 1000;
+    line-height: 1.25;
+    pointer-events: none;
 }
 
 .cell.cancel-latest {
