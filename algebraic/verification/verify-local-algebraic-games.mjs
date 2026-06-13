@@ -10,6 +10,18 @@ assert.deepEqual(klein.normalize([2, 6]), [3, 0], 'Klein vertical crossing flips
 const seamStep = klein.step([2, 5], [0, 1]);
 assert.equal(seamStep.edge.transport, 'H', 'Klein seam carries Clifford H.');
 assert.equal(klein.seamTransform(seamStep.edge), 'twist', 'Klein seam carries anyon twist automorphism.');
+const randomBoundary = createGraphTopology({
+    topology: 'random_boundary',
+    width: 6,
+    height: 6,
+    randomBoundarySeed: 'algebraic-random-boundary-test'
+});
+const randomExitA = randomBoundary.step([0, 0], [-1, 0]);
+const randomExitB = randomBoundary.step([0, 0], [-1, 0]);
+assert.equal(randomBoundary.name, 'random_boundary');
+assert.ok(randomExitA?.coord, 'Random boundary maps an off-board exit back to a boundary vertex.');
+assert.deepEqual(randomExitA.coord, randomExitB.coord, 'Random boundary map is static within a game.');
+assert.ok(randomBoundary.randomBoundaryLinks(4).length > 0, 'Random boundary exposes mapping links.');
 
 const reversi = new CliffordReversiGame({ topology: { topology: 'torus', width: 8, height: 8 } });
 const preview = reversi.previewMove([2, 3], 'black', 'H');
@@ -19,6 +31,16 @@ assert.equal(preview.flips[0].after.pauliLabel, 'Z', 'H maps flipped X to Z.');
 const placed = reversi.place([2, 3], { player: 'black', pauliLabel: 'Y', transform: 'H' });
 assert.equal(placed.ok, true, 'Clifford Reversi move succeeds.');
 assert.equal(reversi.getStone([3, 3]).color, 'black', 'Bracketed stone flips color.');
+const randomReversi = new CliffordReversiGame({
+    topology: {
+        topology: 'random_boundary',
+        width: 8,
+        height: 8,
+        randomBoundarySeed: 'random-reversi'
+    }
+});
+assert.equal(randomReversi.topology.name, 'random_boundary', 'Clifford Reversi supports random boundary topology.');
+assert.ok(randomReversi.legalMoves('black', 'H').length > 0, 'Random-boundary Clifford Reversi has legal opening moves.');
 
 const signedReversi = new CliffordReversiGame({
     topology: { topology: 'torus', width: 8, height: 8 },
@@ -38,6 +60,16 @@ const jumpResult = jump.move('b1', [2, 0]);
 assert.equal(jumpResult.ok, true, 'Anyon jump over adjacent token succeeds.');
 assert.equal(jump.braidTokens.black, 1, 'Jumping e over m adds one braid token.');
 assert.equal(jump.exportState().history[0].winding.x, 0, 'Local non-wrapping jump has zero x winding.');
+const randomJump = new AnyonJumpGame({
+    topology: {
+        topology: 'random_boundary',
+        width: 6,
+        height: 6,
+        randomBoundarySeed: 'random-anyon'
+    }
+});
+assert.equal(randomJump.topology.name, 'random_boundary', 'Anyon Jump supports random boundary topology.');
+assert.ok(randomJump.legalActions('black').length > 0, 'Random-boundary Anyon Jump exposes legal actions.');
 
 const exact = new AnyonJumpGame({
     topology: { topology: 'torus', width: 4, height: 4 },
@@ -74,6 +106,17 @@ const go = new VirasoroGoGame({
     topology: { topology: 'flat', width: 5, height: 5 },
     virasoro: { enabled: true, centralCharge: 1, maxMode: 1 }
 });
+const randomGo = new VirasoroGoGame({
+    topology: {
+        topology: 'random_boundary',
+        width: 5,
+        height: 5,
+        randomBoundarySeed: 'random-virasoro'
+    },
+    virasoro: { enabled: true }
+});
+assert.equal(randomGo.topology.name, 'random_boundary', 'Virasoro Go supports random boundary topology.');
+assert.ok(randomGo.legalMoves().length > 0, 'Random-boundary Virasoro Go exposes legal graph-Go moves.');
 assert.equal(go.tryPlay([1, 1], 'black').ok, true, 'Graph Go black move succeeds.');
 assert.equal(go.tryPlay([0, 1], 'white').ok, true, 'Graph Go white reply succeeds.');
 assert.equal(go.tryPlay([2, 1], 'black').ok, true, 'Graph Go keeps normal play sequence.');

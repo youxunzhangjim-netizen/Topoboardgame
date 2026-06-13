@@ -1,7 +1,9 @@
 import { defaultSeamTransport } from '../algebra/PauliAlgebra.js';
+import { SeededRandom } from '../probability/SeededRandom.js';
 
 const TOPOLOGY_NAMES = Object.freeze([
     'flat',
+    'random_boundary',
     'torus',
     'klein_bottle',
     'rp2',
@@ -103,6 +105,45 @@ function detectLocalEncirclement(path = [], targetCoord, normalize) {
         && target[1] < Math.max(...ys);
 }
 
+function randomSeed() {
+    return `graph-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function boundaryTargets(width, height) {
+    const targets = [];
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (x === 0 || y === 0 || x === width - 1 || y === height - 1) targets.push([x, y]);
+        }
+    }
+    return targets;
+}
+
+function randomExitKey(coord, direction) {
+    return `${coord[0]},${coord[1]}:${Math.sign(direction[0] || 0)},${Math.sign(direction[1] || 0)}`;
+}
+
+function createRandomBoundaryMap(width, height, directions, seed = randomSeed()) {
+    const rng = new SeededRandom(seed);
+    const targets = boundaryTargets(width, height);
+    const entries = [];
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            for (const direction of directions) {
+                const raw = [x + (direction[0] || 0), y + (direction[1] || 0)];
+                if (inside(raw, [width, height])) continue;
+                let target = targets[rng.integer(targets.length)] || [x, y];
+                if (targets.length > 1 && target[0] === x && target[1] === y) {
+                    const currentIndex = targets.findIndex(([tx, ty]) => tx === target[0] && ty === target[1]);
+                    target = targets[(currentIndex + 1) % targets.length];
+                }
+                entries.push([randomExitKey([x, y], direction), target]);
+            }
+        }
+    }
+    return entries;
+}
+
 function makeEdge({ topology, from, rawTo, to, direction, wrap = {}, twisted = false }) {
     const transport = defaultSeamTransport({
         topology,
@@ -172,10 +213,16 @@ function create2DTopology(config) {
     const finiteVertical = name === 'flat' || name === 'sphere_latitude';
     const finiteHorizontal = name === 'flat';
     const nonorientable = name === 'klein_bottle' || name === 'rp2';
+    const randomBoundarySeed = name === 'random_boundary' ? (config.randomBoundarySeed || randomSeed()) : '';
+    const randomBoundaryMap = name === 'random_boundary'
+        ? new Map(Array.isArray(config.randomBoundaryMap)
+            ? config.randomBoundaryMap
+            : createRandomBoundaryMap(width, height, RAYS_2D, randomBoundarySeed))
+        : new Map();
 
     function normalize(rawCoord) {
         const [x, y] = rawCoord;
-        if (name === 'flat') return inside([x, y], sizes) ? [x, y] : null;
+        if (name === 'flat' || name === 'random_boundary') return inside([x, y], sizes) ? [x, y] : null;
         if (name === 'sphere_latitude') {
             if (y < 0 || y >= height) return null;
             return [mod(x, width), y];
@@ -190,6 +237,22 @@ function create2DTopology(config) {
         const from = normalize(fromCoord);
         if (!from) return null;
         const rawTo = addCoord(from, direction);
+        if (name === 'random_boundary' && !inside(rawTo, sizes)) {
+            const target = randomBoundaryMap.get(randomExitKey(from, direction));
+            if (!target) return null;
+            return {
+                coord: [...target],
+                edge: makeEdge({
+                    topology: name,
+                    from,
+                    rawTo,
+                    to: target,
+                    direction,
+                    wrap: {},
+                    twisted: false
+                })
+            };
+        }
         const to = normalize(rawTo);
         if (!to) return null;
         const wrapX = finiteHorizontal ? 0 : signedWrap(from[0], rawTo[0], width);
@@ -215,6 +278,8 @@ function create2DTopology(config) {
         sizes,
         width,
         height,
+        randomBoundarySeed,
+        randomBoundaryMap,
         maxRaySteps: width * height + 4,
         normalize,
         contains(coord) {
@@ -251,7 +316,8 @@ function create2DTopology(config) {
             return {
                 wrapX: edge?.wrapX || 0,
                 wrapY: edge?.wrapY || 0,
-                twisted: Boolean(edge?.twisted)
+                twisted: Boolean(edge?.twisted),
+                randomBoundary: name === 'random_boundary'
             };
         },
         detectLocalEncirclement(path, targetCoord) {
@@ -260,8 +326,19 @@ function create2DTopology(config) {
         displayCoord(coord) {
             return `(${coord[0]},${coord[1]})`;
         },
+        randomBoundaryLinks(limit = 28) {
+            if (name !== 'random_boundary') return [];
+            return [...randomBoundaryMap.entries()].slice(0, limit).map(([key, target]) => {
+                const [coordText] = key.split(':');
+                return {
+                    from: coordText.split(',').map(Number),
+                    to: [...target]
+                };
+            });
+        },
         seamSummary() {
             if (name === 'flat') return 'Flat open boundary: rays stop at the edge.';
+            if (name === 'random_boundary') return 'Random boundary: each boundary exit maps to one fixed random boundary square for this game.';
             if (name === 'sphere_latitude') return 'Sphere latitude graph: longitude wraps, top and bottom latitude rings stop.';
             if (name === 'torus') return 'Torus: x and y wrap periodically.';
             if (name === 'klein_bottle') return 'Klein bottle: x wraps normally, y wraps with x flip and H/twist seam transport.';
@@ -356,7 +433,9 @@ export function createGraphTopology(options = {}) {
     if (topology === 'flat_4d' || topology === 'flat_4d_go' || topology === '4d' || topology === 'flat_4d_grid') {
         return create4DTopology({ ...options, topology: 'flat_4d_grid' });
     }
-    const normalized = TOPOLOGY_NAMES.includes(topology) ? topology : 'torus';
+    const normalized = ['random', 'random-boundary', 'randomboundary'].includes(topology)
+        ? 'random_boundary'
+        : TOPOLOGY_NAMES.includes(topology) ? topology : 'torus';
     return create2DTopology({ ...options, topology: normalized });
 }
 

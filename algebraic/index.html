@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Algebraic Board Games</title>
-    <link rel="stylesheet" href="./css/styles.css?v=20260613-turn-card-board">
+    <link rel="stylesheet" href="./css/styles.css?v=20260613-random-boundary">
 </head>
 <body>
     <main class="app-shell">
@@ -32,6 +32,7 @@
                         Topology
                         <select id="topologySelect">
                             <option value="flat">Flat</option>
+                            <option value="random_boundary">Random Boundary</option>
                             <option value="torus" selected>Torus</option>
                             <option value="klein_bottle">Klein Bottle</option>
                             <option value="rp2">RP2</option>
@@ -341,7 +342,7 @@
                 <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
                     <div data-rules-mode="clifford">
                         <h2>Clifford Reversi Rules</h2>
-                        <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
+                        <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so random boundary, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
                         <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
                         <p><strong>Pauli math:</strong> I=(0,0), X=(1,0), Z=(0,1), Y=(1,1). The symplectic product is x1*z2 + z1*x2 mod 2. Labels anticommute when this value is 1.</p>
                         <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase Signs on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
@@ -350,6 +351,7 @@
                     <div data-rules-mode="anyon">
                         <h2>Anyon Jump Chess Rules</h2>
                         <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
+                        <p><strong>Random boundary:</strong> when selected, each boundary exit is linked to one fixed random boundary square for the current game. Anyon hops and jumps use those links through the same graph-neighbor system as the other topologies.</p>
                         <p><strong>Symbols:</strong> toric code labels are 1, e, m, and &psi;. Ising labels are 1, &sigma;, and &psi;. Fibonacci labels are 1 and &tau;. Board tokens use these Greek symbols directly.</p>
                         <p><strong>Vacuum 1:</strong> 1 is the trivial topological charge, meaning no nontrivial anyon remains. It acts like the identity in fusion: 1 x a = a.</p>
                         <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
@@ -362,6 +364,7 @@
                     <div data-rules-mode="virasoro">
                         <h2>Virasoro Go Rules</h2>
                         <p><strong>Base Go:</strong> this mode uses ordinary graph-Go rules. Stones live on graph vertices. Connected groups, liberties, captures, suicide rejection, superko, two-pass counting, and area scoring all use graph adjacency from the selected topology.</p>
+                        <p><strong>Random boundary:</strong> the Random Boundary topology creates one static random map from every boundary exit to another boundary point. Liberties, groups, captures, stress movement, and scoring all use that graph.</p>
                         <p><strong>Optional Virasoro layer:</strong> every vertex has a stress value T(v), initially 0. Each connected stone group has conformal weight h = group_size / 2. The central charge c defaults to 1. With max mode N = 1, the enabled actions are L_-1, L_0, and L_1. With N = 2, L_-2 and L_2 are also available.</p>
                         <p><strong>Turn choice:</strong> a player may place a normal Go stone, pass, agree to count after two passes, or spend the turn on one Virasoro action when the layer is on. Normal Go captures still happen only by zero liberties.</p>
                         <p><strong>L_-1:</strong> choose a friendly connected group and a graph direction. For each empty liberty adjacent to the group, move up to one unit of stress from that liberty to the next empty vertex along that direction. L_-2 does the same shift over two graph steps.</p>
@@ -426,6 +429,6 @@
             </aside>
         </section>
     </main>
-    <script type="module" src="./js/main.js?v=20260613-turn-card-board"></script>
+    <script type="module" src="./js/main.js?v=20260613-random-boundary"></script>
 </body>
 </html>
