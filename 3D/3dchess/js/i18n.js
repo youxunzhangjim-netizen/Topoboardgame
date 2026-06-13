@@ -1,4 +1,6 @@
 const DEFAULT_LANGUAGE = 'en';
+const LANGUAGE_STORAGE_KEY = '3dchess:language';
+const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 
 const DICTIONARY = {
     en: {
@@ -454,8 +456,27 @@ Object.assign(DICTIONARY.zh.boundary.info, {
     periodic: 'T3 週期：從任一立方體面離開會從相對面進入。'
 });
 
+function normalizeLanguage(value) {
+    return value === 'zh' || value === 'zh-Hant' || value === 'zh_tw' ? 'zh' : value === 'en' ? 'en' : '';
+}
+
+function resolveInitialLanguage() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const fromUrl = normalizeLanguage(params.get('lang'));
+        if (fromUrl) return fromUrl;
+        const local = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+        if (local) return local;
+        const global = normalizeLanguage(window.localStorage.getItem(GLOBAL_LANGUAGE_STORAGE_KEY));
+        if (global) return global;
+    } catch {
+        return DEFAULT_LANGUAGE;
+    }
+    return DEFAULT_LANGUAGE;
+}
+
 export const I18N = {
-    current: DEFAULT_LANGUAGE,
+    current: resolveInitialLanguage(),
     languages: Object.keys(DICTIONARY)
 };
 
@@ -515,6 +536,10 @@ export function applyLanguage(root = document) {
 export function setLanguage(language) {
     if (!I18N.languages.includes(language) || language === I18N.current) return;
     I18N.current = language;
+    try {
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+        window.localStorage.setItem(GLOBAL_LANGUAGE_STORAGE_KEY, language);
+    } catch {}
     applyLanguage();
     window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
 }

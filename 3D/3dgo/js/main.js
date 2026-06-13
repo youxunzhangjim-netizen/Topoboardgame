@@ -26,6 +26,7 @@ const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/
 const STORAGE_PREFIX = '3dgo:room:';
 const KOMI = 7.5;
 const LANGUAGE_STORAGE_KEY = '3dgo:language';
+const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 
 const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY]);
 
@@ -106,10 +107,20 @@ Object.assign(I18N.zh.mode, {
     r3RandomInfo: '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。'
 });
 
+function normalizeLanguage(value) {
+    const language = String(value || '');
+    return language === 'zh' || language === 'zh-Hant' || language === 'zh_tw' ? 'zh' : language === 'en' ? 'en' : '';
+}
+
 let currentLanguage = (() => {
     try {
-        const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-        return Object.prototype.hasOwnProperty.call(I18N, stored) ? stored : 'en';
+        const params = new URLSearchParams(window.location.search);
+        const fromUrl = normalizeLanguage(params.get('lang'));
+        if (fromUrl && Object.prototype.hasOwnProperty.call(I18N, fromUrl)) return fromUrl;
+        const stored = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+        if (stored && Object.prototype.hasOwnProperty.call(I18N, stored)) return stored;
+        const global = normalizeLanguage(window.localStorage.getItem(GLOBAL_LANGUAGE_STORAGE_KEY));
+        return global && Object.prototype.hasOwnProperty.call(I18N, global) ? global : 'en';
     } catch {
         return 'en';
     }
@@ -141,7 +152,10 @@ function applyLanguage(root = document) {
 function setLanguage(language) {
     if (!Object.prototype.hasOwnProperty.call(I18N, language) || language === currentLanguage) return;
     currentLanguage = language;
-    try { window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch {}
+    try {
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+        window.localStorage.setItem(GLOBAL_LANGUAGE_STORAGE_KEY, language);
+    } catch {}
     applyLanguage();
     window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
 }

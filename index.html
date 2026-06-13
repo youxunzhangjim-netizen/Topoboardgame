@@ -17,6 +17,24 @@
     <div class="launcher-background-torus" aria-hidden="true">
         <canvas id="launcherTorusCanvas"></canvas>
     </div>
+    <div class="launcher-language" aria-label="Language">
+        <button id="launcherLanguageButton" class="launcher-language-button" type="button" aria-label="Choose language" aria-expanded="false" aria-controls="launcherLanguageMenu" data-i18n-aria-label="language.choose" data-i18n-title="language.choose">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M3 12h18"></path>
+                <path d="M12 3a14 14 0 0 1 0 18"></path>
+                <path d="M12 3a14 14 0 0 0 0 18"></path>
+            </svg>
+        </button>
+        <div id="launcherLanguageMenu" class="launcher-language-menu" hidden>
+            <span data-i18n="language.prompt">What language do you want?</span>
+            <div class="launcher-language-options" aria-label="Language options">
+                <button type="button" data-launcher-lang="en" aria-pressed="true">En</button>
+                <span aria-hidden="true">|</span>
+                <button type="button" data-launcher-lang="zh" aria-pressed="false">中</button>
+            </div>
+        </div>
+    </div>
     <div class="launcher-author" aria-label="Author">
         <span>You-Xun Zhang</span>
         <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
@@ -25,11 +43,11 @@
     <main class="launcher-shell">
         <section class="launcher-hero" aria-labelledby="launcherTitle">
             <div class="brand-block">
-                <p class="eyebrow">TopologicalBoardgame</p>
-                <h1 id="launcherTitle">Topological Board Game</h1>
+                <p class="eyebrow" data-i18n="brand.eyebrow">TopologicalBoardgame</p>
+                <h1 id="launcherTitle" data-i18n="brand.title">Topological Board Game</h1>
             </div>
 
-            <div class="dimension-grid" aria-label="Choose board dimension">
+            <div class="dimension-grid" aria-label="Choose board dimension" data-i18n-aria-label="dimension.choose">
                 <section class="dimension-card dimension-2d" aria-labelledby="dimension2dTitle">
                     <span class="popularity-badge" data-popularity-key="dimension-2d">-- waiting</span>
                     <span class="dimension-visual board-plane" aria-hidden="true">
@@ -42,26 +60,26 @@
                     </span>
                     <span class="dimension-copy">
                         <strong id="dimension2dTitle">2D</strong>
-                        <small>Games embedded in 2D space</small>
+                        <small data-i18n="dimension.2d">Games embedded in 2D space</small>
                     </span>
                     <a class="game-option" href="./2D/2dchess/">
                         <span class="game-option-copy">
-                            <strong>2D Chess</strong>
-                            <small>Boundary-condition chess</small>
+                            <strong data-i18n="games.2dchess.title">2D Chess</strong>
+                            <small data-i18n="games.2dchess.desc">Boundary-condition chess</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2dchess">-- waiting</span>
                     </a>
                     <a class="game-option" href="./2D/2dgo/">
                         <span class="game-option-copy">
-                            <strong>2D Go</strong>
-                            <small>OBC, PBC, and Klein bottle Go</small>
+                            <strong data-i18n="games.2dgo.title">2D Go</strong>
+                            <small data-i18n="games.2dgo.desc">Standard, PBC, Klein bottle, and 2D RBC Go</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2dgo">-- waiting</span>
                     </a>
                     <a class="game-option" href="./2D/2dreversi/">
                         <span class="game-option-copy">
-                            <strong>2D Reversi</strong>
-                            <small>OBC, PBC, and Klein bottle Reversi</small>
+                            <strong data-i18n="games.2dreversi.title">2D Reversi</strong>
+                            <small data-i18n="games.2dreversi.desc">Standard, PBC, Klein bottle, and 2D RBC Reversi</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2dreversi">-- waiting</span>
                     </a>
@@ -74,26 +92,26 @@
                     </span>
                     <span class="dimension-copy">
                         <strong id="dimension3dTitle">3D</strong>
-                        <small>Games embedded in 3D space</small>
+                        <small data-i18n="dimension.3d">Games embedded in 3D space</small>
                     </span>
                     <a class="game-option" href="./3D/3dchess/">
                         <span class="game-option-copy">
-                            <strong>3D Chess</strong>
-                            <small>R3 and embedded 2D spaces</small>
+                            <strong data-i18n="games.3dchess.title">3D Chess</strong>
+                            <small data-i18n="games.3dchess.desc">R3 Standard, T3 PBC, 3D RBC, and embedded 2D spaces</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-3dchess">-- waiting</span>
                     </a>
                     <a class="game-option" href="./3D/3dgo/">
                         <span class="game-option-copy">
-                            <strong>3D Go</strong>
-                            <small>R3 lattice and T2 torus Go</small>
+                            <strong data-i18n="games.3dgo.title">3D Go</strong>
+                            <small data-i18n="games.3dgo.desc">R3 Standard, T3 PBC, 3D RBC, T2 torus, and S2 Go</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-3dgo">-- waiting</span>
                     </a>
                     <a class="game-option" href="./3D/3dreversi/">
                         <span class="game-option-copy">
-                            <strong>3D Reversi</strong>
-                            <small>R3, T2, and S2 Reversi</small>
+                            <strong data-i18n="games.3dreversi.title">3D Reversi</strong>
+                            <small data-i18n="games.3dreversi.desc">R3, T2, and S2 Reversi</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-3dreversi">-- waiting</span>
                     </a>
@@ -106,12 +124,12 @@
                     </span>
                     <span class="dimension-copy">
                         <strong id="dimension4dTitle">4D</strong>
-                        <small>Games embedded in 4D space</small>
+                        <small data-i18n="dimension.4d">Games embedded in 4D space</small>
                     </span>
                     <a class="game-option" href="./4D/4dgo/">
                         <span class="game-option-copy">
-                            <strong>4D Go</strong>
-                            <small>5^4 graph Go slices</small>
+                            <strong data-i18n="games.4dgo.title">4D Go</strong>
+                            <small data-i18n="games.4dgo.desc">5^4 graph Go slices</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-4dgo">0 waiting</span>
                     </a>
@@ -120,28 +138,28 @@
 
             <section class="algebraic-mode-panel" aria-labelledby="algebraicModeTitle">
                 <div class="algebraic-mode-heading">
-                    <strong id="algebraicModeTitle">Algebraic Mode</strong>
-                    <small>Choose one algebraic game. Each entry opens only its matching controls and rules.</small>
+                    <strong id="algebraicModeTitle" data-i18n="algebraic.title">Algebraic Mode</strong>
+                    <small data-i18n="algebraic.desc">Choose one algebraic game. Each entry opens only its matching controls and rules.</small>
                 </div>
-                <div class="extra-mode-row" aria-label="Algebraic game modes">
+                <div class="extra-mode-row" aria-label="Algebraic game modes" data-i18n-aria-label="algebraic.choose">
                     <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
                         <span class="extra-mode-copy">
-                            <strong>Clifford Reversi</strong>
-                            <small>Pauli-labelled Reversi with topology-aware flips</small>
+                            <strong data-i18n="games.clifford.title">Clifford Reversi</strong>
+                            <small data-i18n="games.clifford.desc">Pauli-labelled Reversi with topology-aware flips</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
                     </a>
                     <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
                         <span class="extra-mode-copy">
-                            <strong>Anyon Jump Chess</strong>
-                            <small>Jump-game braiding, fusion, and unbraiding</small>
+                            <strong data-i18n="games.anyon.title">Anyon Jump Chess</strong>
+                            <small data-i18n="games.anyon.desc">Jump-game braiding, fusion, and unbraiding</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
                     </a>
                     <a class="extra-mode-card" href="./algebraic/?mode=virasoro_go">
                         <span class="extra-mode-copy">
-                            <strong>Virasoro Go</strong>
-                            <small>Graph Go with optional stress actions L_n</small>
+                            <strong data-i18n="games.virasoro.title">Virasoro Go</strong>
+                            <small data-i18n="games.virasoro.desc">Graph Go with optional stress actions L_n</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-virasoro_go">0 waiting</span>
                     </a>
@@ -152,6 +170,95 @@
 
     <script>
         (() => {
+            const LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
+            const GAME_LANGUAGE_STORAGE_KEYS = [
+                LANGUAGE_STORAGE_KEY,
+                '2dchess:language',
+                '3dchess:language',
+                '3dgo:language'
+            ];
+            const LAUNCHER_I18N = {
+                en: {
+                    language: {
+                        choose: 'Choose language',
+                        prompt: 'What language do you want?'
+                    },
+                    brand: {
+                        eyebrow: 'TopologicalBoardgame',
+                        title: 'Topological Board Game'
+                    },
+                    dimension: {
+                        choose: 'Choose board dimension',
+                        '2d': 'Games embedded in 2D space',
+                        '3d': 'Games embedded in 3D space',
+                        '4d': 'Games embedded in 4D space'
+                    },
+                    games: {
+                        '2dchess': { title: '2D Chess', desc: 'Boundary-condition chess' },
+                        '2dgo': { title: '2D Go', desc: 'Standard, PBC, Klein bottle, and 2D RBC Go' },
+                        '2dreversi': { title: '2D Reversi', desc: 'Standard, PBC, Klein bottle, and 2D RBC Reversi' },
+                        '3dchess': { title: '3D Chess', desc: 'R3 Standard, T3 PBC, 3D RBC, and embedded 2D spaces' },
+                        '3dgo': { title: '3D Go', desc: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, and S2 Go' },
+                        '3dreversi': { title: '3D Reversi', desc: 'R3, T2, and S2 Reversi' },
+                        '4dgo': { title: '4D Go', desc: '5^4 graph Go slices' },
+                        clifford: { title: 'Clifford Reversi', desc: 'Pauli-labelled Reversi with topology-aware flips' },
+                        anyon: { title: 'Anyon Jump Chess', desc: 'Jump-game braiding, fusion, and unbraiding' },
+                        virasoro: { title: 'Virasoro Go', desc: 'Graph Go with optional stress actions L_n' }
+                    },
+                    algebraic: {
+                        title: 'Algebraic Mode',
+                        desc: 'Choose one algebraic game. Each entry opens only its matching controls and rules.',
+                        choose: 'Algebraic game modes'
+                    },
+                    badges: {
+                        waiting: '{count} waiting',
+                        checking: 'checking...',
+                        serverNeeded: 'server needed',
+                        unavailableTitle: 'Live waiting counts need a deployed matchmaking/presence server. The public PeerJS cloud does not expose peer listing here.',
+                        availableTitle: '{count} online matchmaking {noun}'
+                    }
+                },
+                zh: {
+                    language: {
+                        choose: '選擇語言',
+                        prompt: '你想使用哪一種語言？'
+                    },
+                    brand: {
+                        eyebrow: '拓撲棋盤遊戲',
+                        title: '拓撲棋盤遊戲'
+                    },
+                    dimension: {
+                        choose: '選擇棋盤嵌入維度',
+                        '2d': '嵌入於二維空間的遊戲',
+                        '3d': '嵌入於三維空間的遊戲',
+                        '4d': '嵌入於四維空間的遊戲'
+                    },
+                    games: {
+                        '2dchess': { title: '二維西洋棋', desc: '含邊界條件的西洋棋' },
+                        '2dgo': { title: '二維圍棋', desc: '標準、PBC、克萊因瓶與 2D RBC 圍棋' },
+                        '2dreversi': { title: '二維黑白棋', desc: '標準、PBC、克萊因瓶與 2D RBC 黑白棋' },
+                        '3dchess': { title: '三維西洋棋', desc: 'R3 標準、T3 PBC、3D RBC 與嵌入二維空間' },
+                        '3dgo': { title: '三維圍棋', desc: 'R3 標準、T3 PBC、3D RBC、T2 環面與 S2 圍棋' },
+                        '3dreversi': { title: '三維黑白棋', desc: 'R3、T2 與 S2 黑白棋' },
+                        '4dgo': { title: '四維圍棋', desc: '5^4 圖圍棋切片' },
+                        clifford: { title: 'Clifford 黑白棋', desc: '帶 Pauli 標籤且支援拓撲翻轉的黑白棋' },
+                        anyon: { title: '任意子跳棋', desc: '跳棋式編織、融合與解編織' },
+                        virasoro: { title: 'Virasoro 圍棋', desc: '含可選應力作用 L_n 的圖圍棋' }
+                    },
+                    algebraic: {
+                        title: '代數模式',
+                        desc: '選擇一個代數遊戲。每個入口只會開啟對應的控制與規則。',
+                        choose: '代數遊戲模式'
+                    },
+                    badges: {
+                        waiting: '{count} 等待中',
+                        checking: '檢查中...',
+                        serverNeeded: '需要伺服器',
+                        unavailableTitle: '即時等待人數需要部署媒合或在線狀態伺服器；公開 PeerJS 雲端不提供這裡需要的列表。',
+                        availableTitle: '{count} 位線上媒合等待者'
+                    }
+                }
+            };
             const PEER_LIST_URL = 'https://0.peerjs.com/peerjs/peers';
             const PEER_VERSION = '1.5.5';
             const MATCHMAKING_BUCKET_MS = 60000;
@@ -202,25 +309,126 @@
                 'game-anyon_jump': 0,
                 'game-virasoro_go': 0
             };
+            let lastBadgeState = 'loading';
+            let lastBadgeCounts = EMPTY_COUNTS;
+
+            function normalizeLanguage(value) {
+                const language = String(value || '').toLowerCase();
+                return language === 'zh' || language === 'zh-hant' || language === 'zh_tw' ? 'zh' : 'en';
+            }
+
+            function initialLanguage() {
+                const params = new URLSearchParams(window.location.search);
+                const fromUrl = params.get('lang');
+                if (fromUrl) return normalizeLanguage(fromUrl);
+                try {
+                    return normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+                } catch {
+                    return 'en';
+                }
+            }
+
+            let currentLanguage = initialLanguage();
+
+            function readTranslation(key) {
+                return key.split('.').reduce((node, part) => node?.[part], LAUNCHER_I18N[currentLanguage])
+                    ?? key.split('.').reduce((node, part) => node?.[part], LAUNCHER_I18N.en)
+                    ?? key;
+            }
+
+            function tr(key, params = {}) {
+                const value = String(readTranslation(key));
+                return value.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? '');
+            }
+
+            function syncGameLinks(language) {
+                document.querySelectorAll('a[href^="./"]').forEach((link) => {
+                    const baseHref = link.dataset.baseHref || link.getAttribute('href');
+                    link.dataset.baseHref = baseHref;
+                    const [withoutHash, hash = ''] = baseHref.split('#');
+                    const [path, query = ''] = withoutHash.split('?');
+                    const params = new URLSearchParams(query);
+                    params.set('lang', language);
+                    link.setAttribute('href', `${path}?${params.toString()}${hash ? `#${hash}` : ''}`);
+                });
+            }
+
+            function persistLanguage(language) {
+                try {
+                    for (const key of GAME_LANGUAGE_STORAGE_KEYS) window.localStorage.setItem(key, language);
+                } catch {
+                    // Some private browsing contexts block localStorage.
+                }
+            }
+
+            function applyLauncherLanguage() {
+                document.documentElement.lang = currentLanguage === 'zh' ? 'zh-Hant' : 'en';
+                document.title = tr('brand.title');
+                document.querySelectorAll('[data-i18n]').forEach((element) => {
+                    element.textContent = tr(element.dataset.i18n);
+                });
+                document.querySelectorAll('[data-i18n-aria-label]').forEach((element) => {
+                    element.setAttribute('aria-label', tr(element.dataset.i18nAriaLabel));
+                });
+                document.querySelectorAll('[data-i18n-title]').forEach((element) => {
+                    element.setAttribute('title', tr(element.dataset.i18nTitle));
+                });
+                document.querySelectorAll('[data-launcher-lang]').forEach((button) => {
+                    button.setAttribute('aria-pressed', String(button.dataset.launcherLang === currentLanguage));
+                });
+                syncGameLinks(currentLanguage);
+                setBadgeState(lastBadgeState, lastBadgeCounts);
+            }
+
+            function setLauncherLanguage(language) {
+                currentLanguage = normalizeLanguage(language);
+                persistLanguage(currentLanguage);
+                applyLauncherLanguage();
+            }
+
+            function installLanguageControl() {
+                const button = document.getElementById('launcherLanguageButton');
+                const menu = document.getElementById('launcherLanguageMenu');
+                if (!button || !menu) return;
+                button.addEventListener('click', () => {
+                    const expanded = button.getAttribute('aria-expanded') === 'true';
+                    button.setAttribute('aria-expanded', String(!expanded));
+                    menu.hidden = expanded;
+                });
+                document.addEventListener('click', (event) => {
+                    if (event.target.closest('.launcher-language')) return;
+                    button.setAttribute('aria-expanded', 'false');
+                    menu.hidden = true;
+                });
+                document.querySelectorAll('[data-launcher-lang]').forEach((option) => {
+                    option.addEventListener('click', () => {
+                        setLauncherLanguage(option.dataset.launcherLang);
+                        button.setAttribute('aria-expanded', 'false');
+                        menu.hidden = true;
+                    });
+                });
+            }
 
             function setBadgeState(state, counts = EMPTY_COUNTS) {
+                lastBadgeState = state;
+                lastBadgeCounts = counts;
                 document.querySelectorAll('[data-popularity-key]').forEach((badge) => {
                     const key = badge.dataset.popularityKey;
                     const count = counts[key] || 0;
                     const disabledZero = false;
                     badge.dataset.state = state;
                     if (disabledZero) {
-                        badge.textContent = `${count} waiting`;
+                        badge.textContent = tr('badges.waiting', { count });
                         badge.title = 'Not available yet';
                     } else if (state === 'available') {
-                        badge.textContent = `${count} waiting`;
-                        badge.title = `${count} online matchmaking ${count === 1 ? 'waiter' : 'waiters'}`;
+                        badge.textContent = tr('badges.waiting', { count });
+                        badge.title = tr('badges.availableTitle', { count, noun: count === 1 ? 'waiter' : 'waiters' });
                     } else if (state === 'loading') {
-                        badge.textContent = 'checking...';
+                        badge.textContent = tr('badges.checking');
                         badge.title = 'Checking live matchmaking count';
                     } else {
-                        badge.textContent = 'server needed';
-                        badge.title = 'Live waiting counts need a deployed matchmaking/presence server. The public PeerJS cloud does not expose peer listing here.';
+                        badge.textContent = tr('badges.serverNeeded');
+                        badge.title = tr('badges.unavailableTitle');
                     }
                 });
             }
@@ -268,6 +476,9 @@
                 }
             }
 
+            persistLanguage(currentLanguage);
+            installLanguageControl();
+            applyLauncherLanguage();
             setBadgeState('loading');
             refreshPopularity();
             window.setInterval(refreshPopularity, 60000);

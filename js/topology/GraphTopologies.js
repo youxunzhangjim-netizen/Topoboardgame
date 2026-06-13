@@ -337,8 +337,8 @@ function create2DTopology(config) {
             });
         },
         seamSummary() {
-            if (name === 'flat') return 'Flat open boundary: rays stop at the edge.';
-            if (name === 'random_boundary') return 'Random boundary: each boundary exit maps to one fixed random boundary square for this game.';
+            if (name === 'flat') return 'Standard boundary: rays stop at the edge.';
+            if (name === 'random_boundary') return '2D RBC: each boundary exit maps to one fixed random boundary square for this game.';
             if (name === 'sphere_latitude') return 'Sphere latitude graph: longitude wraps, top and bottom latitude rings stop.';
             if (name === 'torus') return 'Torus: x and y wrap periodically.';
             if (name === 'klein_bottle') return 'Klein bottle: x wraps normally, y wraps with x flip and H/twist seam transport.';
@@ -423,7 +423,7 @@ function create4DTopology(config) {
             return `(${coord[0]},${coord[1]},${coord[2]},${coord[3]})`;
         },
         seamSummary() {
-            return 'Flat 4D grid: finite axis-neighbor graph, no diagonal edges.';
+            return 'Standard 4D grid: finite axis-neighbor graph, no diagonal edges.';
         }
     };
 }
