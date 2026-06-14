@@ -12,11 +12,16 @@ import {
     createStabilizerPauliRecoveryProblem,
     STABILIZER_PAULI_RECOVERY_ID
 } from './StabilizerPauliRecoveryProblem.js';
+import {
+    CFT_CONFORMAL_BLOCK_OBSERVABLES_ID,
+    createCFTConformalBlockObservablesProblem
+} from './CFTConformalBlockObservablesProblem.js';
 
 export const PHYSICAL_PROBLEM_IDS = Object.freeze([
     TORIC_CODE_MEMORY_UNBRAID_ID,
     ISING_DOMAIN_WALL_TOPOLOGY_ID,
-    STABILIZER_PAULI_RECOVERY_ID
+    STABILIZER_PAULI_RECOVERY_ID,
+    CFT_CONFORMAL_BLOCK_OBSERVABLES_ID
 ]);
 
 export function normalizePhysicalProblemId(value = '') {
@@ -35,6 +40,9 @@ export function createPhysicalProblem(problem = null, config = {}) {
     }
     if (id === STABILIZER_PAULI_RECOVERY_ID) {
         return createStabilizerPauliRecoveryProblem({ ...source, ...config });
+    }
+    if (id === CFT_CONFORMAL_BLOCK_OBSERVABLES_ID) {
+        return createCFTConformalBlockObservablesProblem({ ...source, ...config });
     }
     return null;
 }
@@ -60,3 +68,7 @@ export {
     runStabilizerRecoveryExperiment,
     STABILIZER_PAULI_RECOVERY_ID
 } from './StabilizerPauliRecoveryProblem.js';
+export {
+    CFT_CONFORMAL_BLOCK_OBSERVABLES_ID,
+    runCFTObservableExperiment
+} from './CFTConformalBlockObservablesProblem.js';

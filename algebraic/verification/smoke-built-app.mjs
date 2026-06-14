@@ -536,7 +536,7 @@ try {
     const fixedGoState = await page.evaluate(() => ({
         title: document.querySelector('#modeTitle')?.textContent,
         modeControlHidden: document.querySelector('#modeControl')?.hidden,
-        virasoroVisible: !document.querySelector('#virasoroActionControl')?.hidden,
+        cftControlsDisplay: getComputedStyle(document.querySelector('#cftReversiControls')).display,
         cliffordDisplay: getComputedStyle(document.querySelector('#cliffordAlgebraControls')).display,
         anyonDisplay: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display,
         virasoroDisplay: getComputedStyle(document.querySelector('#virasoroAlgebraControls')).display,
@@ -554,15 +554,15 @@ try {
     }));
     assert.equal(fixedGoState.title, 'Virasoro Go');
     assert.equal(fixedGoState.modeControlHidden, false, 'Launcher-selected Virasoro Go should remain changeable inside the algebraic app.');
-    assert.equal(fixedGoState.virasoroVisible, true, 'Virasoro Go should show Virasoro controls.');
+    assert.notEqual(fixedGoState.cftControlsDisplay, 'none', 'Virasoro Go should show its CFT/Virasoro controls.');
     assert.equal(fixedGoState.cliffordDisplay, 'none', 'Virasoro Go should hide Clifford algebra group.');
     assert.equal(fixedGoState.anyonDisplay, 'none', 'Virasoro Go should hide Anyon algebra group.');
-    assert.notEqual(fixedGoState.virasoroDisplay, 'none', 'Virasoro Go should show Virasoro algebra group.');
+    assert.equal(fixedGoState.virasoroDisplay, 'none', 'Virasoro Go should hide the retired legacy Virasoro group.');
     assert.equal(fixedGoState.pauliHidden, true, 'Virasoro Go should hide Clifford Pauli controls.');
     assert.equal(fixedGoState.pauliDisplay, 'none', 'Hidden Clifford controls should not occupy layout space.');
     assert.equal(fixedGoState.braidHidden, true, 'Virasoro Go should hide Anyon braid controls.');
     assert.equal(fixedGoState.braidDisplay, 'none', 'Hidden Anyon controls should not occupy layout space.');
-    assert.equal(fixedGoState.rulesButton, 'Virasoro Rules');
+    assert.equal(fixedGoState.rulesButton, 'Virasoro Go Rules');
     assert.deepEqual(fixedGoState.physicalProblemOptions, [''], 'Virasoro Go should not show incompatible physical-problem wrappers.');
     assert.match(fixedGoState.rulesText, /Virasoro Go Rules/);
     await page.locator('#rulesIntroButton').click();
@@ -573,7 +573,7 @@ try {
             .join(' ')
     }));
     assert.equal(visibleVirasoroRules.visible, true, 'Virasoro rules should open in the board area.');
-    assert.match(visibleVirasoroRules.text, /Stress pressure/);
+    assert.match(visibleVirasoroRules.text, /Virasoro actions/);
     await page.locator('.cell.legal').first().click();
     await page.locator('.cell.legal').first().click();
     const cftStoneState = await page.evaluate(() => ({
@@ -584,18 +584,18 @@ try {
     assert.ok(cftStoneState.blackStones >= 1, 'Virasoro Go stones should render on the board.');
     assert.ok(cftStoneState.cftBadges >= 1, 'Virasoro Go stones should show CFT h badges.');
     assert.match(cftStoneState.firstTitle, /h=/);
-    await page.selectOption('#virasoroActionSelect', 'L0');
+    await page.selectOption('#cftActionSelect', 'L0');
     await page.locator('.stone.black').first().locator('xpath=..').click();
     const goState = await page.evaluate(() => {
         const exportState = JSON.parse(document.querySelector('#exportText').value);
         return {
             mode: exportState.mode,
-            historyType: exportState.history[0]?.type,
-            stressCount: exportState.virasoro.vertexStates.filter((entry) => entry.stress > 0).length
+            historyAction: exportState.physicsHistory.at(-1)?.action,
+            stressCount: exportState.cft.stress.filter((entry) => entry.stress > 0).length
         };
     });
-    assert.equal(goState.mode, 'virasoro_go');
-    assert.equal(goState.historyType, 'virasoro');
+    assert.equal(goState.mode, 'physical_virasoro_go');
+    assert.equal(goState.historyAction, 'virasoro_deformation');
     assert.ok(goState.stressCount > 0, 'Expected L0 to create stress on Go liberties.');
 
     await page.goto(`http://127.0.0.1:${port}/?mode=physical_virasoro_reversi`, { waitUntil: 'networkidle' });
@@ -612,7 +612,7 @@ try {
             legalMoves: document.querySelectorAll('.cell.legal').length
         };
     });
-    assert.equal(cftInitialState.title, 'Physical Virasoro Reversi');
+    assert.equal(cftInitialState.title, 'Virasoro Reversi');
     assert.equal(cftInitialState.mode, 'physical_virasoro_reversi');
     assert.equal(cftInitialState.boardSize, 4);
     assert.equal(cftInitialState.sigmaCount, 4);

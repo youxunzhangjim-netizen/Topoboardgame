@@ -28,6 +28,7 @@ run(['run', 'build', '--workspace', '3dchess']);
 run(['run', 'build', '--workspace', '3dgo']);
 run(['run', 'build', '--workspace', '3dreversi']);
 run(['run', 'build', '--workspace', '4dgo']);
+run(['run', 'build', '--workspace', '4dreversi']);
 run(['run', 'build', '--workspace', 'algebraic-games']);
 
 const launcherOutput = join(root, '.launcher-dist');
@@ -55,6 +56,7 @@ copy(join(root, '3D', '3dchess', 'dist'), join(output, '3D', '3dchess'));
 copy(join(root, '3D', '3dgo', 'dist'), join(output, '3D', '3dgo'));
 copy(join(root, '3D', '3dreversi', 'dist'), join(output, '3D', '3dreversi'));
 copy(join(root, '4D', '4dgo', 'dist'), join(output, '4D', '4dgo'));
+copy(join(root, '4D', '4dreversi', 'dist'), join(output, '4D', '4dreversi'));
 copy(join(root, 'algebraic', 'dist'), join(output, 'algebraic'));
 writeFileSync(join(output, '.nojekyll'), '');
 rmSync(launcherOutput, { recursive: true, force: true });

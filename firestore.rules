@@ -42,7 +42,10 @@ service cloud.firestore {
           && request.resource.data.gameKey == resource.data.gameKey
           && request.resource.data.matchKey == resource.data.matchKey
           && request.resource.data.moveNumber == resource.data.moveNumber + 1
-          && request.resource.data.turn != resource.data.turn;
+          && (
+            request.resource.data.turn == "white"
+            || request.resource.data.turn == "black"
+          );
       }
 
       function isLeave() {
@@ -88,6 +91,28 @@ service cloud.firestore {
         && (isJoin() || isLegalClientMove() || isLeave());
 
       allow delete: if false;
+
+      match /messages/{messageId} {
+        function roomData() {
+          return get(/databases/$(database)/documents/rooms/$(roomId)).data;
+        }
+
+        function isRoomPlayer() {
+          return request.auth != null
+            && (
+              roomData().players.white == request.auth.uid
+              || roomData().players.black == request.auth.uid
+            );
+        }
+
+        allow read: if isRoomPlayer();
+        allow create: if isRoomPlayer()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 240;
+        allow update, delete: if false;
+      }
     }
   }
 }

@@ -5,12 +5,14 @@ import {
     signInAnonymously
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import {
+    addDoc,
     collection,
     doc,
     getDocs,
-    getFirestore,
+    initializeFirestore,
     limit,
     onSnapshot,
+    orderBy,
     query,
     runTransaction,
     serverTimestamp,
@@ -28,14 +30,20 @@ let user = null;
 let roomId = '';
 let playerColor = null;
 let unsubscribeRoom = null;
+let unsubscribeChat = null;
 let initialized = false;
 let hooks = {};
 let latestRoom = null;
 let lastLoadedMoveNumber = -1;
 const reconnectStorageKey = 'topoboardgame:firebase-room';
+const operationTimeoutMs = 10000;
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
+}
+
+function firestoreValue(value) {
+    return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
 function normalizeRoomId(value) {
@@ -56,6 +64,18 @@ function requireReady() {
     if (!initialized || !db || !user) {
         throw new Error('Firebase online multiplayer is not initialized.');
     }
+}
+
+function withTimeout(promise, label = 'Firebase operation') {
+    let timer = null;
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            timer = window.setTimeout(() => {
+                reject(new Error(`${label} timed out. Check that Cloud Firestore exists and the deployed rules allow this request.`));
+            }, operationTimeoutMs);
+        })
+    ]).finally(() => window.clearTimeout(timer));
 }
 
 function roomReference(id = roomId) {
@@ -83,7 +103,8 @@ export async function initOnline(options = {}) {
         gameKey: String(options.gameKey || 'topological-boardgame'),
         matchKey: String(options.matchKey || options.gameKey || 'topological-boardgame'),
         getCurrentTurn: options.getCurrentTurn,
-        getTurnFromBoard: options.getTurnFromBoard
+        getTurnFromBoard: options.getTurnFromBoard,
+        onChatMessages: options.onChatMessages
     };
 
     if (!hasFirebaseConfig()) {
@@ -94,7 +115,9 @@ export async function initOnline(options = {}) {
 
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
+    db = initializeFirestore(app, {
+        experimentalAutoDetectLongPolling: true
+    });
     status('Signing in anonymously...');
     if (!auth.currentUser) await signInAnonymously(auth);
     user = auth.currentUser || await waitForAuth(auth);
@@ -108,9 +131,9 @@ export async function createPrivateRoom(initialBoard) {
     await leaveRoom({ updateRemote: false });
 
     const ref = doc(collection(db, roomsPath));
-    const board = initialBoard ?? hooks.getCurrentBoardState?.();
+    const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
-    await setDoc(ref, {
+    await withTimeout(setDoc(ref, {
         status: 'waiting',
         public: false,
         players: {
@@ -125,14 +148,15 @@ export async function createPrivateRoom(initialBoard) {
         lastMove: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-    });
+    }), 'Create room');
 
     roomId = ref.id;
     playerColor = initialTurn;
     lastLoadedMoveNumber = 0;
     localStorage.setItem(reconnectStorageKey, roomId);
-    status(`Private room ${roomId} created. Waiting for Black.`);
+    status(`Private room ${roomId} created. Waiting for ${opposite(playerColor)}.`);
     listenToRoom(roomId);
+    listenToChat(roomId);
     return { roomId, playerColor };
 }
 
@@ -143,7 +167,7 @@ export async function joinPrivateRoom(rawRoomId) {
     await leaveRoom({ updateRemote: false });
 
     const ref = roomReference(requestedRoom);
-    const joined = await runTransaction(db, async (transaction) => {
+    const joined = await withTimeout(runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error('Room not found.');
         const room = snapshot.data();
@@ -173,7 +197,7 @@ export async function joinPrivateRoom(rawRoomId) {
             },
             color: openColor
         };
-    });
+    }), 'Join room');
 
     roomId = requestedRoom;
     playerColor = joined.color;
@@ -185,6 +209,7 @@ export async function joinPrivateRoom(rawRoomId) {
     }
     status(`Joined room ${roomId} as ${playerColor}.`);
     listenToRoom(roomId);
+    listenToChat(roomId);
     return { roomId, playerColor };
 }
 
@@ -198,7 +223,7 @@ export async function findMatch(initialBoard) {
         where('status', '==', 'waiting'),
         limit(20)
     );
-    const candidates = await getDocs(waitingQuery);
+    const candidates = await withTimeout(getDocs(waitingQuery), 'Find match');
     for (const candidate of candidates.docs) {
         if (!candidate.data().public
             || candidate.data().players?.white === user.uid
@@ -212,9 +237,9 @@ export async function findMatch(initialBoard) {
     }
 
     const ref = doc(collection(db, roomsPath));
-    const board = initialBoard ?? hooks.getCurrentBoardState?.();
+    const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
-    await setDoc(ref, {
+    await withTimeout(setDoc(ref, {
         status: 'waiting',
         public: true,
         players: {
@@ -229,13 +254,14 @@ export async function findMatch(initialBoard) {
         lastMove: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-    });
+    }), 'Create public match');
     roomId = ref.id;
     playerColor = initialTurn;
     lastLoadedMoveNumber = 0;
     localStorage.setItem(reconnectStorageKey, roomId);
     status('Public match created. Waiting for another player...');
     listenToRoom(roomId);
+    listenToChat(roomId);
     return { roomId, playerColor };
 }
 
@@ -288,7 +314,7 @@ export async function sendMove(move) {
     if (!roomId || !playerColor) throw new Error('Join a room before moving.');
     const ref = roomReference();
 
-    await runTransaction(db, async (transaction) => {
+    await withTimeout(runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error('Room not found.');
         const room = snapshot.data();
@@ -299,7 +325,7 @@ export async function sendMove(move) {
         // Client-side validation is acceptable for this prototype. A commercial
         // game needs server-authoritative validation (for example Cloud
         // Functions or a trusted game server) because clients can be modified.
-        const nextBoard = await hooks.applyMove?.(room.board, move, playerColor);
+        const nextBoard = firestoreValue(await hooks.applyMove?.(room.board, move, playerColor));
         if (!nextBoard) throw new Error('Illegal move.');
         const { boardState: _clientSnapshot, ...lastMove } = move;
 
@@ -317,12 +343,63 @@ export async function sendMove(move) {
             },
             updatedAt: serverTimestamp()
         });
+    }), 'Send move');
+}
+
+export function listenToChat(id = roomId) {
+    requireReady();
+    const normalized = normalizeRoomId(id);
+    if (!normalized) return null;
+    unsubscribeChat?.();
+    const messagesQuery = query(
+        collection(db, roomsPath, normalized, 'messages'),
+        orderBy('createdAt', 'asc'),
+        limit(100)
+    );
+    unsubscribeChat = onSnapshot(messagesQuery, (snapshot) => {
+        hooks.onChatMessages?.(snapshot.docs.map((message) => ({
+            id: message.id,
+            ...message.data()
+        })));
+    }, (error) => {
+        status(`Chat connection failed: ${error.message}`);
+    });
+    return unsubscribeChat;
+}
+
+export async function sendChatMessage(text) {
+    requireReady();
+    const message = String(text || '').trim().slice(0, 240);
+    if (!roomId || !playerColor) throw new Error('Join a room before chatting.');
+    if (!message) return false;
+    await withTimeout(addDoc(collection(db, roomsPath, roomId, 'messages'), {
+        text: message,
+        uid: user.uid,
+        player: playerColor,
+        createdAt: serverTimestamp()
+    }), 'Send chat');
+    return true;
+}
+
+export function subscribeWaitingRooms(callback) {
+    requireReady();
+    const waitingQuery = query(
+        collection(db, roomsPath),
+        where('status', '==', 'waiting'),
+        limit(200)
+    );
+    return onSnapshot(waitingQuery, (snapshot) => {
+        callback(snapshot.docs.map((room) => ({ id: room.id, ...room.data() })));
+    }, (error) => {
+        callback([], error);
     });
 }
 
 export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
     unsubscribeRoom?.();
     unsubscribeRoom = null;
+    unsubscribeChat?.();
+    unsubscribeChat = null;
 
     if (updateRemote && initialized && roomId && user) {
         const ref = roomReference();
@@ -352,6 +429,7 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
     lastLoadedMoveNumber = -1;
     if (forget) localStorage.removeItem(reconnectStorageKey);
     hooks.onRoomChanged?.({ roomId: '', playerColor: null, room: null });
+    hooks.onChatMessages?.([]);
     status('Offline.');
 }
 

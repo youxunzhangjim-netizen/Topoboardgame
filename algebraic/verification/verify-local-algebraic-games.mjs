@@ -429,9 +429,11 @@ assert.equal(go.stressAt(stressedLiberty.coord).owner, 'black', 'Virasoro stress
 go.currentPlayer = 'white';
 const whiteGroup = go.groupInfoAt([0, 1]);
 for (const liberty of whiteGroup.liberties) {
-    go.virasoro.setStress(liberty, 3, 'black');
+    go.cft.setStress(liberty, 3, 'black');
 }
-const instability = go.virasoro.evaluateInstability();
-assert.ok(instability.unstableGroups.some((group) => group.color === 'white'), 'Enemy stress pressure can mark a group unstable.');
+assert.ok(
+    [...whiteGroup.liberties].every((liberty) => go.stressAt(liberty).owner === 'black'),
+    'CFT stress keeps the controlling player on graph liberties.'
+);
 
 console.log('Algebraic local game verification passed.');

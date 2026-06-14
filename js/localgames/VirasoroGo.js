@@ -11,6 +11,7 @@ import {
 } from '../go/GraphGoGame.js';
 import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
 import { coordKey } from '../topology/GraphTopologies.js';
+import { createPhysicalProblem } from '../physics/PhysicalProblems.js';
 
 export const PHYSICAL_VIRASORO_GO_MODE = 'physical_virasoro_go';
 export const VIRASORO_GO_MODE = PHYSICAL_VIRASORO_GO_MODE;
@@ -101,6 +102,10 @@ export class VirasoroGoGame {
             }
         });
         this.probability = new ProbabilityEngine(options.probability || {});
+        this.physicalProblem = createPhysicalProblem(
+            options.physicalProblem || options.physicalProblemId || options.problemId || null,
+            options.physicalProblemConfig || {}
+        );
         this.primaryBoard = new Map();
         this.physicsHistory = [];
         this.measurementHistory = [];
@@ -108,6 +113,7 @@ export class VirasoroGoGame {
         this.lastCapturedGroups = [];
         this.setupCFTInitialState(this.cftConfig.initialState);
         this.resetPositionHistory();
+        this.physicalProblem?.start?.(this);
         this.appendPhysicsHistory({
             player: 'system',
             action: 'initial_state',
@@ -529,6 +535,7 @@ export class VirasoroGoGame {
             observables: this.computeCFTObservables(true)
         };
         this.physicsHistory.push(entry);
+        this.physicalProblem?.record?.(this, { type: action, event: entry });
         return entry;
     }
 
@@ -588,6 +595,7 @@ export class VirasoroGoGame {
             physicsHistory: cloneValue(this.physicsHistory),
             observables,
             answer: this.computeCFTAnswer(),
+            physicalProblem: this.physicalProblem?.export?.(this) || null,
             history: this.history.map(cloneValue)
         };
     }

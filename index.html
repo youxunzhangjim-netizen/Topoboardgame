@@ -168,19 +168,19 @@
                     </div>
                     <div class="extra-mode-column">
                         <span class="extra-mode-column-title">Virasoro / CFT</span>
-                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_go">
-                            <span class="extra-mode-copy">
-                                <strong data-i18n="games.virasoro.title">Physical Virasoro Go</strong>
-                                <small data-i18n="games.virasoro.desc">Graph Go with approximate CFT observables</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go">0 waiting</span>
-                        </a>
                         <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_reversi">
                             <span class="extra-mode-copy">
-                                <strong data-i18n="games.cftreversi.title">Physical Virasoro Reversi</strong>
+                                <strong data-i18n="games.cftreversi.title">Virasoro Reversi</strong>
                                 <small data-i18n="games.cftreversi.desc">Reversi with CFT intervals, OPE channels, and stress</small>
                             </span>
                             <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi">0 waiting</span>
+                        </a>
+                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_go">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="games.virasoro.title">Virasoro Go</strong>
+                                <small data-i18n="games.virasoro.desc">Graph Go with approximate CFT observables</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go">0 waiting</span>
                         </a>
                     </div>
                     <div class="extra-mode-column">
@@ -239,7 +239,7 @@
                         anyon: { title: 'Anyon Jump Chess', desc: 'Jump game with braiding and fusion' },
                         virasoro: { title: 'Virasoro Go', desc: 'Go with stress-field actions' },
                         cftreversi: {
-                            title: 'Physical Virasoro Reversi',
+                            title: 'Virasoro Reversi',
                             desc: 'Reversi with CFT intervals, OPE channels, and stress'
                         }
                     },
@@ -287,7 +287,7 @@
                         anyon: { title: 'Anyon Jump Chess', desc: '帶編織與融合的跳躍遊戲' },
                         virasoro: { title: 'Virasoro 圍棋', desc: '帶應力場操作的圍棋' },
                         cftreversi: {
-                            title: '物理 Virasoro 黑白棋',
+                            title: 'Virasoro 黑白棋',
                             desc: '以 CFT 區間、OPE 通道與應力描述的黑白棋'
                         }
                     },
@@ -305,10 +305,6 @@
                     }
                 }
             };
-            const PEER_LIST_URL = 'https://0.peerjs.com/peerjs/peers';
-            const PEER_VERSION = '1.5.5';
-            const MATCHMAKING_BUCKET_MS = 60000;
-            const MATCH_ROOM_PATTERN = /^tc-([a-z0-9]+)-.*-m-(\d+)-\d+$/i;
             const GAME_BY_VARIANT = {
                 '2dchess': '2dchess',
                 '2dgo': '2dgo',
@@ -486,20 +482,14 @@
                 });
             }
 
-            function summarize(peerIds) {
+            function summarize(rooms) {
                 const counts = { ...EMPTY_COUNTS };
-                const seenRooms = new Set();
-                const bucket = Math.floor(Date.now() / MATCHMAKING_BUCKET_MS);
-                const activeBuckets = new Set([bucket - 1, bucket, bucket + 1]);
-
-                for (const id of peerIds) {
-                    const roomId = String(id || '').toLowerCase();
-                    const match = roomId.match(MATCH_ROOM_PATTERN);
-                    if (!match || seenRooms.has(roomId)) continue;
-                    if (!activeBuckets.has(Number(match[2]))) continue;
-                    seenRooms.add(roomId);
-
-                    const game = GAME_BY_VARIANT[match[1]];
+                for (const room of rooms) {
+                    const rawKey = String(room.gameKey || room.matchKey || '').toLowerCase();
+                    const variant = rawKey.startsWith('algebraic:')
+                        ? rawKey.slice('algebraic:'.length).split(':')[0]
+                        : rawKey.split(':')[0];
+                    const game = GAME_BY_VARIANT[variant] || variant;
                     const dimension = DIMENSION_BY_GAME[game];
                     if (!game) continue;
 
@@ -510,33 +500,18 @@
                 return counts;
             }
 
-            async function fetchPeerIds() {
-                const url = new URL(PEER_LIST_URL);
-                url.searchParams.set('ts', `${Date.now()}${Math.random()}`);
-                url.searchParams.set('version', PEER_VERSION);
-                const response = await fetch(url.href, { cache: 'no-store', referrerPolicy: 'strict-origin-when-cross-origin' });
-                if (!response.ok) throw new Error(`Peer discovery returned ${response.status}`);
-                const data = await response.json();
-                return Array.isArray(data) ? data : [];
-            }
-
-            async function refreshPopularity() {
-                try {
-                    const peers = await fetchPeerIds();
-                    setBadgeState('available', summarize(peers));
-                } catch {
-                    setBadgeState('unavailable');
-                }
-            }
+            window.addEventListener('topoboardgame:waiting-rooms', (event) => {
+                if (event.detail?.error) setBadgeState('unavailable');
+                else setBadgeState('available', summarize(event.detail?.rooms || []));
+            });
 
             persistLanguage(currentLanguage);
             installLanguageControl();
             applyLauncherLanguage();
             setBadgeState('loading');
-            refreshPopularity();
-            window.setInterval(refreshPopularity, 60000);
         })();
     </script>
+    <script type="module" src="./js/launcher-online-status.js"></script>
     <script type="module" src="./js/launcher-previews.js"></script>
     <script type="module" src="./js/launcher-torus.js"></script>
 </body>

@@ -10,6 +10,7 @@
     "3D/3dgo",
     "3D/3dreversi",
     "4D/4dgo",
+    "4D/4dreversi",
     "algebraic"
   ],
   "scripts": {
@@ -32,6 +33,8 @@
     "dev:3dreversi": "npm run dev --workspace 3dreversi",
     "build:4dgo": "npm run build --workspace 4dgo",
     "dev:4dgo": "npm run dev --workspace 4dgo",
+    "build:4dreversi": "npm run build --workspace 4dreversi",
+    "dev:4dreversi": "npm run dev --workspace 4dreversi",
     "build:algebraic": "npm run build --workspace algebraic-games",
     "dev:algebraic": "npm run dev --workspace algebraic-games",
     "verify:probability": "node tools/verify-probability-engine.mjs",

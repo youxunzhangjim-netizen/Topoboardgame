@@ -33,8 +33,8 @@
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
                             <option value="clifford_go">Clifford Go</option>
-                            <option value="physical_virasoro_go">Physical Virasoro Go</option>
-                            <option value="physical_virasoro_reversi">Physical Virasoro Reversi</option>
+                            <option value="physical_virasoro_reversi">Virasoro Reversi</option>
+                            <option value="physical_virasoro_go">Virasoro Go</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
                         </select>
                     </label>
@@ -60,12 +60,13 @@
                         </select>
                     </label>
                     <label id="physicalProblemControl">
-                        Physical Problem
+                        Research Problem
                         <select id="physicalProblemSelect">
                             <option value="" selected>None</option>
                             <option value="ising_domain_wall_topology">Ising Domain Wall</option>
                             <option value="toric_code_memory_unbraid">Toric Memory Unbraid</option>
                             <option value="stabilizer_pauli_recovery">Stabilizer Pauli Recovery</option>
+                            <option value="cft_conformal_block_observables">CFT Conformal Block Observables</option>
                         </select>
                     </label>
                     <label id="qecPairsEControl" hidden>
@@ -146,7 +147,7 @@
                         Algebra Set
                         <select id="cliffordAlgebraSetSelect">
                             <option value="standard" selected>Standard Pauli Reversi</option>
-                            <option value="physical">Physical Stabilizer</option>
+                            <option value="physical">Stabilizer Algebra</option>
                         </select>
                     </label>
                     <label id="pauliControl">
@@ -176,8 +177,7 @@
                     <label>
                         Initial Rule
                         <select id="physicalInitialStateSelect">
-                            <option value="stabilizer_vacuum" selected>Stabilizer Vacuum</option>
-                            <option value="sparse_pauli_errors">Sparse Pauli Errors</option>
+                            <option value="sparse_pauli_errors" selected>Sparse Pauli Errors</option>
                             <option value="paired_defects">Paired Defects</option>
                             <option value="domain_wall_seed">Domain Wall Seed</option>
                             <option value="prepared_clifford_circuit">Prepared Clifford Circuit</option>
@@ -191,7 +191,7 @@
                         </select>
                     </label>
                     <label>
-                        Physical Action
+                        Algebra Action
                         <select id="physicalActionSelect">
                             <option value="reversi" selected>Reversi Placement</option>
                             <option value="prepare_ancilla">Prepare Ancilla</option>
@@ -273,6 +273,13 @@
                         <select id="anyonSetupSelect">
                             <option value="standard" selected>Standard</option>
                             <option value="excitation">Excitation Energy</option>
+                        </select>
+                    </label>
+                    <label id="anyonActionControl">
+                        Turn Action
+                        <select id="anyonActionSelect">
+                            <option value="move" selected>Move / Braid</option>
+                            <option value="excite">Excite Anyon</option>
                         </select>
                     </label>
                     <label id="anyonExcitationTypeControl" hidden>
@@ -616,6 +623,16 @@
                     <button id="onlineLeaveButton" type="button">Leave</button>
                 </div>
                 <p class="online-status" id="onlineStatus">Local pass and play.</p>
+                <div class="online-chat">
+                    <h3>Online Chat</h3>
+                    <div id="onlineChatMessages" class="online-chat-messages" aria-live="polite">
+                        <div class="online-chat-empty">Connect online to chat.</div>
+                    </div>
+                    <div class="online-chat-compose">
+                        <input id="onlineChatInput" type="text" maxlength="240" autocomplete="off" placeholder="Message online opponent" disabled>
+                        <button id="onlineChatSendButton" type="button" disabled>Send</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -651,7 +668,7 @@
                 <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
                     <div data-rules-mode="clifford">
                         <h2>Clifford Reversi: Standard Pauli Set</h2>
-                        <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Physical Stabilizer to use physical qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
+                        <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Stabilizer Algebra to use qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
                         <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
@@ -660,9 +677,9 @@
                         <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Basic Floquet ages pieces and diffuses fields. Clifford Floquet applies H/S at marked defect vertices. Virasoro Floquet evolves a stress field T(v): phase 1 diffuses stress, phase 2 applies L0 scaling near marked vertices, phase 3 focuses stress like L1, and optional anomaly phases add L2-style stress.</p>
                     </div>
                     <div data-rules-mode="physical-clifford" hidden>
-                        <h2>Clifford Reversi: Physical Stabilizer Set</h2>
-                        <p><strong>Algebra set:</strong> this is the Physical Stabilizer configuration of the same Clifford Reversi game. Switch Algebra Set back to Standard Pauli Reversi to restore the ordinary opening and controls.</p>
-                        <p><strong>Physical sites:</strong> empty vertices are identity I with no active excitation. Occupied vertices store owner, Pauli I/X/Y/Z, sign, phase modulo four, and optional ancilla data. Black is the positive sector and white is the negative sector.</p>
+                        <h2>Clifford Reversi: Stabilizer Algebra Set</h2>
+                        <p><strong>Algebra set:</strong> this is the Stabilizer Algebra configuration of the same Clifford Reversi game. Switch Algebra Set back to Standard Pauli Reversi to restore the ordinary opening and controls.</p>
+                        <p><strong>Qubit sites:</strong> empty vertices are identity I with no active excitation. Occupied vertices store owner, Pauli I/X/Y/Z, sign, phase modulo four, and optional ancilla data. Black is the positive sector and white is the negative sector.</p>
                         <p><strong>Initial states:</strong> Stabilizer Vacuum is empty with positive checks. Sparse Errors seeds low-density X/Y/Z faults. Paired Defects creates nearby opposite-sign pairs. Domain Wall Seed separates positive and negative domains. Prepared Circuit applies ancilla preparations, H, S, CNOT, CZ, and measurement to a vacuum start.</p>
                         <p><strong>Reversi action:</strong> placement still requires a normal topology-aware bracket. Each flipped site changes owner and sign, then receives the selected H or S transform plus any seam transport. Pauli phase is tracked modulo four.</p>
                         <p><strong>Ancillas:</strong> prepare Z0, Z1, X+, X-, or magic ancillas on empty sites. Entangle an occupied control and target with CNOT or CZ when at least one endpoint is an ancilla. Ancillas may be measured in X/Z or discarded.</p>
@@ -672,7 +689,7 @@
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
-                        <h2>Physical Virasoro/CFT Reversi Rules</h2>
+                        <h2>Virasoro/CFT Reversi Rules</h2>
                         <p><strong>Approximation:</strong> this is a discrete graph simulator inspired by CFT. Correlations, conformal blocks, stress, entropy, and topology sectors are lattice estimators rather than exact continuum observables.</p>
                         <p><strong>Fields:</strong> an empty vertex is identity. Occupied vertices carry a domain sign and a primary field. The default Ising CFT uses c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2.</p>
                         <p><strong>Initial states:</strong> Vacuum is empty. Domain Wall Seed creates opposite spin domains. Four Sigma Block tracks identity and epsilon blocks. Boundary Condition Change places seam/boundary insertions. Thermal Sample uses seeded temperature-weighted sigma/epsilon insertions.</p>
@@ -700,7 +717,7 @@
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
                     </div>
                     <div data-rules-mode="virasoro">
-                        <h2>Physical Virasoro Go Rules</h2>
+                        <h2>Virasoro Go Rules</h2>
                         <p><strong>Approximation:</strong> this is a discrete CFT-inspired estimator on a graph, not an exact continuum CFT solver. Normal graph-Go remains a separate game.</p>
                         <p><strong>Go rules:</strong> liberties, groups, captures, suicide, superko, passing, and area scoring are unchanged and use only topology adjacency.</p>
                         <p><strong>Primary insertions:</strong> a legal Go placement inserts a primary field. Ising CFT uses identity, sigma with h=1/16, and epsilon with h=1/2 at c=1/2. Free Boson uses identity and a configurable vertex operator at c=1.</p>
@@ -734,7 +751,17 @@
                 </section>
 
                 <section class="cft-observable-panel" id="cftObservablePanel" hidden>
-                    <h2>Conformal Blocks</h2>
+                    <h2>CFT Observables</h2>
+                    <div class="qec-observable-grid">
+                        <div><span>Model</span><strong id="cftObservableModel">Ising CFT</strong></div>
+                        <div><span>Central Charge</span><strong id="cftObservableCharge">0.5</strong></div>
+                        <div><span>Dominant Block</span><strong id="cftObservableDominant">identity</strong></div>
+                        <div><span>Entropy</span><strong id="cftObservableEntropy">0</strong></div>
+                        <div><span>Strongest Correlation</span><strong id="cftObservableCorrelation">0</strong></div>
+                        <div><span>OPE Channels</span><strong id="cftObservableChannels">identity 0</strong></div>
+                        <div><span>Anomaly Events</span><strong id="cftObservableAnomalies">0</strong></div>
+                        <div><span>Vacuum Block</span><strong id="cftObservableVacuum">Yes</strong></div>
+                    </div>
                     <div class="cft-block-row">
                         <span>Identity</span>
                         <meter id="cftIdentityBlockMeter" min="0" max="1" value="1"></meter>
@@ -746,6 +773,7 @@
                         <strong id="cftEpsilonBlockValue">0.000</strong>
                     </div>
                     <p id="cftObservableSummary">Discrete CFT estimators appear here.</p>
+                    <p class="estimator-notice">Discrete graph estimators only; these are not exact continuum CFT conformal blocks.</p>
                 </section>
 
                 <section class="qec-observable-panel" id="qecObservablePanel" hidden>

@@ -20,6 +20,7 @@ import {
     joinPrivateRoom,
     leaveRoom,
     reconnectRoom,
+    sendChatMessage,
     sendMove
 } from '../../online.js';
 
@@ -104,6 +105,8 @@ const els = {
     anyonModelControl: document.querySelector('#anyonModelControl'),
     anyonSetupControl: document.querySelector('#anyonSetupControl'),
     anyonSetupSelect: document.querySelector('#anyonSetupSelect'),
+    anyonActionControl: document.querySelector('#anyonActionControl'),
+    anyonActionSelect: document.querySelector('#anyonActionSelect'),
     anyonExcitationTypeControl: document.querySelector('#anyonExcitationTypeControl'),
     anyonExcitationTypeSelect: document.querySelector('#anyonExcitationTypeSelect'),
     anyonDropLossControl: document.querySelector('#anyonDropLossControl'),
@@ -168,6 +171,9 @@ const els = {
     onlineReconnectButton: document.querySelector('#onlineReconnectButton'),
     onlineLeaveButton: document.querySelector('#onlineLeaveButton'),
     onlineStatus: document.querySelector('#onlineStatus'),
+    onlineChatMessages: document.querySelector('#onlineChatMessages'),
+    onlineChatInput: document.querySelector('#onlineChatInput'),
+    onlineChatSendButton: document.querySelector('#onlineChatSendButton'),
     layerPanel: document.querySelector('#layerPanel'),
     zLayerInput: document.querySelector('#zLayerInput'),
     wLayerInput: document.querySelector('#wLayerInput'),
@@ -202,6 +208,14 @@ const els = {
     virasoroRules: document.querySelector('[data-rules-mode="virasoro"]'),
     cftReversiRules: document.querySelector('[data-rules-mode="cft-reversi"]'),
     cftObservablePanel: document.querySelector('#cftObservablePanel'),
+    cftObservableModel: document.querySelector('#cftObservableModel'),
+    cftObservableCharge: document.querySelector('#cftObservableCharge'),
+    cftObservableDominant: document.querySelector('#cftObservableDominant'),
+    cftObservableEntropy: document.querySelector('#cftObservableEntropy'),
+    cftObservableCorrelation: document.querySelector('#cftObservableCorrelation'),
+    cftObservableChannels: document.querySelector('#cftObservableChannels'),
+    cftObservableAnomalies: document.querySelector('#cftObservableAnomalies'),
+    cftObservableVacuum: document.querySelector('#cftObservableVacuum'),
     cftIdentityBlockMeter: document.querySelector('#cftIdentityBlockMeter'),
     cftIdentityBlockValue: document.querySelector('#cftIdentityBlockValue'),
     cftEpsilonBlockMeter: document.querySelector('#cftEpsilonBlockMeter'),
@@ -233,8 +247,8 @@ const els = {
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
     clifford_go: 'Clifford Go',
-    physical_virasoro_go: 'Physical Virasoro Go',
-    physical_virasoro_reversi: 'Physical Virasoro Reversi',
+    physical_virasoro_go: 'Virasoro Go',
+    physical_virasoro_reversi: 'Virasoro Reversi',
     anyon_jump: 'Anyon Jump Chess'
 };
 const ANYON_SYMBOLS = {
@@ -437,10 +451,16 @@ function syncAnyonExcitationTypeOptions() {
     els.anyonExcitationTypeSelect.replaceChildren(...types.map((type) => {
         const option = document.createElement('option');
         option.value = type;
-        option.textContent = anyonDisplay(type);
+        const cost = Number(game?.excitationCost?.(type) ?? excitationCatalog().costs[type] ?? 0);
+        const energy = Number(game?.energy?.[game.currentPlayer] ?? 12);
+        option.textContent = `${anyonDisplay(type)} - ${formatNumber(cost)} energy`;
+        option.disabled = cost > energy;
         return option;
     }));
-    els.anyonExcitationTypeSelect.value = types.includes(previous) ? previous : types[0];
+    const available = [...els.anyonExcitationTypeSelect.options].filter((option) => !option.disabled);
+    const selected = [...els.anyonExcitationTypeSelect.options]
+        .find((option) => option.value === previous && !option.disabled);
+    els.anyonExcitationTypeSelect.value = selected?.value || available[0]?.value || types[0];
 }
 
 function syncModeControls() {
@@ -475,6 +495,8 @@ function syncModeControls() {
             els.physicalProblemSelect,
             isAnyon
                 ? ['', 'toric_code_memory_unbraid']
+                : isVirasoroGo
+                    ? ['', 'cft_conformal_block_observables']
                 : isStandardClifford && mode === 'clifford_reversi'
                     ? ['', 'ising_domain_wall_topology']
                     : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
@@ -560,7 +582,11 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonExcitationTypeControl) els.anyonExcitationTypeControl.hidden = !excitationMode;
+    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
+    if (!excitationMode) els.anyonActionSelect.value = 'move';
+    if (els.anyonExcitationTypeControl) {
+        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
+    }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
     els.braidedCaptureDetails.hidden = !isAnyon;
@@ -611,7 +637,7 @@ function syncModeControls() {
     if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
         els.rulesIntroButton.textContent = isVirasoroGo
-            ? 'Physical CFT Go Rules'
+            ? 'Virasoro Go Rules'
             : isCFTReversi ? 'CFT Reversi Rules' : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
@@ -792,6 +818,18 @@ function physicalProblemConfig(mode) {
             enableAncillaActions: els.stabilizerAncillaSelect.value === 'on',
             enableNonCliffordPhaseKick: els.stabilizerPhaseKickSelect.value === 'on',
             maxTurns: Number(els.stabilizerMaxTurnsInput.value || 100)
+        };
+    }
+    if (mode === 'physical_virasoro_go'
+        && physicalProblemId === 'cft_conformal_block_observables') {
+        return {
+            id: physicalProblemId,
+            cftInitialState: els.cftInitialStateSelect.value,
+            cftModel: els.cftModelSelect.value,
+            centralCharge: Number(els.cftCentralChargeInput.value),
+            maxMode: Number(els.cftMaxModeSelect.value),
+            maxTurns: Number(params.get('maxTurns') || 100),
+            seed: params.get('seed') || els.noiseSeedInput.value || 'cft-observables'
         };
     }
     return null;
@@ -1016,9 +1054,57 @@ function onlineHooks() {
             }
             if (room?.board) lastOnlineSnapshotJSON = JSON.stringify(room.board);
             els.onlineStatus.dataset.color = playerColor || '';
+            const canChat = connected && Boolean(playerColor);
+            els.onlineChatInput.disabled = !canChat;
+            els.onlineChatSendButton.disabled = !canChat;
             if (connected) render();
-        }
+        },
+        onChatMessages: renderOnlineChat
     };
+}
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function renderOnlineChat(messages = []) {
+    if (!els.onlineChatMessages) return;
+    const online = getOnlineState();
+    if (!messages.length) {
+        els.onlineChatMessages.innerHTML = '<div class="online-chat-empty">Connect online to chat.</div>';
+        return;
+    }
+    els.onlineChatMessages.innerHTML = messages.map((message) => {
+        const mine = message.uid === online.uid;
+        return `<div class="online-chat-message${mine ? ' mine' : ''}"><span>${escapeHTML(capitalize(message.player || 'player'))}</span><p>${escapeHTML(message.text)}</p></div>`;
+    }).join('');
+    els.onlineChatMessages.scrollTop = els.onlineChatMessages.scrollHeight;
+}
+
+async function submitOnlineChat() {
+    const text = els.onlineChatInput?.value.trim();
+    if (!text) return;
+    try {
+        await sendChatMessage(text);
+        els.onlineChatInput.value = '';
+    } catch (error) {
+        els.onlineStatus.textContent = `Chat failed: ${error.message}`;
+    }
+}
+
+async function runOnlineAction(action) {
+    try {
+        return await action();
+    } catch (error) {
+        els.onlineStatus.textContent = `Online error: ${error.message}`;
+        return null;
+    }
 }
 
 async function prepareOnline() {
@@ -1322,12 +1408,39 @@ function renderCFTObservablePanel() {
     els.cftObservablePanel.hidden = !visible;
     if (!visible) return;
     const observables = game.computeCFTObservables();
+    const physicalExport = game?.physicalProblem?.id === 'cft_conformal_block_observables'
+        ? game.physicalProblem.export(game)
+        : null;
     const identity = observables.conformalBlockWeights.identity || 0;
     const epsilon = observables.conformalBlockWeights.epsilon || 0;
     els.cftIdentityBlockMeter.value = identity;
     els.cftEpsilonBlockMeter.value = epsilon;
     els.cftIdentityBlockValue.textContent = identity.toFixed(3);
     els.cftEpsilonBlockValue.textContent = epsilon.toFixed(3);
+    const strongest = observables.strongestCorrelations?.[0];
+    const channels = {};
+    for (const cluster of observables.OPEClusters || []) {
+        for (const channel of cluster.channelLabels || []) {
+            channels[channel] = (channels[channel] || 0) + 1;
+        }
+    }
+    els.cftObservableModel.textContent = observables.cftModel === 'free_boson_CFT'
+        ? 'Free Boson CFT'
+        : 'Ising CFT';
+    els.cftObservableCharge.textContent = formatNumber(observables.centralCharge);
+    els.cftObservableDominant.textContent = observables.dominantConformalBlock;
+    els.cftObservableEntropy.textContent = formatNumber(observables.entanglementEntropyEstimate);
+    els.cftObservableCorrelation.textContent = strongest
+        ? `${formatNumber(strongest.estimate)} (${strongest.pair.join(' / ')})`
+        : 'not available';
+    els.cftObservableChannels.textContent = Object.entries(channels)
+        .map(([channel, count]) => `${channel} ${count}`)
+        .join(', ') || 'identity 0';
+    els.cftObservableAnomalies.textContent = String(observables.centralChargeAnomalyEvents.length);
+    els.cftObservableVacuum.textContent = (
+        physicalExport?.answer?.vacuumBlockDominates
+        ?? observables.dominantConformalBlock === 'identity'
+    ) ? 'Yes' : 'No';
     const crossRatio = observables.fourPointCrossRatio == null
         ? 'not available'
         : formatNumber(observables.fourPointCrossRatio);
@@ -2069,7 +2182,8 @@ function handleCellClick(coord) {
         render();
         return;
     }
-    if (!token && game.config?.setupMode === 'excitation') {
+    if (!token && game.config?.setupMode === 'excitation'
+        && els.anyonActionSelect.value === 'excite') {
         const result = game.exciteAnyon(coord, els.anyonExcitationTypeSelect.value, game.currentPlayer);
         els.statusText.textContent = result.ok
             ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
@@ -2082,7 +2196,9 @@ function handleCellClick(coord) {
         return;
     }
     if (!selectedToken) {
-        els.statusText.textContent = 'Select one of your anyons first.';
+        els.statusText.textContent = game.config?.setupMode === 'excitation'
+            ? 'Choose Excite Anyon to create a particle, or select one of your anyons to move and braid.'
+            : 'Select one of your anyons first.';
         return;
     }
     const result = game.move(selectedToken, coord);
@@ -2814,33 +2930,39 @@ els.playModeSelect.addEventListener('change', async () => {
     }
 });
 els.onlineCreateButton.addEventListener('click', async () => {
-    const ready = await prepareOnline();
-    if (!ready.ok) return;
-    const result = await createPrivateRoom(game.exportState());
+    const ready = await runOnlineAction(() => prepareOnline());
+    if (!ready?.ok) return;
+    const result = await runOnlineAction(() => createPrivateRoom(game.exportState()));
+    if (!result) return;
     els.onlineRoomInput.value = result.roomId;
 });
 els.onlineJoinButton.addEventListener('click', async () => {
-    const ready = await prepareOnline();
-    if (!ready.ok) return;
-    await joinPrivateRoom(els.onlineRoomInput.value);
+    const ready = await runOnlineAction(() => prepareOnline());
+    if (!ready?.ok) return;
+    await runOnlineAction(() => joinPrivateRoom(els.onlineRoomInput.value));
 });
 els.onlineFindButton.addEventListener('click', async () => {
-    const ready = await prepareOnline();
-    if (!ready.ok) return;
-    const result = await findMatch(game.exportState());
+    const ready = await runOnlineAction(() => prepareOnline());
+    if (!ready?.ok) return;
+    const result = await runOnlineAction(() => findMatch(game.exportState()));
+    if (!result) return;
     els.onlineRoomInput.value = result.roomId;
 });
 els.onlineReconnectButton.addEventListener('click', async () => {
-    const ready = await prepareOnline();
-    if (!ready.ok) return;
-    await reconnectRoom();
+    const ready = await runOnlineAction(() => prepareOnline());
+    if (!ready?.ok) return;
+    await runOnlineAction(() => reconnectRoom());
 });
 els.onlineLeaveButton.addEventListener('click', async () => {
-    await leaveRoom();
+    await runOnlineAction(() => leaveRoom());
     setOnlineConfigurationLocked(false);
     const url = new URL(window.location.href);
     url.searchParams.delete('room');
     history.replaceState(null, '', url);
+});
+els.onlineChatSendButton.addEventListener('click', submitOnlineChat);
+els.onlineChatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') submitOnlineChat();
 });
 els.passButton.addEventListener('click', () => {
     if (isReversiMode(game?.mode)) {
