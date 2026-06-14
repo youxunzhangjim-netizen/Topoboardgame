@@ -170,6 +170,59 @@ assert.equal(
     'Z_n fusion adds grades modulo n and resolves grade zero to vacuum.'
 );
 
+const finiteEntanglement = new AnyonJumpGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    config: {
+        anyonModel: 'ising',
+        braidMemoryMode: 'nonabelian_fusion_channel',
+        entanglementRangeMode: 'finite',
+        entanglementDistance: 2
+    }
+});
+finiteEntanglement.tokens.clear();
+finiteEntanglement.worldlines.clear();
+const sigmaA = finiteEntanglement.addToken({ id: 'sigma-a', owner: 'black', coord: [1, 1], anyonType: 'sigma' });
+const sigmaB = finiteEntanglement.addToken({ id: 'sigma-b', owner: 'white', coord: [2, 1], anyonType: 'sigma' });
+finiteEntanglement.applyBraid(sigmaA, {
+    targetId: sigmaB.id,
+    reason: 'test_nonabelian_pair',
+    sign: 1,
+    index: 0,
+    path: [[1, 1], [2, 1]]
+});
+assert.equal(
+    sigmaA.hiddenFusionState.currentPossibleOutputs.join(','),
+    '1,psi',
+    'Sigma pair stores the alternative vacuum or psi fusion channels.'
+);
+sigmaA.coord = [6, 6];
+const decoherence = finiteEntanglement.enforceEntanglementDistance();
+assert.equal(decoherence.length, 1, 'Finite entanglement range decoheres a pair beyond the graph-distance limit.');
+assert.equal(sigmaA.hiddenFusionState.currentChannel, null, 'Decoherence clears the active hidden fusion channel.');
+
+const infiniteEntanglement = new AnyonJumpGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    config: {
+        anyonModel: 'ising',
+        braidMemoryMode: 'nonabelian_fusion_channel',
+        entanglementRangeMode: 'infinite'
+    }
+});
+infiniteEntanglement.tokens.clear();
+infiniteEntanglement.worldlines.clear();
+const infiniteA = infiniteEntanglement.addToken({ id: 'infinite-a', owner: 'black', coord: [1, 1], anyonType: 'sigma' });
+const infiniteB = infiniteEntanglement.addToken({ id: 'infinite-b', owner: 'white', coord: [2, 1], anyonType: 'sigma' });
+infiniteEntanglement.applyBraid(infiniteA, {
+    targetId: infiniteB.id,
+    reason: 'test_infinite_pair',
+    sign: 1,
+    index: 0,
+    path: [[1, 1], [2, 1]]
+});
+infiniteA.coord = [6, 6];
+assert.equal(infiniteEntanglement.enforceEntanglementDistance().length, 0, 'Infinite entanglement does not decohere by distance.');
+assert.ok(infiniteA.hiddenFusionState.currentChannel, 'Infinite-range hidden fusion channel remains active.');
+
 const triangularGo = new VirasoroGoGame({
     topology: { topology: 'flat', lattice: 'triangular', width: 7, height: 7 }
 });

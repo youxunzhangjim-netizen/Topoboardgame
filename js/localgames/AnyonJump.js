@@ -127,6 +127,7 @@ export class AnyonJumpGame {
         this.dropLossRate = Math.max(0, Math.min(1, Number(options.config?.dropLossRate ?? 0.25)));
         this.parity = { black: 0, white: 0 };
         this.fusionOutcomes = [];
+        this.entanglementEvents = [];
         this.history = [];
         this.braidEventLog = [];
         this.unbraidAttempts = [];
@@ -291,6 +292,7 @@ export class AnyonJumpGame {
         const recovered = Math.max(0, gap * (1 - this.dropLossRate));
         this.tokens.delete(token.id);
         this.energy[player] += recovered;
+        const entanglement = this.enforceEntanglementDistance();
         this.moveNumber++;
         const event = {
             mode: this.mode,
@@ -302,7 +304,8 @@ export class AnyonJumpGame {
             coord: cloneCoord(token.coord),
             recovered,
             lossRate: this.dropLossRate,
-            energyAfter: this.energy[player]
+            energyAfter: this.energy[player],
+            entanglement
         };
         this.history.unshift(event);
         this.currentPlayer = otherOwner(player);
@@ -312,6 +315,73 @@ export class AnyonJumpGame {
     tokenAt(coord, exceptId = '') {
         const key = coordKey(coord);
         return [...this.tokens.values()].find((token) => token.id !== exceptId && coordKey(token.coord) === key) || null;
+    }
+
+    graphDistance(fromCoord, toCoord, maxDistance = Infinity) {
+        const from = this.topology.normalize(fromCoord);
+        const to = this.topology.normalize(toCoord);
+        if (!from || !to) return Infinity;
+        const targetKey = coordKey(to);
+        if (coordKey(from) === targetKey) return 0;
+        const finiteLimit = Number.isFinite(maxDistance) ? Math.max(0, Math.floor(maxDistance)) : Infinity;
+        const visited = new Set([coordKey(from)]);
+        let frontier = [from];
+        let distance = 0;
+        while (frontier.length && distance < finiteLimit) {
+            distance++;
+            const next = [];
+            for (const coord of frontier) {
+                for (const neighbor of this.topology.neighbors(coord)) {
+                    const key = coordKey(neighbor);
+                    if (key === targetKey) return distance;
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    next.push(neighbor);
+                }
+            }
+            frontier = next;
+        }
+        return Number.isFinite(finiteLimit) ? finiteLimit + 1 : Infinity;
+    }
+
+    enforceEntanglementDistance() {
+        if (this.config.braidMemoryMode !== 'nonabelian_fusion_channel'
+            || this.config.entanglementRangeMode !== 'finite') return [];
+        const limit = Math.max(1, Math.floor(Number(this.config.entanglementDistance) || 1));
+        const events = [];
+        for (const token of this.tokens.values()) {
+            const state = token.hiddenFusionState;
+            if (!state?.channels || typeof state.channels !== 'object') continue;
+            for (const targetId of Object.keys(state.channels)) {
+                const target = this.tokens.get(targetId);
+                const distance = target ? this.graphDistance(token.coord, target.coord, limit) : Infinity;
+                if (distance <= limit) continue;
+                delete state.channels[targetId];
+                state.snapshots = [];
+                if (state.currentTargetId === targetId) {
+                    const replacement = Object.values(state.channels)[0] || null;
+                    state.currentTargetId = replacement?.targetId || '';
+                    state.currentChannel = replacement?.currentChannel || null;
+                    state.currentPossibleOutputs = replacement ? [...replacement.possibleOutputs] : [];
+                    state.revealed = false;
+                    token.fusionChannel = '?';
+                }
+                const event = {
+                    tick: this.moveNumber,
+                    type: 'entanglement_decoherence',
+                    tokenId: token.id,
+                    targetId,
+                    distance: Number.isFinite(distance) ? distance : null,
+                    limit,
+                    reason: target ? 'distance_exceeded' : 'target_removed'
+                };
+                state.transitions.push(event);
+                token.fusionChannelHistory.push(event);
+                this.entanglementEvents.push(event);
+                events.push(event);
+            }
+        }
+        return events;
     }
 
     tokensAt(coord, exceptId = '') {
@@ -680,6 +750,7 @@ export class AnyonJumpGame {
         const braid = braidEvents[0] || null;
 
         const fusion = this.resolveFusion(token.id);
+        const entanglement = this.enforceEntanglementDistance();
         const winding = sumHomology(edges);
         this.topologicalSectors.push({ number: this.moveNumber + 1, tokenId: action.tokenId, winding });
         this.moveNumber++;
@@ -697,6 +768,7 @@ export class AnyonJumpGame {
             braid,
             braidEvents,
             fusion,
+            entanglement,
             winding,
             seamTransforms: edges
                 .filter((edge) => this.topology.seamTransform(edge) !== 'identity')
@@ -982,6 +1054,13 @@ export class AnyonJumpGame {
             braidEventLog: this.braidEventLog.map(cloneValue),
             unbraidAttempts: this.unbraidAttempts.map(cloneValue),
             fusionOutcomes: this.fusionOutcomes,
+            entanglement: {
+                rangeMode: this.config.entanglementRangeMode,
+                distance: this.config.entanglementRangeMode === 'finite'
+                    ? this.config.entanglementDistance
+                    : null,
+                events: this.entanglementEvents.map(cloneValue)
+            },
             windingNumbers: this.topologicalSectors.map((sector) => ({ number: sector.number, tokenId: sector.tokenId, winding: { ...sector.winding } })),
             topologicalSectors: this.topologicalSectors,
             topologicalSectorChanges: this.topologicalSectors,

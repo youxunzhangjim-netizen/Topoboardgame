@@ -19,6 +19,8 @@ export const DEFAULT_BRAID_MEMORY_CONFIG = Object.freeze({
     braidMemoryMode: 'word_exact',
     maxBraidWordLength: 12,
     braidCancellationMode: 'adjacent_inverse_only',
+    entanglementRangeMode: 'infinite',
+    entanglementDistance: 4,
     allowOpponentUnbraid: true,
     allowFriendlyUnbraid: true,
     requireReverseInverseOrder: true,
@@ -48,6 +50,7 @@ export function normalizeBraidCancellationMode(mode = DEFAULT_BRAID_MEMORY_CONFI
 }
 
 export function normalizeBraidMemoryConfig(config = {}) {
+    const entanglementRangeMode = config.entanglementRangeMode === 'finite' ? 'finite' : 'infinite';
     return {
         ...DEFAULT_BRAID_MEMORY_CONFIG,
         ...config,
@@ -59,6 +62,13 @@ export function normalizeBraidMemoryConfig(config = {}) {
             256
         ),
         braidCancellationMode: normalizeBraidCancellationMode(config.braidCancellationMode),
+        entanglementRangeMode,
+        entanglementDistance: integer(
+            config.entanglementDistance,
+            DEFAULT_BRAID_MEMORY_CONFIG.entanglementDistance,
+            1,
+            256
+        ),
         allowOpponentUnbraid: config.allowOpponentUnbraid ?? DEFAULT_BRAID_MEMORY_CONFIG.allowOpponentUnbraid,
         allowFriendlyUnbraid: config.allowFriendlyUnbraid ?? DEFAULT_BRAID_MEMORY_CONFIG.allowFriendlyUnbraid,
         requireReverseInverseOrder: config.requireReverseInverseOrder ?? DEFAULT_BRAID_MEMORY_CONFIG.requireReverseInverseOrder,

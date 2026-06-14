@@ -46,6 +46,10 @@ const els = {
     anyonModelSelect: document.querySelector('#anyonModelSelect'),
     anyonGradeControl: document.querySelector('#anyonGradeControl'),
     anyonGradeInput: document.querySelector('#anyonGradeInput'),
+    entanglementRangeControl: document.querySelector('#entanglementRangeControl'),
+    entanglementRangeSelect: document.querySelector('#entanglementRangeSelect'),
+    entanglementDistanceControl: document.querySelector('#entanglementDistanceControl'),
+    entanglementDistanceInput: document.querySelector('#entanglementDistanceInput'),
     braidCancellationControl: document.querySelector('#braidCancellationControl'),
     braidCancellationModeSelect: document.querySelector('#braidCancellationModeSelect'),
     virasoroLayerControl: document.querySelector('#virasoroLayerControl'),
@@ -294,6 +298,13 @@ function syncModeControls() {
     }
     if (isAnyon) syncAnyonExcitationTypeOptions();
     if (els.anyonGradeControl) els.anyonGradeControl.hidden = !isAnyon || els.anyonModelSelect.value !== 'zn_phase';
+    const nonabelianMemory = isAnyon
+        && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel';
+    if (els.entanglementRangeControl) els.entanglementRangeControl.hidden = !nonabelianMemory;
+    if (els.entanglementDistanceControl) {
+        els.entanglementDistanceControl.hidden = !nonabelianMemory
+            || els.entanglementRangeSelect.value !== 'finite';
+    }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
     if (els.anyonExcitationTypeControl) els.anyonExcitationTypeControl.hidden = !excitationMode;
@@ -472,7 +483,12 @@ function anyonConfig() {
         requireReverseInverseOrder: true,
         braidedPieceShield: els.braidedPieceShieldSelect.value === 'on',
         captureRequiresUnbraid: els.captureRequiresUnbraidSelect.value === 'on',
-        braidedPiecePenalty: els.braidedPiecePenaltySelect.value === 'on'
+        braidedPiecePenalty: els.braidedPiecePenaltySelect.value === 'on',
+        entanglementRangeMode: els.entanglementRangeSelect.value === 'finite' ? 'finite' : 'infinite',
+        entanglementDistance: Math.max(
+            1,
+            Math.min(256, Math.floor(Number(els.entanglementDistanceInput.value) || 4))
+        )
     };
 }
 
@@ -1221,6 +1237,8 @@ function handleCellClick(coord) {
         hoverCoord = null;
         if (result.event.fusion?.blocked) {
             els.statusText.textContent = `Capture blocked: ${result.event.fusion.reason}.`;
+        } else if (result.event.entanglement?.length) {
+            els.statusText.textContent = `${capitalize(result.event.kind)} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
         } else if (result.event.braid?.unbraid?.successfulPartialUnbraid) {
             els.statusText.textContent = 'Inverse jump shortened the braid word.';
         } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
@@ -1296,7 +1314,7 @@ function dropSelectedAnyon() {
     }
     const result = game.dropAnyon(selectedToken, game.currentPlayer);
     els.statusText.textContent = result.ok
-        ? `${capitalize(result.event.player)} dropped ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy.`
+        ? `${capitalize(result.event.player)} dropped ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
         : result.error;
     if (result.ok) selectedToken = '';
     render();
@@ -1449,9 +1467,14 @@ function renderLegend() {
             'Green UNBRAID badge: next inverse loop',
             game.config?.setupMode === 'excitation'
                 ? `Excitation mode: ${excitationCatalog().types.map(anyonDisplay).join(', ')} use energy; drop/fusion recovers energy with loss`
-                : 'Standard mode: fixed initial anyon set'
+                : 'Standard mode: fixed initial anyon set',
+            game.config?.braidMemoryMode === 'nonabelian_fusion_channel'
+                ? `Entanglement range: ${game.config.entanglementRangeMode === 'finite'
+                    ? `${game.config.entanglementDistance} graph steps`
+                    : 'infinite'}`
+                : null
         ];
-    els.legend.innerHTML = items.map((item) => `<span>${item}</span>`).join('');
+    els.legend.innerHTML = items.filter(Boolean).map((item) => `<span>${item}</span>`).join('');
 }
 
 function renderHistory() {
@@ -1680,6 +1703,8 @@ for (const control of [
     els.anyonExcitationTypeSelect,
     els.anyonDropLossInput,
     els.anyonGradeInput,
+    els.entanglementRangeSelect,
+    els.entanglementDistanceInput,
     els.braidCancellationModeSelect,
     els.braidedPieceShieldSelect,
     els.captureRequiresUnbraidSelect,

@@ -107,7 +107,11 @@ function createPairRecord({
         input: [token.anyonType, targetType],
         possibleOutputs,
         currentChannel: initialChannel(possibleOutputs),
-        measured: false
+        measured: false,
+        entanglementRangeMode: config.entanglementRangeMode || 'infinite',
+        entanglementDistance: config.entanglementRangeMode === 'finite'
+            ? Math.max(1, Math.floor(Number(config.entanglementDistance) || 1))
+            : null
     };
 }
 

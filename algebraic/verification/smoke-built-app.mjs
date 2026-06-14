@@ -250,7 +250,31 @@ try {
     assert.match(fixedAnyonState.rulesText, /Toric code fusion/);
     assert.match(fixedAnyonState.rulesText, /Vacuum 1/);
     assert.match(fixedAnyonState.rulesText, /General Z_n phase/);
+    assert.match(fixedAnyonState.rulesText, /alternative channels/);
     await page.selectOption('#anyonModelSelect', 'ising');
+    await page.selectOption('#braidMemoryModeSelect', 'nonabelian_fusion_channel');
+    const infiniteEntanglementState = await page.evaluate(() => ({
+        rangeHidden: document.querySelector('#entanglementRangeControl')?.hidden,
+        distanceHidden: document.querySelector('#entanglementDistanceControl')?.hidden,
+        range: document.querySelector('#entanglementRangeSelect')?.value,
+        exportRange: JSON.parse(document.querySelector('#exportText').value).entanglement
+    }));
+    assert.equal(infiniteEntanglementState.rangeHidden, false, 'Non-Abelian mode should show entanglement range.');
+    assert.equal(infiniteEntanglementState.distanceHidden, true, 'Infinite range should hide the finite distance input.');
+    assert.equal(infiniteEntanglementState.range, 'infinite');
+    assert.equal(infiniteEntanglementState.exportRange.rangeMode, 'infinite');
+    await page.selectOption('#entanglementRangeSelect', 'finite');
+    await page.locator('#entanglementDistanceInput').fill('3');
+    await page.locator('#entanglementDistanceInput').press('Enter');
+    const finiteEntanglementState = await page.evaluate(() => ({
+        distanceHidden: document.querySelector('#entanglementDistanceControl')?.hidden,
+        distance: document.querySelector('#entanglementDistanceInput')?.value,
+        exportRange: JSON.parse(document.querySelector('#exportText').value).entanglement
+    }));
+    assert.equal(finiteEntanglementState.distanceHidden, false, 'Finite range should show the distance input.');
+    assert.equal(finiteEntanglementState.distance, '3');
+    assert.equal(finiteEntanglementState.exportRange.rangeMode, 'finite');
+    assert.equal(finiteEntanglementState.exportRange.distance, 3);
     assert.deepEqual(
         await page.locator('#anyonExcitationTypeSelect option').evaluateAll((options) =>
             options.map((option) => ({ value: option.value, label: option.textContent }))),
