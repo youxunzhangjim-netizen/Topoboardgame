@@ -48,7 +48,7 @@ function keyOf(vertex) {
 }
 
 function tokenVertex(token) {
-    return token?.vertex ?? token?.coord ?? null;
+    return token?.vertex ?? null;
 }
 
 function gameTick(game) {

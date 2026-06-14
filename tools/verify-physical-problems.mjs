@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { AnyonJumpGame } from '../js/localgames/AnyonJump.js';
 import { CliffordReversiGame } from '../js/localgames/CliffordReversi.js';
 import { nextRequiredUnbraidGenerator } from '../js/anyon/BraidMemory.js';
@@ -30,6 +31,16 @@ const topologyOptions = topologyOptionsForToricCodeMemoryUnbraid({
 assert.equal(topologyOptions.topology, 'rp2', 'Physical problem normalizes RP2 topology for graph topology.');
 assert.equal(topologyOptions.width, 6);
 assert.equal(topologyOptions.height, 6);
+
+const toricProblemSource = fs.readFileSync(
+    new URL('../js/physics/ToricCodeMemoryUnbraidProblem.js', import.meta.url),
+    'utf8'
+);
+assert.doesNotMatch(
+    toricProblemSource,
+    /token\??\.coord|addToken\s*\(\s*\{[^}]*\bcoord\s*:/s,
+    'The toric-code physical problem must remain vertex-native.'
+);
 
 const initialized = new AnyonJumpGame({
     physicalProblem: {
