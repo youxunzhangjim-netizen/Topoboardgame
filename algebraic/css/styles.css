@@ -126,6 +126,16 @@ h2 {
     border-right: 1px solid rgba(218, 232, 224, 0.1);
 }
 
+.online-status {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.online-button-grid[hidden] {
+    display: none;
+}
+
 .control-section h2 {
     color: var(--gold);
     font-size: 11px;
@@ -150,7 +160,7 @@ h2 {
 
 .section-algebra {
     grid-column: 1 / -1;
-    order: 5;
+    order: 6;
     padding: 12px 0 0;
     border-top: 1px solid rgba(218, 232, 224, 0.1);
     border-right: 0;
@@ -161,6 +171,22 @@ h2 {
     order: 4;
     padding-right: 0;
     border-right: 0;
+}
+
+.section-online {
+    grid-column: 1 / -1;
+    order: 5;
+    padding: 12px 0 0;
+    border-top: 1px solid rgba(218, 232, 224, 0.1);
+    border-right: 0;
+}
+
+.section-online .control-fields {
+    grid-template-columns: minmax(150px, 220px) minmax(240px, 420px);
+}
+
+.section-online .online-button-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .control-fields {

@@ -14,18 +14,33 @@ service cloud.firestore {
 
       function isJoin() {
         return resource.data.status == "waiting"
-          && resource.data.players.black == null
-          && request.resource.data.players.white == resource.data.players.white
-          && request.resource.data.players.black == request.auth.uid
           && request.resource.data.status == "playing"
           && request.resource.data.board == resource.data.board
-          && request.resource.data.moveNumber == resource.data.moveNumber;
+          && request.resource.data.moveNumber == resource.data.moveNumber
+          && request.resource.data.gameKey == resource.data.gameKey
+          && request.resource.data.matchKey == resource.data.matchKey
+          && (
+            (
+              resource.data.players.white == null
+              && resource.data.players.black != null
+              && request.resource.data.players.white == request.auth.uid
+              && request.resource.data.players.black == resource.data.players.black
+            )
+            || (
+              resource.data.players.black == null
+              && resource.data.players.white != null
+              && request.resource.data.players.black == request.auth.uid
+              && request.resource.data.players.white == resource.data.players.white
+            )
+          );
       }
 
       function isLegalClientMove() {
         return resource.data.status == "playing"
           && resource.data.players[resource.data.turn] == request.auth.uid
           && request.resource.data.players == resource.data.players
+          && request.resource.data.gameKey == resource.data.gameKey
+          && request.resource.data.matchKey == resource.data.matchKey
           && request.resource.data.moveNumber == resource.data.moveNumber + 1
           && request.resource.data.turn != resource.data.turn;
       }
@@ -36,6 +51,8 @@ service cloud.firestore {
           && request.resource.data.moveNumber == resource.data.moveNumber
           && request.resource.data.turn == resource.data.turn
           && request.resource.data.public == resource.data.public
+          && request.resource.data.gameKey == resource.data.gameKey
+          && request.resource.data.matchKey == resource.data.matchKey
           && request.resource.data.status == "finished"
           && (
             (
@@ -54,8 +71,16 @@ service cloud.firestore {
       allow read: if signedIn();
 
       allow create: if signedIn()
-        && request.resource.data.players.white == request.auth.uid
-        && request.resource.data.players.black == null
+        && (
+          (
+            request.resource.data.players.white == request.auth.uid
+            && request.resource.data.players.black == null
+          )
+          || (
+            request.resource.data.players.black == request.auth.uid
+            && request.resource.data.players.white == null
+          )
+        )
         && request.resource.data.status == "waiting"
         && request.resource.data.moveNumber == 0;
 

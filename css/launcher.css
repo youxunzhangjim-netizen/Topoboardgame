@@ -238,8 +238,21 @@ h1 {
 
 .extra-mode-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
+}
+
+.extra-mode-column {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+}
+
+.extra-mode-column-title {
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
 }
 
 .extra-mode-card {

@@ -149,34 +149,50 @@
                     <small data-i18n="algebraic.desc">Choose one algebraic game. Each entry opens only its matching controls and rules.</small>
                 </div>
                 <div class="extra-mode-row" aria-label="Algebraic game modes" data-i18n-aria-label="algebraic.choose">
-                    <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
-                        <span class="extra-mode-copy">
-                            <strong data-i18n="games.clifford.title">Clifford Reversi</strong>
-                            <small data-i18n="games.clifford.desc">Tune standard Pauli or physical stabilizer rules</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
-                    </a>
-                    <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
-                        <span class="extra-mode-copy">
-                            <strong data-i18n="games.anyon.title">Anyon Jump Chess</strong>
-                            <small data-i18n="games.anyon.desc">Jump game with braiding and fusion</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
-                    </a>
-                    <a class="extra-mode-card" href="./algebraic/?mode=virasoro_go">
-                        <span class="extra-mode-copy">
-                            <strong data-i18n="games.virasoro.title">Virasoro Go</strong>
-                            <small data-i18n="games.virasoro.desc">Go with stress-field actions</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-virasoro_go">0 waiting</span>
-                    </a>
-                    <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_reversi">
-                        <span class="extra-mode-copy">
-                            <strong data-i18n="games.cftreversi.title">Physical Virasoro Reversi</strong>
-                            <small data-i18n="games.cftreversi.desc">Reversi with CFT intervals, OPE channels, and stress</small>
-                        </span>
-                        <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi">0 waiting</span>
-                    </a>
+                    <div class="extra-mode-column">
+                        <span class="extra-mode-column-title">Clifford</span>
+                        <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="games.clifford.title">Clifford Reversi</strong>
+                                <small data-i18n="games.clifford.desc">Tune standard Pauli or physical stabilizer rules</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
+                        </a>
+                        <a class="extra-mode-card" href="./algebraic/?mode=clifford_go">
+                            <span class="extra-mode-copy">
+                                <strong>Clifford Go</strong>
+                                <small>Graph Go with Pauli-labelled stones</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-clifford_go">0 waiting</span>
+                        </a>
+                    </div>
+                    <div class="extra-mode-column">
+                        <span class="extra-mode-column-title">Virasoro / CFT</span>
+                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_go">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="games.virasoro.title">Physical Virasoro Go</strong>
+                                <small data-i18n="games.virasoro.desc">Graph Go with approximate CFT observables</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go">0 waiting</span>
+                        </a>
+                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_reversi">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="games.cftreversi.title">Physical Virasoro Reversi</strong>
+                                <small data-i18n="games.cftreversi.desc">Reversi with CFT intervals, OPE channels, and stress</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi">0 waiting</span>
+                        </a>
+                    </div>
+                    <div class="extra-mode-column">
+                        <span class="extra-mode-column-title">Anyon</span>
+                        <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="games.anyon.title">Anyon Jump Chess</strong>
+                                <small data-i18n="games.anyon.desc">Jump game with braiding and fusion</small>
+                            </span>
+                            <span class="game-count-badge" data-popularity-key="game-anyon_jump">0 waiting</span>
+                        </a>
+                    </div>
                 </div>
             </section>
         </section>
@@ -314,7 +330,8 @@
                 '4dreversi': '4dreversi',
                 clifford_reversi: 'clifford_reversi',
                 anyon_jump: 'anyon_jump',
-                virasoro_go: 'virasoro_go',
+                clifford_go: 'clifford_go',
+                physical_virasoro_go: 'physical_virasoro_go',
                 physical_virasoro_reversi: 'physical_virasoro_reversi'
             };
             const DIMENSION_BY_GAME = {
@@ -341,7 +358,8 @@
                 'game-4dreversi': 0,
                 'game-clifford_reversi': 0,
                 'game-anyon_jump': 0,
-                'game-virasoro_go': 0,
+                'game-clifford_go': 0,
+                'game-physical_virasoro_go': 0,
                 'game-physical_virasoro_reversi': 0
             };
             let lastBadgeState = 'loading';

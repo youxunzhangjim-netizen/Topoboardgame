@@ -297,7 +297,7 @@ export class Algebraic3DBoard {
         for (const coord of this.game.topology.vertices()) {
             const stone = this.game.getStone(coord);
             if (!stone) continue;
-            if (this.game.mode === 'virasoro_go') this.addGoStone(coord, stone);
+            if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
             else if (this.game.mode === 'physical_virasoro_reversi') this.addCFTStone(coord, stone);
             else this.addCliffordStone(coord, stone);
         }
@@ -336,8 +336,9 @@ export class Algebraic3DBoard {
         const group = this.baseEntity(coord, stone.color, 0.92);
         const info = this.game.groupInfoAt(coord);
         if (info) {
-            const sprite = labelSprite(`h=${Number(info.h).toFixed(1)}`, {
-                foreground: info.unstable ? '#ff8c8c' : '#f2c464',
+            const label = this.game.primaryLabel?.(stone) || `h=${Number(info.h).toFixed(1)}`;
+            const sprite = labelSprite(label, {
+                foreground: '#f2c464',
                 scale: 0.42
             });
             sprite.position.y = this.entityRadius() * 1.9;

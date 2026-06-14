@@ -1,4 +1,5 @@
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
+import { CliffordGoGame } from '../../js/localgames/CliffordGo.js';
 import { PhysicalCliffordReversiGame } from '../../js/localgames/PhysicalCliffordReversi.js';
 import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
@@ -11,6 +12,16 @@ import {
 import { anyonTypes } from '../../js/anyon/AnyonAlgebra.js';
 import { fusionChannelDisplay } from '../../js/anyon/NonabelianFusionMemory.js';
 import { Algebraic3DBoard, usesAlgebraic3DView } from './Algebraic3DBoard.js';
+import {
+    createPrivateRoom,
+    findMatch,
+    getOnlineState,
+    initOnline,
+    joinPrivateRoom,
+    leaveRoom,
+    reconnectRoom,
+    sendMove
+} from '../../online.js';
 
 const els = {
     modeSelect: document.querySelector('#modeSelect'),
@@ -52,6 +63,8 @@ const els = {
     anyonAlgebraControls: document.querySelector('#anyonAlgebraControls'),
     virasoroAlgebraControls: document.querySelector('#virasoroAlgebraControls'),
     cftReversiControls: document.querySelector('#cftReversiControls'),
+    cftModelControl: document.querySelector('#cftModelControl'),
+    cftModelSelect: document.querySelector('#cftModelSelect'),
     cftInitialStateSelect: document.querySelector('#cftInitialStateSelect'),
     cftPrimarySelect: document.querySelector('#cftPrimarySelect'),
     cftActionSelect: document.querySelector('#cftActionSelect'),
@@ -146,6 +159,15 @@ const els = {
     rulesIntroButton: document.querySelector('#rulesIntroButton'),
     rulesIntroPanel: document.querySelector('#rulesIntroPanel'),
     exportButton: document.querySelector('#exportButton'),
+    playModeSelect: document.querySelector('#playModeSelect'),
+    onlineRoomInput: document.querySelector('#onlineRoomInput'),
+    onlineButtonGrid: document.querySelector('#onlineButtonGrid'),
+    onlineFindButton: document.querySelector('#onlineFindButton'),
+    onlineCreateButton: document.querySelector('#onlineCreateButton'),
+    onlineJoinButton: document.querySelector('#onlineJoinButton'),
+    onlineReconnectButton: document.querySelector('#onlineReconnectButton'),
+    onlineLeaveButton: document.querySelector('#onlineLeaveButton'),
+    onlineStatus: document.querySelector('#onlineStatus'),
     layerPanel: document.querySelector('#layerPanel'),
     zLayerInput: document.querySelector('#zLayerInput'),
     wLayerInput: document.querySelector('#wLayerInput'),
@@ -210,9 +232,10 @@ const els = {
 
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
+    clifford_go: 'Clifford Go',
+    physical_virasoro_go: 'Physical Virasoro Go',
     physical_virasoro_reversi: 'Physical Virasoro Reversi',
-    anyon_jump: 'Anyon Jump Chess',
-    virasoro_go: 'Virasoro Go'
+    anyon_jump: 'Anyon Jump Chess'
 };
 const ANYON_SYMBOLS = {
     psi: '\u03c8',
@@ -248,6 +271,9 @@ let selectedCFTCoords = [];
 let hoverCoord = null;
 let lastCancellation = null;
 let lastWrongUnbraid = null;
+let applyingRemoteState = false;
+let onlineReady = null;
+let statusHoldUntil = 0;
 let legalReversiCache = { signature: '', keys: [] };
 const algebraic3d = new Algebraic3DBoard({
     canvas: els.algebraic3dBoard,
@@ -286,7 +312,9 @@ function normalizeMode(value) {
         return 'clifford_reversi';
     }
     if (value === 'cft_reversi' || value === 'virasoro_reversi') return 'physical_virasoro_reversi';
-    if (value === 'go' || value === 'virasoro' || value === 'virasoro_go_game') return 'virasoro_go';
+    if (['go', 'virasoro', 'virasoro_go', 'virasoro_go_game'].includes(value)) {
+        return 'physical_virasoro_go';
+    }
     return Object.hasOwn(MODE_LABELS, value) ? value : '';
 }
 
@@ -303,8 +331,68 @@ function isReversiMode(mode = game?.mode || selectedMode()) {
     return mode === 'clifford_reversi' || mode === 'physical_virasoro_reversi';
 }
 
+function isCliffordGoMode(mode = game?.mode || selectedMode()) {
+    return mode === 'clifford_go';
+}
+
+function isGoMode(mode = game?.mode || selectedMode()) {
+    return isCliffordGoMode(mode) || isPhysicalVirasoroGoMode(mode);
+}
+
 function isCFTReversiMode(mode = game?.mode || selectedMode()) {
     return mode === 'physical_virasoro_reversi';
+}
+
+function isPhysicalVirasoroGoMode(mode = game?.mode || selectedMode()) {
+    return mode === 'physical_virasoro_go';
+}
+
+function isCFTMode(mode = game?.mode || selectedMode()) {
+    return isPhysicalVirasoroGoMode(mode) || isCFTReversiMode(mode);
+}
+
+function syncCFTInitialStateOptions(isGo) {
+    const choices = isGo
+        ? [
+            ['vacuum', 'Vacuum'],
+            ['two_point_insertions', 'Two-Point Insertions'],
+            ['four_point_block', 'Four-Point Block'],
+            ['boundary_cft', 'Boundary CFT'],
+            ['thermal_sparse', 'Thermal Sparse']
+        ]
+        : [
+            ['vacuum', 'Vacuum'],
+            ['domain_wall_seed', 'Domain Wall Seed'],
+            ['four_sigma_block', 'Four Sigma Block'],
+            ['boundary_condition_change', 'Boundary Condition Change'],
+            ['thermal_cft_sample', 'Thermal CFT Sample']
+        ];
+    const previous = els.cftInitialStateSelect.value;
+    els.cftInitialStateSelect.replaceChildren(...choices.map(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+    }));
+    els.cftInitialStateSelect.value = choices.some(([value]) => value === previous)
+        ? previous
+        : choices[0][0];
+}
+
+function syncCFTPrimaryOptions() {
+    const choices = els.cftModelSelect.value === 'free_boson_CFT'
+        ? [['vertex', 'Vertex'], ['identity', 'Identity']]
+        : [['sigma', 'Sigma'], ['epsilon', 'Epsilon'], ['identity', 'Identity']];
+    const previous = els.cftPrimarySelect.value;
+    els.cftPrimarySelect.replaceChildren(...choices.map(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+    }));
+    els.cftPrimarySelect.value = choices.some(([value]) => value === previous)
+        ? previous
+        : choices[0][0];
 }
 
 function selectedPhysicalProblemId() {
@@ -358,18 +446,25 @@ function syncAnyonExcitationTypeOptions() {
 function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
-    const isVirasoroGo = mode === 'virasoro_go';
+    const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
     const isCFTReversi = mode === 'physical_virasoro_reversi';
-    const isClifford = mode === 'clifford_reversi';
-    const isPhysicalClifford = isClifford && els.cliffordAlgebraSetSelect.value === 'physical';
+    const isClifford = mode === 'clifford_reversi' || isCliffordGoMode(mode);
+    const isPhysicalClifford = mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical';
     const isStandardClifford = isClifford && !isPhysicalClifford;
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (els.modeControl) els.modeControl.hidden = false;
     if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isClifford;
+    if (els.cliffordAlgebraSetControl) els.cliffordAlgebraSetControl.hidden = isCliffordGoMode(mode);
     if (els.physicalCliffordControls) els.physicalCliffordControls.hidden = !isPhysicalClifford;
     if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !isAnyon;
-    if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = !isVirasoroGo;
-    if (els.cftReversiControls) els.cftReversiControls.hidden = !isCFTReversi;
+    if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = true;
+    if (els.cftReversiControls) els.cftReversiControls.hidden = !isVirasoroGo && !isCFTReversi;
+    if (isVirasoroGo || isCFTReversi) {
+        syncCFTInitialStateOptions(isVirasoroGo);
+        if (isCFTReversi) els.cftModelSelect.value = 'ising_CFT';
+        syncCFTPrimaryOptions();
+    }
+    if (els.cftModelControl) els.cftModelControl.hidden = !isVirasoroGo;
     setAllowedSelectValues(
         els.latticeSelect,
         isVirasoroGo ? ['square', 'honeycomb', 'triangular'] : ['square', 'honeycomb'],
@@ -380,7 +475,7 @@ function syncModeControls() {
             els.physicalProblemSelect,
             isAnyon
                 ? ['', 'toric_code_memory_unbraid']
-                : isStandardClifford
+                : isStandardClifford && mode === 'clifford_reversi'
                     ? ['', 'ising_domain_wall_topology']
                     : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
             ''
@@ -471,14 +566,7 @@ function syncModeControls() {
     els.braidedCaptureDetails.hidden = !isAnyon;
     els.braidCancellationControl.hidden = !isAnyon
         || !['word_exact', 'nonabelian_fusion_channel'].includes(els.braidMemoryModeSelect.value);
-    els.virasoroLayerControl.hidden = !isVirasoroGo;
-    els.virasoroActionControl.hidden = !isVirasoroGo;
-    els.virasoroDirectionControl.hidden = !isVirasoroGo
-        || !['L-1', 'L-2'].includes(els.virasoroActionSelect.value);
-    els.virasoroMaxModeControl.hidden = !isVirasoroGo;
-    els.centralChargeControl.hidden = !isVirasoroGo;
-    els.unstableRuleControl.hidden = !isVirasoroGo;
-    if (isCFTReversi) {
+    if (isVirasoroGo || isCFTReversi) {
         const action = els.cftActionSelect.value;
         els.cftDirectionControl.hidden = !['L-1', 'L-2'].includes(action);
         els.cftMeasurementControl.hidden = action !== 'measure';
@@ -491,8 +579,8 @@ function syncModeControls() {
         );
     }
     els.passButton.hidden = isAnyon;
-    els.countButton.hidden = !isVirasoroGo;
-    els.measureButton.hidden = isVirasoroGo || isPhysicalClifford || isCFTReversi;
+    els.countButton.hidden = !isGoMode(mode);
+    els.measureButton.hidden = isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isAnyon;
     els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
@@ -523,7 +611,7 @@ function syncModeControls() {
     if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
         els.rulesIntroButton.textContent = isVirasoroGo
-            ? 'Virasoro Rules'
+            ? 'Physical CFT Go Rules'
             : isCFTReversi ? 'CFT Reversi Rules' : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
@@ -732,6 +820,8 @@ function createGame() {
         physicalInitialState: els.physicalInitialStateSelect.value,
         sparseErrorDensity: physicalProblem?.errorDensity,
         cftReversiInitialState: els.cftInitialStateSelect.value,
+        cftInitialState: els.cftInitialStateSelect.value,
+        cftModel: els.cftModelSelect.value,
         primaryType: els.cftPrimarySelect.value,
         hiddenChannels: els.cftHiddenChannelSelect.value === 'on',
         centralCharge: Number(els.cftCentralChargeInput.value),
@@ -744,7 +834,8 @@ function createGame() {
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
-    else if (mode === 'virasoro_go') game = new VirasoroGoGame(options);
+    else if (mode === 'clifford_go') game = new CliffordGoGame(options);
+    else if (mode === 'physical_virasoro_go') game = new VirasoroGoGame(options);
     else if (mode === 'physical_virasoro_reversi') game = new PhysicalVirasoroReversiGame(options);
     else if (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical') {
         game = new PhysicalCliffordReversiGame(options);
@@ -752,6 +843,212 @@ function createGame() {
     else game = new CliffordReversiGame(options);
     normalizeLayerControls();
     render();
+}
+
+function currentOnlineMatchKey() {
+    const mode = selectedMode();
+    const topology = els.topologySelect.value;
+    const lattice = els.latticeSelect.value;
+    return [
+        'algebraic',
+        mode,
+        topology,
+        lattice,
+        els.widthInput.value,
+        els.heightInput.value,
+        topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '',
+        topology === 'flat_4d_grid' ? els.wSizeInput.value : '',
+        mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : ''
+    ].join(':');
+}
+
+function restoreGoState(state) {
+    const source = state.go;
+    if (!source || !game.go) return;
+    game.go.board.clear();
+    source.board?.forEach((value, index) => {
+        const key = game.go.vertexKeys[index];
+        if (key && value) game.go.board.set(key, value);
+    });
+    game.go.currentPlayer = source.currentPlayer || state.currentPlayer || 'black';
+    game.go.captures = { ...(source.captures || { black: 0, white: 0 }) };
+    game.go.passCount = Number(source.passCount) || 0;
+    game.go.scoringPending = Boolean(source.scoringPending);
+    game.go.countAgreements = { ...(source.countAgreements || { black: false, white: false }) };
+    game.go.gameOver = Boolean(source.gameOver);
+    game.go.winner = source.winner || '';
+    game.go.score = source.score ? { ...source.score } : null;
+    game.go.moveNumber = Number(source.moveNumber) || 0;
+    game.go.moveHistory = cloneValue(source.moveHistory || state.history || []);
+    game.go.positionHistory = [...(source.positionHistory || [game.go.serializeBoard()])];
+    game.go.positionSet = new Set(game.go.positionHistory);
+
+    if (game.labels && Array.isArray(state.labels)) {
+        game.labels.clear();
+        for (const item of state.labels) {
+            game.labels.set(item.key || coordKey(item.coord), {
+                pauliLabel: item.pauliLabel,
+                pauliSign: item.pauliSign
+            });
+        }
+    }
+    if (game.primaryBoard && Array.isArray(state.primaryBoard)) {
+        game.primaryBoard.clear();
+        for (const item of state.primaryBoard) {
+            const { key, coord, ...stone } = item;
+            game.primaryBoard.set(key || coordKey(coord), cloneValue(stone));
+        }
+    }
+}
+
+function restoreReversiState(state) {
+    if (!game.board || !Array.isArray(state.board)) return;
+    game.board.clear();
+    for (const item of state.board) {
+        const { key, coord, ...stone } = item;
+        game.board.set(key || coordKey(coord), cloneValue(stone));
+    }
+    game.currentPlayer = state.currentPlayer || 'black';
+    game.moveNumber = Number(state.moveNumber) || 0;
+    game.history = cloneValue(state.history || []);
+    game.positionHistory = cloneValue(state.positionHistory || []);
+    if (Array.isArray(state.physicsHistory)) game.physicsHistory = cloneValue(state.physicsHistory);
+    if (Array.isArray(state.circuitHistory)) game.circuitHistory = cloneValue(state.circuitHistory);
+}
+
+function restoreAnyonState(state) {
+    if (!game.tokens || !Array.isArray(state.tokens)) return;
+    game.tokens.clear();
+    game.worldlines.clear();
+    for (const snapshot of state.tokens) {
+        const token = game.addToken({
+            ...snapshot,
+            vertex: snapshot.vertex || snapshot.coord
+        });
+        if (token) Object.assign(token, cloneValue(snapshot));
+    }
+    for (const [id, path] of Object.entries(state.worldlines || {})) {
+        game.worldlines.set(id, path.map((coord) => [...coord]));
+    }
+    game.currentPlayer = state.currentPlayer || 'black';
+    game.moveNumber = Number(state.moveNumber) || 0;
+    game.energy = { ...(state.energy || game.energy) };
+    game.braidTokens = { ...(state.braidTokens || game.braidTokens) };
+    game.score = { ...(state.score || game.score) };
+    game.parity = { ...(state.parity || game.parity) };
+    game.braidEventLog = cloneValue(state.braidEventLog || []);
+    game.unbraidAttempts = cloneValue(state.unbraidAttempts || []);
+    game.fusionOutcomes = cloneValue(state.fusionOutcomes || []);
+    game.topologicalSectors = cloneValue(state.topologicalSectors || []);
+    game.history = cloneValue(state.history || []);
+}
+
+function loadOnlineGameState(state) {
+    if (!state?.mode) return;
+    applyingRemoteState = true;
+    try {
+        els.modeSelect.value = normalizeMode(state.mode);
+        const topology = state.topology || state.go?.topology;
+        if (topology?.name && [...els.topologySelect.options].some((option) => option.value === topology.name)) {
+            els.topologySelect.value = topology.name;
+        }
+        if (topology?.sizes?.length) {
+            els.widthInput.value = topology.sizes[0];
+            els.heightInput.value = topology.sizes[1];
+            if (topology.sizes[2]) els.zSizeInput.value = topology.sizes[2];
+            if (topology.sizes[3]) els.wSizeInput.value = topology.sizes[3];
+        }
+        if (state.algebraSet) els.cliffordAlgebraSetSelect.value = state.algebraSet;
+        if (state.cftConfig?.model) els.cftModelSelect.value = state.cftConfig.model;
+        if (state.cftConfig?.initialState) els.cftInitialStateSelect.value = state.cftConfig.initialState;
+        createGame();
+        if (state.mode === 'anyon_jump') restoreAnyonState(state);
+        else if (state.go) restoreGoState(state);
+        else restoreReversiState(state);
+        lastOnlineSnapshotJSON = JSON.stringify(game.exportState());
+        render();
+    } finally {
+        applyingRemoteState = false;
+    }
+}
+
+function setOnlineConfigurationLocked(locked) {
+    for (const control of [
+        els.modeSelect,
+        els.topologySelect,
+        els.latticeSelect,
+        els.widthInput,
+        els.heightInput,
+        els.zSizeInput,
+        els.wSizeInput,
+        els.cliffordAlgebraSetSelect,
+        els.cftModelSelect,
+        els.cftInitialStateSelect
+    ]) {
+        if (control) control.disabled = locked;
+    }
+}
+
+function onlineHooks() {
+    return {
+        gameKey: `algebraic:${selectedMode()}`,
+        matchKey: currentOnlineMatchKey(),
+        getCurrentBoardState: () => game.exportState(),
+        loadBoardState: loadOnlineGameState,
+        applyMove: (state, move, color) => {
+            if (!state || state.currentPlayer !== color || !move?.boardState) return null;
+            return cloneValue(move.boardState);
+        },
+        getCurrentTurn: (state) => state?.currentPlayer || game.currentPlayer,
+        getTurnFromBoard: (state) => state?.currentPlayer,
+        renderBoard: render,
+        showOnlineStatus: (text) => {
+            els.onlineStatus.textContent = text;
+        },
+        onRoomChanged: ({ roomId, playerColor, room }) => {
+            const connected = room?.status === 'playing';
+            setOnlineConfigurationLocked(Boolean(roomId));
+            if (roomId) {
+                els.onlineRoomInput.value = roomId;
+                const url = new URL(window.location.href);
+                url.searchParams.set('room', roomId);
+                history.replaceState(null, '', url);
+            }
+            if (room?.board) lastOnlineSnapshotJSON = JSON.stringify(room.board);
+            els.onlineStatus.dataset.color = playerColor || '';
+            if (connected) render();
+        }
+    };
+}
+
+async function prepareOnline() {
+    onlineReady = initOnline(onlineHooks());
+    return onlineReady;
+}
+
+let lastOnlineSnapshotJSON = '';
+let onlineSyncPending = false;
+
+function maybeSyncOnlineState() {
+    if (applyingRemoteState || onlineSyncPending || els.playModeSelect.value !== 'online') return;
+    const online = getOnlineState();
+    if (online.room?.status !== 'playing' || online.room.turn !== online.playerColor) return;
+    const state = game.exportState();
+    const serialized = JSON.stringify(state);
+    if (serialized === lastOnlineSnapshotJSON) return;
+    onlineSyncPending = true;
+    sendMove({
+        type: 'state_update',
+        mode: game.mode,
+        moveNumber: game.moveNumber,
+        boardState: state
+    }).then(() => {
+        lastOnlineSnapshotJSON = serialized;
+    }).catch((error) => {
+        els.onlineStatus.textContent = `Move was not synchronized: ${error.message}`;
+    }).finally(() => {
+        onlineSyncPending = false;
+    });
 }
 
 function normalizeLayerControls() {
@@ -893,13 +1190,13 @@ function reversiPlacementActive() {
 }
 
 function currentVirasoroPreview() {
-    if (!hoverCoord || game.mode !== 'virasoro_go') return null;
-    const action = els.virasoroActionSelect.value;
-    if (action === 'play') return null;
+    if (!hoverCoord || !isPhysicalVirasoroGoMode(game.mode)) return null;
+    const action = els.cftActionSelect.value;
+    if (action === 'place' || action === 'measure') return null;
     return game.previewVirasoroAction({
         action,
         coord: hoverCoord,
-        direction: selectedDirection(),
+        direction: selectedCFTDirection(),
         player: game.currentPlayer
     });
 }
@@ -945,6 +1242,21 @@ function render() {
     els.manualTimeButton.hidden = !timeEnabled;
     els.pauliNoiseControl.hidden = isAnyon || !['pauli', 'custom'].includes(els.noiseModeSelect.value);
     els.anyonFlipControl.hidden = !isAnyon || !['anyon_pair_creation', 'custom'].includes(els.noiseModeSelect.value);
+    const online = getOnlineState();
+    const onlineLocked = els.playModeSelect.value === 'online'
+        && (online.room?.status !== 'playing' || online.playerColor !== game.currentPlayer);
+    for (const button of [
+        els.newGameButton,
+        els.passButton,
+        els.countButton,
+        els.measureButton,
+        els.unbraidHintButton,
+        els.manualNoiseButton,
+        els.manualTimeButton,
+        els.dropAnyonButton
+    ]) {
+        if (button) button.disabled = onlineLocked || (button === els.newGameButton && Boolean(online.roomId));
+    }
 
     renderBoard();
     renderStats();
@@ -957,6 +1269,7 @@ function render() {
     renderBraidEventLog();
     renderStochasticLog();
     renderExport();
+    maybeSyncOnlineState();
 }
 
 function renderQECObservablePanel() {
@@ -1005,7 +1318,7 @@ function renderStabilizerObservablePanel() {
 
 function renderCFTObservablePanel() {
     if (!els.cftObservablePanel) return;
-    const visible = isCFTReversiMode(game?.mode);
+    const visible = isCFTMode(game?.mode);
     els.cftObservablePanel.hidden = !visible;
     if (!visible) return;
     const observables = game.computeCFTObservables();
@@ -1071,8 +1384,8 @@ function renderFlatBoard() {
     const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
     const cftPreview = currentCFTPreview();
     const cftAffected = new Set((cftPreview?.affected || []).map((item) => item.key));
-    const legalGoTargets = game.mode === 'virasoro_go'
-        ? new Set(els.virasoroActionSelect.value === 'play'
+    const legalGoTargets = isGoMode(game.mode)
+        ? new Set(isCliffordGoMode(game.mode) || els.cftActionSelect.value === 'place'
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : new Set();
@@ -1089,7 +1402,7 @@ function renderFlatBoard() {
         }
         if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
-        const goStone = game.mode === 'virasoro_go' ? game.getStone(coord) : null;
+        const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
         if (token) {
             const status = braidStatusForToken(token);
@@ -1111,14 +1424,12 @@ function renderFlatBoard() {
             cell.classList.add('cft-selected-region');
         }
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
-        if (game.mode === 'virasoro_go') {
+        if (isPhysicalVirasoroGoMode(game.mode)) {
             const stress = game.stressAt(coord);
-            const groupInfo = goStone ? game.groupInfoAt(coord) : null;
             if (stress.stress > 0) {
                 cell.classList.add('stressed');
                 cell.style.setProperty('--stress-level', String(stress.stress));
             }
-            if (groupInfo?.unstable) cell.classList.add('unstable-group');
         }
         if (isCFTReversiMode(game.mode)) {
             const stress = game.stressAt(coord);
@@ -1152,7 +1463,7 @@ function renderFlatBoard() {
         else if (game.mode === 'anyon_jump') renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
 
-        if (game.mode === 'virasoro_go' || isCFTReversiMode(game.mode)) renderStress(cell, coord);
+        if (isCFTMode(game.mode)) renderStress(cell, coord);
 
         if (token?.id === cancelTargetId) {
             const badge = document.createElement('span');
@@ -1205,8 +1516,8 @@ function algebraic3DViewState() {
         : [];
     const virasoroPreview = currentVirasoroPreview();
     const cftPreview = currentCFTPreview();
-    const legalGo = game.mode === 'virasoro_go'
-        ? (els.virasoroActionSelect.value === 'play'
+    const legalGo = isGoMode(game.mode)
+        ? (isCliffordGoMode(game.mode) || els.cftActionSelect.value === 'place'
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : [];
@@ -1268,8 +1579,8 @@ function updateBoardHighlights() {
     const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
     const cftPreview = currentCFTPreview();
     const cftAffected = new Set((cftPreview?.affected || []).map((item) => item.key));
-    const legalGoTargets = game.mode === 'virasoro_go'
-        ? new Set(els.virasoroActionSelect.value === 'play'
+    const legalGoTargets = isGoMode(game.mode)
+        ? new Set(isCliffordGoMode(game.mode) || els.cftActionSelect.value === 'place'
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : new Set();
@@ -1278,7 +1589,7 @@ function updateBoardHighlights() {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
-        const goStone = game.mode === 'virasoro_go' ? game.getStone(coord) : null;
+        const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
@@ -1295,10 +1606,9 @@ function updateBoardHighlights() {
         cell.classList.toggle('stress-preview', virasoroAffected.has(key) || cftAffected.has(key));
         cell.classList.toggle('cft-selected-region', selectedCFTCoords.some((entry) => coordKey(entry) === key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
-        const stress = game.mode === 'virasoro_go' || isCFTReversiMode(game.mode) ? game.stressAt(coord) : null;
-        const groupInfo = game.mode === 'virasoro_go' && goStone ? game.groupInfoAt(coord) : null;
+        const stress = isCFTMode(game.mode) ? game.stressAt(coord) : null;
         cell.classList.toggle('stressed', Boolean(stress?.stress > 0));
-        cell.classList.toggle('unstable-group', Boolean(groupInfo?.unstable));
+        cell.classList.toggle('unstable-group', false);
         const vertexState = game.probability?.getVertexState(coord);
         const timeState = game.time?.getVertexState(coord);
         cell.classList.toggle('noisy', Boolean(vertexState?.noiseLevel > 0 || vertexState?.stress > 0));
@@ -1396,21 +1706,13 @@ function renderGoStone(cell, coord) {
     const node = document.createElement('span');
     node.className = `stone go-stone ${stone.color}`;
     const groupInfo = game.groupInfoAt(coord);
-    if (groupInfo?.unstable) node.classList.add('unstable');
     const cft = document.createElement('span');
     cft.className = 'cft-badge';
-    cft.textContent = groupInfo
-        ? `h=${formatNumber(groupInfo.h)}`
-        : 'h=0';
+    cft.textContent = game.primaryLabel?.(stone)
+        || (groupInfo ? `h=${formatNumber(groupInfo.h)}` : 'h=0');
     node.append(cft);
-    if (groupInfo?.unstable) {
-        const pressure = document.createElement('span');
-        pressure.className = 'cft-pressure';
-        pressure.textContent = `P=${formatNumber(groupInfo.unstable.enemyStressPressure)}`;
-        node.append(pressure);
-    }
     node.title = groupInfo
-        ? `${stone.color} group h=${formatNumber(groupInfo.h)}; liberties=${groupInfo.liberties.size}; threshold h+c=${formatNumber((groupInfo.h || 0) + (game.virasoro?.config?.centralCharge || 0))}${groupInfo.unstable ? `; unstable pressure=${formatNumber(groupInfo.unstable.enemyStressPressure)}` : ''}`
+        ? `${stone.color} ${game.primaryLabel?.(stone) || 'primary'}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; liberties=${groupInfo.liberties.size}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}`
         : stone.color;
     cell.append(node);
 }
@@ -1469,15 +1771,13 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
             ? `${game.topology.displayCoord(coord)} ${game.primaryLabel(stone)}; h=${stone.h}, hbar=${stone.hbar}; phase=${stone.phaseAngle}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}; T=${stress.stress.toFixed(2)}`
             : `${game.topology.displayCoord(coord)} identity/empty; T=${stress.stress.toFixed(2)}`;
     }
-    if (game.mode === 'virasoro_go') {
+    if (isPhysicalVirasoroGoMode(game.mode)) {
         const stress = game.stressAt(coord);
         const groupInfo = goStone ? game.groupInfoAt(coord) : null;
         const stressText = `T=${stress.stress.toFixed(2)}${stress.owner ? ` owner=${stress.owner}` : ''}`;
         if (groupInfo) {
-            const unstable = groupInfo.unstable
-                ? ` unstable: pressure ${groupInfo.unstable.enemyStressPressure.toFixed(2)} > h+c ${groupInfo.unstable.threshold.toFixed(2)}`
-                : '';
-            return `${game.topology.displayCoord(coord)} ${goStone.color} group h=${groupInfo.h}, liberties=${groupInfo.liberties.size}; ${stressText}${unstable}`;
+            const channel = goStone.hiddenChannel ? '?' : goStone.channelLabel;
+            return `${game.topology.displayCoord(coord)} ${goStone.color} ${game.primaryLabel(goStone)}; h=${goStone.h}, hbar=${goStone.hbar}; channel=${channel}; group liberties=${groupInfo.liberties.size}; ${stressText}`;
         }
         return `${game.topology.displayCoord(coord)} empty; ${stressText}`;
     }
@@ -1486,6 +1786,12 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         return stone
             ? `${game.topology.displayCoord(coord)} ${game.physicalLabel(stone)}; owner=${stone.color}; pauli=${stone.pauliLabel}; sign=${stone.pauliSign}; phase=${stone.phase}; ancilla=${stone.isAncilla ? stone.ancillaBasis : 'no'}; last=${stone.lastUpdate?.action || 'setup'}`
             : `${game.topology.displayCoord(coord)} empty / identity I`;
+    }
+    if (isCliffordGoMode(game.mode)) {
+        const stone = game.getStone(coord);
+        return stone
+            ? `${game.topology.displayCoord(coord)} ${stone.color} ${game.primaryLabel(stone)}; liberties=${game.groupInfoAt(coord)?.liberties.size || 0}`
+            : `${game.topology.displayCoord(coord)} empty Clifford-Go vertex`;
     }
     return timeState
         ? `${game.topology.displayCoord(coord)} stress=${timeState.stress.toFixed(2)} potential=${timeState.potential.toFixed(2)} charge=${timeState.charge.toFixed(2)}`
@@ -1610,13 +1916,99 @@ function handleCFTReversiClick(coord) {
     render();
 }
 
+function handleCFTGoClick(coord) {
+    const action = els.cftActionSelect.value;
+    let result = null;
+    let message = '';
+    if (action === 'place') {
+        result = game.tryPlay(coord, game.currentPlayer, {
+            primaryType: els.cftPrimarySelect.value
+        });
+    } else if (action === 'measure') {
+        const measurement = els.cftMeasurementSelect.value;
+        const required = ['four_point_block', 'dominant_block'].includes(measurement)
+            ? 4
+            : measurement === 'two_point' ? 2 : 1;
+        const key = coordKey(coord);
+        const existing = selectedCFTCoords.findIndex((entry) => coordKey(entry) === key);
+        if (existing >= 0) selectedCFTCoords.splice(existing, 1);
+        else selectedCFTCoords.push([...coord]);
+        if (selectedCFTCoords.length < required) {
+            els.statusText.textContent = `Selected ${selectedCFTCoords.length}/${required} CFT site${required === 1 ? '' : 's'}.`;
+            render();
+            return;
+        }
+        const selected = selectedCFTCoords.slice(0, required);
+        if (measurement === 'two_point') result = game.measureTwoPoint(selected[0], selected[1]);
+        else if (measurement === 'four_point_block') result = game.measureFourPoint(selected);
+        else if (measurement === 'dominant_block') result = game.measureDominantBlock(selected);
+        else if (measurement === 'ope_channel') result = game.measureOPEChannel(selected);
+        else if (measurement === 'region_entropy') result = game.measureRegionEntropy(selected);
+        else result = game.measureCFT('stress', selected);
+    } else {
+        result = game.applyVirasoroAction({
+            action,
+            coord,
+            direction: selectedCFTDirection(),
+            player: game.currentPlayer
+        });
+    }
+    if (result?.ok) {
+        hoverCoord = null;
+        selectedCFTCoords = [];
+        if (action === 'place') {
+            message = `Inserted ${els.cftPrimarySelect.value}; captured ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
+        } else if (action === 'measure') {
+            const reported = typeof result.measurement.reported === 'number'
+                ? formatNumber(result.measurement.reported)
+                : String(result.measurement.reported);
+            message = `${result.measurement.type.replaceAll('_', ' ')}: ${reported}${result.measurement.error ? ' (measurement error)' : ''}.`;
+        } else {
+            message = `${action} deformed ${result.event.affected.length} graph site${result.event.affected.length === 1 ? '' : 's'}.`;
+        }
+    } else if (result) {
+        message = result.error;
+    }
+    render();
+    if (message) {
+        els.statusText.textContent = message;
+        statusHoldUntil = Date.now() + 1800;
+    }
+}
+
 function handleCellClick(coord) {
+    if (els.playModeSelect.value === 'online') {
+        const online = getOnlineState();
+        if (online.room?.status !== 'playing') {
+            els.statusText.textContent = 'Wait for the online room to connect both players.';
+            return;
+        }
+        if (online.playerColor !== game.currentPlayer) {
+            els.statusText.textContent = `Waiting for ${game.currentPlayer}.`;
+            return;
+        }
+    }
     if (isPhysicalCliffordMode(game.mode)) {
         handlePhysicalCliffordClick(coord);
         return;
     }
     if (isCFTReversiMode(game.mode)) {
         handleCFTReversiClick(coord);
+        return;
+    }
+    if (isCliffordGoMode(game.mode)) {
+        const result = game.tryPlay(coord, game.currentPlayer, {
+            pauliLabel: els.pauliSelect.value
+        });
+        els.statusText.textContent = result.ok
+            ? `Inserted ${game.primaryLabel(game.getStone(coord))}; captured ${result.captured || 0}.`
+            : result.error;
+        if (result.ok) hoverCoord = null;
+        render();
+        return;
+    }
+    if (isPhysicalVirasoroGoMode(game.mode)) {
+        handleCFTGoClick(coord);
         return;
     }
     if (isReversiMode(game.mode)) {
@@ -1628,31 +2020,6 @@ function handleCellClick(coord) {
             ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`
             : result.error;
         if (result.ok) hoverCoord = null;
-        render();
-        return;
-    }
-
-    if (game.mode === 'virasoro_go') {
-        const action = els.virasoroActionSelect.value;
-        const result = action === 'play' || els.virasoroLayerSelect.value === 'off'
-            ? game.tryPlay(coord, game.currentPlayer)
-            : game.applyVirasoroAction({
-                action,
-                coord,
-                direction: selectedDirection(),
-                player: game.currentPlayer
-            });
-        if (result.ok) {
-            hoverCoord = null;
-            if (action === 'play' || els.virasoroLayerSelect.value === 'off') {
-                els.statusText.textContent = `Placed Go stone; captured ${result.captured || 0}.`;
-            } else {
-                const unstableCount = result.instability?.unstableGroups?.length || 0;
-                els.statusText.textContent = `${action} applied to ${result.event.affected.length} stress vertex${result.event.affected.length === 1 ? '' : 'es'}${unstableCount ? `; ${unstableCount} group${unstableCount === 1 ? '' : 's'} unstable` : ''}.`;
-            }
-        } else {
-            els.statusText.textContent = result.error;
-        }
         render();
         return;
     }
@@ -1748,8 +2115,8 @@ function handleCellClick(coord) {
 }
 
 function measureTarget() {
-    if (game.mode === 'virasoro_go') {
-        els.statusText.textContent = 'Virasoro Go uses stress actions instead of measurement actions.';
+    if (isPhysicalVirasoroGoMode(game.mode)) {
+        els.statusText.textContent = 'Choose Measure in Turn Action, then select the required CFT sites on the board.';
         return;
     }
     if (isReversiMode(game.mode)) {
@@ -1874,12 +2241,21 @@ function renderStats() {
         els.whiteBraid.textContent = '0';
         return;
     }
-    if (game.mode === 'virasoro_go') {
+    if (isGoMode(game.mode)) {
         const counts = game.counts();
+        const observables = game.computeCFTObservables?.();
+        els.blackCountLabel.textContent = isCliffordGoMode(game.mode) ? 'Black Pauli Stones' : 'Black Primaries';
+        els.whiteCountLabel.textContent = isCliffordGoMode(game.mode) ? 'White Pauli Stones' : 'White Primaries';
+        els.blackBraidLabel.textContent = isCliffordGoMode(game.mode) ? 'Black Captures' : 'Total Weight';
+        els.whiteBraidLabel.textContent = isCliffordGoMode(game.mode) ? 'White Captures' : 'Anomalies';
         els.blackCount.textContent = `${counts.black} (${game.captures.black})`;
         els.whiteCount.textContent = `${counts.white} (${game.captures.white})`;
-        els.blackBraid.textContent = '0';
-        els.whiteBraid.textContent = '0';
+        els.blackBraid.textContent = isCliffordGoMode(game.mode)
+            ? game.captures.black
+            : formatNumber(observables.totalConformalWeight);
+        els.whiteBraid.textContent = isCliffordGoMode(game.mode)
+            ? game.captures.white
+            : observables.centralChargeAnomalyEvents.length;
         return;
     }
     const tokens = [...game.tokens.values()];
@@ -1910,6 +2286,7 @@ function renderTimePanel() {
 
 function updateStatus() {
     if (!game) return;
+    if (Date.now() < statusHoldUntil) return;
     if (isPhysicalCliffordMode(game.mode)) {
         const action = els.physicalActionSelect.value;
         const observables = game.computePhysicalObservables();
@@ -1968,15 +2345,28 @@ function updateStatus() {
         }
         return;
     }
-    if (game.mode === 'virasoro_go') {
-        const action = els.virasoroActionSelect.value;
-        if (hoverCoord && action !== 'play') {
+    if (isCliffordGoMode(game.mode)) {
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} places ${els.pauliSelect.value}. Go captures use graph liberties; Pauli labels are carried by surviving stones.`;
+        if (game.scoringPending) {
+            els.statusText.textContent = 'Two passes made. Each player can press Count to agree and finish scoring.';
+        }
+        return;
+    }
+    if (isPhysicalVirasoroGoMode(game.mode)) {
+        const action = els.cftActionSelect.value;
+        const observables = game.computeCFTObservables();
+        if (hoverCoord && !['place', 'measure'].includes(action)) {
             const preview = currentVirasoroPreview();
             els.statusText.textContent = preview?.ok
                 ? `${action} will affect ${preview.affected.length} stress vertex${preview.affected.length === 1 ? '' : 'es'}.`
                 : (preview?.error || `Choose a valid target for ${action}.`);
-        } else if (action === 'play') {
-            els.statusText.textContent = `${capitalize(game.currentPlayer)} to play Go. Captures: black ${game.captures.black}, white ${game.captures.white}.`;
+        } else if (action === 'place') {
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.cftPrimarySelect.value}. Dominant block ${observables.dominantConformalBlock}; captures black ${game.captures.black}, white ${game.captures.white}.`;
+        } else if (action === 'measure') {
+            const required = ['four_point_block', 'dominant_block'].includes(els.cftMeasurementSelect.value)
+                ? 4
+                : els.cftMeasurementSelect.value === 'two_point' ? 2 : 1;
+            els.statusText.textContent = `Select ${required} site${required === 1 ? '' : 's'} for ${els.cftMeasurementSelect.value.replaceAll('_', ' ')} (${selectedCFTCoords.length}/${required}).`;
         } else {
             els.statusText.textContent = `${capitalize(game.currentPlayer)} may use ${action}. Select a ${['L1', 'L2'].includes(action) ? 'target empty vertex' : 'friendly group'}.`;
         }
@@ -2035,14 +2425,21 @@ function renderLegend() {
             'Twisted seams apply H',
             'Virasoro mode evolves graph stress T(v)'
         ]
-        : game.mode === 'virasoro_go'
+        : isPhysicalVirasoroGoMode(game.mode)
             ? [
-                'Go stones use graph liberties',
-                'T(v) badge: Virasoro stress',
-                'Gold outline: affected stress preview',
-                'Red outline: unstable group warning',
-                `c=${Number(els.centralChargeInput.value) || 1}, max N=${els.virasoroMaxModeSelect.value}`
+                'Go captures still use graph liberties',
+                '\u03c3, \u03b5, 1, or V labels are primary insertions',
+                'T(v) is the approximate stress proxy',
+                'Gold outline previews a conformal deformation',
+                `Approximate ${els.cftModelSelect.value}; c=${Number(els.cftCentralChargeInput.value) || 0.5}; max N=${els.cftMaxModeSelect.value}`
             ]
+            : isCliffordGoMode(game.mode)
+                ? [
+                    'Go captures use graph liberties',
+                    '+X, +Y, and +Z are Pauli-labelled stones',
+                    'Topology seams preserve the graph movement rules',
+                    'Pass twice, then both players agree to count'
+                ]
             : [
             els.anyonModelSelect.value === 'zn_phase'
                 ? `General Z_${Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5)))} phase: braid +1/n, inverse -1/n`
@@ -2105,12 +2502,14 @@ function renderHistory() {
         } else if (isReversiMode(game.mode)) {
             const time = event.time?.applied ? `; t${event.time.after.tick} phase ${event.time.phase}` : '';
             item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
-        } else if (game.mode === 'virasoro_go') {
+        } else if (isGoMode(game.mode)) {
             if (event.type === 'play') {
-                item.textContent = `#${event.number} ${event.color} played ${event.coord.join(',')}; captured ${event.captured}.`;
+                const inserted = isCliffordGoMode(game.mode)
+                    ? `${event.pauliSign < 0 ? '-' : '+'}${event.pauliLabel || 'X'}`
+                    : event.insertedPrimary?.primaryType || 'primary';
+                item.textContent = `#${event.number} ${event.color} inserted ${inserted} at ${event.coord.join(',')}; captured ${event.captured}.`;
             } else if (event.type === 'virasoro') {
-                const unstable = event.instability?.unstableGroups?.length || 0;
-                item.textContent = `#${event.number} ${event.color} ${event.action} at ${event.coord?.join(',') || 'none'} affected ${event.affected?.length || 0}${unstable ? `; unstable ${unstable}` : ''}.`;
+                item.textContent = `#${event.number} ${event.color} ${event.action} at ${event.coord?.join(',') || 'none'} affected ${event.affected?.length || 0}.`;
             } else if (event.type === 'score') {
                 item.textContent = `score: black ${event.score.black}, white ${event.score.white}; winner ${event.winner}.`;
             }
@@ -2273,7 +2672,7 @@ function showUnbraidHint() {
 }
 
 function handleCount() {
-    if (game?.mode !== 'virasoro_go') return;
+    if (!isGoMode(game?.mode)) return;
     const agreeingPlayer = game.currentPlayer;
     const result = game.agreeToCount(agreeingPlayer);
     if (result.ok && !result.score) {
@@ -2355,6 +2754,10 @@ for (const control of [
 ]) {
     control.addEventListener('change', createGame);
 }
+els.cftModelSelect.addEventListener('change', () => {
+    els.cftCentralChargeInput.value = els.cftModelSelect.value === 'free_boson_CFT' ? '1' : '0.5';
+    createGame();
+});
 for (const control of [
     els.physicsViewSelect,
     els.physicalPauliSelect,
@@ -2398,11 +2801,52 @@ els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
 els.dropAnyonButton.addEventListener('click', dropSelectedAnyon);
 els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
+els.playModeSelect.addEventListener('change', async () => {
+    const online = els.playModeSelect.value === 'online';
+    els.onlineButtonGrid.hidden = !online;
+    if (online) {
+        const ready = await prepareOnline();
+        if (!ready.ok) els.onlineStatus.textContent = 'Firebase config needed: fill in firebaseConfig.js.';
+    } else {
+        await leaveRoom();
+        setOnlineConfigurationLocked(false);
+        els.onlineStatus.textContent = 'Local pass and play.';
+    }
+});
+els.onlineCreateButton.addEventListener('click', async () => {
+    const ready = await prepareOnline();
+    if (!ready.ok) return;
+    const result = await createPrivateRoom(game.exportState());
+    els.onlineRoomInput.value = result.roomId;
+});
+els.onlineJoinButton.addEventListener('click', async () => {
+    const ready = await prepareOnline();
+    if (!ready.ok) return;
+    await joinPrivateRoom(els.onlineRoomInput.value);
+});
+els.onlineFindButton.addEventListener('click', async () => {
+    const ready = await prepareOnline();
+    if (!ready.ok) return;
+    const result = await findMatch(game.exportState());
+    els.onlineRoomInput.value = result.roomId;
+});
+els.onlineReconnectButton.addEventListener('click', async () => {
+    const ready = await prepareOnline();
+    if (!ready.ok) return;
+    await reconnectRoom();
+});
+els.onlineLeaveButton.addEventListener('click', async () => {
+    await leaveRoom();
+    setOnlineConfigurationLocked(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    history.replaceState(null, '', url);
+});
 els.passButton.addEventListener('click', () => {
     if (isReversiMode(game?.mode)) {
         game.pass();
         render();
-    } else if (game?.mode === 'virasoro_go') {
+    } else if (isGoMode(game?.mode)) {
         const result = game.pass(game.currentPlayer);
         els.statusText.textContent = result.ok ? `${capitalize(result.event.color)} passed.` : result.error;
         render();
@@ -2416,3 +2860,15 @@ window.addEventListener('pageshow', () => {
 });
 
 createGame();
+
+const sharedRoomId = new URLSearchParams(window.location.search).get('room');
+if (sharedRoomId) {
+    els.playModeSelect.value = 'online';
+    els.onlineButtonGrid.hidden = false;
+    els.onlineRoomInput.value = sharedRoomId;
+    prepareOnline()
+        .then((ready) => ready.ok && joinPrivateRoom(sharedRoomId))
+        .catch((error) => {
+            els.onlineStatus.textContent = `Reconnect failed: ${error.message}`;
+        });
+}

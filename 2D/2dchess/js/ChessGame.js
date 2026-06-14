@@ -48,7 +48,9 @@ export class ChessGame {
         this.network.refreshStatus();
         this.updateTimerDisplay();
         this.updateUI();
-        this.checkUrlForRoomId();
+        if (!this.checkUrlForRoomId()) {
+            window.setTimeout(() => this.network.reconnect(), 150);
+        }
     }
 
     setupBoard() {
@@ -78,7 +80,7 @@ export class ChessGame {
 
     checkUrlForRoomId() {
         const roomId = new URLSearchParams(window.location.search).get('room');
-        if (!roomId) return;
+        if (!roomId) return false;
 
         this.gameMode = 'online';
         document.getElementById('gameModeSelect').value = 'online';
@@ -88,6 +90,19 @@ export class ChessGame {
         this.setStatus('online.joiningSharedGame');
         window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
         this.updateUI();
+        return true;
+    }
+
+    onlineGameKey() {
+        return '2dchess';
+    }
+
+    onlineMatchKey() {
+        return [
+            this.onlineGameKey(),
+            this.boundaryCondition,
+            this.timerEnabled ? this.timeLimit : 0
+        ].join(':');
     }
 
     getCurrentBoardState() {

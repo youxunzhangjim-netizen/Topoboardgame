@@ -1,18 +1,41 @@
 import {
+    CFTReversiPhysics,
+    ISING_CFT_PRIMARIES,
+    normalizeCFTStone
+} from '../cft/CFTReversiPhysics.js';
+import {
     GO_COLORS,
     GraphGoGame,
+    goColorToValue,
     goValueToColor
 } from '../go/GraphGoGame.js';
-import {
-    VirasoroLayer,
-    normalizeVirasoroConfig
-} from '../virasoro/VirasoroLayer.js';
+import { ProbabilityEngine } from '../probability/ProbabilityEngine.js';
+import { coordKey } from '../topology/GraphTopologies.js';
 
-export const VIRASORO_GO_MODE = 'virasoro_go';
+export const PHYSICAL_VIRASORO_GO_MODE = 'physical_virasoro_go';
+export const VIRASORO_GO_MODE = PHYSICAL_VIRASORO_GO_MODE;
 
-function cloneCoord(coord) {
-    return [...coord];
-}
+export const CFT_GO_INITIAL_STATES = Object.freeze([
+    'vacuum',
+    'two_point_insertions',
+    'four_point_block',
+    'boundary_cft',
+    'thermal_sparse'
+]);
+
+const CFT_MODELS = Object.freeze({
+    ising_CFT: Object.freeze({
+        centralCharge: 0.5,
+        primaries: ISING_CFT_PRIMARIES
+    }),
+    free_boson_CFT: Object.freeze({
+        centralCharge: 1,
+        primaries: Object.freeze({
+            identity: Object.freeze({ h: 0, hbar: 0 }),
+            vertex: Object.freeze({ h: 0.25, hbar: 0.25 })
+        })
+    })
+});
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -22,25 +45,77 @@ function cloneValue(value) {
     return value;
 }
 
+function primarySymbol(primaryType) {
+    if (primaryType === 'sigma') return '\u03c3';
+    if (primaryType === 'epsilon') return '\u03b5';
+    if (primaryType === 'identity') return '1';
+    if (primaryType === 'vertex') return 'V';
+    return String(primaryType || '?').slice(0, 3);
+}
+
+function signForColor(color) {
+    return color === 'white' ? -1 : 1;
+}
+
+function modelPrimary(model, requested) {
+    const primaries = CFT_MODELS[model]?.primaries || CFT_MODELS.ising_CFT.primaries;
+    if (Object.hasOwn(primaries, requested)) return requested;
+    return model === 'free_boson_CFT' ? 'vertex' : 'sigma';
+}
+
 export class VirasoroGoGame {
     constructor(options = {}) {
         this.reset(options);
     }
 
     reset(options = {}) {
-        this.mode = VIRASORO_GO_MODE;
+        this.mode = PHYSICAL_VIRASORO_GO_MODE;
         this.go = new GraphGoGame({
             topology: options.topology || options,
             komi: Number.isFinite(Number(options.komi)) ? Number(options.komi) : 7.5,
             currentPlayer: options.currentPlayer || 'black'
         });
         this.topology = this.go.topology;
-        this.virasoro = new VirasoroLayer({
+        this.cftConfig = {
+            model: Object.hasOwn(CFT_MODELS, options.cftModel) ? options.cftModel : 'ising_CFT',
+            initialState: CFT_GO_INITIAL_STATES.includes(options.cftInitialState)
+                ? options.cftInitialState
+                : 'vacuum',
+            primaryType: options.primaryType || 'sigma',
+            hiddenChannels: options.hiddenChannels !== false,
+            centralCharge: Number.isFinite(Number(options.centralCharge))
+                ? Number(options.centralCharge)
+                : null,
+            maxMode: Number(options.maxMode) >= 2 ? 2 : 1,
+            temperature: Math.max(0, Number(options.temperature) || 0.35)
+        };
+        this.cftConfig.primaryType = modelPrimary(this.cftConfig.model, this.cftConfig.primaryType);
+        this.cftConfig.centralCharge ??= CFT_MODELS[this.cftConfig.model].centralCharge;
+        this.cft = new CFTReversiPhysics({
             topology: this.topology,
-            game: this.go,
-            config: normalizeVirasoroConfig(options.virasoro || options.config?.virasoro || {})
+            config: {
+                centralCharge: this.cftConfig.centralCharge,
+                maxMode: this.cftConfig.maxMode,
+                hiddenChannels: this.cftConfig.hiddenChannels,
+                temperature: this.cftConfig.temperature
+            }
         });
-        this.virasoro.evaluateInstability();
+        this.probability = new ProbabilityEngine(options.probability || {});
+        this.primaryBoard = new Map();
+        this.physicsHistory = [];
+        this.measurementHistory = [];
+        this.lastInsertedCoord = null;
+        this.lastCapturedGroups = [];
+        this.setupCFTInitialState(this.cftConfig.initialState);
+        this.resetPositionHistory();
+        this.appendPhysicsHistory({
+            player: 'system',
+            action: 'initial_state',
+            metadata: {
+                cftInitialState: this.cftConfig.initialState,
+                cftModel: this.cftConfig.model
+            }
+        });
     }
 
     get currentPlayer() {
@@ -79,25 +154,113 @@ export class VirasoroGoGame {
         return this.go.normalize(coord);
     }
 
+    primaryWeights(primaryType) {
+        const model = CFT_MODELS[this.cftConfig.model];
+        return model.primaries[primaryType] || { h: 0.25, hbar: 0.25 };
+    }
+
+    createPrimaryStone(color, primaryType, overrides = {}) {
+        const resolvedType = modelPrimary(this.cftConfig.model, primaryType);
+        const weights = this.primaryWeights(resolvedType);
+        return normalizeCFTStone({
+            owner: color,
+            color,
+            sign: signForColor(color),
+            primaryType: resolvedType,
+            h: weights.h,
+            hbar: weights.hbar,
+            phaseAngle: Number(overrides.phaseAngle) || 0,
+            channelLabel: overrides.channelLabel || 'identity',
+            hiddenChannel: overrides.hiddenChannel || null,
+            ...overrides
+        });
+    }
+
+    placeSetupPrimary(coord, color, primaryType, overrides = {}) {
+        const normalized = this.normalize(coord);
+        if (!normalized) return false;
+        const key = coordKey(normalized);
+        if (this.go.valueAtKey(key) !== GO_COLORS.empty) return false;
+        this.go.setValueAtKey(this.go.board, key, goColorToValue(color));
+        this.primaryBoard.set(key, this.createPrimaryStone(color, primaryType, overrides));
+        return true;
+    }
+
+    setupCFTInitialState(initialState) {
+        const [width, height] = this.topology.sizes;
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        if (initialState === 'two_point_insertions') {
+            this.placeSetupPrimary([Math.max(0, centerX - 2), centerY], 'black', this.cftConfig.primaryType);
+            this.placeSetupPrimary([Math.min(width - 1, centerX + 2), centerY], 'white', this.cftConfig.primaryType);
+        } else if (initialState === 'four_point_block') {
+            const points = [
+                [Math.max(0, centerX - 2), Math.max(0, centerY - 2)],
+                [Math.min(width - 1, centerX + 2), Math.max(0, centerY - 2)],
+                [Math.max(0, centerX - 2), Math.min(height - 1, centerY + 2)],
+                [Math.min(width - 1, centerX + 2), Math.min(height - 1, centerY + 2)]
+            ];
+            points.forEach((coord, index) => this.placeSetupPrimary(
+                coord,
+                index % 2 ? 'white' : 'black',
+                this.cftConfig.model === 'ising_CFT' ? 'sigma' : 'vertex'
+            ));
+        } else if (initialState === 'boundary_cft') {
+            const boundary = this.topology.vertices().filter((coord) =>
+                coord[0] === 0 || coord[0] === width - 1 || coord[1] === 0 || coord[1] === height - 1);
+            const stride = Math.max(1, Math.floor(boundary.length / 8));
+            boundary.filter((_, index) => index % stride === 0).slice(0, 8).forEach((coord, index) => {
+                this.placeSetupPrimary(coord, index % 2 ? 'white' : 'black', this.cftConfig.primaryType, {
+                    channelLabel: 'boundary_change'
+                });
+                this.cft.addStress(coord, 0.5, index % 2 ? 'white' : 'black');
+            });
+        } else if (initialState === 'thermal_sparse') {
+            const probability = Math.min(0.3, 0.04 + this.cftConfig.temperature * 0.12);
+            for (const coord of this.topology.vertices()) {
+                if (this.probability.rng.next() >= probability) continue;
+                const color = this.probability.rng.next() < 0.5 ? 'black' : 'white';
+                const primaryType = this.cftConfig.model === 'free_boson_CFT'
+                    ? 'vertex'
+                    : this.probability.rng.next() < 0.72 ? 'sigma' : 'epsilon';
+                this.placeSetupPrimary(coord, color, primaryType, {
+                    phaseAngle: this.probability.rng.next() * Math.PI * 2
+                });
+            }
+        }
+    }
+
+    resetPositionHistory() {
+        const serialized = this.go.serializeBoard();
+        this.go.positionHistory = [serialized];
+        this.go.positionSet = new Set(this.go.positionHistory);
+    }
+
     getStone(coord) {
         const normalized = this.normalize(coord);
         if (!normalized) return null;
         const value = this.go.valueAt(normalized);
         const color = goValueToColor(value);
-        return color ? { color, coord: normalized } : null;
+        if (!color) return null;
+        const primary = this.primaryBoard.get(coordKey(normalized))
+            || this.createPrimaryStone(color, this.cftConfig.primaryType);
+        return { ...cloneValue(primary), color, coord: normalized };
+    }
+
+    primaryLabel(stone) {
+        return stone ? primarySymbol(stone.primaryType) : '1';
     }
 
     stressAt(coord) {
-        return this.virasoro.getState(coord);
+        return this.cft.stressAt(coord);
     }
 
     groupInfoAt(coord) {
         const info = this.go.groupInfoAt(coord);
         if (!info) return null;
-        const key = this.go.key(coord);
         return {
             ...info,
-            unstable: this.virasoro.groupStatusForKey(key)
+            primaryTypes: [...info.group].map((key) => this.primaryBoard.get(key)?.primaryType || 'identity')
         };
     }
 
@@ -113,43 +276,293 @@ export class VirasoroGoGame {
         return this.emptyLegalKeys().map((key) => this.go.coordFromKey(key));
     }
 
-    tryPlay(coord, color = this.currentPlayer) {
+    resolveAdjacentOPE(coord, stone) {
+        const updates = [];
+        for (const neighbor of this.topology.neighbors(coord)) {
+            const neighborStone = this.primaryBoard.get(coordKey(neighbor));
+            if (!neighborStone) continue;
+            const ope = this.cftConfig.model === 'free_boson_CFT'
+                ? {
+                    input: [stone.primaryType, neighborStone.primaryType],
+                    outputs: ['vertex'],
+                    resolved: 'vertex',
+                    channelLabel: 'vertex_charge',
+                    hiddenChannel: null,
+                    tick: this.moveNumber,
+                    coord: [...coord]
+                }
+                : this.cft.resolveOPE(stone.primaryType, neighborStone.primaryType, {
+                    tick: this.moveNumber,
+                    coord
+                });
+            stone.channelLabel = ope.channelLabel;
+            stone.hiddenChannel = ope.hiddenChannel;
+            updates.push({ neighbor: [...neighbor], ...cloneValue(ope) });
+        }
+        return updates;
+    }
+
+    tryPlay(coord, color = this.currentPlayer, options = {}) {
+        const normalized = this.normalize(coord);
         const result = this.go.tryPlay(coord, color);
         if (!result.ok) return result;
-        result.instability = this.virasoro.evaluateInstability();
+        const primaryType = modelPrimary(
+            this.cftConfig.model,
+            options.primaryType || this.cftConfig.primaryType
+        );
+        const stone = this.createPrimaryStone(color, primaryType, options);
+        const OPEUpdates = this.resolveAdjacentOPE(normalized, stone);
+        this.primaryBoard.set(coordKey(normalized), stone);
+        const capturedGroups = result.event.capturedStones.map((captured) => {
+            const key = coordKey(captured);
+            const capturedStone = this.primaryBoard.get(key);
+            this.primaryBoard.delete(key);
+            return { coord: [...captured], stone: cloneValue(capturedStone) };
+        });
+        this.lastInsertedCoord = [...normalized];
+        this.lastCapturedGroups = capturedGroups;
+        result.event.insertedPrimary = cloneValue(stone);
+        result.event.OPEUpdates = cloneValue(OPEUpdates);
+        this.appendPhysicsHistory({
+            player: color,
+            action: 'insert_primary',
+            move: cloneValue(result.event),
+            insertedPrimary: { coord: [...normalized], ...cloneValue(stone) },
+            capturedGroups,
+            OPEUpdates
+        });
         return result;
     }
 
     pass(color = this.currentPlayer) {
-        return this.go.pass(color);
+        const result = this.go.pass(color);
+        if (result.ok) this.appendPhysicsHistory({ player: color, action: 'pass', move: result.event });
+        return result;
     }
 
     agreeToCount(color = this.currentPlayer) {
-        return this.go.agreeToCount(color);
+        const result = this.go.agreeToCount(color);
+        if (result.ok) this.appendPhysicsHistory({ player: color, action: 'count_agreement' });
+        return result;
     }
 
     previewVirasoroAction({ action, coord, direction, player = this.currentPlayer } = {}) {
-        return this.virasoro.previewAction({ action, coord, direction, player });
+        return this.cft.previewAction({
+            action,
+            coord,
+            direction,
+            board: this.primaryBoard,
+            player
+        });
     }
 
     applyVirasoroAction({ action, coord, direction, player = this.currentPlayer } = {}) {
         if (player !== this.currentPlayer) return { ok: false, error: `It is ${this.currentPlayer}'s turn.` };
-        const result = this.virasoro.applyAction({ action, coord, direction, player });
+        const result = this.cft.applyAction({
+            action,
+            coord,
+            direction,
+            board: this.primaryBoard,
+            player,
+            tick: this.moveNumber + 1
+        });
         if (!result.ok) return result;
-        const event = this.go.endTurnWithEvent({
+        result.event = this.go.endTurnWithEvent({
             type: 'virasoro',
             action,
-            coord: coord ? cloneCoord(coord) : null,
-            direction: direction ? cloneCoord(direction) : null,
+            coord: coord ? [...coord] : null,
+            direction: direction ? [...direction] : null,
             affected: result.event.affected.map(cloneValue),
-            transfers: result.event.transfers.map(cloneValue),
-            instability: result.instability
+            anomaly: cloneValue(result.event.anomaly)
         }, player);
-        result.event = event;
+        this.appendPhysicsHistory({
+            player,
+            action: 'virasoro_deformation',
+            move: result.event,
+            VirasoroActions: [cloneValue(result.event)]
+        });
         return result;
     }
 
+    measureCFT(type, coords, player = this.currentPlayer) {
+        const result = this.cft.measure({
+            type,
+            coords,
+            board: this.primaryBoard,
+            player,
+            tick: this.moveNumber,
+            errorRate: this.probability.config.measurementErrorRate,
+            sample: this.probability.rng.next()
+        });
+        if (!result.ok) return result;
+        this.measurementHistory.push(cloneValue(result.measurement));
+        this.appendPhysicsHistory({
+            player,
+            action: 'measurement',
+            measurements: [result.measurement]
+        });
+        return result;
+    }
+
+    measureTwoPoint(first, second, player) {
+        const observables = this.computeCFTObservables();
+        const keys = new Set([coordKey(first), coordKey(second)]);
+        const correlation = observables.twoPointCorrelations.find((item) =>
+            item.pair.every((key) => keys.has(key))) || null;
+        const measurement = {
+            tick: this.moveNumber,
+            player: player || this.currentPlayer,
+            type: 'two_point',
+            vertices: [[...first], [...second]],
+            reported: correlation?.estimate ?? 0,
+            approximate: true
+        };
+        this.measurementHistory.push(cloneValue(measurement));
+        this.appendPhysicsHistory({
+            player: measurement.player,
+            action: 'measurement',
+            measurements: [measurement]
+        });
+        return { ok: true, measurement };
+    }
+
+    measureFourPoint(coords, player) {
+        return this.measureCFT('four_point_block', coords, player);
+    }
+
+    measureRegionEntropy(region, player) {
+        return this.measureCFT('region_entropy', region, player);
+    }
+
+    measureOPEChannel(group, player) {
+        return this.measureCFT('ope_channel', group, player);
+    }
+
+    measureDominantBlock(coords, player) {
+        return this.measureCFT('four_point_block', coords, player);
+    }
+
+    computeOPEClusters() {
+        return this.go.connectedGroups().map((group) => {
+            const types = [...group.group].map((key) => this.primaryBoard.get(key)?.primaryType || 'identity');
+            const channels = [...group.group].map((key) => {
+                const stone = this.primaryBoard.get(key);
+                return stone?.hiddenChannel || stone?.channelLabel || 'identity';
+            });
+            return {
+                color: group.color,
+                vertices: [...group.group].map((key) => this.go.coordFromKey(key)),
+                primaryTypes: types,
+                channelLabels: [...new Set(channels)],
+                liberties: group.liberties.size
+            };
+        });
+    }
+
+    computeStressTensorProxy() {
+        const insertions = [...this.primaryBoard.entries()].map(([key, stone]) => ({
+            coord: this.go.coordFromKey(key),
+            stone
+        }));
+        return this.topology.vertices().map((coord) => {
+            let real = this.cft.stressAt(coord).stress;
+            let imaginary = 0;
+            for (const insertion of insertions) {
+                const dx = Number(coord[0] || 0) - Number(insertion.coord[0] || 0);
+                const dy = Number(coord[1] || 0) - Number(insertion.coord[1] || 0);
+                const radiusSquared = Math.max(0.25, dx * dx + dy * dy);
+                const weight = Number(insertion.stone.h || 0);
+                real += weight * (dx * dx - dy * dy) / (radiusSquared * radiusSquared);
+                imaginary += weight * (-2 * dx * dy) / (radiusSquared * radiusSquared);
+            }
+            return {
+                key: coordKey(coord),
+                coord: [...coord],
+                real,
+                imaginary,
+                magnitude: Math.hypot(real, imaginary),
+                approximate: true
+            };
+        });
+    }
+
+    computeCFTObservables(recordHistory = false) {
+        const observables = this.cft.computeObservables(this.primaryBoard, {
+            interval: this.lastInsertedCoord ? [this.lastInsertedCoord] : [],
+            recordHistory
+        });
+        const sum_h = [...this.primaryBoard.values()]
+            .reduce((total, stone) => total + Number(stone.h || 0) + Number(stone.hbar || 0), 0);
+        return {
+            ...observables,
+            cftModel: this.cftConfig.model,
+            centralCharge: this.cftConfig.centralCharge,
+            totalConformalWeight: sum_h,
+            OPEClusters: this.computeOPEClusters(),
+            stressTensorProxy: this.computeStressTensorProxy(),
+            capturedPrimaryGroups: cloneValue(this.lastCapturedGroups)
+        };
+    }
+
+    appendPhysicsHistory({
+        player,
+        action,
+        move = null,
+        insertedPrimary = null,
+        capturedGroups = [],
+        OPEUpdates = [],
+        VirasoroActions = [],
+        measurements = [],
+        metadata = {}
+    }) {
+        const entry = {
+            tick: this.moveNumber,
+            player,
+            action,
+            move: cloneValue(move),
+            insertedPrimary: cloneValue(insertedPrimary),
+            capturedGroups: cloneValue(capturedGroups),
+            VirasoroActions: cloneValue(VirasoroActions),
+            OPEUpdates: cloneValue(OPEUpdates),
+            measurements: cloneValue(measurements),
+            metadata: cloneValue(metadata),
+            observables: this.computeCFTObservables(true)
+        };
+        this.physicsHistory.push(entry);
+        return entry;
+    }
+
+    computeCFTAnswer() {
+        const observables = this.computeCFTObservables();
+        const entropy = this.cft.entropyHistory;
+        const entropyGrowthHistory = [...entropy];
+        const channelDistribution = {};
+        for (const cluster of observables.OPEClusters) {
+            for (const channel of cluster.channelLabels) {
+                channelDistribution[channel] = (channelDistribution[channel] || 0) + 1;
+            }
+        }
+        const nonIdentity = [...this.primaryBoard.values()]
+            .filter((stone) => stone.primaryType !== 'identity').length;
+        return {
+            estimatorNotice: observables.estimatorNotice,
+            finalDominantConformalBlock: observables.dominantConformalBlock,
+            finalOPEFusionChannelDistribution: channelDistribution,
+            finalEntropyEstimate: observables.entanglementEntropyEstimate,
+            entropyGrowthHistory,
+            strongestTwoPointCorrelations: cloneValue(observables.strongestCorrelations),
+            vacuumBlockDominates: observables.dominantConformalBlock === 'identity',
+            centralChargeAnomalyEventsOccurred: observables.centralChargeAnomalyEvents.length > 0,
+            closeToIdentityVacuumSector: nonIdentity === 0 || (
+                observables.dominantConformalBlock === 'identity'
+                && nonIdentity <= Math.max(2, this.topology.vertices().length * 0.03)
+            ),
+            summary: `Approximate ${this.cftConfig.model} graph estimate: ${observables.dominantConformalBlock} block dominates, entropy ${observables.entanglementEntropyEstimate.toFixed(3)}, total conformal weight ${observables.totalConformalWeight.toFixed(3)}, and ${observables.centralChargeAnomalyEvents.length} anomaly event${observables.centralChargeAnomalyEvents.length === 1 ? '' : 's'} were recorded.`
+        };
+    }
+
     exportState() {
+        const observables = this.computeCFTObservables();
         return {
             mode: this.mode,
             topology: {
@@ -157,6 +570,7 @@ export class VirasoroGoGame {
                 sizes: [...this.topology.sizes],
                 dimensions: this.topology.dimensions
             },
+            cftConfig: cloneValue(this.cftConfig),
             currentPlayer: this.currentPlayer,
             moveNumber: this.moveNumber,
             captures: { ...this.captures },
@@ -164,7 +578,16 @@ export class VirasoroGoGame {
             winner: this.winner,
             scoringPending: this.scoringPending,
             go: this.go.exportState(),
-            virasoro: this.virasoro.exportState(),
+            primaryBoard: [...this.primaryBoard.entries()].map(([key, stone]) => ({
+                key,
+                coord: this.go.coordFromKey(key),
+                ...cloneValue(stone)
+            })),
+            cft: this.cft.exportState(),
+            measurements: cloneValue(this.measurementHistory),
+            physicsHistory: cloneValue(this.physicsHistory),
+            observables,
+            answer: this.computeCFTAnswer(),
             history: this.history.map(cloneValue)
         };
     }

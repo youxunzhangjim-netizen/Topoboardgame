@@ -32,6 +32,7 @@ let initialized = false;
 let hooks = {};
 let latestRoom = null;
 let lastLoadedMoveNumber = -1;
+const reconnectStorageKey = 'topoboardgame:firebase-room';
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
@@ -78,7 +79,11 @@ export async function initOnline(options = {}) {
         applyMove: options.applyMove,
         renderBoard: options.renderBoard,
         showOnlineStatus: options.showOnlineStatus,
-        onRoomChanged: options.onRoomChanged
+        onRoomChanged: options.onRoomChanged,
+        gameKey: String(options.gameKey || 'topological-boardgame'),
+        matchKey: String(options.matchKey || options.gameKey || 'topological-boardgame'),
+        getCurrentTurn: options.getCurrentTurn,
+        getTurnFromBoard: options.getTurnFromBoard
     };
 
     if (!hasFirebaseConfig()) {
@@ -104,11 +109,17 @@ export async function createPrivateRoom(initialBoard) {
 
     const ref = doc(collection(db, roomsPath));
     const board = initialBoard ?? hooks.getCurrentBoardState?.();
+    const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
     await setDoc(ref, {
         status: 'waiting',
         public: false,
-        players: { white: user.uid, black: null },
-        turn: 'white',
+        players: {
+            white: initialTurn === 'white' ? user.uid : null,
+            black: initialTurn === 'black' ? user.uid : null
+        },
+        turn: initialTurn,
+        gameKey: hooks.gameKey,
+        matchKey: hooks.matchKey,
         board,
         moveNumber: 0,
         lastMove: null,
@@ -117,8 +128,9 @@ export async function createPrivateRoom(initialBoard) {
     });
 
     roomId = ref.id;
-    playerColor = 'white';
+    playerColor = initialTurn;
     lastLoadedMoveNumber = 0;
+    localStorage.setItem(reconnectStorageKey, roomId);
     status(`Private room ${roomId} created. Waiting for Black.`);
     listenToRoom(roomId);
     return { roomId, playerColor };
@@ -135,15 +147,21 @@ export async function joinPrivateRoom(rawRoomId) {
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error('Room not found.');
         const room = snapshot.data();
+        if (room.gameKey && room.gameKey !== hooks.gameKey) {
+            throw new Error('This room belongs to a different game.');
+        }
         const existingColor = room.players?.white === user.uid
             ? 'white'
             : room.players?.black === user.uid ? 'black' : null;
         if (existingColor) return { room, color: existingColor };
-        if (room.status !== 'waiting' || room.players?.black) {
+        const openColor = room.players?.white == null
+            ? 'white'
+            : room.players?.black == null ? 'black' : null;
+        if (room.status !== 'waiting' || !openColor) {
             throw new Error('Room is full or already finished.');
         }
         transaction.update(ref, {
-            'players.black': user.uid,
+            [`players.${openColor}`]: user.uid,
             status: 'playing',
             updatedAt: serverTimestamp()
         });
@@ -151,15 +169,16 @@ export async function joinPrivateRoom(rawRoomId) {
             room: {
                 ...room,
                 status: 'playing',
-                players: { ...room.players, black: user.uid }
+                players: { ...room.players, [openColor]: user.uid }
             },
-            color: 'black'
+            color: openColor
         };
     });
 
     roomId = requestedRoom;
     playerColor = joined.color;
     lastLoadedMoveNumber = Number(joined.room.moveNumber) || 0;
+    localStorage.setItem(reconnectStorageKey, roomId);
     if (joined.room.board) {
         hooks.loadBoardState?.(joined.room.board);
         hooks.renderBoard?.();
@@ -181,7 +200,10 @@ export async function findMatch(initialBoard) {
     );
     const candidates = await getDocs(waitingQuery);
     for (const candidate of candidates.docs) {
-        if (!candidate.data().public || candidate.data().players?.white === user.uid) continue;
+        if (!candidate.data().public
+            || candidate.data().players?.white === user.uid
+            || candidate.data().players?.black === user.uid
+            || candidate.data().matchKey !== hooks.matchKey) continue;
         try {
             return await joinPrivateRoom(candidate.id);
         } catch {
@@ -191,11 +213,17 @@ export async function findMatch(initialBoard) {
 
     const ref = doc(collection(db, roomsPath));
     const board = initialBoard ?? hooks.getCurrentBoardState?.();
+    const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
     await setDoc(ref, {
         status: 'waiting',
         public: true,
-        players: { white: user.uid, black: null },
-        turn: 'white',
+        players: {
+            white: initialTurn === 'white' ? user.uid : null,
+            black: initialTurn === 'black' ? user.uid : null
+        },
+        turn: initialTurn,
+        gameKey: hooks.gameKey,
+        matchKey: hooks.matchKey,
         board,
         moveNumber: 0,
         lastMove: null,
@@ -203,8 +231,9 @@ export async function findMatch(initialBoard) {
         updatedAt: serverTimestamp()
     });
     roomId = ref.id;
-    playerColor = 'white';
+    playerColor = initialTurn;
     lastLoadedMoveNumber = 0;
+    localStorage.setItem(reconnectStorageKey, roomId);
     status('Public match created. Waiting for another player...');
     listenToRoom(roomId);
     return { roomId, playerColor };
@@ -274,9 +303,12 @@ export async function sendMove(move) {
         if (!nextBoard) throw new Error('Illegal move.');
         const { boardState: _clientSnapshot, ...lastMove } = move;
 
+        const nextTurn = hooks.getTurnFromBoard?.(nextBoard)
+            || nextBoard?.currentPlayer
+            || opposite(playerColor);
         transaction.update(ref, {
             board: nextBoard,
-            turn: opposite(playerColor),
+            turn: nextTurn,
             moveNumber: (Number(room.moveNumber) || 0) + 1,
             lastMove: {
                 ...lastMove,
@@ -288,7 +320,7 @@ export async function sendMove(move) {
     });
 }
 
-export async function leaveRoom({ updateRemote = true } = {}) {
+export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
     unsubscribeRoom?.();
     unsubscribeRoom = null;
 
@@ -318,8 +350,24 @@ export async function leaveRoom({ updateRemote = true } = {}) {
     playerColor = null;
     latestRoom = null;
     lastLoadedMoveNumber = -1;
+    if (forget) localStorage.removeItem(reconnectStorageKey);
     hooks.onRoomChanged?.({ roomId: '', playerColor: null, room: null });
     status('Offline.');
+}
+
+export async function reconnectRoom() {
+    requireReady();
+    const urlRoom = new URLSearchParams(window.location.search).get('room');
+    const rememberedRoom = localStorage.getItem(reconnectStorageKey);
+    const target = normalizeRoomId(urlRoom || rememberedRoom);
+    if (!target) return { ok: false, error: 'No remembered room.' };
+    try {
+        const result = await joinPrivateRoom(target);
+        return { ok: true, ...result };
+    } catch (error) {
+        localStorage.removeItem(reconnectStorageKey);
+        throw error;
+    }
 }
 
 export function getOnlineState() {
@@ -355,7 +403,11 @@ export class FirebaseOnlineAdapter {
                 game.myColor = color;
                 game.updateOnlineRoomUI(nextRoomId, color, room);
                 game.updateUI();
-            }
+            },
+            gameKey: game.onlineGameKey?.() || '2dchess',
+            matchKey: game.onlineMatchKey?.() || game.onlineGameKey?.() || '2dchess',
+            getCurrentTurn: (state) => state?.currentPlayer || game.currentPlayer,
+            getTurnFromBoard: (state) => state?.currentPlayer
         });
     }
 
@@ -423,6 +475,18 @@ export class FirebaseOnlineAdapter {
         this.isConnected = false;
         this.roomId = '';
         this.myColor = null;
+    }
+
+    async reconnect() {
+        try {
+            const ready = await this.ready;
+            if (!ready.ok) return false;
+            const result = await reconnectRoom();
+            return Boolean(result.ok);
+        } catch (error) {
+            this.game.showOnlineStatus(`Reconnect failed: ${error.message}`);
+            return false;
+        }
     }
 
     persistState() {}

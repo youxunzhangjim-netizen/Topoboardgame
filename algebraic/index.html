@@ -32,9 +32,10 @@
                         Mode
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
+                            <option value="clifford_go">Clifford Go</option>
+                            <option value="physical_virasoro_go">Physical Virasoro Go</option>
                             <option value="physical_virasoro_reversi">Physical Virasoro Reversi</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
-                            <option value="virasoro_go">Virasoro Go</option>
                         </select>
                     </label>
                     <label>
@@ -352,7 +353,7 @@
                         </div>
                     </details>
                 </div>
-                <div class="control-fields algebra-mode-fields" id="virasoroAlgebraControls" data-controls-mode="virasoro" hidden>
+                <div class="control-fields algebra-mode-fields" id="virasoroAlgebraControls" data-controls-mode="legacy-virasoro" hidden>
                     <label id="virasoroLayerControl">
                         Virasoro Layer
                         <select id="virasoroLayerSelect">
@@ -405,7 +406,14 @@
                         </select>
                     </label>
                 </div>
-                <div class="control-fields algebra-mode-fields" id="cftReversiControls" data-controls-mode="cft-reversi" hidden>
+                <div class="control-fields algebra-mode-fields" id="cftReversiControls" data-controls-mode="cft" hidden>
+                    <label id="cftModelControl">
+                        CFT Model
+                        <select id="cftModelSelect">
+                            <option value="ising_CFT" selected>Ising CFT</option>
+                            <option value="free_boson_CFT">Free Boson CFT</option>
+                        </select>
+                    </label>
                     <label>
                         Initial State
                         <select id="cftInitialStateSelect">
@@ -450,9 +458,11 @@
                     <label id="cftMeasurementControl" hidden>
                         Measurement
                         <select id="cftMeasurementSelect">
+                            <option value="two_point">Two-Point Correlator</option>
                             <option value="line_parity" selected>Line Parity</option>
                             <option value="ope_channel">OPE Channel</option>
                             <option value="four_point_block">Four-Point Block</option>
+                            <option value="dominant_block">Dominant Block</option>
                             <option value="region_entropy">Region Entropy</option>
                             <option value="stress">Stress</option>
                         </select>
@@ -582,6 +592,31 @@
                     <button id="exportButton" type="button">Export JSON</button>
                 </div>
             </div>
+
+            <div class="control-section section-online">
+                <h2>Play</h2>
+                <div class="control-fields two-col">
+                    <label>
+                        Connection
+                        <select id="playModeSelect">
+                            <option value="local" selected>Local</option>
+                            <option value="online">Online</option>
+                        </select>
+                    </label>
+                    <label>
+                        Room Code
+                        <input id="onlineRoomInput" type="text" autocomplete="off" placeholder="Room code or shared link">
+                    </label>
+                </div>
+                <div class="button-grid online-button-grid" id="onlineButtonGrid" hidden>
+                    <button id="onlineFindButton" type="button">Find Match</button>
+                    <button id="onlineCreateButton" type="button">Create Room</button>
+                    <button id="onlineJoinButton" type="button">Join Room</button>
+                    <button id="onlineReconnectButton" type="button">Reconnect</button>
+                    <button id="onlineLeaveButton" type="button">Leave</button>
+                </div>
+                <p class="online-status" id="onlineStatus">Local pass and play.</p>
+            </div>
         </section>
 
         <section class="layer-panel" id="layerPanel" hidden>
@@ -665,17 +700,15 @@
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
                     </div>
                     <div data-rules-mode="virasoro">
-                        <h2>Virasoro Go Rules</h2>
-                        <p><strong>3D boards:</strong> R3 uses a cubic graph, T2 uses the complete torus surface, and S2 uses a latitude-ring sphere. Stones, legal vertices, conformal weights h, stress rings, and Virasoro previews are rendered on the interactive board.</p>
-                        <p><strong>Base Go:</strong> this mode uses ordinary graph-Go rules. Stones live on graph vertices. Connected groups, liberties, captures, suicide rejection, superko, two-pass counting, and area scoring all use graph adjacency from the selected topology.</p>
-                        <p><strong>Lattices:</strong> square uses four graph neighbors, honeycomb uses three, and triangular uses six: &plusmn;x, &plusmn;y, (+x,-y), and (-x,+y). Captures require enclosing every remaining graph liberty, including diagonal liberties exposed at a topology boundary.</p>
-                        <p><strong>2D RBC:</strong> the 2D RBC topology creates one static random map from every boundary exit to another boundary point. Liberties, groups, captures, stress movement, and scoring all use that graph.</p>
-                        <p><strong>Optional Virasoro layer:</strong> every vertex has a stress value T(v), initially 0. Each connected stone group has conformal weight h = group_size / 2. The central charge c defaults to 1. With max mode N = 1, the enabled actions are L_-1, L_0, and L_1. With N = 2, L_-2 and L_2 are also available.</p>
-                        <p><strong>Turn choice:</strong> a player may place a normal Go stone, pass, agree to count after two passes, or spend the turn on one Virasoro action when the layer is on. Normal Go captures still happen only by zero liberties.</p>
-                        <p><strong>L_-1:</strong> choose a friendly connected group and a graph direction. For each empty liberty adjacent to the group, move up to one unit of stress from that liberty to the next empty vertex along that direction. L_-2 does the same shift over two graph steps.</p>
-                        <p><strong>L_0:</strong> choose a friendly connected group. Add +1 stress to every empty liberty adjacent to that group. The stress is marked as controlled by the acting player.</p>
-                        <p><strong>L_1:</strong> choose an empty target vertex. Move up to one unit of stress from each empty neighboring vertex into the target. L_2 pulls from distance-two axis neighbors.</p>
-                        <p><strong>Stress pressure:</strong> for a group, enemyStressPressure is the sum of T(v) over empty liberties controlled by the opponent. If enemyStressPressure &gt; h + c, the group is marked unstable. By default this is a warning marker only; the optional Remove Group setting enables experimental removal.</p>
+                        <h2>Physical Virasoro Go Rules</h2>
+                        <p><strong>Approximation:</strong> this is a discrete CFT-inspired estimator on a graph, not an exact continuum CFT solver. Normal graph-Go remains a separate game.</p>
+                        <p><strong>Go rules:</strong> liberties, groups, captures, suicide, superko, passing, and area scoring are unchanged and use only topology adjacency.</p>
+                        <p><strong>Primary insertions:</strong> a legal Go placement inserts a primary field. Ising CFT uses identity, sigma with h=1/16, and epsilon with h=1/2 at c=1/2. Free Boson uses identity and a configurable vertex operator at c=1.</p>
+                        <p><strong>Initial states:</strong> choose vacuum, two-point insertions, four-point block, boundary CFT insertions, or a seeded thermal sparse state.</p>
+                        <p><strong>OPE and capture:</strong> adjacent compatible primaries form approximate OPE clusters and channel labels. A normal Go capture removes the captured primary insertions after the liberty calculation.</p>
+                        <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, and L_1. N=2 adds L_-2 and L_2. They approximate discrete conformal deformations by changing stress, phase, and symbolic channel data; overlapping N=2 actions can add central-charge anomaly markers.</p>
+                        <p><strong>Measurements:</strong> measure a two-point estimate, four-point block, region entropy, OPE channel, dominant block, or stress. Hidden channels collapse when measured and seeded measurement errors are logged.</p>
+                        <p><strong>Observables:</strong> every turn records primary counts, approximate correlators, cross-ratio, conformal-block weights, dominant block, stress proxy, total conformal weight, OPE clusters, entropy, mutual information, anomaly events, and topology sector.</p>
                     </div>
                 </section>
             </div>
