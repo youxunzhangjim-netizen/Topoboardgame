@@ -41,6 +41,7 @@
     "verify:physical-problems": "node tools/verify-physical-problems.mjs"
   },
   "dependencies": {
+    "firebase": "^12.14.0",
     "peerjs": "^1.5.5",
     "three": "^0.184.0"
   },
