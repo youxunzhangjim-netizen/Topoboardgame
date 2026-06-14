@@ -1,4 +1,5 @@
 import { COLORS, FLAT_4D_GO_TOPOLOGY, Flat4DGoGame, otherColor, valueToColor } from './Flat4DGo.js';
+import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 
 const KOMI = 7.5;
 
@@ -22,12 +23,24 @@ class Go4DApp {
         this.historyEl = document.getElementById('moveHistoryList');
         this.scorePanel = document.getElementById('scorePanel');
         this.scoreResult = document.getElementById('scoreResult');
+        this.gameModeSelect = document.getElementById('gameModeSelect');
+        this.onlineControls = document.getElementById('onlineControls');
+        this.onlineColorEl = document.getElementById('onlineColorStatus');
+        this.roomIdInput = document.getElementById('roomIdInput');
+        this.shareLinkInput = document.getElementById('shareLinkInput');
+        this.copyLinkBtn = document.getElementById('copyLinkBtn');
+        this.chatMessagesEl = document.getElementById('chatMessages');
+        this.chatInput = document.getElementById('chatInput');
+        this.chatSendBtn = document.getElementById('chatSendBtn');
+        this.myColor = null;
         this.selectedIndex = -1;
         this.hoverIndex = -1;
         this.logic = this.createLogic();
+        this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.bindEvents();
         this.updateZoomOptions();
         this.updateUI();
+        this.tryJoinSharedRoomFromUrl();
     }
 
     sizes() {
@@ -51,8 +64,24 @@ class Go4DApp {
         this.zoomSelect.addEventListener('change', () => this.render());
         document.getElementById('passBtn').addEventListener('click', () => this.passTurn());
         document.getElementById('countBtn').addEventListener('click', () => this.agreeCount());
-        document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame());
+        document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
         document.getElementById('surrenderBtn').addEventListener('click', () => this.surrender());
+        this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
+        document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
+        document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
+        document.getElementById('joinRoomBtn')?.addEventListener('click', () => this.network.joinRoom(this.roomIdInput.value));
+        this.copyLinkBtn?.addEventListener('click', async () => {
+            if (!this.shareLinkInput?.value) return;
+            await navigator.clipboard?.writeText(this.shareLinkInput.value);
+            this.copyLinkBtn.textContent = 'Copied';
+            window.setTimeout(() => { this.copyLinkBtn.textContent = 'Copy'; }, 1000);
+        });
+        this.chatSendBtn?.addEventListener('click', () => this.sendChatMessage());
+        this.chatInput?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            event.preventDefault();
+            this.sendChatMessage();
+        });
         this.gridEl.addEventListener('pointerover', (event) => {
             const button = event.target.closest('button[data-coord]');
             this.hoverIndex = button ? this.logic.indexFromCoord(JSON.parse(button.dataset.coord)) : -1;
@@ -64,16 +93,21 @@ class Go4DApp {
         });
     }
 
-    resetGame() {
+    resetGame({ broadcast = false } = {}) {
         this.logic = this.createLogic();
         this.selectedIndex = -1;
         this.hoverIndex = -1;
         this.updateZoomOptions();
         this.setStatus('New 4D Go game started.');
         this.updateUI();
+        if (broadcast) this.broadcastState();
     }
 
     play(coord) {
+        if (!this.canActFor(this.logic.currentPlayer)) {
+            this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
+            return;
+        }
         const result = this.logic.tryPlay(coord, this.logic.currentPlayer);
         if (!result.ok) {
             this.setStatus(result.error);
@@ -83,6 +117,7 @@ class Go4DApp {
         this.selectedIndex = this.logic.indexFromCoord(coord);
         this.setStatus(`${this.capitalize(otherColor(this.logic.currentPlayer))} played (${coord.join(',')}).`);
         this.updateUI();
+        this.broadcastState();
     }
 
     select(coord) {
@@ -91,6 +126,10 @@ class Go4DApp {
     }
 
     passTurn() {
+        if (!this.canActFor(this.logic.currentPlayer)) {
+            this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
+            return;
+        }
         const color = this.logic.currentPlayer;
         const result = this.logic.pass(color);
         if (!result.ok) {
@@ -99,10 +138,11 @@ class Go4DApp {
         }
         this.setStatus(this.logic.scoringPending ? 'Two passes. Both players must agree to count.' : `${this.capitalize(this.logic.currentPlayer)} to play.`);
         this.updateUI();
+        this.broadcastState();
     }
 
     agreeCount() {
-        const color = !this.logic.countAgreements.black ? 'black' : 'white';
+        const color = this.gameModeSelect?.value === 'online' && this.myColor ? this.myColor : (!this.logic.countAgreements.black ? 'black' : 'white');
         const result = this.logic.agreeToCount(color);
         if (!result.ok) {
             this.setStatus(result.error);
@@ -110,15 +150,21 @@ class Go4DApp {
         }
         this.setStatus(this.logic.gameOver ? this.resultText() : `${this.capitalize(color)} agreed. Waiting for ${this.capitalize(otherColor(color))}.`);
         this.updateUI();
+        this.broadcastState();
     }
 
     surrender() {
+        if (!this.canActFor(this.logic.currentPlayer)) {
+            this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
+            return;
+        }
         const color = this.logic.currentPlayer;
         this.logic.gameOver = true;
         this.logic.winner = otherColor(color);
         this.logic.moveHistory.unshift({ type: 'surrender', color, number: this.logic.moveNumber });
         this.setStatus(`${this.capitalize(color)} surrendered. ${this.capitalize(this.logic.winner)} wins.`);
         this.updateUI();
+        this.broadcastState();
     }
 
     updateZoomOptions() {
@@ -280,6 +326,101 @@ class Go4DApp {
         if (this.logic.winner === 'draw') return 'Draw';
         if (this.logic.score) return `${this.capitalize(this.logic.winner)} wins by ${this.logic.score.margin}`;
         return `${this.capitalize(this.logic.winner)} wins`;
+    }
+
+    canActFor(color) {
+        return this.gameModeSelect?.value !== 'online' || (this.network?.isConnected && this.myColor === color);
+    }
+
+    updateOnlineControls() {
+        const online = this.gameModeSelect?.value === 'online';
+        if (this.onlineControls) this.onlineControls.hidden = !online;
+        if (!online) {
+            this.myColor = null;
+            this.network?.close?.({ silent: true });
+            this.setOnlineColor(null);
+        }
+    }
+
+    setOnlineColor(color, roomId = this.network?.roomId) {
+        this.myColor = color;
+        if (this.onlineColorEl) {
+            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : 'Local pass and play';
+        }
+        if (this.shareLinkInput && roomId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', roomId);
+            this.shareLinkInput.value = url.href;
+        }
+    }
+
+    tryJoinSharedRoomFromUrl() {
+        const roomId = new URLSearchParams(window.location.search).get('room');
+        if (!roomId || !this.gameModeSelect) return;
+        this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
+        if (this.roomIdInput) this.roomIdInput.value = roomId;
+        window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
+    }
+
+    onlineGameKey() {
+        return '4dgo';
+    }
+
+    onlineMatchKey() {
+        const { nx, ny, nz, nw } = this.sizes();
+        return ['4dgo', nx, ny, nz, nw].join(':');
+    }
+
+    exportNetworkState() {
+        return { logic: this.logic.exportState(), sizes: this.sizes() };
+    }
+
+    importNetworkState(state) {
+        if (!state?.logic) return;
+        const sizes = state.logic.sizes || state.sizes || {};
+        for (const [key, input] of Object.entries(this.inputs)) {
+            if (input && sizes[key]) input.value = String(sizes[key]);
+        }
+        this.logic.importState(state.logic);
+        this.updateZoomOptions();
+        this.setStatus('Synced online game.');
+        this.updateUI();
+    }
+
+    broadcastState() {
+        if (this.gameModeSelect?.value === 'online' && this.network?.isConnected) this.network.sendState();
+    }
+
+    sendChatMessage() {
+        const text = this.chatInput?.value.trim();
+        if (!text) return;
+        if (this.gameModeSelect?.value !== 'online' || !this.network?.isConnected) {
+            this.setStatus('Connect online before chatting.');
+            return;
+        }
+        this.network.sendChat({ text });
+        this.chatInput.value = '';
+    }
+
+    renderOnlineChatMessages(messages = []) {
+        if (!this.chatMessagesEl) return;
+        if (!messages.length) {
+            this.chatMessagesEl.innerHTML = '<div class="chat-empty">Connect online to chat.</div>';
+            return;
+        }
+        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.capitalize(message.player || 'player')}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
+        this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
+    }
+
+    escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[character]);
     }
 
     setStatus(text) {

@@ -31,7 +31,14 @@ export class FirebaseStateNetworkManager {
         this.myColor = null;
         this.peer = { id: '' };
 
-        this.ready = initOnline({
+        this.ready = this.init();
+    }
+
+    hooks() {
+        this.gameKey = this.app.onlineGameKey?.() || this.gameKey || 'topoboardgame';
+        this.matchKey = this.app.onlineMatchKey?.() || this.matchKey || this.gameKey;
+        const app = this.app;
+        return {
             gameKey: this.gameKey,
             matchKey: this.matchKey,
             getCurrentBoardState: () => cloneState(app.exportNetworkState?.() || app.exportState?.()),
@@ -69,13 +76,23 @@ export class FirebaseStateNetworkManager {
                     }));
                 }
             }
-        });
+        };
+    }
+
+    init() {
+        this.ready = initOnline(this.hooks());
+        return this.ready;
+    }
+
+    async ensureReady() {
+        const ready = await this.init();
+        return ready?.ok ? ready : null;
     }
 
     async createRoom() {
         try {
-            const ready = await this.ready;
-            if (!ready.ok) return null;
+            const ready = await this.ensureReady();
+            if (!ready) return null;
             return await createPrivateRoom(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
             this.app.setStatus?.(`Could not create room: ${error.message}`);
@@ -85,8 +102,8 @@ export class FirebaseStateNetworkManager {
 
     async findMatch() {
         try {
-            const ready = await this.ready;
-            if (!ready.ok) return null;
+            const ready = await this.ensureReady();
+            if (!ready) return null;
             return await findMatch(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
             this.app.setStatus?.(`Matchmaking failed: ${error.message}`);
@@ -100,8 +117,8 @@ export class FirebaseStateNetworkManager {
 
     async resumeOrJoinRoom(roomId) {
         try {
-            const ready = await this.ready;
-            if (!ready.ok) return null;
+            const ready = await this.ensureReady();
+            if (!ready) return null;
             return await joinPrivateRoom(roomId);
         } catch (error) {
             this.app.setStatus?.(`Could not join room: ${error.message}`);
@@ -111,8 +128,8 @@ export class FirebaseStateNetworkManager {
 
     async reconnect() {
         try {
-            const ready = await this.ready;
-            if (!ready.ok) return false;
+            const ready = await this.ensureReady();
+            if (!ready) return false;
             const result = await reconnectRoom();
             return Boolean(result.ok);
         } catch (error) {
