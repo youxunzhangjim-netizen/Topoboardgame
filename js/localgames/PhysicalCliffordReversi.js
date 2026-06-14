@@ -5,6 +5,7 @@ import {
     transformSignedPauli
 } from '../algebra/PauliAlgebra.js';
 import { coordKey } from '../topology/GraphTopologies.js';
+import { createPhysicalProblem } from '../physics/PhysicalProblems.js';
 import { CLIFFORD_REVERSI_MODE, CliffordReversiGame } from './CliffordReversi.js';
 
 export const PHYSICAL_CLIFFORD_REVERSI_MODE = 'physical_clifford_reversi';
@@ -21,9 +22,11 @@ export const PHYSICAL_INITIAL_STATES = Object.freeze([
 export const ANCILLA_BASES = Object.freeze(['Z0', 'Z1', 'Xplus', 'Xminus', 'magic']);
 export const PHYSICAL_MEASUREMENTS = Object.freeze([
     'local_pauli',
+    'neighborhood_stabilizer_check',
     'connected_domain_parity',
     'bracketed_line_parity',
-    'stabilizer_check'
+    'stabilizer_check',
+    'logical_cycle_parity'
 ]);
 
 const PAULI_MULTIPLICATION = Object.freeze({
@@ -131,6 +134,10 @@ function ancillaState(basis) {
 
 export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     reset(options = {}) {
+        const physicalProblemSource = options.physicalProblem || options.physicalProblemId || options.problemId || null;
+        const physicalProblemConfig = physicalProblemSource && typeof physicalProblemSource === 'object'
+            ? physicalProblemSource
+            : options.physicalProblemConfig || {};
         super.reset({ ...options, physicalProblem: null, physicalProblemId: null, problemId: null });
         this.mode = CLIFFORD_REVERSI_MODE;
         this.algebraSet = PHYSICAL_CLIFFORD_ALGEBRA_SET;
@@ -139,9 +146,23 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
             physicalInitialState: PHYSICAL_INITIAL_STATES.includes(options.physicalInitialState)
                 ? options.physicalInitialState
                 : 'stabilizer_vacuum',
-            sparseErrorDensity: Math.max(0.01, Math.min(0.5, Number(options.sparseErrorDensity) || 0.08)),
-            pairedDefectCount: Math.max(1, Math.min(16, Math.floor(Number(options.pairedDefectCount) || 3)))
+            sparseErrorDensity: Math.max(
+                0.01,
+                Math.min(0.5, Number(options.sparseErrorDensity ?? physicalProblemConfig.errorDensity) || 0.08)
+            ),
+            pairedDefectCount: Math.max(1, Math.min(16, Math.floor(Number(options.pairedDefectCount) || 3))),
+            enableTopologyLogicalChecks: physicalProblemConfig.enableTopologyLogicalChecks !== false,
+            enableAncillaActions: !physicalProblemSource || physicalProblemConfig.enableAncillaActions !== false,
+            enableNonCliffordPhaseKick: !physicalProblemSource
+                || Boolean(physicalProblemConfig.enableNonCliffordPhaseKick),
+            maxTurns: Math.max(1, Math.floor(Number(physicalProblemConfig.maxTurns) || 100))
         };
+        if (physicalProblemSource && Number.isFinite(Number(physicalProblemConfig.measurementErrorRate))) {
+            this.probability.config.measurementErrorRate = Math.max(
+                0,
+                Math.min(1, Number(physicalProblemConfig.measurementErrorRate))
+            );
+        }
         this.board.clear();
         this.history = [];
         this.positionHistory = [];
@@ -160,6 +181,8 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
             affectedVertices: [...this.board.keys()].map((key) => key.split(',').map(Number)),
             metadata: { physicalInitialState: this.physicalConfig.physicalInitialState }
         });
+        this.physicalProblem = createPhysicalProblem(physicalProblemSource, physicalProblemConfig);
+        this.physicalProblem?.start?.(this);
     }
 
     setStone(coord, stone) {
@@ -414,6 +437,9 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     }
 
     prepareAncilla(vertex, basis = 'Z0', options = {}) {
+        if (!this.physicalConfig.enableAncillaActions) {
+            return { ok: false, error: 'Ancilla actions are disabled for this physical problem.' };
+        }
         const normalized = this.topology.normalize(vertex);
         if (!normalized) return { ok: false, error: 'Choose a valid board vertex.' };
         if (!this.isEmpty(normalized)) return { ok: false, error: 'Ancillas require an empty vertex.' };
@@ -456,6 +482,9 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
 
     phaseAction(vertex, gate = 'S', options = {}) {
         if (gate === 'phase_kick') {
+            if (!this.physicalConfig.enableNonCliffordPhaseKick) {
+                return { ok: false, error: 'Non-Clifford phase kicks are disabled for this physical problem.' };
+            }
             const normalized = this.topology.normalize(vertex);
             const key = normalized ? coordKey(normalized) : '';
             const stone = key ? this.board.get(key) : null;
@@ -480,6 +509,9 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     }
 
     entangleAncilla(controlVertex, targetVertex, gate = 'CNOT', options = {}) {
+        if (!this.physicalConfig.enableAncillaActions) {
+            return { ok: false, error: 'Ancilla actions are disabled for this physical problem.' };
+        }
         const control = this.topology.normalize(controlVertex);
         const target = this.topology.normalize(targetVertex);
         const controlStone = control ? this.board.get(coordKey(control)) : null;
@@ -531,11 +563,59 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
             const preview = this.previewMove(normalized, this.currentPlayer, this.defaultFlipTransform);
             return [...new Map(preview.flips.map((flip) => [flip.key, flip.coord])).values()];
         }
-        if (type === 'stabilizer_check') {
-            return [normalized, ...this.topology.neighbors(normalized)]
-                .filter((coord) => this.board.has(coordKey(coord)));
+        if (type === 'stabilizer_check' || type === 'neighborhood_stabilizer_check') {
+            return [normalized, ...this.topology.neighbors(normalized)];
+        }
+        if (type === 'logical_cycle_parity') {
+            return this.logicalCycleVertices(normalized);
         }
         return this.board.has(coordKey(normalized)) ? [normalized] : [];
+    }
+
+    logicalCycleAxes() {
+        if (!this.physicalConfig.enableTopologyLogicalChecks) return [];
+        const name = String(this.topology.name || '').toLowerCase();
+        if (name === 'torus' || name === 'klein_bottle') return [0, 1];
+        if (name === 'rp2') return [0];
+        return [];
+    }
+
+    logicalCycleVertices(reference = null, axis = null) {
+        const axes = this.logicalCycleAxes();
+        const selectedAxis = axis == null ? axes[0] : axis;
+        if (!axes.includes(selectedAxis)) return [];
+        const center = reference || this.topology.sizes.map((size) => Math.floor(size / 2));
+        return this.topology.vertices().filter((coord) =>
+            coord.every((value, index) => index === selectedAxis || value === center[index]));
+    }
+
+    logicalPauliSector(globalParity) {
+        const cycleAxes = this.logicalCycleAxes();
+        if (!cycleAxes.length) {
+            return {
+                source: 'global',
+                x: globalParity.x,
+                z: globalParity.z,
+                cycles: {}
+            };
+        }
+        const cycles = {};
+        let logicalX = 0;
+        let logicalZ = 0;
+        for (const axis of cycleAxes) {
+            let xParity = 0;
+            let zParity = 0;
+            for (const coord of this.logicalCycleVertices(null, axis)) {
+                const label = this.board.get(coordKey(coord))?.pauliLabel || 'I';
+                if (['X', 'Y'].includes(label)) xParity ^= 1;
+                if (['Z', 'Y'].includes(label)) zParity ^= 1;
+            }
+            const axisName = ['x', 'y', 'z', 'w'][axis] || `axis${axis}`;
+            cycles[axisName] = { x: xParity, z: zParity };
+            logicalX ^= xParity;
+            logicalZ ^= zParity;
+        }
+        return { source: 'cycles', x: logicalX, z: logicalZ, cycles };
     }
 
     measurePhysical(vertex, type = 'local_pauli', basis = 'Z', options = {}) {
@@ -633,6 +713,9 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     }
 
     discardAncilla(vertex, options = {}) {
+        if (!this.physicalConfig.enableAncillaActions) {
+            return { ok: false, error: 'Ancilla actions are disabled for this physical problem.' };
+        }
         const normalized = this.topology.normalize(vertex);
         const key = normalized ? coordKey(normalized) : '';
         const stone = key ? this.board.get(key) : null;
@@ -675,19 +758,19 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
         let domainWallLength = 0;
         let commutationConflictCount = 0;
         let stabilizerViolations = 0;
+        let localXCheckViolations = 0;
+        let localZCheckViolations = 0;
         const seenEdges = new Set();
         const winding = { x: 0, y: 0, z: 0, w: 0 };
         for (const coord of this.topology.vertices()) {
             const key = coordKey(coord);
             const stone = this.board.get(key);
-            let checkSign = stone ? normalizePauliSign(stone.pauliSign) : 1;
             for (const direction of this.topology.directions()) {
                 const step = this.topology.step(coord, direction);
                 if (!step) continue;
                 const neighborKey = coordKey(step.coord);
                 const edgeKey = [key, neighborKey].sort().join('|');
                 const neighbor = this.board.get(neighborKey);
-                if (neighbor) checkSign *= normalizePauliSign(neighbor.pauliSign);
                 if (seenEdges.has(edgeKey)) continue;
                 seenEdges.add(edgeKey);
                 if (stone && neighbor && normalizePauliSign(stone.pauliSign) !== normalizePauliSign(neighbor.pauliSign)) {
@@ -699,27 +782,56 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
                     commutationConflictCount++;
                 }
             }
-            if (checkSign !== (this.stabilizerChecks.get(key) || 1)) stabilizerViolations++;
+            const neighborhood = [coord, ...this.topology.neighbors(coord)];
+            let xParity = 0;
+            let zParity = 0;
+            for (const vertex of neighborhood) {
+                const label = this.board.get(coordKey(vertex))?.pauliLabel || 'I';
+                if (['X', 'Y'].includes(label)) xParity ^= 1;
+                if (['Z', 'Y'].includes(label)) zParity ^= 1;
+            }
+            const target = this.stabilizerChecks.get(key);
+            const targetX = typeof target === 'object' ? Number(target.x || 0) & 1 : 0;
+            const targetZ = typeof target === 'object' ? Number(target.z || 0) & 1 : 0;
+            const xViolation = xParity !== targetX;
+            const zViolation = zParity !== targetZ;
+            if (xViolation) localXCheckViolations++;
+            if (zViolation) localZCheckViolations++;
+            if (xViolation || zViolation) stabilizerViolations++;
         }
-        const logicalSector = Object.fromEntries(
-            Object.entries(winding).map(([axis, value]) => [axis, ((value % 2) + 2) % 2])
-        );
+        const globalPauliParity = {
+            x: parityX,
+            z: parityZ,
+            sign: paritySign ? -1 : 1,
+            phase: parityPhase,
+            label: parityX ? (parityZ ? 'Y' : 'X') : (parityZ ? 'Z' : 'I')
+        };
+        const logicalSector = this.logicalPauliSector(globalPauliParity);
+        const initialLogicalSector = this.initialPhysicalLogicalSector;
+        const logicalErrorOccurred = Boolean(initialLogicalSector
+            && JSON.stringify(logicalSector) !== JSON.stringify(initialLogicalSector));
+        const syndromeWeight = localXCheckViolations + localZCheckViolations;
+        const vacuumRecovered = counts.I === this.topology.vertices().length
+            && ancillas === 0
+            && syndromeWeight === 0;
+        const recoveryEntry = this.physicsHistory?.find((entry) => entry.observables?.vacuumRecovered);
         return {
             pauliCounts: counts,
             signDistribution: signs,
             phaseDistribution: phases,
             numberOfAncillas: ancillas,
             domainWallLength,
+            syndromeWeight,
             stabilizerViolations,
-            globalPauliParity: {
-                x: parityX,
-                z: parityZ,
-                sign: paritySign ? -1 : 1,
-                phase: parityPhase,
-                label: parityX ? (parityZ ? 'Y' : 'X') : (parityZ ? 'Z' : 'I')
-            },
+            localXCheckViolations,
+            localZCheckViolations,
+            globalPauliParity,
             commutationConflictCount,
             logicalSector,
+            logicalErrorOccurred,
+            vacuumRecovered,
+            measurementErrors: this.measurementErrors,
+            recoveryTime: recoveryEntry?.tick ?? (vacuumRecovered ? this.moveNumber : null),
             nonCliffordResourcesUsed: this.nonCliffordResourcesUsed
         };
     }
@@ -752,9 +864,7 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
 
     computePhysicalAnswer() {
         const observables = this.computePhysicalObservables();
-        const vacuumRecovered = observables.pauliCounts.I === this.topology.vertices().length
-            && observables.numberOfAncillas === 0
-            && observables.stabilizerViolations === 0;
+        const vacuumRecovered = observables.vacuumRecovered;
         return {
             finalSector: observables.logicalSector,
             stabilizerVacuumRecovered: vacuumRecovered,

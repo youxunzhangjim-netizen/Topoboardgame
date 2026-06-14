@@ -64,6 +64,7 @@
                             <option value="" selected>None</option>
                             <option value="ising_domain_wall_topology">Ising Domain Wall</option>
                             <option value="toric_code_memory_unbraid">Toric Memory Unbraid</option>
+                            <option value="stabilizer_pauli_recovery">Stabilizer Pauli Recovery</option>
                         </select>
                     </label>
                     <label id="qecPairsEControl" hidden>
@@ -77,6 +78,35 @@
                     <label id="qecPairSeparationControl" hidden>
                         Pair Separation
                         <input id="qecPairSeparationInput" type="number" min="1" max="16" value="1">
+                    </label>
+                    <label id="stabilizerErrorDensityControl" hidden>
+                        Error Density
+                        <input id="stabilizerErrorDensityInput" type="number" min="0" max="1" step="0.01" value="0.08">
+                    </label>
+                    <label id="stabilizerLogicalChecksControl" hidden>
+                        Topology Checks
+                        <select id="stabilizerLogicalChecksSelect">
+                            <option value="on" selected>On</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label id="stabilizerAncillaControl" hidden>
+                        Ancilla Actions
+                        <select id="stabilizerAncillaSelect">
+                            <option value="on" selected>On</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label id="stabilizerPhaseKickControl" hidden>
+                        Non-Clifford Kick
+                        <select id="stabilizerPhaseKickSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="on">On</option>
+                        </select>
+                    </label>
+                    <label id="stabilizerMaxTurnsControl" hidden>
+                        Maximum Turns
+                        <input id="stabilizerMaxTurnsInput" type="number" min="1" max="10000" value="100">
                     </label>
                 </div>
             </div>
@@ -211,7 +241,8 @@
                             <option value="local_pauli" selected>Local Pauli</option>
                             <option value="connected_domain_parity">Domain Parity</option>
                             <option value="bracketed_line_parity">Bracketed Line</option>
-                            <option value="stabilizer_check">Stabilizer Check</option>
+                            <option value="stabilizer_check">Neighborhood Stabilizer</option>
+                            <option value="logical_cycle_parity">Logical Cycle</option>
                         </select>
                     </label>
                     <label id="physicalMeasurementBasisControl" hidden>
@@ -601,8 +632,9 @@
                         <p><strong>Reversi action:</strong> placement still requires a normal topology-aware bracket. Each flipped site changes owner and sign, then receives the selected H or S transform plus any seam transport. Pauli phase is tracked modulo four.</p>
                         <p><strong>Ancillas:</strong> prepare Z0, Z1, X+, X-, or magic ancillas on empty sites. Entangle an occupied control and target with CNOT or CZ when at least one endpoint is an ancilla. Ancillas may be measured in X/Z or discarded.</p>
                         <p><strong>Phase actions:</strong> S, S dagger, and Z are Clifford actions. Phase Kick accepts a numeric angle and marks non-quarter-turn use as a non-stabilizer approximation.</p>
-                        <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, or stabilizer neighborhood. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
-                        <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, domain-wall length, stabilizer violations, global parity, commutation conflicts, logical sector, measurement errors, and non-Clifford resource use.</p>
+                        <p><strong>Stabilizer Recovery problem:</strong> this optional physical problem treats local Clifford/Reversi actions as Pauli-frame recovery. It adds graph-neighborhood X/Z syndromes, topology-cycle logical checks, recovery time, seeded measurement errors, and a dedicated QEC export without changing ordinary Reversi.</p>
+                        <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
+                        <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
                         <h2>Physical Virasoro/CFT Reversi Rules</h2>
@@ -696,6 +728,21 @@
                         <div><span>Failed Unbraids</span><strong id="qecUnbraidFail">0</strong></div>
                     </div>
                     <p id="qecObservableSummary">Select the toric-code memory physical problem to begin.</p>
+                </section>
+
+                <section class="qec-observable-panel" id="stabilizerObservablePanel" hidden>
+                    <h2>Stabilizer Observables</h2>
+                    <div class="qec-observable-grid">
+                        <div><span>Syndrome Weight</span><strong id="stabilizerSyndromeWeight">0</strong></div>
+                        <div><span>Check Violations</span><strong id="stabilizerViolationCount">0</strong></div>
+                        <div><span>Logical Sector</span><strong id="stabilizerLogicalSector">I</strong></div>
+                        <div><span>Global Parity</span><strong id="stabilizerGlobalParity">I</strong></div>
+                        <div><span>Commutation Conflicts</span><strong id="stabilizerConflictCount">0</strong></div>
+                        <div><span>Ancillas</span><strong id="stabilizerAncillaCount">0</strong></div>
+                        <div><span>Measurement Errors</span><strong id="stabilizerMeasurementErrors">0</strong></div>
+                        <div><span>Vacuum</span><strong id="stabilizerVacuumState">Not recovered</strong></div>
+                    </div>
+                    <p id="stabilizerObservableSummary">Select the stabilizer recovery physical problem to begin.</p>
                 </section>
 
                 <section>

@@ -219,6 +219,33 @@ try {
     assert.equal(physicalVacuumState.title, 'Clifford Reversi');
     assert.equal(physicalVacuumState.mode, 'clifford_reversi');
     assert.equal(physicalVacuumState.algebraSet, 'physical');
+    const physicalProblemOptions = await page.evaluate(() =>
+        [...document.querySelector('#physicalProblemSelect').options]
+            .filter((option) => !option.hidden && !option.disabled)
+            .map((option) => option.value)
+    );
+    assert.deepEqual(
+        physicalProblemOptions,
+        ['', 'stabilizer_pauli_recovery'],
+        'Physical Clifford Reversi only exposes the stabilizer recovery wrapper.'
+    );
+    await page.selectOption('#physicalProblemSelect', 'stabilizer_pauli_recovery');
+    await page.waitForTimeout(100);
+    const stabilizerProblemState = await page.evaluate(() => {
+        const state = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            problemId: state.physicalProblem?.problemId,
+            panelVisible: !document.querySelector('#stabilizerObservablePanel')?.hidden,
+            syndrome: document.querySelector('#stabilizerSyndromeWeight')?.textContent,
+            vacuum: document.querySelector('#stabilizerVacuumState')?.textContent,
+            toricPanelHidden: document.querySelector('#qecObservablePanel')?.hidden
+        };
+    });
+    assert.equal(stabilizerProblemState.problemId, 'stabilizer_pauli_recovery');
+    assert.equal(stabilizerProblemState.panelVisible, true);
+    assert.equal(stabilizerProblemState.syndrome, '0');
+    assert.equal(stabilizerProblemState.vacuum, 'Recovered');
+    assert.equal(stabilizerProblemState.toricPanelHidden, true);
     assert.equal(physicalVacuumState.selectedAlgebraSet, 'physical');
     assert.equal(physicalVacuumState.boardSize, 0, 'Physical vacuum must not inherit the ordinary four-stone opening.');
     assert.equal(physicalVacuumState.vacuumRecovered, true);

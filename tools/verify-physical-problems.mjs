@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { AnyonJumpGame } from '../js/localgames/AnyonJump.js';
 import { CliffordReversiGame } from '../js/localgames/CliffordReversi.js';
+import { PhysicalCliffordReversiGame } from '../js/localgames/PhysicalCliffordReversi.js';
 import { nextRequiredUnbraidGenerator } from '../js/anyon/BraidMemory.js';
 import {
     calculateToricCodeMemoryUnbraidAnswer,
@@ -23,6 +24,10 @@ import {
     createPhysicalProblem,
     normalizePhysicalProblemId
 } from '../js/physics/PhysicalProblems.js';
+import {
+    runStabilizerRecoveryExperiment,
+    STABILIZER_PAULI_RECOVERY_ID
+} from '../js/physics/StabilizerPauliRecoveryProblem.js';
 
 const topologyOptions = topologyOptionsForToricCodeMemoryUnbraid({
     topology: 'RP2',
@@ -146,6 +151,61 @@ const answer = calculateToricCodeMemoryUnbraidAnswer({
 });
 assert.equal(answer.logicalErrorOccurred, false);
 assert.equal(answer.finalTotalCharge, 'psi');
+
+assert.equal(normalizePhysicalProblemId(STABILIZER_PAULI_RECOVERY_ID), STABILIZER_PAULI_RECOVERY_ID);
+assert.equal(createPhysicalProblem({ id: STABILIZER_PAULI_RECOVERY_ID }).id, STABILIZER_PAULI_RECOVERY_ID);
+
+const stabilizerGame = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 4, height: 4 },
+    physicalInitialState: 'stabilizer_vacuum',
+    probability: { seed: 'stabilizer-problem', measurementErrorRate: 1 },
+    physicalProblem: {
+        id: STABILIZER_PAULI_RECOVERY_ID,
+        errorDensity: 0.1,
+        measurementErrorRate: 1,
+        enableTopologyLogicalChecks: true,
+        enableAncillaActions: true,
+        enableNonCliffordPhaseKick: false,
+        maxTurns: 20
+    }
+});
+assert.equal(stabilizerGame.physicalProblem.id, STABILIZER_PAULI_RECOVERY_ID);
+assert.equal(stabilizerGame.computePhysicalObservables().vacuumRecovered, true);
+stabilizerGame.setStone([1, 1], {
+    color: 'black',
+    pauliLabel: 'X',
+    pauliSign: 1,
+    phase: 0
+});
+let stabilizerObservables = stabilizerGame.computePhysicalObservables();
+assert.equal(stabilizerObservables.localXCheckViolations, 5, 'One interior X error violates five local X-check neighborhoods.');
+assert.equal(stabilizerObservables.localZCheckViolations, 0);
+assert.equal(stabilizerObservables.syndromeWeight, 5);
+assert.equal(stabilizerObservables.globalPauliParity.label, 'X');
+const checkMeasurement = stabilizerGame.measurePhysical([1, 1], 'stabilizer_check', 'X');
+assert.equal(checkMeasurement.ok, true);
+assert.equal(checkMeasurement.event.measurements[0].error, true, 'Existing seeded measurement errors feed the recovery problem.');
+const stabilizerExport = stabilizerGame.exportState().physicalProblem;
+assert.equal(stabilizerExport.problemId, STABILIZER_PAULI_RECOVERY_ID);
+assert.equal(stabilizerExport.config.maxTurns, 20);
+assert.ok(stabilizerExport.fullPhysicsHistory.length >= 2);
+assert.ok(stabilizerExport.measurementHistory.length >= 1);
+assert.equal(stabilizerExport.finalAnswer.measurementErrorCount, 1);
+assert.equal(typeof stabilizerExport.finalAnswer.finalSyndromeWeight, 'number');
+
+const stabilizerExperiment = await runStabilizerRecoveryExperiment({
+    topologyList: ['flat', 'torus'],
+    numTrials: 1,
+    maxTurns: 2,
+    errorDensity: 0.1,
+    measurementErrorRate: 0,
+    policy: 'measure_syndrome',
+    seed: 'stabilizer-experiment-test'
+});
+assert.equal(stabilizerExperiment.trials.length, 2);
+assert.equal(typeof stabilizerExperiment.aggregate.vacuumRecoveryRate, 'number');
+assert.equal(typeof stabilizerExperiment.aggregate.averageFinalSyndromeWeight, 'number');
+assert.equal(stabilizerExperiment.aggregate.topologyRanking.length, 2);
 
 const experiment = runToricMemoryExperiment({
     topologyList: ['torus', 'klein_bottle'],

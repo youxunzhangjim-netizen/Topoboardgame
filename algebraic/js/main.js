@@ -23,6 +23,16 @@ const els = {
     qecPairsMInput: document.querySelector('#qecPairsMInput'),
     qecPairSeparationControl: document.querySelector('#qecPairSeparationControl'),
     qecPairSeparationInput: document.querySelector('#qecPairSeparationInput'),
+    stabilizerErrorDensityControl: document.querySelector('#stabilizerErrorDensityControl'),
+    stabilizerErrorDensityInput: document.querySelector('#stabilizerErrorDensityInput'),
+    stabilizerLogicalChecksControl: document.querySelector('#stabilizerLogicalChecksControl'),
+    stabilizerLogicalChecksSelect: document.querySelector('#stabilizerLogicalChecksSelect'),
+    stabilizerAncillaControl: document.querySelector('#stabilizerAncillaControl'),
+    stabilizerAncillaSelect: document.querySelector('#stabilizerAncillaSelect'),
+    stabilizerPhaseKickControl: document.querySelector('#stabilizerPhaseKickControl'),
+    stabilizerPhaseKickSelect: document.querySelector('#stabilizerPhaseKickSelect'),
+    stabilizerMaxTurnsControl: document.querySelector('#stabilizerMaxTurnsControl'),
+    stabilizerMaxTurnsInput: document.querySelector('#stabilizerMaxTurnsInput'),
     topologySelect: document.querySelector('#topologySelect'),
     latticeControl: document.querySelector('#latticeControl'),
     latticeSelect: document.querySelector('#latticeSelect'),
@@ -185,6 +195,16 @@ const els = {
     qecUnbraidSuccess: document.querySelector('#qecUnbraidSuccess'),
     qecUnbraidFail: document.querySelector('#qecUnbraidFail'),
     qecObservableSummary: document.querySelector('#qecObservableSummary'),
+    stabilizerObservablePanel: document.querySelector('#stabilizerObservablePanel'),
+    stabilizerSyndromeWeight: document.querySelector('#stabilizerSyndromeWeight'),
+    stabilizerViolationCount: document.querySelector('#stabilizerViolationCount'),
+    stabilizerLogicalSector: document.querySelector('#stabilizerLogicalSector'),
+    stabilizerGlobalParity: document.querySelector('#stabilizerGlobalParity'),
+    stabilizerConflictCount: document.querySelector('#stabilizerConflictCount'),
+    stabilizerAncillaCount: document.querySelector('#stabilizerAncillaCount'),
+    stabilizerMeasurementErrors: document.querySelector('#stabilizerMeasurementErrors'),
+    stabilizerVacuumState: document.querySelector('#stabilizerVacuumState'),
+    stabilizerObservableSummary: document.querySelector('#stabilizerObservableSummary'),
     exportText: document.querySelector('#exportText')
 };
 
@@ -360,7 +380,9 @@ function syncModeControls() {
             els.physicalProblemSelect,
             isAnyon
                 ? ['', 'toric_code_memory_unbraid']
-                : isStandardClifford ? ['', 'ising_domain_wall_topology'] : [''],
+                : isStandardClifford
+                    ? ['', 'ising_domain_wall_topology']
+                    : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
             ''
         );
     }
@@ -368,6 +390,13 @@ function syncModeControls() {
     els.qecPairsEControl.hidden = !qecProblem;
     els.qecPairsMControl.hidden = !qecProblem;
     els.qecPairSeparationControl.hidden = !qecProblem;
+    const stabilizerProblem = isPhysicalClifford
+        && selectedPhysicalProblemId() === 'stabilizer_pauli_recovery';
+    els.stabilizerErrorDensityControl.hidden = !stabilizerProblem;
+    els.stabilizerLogicalChecksControl.hidden = !stabilizerProblem;
+    els.stabilizerAncillaControl.hidden = !stabilizerProblem;
+    els.stabilizerPhaseKickControl.hidden = !stabilizerProblem;
+    els.stabilizerMaxTurnsControl.hidden = !stabilizerProblem;
 
     if (isVirasoroGo || isCFTReversi) {
         els.noiseModeSelect.value = 'off';
@@ -392,7 +421,23 @@ function syncModeControls() {
     els.transformControl.hidden = !isClifford;
     els.phaseSignControl.hidden = !isStandardClifford;
     if (isPhysicalClifford) {
-        const action = els.physicalActionSelect.value;
+        let action = els.physicalActionSelect.value;
+        const stabilizerProblem = selectedPhysicalProblemId() === 'stabilizer_pauli_recovery';
+        const ancillasEnabled = !stabilizerProblem || els.stabilizerAncillaSelect.value === 'on';
+        const phaseKickEnabled = !stabilizerProblem || els.stabilizerPhaseKickSelect.value === 'on';
+        for (const option of els.physicalActionSelect.options) {
+            if (['prepare_ancilla', 'entangle_ancilla', 'discard_ancilla'].includes(option.value)) {
+                option.disabled = !ancillasEnabled;
+            }
+        }
+        els.physicalPhaseGateSelect.querySelector('option[value="phase_kick"]').disabled = !phaseKickEnabled;
+        if (!ancillasEnabled && ['prepare_ancilla', 'entangle_ancilla', 'discard_ancilla'].includes(action)) {
+            els.physicalActionSelect.value = 'reversi';
+            action = 'reversi';
+        }
+        if (!phaseKickEnabled && els.physicalPhaseGateSelect.value === 'phase_kick') {
+            els.physicalPhaseGateSelect.value = 'S';
+        }
         els.physicalPauliControl.hidden = action !== 'reversi';
         els.physicalPhaseControl.hidden = action !== 'reversi';
         els.ancillaBasisControl.hidden = action !== 'prepare_ancilla';
@@ -648,6 +693,19 @@ function physicalProblemConfig(mode) {
             seed: params.get('seed') || 'ising-domain-wall'
         };
     }
+    if (mode === 'clifford_reversi'
+        && els.cliffordAlgebraSetSelect.value === 'physical'
+        && physicalProblemId === 'stabilizer_pauli_recovery') {
+        return {
+            id: physicalProblemId,
+            errorDensity: Number(els.stabilizerErrorDensityInput.value || 0.08),
+            measurementErrorRate: Number(els.measurementErrorInput.value || 0.02),
+            enableTopologyLogicalChecks: els.stabilizerLogicalChecksSelect.value === 'on',
+            enableAncillaActions: els.stabilizerAncillaSelect.value === 'on',
+            enableNonCliffordPhaseKick: els.stabilizerPhaseKickSelect.value === 'on',
+            maxTurns: Number(els.stabilizerMaxTurnsInput.value || 100)
+        };
+    }
     return null;
 }
 
@@ -672,6 +730,7 @@ function createGame() {
         defaultFlipTransform: els.transformSelect.value,
         trackPhaseSigns: phaseSignsEnabled(),
         physicalInitialState: els.physicalInitialStateSelect.value,
+        sparseErrorDensity: physicalProblem?.errorDensity,
         cftReversiInitialState: els.cftInitialStateSelect.value,
         primaryType: els.cftPrimarySelect.value,
         hiddenChannels: els.cftHiddenChannelSelect.value === 'on',
@@ -891,6 +950,7 @@ function render() {
     renderStats();
     renderCFTObservablePanel();
     renderQECObservablePanel();
+    renderStabilizerObservablePanel();
     renderLegend();
     renderTimePanel();
     renderHistory();
@@ -916,6 +976,31 @@ function renderQECObservablePanel() {
     els.qecUnbraidSuccess.textContent = String(observables.numberOfSuccessfulUnbraids);
     els.qecUnbraidFail.textContent = String(observables.numberOfFailedUnbraids);
     els.qecObservableSummary.textContent = `e ${observables.numE}, m ${observables.numM}, psi ${observables.numPsi}; winding (${observables.windingX},${observables.windingY}); ${exported.answer.finalAnswerLabel.replaceAll('_', ' ')}; lifetime ${exported.answer.memoryLifetime}.`;
+}
+
+function renderStabilizerObservablePanel() {
+    if (!els.stabilizerObservablePanel) return;
+    const exported = game?.physicalProblem?.id === 'stabilizer_pauli_recovery'
+        ? game.physicalProblem.export(game)
+        : null;
+    els.stabilizerObservablePanel.hidden = !exported;
+    if (!exported) return;
+    const observables = exported.finalObservables;
+    const answer = exported.finalAnswer;
+    els.stabilizerSyndromeWeight.textContent = String(observables.syndromeWeight);
+    els.stabilizerViolationCount.textContent =
+        `${observables.stabilizerViolations} (X ${observables.localXCheckViolations}, Z ${observables.localZCheckViolations})`;
+    els.stabilizerLogicalSector.textContent =
+        `X${observables.logicalSector.x} Z${observables.logicalSector.z}`;
+    els.stabilizerGlobalParity.textContent =
+        `${observables.globalPauliParity.sign > 0 ? '+' : '-'}${observables.globalPauliParity.label}`;
+    els.stabilizerConflictCount.textContent = String(observables.commutationConflictCount);
+    els.stabilizerAncillaCount.textContent = String(observables.numberOfAncillas);
+    els.stabilizerMeasurementErrors.textContent = String(observables.measurementErrors);
+    els.stabilizerVacuumState.textContent = observables.vacuumRecovered ? 'Recovered' : 'Not recovered';
+    els.stabilizerObservableSummary.textContent =
+        `${answer.logicalErrorOccurred ? 'Logical error detected.' : 'Logical sector stable.'}`
+        + ` ${answer.nonCliffordResourcesUsed ? 'Non-Clifford resources used.' : 'Clifford-only recovery.'}`;
 }
 
 function renderCFTObservablePanel() {
@@ -2245,6 +2330,11 @@ for (const control of [
     els.qecPairsEInput,
     els.qecPairsMInput,
     els.qecPairSeparationInput,
+    els.stabilizerErrorDensityInput,
+    els.stabilizerLogicalChecksSelect,
+    els.stabilizerAncillaSelect,
+    els.stabilizerPhaseKickSelect,
+    els.stabilizerMaxTurnsInput,
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
