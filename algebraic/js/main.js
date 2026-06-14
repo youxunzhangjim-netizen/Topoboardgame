@@ -29,6 +29,8 @@ const els = {
     pauliSelect: document.querySelector('#pauliSelect'),
     transformSelect: document.querySelector('#transformSelect'),
     cliffordAlgebraControls: document.querySelector('#cliffordAlgebraControls'),
+    cliffordAlgebraSetControl: document.querySelector('#cliffordAlgebraSetControl'),
+    cliffordAlgebraSetSelect: document.querySelector('#cliffordAlgebraSetSelect'),
     physicalCliffordControls: document.querySelector('#physicalCliffordControls'),
     anyonAlgebraControls: document.querySelector('#anyonAlgebraControls'),
     virasoroAlgebraControls: document.querySelector('#virasoroAlgebraControls'),
@@ -152,7 +154,6 @@ const els = {
 
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
-    physical_clifford_reversi: 'Physical Clifford Reversi',
     anyon_jump: 'Anyon Jump Chess',
     virasoro_go: 'Virasoro Go'
 };
@@ -174,7 +175,12 @@ const SUBSCRIPT_DIGITS = {
     9: '\u2089'
 };
 const params = new URLSearchParams(window.location.search);
-const INITIAL_MODE = normalizeMode(params.get('mode') || params.get('game') || params.get('algebraicMode'));
+const RAW_INITIAL_MODE = params.get('mode') || params.get('game') || params.get('algebraicMode');
+const INITIAL_MODE = normalizeMode(RAW_INITIAL_MODE);
+const INITIAL_CLIFFORD_ALGEBRA_SET = params.get('algebraSet')
+    || (['physical_clifford_reversi', 'physical_clifford', 'physical_reversi'].includes(RAW_INITIAL_MODE)
+        ? 'physical'
+        : '');
 const INITIAL_TOPOLOGY = params.get('topology') || params.get('board') || '';
 const URL_PHYSICAL_PROBLEM_ID = params.get('physicalProblem') || params.get('problemId') || '';
 
@@ -205,6 +211,9 @@ if (INITIAL_MODE) {
     els.modeSelect.value = INITIAL_MODE;
     document.body.dataset.initialAlgebraicMode = INITIAL_MODE;
 }
+if (INITIAL_CLIFFORD_ALGEBRA_SET === 'physical') {
+    els.cliffordAlgebraSetSelect.value = 'physical';
+}
 if (INITIAL_TOPOLOGY && [...els.topologySelect.options].some((option) => option.value === INITIAL_TOPOLOGY)) {
     els.topologySelect.value = INITIAL_TOPOLOGY;
 }
@@ -215,7 +224,9 @@ if (URL_PHYSICAL_PROBLEM_ID && els.physicalProblemSelect) {
 function normalizeMode(value) {
     if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
     if (value === 'clifford' || value === 'reversi') return 'clifford_reversi';
-    if (value === 'physical_clifford' || value === 'physical_reversi') return 'physical_clifford_reversi';
+    if (value === 'physical_clifford_reversi' || value === 'physical_clifford' || value === 'physical_reversi') {
+        return 'clifford_reversi';
+    }
     if (value === 'go' || value === 'virasoro' || value === 'virasoro_go_game') return 'virasoro_go';
     return Object.hasOwn(MODE_LABELS, value) ? value : '';
 }
@@ -225,11 +236,12 @@ function selectedMode() {
 }
 
 function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
-    return mode === 'physical_clifford_reversi';
+    if (game && (game.algebraSet === 'physical' || game.physicalConfig)) return true;
+    return mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical';
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_reversi' || mode === 'physical_clifford_reversi';
+    return mode === 'clifford_reversi';
 }
 
 function selectedPhysicalProblemId() {
@@ -284,12 +296,12 @@ function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
     const isVirasoroGo = mode === 'virasoro_go';
-    const isPhysicalClifford = mode === 'physical_clifford_reversi';
     const isClifford = mode === 'clifford_reversi';
-    const isAnyClifford = isClifford || isPhysicalClifford;
+    const isPhysicalClifford = isClifford && els.cliffordAlgebraSetSelect.value === 'physical';
+    const isStandardClifford = isClifford && !isPhysicalClifford;
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (els.modeControl) els.modeControl.hidden = false;
-    if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isAnyClifford;
+    if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isClifford;
     if (els.physicalCliffordControls) els.physicalCliffordControls.hidden = !isPhysicalClifford;
     if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !isAnyon;
     if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = !isVirasoroGo;
@@ -303,7 +315,7 @@ function syncModeControls() {
             els.physicalProblemSelect,
             isAnyon
                 ? ['', 'toric_code_memory_unbraid']
-                : isClifford ? ['', 'ising_domain_wall_topology'] : [''],
+                : isStandardClifford ? ['', 'ising_domain_wall_topology'] : [''],
             ''
         );
     }
@@ -327,9 +339,9 @@ function syncModeControls() {
     }
     if (!isAnyon) els.anyonFlipSelect.value = 'off';
 
-    els.pauliControl.hidden = !isClifford;
-    els.transformControl.hidden = !isAnyClifford;
-    els.phaseSignControl.hidden = !isClifford;
+    els.pauliControl.hidden = !isStandardClifford;
+    els.transformControl.hidden = !isClifford;
+    els.phaseSignControl.hidden = !isStandardClifford;
     if (isPhysicalClifford) {
         const action = els.physicalActionSelect.value;
         els.physicalPauliControl.hidden = action !== 'reversi';
@@ -398,14 +410,14 @@ function syncModeControls() {
     if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon;
     if (els.braidEventSection) els.braidEventSection.hidden = !isAnyon;
-    if (els.cliffordRules) els.cliffordRules.hidden = !isClifford;
+    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon;
     if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo;
     if (els.rulesIntroButton) {
         els.rulesIntroButton.textContent = isVirasoroGo
             ? 'Virasoro Rules'
-            : isAnyon ? 'Anyon Rules' : isPhysicalClifford ? 'Physical Clifford Rules' : 'Clifford Rules';
+            : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
     return mode;
@@ -592,6 +604,7 @@ function createGame() {
     }
     const options = {
         topology: topologyConfig(),
+        algebraSet: mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : null,
         defaultFlipTransform: els.transformSelect.value,
         trackPhaseSigns: phaseSignsEnabled(),
         physicalInitialState: els.physicalInitialStateSelect.value,
@@ -603,7 +616,9 @@ function createGame() {
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
     else if (mode === 'virasoro_go') game = new VirasoroGoGame(options);
-    else if (mode === 'physical_clifford_reversi') game = new PhysicalCliffordReversiGame(options);
+    else if (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical') {
+        game = new PhysicalCliffordReversiGame(options);
+    }
     else game = new CliffordReversiGame(options);
     normalizeLayerControls();
     render();
@@ -1904,6 +1919,7 @@ for (const control of [
     els.anyonExcitationTypeSelect,
     els.anyonDropLossInput,
     els.anyonGradeInput,
+    els.cliffordAlgebraSetSelect,
     els.physicalInitialStateSelect,
     els.entanglementRangeSelect,
     els.entanglementDistanceInput,

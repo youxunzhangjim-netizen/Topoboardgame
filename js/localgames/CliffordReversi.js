@@ -57,6 +57,7 @@ export class CliffordReversiGame {
 
     reset(options = {}) {
         this.mode = CLIFFORD_REVERSI_MODE;
+        this.algebraSet = options.algebraSet || 'standard';
         const physicalProblemSource = options.physicalProblem || options.physicalProblemId || options.problemId || null;
         const physicalProblemConfig = options.physicalProblemConfig || {};
         const problemTopology = topologyOptionsForPhysicalProblem(physicalProblemSource, physicalProblemConfig);
@@ -259,6 +260,7 @@ export class CliffordReversiGame {
         this.moveNumber++;
         const event = {
             mode: this.mode,
+            algebraSet: this.algebraSet,
             type: 'place',
             number: this.moveNumber,
             player,
@@ -409,6 +411,7 @@ export class CliffordReversiGame {
     exportState() {
         return {
             mode: this.mode,
+            algebraSet: this.algebraSet,
             topology: {
                 name: this.topology.name,
                 sizes: [...this.topology.sizes],

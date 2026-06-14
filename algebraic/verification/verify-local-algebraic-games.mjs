@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
 import {
-    PHYSICAL_CLIFFORD_REVERSI_MODE,
+    PHYSICAL_CLIFFORD_ALGEBRA_SET,
     PhysicalCliffordReversiGame
 } from '../../js/localgames/PhysicalCliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
@@ -101,7 +101,8 @@ const physicalVacuum = new PhysicalCliffordReversiGame({
     physicalInitialState: 'stabilizer_vacuum',
     probability: { seed: 'physical-vacuum', measurementErrorRate: 0 }
 });
-assert.equal(physicalVacuum.mode, PHYSICAL_CLIFFORD_REVERSI_MODE);
+assert.equal(physicalVacuum.mode, 'clifford_reversi');
+assert.equal(physicalVacuum.algebraSet, PHYSICAL_CLIFFORD_ALGEBRA_SET);
 assert.equal(physicalVacuum.board.size, 0, 'Physical stabilizer vacuum does not reuse the four-stone opening.');
 assert.equal(physicalVacuum.computePhysicalObservables().pauliCounts.I, 64, 'Empty physical sites count as identity I.');
 assert.equal(physicalVacuum.computePhysicalAnswer().stabilizerVacuumRecovered, true);

@@ -5,9 +5,10 @@ import {
     transformSignedPauli
 } from '../algebra/PauliAlgebra.js';
 import { coordKey } from '../topology/GraphTopologies.js';
-import { CliffordReversiGame } from './CliffordReversi.js';
+import { CLIFFORD_REVERSI_MODE, CliffordReversiGame } from './CliffordReversi.js';
 
 export const PHYSICAL_CLIFFORD_REVERSI_MODE = 'physical_clifford_reversi';
+export const PHYSICAL_CLIFFORD_ALGEBRA_SET = 'physical';
 
 export const PHYSICAL_INITIAL_STATES = Object.freeze([
     'stabilizer_vacuum',
@@ -131,7 +132,9 @@ function ancillaState(basis) {
 export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     reset(options = {}) {
         super.reset({ ...options, physicalProblem: null, physicalProblemId: null, problemId: null });
-        this.mode = PHYSICAL_CLIFFORD_REVERSI_MODE;
+        this.mode = CLIFFORD_REVERSI_MODE;
+        this.algebraSet = PHYSICAL_CLIFFORD_ALGEBRA_SET;
+        this.variant = PHYSICAL_CLIFFORD_REVERSI_MODE;
         this.physicalConfig = {
             physicalInitialState: PHYSICAL_INITIAL_STATES.includes(options.physicalInitialState)
                 ? options.physicalInitialState
@@ -779,6 +782,8 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
                 sign: normalizePauliSign(stone.pauliSign)
             })),
             mode: this.mode,
+            algebraSet: this.algebraSet,
+            variant: this.variant,
             physicalConfig: cloneValue(this.physicalConfig),
             stabilizerChecks: [...this.stabilizerChecks.entries()].map(([key, sign]) => ({
                 key,

@@ -305,7 +305,7 @@ export class Algebraic3DBoard {
     addCliffordStone(coord, stone) {
         const group = this.baseEntity(coord, stone.color, 1);
         const sign = Number(stone.pauliSign || 1) < 0 ? '-' : '+';
-        const physical = this.game.mode === 'physical_clifford_reversi';
+        const physical = this.game.algebraSet === 'physical' || Boolean(this.game.physicalConfig);
         const label = physical
             ? (this.viewState.physicsView === 'physics'
                 ? this.game.physicalLabel(stone)

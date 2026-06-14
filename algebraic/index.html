@@ -32,7 +32,6 @@
                         Mode
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
-                            <option value="physical_clifford_reversi">Physical Clifford Reversi</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
                             <option value="virasoro_go">Virasoro Go</option>
                         </select>
@@ -99,6 +98,13 @@
             <div class="control-section section-algebra">
                 <h2>Algebra</h2>
                 <div class="control-fields algebra-mode-fields" id="cliffordAlgebraControls" data-controls-mode="clifford">
+                    <label id="cliffordAlgebraSetControl">
+                        Algebra Set
+                        <select id="cliffordAlgebraSetSelect">
+                            <option value="standard" selected>Standard Pauli Reversi</option>
+                            <option value="physical">Physical Stabilizer</option>
+                        </select>
+                    </label>
                     <label id="pauliControl">
                         Pauli
                         <select id="pauliSelect">
@@ -124,7 +130,7 @@
                 </div>
                 <div class="control-fields algebra-mode-fields" id="physicalCliffordControls" data-controls-mode="physical-clifford" hidden>
                     <label>
-                        Initial State
+                        Initial Rule
                         <select id="physicalInitialStateSelect">
                             <option value="stabilizer_vacuum" selected>Stabilizer Vacuum</option>
                             <option value="sparse_pauli_errors">Sparse Pauli Errors</option>
@@ -490,7 +496,8 @@
                 </div>
                 <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
                     <div data-rules-mode="clifford">
-                        <h2>Clifford Reversi Rules</h2>
+                        <h2>Clifford Reversi: Standard Pauli Set</h2>
+                        <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Physical Stabilizer to use physical qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
                         <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
@@ -499,7 +506,8 @@
                         <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Basic Floquet ages pieces and diffuses fields. Clifford Floquet applies H/S at marked defect vertices. Virasoro Floquet evolves a stress field T(v): phase 1 diffuses stress, phase 2 applies L0 scaling near marked vertices, phase 3 focuses stress like L1, and optional anomaly phases add L2-style stress.</p>
                     </div>
                     <div data-rules-mode="physical-clifford" hidden>
-                        <h2>Physical Clifford Reversi Rules</h2>
+                        <h2>Clifford Reversi: Physical Stabilizer Set</h2>
+                        <p><strong>Algebra set:</strong> this is the Physical Stabilizer configuration of the same Clifford Reversi game. Switch Algebra Set back to Standard Pauli Reversi to restore the ordinary opening and controls.</p>
                         <p><strong>Physical sites:</strong> empty vertices are identity I with no active excitation. Occupied vertices store owner, Pauli I/X/Y/Z, sign, phase modulo four, and optional ancilla data. Black is the positive sector and white is the negative sector.</p>
                         <p><strong>Initial states:</strong> Stabilizer Vacuum is empty with positive checks. Sparse Errors seeds low-density X/Y/Z faults. Paired Defects creates nearby opposite-sign pairs. Domain Wall Seed separates positive and negative domains. Prepared Circuit applies ancilla preparations, H, S, CNOT, CZ, and measurement to a vacuum start.</p>
                         <p><strong>Reversi action:</strong> placement still requires a normal topology-aware bracket. Each flipped site changes owner and sign, then receives the selected H or S transform plus any seam transport. Pauli phase is tracked modulo four.</p>
@@ -594,6 +602,6 @@
             </aside>
         </section>
     </main>
-    <script type="module" src="./js/main.js?v=20260615-physical-clifford"></script>
+    <script type="module" src="./js/main.js?v=20260615-clifford-options"></script>
 </body>
 </html>

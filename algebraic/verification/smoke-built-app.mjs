@@ -42,16 +42,27 @@ try {
     page.on('console', (message) => logs.push(`${message.type()}: ${message.text()}`));
     page.on('pageerror', (error) => logs.push(`pageerror: ${error.message}`));
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
-    const state = await page.evaluate(() => ({
-        title: document.querySelector('#modeTitle')?.textContent,
-        cells: document.querySelectorAll('.cell').length,
-        exportHasMode: document.querySelector('#exportText')?.value.includes('clifford_reversi'),
-        currentParentClass: document.querySelector('#currentPlayer')?.closest('.board-header')?.className || ''
-    }));
+    const state = await page.evaluate(() => {
+        const exportState = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            title: document.querySelector('#modeTitle')?.textContent,
+            cells: document.querySelectorAll('.cell').length,
+            exportHasMode: document.querySelector('#exportText')?.value.includes('clifford_reversi'),
+            algebraSet: exportState.algebraSet,
+            currentParentClass: document.querySelector('#currentPlayer')?.closest('.board-header')?.className || ''
+        };
+    });
     assert.equal(state.title, 'Clifford Reversi');
     assert.ok(state.cells >= 4, 'Expected rendered cells.');
     assert.equal(state.exportHasMode, true, 'Expected JSON export to contain the mode name.');
+    assert.equal(state.algebraSet, 'standard');
     assert.match(state.currentParentClass, /board-header/, 'Current turn card should sit in the board header.');
+    assert.equal(
+        await page.locator('#modeSelect option[value="physical_clifford_reversi"]').count(),
+        0,
+        'Physical Clifford is configured inside the single Clifford Reversi mode.'
+    );
+    assert.equal(await page.locator('#cliffordAlgebraSetSelect').inputValue(), 'standard');
 
     await page.locator('#rulesIntroButton').click();
     const rulesState = await page.evaluate(() => ({
@@ -188,12 +199,14 @@ try {
     assert.equal(selectedIsingState.selectedProblem, 'ising_domain_wall_topology');
     assert.equal(selectedIsingState.problemId, 'ising_domain_wall_topology', 'Visible Ising physical-problem selector should enable Ising export.');
 
-    await page.goto(`http://127.0.0.1:${port}/?mode=physical_clifford_reversi`, { waitUntil: 'networkidle' });
+    await page.selectOption('#cliffordAlgebraSetSelect', 'physical');
     const physicalVacuumState = await page.evaluate(() => {
         const exportState = JSON.parse(document.querySelector('#exportText').value);
         return {
             title: document.querySelector('#modeTitle')?.textContent,
             mode: exportState.mode,
+            algebraSet: exportState.algebraSet,
+            selectedAlgebraSet: document.querySelector('#cliffordAlgebraSetSelect')?.value,
             boardSize: exportState.board.length,
             vacuumRecovered: exportState.physicalAnswer?.stabilizerVacuumRecovered,
             physicalControlsVisible: getComputedStyle(document.querySelector('#physicalCliffordControls')).display !== 'none',
@@ -203,8 +216,10 @@ try {
             currentLabel: document.querySelector('#blackCountLabel')?.textContent
         };
     });
-    assert.equal(physicalVacuumState.title, 'Physical Clifford Reversi');
-    assert.equal(physicalVacuumState.mode, 'physical_clifford_reversi');
+    assert.equal(physicalVacuumState.title, 'Clifford Reversi');
+    assert.equal(physicalVacuumState.mode, 'clifford_reversi');
+    assert.equal(physicalVacuumState.algebraSet, 'physical');
+    assert.equal(physicalVacuumState.selectedAlgebraSet, 'physical');
     assert.equal(physicalVacuumState.boardSize, 0, 'Physical vacuum must not inherit the ordinary four-stone opening.');
     assert.equal(physicalVacuumState.vacuumRecovered, true);
     assert.equal(physicalVacuumState.physicalControlsVisible, true);
@@ -289,6 +304,26 @@ try {
     assert.ok(mobileScreenshot.length > 10000, 'Mobile physical-mode screenshot should contain rendered UI.');
 
     await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`http://127.0.0.1:${port}/?mode=physical_clifford_reversi`, { waitUntil: 'networkidle' });
+    assert.equal(
+        await page.locator('#cliffordAlgebraSetSelect').inputValue(),
+        'physical',
+        'Legacy physical-mode URLs should open the physical algebra set inside Clifford Reversi.'
+    );
+    await page.selectOption('#cliffordAlgebraSetSelect', 'standard');
+    const restoredStandard = await page.evaluate(() => {
+        const state = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            mode: state.mode,
+            algebraSet: state.algebraSet,
+            boardSize: state.board.length
+        };
+    });
+    assert.deepEqual(
+        restoredStandard,
+        { mode: 'clifford_reversi', algebraSet: 'standard', boardSize: 4 },
+        'Switching back to Standard restores the ordinary four-stone opening in the same game mode.'
+    );
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
     await page.selectOption('#modeSelect', 'anyon_jump');
     const anyonControlState = await page.evaluate(() => ({
