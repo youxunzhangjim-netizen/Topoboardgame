@@ -32,6 +32,7 @@
                         Mode
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
+                            <option value="physical_virasoro_reversi">Physical Virasoro Reversi</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
                             <option value="virasoro_go">Virasoro Go</option>
                         </select>
@@ -361,6 +362,81 @@
                         </select>
                     </label>
                 </div>
+                <div class="control-fields algebra-mode-fields" id="cftReversiControls" data-controls-mode="cft-reversi" hidden>
+                    <label>
+                        Initial State
+                        <select id="cftInitialStateSelect">
+                            <option value="vacuum">Vacuum</option>
+                            <option value="domain_wall_seed">Domain Wall Seed</option>
+                            <option value="four_sigma_block" selected>Four Sigma Block</option>
+                            <option value="boundary_condition_change">Boundary Condition Change</option>
+                            <option value="thermal_cft_sample">Thermal CFT Sample</option>
+                        </select>
+                    </label>
+                    <label>
+                        Primary Field
+                        <select id="cftPrimarySelect">
+                            <option value="sigma" selected>Sigma</option>
+                            <option value="epsilon">Epsilon</option>
+                            <option value="identity">Identity</option>
+                        </select>
+                    </label>
+                    <label>
+                        Turn Action
+                        <select id="cftActionSelect">
+                            <option value="place" selected>Place Primary</option>
+                            <option value="L-1">L_-1 Shift</option>
+                            <option value="L0">L_0 Rescale</option>
+                            <option value="L1">L_1 Focus</option>
+                            <option value="L-2">L_-2 Split</option>
+                            <option value="L2">L_2 Concentrate</option>
+                            <option value="measure">Measure</option>
+                        </select>
+                    </label>
+                    <label id="cftDirectionControl" hidden>
+                        Direction
+                        <select id="cftDirectionSelect">
+                            <option value="1,0">+x</option>
+                            <option value="-1,0">-x</option>
+                            <option value="0,1">+y</option>
+                            <option value="0,-1">-y</option>
+                            <option value="1,-1">+x - y</option>
+                            <option value="-1,1">-x + y</option>
+                        </select>
+                    </label>
+                    <label id="cftMeasurementControl" hidden>
+                        Measurement
+                        <select id="cftMeasurementSelect">
+                            <option value="line_parity" selected>Line Parity</option>
+                            <option value="ope_channel">OPE Channel</option>
+                            <option value="four_point_block">Four-Point Block</option>
+                            <option value="region_entropy">Region Entropy</option>
+                            <option value="stress">Stress</option>
+                        </select>
+                    </label>
+                    <label>
+                        Hidden OPE Channels
+                        <select id="cftHiddenChannelSelect">
+                            <option value="on" selected>On</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label>
+                        Virasoro Truncation
+                        <select id="cftMaxModeSelect">
+                            <option value="1" selected>Global CFT N=1</option>
+                            <option value="2">Virasoro CFT N=2</option>
+                        </select>
+                    </label>
+                    <label>
+                        Central Charge c
+                        <input id="cftCentralChargeInput" type="number" min="0" max="64" step="0.1" value="0.5">
+                    </label>
+                    <label>
+                        Thermal Weight
+                        <input id="cftTemperatureInput" type="number" min="0" max="4" step="0.05" value="0.35">
+                    </label>
+                </div>
                 <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
             </div>
 
@@ -516,6 +592,16 @@
                         <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, or stabilizer neighborhood. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, domain-wall length, stabilizer violations, global parity, commutation conflicts, logical sector, measurement errors, and non-Clifford resource use.</p>
                     </div>
+                    <div data-rules-mode="cft-reversi" hidden>
+                        <h2>Physical Virasoro/CFT Reversi Rules</h2>
+                        <p><strong>Approximation:</strong> this is a discrete graph simulator inspired by CFT. Correlations, conformal blocks, stress, entropy, and topology sectors are lattice estimators rather than exact continuum observables.</p>
+                        <p><strong>Fields:</strong> an empty vertex is identity. Occupied vertices carry a domain sign and a primary field. The default Ising CFT uses c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2.</p>
+                        <p><strong>Initial states:</strong> Vacuum is empty. Domain Wall Seed creates opposite spin domains. Four Sigma Block tracks identity and epsilon blocks. Boundary Condition Change places seam/boundary insertions. Thermal Sample uses seeded temperature-weighted sigma/epsilon insertions.</p>
+                        <p><strong>Reversi interval:</strong> a placement must bracket an opponent path. The path is treated as a discrete conformal interval: signs flip and Ising OPE rules update fields and channels. Sigma x sigma has identity or epsilon channels, sigma x epsilon gives sigma, and epsilon x epsilon gives identity.</p>
+                        <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, L_1. N=2 also enables L_-2 splitting and L_2 concentration. Overlap of N=2 actions can create central-charge anomaly markers.</p>
+                        <p><strong>Measurements:</strong> measure line parity, hidden OPE channels, the four-point block, region entropy, or local/region stress. Measurement errors are seeded and logged.</p>
+                        <p><strong>Output:</strong> every turn records primary/sign counts, domain walls, connected domains, correlation estimates, cross-ratio, block weights, stress T(v), entropy, mutual information, OPE transitions, anomaly events, and topology sector.</p>
+                    </div>
                     <div data-rules-mode="anyon">
                         <h2>Anyon Jump Chess Rules</h2>
                         <p><strong>3D boards:</strong> R3, T2, and S2 use rotatable graph embeddings. Legal hops, jumps, braid paths, fusion sites, labels, and braid-state shadows are drawn directly on the 3D board.</p>
@@ -568,6 +654,21 @@
                     </div>
                 </section>
 
+                <section class="cft-observable-panel" id="cftObservablePanel" hidden>
+                    <h2>Conformal Blocks</h2>
+                    <div class="cft-block-row">
+                        <span>Identity</span>
+                        <meter id="cftIdentityBlockMeter" min="0" max="1" value="1"></meter>
+                        <strong id="cftIdentityBlockValue">1.000</strong>
+                    </div>
+                    <div class="cft-block-row">
+                        <span>Epsilon</span>
+                        <meter id="cftEpsilonBlockMeter" min="0" max="1" value="0"></meter>
+                        <strong id="cftEpsilonBlockValue">0.000</strong>
+                    </div>
+                    <p id="cftObservableSummary">Discrete CFT estimators appear here.</p>
+                </section>
+
                 <section>
                     <h2>Discrete Time / Floquet</h2>
                     <p id="timeStatus" class="time-status">Time layer off.</p>
@@ -602,6 +703,6 @@
             </aside>
         </section>
     </main>
-    <script type="module" src="./js/main.js?v=20260615-clifford-options"></script>
+    <script type="module" src="./js/main.js?v=20260615-cft-reversi"></script>
 </body>
 </html>

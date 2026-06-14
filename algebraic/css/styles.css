@@ -687,6 +687,48 @@ h2 {
     color: #ffd9d9;
 }
 
+.stone.cft-primary-stone {
+    inset: 10%;
+    overflow: visible;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(11px, 1.65vw, 19px);
+}
+
+.stone.cft-primary-stone.hidden-channel {
+    outline: 2px dashed rgba(242, 196, 100, 0.8);
+    outline-offset: 2px;
+}
+
+.cell.cft-selected-region {
+    box-shadow: inset 0 0 0 3px rgba(66, 198, 255, 0.85);
+}
+
+.cft-observable-panel {
+    display: grid;
+    gap: 9px;
+}
+
+.cft-block-row {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.cft-block-row meter {
+    width: 100%;
+    accent-color: var(--gold);
+}
+
+.cft-observable-panel p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .stone.black, .anyon.black {
     color: #f8fbfd;
     background: radial-gradient(circle at 35% 28%, #3c4653, var(--black-stone) 62%);

@@ -170,6 +170,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-virasoro_go">0 waiting</span>
                     </a>
+                    <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_reversi">
+                        <span class="extra-mode-copy">
+                            <strong data-i18n="games.cftreversi.title">Physical Virasoro Reversi</strong>
+                            <small data-i18n="games.cftreversi.desc">Reversi with CFT intervals, OPE channels, and stress</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi">0 waiting</span>
+                    </a>
                 </div>
             </section>
         </section>
@@ -214,7 +221,11 @@
                             desc: 'Tune standard Pauli or physical stabilizer rules'
                         },
                         anyon: { title: 'Anyon Jump Chess', desc: 'Jump game with braiding and fusion' },
-                        virasoro: { title: 'Virasoro Go', desc: 'Go with stress-field actions' }
+                        virasoro: { title: 'Virasoro Go', desc: 'Go with stress-field actions' },
+                        cftreversi: {
+                            title: 'Physical Virasoro Reversi',
+                            desc: 'Reversi with CFT intervals, OPE channels, and stress'
+                        }
                     },
                     algebraic: {
                         title: 'Algebraic Mode',
@@ -258,7 +269,11 @@
                             desc: '可調整標準 Pauli 或物理穩定子規則'
                         },
                         anyon: { title: 'Anyon Jump Chess', desc: '帶編織與融合的跳躍遊戲' },
-                        virasoro: { title: 'Virasoro 圍棋', desc: '帶應力場操作的圍棋' }
+                        virasoro: { title: 'Virasoro 圍棋', desc: '帶應力場操作的圍棋' },
+                        cftreversi: {
+                            title: '物理 Virasoro 黑白棋',
+                            desc: '以 CFT 區間、OPE 通道與應力描述的黑白棋'
+                        }
                     },
                     algebraic: {
                         title: '代數模式',
@@ -299,7 +314,8 @@
                 '4dreversi': '4dreversi',
                 clifford_reversi: 'clifford_reversi',
                 anyon_jump: 'anyon_jump',
-                virasoro_go: 'virasoro_go'
+                virasoro_go: 'virasoro_go',
+                physical_virasoro_reversi: 'physical_virasoro_reversi'
             };
             const DIMENSION_BY_GAME = {
                 '2dchess': '2d',
@@ -325,7 +341,8 @@
                 'game-4dreversi': 0,
                 'game-clifford_reversi': 0,
                 'game-anyon_jump': 0,
-                'game-virasoro_go': 0
+                'game-virasoro_go': 0,
+                'game-physical_virasoro_reversi': 0
             };
             let lastBadgeState = 'loading';
             let lastBadgeCounts = EMPTY_COUNTS;

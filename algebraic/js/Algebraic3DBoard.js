@@ -298,6 +298,7 @@ export class Algebraic3DBoard {
             const stone = this.game.getStone(coord);
             if (!stone) continue;
             if (this.game.mode === 'virasoro_go') this.addGoStone(coord, stone);
+            else if (this.game.mode === 'physical_virasoro_reversi') this.addCFTStone(coord, stone);
             else this.addCliffordStone(coord, stone);
         }
     }
@@ -351,6 +352,33 @@ export class Algebraic3DBoard {
             ring.rotation.x = Math.PI / 2;
             group.add(ring);
         }
+    }
+
+    addCFTStone(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, 0.96);
+        const sprite = labelSprite(this.game.primaryLabel(stone), {
+            foreground: stone.color === 'black' ? '#a7ebff' : '#151c24',
+            background: stone.color === 'black' ? 'rgba(3,9,14,.9)' : 'rgba(248,250,252,.92)',
+            scale: 0.48
+        });
+        sprite.position.y = this.entityRadius() * 1.85;
+        group.add(sprite);
+        const stress = this.game.stressAt(coord);
+        if (stress?.stress > 0) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(this.entityRadius() * 1.32, this.entityRadius() * 0.1, 10, 40),
+                new THREE.MeshBasicMaterial({ color: 0xf6c85f, transparent: true, opacity: 0.82 })
+            );
+            ring.rotation.x = Math.PI / 2;
+            group.add(ring);
+        }
+        const channel = labelSprite(stone.hiddenChannel ? '?' : stone.channelLabel, {
+            foreground: '#f6c85f',
+            background: 'rgba(12,16,22,.78)',
+            scale: 0.3
+        });
+        channel.position.y = -this.entityRadius() * 1.55;
+        group.add(channel);
     }
 
     addAnyon(token) {

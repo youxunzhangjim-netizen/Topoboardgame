@@ -6,6 +6,11 @@ import {
 } from '../../js/localgames/PhysicalCliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
+import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
+import {
+    estimateIsingBlockWeights,
+    isingOPE
+} from '../../js/cft/CFTReversiPhysics.js';
 import { createGraphTopology } from '../../js/topology/GraphTopologies.js';
 import { nextRequiredUnbraidGenerator } from '../../js/anyon/BraidMemory.js';
 import { anyonTypes, createFusionResult } from '../../js/anyon/AnyonAlgebra.js';
@@ -66,6 +71,63 @@ assert.equal(preview.flips[0].after.pauliLabel, 'Z', 'H maps flipped X to Z.');
 const placed = reversi.place([2, 3], { player: 'black', pauliLabel: 'Y', transform: 'H' });
 assert.equal(placed.ok, true, 'Clifford Reversi move succeeds.');
 assert.equal(reversi.getStone([3, 3]).color, 'black', 'Bracketed stone flips color.');
+
+assert.deepEqual(isingOPE('sigma', 'sigma'), ['identity', 'epsilon'], 'Ising sigma OPE exposes both channels.');
+assert.deepEqual(isingOPE('sigma', 'epsilon'), ['sigma'], 'Sigma times epsilon returns sigma.');
+assert.deepEqual(isingOPE('epsilon', 'epsilon'), ['identity'], 'Epsilon pair returns identity.');
+const estimatedBlocks = estimateIsingBlockWeights(0.5);
+assert.ok(Math.abs(estimatedBlocks.identity + estimatedBlocks.epsilon - 1) < 1e-9, 'Conformal block weights normalize.');
+
+const cftReversi = new PhysicalVirasoroReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    cftReversiInitialState: 'four_sigma_block',
+    hiddenChannels: true,
+    centralCharge: 0.5,
+    maxMode: 2,
+    probability: { seed: 'cft-reversi-test', measurementErrorRate: 0 }
+});
+assert.equal(cftReversi.mode, 'physical_virasoro_reversi');
+assert.equal(cftReversi.board.size, 4, 'Four-sigma state replaces the ordinary Reversi opening.');
+assert.equal(cftReversi.counts().primaryTypes.sigma, 4);
+assert.equal(cftReversi.legalMoves('black', 'sigma').length, 4, 'Four-sigma state provides playable CFT brackets.');
+const cftBefore = cftReversi.computeCFTObservables();
+assert.ok(cftBefore.fourPointCrossRatio > 0 && cftBefore.fourPointCrossRatio < 1);
+assert.equal(cftBefore.estimatorNotice.includes('not exact continuum'), true);
+const cftMove = cftReversi.place([2, 3], { player: 'black', primaryType: 'sigma' });
+assert.equal(cftMove.ok, true, 'CFT Reversi places a primary on a legal bracket.');
+assert.equal(cftMove.event.OPEUpdates.length, 1, 'A bracketed primary creates an OPE update.');
+assert.equal(cftReversi.physicsHistory.at(-1).action, 'place');
+const stressAction = cftReversi.applyVirasoroAction({
+    action: 'L0',
+    coord: [2, 3],
+    player: cftReversi.currentPlayer
+});
+assert.equal(stressAction.ok, false, 'A player cannot rescale the opponent domain.');
+const focusAction = cftReversi.applyVirasoroAction({
+    action: 'L1',
+    coord: [4, 4],
+    player: cftReversi.currentPlayer
+});
+assert.equal(focusAction.ok, true, 'L1 focuses graph stress at a selected vertex.');
+const cftMeasurement = cftReversi.measureFourPointBlock(
+    [...cftReversi.board.entries()]
+        .filter(([, stone]) => stone.primaryType === 'sigma')
+        .slice(0, 4)
+        .map(([key]) => key.split(',').map(Number)),
+    cftReversi.currentPlayer
+);
+assert.equal(cftMeasurement.ok, true, 'Four-point conformal block measurement is available.');
+assert.ok(['identity', 'epsilon'].includes(cftMeasurement.measurement.reported));
+const cftAnswer = cftReversi.computeCFTReversiAnswer();
+assert.ok(['identity', 'epsilon'].includes(cftAnswer.finalDominantOPEChannel));
+assert.equal(typeof cftAnswer.finalEntropyEstimate, 'number');
+assert.equal(cftReversi.exportState().physicsHistory.length >= 3, true, 'CFT physics history is exported.');
+
+const vacuumCFT = new PhysicalVirasoroReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    cftReversiInitialState: 'vacuum'
+});
+assert.equal(vacuumCFT.board.size, 0, 'Vacuum state is empty/identity rather than the standard opening.');
 const hexReversi = new CliffordReversiGame({
     topology: { topology: 'flat', lattice: 'hex_cells', width: 8, height: 8 }
 });

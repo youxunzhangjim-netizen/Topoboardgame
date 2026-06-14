@@ -1,5 +1,6 @@
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
 import { PhysicalCliffordReversiGame } from '../../js/localgames/PhysicalCliffordReversi.js';
+import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import {
@@ -34,6 +35,18 @@ const els = {
     physicalCliffordControls: document.querySelector('#physicalCliffordControls'),
     anyonAlgebraControls: document.querySelector('#anyonAlgebraControls'),
     virasoroAlgebraControls: document.querySelector('#virasoroAlgebraControls'),
+    cftReversiControls: document.querySelector('#cftReversiControls'),
+    cftInitialStateSelect: document.querySelector('#cftInitialStateSelect'),
+    cftPrimarySelect: document.querySelector('#cftPrimarySelect'),
+    cftActionSelect: document.querySelector('#cftActionSelect'),
+    cftDirectionControl: document.querySelector('#cftDirectionControl'),
+    cftDirectionSelect: document.querySelector('#cftDirectionSelect'),
+    cftMeasurementControl: document.querySelector('#cftMeasurementControl'),
+    cftMeasurementSelect: document.querySelector('#cftMeasurementSelect'),
+    cftHiddenChannelSelect: document.querySelector('#cftHiddenChannelSelect'),
+    cftMaxModeSelect: document.querySelector('#cftMaxModeSelect'),
+    cftCentralChargeInput: document.querySelector('#cftCentralChargeInput'),
+    cftTemperatureInput: document.querySelector('#cftTemperatureInput'),
     pauliControl: document.querySelector('#pauliControl'),
     transformControl: document.querySelector('#transformControl'),
     phaseSignControl: document.querySelector('#phaseSignControl'),
@@ -149,11 +162,19 @@ const els = {
     physicalCliffordRules: document.querySelector('[data-rules-mode="physical-clifford"]'),
     anyonRules: document.querySelector('[data-rules-mode="anyon"]'),
     virasoroRules: document.querySelector('[data-rules-mode="virasoro"]'),
+    cftReversiRules: document.querySelector('[data-rules-mode="cft-reversi"]'),
+    cftObservablePanel: document.querySelector('#cftObservablePanel'),
+    cftIdentityBlockMeter: document.querySelector('#cftIdentityBlockMeter'),
+    cftIdentityBlockValue: document.querySelector('#cftIdentityBlockValue'),
+    cftEpsilonBlockMeter: document.querySelector('#cftEpsilonBlockMeter'),
+    cftEpsilonBlockValue: document.querySelector('#cftEpsilonBlockValue'),
+    cftObservableSummary: document.querySelector('#cftObservableSummary'),
     exportText: document.querySelector('#exportText')
 };
 
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
+    physical_virasoro_reversi: 'Physical Virasoro Reversi',
     anyon_jump: 'Anyon Jump Chess',
     virasoro_go: 'Virasoro Go'
 };
@@ -187,6 +208,7 @@ const URL_PHYSICAL_PROBLEM_ID = params.get('physicalProblem') || params.get('pro
 let game = null;
 let selectedToken = '';
 let selectedPhysicalCoord = null;
+let selectedCFTCoords = [];
 let hoverCoord = null;
 let lastCancellation = null;
 let lastWrongUnbraid = null;
@@ -227,6 +249,7 @@ function normalizeMode(value) {
     if (value === 'physical_clifford_reversi' || value === 'physical_clifford' || value === 'physical_reversi') {
         return 'clifford_reversi';
     }
+    if (value === 'cft_reversi' || value === 'virasoro_reversi') return 'physical_virasoro_reversi';
     if (value === 'go' || value === 'virasoro' || value === 'virasoro_go_game') return 'virasoro_go';
     return Object.hasOwn(MODE_LABELS, value) ? value : '';
 }
@@ -241,7 +264,11 @@ function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_reversi';
+    return mode === 'clifford_reversi' || mode === 'physical_virasoro_reversi';
+}
+
+function isCFTReversiMode(mode = game?.mode || selectedMode()) {
+    return mode === 'physical_virasoro_reversi';
 }
 
 function selectedPhysicalProblemId() {
@@ -296,6 +323,7 @@ function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
     const isVirasoroGo = mode === 'virasoro_go';
+    const isCFTReversi = mode === 'physical_virasoro_reversi';
     const isClifford = mode === 'clifford_reversi';
     const isPhysicalClifford = isClifford && els.cliffordAlgebraSetSelect.value === 'physical';
     const isStandardClifford = isClifford && !isPhysicalClifford;
@@ -305,6 +333,7 @@ function syncModeControls() {
     if (els.physicalCliffordControls) els.physicalCliffordControls.hidden = !isPhysicalClifford;
     if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !isAnyon;
     if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = !isVirasoroGo;
+    if (els.cftReversiControls) els.cftReversiControls.hidden = !isCFTReversi;
     setAllowedSelectValues(
         els.latticeSelect,
         isVirasoroGo ? ['square', 'honeycomb', 'triangular'] : ['square', 'honeycomb'],
@@ -320,7 +349,7 @@ function syncModeControls() {
         );
     }
 
-    if (isVirasoroGo) {
+    if (isVirasoroGo || isCFTReversi) {
         els.noiseModeSelect.value = 'off';
         els.floquetModeSelect.value = 'off';
     } else {
@@ -384,11 +413,23 @@ function syncModeControls() {
     els.virasoroMaxModeControl.hidden = !isVirasoroGo;
     els.centralChargeControl.hidden = !isVirasoroGo;
     els.unstableRuleControl.hidden = !isVirasoroGo;
+    if (isCFTReversi) {
+        const action = els.cftActionSelect.value;
+        els.cftDirectionControl.hidden = !['L-1', 'L-2'].includes(action);
+        els.cftMeasurementControl.hidden = action !== 'measure';
+        setAllowedSelectValues(
+            els.cftActionSelect,
+            Number(els.cftMaxModeSelect.value) >= 2
+                ? ['place', 'L-1', 'L0', 'L1', 'L-2', 'L2', 'measure']
+                : ['place', 'L-1', 'L0', 'L1', 'measure'],
+            'place'
+        );
+    }
     els.passButton.hidden = isAnyon;
     els.countButton.hidden = !isVirasoroGo;
-    els.measureButton.hidden = isVirasoroGo || isPhysicalClifford;
+    els.measureButton.hidden = isVirasoroGo || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isAnyon;
-    els.dynamicsSection.hidden = isVirasoroGo;
+    els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
         Number(els.virasoroMaxModeSelect.value) >= 2
@@ -407,17 +448,18 @@ function syncModeControls() {
                 : ['1,0', '-1,0', '0,1', '0,-1'],
         '1,0'
     );
-    if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon;
-    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon;
+    if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon && !isCFTReversi;
+    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon && !isCFTReversi;
     if (els.braidEventSection) els.braidEventSection.hidden = !isAnyon;
     if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon;
     if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo;
+    if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
         els.rulesIntroButton.textContent = isVirasoroGo
             ? 'Virasoro Rules'
-            : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
+            : isCFTReversi ? 'CFT Reversi Rules' : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
     return mode;
@@ -592,6 +634,7 @@ function createGame() {
     const mode = syncModeControls();
     selectedToken = '';
     selectedPhysicalCoord = null;
+    selectedCFTCoords = [];
     hoverCoord = null;
     lastCancellation = null;
     lastWrongUnbraid = null;
@@ -608,6 +651,12 @@ function createGame() {
         defaultFlipTransform: els.transformSelect.value,
         trackPhaseSigns: phaseSignsEnabled(),
         physicalInitialState: els.physicalInitialStateSelect.value,
+        cftReversiInitialState: els.cftInitialStateSelect.value,
+        primaryType: els.cftPrimarySelect.value,
+        hiddenChannels: els.cftHiddenChannelSelect.value === 'on',
+        centralCharge: Number(els.cftCentralChargeInput.value),
+        maxMode: Number(els.cftMaxModeSelect.value),
+        temperature: Number(els.cftTemperatureInput.value),
         config,
         virasoro: virasoroConfig(),
         probability: probabilityConfig(),
@@ -616,6 +665,7 @@ function createGame() {
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
     else if (mode === 'virasoro_go') game = new VirasoroGoGame(options);
+    else if (mode === 'physical_virasoro_reversi') game = new PhysicalVirasoroReversiGame(options);
     else if (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical') {
         game = new PhysicalCliffordReversiGame(options);
     }
@@ -748,12 +798,18 @@ function applySpecialLatticeCellLayout(cell, coord, width, height, lattice) {
 function currentReversiPreview() {
     if (!hoverCoord || !isReversiMode(game.mode)) return null;
     if (isPhysicalCliffordMode(game.mode) && els.physicalActionSelect.value !== 'reversi') return null;
-    return game.previewMove(hoverCoord, game.currentPlayer, els.transformSelect.value);
+    if (isCFTReversiMode(game.mode) && els.cftActionSelect.value !== 'place') return null;
+    return game.previewMove(
+        hoverCoord,
+        game.currentPlayer,
+        isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+    );
 }
 
 function reversiPlacementActive() {
     return isReversiMode(game.mode)
-        && (!isPhysicalCliffordMode(game.mode) || els.physicalActionSelect.value === 'reversi');
+        && (!isPhysicalCliffordMode(game.mode) || els.physicalActionSelect.value === 'reversi')
+        && (!isCFTReversiMode(game.mode) || els.cftActionSelect.value === 'place');
 }
 
 function currentVirasoroPreview() {
@@ -764,6 +820,22 @@ function currentVirasoroPreview() {
         action,
         coord: hoverCoord,
         direction: selectedDirection(),
+        player: game.currentPlayer
+    });
+}
+
+function selectedCFTDirection() {
+    return els.cftDirectionSelect.value.split(',').map(Number);
+}
+
+function currentCFTPreview() {
+    if (!hoverCoord || !isCFTReversiMode(game?.mode)) return null;
+    const action = els.cftActionSelect.value;
+    if (action === 'place' || action === 'measure') return null;
+    return game.previewVirasoroAction({
+        action,
+        coord: hoverCoord,
+        direction: selectedCFTDirection(),
         player: game.currentPlayer
     });
 }
@@ -796,12 +868,31 @@ function render() {
 
     renderBoard();
     renderStats();
+    renderCFTObservablePanel();
     renderLegend();
     renderTimePanel();
     renderHistory();
     renderBraidEventLog();
     renderStochasticLog();
     renderExport();
+}
+
+function renderCFTObservablePanel() {
+    if (!els.cftObservablePanel) return;
+    const visible = isCFTReversiMode(game?.mode);
+    els.cftObservablePanel.hidden = !visible;
+    if (!visible) return;
+    const observables = game.computeCFTObservables();
+    const identity = observables.conformalBlockWeights.identity || 0;
+    const epsilon = observables.conformalBlockWeights.epsilon || 0;
+    els.cftIdentityBlockMeter.value = identity;
+    els.cftEpsilonBlockMeter.value = epsilon;
+    els.cftIdentityBlockValue.textContent = identity.toFixed(3);
+    els.cftEpsilonBlockValue.textContent = epsilon.toFixed(3);
+    const crossRatio = observables.fourPointCrossRatio == null
+        ? 'not available'
+        : formatNumber(observables.fourPointCrossRatio);
+    els.cftObservableSummary.textContent = `Dominant ${observables.dominantConformalBlock}; cross-ratio ${crossRatio}; entropy ${formatNumber(observables.entanglementEntropyEstimate)}; mutual information ${formatNumber(observables.mutualInformationEstimate)}; wall ${observables.domainWallLength}; anomalies ${observables.centralChargeAnomalyEvents.length}.`;
 }
 
 function renderBoard() {
@@ -837,7 +928,10 @@ function renderFlatBoard() {
     const preview = currentReversiPreview();
     const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
     const legalReversi = reversiPlacementActive()
-        ? new Set(game.legalMoves(game.currentPlayer, els.transformSelect.value).map((move) => coordKey(move.coord)))
+        ? new Set(game.legalMoves(
+            game.currentPlayer,
+            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+        ).map((move) => coordKey(move.coord)))
         : new Set();
     const legalAnyon = game.mode === 'anyon_jump' && selectedToken
         ? game.legalActionsForToken(selectedToken)
@@ -849,6 +943,8 @@ function renderFlatBoard() {
     const warningTargets = wrongUnbraidTargetIds();
     const virasoroPreview = currentVirasoroPreview();
     const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
+    const cftPreview = currentCFTPreview();
+    const cftAffected = new Set((cftPreview?.affected || []).map((item) => item.key));
     const legalGoTargets = game.mode === 'virasoro_go'
         ? new Set(els.virasoroActionSelect.value === 'play'
             ? game.legalMoves().map(coordKey)
@@ -884,6 +980,10 @@ function renderFlatBoard() {
         if (previewFlips.has(key)) cell.classList.add('preview-flip');
         if (jumpPath.has(key)) cell.classList.add('jump-path');
         if (virasoroAffected.has(key)) cell.classList.add('stress-preview');
+        if (cftAffected.has(key)) cell.classList.add('stress-preview');
+        if (isCFTReversiMode(game.mode) && selectedCFTCoords.some((entry) => coordKey(entry) === key)) {
+            cell.classList.add('cft-selected-region');
+        }
         if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
         if (game.mode === 'virasoro_go') {
             const stress = game.stressAt(coord);
@@ -893,6 +993,13 @@ function renderFlatBoard() {
                 cell.style.setProperty('--stress-level', String(stress.stress));
             }
             if (groupInfo?.unstable) cell.classList.add('unstable-group');
+        }
+        if (isCFTReversiMode(game.mode)) {
+            const stress = game.stressAt(coord);
+            if (stress.stress > 0) {
+                cell.classList.add('stressed');
+                cell.style.setProperty('--stress-level', String(stress.stress));
+            }
         }
         const vertexState = game.probability?.getVertexState(coord);
         const timeState = game.time?.getVertexState(coord);
@@ -914,11 +1021,12 @@ function renderFlatBoard() {
         });
         cell.addEventListener('click', () => handleCellClick(coord));
 
-        if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
+        if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
+        else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
         else if (game.mode === 'anyon_jump') renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
 
-        if (game.mode === 'virasoro_go') renderStress(cell, coord);
+        if (game.mode === 'virasoro_go' || isCFTReversiMode(game.mode)) renderStress(cell, coord);
 
         if (token?.id === cancelTargetId) {
             const badge = document.createElement('span');
@@ -952,12 +1060,15 @@ function algebraic3DViewState() {
             game.topology.sizes.join('x'),
             game.moveNumber,
             game.currentPlayer,
-            els.transformSelect.value
+            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
         ].join(':');
         if (legalReversiCache.signature !== signature) {
             legalReversiCache = {
                 signature,
-                keys: game.legalMoves(game.currentPlayer, els.transformSelect.value)
+                keys: game.legalMoves(
+                    game.currentPlayer,
+                    isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+                )
                     .map((move) => coordKey(move.coord))
             };
         }
@@ -967,6 +1078,7 @@ function algebraic3DViewState() {
         ? game.legalActionsForToken(selectedToken)
         : [];
     const virasoroPreview = currentVirasoroPreview();
+    const cftPreview = currentCFTPreview();
     const legalGo = game.mode === 'virasoro_go'
         ? (els.virasoroActionSelect.value === 'play'
             ? game.legalMoves().map(coordKey)
@@ -982,6 +1094,8 @@ function algebraic3DViewState() {
         previewKeys: new Set((preview?.flips || []).map((flip) => flip.key)),
         affectedKeys: new Set([
             ...(virasoroPreview?.affected || []).map((item) => item.key),
+            ...(cftPreview?.affected || []).map((item) => item.key),
+            ...selectedCFTCoords.map(coordKey),
             ...(selectedPhysicalCoord ? [coordKey(selectedPhysicalCoord)] : [])
         ]),
         trailKeys: braidTrailCells(),
@@ -991,7 +1105,9 @@ function algebraic3DViewState() {
                 ...legalAnyon.map((action) => action.path),
                 ...(game.braidEventLog || []).map((event) => event.path)
             ]
-            : []
+            : isCFTReversiMode(game.mode) && game.lastFlippedPath?.length
+                ? [game.lastFlippedPath]
+                : []
     };
 }
 
@@ -1009,7 +1125,10 @@ function updateBoardHighlights() {
     const preview = currentReversiPreview();
     const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
     const legalReversi = reversiPlacementActive()
-        ? new Set(game.legalMoves(game.currentPlayer, els.transformSelect.value).map((move) => coordKey(move.coord)))
+        ? new Set(game.legalMoves(
+            game.currentPlayer,
+            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+        ).map((move) => coordKey(move.coord)))
         : new Set();
     const legalAnyon = game.mode === 'anyon_jump' && selectedToken
         ? game.legalActionsForToken(selectedToken)
@@ -1021,6 +1140,8 @@ function updateBoardHighlights() {
     const warningTargets = wrongUnbraidTargetIds();
     const virasoroPreview = currentVirasoroPreview();
     const virasoroAffected = new Set((virasoroPreview?.affected || []).map((item) => item.key));
+    const cftPreview = currentCFTPreview();
+    const cftAffected = new Set((cftPreview?.affected || []).map((item) => item.key));
     const legalGoTargets = game.mode === 'virasoro_go'
         ? new Set(els.virasoroActionSelect.value === 'play'
             ? game.legalMoves().map(coordKey)
@@ -1045,8 +1166,10 @@ function updateBoardHighlights() {
         cell.classList.toggle('preview-flip', previewFlips.has(key));
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('stress-preview', virasoroAffected.has(key));
+        cell.classList.toggle('stress-preview', virasoroAffected.has(key) || cftAffected.has(key));
+        cell.classList.toggle('cft-selected-region', selectedCFTCoords.some((entry) => coordKey(entry) === key));
         cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
-        const stress = game.mode === 'virasoro_go' ? game.stressAt(coord) : null;
+        const stress = game.mode === 'virasoro_go' || isCFTReversiMode(game.mode) ? game.stressAt(coord) : null;
         const groupInfo = game.mode === 'virasoro_go' && goStone ? game.groupInfoAt(coord) : null;
         cell.classList.toggle('stressed', Boolean(stress?.stress > 0));
         cell.classList.toggle('unstable-group', Boolean(groupInfo?.unstable));
@@ -1125,6 +1248,22 @@ function renderReversiStone(cell, coord) {
     cell.append(node);
 }
 
+function renderCFTStone(cell, coord) {
+    const stone = game.getStone(coord);
+    if (!stone) return;
+    const node = document.createElement('span');
+    node.className = `stone cft-primary-stone ${stone.color}`;
+    node.textContent = game.primaryLabel(stone);
+    if (stone.hiddenChannel) node.classList.add('hidden-channel');
+    const stress = game.stressAt(coord);
+    node.title = `${stone.color} ${game.primaryLabel(stone)}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; phase=${formatNumber(stone.phaseAngle)}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}; T=${formatNumber(stress.stress)}; last=${stone.lastUpdate?.action || 'setup'}`;
+    const channel = document.createElement('span');
+    channel.className = 'cft-badge';
+    channel.textContent = stone.hiddenChannel ? '?' : stone.channelLabel;
+    node.append(channel);
+    cell.append(node);
+}
+
 function renderGoStone(cell, coord) {
     const stone = game.getStone(coord);
     if (!stone) return;
@@ -1197,6 +1336,13 @@ function renderAnyonToken(cell, coord) {
 }
 
 function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
+    if (isCFTReversiMode(game.mode)) {
+        const stone = game.getStone(coord);
+        const stress = game.stressAt(coord);
+        return stone
+            ? `${game.topology.displayCoord(coord)} ${game.primaryLabel(stone)}; h=${stone.h}, hbar=${stone.hbar}; phase=${stone.phaseAngle}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}; T=${stress.stress.toFixed(2)}`
+            : `${game.topology.displayCoord(coord)} identity/empty; T=${stress.stress.toFixed(2)}`;
+    }
     if (game.mode === 'virasoro_go') {
         const stress = game.stressAt(coord);
         const groupInfo = goStone ? game.groupInfoAt(coord) : null;
@@ -1277,9 +1423,74 @@ function handlePhysicalCliffordClick(coord) {
     render();
 }
 
+function handleCFTReversiClick(coord) {
+    const action = els.cftActionSelect.value;
+    let result = null;
+    if (action === 'place') {
+        result = game.place(coord, {
+            primaryType: els.cftPrimarySelect.value,
+            player: game.currentPlayer
+        });
+    } else if (action === 'measure') {
+        const measurement = els.cftMeasurementSelect.value;
+        if (measurement === 'four_point_block') {
+            const key = coordKey(coord);
+            const existing = selectedCFTCoords.findIndex((entry) => coordKey(entry) === key);
+            if (existing >= 0) selectedCFTCoords.splice(existing, 1);
+            else selectedCFTCoords.push([...coord]);
+            if (selectedCFTCoords.length < 4) {
+                els.statusText.textContent = `Selected ${selectedCFTCoords.length}/4 sigma sites for the four-point block.`;
+                render();
+                return;
+            }
+            result = game.measureFourPointBlock(selectedCFTCoords.slice(0, 4), game.currentPlayer);
+        } else {
+            const region = game.lastFlippedPath?.length
+                && ['line_parity', 'region_entropy'].includes(measurement)
+                ? game.lastFlippedPath
+                : [coord];
+            if (measurement === 'line_parity') result = game.measureLineParity(region, game.currentPlayer);
+            else if (measurement === 'ope_channel') result = game.measureOPEChannel([coord], game.currentPlayer);
+            else if (measurement === 'region_entropy') result = game.measureRegionEntropy(region, game.currentPlayer);
+            else result = game.measureStress([coord], game.currentPlayer);
+        }
+    } else {
+        result = game.applyVirasoroAction({
+            action,
+            coord,
+            direction: selectedCFTDirection(),
+            player: game.currentPlayer
+        });
+    }
+
+    if (!result) return;
+    if (result.ok) {
+        hoverCoord = null;
+        selectedCFTCoords = [];
+        if (action === 'place') {
+            els.statusText.textContent = `Placed ${els.cftPrimarySelect.value}; transformed ${result.event.flipped.length} interval site${result.event.flipped.length === 1 ? '' : 's'}.`;
+        } else if (action === 'measure') {
+            const measurement = result.measurement;
+            const reported = typeof measurement.reported === 'number'
+                ? formatNumber(measurement.reported)
+                : String(measurement.reported);
+            els.statusText.textContent = `${measurement.type.replaceAll('_', ' ')}: ${reported}${measurement.error ? ' (measurement error)' : ''}.`;
+        } else {
+            els.statusText.textContent = `${action} changed stress on ${result.event.affected.length} site${result.event.affected.length === 1 ? '' : 's'}${result.event.VirasoroActions?.[0]?.anomaly ? '; central-charge anomaly marker added' : ''}.`;
+        }
+    } else {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
 function handleCellClick(coord) {
     if (isPhysicalCliffordMode(game.mode)) {
         handlePhysicalCliffordClick(coord);
+        return;
+    }
+    if (isCFTReversiMode(game.mode)) {
+        handleCFTReversiClick(coord);
         return;
     }
     if (isReversiMode(game.mode)) {
@@ -1516,6 +1727,19 @@ function renderStats() {
         els.whiteBraid.textContent = observables.numberOfAncillas;
         return;
     }
+    if (isCFTReversiMode(game.mode)) {
+        const counts = game.counts();
+        const observables = game.computeCFTObservables();
+        els.blackCountLabel.textContent = 'Positive Domain';
+        els.whiteCountLabel.textContent = 'Negative Domain';
+        els.blackBraidLabel.textContent = 'Wall Length';
+        els.whiteBraidLabel.textContent = 'Anomalies';
+        els.blackCount.textContent = counts.black;
+        els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = observables.domainWallLength;
+        els.whiteBraid.textContent = observables.centralChargeAnomalyEvents.length;
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const counts = game.counts();
         els.blackCount.textContent = counts.black;
@@ -1583,6 +1807,30 @@ function updateStatus() {
         }
         return;
     }
+    if (isCFTReversiMode(game.mode)) {
+        const action = els.cftActionSelect.value;
+        const observables = game.computeCFTObservables();
+        if (action === 'place') {
+            const preview = currentReversiPreview();
+            const moves = game.legalMoves(game.currentPlayer, els.cftPrimarySelect.value).length;
+            els.statusText.textContent = preview?.legal
+                ? `${capitalize(game.currentPlayer)} brackets ${preview.flips.length} site${preview.flips.length === 1 ? '' : 's'} as a discrete CFT interval.`
+                : `${capitalize(game.currentPlayer)} has ${moves} legal ${els.cftPrimarySelect.value} insertion${moves === 1 ? '' : 's'}.`;
+        } else if (action === 'measure') {
+            const type = els.cftMeasurementSelect.value.replaceAll('_', ' ');
+            els.statusText.textContent = type === 'four point block'
+                ? `Select four sigma insertions (${selectedCFTCoords.length}/4).`
+                : `Click a site to measure ${type}; line and entropy measurements use the latest interval when available.`;
+        } else {
+            const preview = currentCFTPreview();
+            els.statusText.textContent = hoverCoord
+                ? (preview?.ok
+                    ? `${action} affects ${preview.affected.length} stress site${preview.affected.length === 1 ? '' : 's'}.`
+                    : preview?.error || `Choose a valid ${action} target.`)
+                : `${capitalize(game.currentPlayer)} may apply ${action}. Current block: ${observables.dominantConformalBlock}; entropy estimate ${formatNumber(observables.entanglementEntropyEstimate)}.`;
+        }
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const preview = currentReversiPreview();
         if (preview?.legal) {
@@ -1643,6 +1891,15 @@ function renderLegend() {
             `Checks ${game.computePhysicalObservables().stabilizerViolations}; conflicts ${game.computePhysicalObservables().commutationConflictCount}`,
             game.nonCliffordResourcesUsed ? 'Non-Clifford resource used' : 'Stabilizer/Clifford resources only'
         ]
+        : isCFTReversiMode(game.mode)
+        ? [
+            '+/- is the source or domain sign',
+            '\u03c3 and \u03b5 are Ising CFT primary labels',
+            'Gold outline: bracketed conformal interval',
+            '? is a hidden OPE channel until measured',
+            'T(v) is the discrete stress proxy',
+            'Correlations, blocks, and entropy are graph estimators'
+        ]
         : isReversiMode(game.mode)
         ? [
             phaseSignsEnabled() ? '+/- phase signs shown' : 'X,Y,Z Pauli labels',
@@ -1698,6 +1955,21 @@ function renderHistory() {
                 ? `; measured ${measurement.reported}${measurement.error ? ' with error' : ''}`
                 : '';
             item.textContent = `#${event.number} ${event.player} ${event.type}; affected ${affected}${gates}${measured}.`;
+        } else if (isCFTReversiMode(game.mode)) {
+            if (event.type === 'place') {
+                item.textContent = `#${event.number} ${event.player} inserted ${event.placedStone.primaryType}; interval ${event.flippedPath.length}; OPE updates ${event.OPEUpdates.length}.`;
+            } else if (event.type === 'virasoro') {
+                const action = event.VirasoroActions?.[0];
+                item.textContent = `#${event.number} ${event.player} ${action?.action || 'Virasoro action'} affected ${event.affected?.length || 0}${action?.anomaly ? '; anomaly marker' : ''}.`;
+            } else if (event.type === 'measurement') {
+                const measurement = event.measurements?.[0];
+                const reported = typeof measurement?.reported === 'number'
+                    ? formatNumber(measurement.reported)
+                    : String(measurement?.reported ?? '');
+                item.textContent = `#${event.number} ${event.player} measured ${measurement?.type}: ${reported}${measurement?.error ? ' with error' : ''}.`;
+            } else {
+                item.textContent = `#${event.number} ${event.player} ${event.type}.`;
+            }
         } else if (event.type === 'measurement') {
             item.textContent = `measurement ${event.measurement.type}: ${event.measurement.reported}${event.measurement.error ? ' with error' : ''}.`;
         } else if (event.type === 'noise') {
@@ -1941,6 +2213,15 @@ els.timePeriodInput.addEventListener('change', createGame);
 els.phaseSignSelect.addEventListener('change', createGame);
 els.centralChargeInput.addEventListener('change', createGame);
 for (const control of [
+    els.cftInitialStateSelect,
+    els.cftHiddenChannelSelect,
+    els.cftMaxModeSelect,
+    els.cftCentralChargeInput,
+    els.cftTemperatureInput
+]) {
+    control.addEventListener('change', createGame);
+}
+for (const control of [
     els.physicsViewSelect,
     els.physicalPauliSelect,
     els.physicalPhaseSelect,
@@ -1959,6 +2240,18 @@ els.physicalActionSelect.addEventListener('change', () => {
 els.physicalPhaseGateSelect.addEventListener('change', render);
 els.virasoroActionSelect.addEventListener('change', render);
 els.virasoroDirectionSelect.addEventListener('change', render);
+els.cftActionSelect.addEventListener('change', () => {
+    selectedCFTCoords = [];
+    syncModeControls();
+    render();
+});
+els.cftPrimarySelect.addEventListener('change', render);
+els.cftDirectionSelect.addEventListener('change', render);
+els.cftMeasurementSelect.addEventListener('change', () => {
+    selectedCFTCoords = [];
+    syncModeControls();
+    render();
+});
 els.transformSelect.addEventListener('change', render);
 els.pauliSelect.addEventListener('change', render);
 els.zLayerInput.addEventListener('input', render);

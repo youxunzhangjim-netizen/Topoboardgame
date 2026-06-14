@@ -557,8 +557,66 @@ try {
     assert.equal(goState.mode, 'virasoro_go');
     assert.equal(goState.historyType, 'virasoro');
     assert.ok(goState.stressCount > 0, 'Expected L0 to create stress on Go liberties.');
+
+    await page.goto(`http://127.0.0.1:${port}/?mode=physical_virasoro_reversi`, { waitUntil: 'networkidle' });
+    const cftInitialState = await page.evaluate(() => {
+        const exported = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            title: document.querySelector('#modeTitle')?.textContent,
+            mode: exported.mode,
+            boardSize: exported.board.length,
+            sigmaCount: exported.counts.primaryTypes.sigma,
+            controlsVisible: !document.querySelector('#cftReversiControls')?.hidden,
+            cliffordHidden: document.querySelector('#cliffordAlgebraControls')?.hidden,
+            blockVisible: !document.querySelector('#cftObservablePanel')?.hidden,
+            legalMoves: document.querySelectorAll('.cell.legal').length
+        };
+    });
+    assert.equal(cftInitialState.title, 'Physical Virasoro Reversi');
+    assert.equal(cftInitialState.mode, 'physical_virasoro_reversi');
+    assert.equal(cftInitialState.boardSize, 4);
+    assert.equal(cftInitialState.sigmaCount, 4);
+    assert.equal(cftInitialState.controlsVisible, true);
+    assert.equal(cftInitialState.cliffordHidden, true);
+    assert.equal(cftInitialState.blockVisible, true);
+    assert.ok(cftInitialState.legalMoves > 0, 'Four-sigma opening should expose legal CFT brackets.');
+
+    await page.locator('.cell.legal').first().click();
+    const cftMoveState = await page.evaluate(() => {
+        const exported = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            moveNumber: exported.moveNumber,
+            historyType: exported.history[0]?.type,
+            opeUpdates: exported.history[0]?.OPEUpdates?.length,
+            physicsHistory: exported.physicsHistory.length,
+            entropy: exported.observables.entanglementEntropyEstimate
+        };
+    });
+    assert.equal(cftMoveState.moveNumber, 1);
+    assert.equal(cftMoveState.historyType, 'place');
+    assert.ok(cftMoveState.opeUpdates > 0);
+    assert.ok(cftMoveState.physicsHistory >= 2);
+    assert.equal(typeof cftMoveState.entropy, 'number');
+
+    await page.locator('#rulesIntroButton').click();
+    const cftRules = await page.locator('[data-rules-mode="cft-reversi"]').textContent();
+    assert.match(cftRules, /Ising CFT/);
+    assert.match(cftRules, /approximation|estimator/i);
+
+    await page.selectOption('#topologySelect', 'torus');
+    await page.waitForTimeout(250);
+    const cft3DState = await page.evaluate(() => ({
+        canvasVisible: !document.querySelector('#algebraic3dBoard')?.hidden,
+        canvasWidth: document.querySelector('#algebraic3dBoard')?.width || 0,
+        canvasHeight: document.querySelector('#algebraic3dBoard')?.height || 0,
+        flatHidden: document.querySelector('#board')?.hidden
+    }));
+    assert.equal(cft3DState.canvasVisible, true, 'Torus CFT Reversi should use the rotatable 3D graph board.');
+    assert.equal(cft3DState.flatHidden, true);
+    assert.ok(cft3DState.canvasWidth > 100 && cft3DState.canvasHeight > 100);
+
     assert.equal(logs.some((line) => line.startsWith('pageerror')), false, logs.join('\n'));
-    console.log(JSON.stringify({ state, rulesVisible: rulesState.visible, reversiState, anyonState, fixedAnyonState, physicalProblemState, isingProblemState, fixedGoState, visibleVirasoroRules, goState, logs }, null, 2));
+    console.log(JSON.stringify({ state, rulesVisible: rulesState.visible, reversiState, anyonState, fixedAnyonState, physicalProblemState, isingProblemState, fixedGoState, visibleVirasoroRules, goState, cftInitialState, cftMoveState, cft3DState, logs }, null, 2));
 } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
