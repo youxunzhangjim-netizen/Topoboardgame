@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2D Chess with Boundary Conditions</title>
     <link rel="stylesheet" href="./css/styles.css">
-    <script src="./vendor/peerjs.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -77,12 +76,13 @@
                     <button class="online-btn match" id="findMatchBtn" type="button" data-i18n="online.findMatch">Find Match</button>
                     <div class="divider-text" data-i18n="online.privateRoom">PRIVATE ROOM</div>
 
-                    <button class="online-btn create" id="createRoomBtn" type="button" data-i18n="online.createRoom">Create Room</button>
+                    <button class="online-btn create" id="createRoomBtn" type="button">Create Private Room</button>
 
                     <div class="divider-text" data-i18n="online.or">- OR -</div>
 
                     <input type="text" id="roomIdInput" autocomplete="off" placeholder="Enter Room ID to join..." data-i18n-placeholder="online.roomInput">
                     <button class="online-btn join" id="joinRoomBtn" type="button" data-i18n="online.joinRoom">Join Room</button>
+                    <button class="online-btn" id="leaveRoomBtn" type="button">Leave Room</button>
 
                     <div class="room-info" id="roomInfo" hidden>
                         <div class="room-block">

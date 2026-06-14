@@ -1,6 +1,6 @@
 import { BoardSetup, BOARD_THEMES, PIECE_GLYPHS, PROMOTION_TYPES, createPiece } from './BoardSetup.js';
 import { PieceMovement, createRandomChessBoundaryState } from './PieceMovement.js';
-import { NetworkManager } from './NetworkManager.js';
+import { FirebaseOnlineAdapter } from '../../../online.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
 
 const SIZE = 8;
@@ -34,7 +34,7 @@ export class ChessGame {
         this.promotionResolver = null;
 
         this.movement = new PieceMovement(this);
-        this.network = new NetworkManager(this);
+        this.network = new FirebaseOnlineAdapter(this);
 
         this.init();
     }
@@ -88,6 +88,101 @@ export class ChessGame {
         this.setStatus('online.joiningSharedGame');
         window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
         this.updateUI();
+    }
+
+    getCurrentBoardState() {
+        return {
+            version: 1,
+            board: this.board.map((row) => row.map((piece) => piece ? { ...piece } : null)),
+            currentPlayer: this.currentPlayer,
+            boundaryCondition: this.boundaryCondition,
+            randomBoundarySeed: this.randomBoundarySeed || '',
+            randomBoundaryMap: this.randomBoundaryEntries(),
+            timerEnabled: this.timerEnabled,
+            timeLimit: this.timeLimit,
+            timeRemaining: { ...this.timeRemaining },
+            gameStarted: this.gameStarted,
+            gameOver: this.gameOver,
+            moveHistory: [...this.moveHistory],
+            capturedPieces: {
+                white: [...this.capturedPieces.white],
+                black: [...this.capturedPieces.black]
+            },
+            enPassantTarget: this.enPassantTarget ? { ...this.enPassantTarget } : null,
+            halfMoveClock: this.halfMoveClock,
+            positionHistory: [...this.positionHistory]
+        };
+    }
+
+    loadBoardState(state) {
+        if (!state || typeof state !== 'object') return;
+        if (Array.isArray(state.board)) {
+            this.board = state.board.map((row) => row.map((piece) =>
+                piece ? createPiece(piece.color, piece.type, Boolean(piece.hasMoved)) : null));
+        }
+        this.currentPlayer = state.currentPlayer === 'black' ? 'black' : 'white';
+        this.boundaryCondition = ['forbidden', 'open', 'reflection', 'periodic', 'random']
+            .includes(state.boundaryCondition) ? state.boundaryCondition : 'forbidden';
+        this.configureRandomBoundary({
+            seed: String(state.randomBoundarySeed || ''),
+            entries: Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : null
+        });
+        this.timerEnabled = Boolean(state.timerEnabled);
+        this.timeLimit = Number(state.timeLimit) || 0;
+        this.timeRemaining = {
+            white: Number(state.timeRemaining?.white) || this.timeLimit,
+            black: Number(state.timeRemaining?.black) || this.timeLimit
+        };
+        this.gameStarted = Boolean(state.gameStarted);
+        this.gameOver = Boolean(state.gameOver);
+        this.moveHistory = Array.isArray(state.moveHistory) ? [...state.moveHistory] : [];
+        this.capturedPieces = {
+            white: Array.isArray(state.capturedPieces?.white) ? [...state.capturedPieces.white] : [],
+            black: Array.isArray(state.capturedPieces?.black) ? [...state.capturedPieces.black] : []
+        };
+        this.enPassantTarget = state.enPassantTarget ? { ...state.enPassantTarget } : null;
+        this.halfMoveClock = Number(state.halfMoveClock) || 0;
+        this.positionHistory = Array.isArray(state.positionHistory) ? [...state.positionHistory] : [];
+        this.clearSelection();
+        document.getElementById('boundarySelect').value = this.boundaryCondition;
+        document.getElementById('timerSelect').value = String(this.timeLimit);
+        this.updateBoundaryInfo();
+        this.renderBoard();
+        this.updateTimerDisplay();
+        this.updateUI();
+    }
+
+    applyMoveToBoardState(boardState, move, playerColor) {
+        if (!boardState || boardState.currentPlayer !== playerColor) return null;
+        const from = move?.from;
+        const sourcePiece = boardState.board?.[from?.r]?.[from?.c];
+        if (!sourcePiece || sourcePiece.color !== playerColor) return null;
+        const nextState = move.boardState;
+        if (!nextState || nextState.currentPlayer !== this.opponentOf(playerColor)) return null;
+        return structuredClone(nextState);
+    }
+
+    showOnlineStatus(text) {
+        const connection = document.getElementById('connectionStatus');
+        const colorStatus = document.getElementById('onlineColorStatus');
+        if (connection) connection.textContent = text;
+        if (colorStatus && this.gameMode === 'online') colorStatus.textContent = text;
+    }
+
+    updateOnlineRoomUI(roomId, color, room) {
+        const roomInfo = document.getElementById('roomInfo');
+        const roomDisplay = document.getElementById('roomIdDisplay');
+        const shareInput = document.getElementById('shareLinkInput');
+        if (roomInfo) roomInfo.hidden = !roomId;
+        if (roomDisplay) roomDisplay.textContent = roomId || '';
+        if (shareInput) {
+            const url = new URL(window.location.href);
+            if (roomId) url.searchParams.set('room', roomId);
+            else url.searchParams.delete('room');
+            shareInput.value = roomId ? url.toString() : '';
+        }
+        this.myColor = color;
+        this.network.isConnected = room?.status === 'playing';
     }
 
     setTheme(index) {
@@ -251,7 +346,10 @@ export class ChessGame {
 
         if (this.gameMode === 'online') this.network.persistState();
 
-        if (!options.remote && this.gameMode === 'online' && this.network.isConnected) {
+        if (!options.remote && this.gameMode === 'online') {
+            // Firebase hook: call sendMove(move) immediately after a legal
+            // local move has updated the board. Server-side validation is
+            // required later for serious anti-cheat protection.
             this.network.sendMove(sentMove);
         }
 
@@ -301,7 +399,7 @@ export class ChessGame {
             suicide: true
         };
         if (this.gameMode === 'online') this.network.persistState();
-        if (!options.remote && this.gameMode === 'online' && this.network.isConnected) {
+        if (!options.remote && this.gameMode === 'online') {
             this.network.sendMove(sentMove);
         }
 
@@ -688,6 +786,15 @@ export class ChessGame {
             document.getElementById('gameModeSelect').value = 'online';
             document.getElementById('onlineControls').classList.add('active');
             this.network.resumeOrJoinRoom(document.getElementById('roomIdInput').value);
+        });
+
+        document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+            this.network.close();
+            this.gameMode = 'local';
+            this.myColor = null;
+            document.getElementById('gameModeSelect').value = 'local';
+            document.getElementById('onlineControls').classList.remove('active');
+            this.updateUI();
         });
 
         document.getElementById('copyLinkBtn').addEventListener('click', async () => {
