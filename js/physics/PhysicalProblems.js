@@ -43,5 +43,8 @@ export function topologyOptionsForPhysicalProblem(problem = null, config = {}) {
     return null;
 }
 
-export { TORIC_CODE_MEMORY_UNBRAID_ID } from './ToricCodeMemoryUnbraidProblem.js';
+export {
+    runToricMemoryExperiment,
+    TORIC_CODE_MEMORY_UNBRAID_ID
+} from './ToricCodeMemoryUnbraidProblem.js';
 export { ISING_DOMAIN_WALL_TOPOLOGY_ID } from './IsingDomainWallTopologyProblem.js';

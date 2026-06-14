@@ -192,7 +192,8 @@ export class AnyonJumpGame {
     addToken({
         id,
         owner = this.currentPlayer,
-        coord,
+        coord = null,
+        vertex = null,
         anyonType = 'e',
         hiddenState = null,
         revealed = true,
@@ -201,7 +202,7 @@ export class AnyonJumpGame {
         anyonPhaseNumerator = 0,
         anyonPhaseDenominator = null
     }) {
-        const normalized = this.topology.normalize(coord);
+        const normalized = this.topology.normalize(vertex ?? coord);
         if (!normalized) return null;
         let tokenId = id || `a${this.tokens.size + 1}`;
         let suffix = this.tokens.size + 1;
@@ -213,6 +214,7 @@ export class AnyonJumpGame {
             id: tokenId,
             owner,
             coord: normalized,
+            vertex: normalized,
             anyonType: this.normalizeConfiguredType(anyonType),
             hiddenState,
             revealed,
@@ -280,6 +282,7 @@ export class AnyonJumpGame {
         };
         this.history.unshift(event);
         this.currentPlayer = otherOwner(player);
+        this.physicalProblem?.record?.(this, { type: 'excite', event });
         return { ok: true, event };
     }
 
@@ -309,6 +312,7 @@ export class AnyonJumpGame {
         };
         this.history.unshift(event);
         this.currentPlayer = otherOwner(player);
+        this.physicalProblem?.record?.(this, { type: 'drop', event });
         return { ok: true, event };
     }
 
@@ -728,6 +732,7 @@ export class AnyonJumpGame {
         const beforeType = token.anyonType;
         token.anyonType = this.transformTypeAcrossEdges(token.anyonType, edges);
         token.coord = cloneCoord(action.to);
+        token.vertex = token.coord;
         this.worldlines.get(token.id)?.push(...action.path.slice(1).map(cloneCoord));
 
         const jumped = action.over ? this.tokens.get(action.over) : null;
@@ -867,6 +872,7 @@ export class AnyonJumpGame {
         return {
             ...cloneValue(token),
             coord: cloneCoord(token.coord),
+            vertex: cloneCoord(token.vertex ?? token.coord),
             braidStatus: this.braidStatusForToken(token),
             fusionChannelDisplay: token.hiddenFusionState?.revealed ? token.hiddenFusionState.currentChannel : token.fusionChannel
         };

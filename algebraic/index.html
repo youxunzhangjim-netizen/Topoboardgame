@@ -66,6 +66,18 @@
                             <option value="toric_code_memory_unbraid">Toric Memory Unbraid</option>
                         </select>
                     </label>
+                    <label id="qecPairsEControl" hidden>
+                        Local e Pairs
+                        <input id="qecPairsEInput" type="number" min="0" max="32" value="2">
+                    </label>
+                    <label id="qecPairsMControl" hidden>
+                        Local m Pairs
+                        <input id="qecPairsMInput" type="number" min="0" max="32" value="2">
+                    </label>
+                    <label id="qecPairSeparationControl" hidden>
+                        Pair Separation
+                        <input id="qecPairSeparationInput" type="number" min="1" max="16" value="1">
+                    </label>
                 </div>
             </div>
 
@@ -613,6 +625,8 @@
                         <p><strong>Unbraiding:</strong> select a braided token. The valid target is marked with a green UNBRAID badge. Clicking that target applies the next inverse generator. Full unbraiding requires the reverse inverse sequence; a wrong target or wrong sign appends a new braid instead of clearing the word. A successful inverse also reduces the visible braid count.</p>
                         <p><strong>General Z_n phase:</strong> the selectable non-vacuum charges are &alpha;<sub>1</sub> through &alpha;<sub>n-1</sub>. Fusion adds grades modulo n, so &alpha;<sub>i</sub> x &alpha;<sub>j</sub> = &alpha;<sub>(i+j) mod n</sub>, with grade 0 equal to vacuum 1. A positive braid adds +1/n, an inverse unbraid subtracts 1/n, and the token shows the signed net phase as a flat shadow under the piece.</p>
                         <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, &psi; x &psi; = 1, e x m = &psi;, e x &psi; = m, and m x &psi; = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
+                        <p><strong>Toric Memory Unbraid:</strong> the physical-problem option initializes local e and m pairs with vacuum total charge, records the logical winding sector, and shows QEC observables after every move. Crossing a noncontractible cycle can create a logical error; exact inverse braids reduce braid memory; complete vacuum fusion is recorded as vacuum recovery.</p>
+                        <p><strong>QEC export:</strong> JSON includes vertex-based initial state, move history, braid and fusion histories, logical-sector history, memory lifetime, logical-error rate, unbraid success rate, and the final physical answer.</p>
                         <p><strong>Excitation Energy:</strong> both players start with 12 energy. The selector offers every non-vacuum type in the chosen model: e, m, &psi; for Toric Code; &sigma;, &psi; for Ising; &tau; for Fibonacci; and every &alpha;<sub>k</sub> grade for Z_n. Exciting one on an empty vertex consumes one turn and its model cost. Dropping an owned anyon or completing a vacuum fusion returns its gap energy after the configured loss rate.</p>
                         <p><strong>Non-Abelian fusion:</strong> Ising uses &sigma; x &sigma; = 1 + &psi;. The plus sign lists alternative channels, not simultaneous products: resolving to 1 removes both incoming &sigma; anyons as vacuum, while resolving to &psi; replaces the pair with one &psi; excitation. Also, &sigma; x &psi; = &sigma; and &psi; x &psi; = 1. Fibonacci similarly uses &tau; x &tau; = 1 + &tau;. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                         <p><strong>Entanglement distance:</strong> Infinite keeps fusion-channel memory regardless of graph separation. Finite Distance measures shortest legal graph steps and decoheres that hidden pair channel when the anyons separate beyond the selected distance. Braid words remain recorded independently.</p>
@@ -667,6 +681,21 @@
                         <strong id="cftEpsilonBlockValue">0.000</strong>
                     </div>
                     <p id="cftObservableSummary">Discrete CFT estimators appear here.</p>
+                </section>
+
+                <section class="qec-observable-panel" id="qecObservablePanel" hidden>
+                    <h2>Toric-Code QEC Observables</h2>
+                    <div class="qec-observable-grid">
+                        <div><span>Total Charge</span><strong id="qecTotalCharge">1</strong></div>
+                        <div><span>Logical Sector</span><strong id="qecLogicalSector">(0,0)</strong></div>
+                        <div><span>Memory</span><strong id="qecMemoryState">Alive</strong></div>
+                        <div><span>Vacuum Recovery</span><strong id="qecVacuumRecovery">No</strong></div>
+                        <div><span>Average Braid Length</span><strong id="qecAverageBraidLength">0</strong></div>
+                        <div><span>Maximum Braid Length</span><strong id="qecMaxBraidLength">0</strong></div>
+                        <div><span>Successful Unbraids</span><strong id="qecUnbraidSuccess">0</strong></div>
+                        <div><span>Failed Unbraids</span><strong id="qecUnbraidFail">0</strong></div>
+                    </div>
+                    <p id="qecObservableSummary">Select the toric-code memory physical problem to begin.</p>
                 </section>
 
                 <section>

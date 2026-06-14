@@ -1,4 +1,5 @@
 import {
+    applyAnyonAutomorphism,
     braidEffectForPhase,
     createFusionResult,
     mutualBraidPhase,
@@ -7,7 +8,6 @@ import {
     previewAnyonCapture
 } from './AnyonAlgebra.js';
 import {
-    applySeamTransforms,
     createRectTorusTopology,
     isClosedLoop,
     sameVertex,
@@ -109,7 +109,12 @@ export class AnyonGameEngine {
         if (this.disabledUntilTurn[player] > this.turn) return { ok: false, error: 'Player is disabled this turn.' };
 
         const normalizedTo = this.normalizeVertex(toVertex);
-        const legal = this.neighbors(token.vertex).some((neighbor) => sameVertex(neighbor, normalizedTo));
+        const movement = this.topology?.directions
+            ? this.topology.directions()
+                .map((direction) => ({ direction, step: this.topology.step(token.vertex, direction) }))
+                .find(({ step }) => step && sameVertex(step.coord, normalizedTo))
+            : null;
+        const legal = movement || this.neighbors(token.vertex).some((neighbor) => sameVertex(neighbor, normalizedTo));
         if (!legal) return { ok: false, error: 'Anyon moves must follow one graph edge.' };
         const occupantBeforeMove = this.tokenAt(normalizedTo, id);
         if (occupantBeforeMove && confirmFusion) {
@@ -119,14 +124,22 @@ export class AnyonGameEngine {
 
         const from = token.vertex;
         const rawPath = [from, normalizedTo];
+        const edges = movement?.step?.edge
+            ? [movement.step.edge]
+            : [{ from, rawTo: normalizedTo, to: normalizedTo }];
+        const directions = movement?.direction ? [movement.direction] : [];
         const beforeType = token.anyonType;
         if (this.config.enableTopologySeamTransforms) {
-            token.anyonType = applySeamTransforms(token.anyonType, rawPath, this.topology, this.config.anyonModel);
+            token.anyonType = edges.reduce((type, edge) => applyAnyonAutomorphism(
+                type,
+                this.topology?.seamTransform?.(edge) || edge?.anyonAutomorphism || 'identity',
+                this.config.anyonModel
+            ), token.anyonType);
         }
         token.vertex = normalizedTo;
         if (this.config.enablePathHistory) this.worldlines.get(id)?.push(normalizedTo);
 
-        const braid = this.evaluateBraids(token, rawPath, player);
+        const braid = this.evaluateBraids(token, rawPath, player, { edges, directions });
         const occupant = this.tokenAt(normalizedTo, id);
         const fusion = occupant && confirmFusion ? this.fuseTokens(id, occupant.id) : null;
 
@@ -147,7 +160,7 @@ export class AnyonGameEngine {
         return { ok: true, event };
     }
 
-    evaluateBraids(movingToken, path, player) {
+    evaluateBraids(movingToken, path, player, { edges = null, directions = [] } = {}) {
         const targets = [...this.tokens.values()].filter((target) => target.id !== movingToken.id);
         const detected = detectTopologyBraidEvents({
             movingToken,
@@ -155,14 +168,23 @@ export class AnyonGameEngine {
             topology: this.topology,
             targets,
             defects: this.defects,
+            edges,
+            directions,
             tick: this.turn,
             tokenIds: [...this.tokens.keys()]
         });
         const localBraids = detected.map((event) => this.applyBraid(movingToken, event, player));
 
+        const winding = (edges || []).reduce((total, edge) => {
+            const crossing = this.topology?.homologyCycleCrossing?.(edge) || edge?.homology || {};
+            return {
+                x: total.x + (Number(crossing.x) || 0),
+                y: total.y + (Number(crossing.y) || 0)
+            };
+        }, { x: 0, y: 0 });
         return {
             closedLoop: isClosedLoop(path),
-            winding: windingNumbers(path, this.topology),
+            winding: edges ? winding : windingNumbers(path, this.topology),
             noncontractible: localBraids.some((event) => event.reason === 'noncontractible_cycle'),
             events: localBraids,
             localBraids

@@ -729,6 +729,47 @@ h2 {
     line-height: 1.45;
 }
 
+.qec-observable-panel {
+    display: grid;
+    gap: 10px;
+}
+
+.qec-observable-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.qec-observable-grid div {
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid rgba(218, 232, 224, 0.14);
+    border-radius: 6px;
+    background: rgba(8, 12, 18, 0.54);
+}
+
+.qec-observable-grid span {
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.qec-observable-grid strong {
+    display: block;
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+    font-size: 16px;
+}
+
+.qec-observable-panel p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .stone.black, .anyon.black {
     color: #f8fbfd;
     background: radial-gradient(circle at 35% 28%, #3c4653, var(--black-stone) 62%);

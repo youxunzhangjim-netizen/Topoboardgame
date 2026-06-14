@@ -88,6 +88,10 @@ function tokenKey(key, entity) {
     return entity?.id || entity?.key || key;
 }
 
+function tokenVertex(token) {
+    return token?.vertex ?? token?.coord ?? null;
+}
+
 function displayedPauliLabel(entity) {
     if (!entity) return 'I';
     if (entity.revealed === false && entity.hiddenState?.pauliLabel) return normalizePauliLabel(entity.hiddenState.pauliLabel, 'I');
@@ -315,8 +319,8 @@ export class ProbabilityEngine {
                 const typeIndex = Math.min(this.config.anyonPairTypes.length - 1, Math.floor(typeChooser * this.config.anyonPairTypes.length));
                 const pair = pairs[pairIndex];
                 const type = normalizeAnyonType(this.config.anyonPairTypes[typeIndex] || 'e', game.config?.anyonModel);
-                const first = game.addToken({ owner: player, coord: pair[0], anyonType: type });
-                const second = game.addToken({ owner: player, coord: pair[1], anyonType: type });
+                const first = game.addToken({ owner: player, vertex: pair[0], anyonType: type });
+                const second = game.addToken({ owner: player, vertex: pair[1], anyonType: type });
                 return {
                     applied: true,
                     anyonType: type,
@@ -336,7 +340,7 @@ export class ProbabilityEngine {
                     tick,
                     player,
                     type: 'anyon_label_flip:e_m',
-                    affectedVertices: [token.coord],
+                    affectedVertices: [tokenVertex(token)].filter(Boolean),
                     affectedTokens: [token.id],
                     probability: this.config.noiseRate,
                     outcome: ({ triggered }) => {
@@ -416,7 +420,7 @@ export class ProbabilityEngine {
                 tick,
                 player,
                 type: 'fusion_channel_sample',
-                affectedVertices: tokens.map((token) => token.coord).filter(Boolean),
+                affectedVertices: tokens.map(tokenVertex).filter(Boolean),
                 affectedTokens: tokens.map((token) => token.id).filter(Boolean),
                 probability: 1,
                 sample,
@@ -430,7 +434,7 @@ export class ProbabilityEngine {
             tick,
             player,
             type: 'measurement_error:anyon_charge',
-            affectedVertices: tokens.map((token) => token.coord).filter(Boolean),
+            affectedVertices: tokens.map(tokenVertex).filter(Boolean),
             affectedTokens: tokens.map((token) => token.id).filter(Boolean),
             probability: this.config.measurementErrorRate
         });
@@ -461,7 +465,7 @@ export class ProbabilityEngine {
                 token.measurementHistory = [...(token.measurementHistory || []), measurement];
             }
         }
-        this.markMeasuredVertices(tokens.map((token) => token.coord).filter(Boolean));
+        this.markMeasuredVertices(tokens.map(tokenVertex).filter(Boolean));
         this.measurements.push(measurement);
         return measurement;
     }

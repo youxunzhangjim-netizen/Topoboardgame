@@ -5,9 +5,13 @@ import { nextRequiredUnbraidGenerator } from '../js/anyon/BraidMemory.js';
 import {
     calculateToricCodeMemoryUnbraidAnswer,
     computeToricCodeMemoryUnbraidObservables,
+    runToricMemoryExperiment,
+    ToricCodeMemoryUnbraidProblem,
     TORIC_CODE_MEMORY_UNBRAID_ID,
     topologyOptionsForToricCodeMemoryUnbraid
 } from '../js/physics/ToricCodeMemoryUnbraidProblem.js';
+import { AnyonGameEngine } from '../js/anyon/AnyonEngine.js';
+import { createGraphTopology } from '../js/topology/GraphTopologies.js';
 import {
     calculateIsingDomainWallTopologyAnswer,
     computeIsingDomainWallObservables,
@@ -41,8 +45,41 @@ assert.equal(initializedExport.problemId, TORIC_CODE_MEMORY_UNBRAID_ID);
 assert.equal(initializedExport.initialObservables.numE, 2, 'One local e pair creates two e anyons.');
 assert.equal(initializedExport.initialObservables.numM, 2, 'One local m pair creates two m anyons.');
 assert.equal(initializedExport.initialObservables.totalFusionCharge, '1', 'Initial local pairs have total vacuum charge.');
+assert.equal(initializedExport.initialObservables.topologicalMemoryAlive, true, 'Local pairs initialize a live QEC memory experiment.');
 assert.equal(initializedExport.config.boardSize, 6);
 assert.ok(initializedExport.physicalQuestion.length >= 3);
+assert.ok(initializedExport.initialState.tokens.every((token) => Array.isArray(token.vertex)), 'Initial export uses token vertices.');
+
+const coreGame = new AnyonGameEngine({
+    topology: createGraphTopology({ topology: 'torus', width: 6, height: 6 })
+});
+const coreProblem = new ToricCodeMemoryUnbraidProblem({
+    topology: 'torus',
+    boardSize: 6,
+    numPairsE: 1,
+    numPairsM: 1,
+    pairSeparation: 2
+});
+coreProblem.setupInitialState(coreGame);
+coreProblem.start(coreGame);
+assert.equal(coreGame.tokens.size, 4, 'Vertex-native AnyonGameEngine receives two local pairs.');
+assert.ok([...coreGame.tokens.values()].every((token) => Array.isArray(token.vertex) && token.coord == null));
+const coreVertices = [...coreGame.tokens.values()].map((token) => token.vertex.join(','));
+assert.equal(new Set(coreVertices).size, coreVertices.length, 'Pair initialization avoids occupied vertices.');
+assert.equal(coreProblem.initialObservables.tick, 0, 'Core engine uses game.turn as the physical tick.');
+
+const logicalGame = new AnyonGameEngine({
+    topology: createGraphTopology({ topology: 'torus', width: 6, height: 6 })
+});
+logicalGame.addToken({ id: 'logical-e', owner: 'black', vertex: [5, 3], anyonType: 'e' });
+const logicalProblem = new ToricCodeMemoryUnbraidProblem({ createPairsLocally: false });
+logicalProblem.start(logicalGame);
+assert.equal(logicalGame.moveToken('logical-e', [0, 3], { player: 'black' }).ok, true);
+const logicalEntry = logicalProblem.record(logicalGame, 'seam_move');
+assert.equal(logicalEntry.observables.windingX, 1, 'Core engine preserves raw seam edges for winding.');
+assert.equal(logicalEntry.observables.logicalSector, '(1,0)');
+assert.equal(logicalEntry.observables.logicalErrorOccurred, true);
+assert.equal(logicalEntry.observables.topologicalMemoryAlive, false);
 
 const game = new AnyonJumpGame({
     topology: { topology: 'torus', width: 4, height: 4 },
@@ -78,11 +115,11 @@ const unbraid = game.attemptUnbraid('b1', 'w1', {
 assert.equal(unbraid.ok, true, 'Exact inverse unbraid action succeeds.');
 const finalExport = game.exportState().physicalProblem;
 assert.equal(finalExport.finalObservables.maxBraidWordLength, 0, 'Successful unbraid clears braid word.');
-assert.equal(finalExport.finalObservables.topologicalMemoryAlive, false, 'No braid memory or logical sector remains.');
+assert.equal(finalExport.finalObservables.topologicalMemoryAlive, true, 'Non-vacuum toric excitations keep the memory experiment active.');
 assert.equal(finalExport.eventCounts.successfulUnbraids, 1);
 assert.equal(finalExport.eventCounts.failedUnbraids, 0);
 assert.equal(finalExport.answer.exactUnbraidSuccessRate, 1);
-assert.equal(finalExport.answer.finalAnswerLabel, 'memory_lost');
+assert.equal(finalExport.answer.finalAnswerLabel, 'memory_survived');
 assert.match(finalExport.answer.summary, /toric-code memory/);
 assert.ok(finalExport.fullHistory.length >= 3, 'Problem records initial, braid, and unbraid observations.');
 
@@ -98,6 +135,22 @@ const answer = calculateToricCodeMemoryUnbraidAnswer({
 });
 assert.equal(answer.logicalErrorOccurred, false);
 assert.equal(answer.finalTotalCharge, 'psi');
+
+const experiment = runToricMemoryExperiment({
+    topologyList: ['torus', 'klein_bottle'],
+    numTrials: 2,
+    maxTurns: 5,
+    noiseRate: 0.05,
+    measurementErrorRate: 0.02,
+    policy: 'random',
+    seed: 'qec-experiment-test'
+});
+assert.equal(experiment.trials.length, 4);
+assert.equal(typeof experiment.aggregate.averageMemoryLifetime, 'number');
+assert.equal(typeof experiment.aggregate.vacuumRecoveryRate, 'number');
+assert.equal(typeof experiment.aggregate.logicalErrorRate, 'number');
+assert.ok(Object.keys(experiment.aggregate.finalChargeDistribution).length > 0);
+assert.ok(Object.keys(experiment.aggregate.finalLogicalSectorDistribution).length > 0);
 
 assert.equal(normalizePhysicalProblemId(ISING_DOMAIN_WALL_TOPOLOGY_ID), ISING_DOMAIN_WALL_TOPOLOGY_ID);
 assert.equal(createPhysicalProblem({ id: ISING_DOMAIN_WALL_TOPOLOGY_ID }).id, ISING_DOMAIN_WALL_TOPOLOGY_ID);

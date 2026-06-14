@@ -464,7 +464,14 @@ try {
             totalCharge: exportState.physicalProblem?.initialObservables?.totalFusionCharge,
             numE: exportState.physicalProblem?.initialObservables?.numE,
             numM: exportState.physicalProblem?.initialObservables?.numM,
-            answerLabel: exportState.physicalProblem?.answer?.finalAnswerLabel
+            answerLabel: exportState.physicalProblem?.answer?.finalAnswerLabel,
+            qecPanelVisible: !document.querySelector('#qecObservablePanel')?.hidden,
+            qecCharge: document.querySelector('#qecTotalCharge')?.textContent,
+            qecSector: document.querySelector('#qecLogicalSector')?.textContent,
+            qecMemory: document.querySelector('#qecMemoryState')?.textContent,
+            initialUsesVertices: exportState.physicalProblem?.initialState?.tokens
+                ?.every((token) => Array.isArray(token.vertex)),
+            hasLogicalHistory: exportState.physicalProblem?.logicalSectorHistory?.length > 0
         };
     });
     assert.equal(physicalProblemState.problemId, 'toric_code_memory_unbraid');
@@ -472,6 +479,12 @@ try {
     assert.equal(physicalProblemState.numE, 2);
     assert.equal(physicalProblemState.numM, 2);
     assert.ok(physicalProblemState.answerLabel, 'Physical problem export should include an answer label.');
+    assert.equal(physicalProblemState.qecPanelVisible, true, 'Toric physical problem should show the QEC panel.');
+    assert.equal(physicalProblemState.qecCharge, '1');
+    assert.equal(physicalProblemState.qecSector, '(0,0)');
+    assert.equal(physicalProblemState.qecMemory, 'Alive');
+    assert.equal(physicalProblemState.initialUsesVertices, true);
+    assert.equal(physicalProblemState.hasLogicalHistory, true);
 
     await page.goto(`http://127.0.0.1:${port}/?mode=clifford_reversi&physicalProblem=ising_domain_wall_topology&problemTopology=torus&boardSize=4&initialState=checkerboard`, { waitUntil: 'networkidle' });
     const isingProblemState = await page.evaluate(() => {

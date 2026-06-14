@@ -17,6 +17,12 @@ const els = {
     modeControl: document.querySelector('#modeControl'),
     physicalProblemControl: document.querySelector('#physicalProblemControl'),
     physicalProblemSelect: document.querySelector('#physicalProblemSelect'),
+    qecPairsEControl: document.querySelector('#qecPairsEControl'),
+    qecPairsEInput: document.querySelector('#qecPairsEInput'),
+    qecPairsMControl: document.querySelector('#qecPairsMControl'),
+    qecPairsMInput: document.querySelector('#qecPairsMInput'),
+    qecPairSeparationControl: document.querySelector('#qecPairSeparationControl'),
+    qecPairSeparationInput: document.querySelector('#qecPairSeparationInput'),
     topologySelect: document.querySelector('#topologySelect'),
     latticeControl: document.querySelector('#latticeControl'),
     latticeSelect: document.querySelector('#latticeSelect'),
@@ -169,6 +175,16 @@ const els = {
     cftEpsilonBlockMeter: document.querySelector('#cftEpsilonBlockMeter'),
     cftEpsilonBlockValue: document.querySelector('#cftEpsilonBlockValue'),
     cftObservableSummary: document.querySelector('#cftObservableSummary'),
+    qecObservablePanel: document.querySelector('#qecObservablePanel'),
+    qecTotalCharge: document.querySelector('#qecTotalCharge'),
+    qecLogicalSector: document.querySelector('#qecLogicalSector'),
+    qecMemoryState: document.querySelector('#qecMemoryState'),
+    qecVacuumRecovery: document.querySelector('#qecVacuumRecovery'),
+    qecAverageBraidLength: document.querySelector('#qecAverageBraidLength'),
+    qecMaxBraidLength: document.querySelector('#qecMaxBraidLength'),
+    qecUnbraidSuccess: document.querySelector('#qecUnbraidSuccess'),
+    qecUnbraidFail: document.querySelector('#qecUnbraidFail'),
+    qecObservableSummary: document.querySelector('#qecObservableSummary'),
     exportText: document.querySelector('#exportText')
 };
 
@@ -348,6 +364,10 @@ function syncModeControls() {
             ''
         );
     }
+    const qecProblem = isAnyon && selectedPhysicalProblemId() === 'toric_code_memory_unbraid';
+    els.qecPairsEControl.hidden = !qecProblem;
+    els.qecPairsMControl.hidden = !qecProblem;
+    els.qecPairSeparationControl.hidden = !qecProblem;
 
     if (isVirasoroGo || isCFTReversi) {
         els.noiseModeSelect.value = 'off';
@@ -607,8 +627,9 @@ function physicalProblemConfig(mode) {
             id: physicalProblemId,
             topology: params.get('problemTopology') || topology.topology,
             boardSize: Number(params.get('boardSize') || params.get('size') || topology.width),
-            numPairsE: Number(params.get('numPairsE') || 2),
-            numPairsM: Number(params.get('numPairsM') || 2),
+            numPairsE: Number(params.get('numPairsE') || els.qecPairsEInput.value || 2),
+            numPairsM: Number(params.get('numPairsM') || els.qecPairsMInput.value || 2),
+            pairSeparation: Number(params.get('pairSeparation') || els.qecPairSeparationInput.value || 1),
             createPairsLocally: params.get('createPairsLocally') !== 'false',
             enableTwistSeam: params.get('enableTwistSeam') !== 'false'
         };
@@ -869,12 +890,32 @@ function render() {
     renderBoard();
     renderStats();
     renderCFTObservablePanel();
+    renderQECObservablePanel();
     renderLegend();
     renderTimePanel();
     renderHistory();
     renderBraidEventLog();
     renderStochasticLog();
     renderExport();
+}
+
+function renderQECObservablePanel() {
+    if (!els.qecObservablePanel) return;
+    const exported = game?.physicalProblem?.id === 'toric_code_memory_unbraid'
+        ? game.physicalProblem.export(game)
+        : null;
+    els.qecObservablePanel.hidden = !exported;
+    if (!exported) return;
+    const observables = exported.finalObservables;
+    els.qecTotalCharge.textContent = observables.totalFusionCharge;
+    els.qecLogicalSector.textContent = observables.logicalSector;
+    els.qecMemoryState.textContent = observables.topologicalMemoryAlive ? 'Alive' : 'Lost';
+    els.qecVacuumRecovery.textContent = exported.answer.vacuumRecovery ? 'Recovered' : 'No';
+    els.qecAverageBraidLength.textContent = formatNumber(observables.averageBraidWordLength);
+    els.qecMaxBraidLength.textContent = String(observables.maxBraidWordLength);
+    els.qecUnbraidSuccess.textContent = String(observables.numberOfSuccessfulUnbraids);
+    els.qecUnbraidFail.textContent = String(observables.numberOfFailedUnbraids);
+    els.qecObservableSummary.textContent = `e ${observables.numE}, m ${observables.numM}, psi ${observables.numPsi}; winding (${observables.windingX},${observables.windingY}); ${exported.answer.finalAnswerLabel.replaceAll('_', ' ')}; lifetime ${exported.answer.memoryLifetime}.`;
 }
 
 function renderCFTObservablePanel() {
@@ -2201,6 +2242,9 @@ for (const control of [
     els.braidedPiecePenaltySelect,
     els.virasoroLayerSelect,
     els.physicalProblemSelect,
+    els.qecPairsEInput,
+    els.qecPairsMInput,
+    els.qecPairSeparationInput,
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
