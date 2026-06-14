@@ -95,6 +95,7 @@ export class Algebraic3DBoard {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.075;
         this.controls.zoomSpeed = 0.45;
+        this.controls.enablePan = false;
         this.controls.minDistance = 4.5;
         this.controls.maxDistance = 24;
 

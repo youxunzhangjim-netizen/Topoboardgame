@@ -22,25 +22,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Stage static website
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build static website
         run: |
-          mkdir _site
-          rsync -a \
-            --exclude '.git/' \
-            --exclude '.github/' \
-            --exclude 'node_modules/' \
-            --exclude 'dist/' \
-            --exclude '_site/' \
-            --exclude '.launcher-dist/' \
-            --exclude 'tools/' \
-            --exclude '*.log' \
-            ./ _site/
-          touch _site/.nojekyll
+          npm ci
+          npm run build
+          touch dist/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
 
   deploy:
     needs: build

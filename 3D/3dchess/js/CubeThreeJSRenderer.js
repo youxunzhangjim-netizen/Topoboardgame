@@ -48,6 +48,7 @@ export class CubeThreeJSRenderer {
         this.controls.rotateSpeed = 4.2;
         this.controls.zoomSpeed = 0.42;
         this.controls.panSpeed = 0.65;
+        this.controls.noPan = true;
         this.controls.dynamicDampingFactor = 0.08;
         this.controls.minDistance = 6;
         this.controls.maxDistance = 42;

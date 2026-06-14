@@ -16,7 +16,7 @@ import {
     T3_PBC_TOPOLOGY,
     valueToColor
 } from './GoGame.js';
-import { GoNetworkManager } from './NetworkManager.js';
+import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import {
     createTorusSurfaceData,
     TORUS_MAJOR_RADIUS,
@@ -29,7 +29,7 @@ import {
 } from './SphereGoTopology.js';
 import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dgo/';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
 const KOMI = 7.5;
 const LANGUAGE_STORAGE_KEY = '3dgo:language';
@@ -207,6 +207,7 @@ class Go3DRenderer {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.08;
         this.controls.zoomSpeed = 0.7;
+        this.controls.enablePan = false;
         this.raycaster = new THREE.Raycaster();
         this.raycaster.params.Points.threshold = 0.12;
         this.pointer = new THREE.Vector2();
@@ -967,7 +968,7 @@ class Go3DApp {
         this.syncLatticeOptions();
         this.logic = this.createLogic();
         this.renderer = new Go3DRenderer(this);
-        this.network = new GoNetworkManager(this, { publicGameUrl: PUBLIC_GAME_URL, storagePrefix: STORAGE_PREFIX });
+        this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.myColor = null;
         this.settingsLocked = false;
         this.gameStarted = false;
@@ -1444,15 +1445,7 @@ class Go3DApp {
             this.updateUI();
             return;
         }
-        const message = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            author: this.myColor || this.logic.currentPlayer,
-            senderId: this.network.peer?.id || '',
-            text,
-            time: Date.now()
-        };
-        this.receiveChatMessage(message);
-        this.network.sendChat(message);
+        this.network.sendChat({ text });
         if (this.chatInput) this.chatInput.value = '';
     }
 
@@ -1480,6 +1473,21 @@ class Go3DApp {
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
         };
+    }
+
+    onlineGameKey() {
+        return '3dgo';
+    }
+
+    onlineMatchKey() {
+        const settings = this.getNetworkSettings();
+        return [
+            settings.variant,
+            settings.mode,
+            settings.lattice,
+            settings.size,
+            settings.timer
+        ].join(':');
     }
 
     exportNetworkState() {

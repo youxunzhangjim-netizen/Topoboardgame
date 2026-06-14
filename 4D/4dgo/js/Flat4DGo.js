@@ -303,4 +303,56 @@ export class Flat4DGoGame {
         score.margin = Number(Math.abs(score.black - score.white).toFixed(1));
         return score;
     }
+
+    exportState() {
+        return {
+            topology: this.topology,
+            sizes: { ...this.sizes },
+            komi: this.komi,
+            board: Array.from(this.board),
+            pauliLabels: [...this.pauliLabels],
+            currentPlayer: this.currentPlayer,
+            captures: { ...this.captures },
+            passCount: this.passCount,
+            scoringPending: this.scoringPending,
+            countAgreements: { ...this.countAgreements },
+            gameOver: this.gameOver,
+            winner: this.winner,
+            score: this.score ? { ...this.score } : null,
+            moveNumber: this.moveNumber,
+            moveHistory: this.moveHistory.map((move) => ({ ...move })),
+            positionHistory: [...this.positionHistory]
+        };
+    }
+
+    importState(state = {}) {
+        const sizes = normalizeSizes(state.sizes || state);
+        this.reset({ ...sizes, komi: state.komi });
+        if (Array.isArray(state.board) && state.board.length === this.total) {
+            this.board = Uint8Array.from(state.board.map((value) => Number(value) || COLORS.empty));
+        }
+        this.pauliLabels = Array.isArray(state.pauliLabels) && state.pauliLabels.length === this.total
+            ? state.pauliLabels.map(normalizePauliLabel)
+            : Array(this.total).fill('I');
+        this.currentPlayer = state.currentPlayer === 'white' ? 'white' : 'black';
+        this.captures = {
+            black: Number(state.captures?.black) || 0,
+            white: Number(state.captures?.white) || 0
+        };
+        this.passCount = Number(state.passCount) || 0;
+        this.scoringPending = Boolean(state.scoringPending);
+        this.countAgreements = {
+            black: Boolean(state.countAgreements?.black),
+            white: Boolean(state.countAgreements?.white)
+        };
+        this.gameOver = Boolean(state.gameOver);
+        this.winner = ['black', 'white', 'draw'].includes(state.winner) ? state.winner : '';
+        this.score = state.score ? { ...state.score } : null;
+        this.moveNumber = Number(state.moveNumber) || 0;
+        this.moveHistory = Array.isArray(state.moveHistory) ? state.moveHistory.map((move) => ({ ...move })) : [];
+        this.positionHistory = Array.isArray(state.positionHistory) && state.positionHistory.length
+            ? [...state.positionHistory]
+            : [this.serializeBoard(this.board)];
+        this.positionSet = new Set(this.positionHistory);
+    }
 }

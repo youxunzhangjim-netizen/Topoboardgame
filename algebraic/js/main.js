@@ -582,10 +582,10 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
-    if (!excitationMode) els.anyonActionSelect.value = 'move';
+    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
+    els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
+        els.anyonExcitationTypeControl.hidden = !excitationMode;
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -2182,8 +2182,7 @@ function handleCellClick(coord) {
         render();
         return;
     }
-    if (!token && game.config?.setupMode === 'excitation'
-        && els.anyonActionSelect.value === 'excite') {
+    if (!token && game.config?.setupMode === 'excitation') {
         const result = game.exciteAnyon(coord, els.anyonExcitationTypeSelect.value, game.currentPlayer);
         els.statusText.textContent = result.ok
             ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`

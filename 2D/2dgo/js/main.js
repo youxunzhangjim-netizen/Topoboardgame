@@ -1,7 +1,7 @@
 import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from './GoGame.js';
-import { GoNetworkManager } from './NetworkManager.js';
+import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/2D/2dgo/';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dgo/';
 const STORAGE_PREFIX = '2dgo:room:';
 const KOMI = 7.5;
 
@@ -43,7 +43,7 @@ class Go2DApp {
 
         this.applyUrlSettings();
         this.logic = new GoGameLogic({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.latticeSelect.value, dimension: 2, komi: KOMI });
-        this.network = new GoNetworkManager(this, { publicGameUrl: PUBLIC_GAME_URL, storagePrefix: STORAGE_PREFIX });
+        this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.myColor = null;
         this.settingsLocked = false;
         this.gameStarted = false;
@@ -798,15 +798,7 @@ class Go2DApp {
             this.updateUI();
             return;
         }
-        const message = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            author: this.myColor || this.logic.currentPlayer,
-            senderId: this.network.peer?.id || '',
-            text,
-            time: Date.now()
-        };
-        this.receiveChatMessage(message);
-        this.network.sendChat(message);
+        this.network.sendChat({ text });
         if (this.chatInput) this.chatInput.value = '';
     }
 
@@ -833,6 +825,21 @@ class Go2DApp {
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0
         };
+    }
+
+    onlineGameKey() {
+        return '2dgo';
+    }
+
+    onlineMatchKey() {
+        const settings = this.getNetworkSettings();
+        return [
+            settings.variant,
+            settings.mode,
+            settings.lattice,
+            settings.size,
+            settings.timer
+        ].join(':');
     }
 
     exportNetworkState() {

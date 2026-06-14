@@ -315,13 +315,16 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 26px;
-    padding: 5px 8px;
+    width: 14px;
+    height: 14px;
+    min-height: 14px;
+    padding: 0;
     border: 1px solid rgba(34, 197, 94, 0.52);
     border-radius: 999px;
-    background: rgba(15, 23, 42, 0.88);
-    color: #d9f99d;
-    font-size: 11px;
+    background: rgba(34, 197, 94, 0.22);
+    color: #bbf7d0;
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.5);
+    font-size: 13px;
     font-weight: 850;
     line-height: 1;
     white-space: nowrap;
@@ -334,12 +337,11 @@ h1 {
     z-index: 2;
 }
 
-.popularity-badge[data-state="loading"],
-.popularity-badge[data-state="unavailable"],
-.game-count-badge[data-state="loading"],
-.game-count-badge[data-state="unavailable"] {
-    border-color: rgba(168, 180, 188, 0.36);
-    color: var(--muted);
+.popularity-badge[hidden],
+.game-count-badge[hidden],
+.popularity-badge[data-state="idle"],
+.game-count-badge[data-state="idle"] {
+    display: none;
 }
 
 .dimension-visual {

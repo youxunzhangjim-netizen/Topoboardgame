@@ -70,6 +70,7 @@ export class TorusThreeJSRenderer {
         this.controls.rotateSpeed = 3.6;
         this.controls.zoomSpeed = 0.42;
         this.controls.panSpeed = 0.55;
+        this.controls.noPan = true;
         this.controls.dynamicDampingFactor = 0.08;
         this.controls.minDistance = 4.4;
         this.controls.maxDistance = 22;

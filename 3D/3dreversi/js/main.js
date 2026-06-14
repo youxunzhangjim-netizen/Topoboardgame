@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ReversiGame, REVERSI_TOPOLOGIES, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
+import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 
 const TWO_PI = Math.PI * 2;
 const R3_LIKE_TOPOLOGIES = new Set([
@@ -33,6 +34,7 @@ class Reversi3DRenderer {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.08;
         this.controls.zoomSpeed = 0.7;
+        this.controls.enablePan = false;
         this.raycaster = new THREE.Raycaster();
         this.raycaster.params.Points.threshold = 0.16;
         this.pointer = new THREE.Vector2();
@@ -506,14 +508,26 @@ class Reversi3DApp {
         this.newGameBtn = document.getElementById('newGameBtn');
         this.cameraResetBtn = document.getElementById('cameraResetBtn');
         this.historyEl = document.getElementById('moveHistoryList');
+        this.gameModeSelect = document.getElementById('gameModeSelect');
+        this.onlineControls = document.getElementById('onlineControls');
+        this.onlineColorEl = document.getElementById('onlineColorStatus');
+        this.roomIdInput = document.getElementById('roomIdInput');
+        this.shareLinkInput = document.getElementById('shareLinkInput');
+        this.copyLinkBtn = document.getElementById('copyLinkBtn');
+        this.chatMessagesEl = document.getElementById('chatMessages');
+        this.chatInput = document.getElementById('chatInput');
+        this.chatSendBtn = document.getElementById('chatSendBtn');
         this.hoverCoord = null;
+        this.myColor = null;
 
         this.applyUrlSettings();
         this.logic = this.createLogic();
+        this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.renderer = new Reversi3DRenderer(this);
         this.syncLayerControl();
         this.bindEvents();
         this.updateUI();
+        this.tryJoinSharedRoomFromUrl();
     }
 
     applyUrlSettings() {
@@ -560,8 +574,24 @@ class Reversi3DApp {
             this.resetGame();
         });
         this.passBtn.addEventListener('click', () => this.passTurn());
-        this.newGameBtn.addEventListener('click', () => this.resetGame());
+        this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
         this.cameraResetBtn?.addEventListener('click', () => this.renderer.resetCamera());
+        this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
+        document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
+        document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
+        document.getElementById('joinRoomBtn')?.addEventListener('click', () => this.network.joinRoom(this.roomIdInput.value));
+        this.copyLinkBtn?.addEventListener('click', async () => {
+            if (!this.shareLinkInput?.value) return;
+            await navigator.clipboard?.writeText(this.shareLinkInput.value);
+            this.copyLinkBtn.textContent = 'Copied';
+            window.setTimeout(() => { this.copyLinkBtn.textContent = 'Copy'; }, 1000);
+        });
+        this.chatSendBtn?.addEventListener('click', () => this.sendChatMessage());
+        this.chatInput?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            event.preventDefault();
+            this.sendChatMessage();
+        });
     }
 
     updateCustomSizeVisibility() {
@@ -581,16 +611,21 @@ class Reversi3DApp {
         return this.modeSelect.value === 'r3' && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
     }
 
-    resetGame() {
+    resetGame({ broadcast = false } = {}) {
         this.logic = this.createLogic();
         this.hoverCoord = null;
         this.syncLayerControl();
         this.setStatus('New 3D Reversi game started.');
         this.updateUI();
+        if (broadcast) this.broadcastState();
     }
 
     playAt(coord) {
         if (!coord) return;
+        if (!this.canActFor(this.logic.currentPlayer)) {
+            this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
+            return;
+        }
         const actor = this.logic.currentPlayer;
         const result = this.logic.play(coord);
         if (!result.ok) {
@@ -601,9 +636,14 @@ class Reversi3DApp {
         this.hoverCoord = null;
         this.setStatus(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
         this.updateUI();
+        this.broadcastState();
     }
 
     passTurn() {
+        if (!this.canActFor(this.logic.currentPlayer)) {
+            this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
+            return;
+        }
         const result = this.logic.pass();
         if (!result.ok) {
             this.setStatus(result.reason === 'legal-moves' ? 'You can only pass when no legal move exists.' : 'Pass unavailable.');
@@ -612,6 +652,7 @@ class Reversi3DApp {
         }
         this.setStatus('Turn passed.');
         this.updateUI();
+        this.broadcastState();
     }
 
     updateUI() {
@@ -667,6 +708,104 @@ class Reversi3DApp {
         const counts = this.logic.counts();
         const margin = Math.abs(counts.black - counts.white);
         return `${this.capitalize(this.logic.winner)} wins by ${margin}`;
+    }
+
+    canActFor(color) {
+        return this.gameModeSelect?.value !== 'online' || (this.network?.isConnected && this.myColor === color);
+    }
+
+    updateOnlineControls() {
+        const online = this.gameModeSelect?.value === 'online';
+        if (this.onlineControls) this.onlineControls.hidden = !online;
+        if (!online) {
+            this.myColor = null;
+            this.network?.close?.({ silent: true });
+            this.setOnlineColor(null);
+        }
+    }
+
+    setOnlineColor(color, roomId = this.network?.roomId) {
+        this.myColor = color;
+        if (this.onlineColorEl) {
+            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : 'Local pass and play';
+        }
+        if (this.shareLinkInput && roomId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', roomId);
+            this.shareLinkInput.value = url.href;
+        }
+    }
+
+    tryJoinSharedRoomFromUrl() {
+        const roomId = new URLSearchParams(window.location.search).get('room');
+        if (!roomId || !this.gameModeSelect) return;
+        this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
+        if (this.roomIdInput) this.roomIdInput.value = roomId;
+        window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
+    }
+
+    onlineGameKey() {
+        return '3dreversi';
+    }
+
+    onlineMatchKey() {
+        return ['3dreversi', this.modeSelect.value, this.currentLattice(), this.boardSize()].join(':');
+    }
+
+    exportNetworkState() {
+        return {
+            logic: this.logic.exportState(),
+            mode: this.modeSelect.value,
+            lattice: this.currentLattice(),
+            size: this.boardSize()
+        };
+    }
+
+    importNetworkState(state) {
+        if (!state?.logic) return;
+        this.logic.importState(state.logic);
+        this.modeSelect.value = state.mode || this.logic.topology.topology || this.modeSelect.value;
+        this.latticeSelect.value = state.lattice || this.currentLattice();
+        this.setSizeSelection(state.size || this.logic.topology.width);
+        this.syncLayerControl();
+        this.setStatus('Synced online game.');
+        this.updateUI();
+    }
+
+    broadcastState() {
+        if (this.gameModeSelect?.value === 'online' && this.network?.isConnected) this.network.sendState();
+    }
+
+    sendChatMessage() {
+        const text = this.chatInput?.value.trim();
+        if (!text) return;
+        if (this.gameModeSelect?.value !== 'online' || !this.network?.isConnected) {
+            this.setStatus('Connect online before chatting.');
+            return;
+        }
+        this.network.sendChat({ text });
+        this.chatInput.value = '';
+    }
+
+    renderOnlineChatMessages(messages = []) {
+        if (!this.chatMessagesEl) return;
+        if (!messages.length) {
+            this.chatMessagesEl.innerHTML = '<div class="chat-empty">Connect online to chat.</div>';
+            return;
+        }
+        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.capitalize(message.player || 'player')}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
+        this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
+    }
+
+    escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[character]);
     }
 
     setStatus(text) {
