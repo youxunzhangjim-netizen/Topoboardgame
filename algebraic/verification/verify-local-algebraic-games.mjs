@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import { CliffordReversiGame } from '../../js/localgames/CliffordReversi.js';
+import {
+    PHYSICAL_CLIFFORD_REVERSI_MODE,
+    PhysicalCliffordReversiGame
+} from '../../js/localgames/PhysicalCliffordReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import { createGraphTopology } from '../../js/topology/GraphTopologies.js';
@@ -91,6 +95,68 @@ const signedPreview = signedReversi.previewMove([5, 3], 'white', 'S');
 assert.equal(signedPreview.legal, true, 'White can bracket the initial black Y stone.');
 assert.equal(signedPreview.flips[0].after.pauliLabel, 'X', 'S maps Y to X in binary Pauli labels.');
 assert.equal(signedPreview.flips[0].after.pauliSign, -1, 'Phase-sign mode records S:Y -> -X.');
+
+const physicalVacuum = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    physicalInitialState: 'stabilizer_vacuum',
+    probability: { seed: 'physical-vacuum', measurementErrorRate: 0 }
+});
+assert.equal(physicalVacuum.mode, PHYSICAL_CLIFFORD_REVERSI_MODE);
+assert.equal(physicalVacuum.board.size, 0, 'Physical stabilizer vacuum does not reuse the four-stone opening.');
+assert.equal(physicalVacuum.computePhysicalObservables().pauliCounts.I, 64, 'Empty physical sites count as identity I.');
+assert.equal(physicalVacuum.computePhysicalAnswer().stabilizerVacuumRecovered, true);
+const magicAncilla = physicalVacuum.prepareAncilla([3, 3], 'magic');
+assert.equal(magicAncilla.ok, true, 'Magic ancilla preparation succeeds on an empty physical site.');
+assert.equal(physicalVacuum.getStone([3, 3]).isAncilla, true);
+assert.equal(physicalVacuum.computePhysicalObservables().nonCliffordResourcesUsed, true);
+physicalVacuum.currentPlayer = 'black';
+const zAncilla = physicalVacuum.prepareAncilla([4, 3], 'Z1');
+assert.equal(zAncilla.ok, true);
+physicalVacuum.currentPlayer = 'black';
+const entangled = physicalVacuum.entangleAncilla([3, 3], [4, 3], 'CZ');
+assert.equal(entangled.ok, true, 'CZ can entangle prepared physical sites when one endpoint is an ancilla.');
+physicalVacuum.currentPlayer = 'black';
+const measuredAncilla = physicalVacuum.measureAncilla([4, 3], 'Z');
+assert.equal(measuredAncilla.ok, true, 'Prepared ancillas support local Pauli measurement.');
+assert.ok(physicalVacuum.physicsHistory.length >= 5, 'Physical actions append replayable physics history.');
+
+const readoutErrorGame = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 4, height: 4 },
+    physicalInitialState: 'stabilizer_vacuum',
+    probability: { seed: 'forced-readout-error', measurementErrorRate: 1 }
+});
+readoutErrorGame.prepareAncilla([1, 1], 'Z0', { consumeTurn: false });
+const faultyReadout = readoutErrorGame.measureAncilla([1, 1], 'Z', { consumeTurn: false });
+assert.equal(faultyReadout.event.measurements[0].trueResult, 'even');
+assert.equal(faultyReadout.event.measurements[0].reported, 'odd', 'Readout error changes the report.');
+assert.equal(readoutErrorGame.getStone([1, 1]).sign, 1, 'Readout error does not change the true collapsed state.');
+
+const physicalFlip = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    physicalInitialState: 'stabilizer_vacuum'
+});
+physicalFlip.setStone([3, 3], { color: 'white', pauliLabel: 'X', pauliSign: -1, phase: 0 });
+physicalFlip.setStone([4, 3], { color: 'black', pauliLabel: 'Z', pauliSign: 1, phase: 0 });
+const physicalPreview = physicalFlip.previewMove([2, 3], 'black', 'H');
+assert.equal(physicalPreview.legal, true, 'Physical mode keeps topology-aware Reversi bracketing.');
+assert.equal(physicalPreview.flips[0].after.pauliSign, 1, 'A physical Reversi flip changes the sector sign.');
+assert.equal(physicalPreview.flips[0].after.pauliLabel, 'Z', 'The selected Clifford gate transforms the flipped Pauli.');
+assert.equal(physicalPreview.flips[0].after.color, 'black', 'The displayed owner follows the physical sector sign.');
+
+for (const initialState of [
+    'sparse_pauli_errors',
+    'paired_defects',
+    'domain_wall_seed',
+    'prepared_clifford_circuit'
+]) {
+    const seeded = new PhysicalCliffordReversiGame({
+        topology: { topology: 'flat', width: 8, height: 8 },
+        physicalInitialState: initialState,
+        probability: { seed: `physical-${initialState}`, measurementErrorRate: 0 }
+    });
+    assert.ok(seeded.board.size > 0, `${initialState} creates a non-vacuum physical state.`);
+    assert.equal(seeded.exportState().physicalConfig.physicalInitialState, initialState);
+}
 
 const jump = new AnyonJumpGame({ topology: { topology: 'torus', width: 4, height: 4 } });
 jump.tokens.clear();

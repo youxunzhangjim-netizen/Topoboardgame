@@ -699,6 +699,16 @@ h2 {
     border: 1px solid rgba(18, 24, 32, 0.22);
 }
 
+.stone.ancilla {
+    outline: 2px solid rgba(62, 230, 138, 0.92);
+    outline-offset: 2px;
+}
+
+.stone.ancilla.non-stabilizer {
+    outline-color: rgba(255, 140, 66, 0.95);
+    box-shadow: 0 0 18px rgba(255, 140, 66, 0.34);
+}
+
 .anyon.selected {
     box-shadow: 0 0 0 3px rgba(66, 198, 255, 0.85), 0 0 28px rgba(66, 198, 255, 0.4);
 }

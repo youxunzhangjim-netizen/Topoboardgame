@@ -156,6 +156,13 @@
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-clifford_reversi">0 waiting</span>
                     </a>
+                    <a class="extra-mode-card" href="./algebraic/?mode=physical_clifford_reversi">
+                        <span class="extra-mode-copy">
+                            <strong data-i18n="games.physicalClifford.title">Physical Clifford Reversi</strong>
+                            <small data-i18n="games.physicalClifford.desc">Stabilizer sites, phases, measurements, and ancillas</small>
+                        </span>
+                        <span class="game-count-badge" data-popularity-key="game-physical_clifford_reversi">0 waiting</span>
+                    </a>
                     <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
                         <span class="extra-mode-copy">
                             <strong data-i18n="games.anyon.title">Anyon Jump Chess</strong>
@@ -210,6 +217,10 @@
                         '4dgo': { title: '4D Go', desc: 'Go on 4D slice boards' },
                         '4dreversi': { title: '4D Reversi', desc: 'Reversi on 4D slice boards' },
                         clifford: { title: 'Clifford Reversi', desc: 'Reversi with Pauli labels and flips' },
+                        physicalClifford: {
+                            title: 'Physical Clifford Reversi',
+                            desc: 'Stabilizer sites, phases, measurements, and ancillas'
+                        },
                         anyon: { title: 'Anyon Jump Chess', desc: 'Jump game with braiding and fusion' },
                         virasoro: { title: 'Virasoro Go', desc: 'Go with stress-field actions' }
                     },
@@ -251,6 +262,10 @@
                         '4dgo': { title: '4D 圍棋', desc: '4D 切片棋盤圍棋' },
                         '4dreversi': { title: '4D 黑白棋', desc: '4D 切片棋盤黑白棋' },
                         clifford: { title: 'Clifford 黑白棋', desc: '帶 Pauli 標籤與翻轉的黑白棋' },
+                        physicalClifford: {
+                            title: '物理 Clifford 黑白棋',
+                            desc: '穩定子格點、相位、測量與輔助量子位'
+                        },
                         anyon: { title: 'Anyon Jump Chess', desc: '帶編織與融合的跳躍遊戲' },
                         virasoro: { title: 'Virasoro 圍棋', desc: '帶應力場操作的圍棋' }
                     },
@@ -292,6 +307,7 @@
                 '4dgo': '4dgo',
                 '4dreversi': '4dreversi',
                 clifford_reversi: 'clifford_reversi',
+                physical_clifford_reversi: 'physical_clifford_reversi',
                 anyon_jump: 'anyon_jump',
                 virasoro_go: 'virasoro_go'
             };
@@ -318,6 +334,7 @@
                 'game-4dgo': 0,
                 'game-4dreversi': 0,
                 'game-clifford_reversi': 0,
+                'game-physical_clifford_reversi': 0,
                 'game-anyon_jump': 0,
                 'game-virasoro_go': 0
             };

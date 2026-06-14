@@ -188,6 +188,108 @@ try {
     assert.equal(selectedIsingState.selectedProblem, 'ising_domain_wall_topology');
     assert.equal(selectedIsingState.problemId, 'ising_domain_wall_topology', 'Visible Ising physical-problem selector should enable Ising export.');
 
+    await page.goto(`http://127.0.0.1:${port}/?mode=physical_clifford_reversi`, { waitUntil: 'networkidle' });
+    const physicalVacuumState = await page.evaluate(() => {
+        const exportState = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            title: document.querySelector('#modeTitle')?.textContent,
+            mode: exportState.mode,
+            boardSize: exportState.board.length,
+            vacuumRecovered: exportState.physicalAnswer?.stabilizerVacuumRecovered,
+            physicalControlsVisible: getComputedStyle(document.querySelector('#physicalCliffordControls')).display !== 'none',
+            ordinaryPauliHidden: document.querySelector('#pauliControl')?.hidden,
+            optionalPhaseSignsHidden: document.querySelector('#phaseSignControl')?.hidden,
+            anyonControlsVisible: getComputedStyle(document.querySelector('#anyonAlgebraControls')).display !== 'none',
+            currentLabel: document.querySelector('#blackCountLabel')?.textContent
+        };
+    });
+    assert.equal(physicalVacuumState.title, 'Physical Clifford Reversi');
+    assert.equal(physicalVacuumState.mode, 'physical_clifford_reversi');
+    assert.equal(physicalVacuumState.boardSize, 0, 'Physical vacuum must not inherit the ordinary four-stone opening.');
+    assert.equal(physicalVacuumState.vacuumRecovered, true);
+    assert.equal(physicalVacuumState.physicalControlsVisible, true);
+    assert.equal(physicalVacuumState.ordinaryPauliHidden, true);
+    assert.equal(physicalVacuumState.optionalPhaseSignsHidden, true, 'Physical mode always tracks phase modulo four.');
+    assert.equal(physicalVacuumState.anyonControlsVisible, false);
+    assert.match(physicalVacuumState.currentLabel, /Sector/);
+
+    await page.selectOption('#physicalInitialStateSelect', 'prepared_clifford_circuit');
+    const preparedPhysicalState = await page.evaluate(() => {
+        const exportState = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            boardSize: exportState.board.length,
+            ancillas: exportState.physicalObservables?.numberOfAncillas,
+            nonClifford: exportState.physicalObservables?.nonCliffordResourcesUsed,
+            labels: [...document.querySelectorAll('#board .stone')].map((stone) => stone.textContent.trim())
+        };
+    });
+    assert.ok(preparedPhysicalState.boardSize >= 4, 'Prepared circuit creates physical sites.');
+    assert.ok(preparedPhysicalState.ancillas >= 3, 'Prepared circuit includes optional ancillas.');
+    assert.equal(preparedPhysicalState.nonClifford, true, 'Magic ancilla is marked as a non-Clifford resource.');
+    assert.ok(preparedPhysicalState.labels.some((label) => label.startsWith('A_')), 'Physics view renders ancilla basis labels.');
+
+    await page.selectOption('#physicalActionSelect', 'phase_action');
+    assert.equal(
+        await page.locator('#physicalPhaseGateControl').evaluate((node) => !node.hidden),
+        true,
+        'Phase actions reveal their matching controls only in physical mode.'
+    );
+    await page.locator('#rulesIntroButton').click();
+    const physicalRules = await page.evaluate(() =>
+        [...document.querySelectorAll('#rulesIntroPanel [data-rules-mode]:not([hidden])')]
+            .map((node) => node.textContent || '')
+            .join(' ')
+    );
+    assert.match(physicalRules, /stabilizer vacuum/i);
+    assert.match(physicalRules, /ancilla/i);
+    assert.match(physicalRules, /CNOT/i);
+
+    await page.selectOption('#topologySelect', 'torus');
+    assert.equal(
+        await page.locator('#algebraic3dBoard').evaluate((canvas) => !canvas.hidden),
+        true,
+        'Physical Clifford Reversi keeps the interactive 3D topology board.'
+    );
+    const physicalDesktopPixels = await page.locator('#algebraic3dBoard').evaluate((canvas) => {
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        const pixels = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        let colored = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+            if (pixels[index] + pixels[index + 1] + pixels[index + 2] > 24 && pixels[index + 3] > 0) colored++;
+        }
+        return { colored, width: gl.drawingBufferWidth, height: gl.drawingBufferHeight };
+    });
+    assert.ok(physicalDesktopPixels.colored > 1000, 'Desktop physical torus must render nonblank WebGL pixels.');
+    const desktopScreenshot = await page.screenshot();
+    assert.ok(desktopScreenshot.length > 10000, 'Desktop physical-mode screenshot should contain rendered UI.');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(100);
+    const physicalMobileState = await page.locator('#algebraic3dBoard').evaluate((canvas) => {
+        const rect = canvas.getBoundingClientRect();
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        const pixels = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        let colored = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+            if (pixels[index] + pixels[index + 1] + pixels[index + 2] > 24 && pixels[index + 3] > 0) colored++;
+        }
+        return {
+            colored,
+            width: rect.width,
+            height: rect.height,
+            withinViewport: rect.left >= 0 && rect.right <= window.innerWidth + 1
+        };
+    });
+    assert.ok(physicalMobileState.colored > 500, 'Mobile physical torus must render nonblank WebGL pixels.');
+    assert.ok(physicalMobileState.width > 300 && physicalMobileState.height > 300);
+    assert.equal(physicalMobileState.withinViewport, true, 'Mobile 3D board should remain inside the viewport.');
+    const mobileScreenshot = await page.screenshot();
+    assert.ok(mobileScreenshot.length > 10000, 'Mobile physical-mode screenshot should contain rendered UI.');
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
     await page.selectOption('#modeSelect', 'anyon_jump');
     const anyonControlState = await page.evaluate(() => ({
         cliffordDisplay: getComputedStyle(document.querySelector('#cliffordAlgebraControls')).display,

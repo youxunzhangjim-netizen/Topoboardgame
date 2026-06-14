@@ -305,12 +305,30 @@ export class Algebraic3DBoard {
     addCliffordStone(coord, stone) {
         const group = this.baseEntity(coord, stone.color, 1);
         const sign = Number(stone.pauliSign || 1) < 0 ? '-' : '+';
-        const sprite = labelSprite(`${sign}${stone.pauliLabel}`, {
+        const physical = this.game.mode === 'physical_clifford_reversi';
+        const label = physical
+            ? (this.viewState.physicsView === 'physics'
+                ? this.game.physicalLabel(stone)
+                : stone.isAncilla ? 'A' : stone.color === 'black' ? 'B' : 'W')
+            : `${sign}${stone.pauliLabel}`;
+        const sprite = labelSprite(label, {
             foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
             background: stone.color === 'black' ? 'rgba(4,8,12,.88)' : 'rgba(246,248,251,.9)'
         });
         sprite.position.y = this.entityRadius() * 1.85;
         group.add(sprite);
+        if (physical && stone.isAncilla) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(this.entityRadius() * 1.35, this.entityRadius() * 0.11, 10, 40),
+                new THREE.MeshBasicMaterial({
+                    color: stone.nonStabilizerApprox ? 0xff8c42 : 0x42e68a,
+                    transparent: true,
+                    opacity: 0.86
+                })
+            );
+            ring.rotation.x = Math.PI / 2;
+            group.add(ring);
+        }
     }
 
     addGoStone(coord, stone) {
