@@ -84,8 +84,16 @@ export class FirebaseStateNetworkManager {
         return this.ready;
     }
 
+    setOnlineMessage(text) {
+        this.app.setStatus?.(text);
+        if (this.app.onlineColorEl) this.app.onlineColorEl.textContent = text;
+    }
+
     async ensureReady() {
         const ready = await this.init();
+        if (ready && !ready.ok) {
+            this.setOnlineMessage(ready.error || 'Online rooms are not available yet.');
+        }
         return ready?.ok ? ready : null;
     }
 
@@ -95,7 +103,7 @@ export class FirebaseStateNetworkManager {
             if (!ready) return null;
             return await createPrivateRoom(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
-            this.app.setStatus?.(`Could not create room: ${error.message}`);
+            this.setOnlineMessage(`Could not create room: ${error.message}`);
             return null;
         }
     }
@@ -106,7 +114,7 @@ export class FirebaseStateNetworkManager {
             if (!ready) return null;
             return await findMatch(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
-            this.app.setStatus?.(`Matchmaking failed: ${error.message}`);
+            this.setOnlineMessage(`Matchmaking failed: ${error.message}`);
             return null;
         }
     }
@@ -121,7 +129,7 @@ export class FirebaseStateNetworkManager {
             if (!ready) return null;
             return await joinPrivateRoom(roomId);
         } catch (error) {
-            this.app.setStatus?.(`Could not join room: ${error.message}`);
+            this.setOnlineMessage(`Could not join room: ${error.message}`);
             return null;
         }
     }
@@ -133,7 +141,7 @@ export class FirebaseStateNetworkManager {
             const result = await reconnectRoom();
             return Boolean(result.ok);
         } catch (error) {
-            this.app.setStatus?.(`Reconnect failed: ${error.message}`);
+            this.setOnlineMessage(`Reconnect failed: ${error.message}`);
             return false;
         }
     }
@@ -147,7 +155,7 @@ export class FirebaseStateNetworkManager {
             });
             return true;
         } catch (error) {
-            this.app.setStatus?.(`Move was not synchronized: ${error.message}`);
+            this.setOnlineMessage(`Move was not synchronized: ${error.message}`);
             return false;
         }
     }
@@ -157,7 +165,7 @@ export class FirebaseStateNetworkManager {
         try {
             return await sendChatMessage(text);
         } catch (error) {
-            this.app.setStatus?.(`Chat failed: ${error.message}`);
+            this.setOnlineMessage(`Chat failed: ${error.message}`);
             return false;
         }
     }

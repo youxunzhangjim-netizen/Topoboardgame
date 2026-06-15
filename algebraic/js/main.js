@@ -2921,7 +2921,7 @@ els.playModeSelect.addEventListener('change', async () => {
     els.onlineButtonGrid.hidden = !online;
     if (online) {
         const ready = await prepareOnline();
-        if (!ready.ok) els.onlineStatus.textContent = 'Firebase config needed: fill in firebaseConfig.js.';
+        if (!ready.ok) els.onlineStatus.textContent = ready.error || 'Online rooms are not available yet.';
     } else {
         await leaveRoom();
         setOnlineConfigurationLocked(false);

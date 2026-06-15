@@ -119,13 +119,13 @@ async function verifyFirestoreService() {
     if (response.ok) return true;
     const text = await response.text();
     if (/SERVICE_DISABLED|firestore.googleapis.com|disabled/i.test(text)) {
-        throw new Error('Cloud Firestore is disabled for this Firebase project. Enable Cloud Firestore / Firestore API in the Topoboardgame Firebase console, then deploy firestore.rules.');
+        throw new Error('Firebase rooms are unavailable because Cloud Firestore is disabled for this project. Enable Cloud Firestore / Firestore API in Firebase Console, then deploy firestore.rules. The older 3D Chess WebRTC rooms can still work because they do not use Firestore.');
     }
     if (/NOT_FOUND|database.*not.*found|Database does not exist/i.test(text)) {
-        throw new Error('Cloud Firestore database does not exist yet. Create the default Firestore database in Firebase Console, then deploy firestore.rules.');
+        throw new Error('Firebase rooms are unavailable because the default Cloud Firestore database does not exist yet. Create the default Firestore database in Firebase Console, then deploy firestore.rules. The older 3D Chess WebRTC rooms can still work because they do not use Firestore.');
     }
     if (/PERMISSION_DENIED|Missing or insufficient permissions/i.test(text)) {
-        throw new Error('Cloud Firestore rules are blocking online rooms. Deploy the repository firestore.rules to the Topoboardgame Firebase project.');
+        throw new Error('Firebase rooms are unavailable because Cloud Firestore rules are blocking online rooms. Deploy the repository firestore.rules to the Topoboardgame Firebase project.');
     }
     throw new Error(`Cloud Firestore check failed (${response.status}).`);
 }
