@@ -1065,6 +1065,14 @@ function updateOnlineConnectionUI(roomId = '', playerColor = '', room = null) {
     els.onlineStatus.dataset.color = playerColor || '';
 }
 
+function syncOnlineModeVisibility() {
+    const online = els.playModeSelect.value === 'online';
+    els.onlineButtonGrid.hidden = !online;
+    if (online && !els.onlineStatus.dataset.color && els.onlineStatus.textContent === 'Local pass and play.') {
+        els.onlineStatus.textContent = 'Online mode selected.';
+    }
+}
+
 function onlineHooks() {
     return {
         gameKey: `algebraic:${selectedMode()}`,
@@ -2957,7 +2965,7 @@ els.dropAnyonButton.addEventListener('click', dropSelectedAnyon);
 els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
 els.playModeSelect.addEventListener('change', async () => {
     const online = els.playModeSelect.value === 'online';
-    els.onlineButtonGrid.hidden = !online;
+    syncOnlineModeVisibility();
     if (online) {
         const ready = await prepareOnline();
         if (!ready.ok) els.onlineStatus.textContent = ready.error || 'Online rooms are not available yet.';
@@ -3022,17 +3030,19 @@ els.passButton.addEventListener('click', () => {
 });
 els.exportButton.addEventListener('click', exportJson);
 window.addEventListener('pageshow', () => {
+    syncOnlineModeVisibility();
     if (!game) createGame();
     else if (els.topologySelect.value !== game.topology.name) createGame();
     else render();
 });
 
 createGame();
+syncOnlineModeVisibility();
 
 const sharedRoomId = new URLSearchParams(window.location.search).get('room');
 if (sharedRoomId) {
     els.playModeSelect.value = 'online';
-    els.onlineButtonGrid.hidden = false;
+    syncOnlineModeVisibility();
     els.onlineRoomInput.value = sharedRoomId;
     prepareOnline()
         .then((ready) => ready.ok && joinPrivateRoom(sharedRoomId))
