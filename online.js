@@ -39,6 +39,8 @@ let firestoreReady = false;
 let firestoreInitError = '';
 const reconnectStorageKey = 'topoboardgame:firebase-room';
 const operationTimeoutMs = 10000;
+const matchmakingBucketMs = 60000;
+const matchmakingSlotCount = 8;
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
@@ -46,6 +48,16 @@ function opposite(color) {
 
 function firestoreValue(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function stableHash(text) {
+    let hash = 2166136261;
+    const value = String(text || '');
+    for (let index = 0; index < value.length; index += 1) {
+        hash ^= value.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
 }
 
 function encodeBoardForFirestore(value) {
@@ -69,6 +81,28 @@ function normalizeRoomId(value) {
     } catch {
         return text.replace(/^room=/i, '').trim();
     }
+}
+
+function roomMatchesCurrentBucket(room) {
+    return room?.status === 'waiting'
+        && room?.public === true
+        && room?.matchKey === hooks.matchKey
+        && room?.gameKey === hooks.gameKey
+        && room?.players?.white !== user?.uid
+        && room?.players?.black !== user?.uid;
+}
+
+function publicMatchRoomIds() {
+    const bucket = Math.floor(Date.now() / matchmakingBucketMs);
+    const key = stableHash(`${hooks.gameKey}:${hooks.matchKey}`);
+    const buckets = [bucket - 1, bucket];
+    const ids = [];
+    for (const currentBucket of buckets) {
+        for (let slot = 0; slot < matchmakingSlotCount; slot += 1) {
+            ids.push(`match_${key}_${currentBucket}_${slot}`);
+        }
+    }
+    return ids;
 }
 
 function status(text) {
@@ -228,6 +262,9 @@ export async function joinPrivateRoom(rawRoomId) {
         if (room.gameKey && room.gameKey !== hooks.gameKey) {
             throw new Error('This room belongs to a different game.');
         }
+        if (room.public && room.matchKey && room.matchKey !== hooks.matchKey) {
+            throw new Error('This room uses different match settings.');
+        }
         const existingColor = room.players?.white === user.uid
             ? 'white'
             : room.players?.black === user.uid ? 'black' : null;
@@ -267,33 +304,43 @@ export async function joinPrivateRoom(rawRoomId) {
     return { roomId, playerColor };
 }
 
+async function findWaitingMatchCandidate() {
+    const exactQuery = query(
+        collection(db, roomsPath),
+        where('status', '==', 'waiting'),
+        where('public', '==', true),
+        where('matchKey', '==', hooks.matchKey),
+        limit(20)
+    );
+    try {
+        const exactCandidates = await withTimeout(getDocs(exactQuery), 'Find match');
+        const exact = exactCandidates.docs.find((candidate) => roomMatchesCurrentBucket(candidate.data()));
+        if (exact) return exact.id;
+    } catch (error) {
+        if (!/index|requires an index|FAILED_PRECONDITION/i.test(error?.message || '')) {
+            throw error;
+        }
+        status('Match index is not ready yet; using compatibility search.');
+    }
+
+    const fallbackQuery = query(
+        collection(db, roomsPath),
+        where('status', '==', 'waiting'),
+        limit(80)
+    );
+    const candidates = await withTimeout(getDocs(fallbackQuery), 'Find match');
+    const match = candidates.docs.find((candidate) => roomMatchesCurrentBucket(candidate.data()));
+    return match?.id || '';
+}
+
 export async function findMatch(initialBoard) {
     requireReady();
     await leaveRoom({ updateRemote: false });
-    status('Looking for a public match...');
+    status(`Looking for a public match (${hooks.matchKey})...`);
 
-    const waitingQuery = query(
-        collection(db, roomsPath),
-        where('status', '==', 'waiting'),
-        limit(20)
-    );
-    const candidates = await withTimeout(getDocs(waitingQuery), 'Find match');
-    for (const candidate of candidates.docs) {
-        if (!candidate.data().public
-            || candidate.data().players?.white === user.uid
-            || candidate.data().players?.black === user.uid
-            || candidate.data().matchKey !== hooks.matchKey) continue;
-        try {
-            return await joinPrivateRoom(candidate.id);
-        } catch {
-            // Another player may have claimed this room first; try the next one.
-        }
-    }
-
-    const ref = doc(collection(db, roomsPath));
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
-    await withTimeout(setDoc(ref, {
+    const roomTemplate = {
         status: 'waiting',
         public: true,
         players: {
@@ -308,15 +355,69 @@ export async function findMatch(initialBoard) {
         lastMove: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-    }), 'Create public match');
-    roomId = ref.id;
-    playerColor = initialTurn;
-    lastLoadedMoveNumber = 0;
-    localStorage.setItem(reconnectStorageKey, roomId);
-    status('Public match created. Waiting for another player...');
-    listenToRoom(roomId);
-    listenToChat(roomId);
-    return { roomId, playerColor };
+    };
+
+    for (const id of publicMatchRoomIds()) {
+        const ref = roomReference(id);
+        try {
+            const result = await withTimeout(runTransaction(db, async (transaction) => {
+                const snapshot = await transaction.get(ref);
+                if (!snapshot.exists()) {
+                    transaction.set(ref, roomTemplate);
+                    return { action: 'created', roomId: id, color: initialTurn, room: roomTemplate };
+                }
+                const room = snapshot.data();
+                if (room.gameKey !== hooks.gameKey || room.matchKey !== hooks.matchKey) return null;
+                const existingColor = room.players?.white === user.uid
+                    ? 'white'
+                    : room.players?.black === user.uid ? 'black' : null;
+                if (existingColor && room.status === 'waiting') {
+                    return { action: 'waiting', roomId: id, color: existingColor, room };
+                }
+                if (!roomMatchesCurrentBucket(room)) return null;
+                const openColor = room.players?.white == null
+                    ? 'white'
+                    : room.players?.black == null ? 'black' : null;
+                if (!openColor) return null;
+                transaction.update(ref, {
+                    [`players.${openColor}`]: user.uid,
+                    status: 'playing',
+                    updatedAt: serverTimestamp()
+                });
+                return {
+                    action: 'joined',
+                    roomId: id,
+                    color: openColor,
+                    room: {
+                        ...room,
+                        status: 'playing',
+                        players: { ...room.players, [openColor]: user.uid }
+                    }
+                };
+            }), 'Find match');
+            if (!result) continue;
+            roomId = result.roomId;
+            playerColor = result.color;
+            lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
+            localStorage.setItem(reconnectStorageKey, roomId);
+            if (result.room?.board && result.action === 'joined') {
+                hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
+                hooks.renderBoard?.();
+            }
+            status(result.action === 'joined'
+                ? `Matched in room ${roomId} as ${playerColor}.`
+                : `Room ${roomId}: waiting for an opponent.`);
+            listenToRoom(roomId);
+            listenToChat(roomId);
+            return { roomId, playerColor };
+        } catch {
+            // Try the next deterministic slot if this one races or fails.
+        }
+    }
+
+    const existingRoomId = await findWaitingMatchCandidate();
+    if (existingRoomId) return joinPrivateRoom(existingRoomId);
+    throw new Error('Could not reserve a matchmaking slot. Try Find Match again.');
 }
 
 export function listenToRoom(id = roomId) {

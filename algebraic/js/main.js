@@ -268,6 +268,10 @@ const SUBSCRIPT_DIGITS = {
     8: '\u2088',
     9: '\u2089'
 };
+
+function cloneValue(value) {
+    return value == null ? value : JSON.parse(JSON.stringify(value));
+}
 const params = new URLSearchParams(window.location.search);
 const RAW_INITIAL_MODE = params.get('mode') || params.get('game') || params.get('algebraicMode');
 const INITIAL_MODE = normalizeMode(RAW_INITIAL_MODE);
