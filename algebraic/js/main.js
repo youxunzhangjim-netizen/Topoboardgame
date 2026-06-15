@@ -170,6 +170,11 @@ const els = {
     onlineJoinButton: document.querySelector('#onlineJoinButton'),
     onlineReconnectButton: document.querySelector('#onlineReconnectButton'),
     onlineLeaveButton: document.querySelector('#onlineLeaveButton'),
+    connectionStatus: document.querySelector('#connectionStatus'),
+    roomInfo: document.querySelector('#roomInfo'),
+    roomIdDisplay: document.querySelector('#roomIdDisplay'),
+    shareLinkInput: document.querySelector('#shareLinkInput'),
+    copyLinkButton: document.querySelector('#copyLinkButton'),
     onlineStatus: document.querySelector('#onlineStatus'),
     onlineChatMessages: document.querySelector('#onlineChatMessages'),
     onlineChatInput: document.querySelector('#onlineChatInput'),
@@ -1031,6 +1036,35 @@ function setOnlineConfigurationLocked(locked) {
     }
 }
 
+function updateOnlineConnectionUI(roomId = '', playerColor = '', room = null) {
+    if (els.connectionStatus) {
+        const status = room?.status || (roomId ? 'waiting' : 'disconnected');
+        els.connectionStatus.classList.remove('disconnected', 'connecting', 'connected');
+        if (status === 'playing') {
+            els.connectionStatus.classList.add('connected');
+            els.connectionStatus.textContent = 'Connected';
+        } else if (roomId || status === 'waiting') {
+            els.connectionStatus.classList.add('connecting');
+            els.connectionStatus.textContent = 'Waiting for opponent';
+        } else {
+            els.connectionStatus.classList.add('disconnected');
+            els.connectionStatus.textContent = 'Disconnected';
+        }
+    }
+    if (els.roomInfo) els.roomInfo.hidden = !roomId;
+    if (els.roomIdDisplay) els.roomIdDisplay.textContent = roomId || '';
+    if (els.shareLinkInput) {
+        if (roomId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', roomId);
+            els.shareLinkInput.value = url.href;
+        } else {
+            els.shareLinkInput.value = '';
+        }
+    }
+    els.onlineStatus.dataset.color = playerColor || '';
+}
+
 function onlineHooks() {
     return {
         gameKey: `algebraic:${selectedMode()}`,
@@ -1050,6 +1084,7 @@ function onlineHooks() {
         onRoomChanged: ({ roomId, playerColor, room }) => {
             const connected = room?.status === 'playing';
             setOnlineConfigurationLocked(Boolean(roomId));
+            updateOnlineConnectionUI(roomId, playerColor, room);
             if (roomId) {
                 els.onlineRoomInput.value = roomId;
                 const url = new URL(window.location.href);
@@ -1057,7 +1092,6 @@ function onlineHooks() {
                 history.replaceState(null, '', url);
             }
             if (room?.board) lastOnlineSnapshotJSON = JSON.stringify(room.board);
-            els.onlineStatus.dataset.color = playerColor || '';
             const canChat = connected && Boolean(playerColor);
             els.onlineChatInput.disabled = !canChat;
             els.onlineChatSendButton.disabled = !canChat;
@@ -1112,6 +1146,7 @@ async function runOnlineAction(action) {
 }
 
 async function prepareOnline() {
+    if (onlineReady) return onlineReady;
     onlineReady = initOnline(onlineHooks());
     return onlineReady;
 }
@@ -2929,6 +2964,7 @@ els.playModeSelect.addEventListener('change', async () => {
     } else {
         await leaveRoom();
         setOnlineConfigurationLocked(false);
+        updateOnlineConnectionUI();
         els.onlineStatus.textContent = 'Local pass and play.';
     }
 });
@@ -2959,9 +2995,16 @@ els.onlineReconnectButton.addEventListener('click', async () => {
 els.onlineLeaveButton.addEventListener('click', async () => {
     await runOnlineAction(() => leaveRoom());
     setOnlineConfigurationLocked(false);
+    updateOnlineConnectionUI();
     const url = new URL(window.location.href);
     url.searchParams.delete('room');
     history.replaceState(null, '', url);
+});
+els.copyLinkButton?.addEventListener('click', async () => {
+    if (!els.shareLinkInput?.value) return;
+    await navigator.clipboard?.writeText(els.shareLinkInput.value);
+    els.copyLinkButton.textContent = 'Copied';
+    window.setTimeout(() => { els.copyLinkButton.textContent = 'Copy'; }, 1000);
 });
 els.onlineChatSendButton.addEventListener('click', submitOnlineChat);
 els.onlineChatInput.addEventListener('keydown', (event) => {

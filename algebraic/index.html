@@ -616,11 +616,22 @@
                     </label>
                 </div>
                 <div class="button-grid online-button-grid" id="onlineButtonGrid" hidden>
+                    <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
                     <button id="onlineFindButton" type="button">Find Match</button>
+                    <div class="divider-text">PRIVATE ROOM</div>
                     <button id="onlineCreateButton" type="button">Create Room</button>
+                    <div class="divider-text">OR</div>
                     <button id="onlineJoinButton" type="button">Join Room</button>
                     <button id="onlineReconnectButton" type="button">Reconnect</button>
                     <button id="onlineLeaveButton" type="button">Leave</button>
+                    <div class="room-info" id="roomInfo" hidden>
+                        <strong>Room Code</strong>
+                        <div class="room-id-display" id="roomIdDisplay"></div>
+                        <div class="share-link-box">
+                            <input class="share-link-input" id="shareLinkInput" type="text" readonly>
+                            <button class="copy-btn" id="copyLinkButton" type="button">Copy</button>
+                        </div>
+                    </div>
                 </div>
                 <p class="online-status" id="onlineStatus">Local pass and play.</p>
                 <div class="online-chat">

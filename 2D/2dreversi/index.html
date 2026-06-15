@@ -50,21 +50,21 @@
                 <div class="boundary-info" id="onlineColorStatus">Local pass and play</div>
             </div>
 
-            <section class="panel" id="onlineControls" hidden>
-                <h3>Online</h3>
-                <div class="control-grid">
-                    <button id="findMatchBtn" type="button">Find Match</button>
-                    <button id="createRoomBtn" type="button">Create Room</button>
-                </div>
-                <div class="control-group">
-                    <label for="roomIdInput">Room Code</label>
-                    <input id="roomIdInput" type="text" placeholder="Room code or shared link">
-                </div>
-                <button id="joinRoomBtn" type="button">Join Room</button>
-                <div class="control-group">
-                    <label for="shareLinkInput">Share Link</label>
-                    <input id="shareLinkInput" type="text" readonly>
-                    <button id="copyLinkBtn" type="button">Copy</button>
+            <section class="online-controls" id="onlineControls" hidden>
+                <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
+                <button class="online-btn match" id="findMatchBtn" type="button">Find Match</button>
+                <div class="divider-text">PRIVATE ROOM</div>
+                <button class="online-btn create" id="createRoomBtn" type="button">Create Room</button>
+                <div class="divider-text">OR</div>
+                <input id="roomIdInput" type="text" autocomplete="off" placeholder="5-digit room code or shared link">
+                <button class="online-btn join" id="joinRoomBtn" type="button">Join Room</button>
+                <div class="room-info" id="roomInfo" hidden>
+                    <strong>Room Code</strong>
+                    <div class="room-id-display" id="roomIdDisplay"></div>
+                    <div class="share-link-box">
+                        <input class="share-link-input" id="shareLinkInput" type="text" readonly>
+                        <button class="copy-btn" id="copyLinkBtn" type="button">Copy</button>
+                    </div>
                 </div>
             </section>
 

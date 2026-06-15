@@ -21,6 +21,40 @@ function defaultTurnFromState(state, app) {
         || 'black';
 }
 
+function setConnectionStatus(roomId, room) {
+    const el = document.getElementById('connectionStatus');
+    if (!el) return;
+    const status = room?.status || (roomId ? 'waiting' : 'disconnected');
+    el.classList.remove('disconnected', 'connecting', 'connected');
+    if (status === 'playing') {
+        el.classList.add('connected');
+        el.textContent = 'Connected';
+    } else if (roomId || status === 'waiting') {
+        el.classList.add('connecting');
+        el.textContent = 'Waiting for opponent';
+    } else {
+        el.classList.add('disconnected');
+        el.textContent = 'Disconnected';
+    }
+}
+
+function setRoomInfo(roomId) {
+    const roomInfo = document.getElementById('roomInfo');
+    const roomIdDisplay = document.getElementById('roomIdDisplay');
+    const shareLinkInput = document.getElementById('shareLinkInput');
+    if (roomInfo) roomInfo.hidden = !roomId;
+    if (roomIdDisplay) roomIdDisplay.textContent = roomId || '';
+    if (shareLinkInput) {
+        if (roomId) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', roomId);
+            shareLinkInput.value = url.href;
+        } else {
+            shareLinkInput.value = '';
+        }
+    }
+}
+
 export class FirebaseStateNetworkManager {
     constructor(app, options = {}) {
         this.app = app;
@@ -60,6 +94,8 @@ export class FirebaseStateNetworkManager {
                 this.peer.id = online.uid || '';
                 this.isConnected = room?.status === 'playing';
                 app.myColor = this.myColor;
+                setConnectionStatus(roomId, room);
+                setRoomInfo(roomId);
                 app.setOnlineColor?.(this.myColor, roomId, room);
                 app.updateOnlineRoomUI?.(roomId, this.myColor, room);
                 app.updateUI?.();
@@ -87,6 +123,7 @@ export class FirebaseStateNetworkManager {
     setOnlineMessage(text) {
         this.app.setStatus?.(text);
         if (this.app.onlineColorEl) this.app.onlineColorEl.textContent = text;
+        setConnectionStatus(this.roomId, null);
     }
 
     async ensureReady() {
@@ -175,5 +212,7 @@ export class FirebaseStateNetworkManager {
         this.isConnected = false;
         this.roomId = '';
         this.myColor = null;
+        setConnectionStatus('', null);
+        setRoomInfo('');
     }
 }

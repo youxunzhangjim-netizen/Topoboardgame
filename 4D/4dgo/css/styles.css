@@ -67,6 +67,20 @@ button { cursor: pointer; font-weight: 850; }
 button:hover:not(:disabled), button:focus-visible { border-color: rgba(72, 199, 244, 0.75); color: #e0f7ff; }
 .danger { border-color: rgba(239, 68, 68, 0.5); color: #fecaca; }
 .control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.online-controls { display: grid; gap: 10px; padding: 12px; border: 1px solid rgba(34, 197, 94, 0.55); border-radius: 8px; background: rgba(34, 197, 94, 0.09); }
+.online-controls[hidden] { display: none; }
+.connection-status { padding: 9px; border-radius: 8px; font-weight: 900; text-align: center; }
+.connection-status.disconnected { background: rgba(239, 68, 68, 0.16); color: #fecaca; }
+.connection-status.connecting { background: rgba(245, 158, 11, 0.16); color: #fde68a; }
+.connection-status.connected { background: rgba(34, 197, 94, 0.16); color: #bbf7d0; }
+.online-btn.match { border-color: rgba(245, 158, 11, 0.82); }
+.online-btn.create { border-color: rgba(34, 197, 94, 0.7); }
+.online-btn.join { border-color: rgba(56, 189, 248, 0.7); }
+.divider-text { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
+.room-info { display: grid; gap: 8px; padding: 9px; border: 1px solid rgba(224, 232, 220, 0.14); border-radius: 7px; }
+.room-info[hidden] { display: none; }
+.room-id-display { font-size: 22px; font-weight: 950; letter-spacing: 0.12em; color: var(--gold); }
+.share-link-box { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 6px; }
 .move-history { max-height: 210px; overflow: auto; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.045); font-size: 13px; }
 .rules-text { color: var(--muted); font-size: 13px; line-height: 1.45; }
