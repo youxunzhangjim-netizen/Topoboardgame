@@ -6,7 +6,7 @@ export const firebaseConfig = {
   apiKey: "AIzaSyCPvjfE_0eftxrj-HDViT02Hljj-aAqH5c",
   authDomain: "topoboardgame.firebaseapp.com",
   projectId: "topoboardgame",
-  storageBucket: "topoboardgame.appspot.com",
+  storageBucket: "topoboardgame.firebasestorage.app",
   messagingSenderId: "533937783773",
   appId: "1:533937783773:web:18aa334256b8142038ec34"
 };

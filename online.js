@@ -35,6 +35,8 @@ let initialized = false;
 let hooks = {};
 let latestRoom = null;
 let lastLoadedMoveNumber = -1;
+let firestoreReady = false;
+let firestoreInitError = '';
 const reconnectStorageKey = 'topoboardgame:firebase-room';
 const operationTimeoutMs = 10000;
 
@@ -44,6 +46,19 @@ function opposite(color) {
 
 function firestoreValue(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function encodeBoardForFirestore(value) {
+    return JSON.stringify(firestoreValue(value ?? null));
+}
+
+function decodeBoardFromFirestore(value) {
+    if (typeof value !== 'string') return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
 }
 
 function normalizeRoomId(value) {
@@ -61,7 +76,10 @@ function status(text) {
 }
 
 function requireReady() {
-    if (!initialized || !db || !user) {
+    if (firestoreInitError) {
+        throw new Error(firestoreInitError);
+    }
+    if (!initialized || !db || !user || !firestoreReady) {
         throw new Error('Firebase online multiplayer is not initialized.');
     }
 }
@@ -92,6 +110,26 @@ function waitForAuth(authInstance) {
     });
 }
 
+async function verifyFirestoreService() {
+    const token = await user.getIdToken();
+    const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/${roomsPath}?pageSize=1`;
+    const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (response.ok) return true;
+    const text = await response.text();
+    if (/SERVICE_DISABLED|firestore.googleapis.com|disabled/i.test(text)) {
+        throw new Error('Cloud Firestore is disabled for this Firebase project. Enable Cloud Firestore / Firestore API in the Topoboardgame Firebase console, then deploy firestore.rules.');
+    }
+    if (/NOT_FOUND|database.*not.*found|Database does not exist/i.test(text)) {
+        throw new Error('Cloud Firestore database does not exist yet. Create the default Firestore database in Firebase Console, then deploy firestore.rules.');
+    }
+    if (/PERMISSION_DENIED|Missing or insufficient permissions/i.test(text)) {
+        throw new Error('Cloud Firestore rules are blocking online rooms. Deploy the repository firestore.rules to the Topoboardgame Firebase project.');
+    }
+    throw new Error(`Cloud Firestore check failed (${response.status}).`);
+}
+
 export async function initOnline(options = {}) {
     hooks = {
         getCurrentBoardState: options.getCurrentBoardState,
@@ -111,7 +149,13 @@ export async function initOnline(options = {}) {
         status('Firebase config needed: fill in firebaseConfig.js.');
         return { ok: false, configured: false };
     }
-    if (initialized) return { ok: true, user, roomId, playerColor };
+    if (initialized) {
+        if (firestoreInitError) {
+            status(firestoreInitError);
+            return { ok: false, configured: true, error: firestoreInitError };
+        }
+        return { ok: true, user, roomId, playerColor };
+    }
 
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
@@ -122,6 +166,16 @@ export async function initOnline(options = {}) {
     if (!auth.currentUser) await signInAnonymously(auth);
     user = auth.currentUser || await waitForAuth(auth);
     initialized = true;
+    try {
+        await verifyFirestoreService();
+        firestoreReady = true;
+        firestoreInitError = '';
+    } catch (error) {
+        firestoreReady = false;
+        firestoreInitError = error.message;
+        status(firestoreInitError);
+        return { ok: false, configured: true, error: firestoreInitError };
+    }
     status('Online ready.');
     return { ok: true, user, roomId, playerColor };
 }
@@ -143,7 +197,7 @@ export async function createPrivateRoom(initialBoard) {
         turn: initialTurn,
         gameKey: hooks.gameKey,
         matchKey: hooks.matchKey,
-        board,
+        board: encodeBoardForFirestore(board),
         moveNumber: 0,
         lastMove: null,
         createdAt: serverTimestamp(),
@@ -204,7 +258,7 @@ export async function joinPrivateRoom(rawRoomId) {
     lastLoadedMoveNumber = Number(joined.room.moveNumber) || 0;
     localStorage.setItem(reconnectStorageKey, roomId);
     if (joined.room.board) {
-        hooks.loadBoardState?.(joined.room.board);
+        hooks.loadBoardState?.(decodeBoardFromFirestore(joined.room.board));
         hooks.renderBoard?.();
     }
     status(`Joined room ${roomId} as ${playerColor}.`);
@@ -249,7 +303,7 @@ export async function findMatch(initialBoard) {
         turn: initialTurn,
         gameKey: hooks.gameKey,
         matchKey: hooks.matchKey,
-        board,
+        board: encodeBoardForFirestore(board),
         moveNumber: 0,
         lastMove: null,
         createdAt: serverTimestamp(),
@@ -287,13 +341,16 @@ export function listenToRoom(id = roomId) {
         const remoteMoveNumber = Number(room.moveNumber) || 0;
         if (room.board && remoteMoveNumber > lastLoadedMoveNumber) {
             lastLoadedMoveNumber = remoteMoveNumber;
-            hooks.loadBoardState?.(room.board);
+            hooks.loadBoardState?.(decodeBoardFromFirestore(room.board));
             hooks.renderBoard?.();
         }
+        const hookRoom = room.board
+            ? { ...room, board: decodeBoardFromFirestore(room.board) }
+            : room;
         hooks.onRoomChanged?.({
             roomId,
             playerColor,
-            room
+            room: hookRoom
         });
 
         if (room.status === 'waiting') {
@@ -325,7 +382,8 @@ export async function sendMove(move) {
         // Client-side validation is acceptable for this prototype. A commercial
         // game needs server-authoritative validation (for example Cloud
         // Functions or a trusted game server) because clients can be modified.
-        const nextBoard = firestoreValue(await hooks.applyMove?.(room.board, move, playerColor));
+        const currentBoard = decodeBoardFromFirestore(room.board);
+        const nextBoard = firestoreValue(await hooks.applyMove?.(currentBoard, move, playerColor));
         if (!nextBoard) throw new Error('Illegal move.');
         const { boardState: _clientSnapshot, ...lastMove } = move;
 
@@ -333,7 +391,7 @@ export async function sendMove(move) {
             || nextBoard?.currentPlayer
             || opposite(playerColor);
         transaction.update(ref, {
-            board: nextBoard,
+            board: encodeBoardForFirestore(nextBoard),
             turn: nextTurn,
             moveNumber: (Number(room.moveNumber) || 0) + 1,
             lastMove: {
