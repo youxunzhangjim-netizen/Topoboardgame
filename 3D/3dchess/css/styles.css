@@ -648,10 +648,25 @@ input:disabled {
     overflow-wrap: anywhere;
 }
 
+.online-controls,
+.room-info,
+.share-link-box {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
 .share-link-box {
     display: grid;
-    grid-template-columns: 1fr 82px;
+    grid-template-columns: minmax(0, 1fr) 82px;
     gap: 8px;
+}
+
+.share-link-input {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .copy-btn {

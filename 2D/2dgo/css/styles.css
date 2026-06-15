@@ -164,6 +164,9 @@ button:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
 .room-info[hidden] { display: none; }
 .room-id-display { font-size: 22px; font-weight: 950; letter-spacing: 0.12em; color: var(--gold); }
 .share-link-box { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 6px; }
+.online-controls, .room-info, .share-link-box { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+.room-id-display { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.08em; }
+.share-link-input { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .move-history { max-height: 210px; overflow: auto; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.045); font-size: 13px; }
 .chat-panel { display: grid; gap: 8px; }
