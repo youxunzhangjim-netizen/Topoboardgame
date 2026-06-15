@@ -96,7 +96,11 @@ export class FirebaseStateNetworkManager {
                 app.myColor = this.myColor;
                 setConnectionStatus(roomId, room);
                 setRoomInfo(roomId);
-                app.setOnlineColor?.(this.myColor, roomId, room);
+                if (room?.status === 'waiting' && app.onlineColorEl) {
+                    app.onlineColorEl.textContent = 'Waiting for opponent';
+                } else {
+                    app.setOnlineColor?.(this.myColor, roomId, room);
+                }
                 app.updateOnlineRoomUI?.(roomId, this.myColor, room);
                 app.updateUI?.();
             },

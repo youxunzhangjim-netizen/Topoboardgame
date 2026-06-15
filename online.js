@@ -32,6 +32,7 @@ let playerColor = null;
 let unsubscribeRoom = null;
 let unsubscribeChat = null;
 let initialized = false;
+let initializationPromise = null;
 let hooks = {};
 let latestRoom = null;
 let lastLoadedMoveNumber = -1;
@@ -44,6 +45,10 @@ const matchmakingSlotCount = 8;
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
+}
+
+function randomPlayerColor() {
+    return Math.random() < 0.5 ? 'white' : 'black';
 }
 
 function firestoreValue(value) {
@@ -183,6 +188,7 @@ export async function initOnline(options = {}) {
         status('Firebase config needed: fill in firebaseConfig.js.');
         return { ok: false, configured: false };
     }
+    if (initializationPromise) return initializationPromise;
     if (initialized) {
         if (firestoreInitError) {
             status(firestoreInitError);
@@ -191,6 +197,7 @@ export async function initOnline(options = {}) {
         return { ok: true, user, roomId, playerColor };
     }
 
+    initializationPromise = (async () => {
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = initializeFirestore(app, {
@@ -212,6 +219,8 @@ export async function initOnline(options = {}) {
     }
     status('Online ready.');
     return { ok: true, user, roomId, playerColor };
+    })();
+    return initializationPromise;
 }
 
 export async function createPrivateRoom(initialBoard) {
@@ -340,12 +349,13 @@ export async function findMatch(initialBoard) {
 
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
+    const firstPlayerColor = randomPlayerColor();
     const roomTemplate = {
         status: 'waiting',
         public: true,
         players: {
-            white: initialTurn === 'white' ? user.uid : null,
-            black: initialTurn === 'black' ? user.uid : null
+            white: firstPlayerColor === 'white' ? user.uid : null,
+            black: firstPlayerColor === 'black' ? user.uid : null
         },
         turn: initialTurn,
         gameKey: hooks.gameKey,
@@ -364,7 +374,7 @@ export async function findMatch(initialBoard) {
                 const snapshot = await transaction.get(ref);
                 if (!snapshot.exists()) {
                     transaction.set(ref, roomTemplate);
-                    return { action: 'created', roomId: id, color: initialTurn, room: roomTemplate };
+                    return { action: 'created', roomId: id, color: firstPlayerColor, room: roomTemplate };
                 }
                 const room = snapshot.data();
                 if (room.gameKey !== hooks.gameKey || room.matchKey !== hooks.matchKey) return null;
