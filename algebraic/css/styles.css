@@ -314,11 +314,32 @@ h2 {
 }
 
 .section-online .control-fields {
-    grid-template-columns: minmax(150px, 220px) minmax(240px, 420px);
+    grid-template-columns: minmax(140px, 220px) minmax(220px, 1fr);
 }
 
 .section-online .online-button-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(100%, 820px);
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+}
+
+.section-online .connection-status,
+.section-online .room-info {
+    grid-column: 1 / -1;
+}
+
+.section-online .divider-text {
+    display: none;
+}
+
+.section-online #onlineFindButton,
+.section-online #onlineCreateButton,
+.section-online #onlineJoinButton,
+.section-online #onlineReconnectButton,
+.section-online #onlineLeaveButton {
+    min-height: 42px;
 }
 
 .control-fields {
@@ -1197,7 +1218,8 @@ textarea {
     .section-board,
     .section-algebra,
     .section-dynamics,
-    .section-actions {
+    .section-actions,
+    .section-online {
         grid-column: 1 / -1;
         border-right: 0;
     }
@@ -1207,6 +1229,15 @@ textarea {
     .section-algebra > .algebra-mode-fields,
     .button-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .section-online .control-fields,
+    .section-online .online-button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-online .divider-text {
+        min-height: 22px;
     }
 
     .rules-intro-panel {

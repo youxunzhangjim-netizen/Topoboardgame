@@ -554,7 +554,7 @@ export function subscribeWaitingRooms(callback) {
     requireReady();
     const waitingQuery = query(
         collection(db, roomsPath),
-        where('status', '==', 'waiting'),
+        where('status', 'in', ['waiting', 'playing']),
         limit(200)
     );
     return onSnapshot(waitingQuery, (snapshot) => {
