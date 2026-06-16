@@ -34,6 +34,7 @@ export class TorusThreeJSRenderer {
         this.shineLight = null;
         this.maxPixelRatio = 1.35;
         this.pieceShapeCache = new Map();
+        this.handednessSpriteCache = new Map();
 
         this.materials = this.createMaterials();
     }
@@ -186,6 +187,7 @@ export class TorusThreeJSRenderer {
         }
 
         this.addGridLines();
+        this.addWindingAxisMarker();
         this.addWindingGuides();
         if (this.renderer) this.renderer.shadowMap.needsUpdate = true;
     }
@@ -271,6 +273,31 @@ export class TorusThreeJSRenderer {
         }
     }
 
+    addWindingAxisMarker() {
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x93c5fd,
+            emissive: 0x2563eb,
+            emissiveIntensity: 0.45,
+            roughness: 0.28
+        });
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 2.2, 16), material);
+        shaft.position.set(0, 0, 0);
+        shaft.castShadow = true;
+        shaft.userData = { type: 'winding-axis' };
+
+        const head = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.28, 20), material);
+        head.position.set(0, 1.24, 0);
+        head.castShadow = true;
+        head.userData = { type: 'winding-axis' };
+
+        const label = this.createTextSprite('z', 0xbfdbfe, 70);
+        label.position.set(0, 1.58, 0);
+        label.scale.set(0.32, 0.32, 0.32);
+        label.userData = { type: 'winding-axis-label' };
+
+        this.boardGroup.add(shaft, head, label);
+    }
+
     createTorusLine(axis, value, material) {
         const points = [];
         const segments = axis === 'u' ? 80 : 160;
@@ -339,7 +366,38 @@ export class TorusThreeJSRenderer {
         group.traverse((child) => {
             child.userData = { type: 'piece', x, y, sheet, piece };
         });
+        this.addPawnHandednessLabel(group, piece, x, y, sheet);
         this.piecesGroup.add(group);
+    }
+
+    addPawnHandednessLabel(group, piece, x, y, sheet = 0) {
+        if (piece?.type !== 'P') return;
+        const direction = this.game?.pawnForwardDirection?.(piece, y, sheet)
+            ?? piece.pawnDirection
+            ?? (piece.color === 'white' ? -1 : 1);
+        const text = direction > 0 ? 'R' : 'L';
+        const color = direction > 0 ? 0xfde68a : 0xa5f3fc;
+        const sprite = this.createHandednessSprite(text, color);
+        sprite.position.set(0, 0.64, 0);
+        sprite.userData = {
+            type: 'pawn-handedness-label',
+            x,
+            y,
+            sheet,
+            handedness: text
+        };
+        group.add(sprite);
+    }
+
+    createHandednessSprite(text, color) {
+        const key = `${text}:${color}`;
+        if (!this.handednessSpriteCache.has(key)) {
+            const sprite = this.createTextSprite(text, color, 82);
+            sprite.scale.set(0.34, 0.34, 0.34);
+            sprite.renderOrder = 55;
+            this.handednessSpriteCache.set(key, sprite);
+        }
+        return this.handednessSpriteCache.get(key).clone(true);
     }
 
     createPieceInstance(piece) {

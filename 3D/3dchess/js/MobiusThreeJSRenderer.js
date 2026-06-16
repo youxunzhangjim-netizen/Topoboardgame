@@ -37,6 +37,7 @@ export class MobiusThreeJSRenderer extends TorusThreeJSRenderer {
 
         this.addOpenEdgeRails();
         this.addTwistLinks();
+        this.addWindingAxisMarker();
         this.addWindingGuides();
     }
 

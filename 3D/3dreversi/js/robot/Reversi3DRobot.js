@@ -11,8 +11,8 @@ function evaluate(logic, player = logic.currentPlayer) {
     const nearEdge = coord.some((v, axis) => v === 0 || v === [logic.topology.width, logic.topology.height, logic.topology.depth || 1][axis] - 1);
     const emptyNeighbor = logic.topology.directionsFor(coord).some(d => { const n = logic.topology.step(coord, d); return n && !logic.get(n); });
     const isAnchor = coord.every((v, axis) => v === 0 || v === [logic.topology.width, logic.topology.height, logic.topology.depth || 1][axis] - 1);
-    if (stone.color === player) { if (isAnchor) anchors++; if (emptyNeighbor) frontier++; if (nearEdge && ['t3','r3_random','t2','sphere'].includes(logic.topology.topology)) topo++; }
-    else { if (isAnchor) oppAnchors++; if (emptyNeighbor) oppFrontier++; if (nearEdge && ['t3','r3_random','t2','sphere'].includes(logic.topology.topology)) oppTopo++; }
+    if (stone.color === player) { if (isAnchor) anchors++; if (emptyNeighbor) frontier++; if (nearEdge && ['t3','r3_random','t2','sphere','klein','mobius','rp2'].includes(logic.topology.topology)) topo++; }
+    else { if (isAnchor) oppAnchors++; if (emptyNeighbor) oppFrontier++; if (nearEdge && ['t3','r3_random','t2','sphere','klein','mobius','rp2'].includes(logic.topology.topology)) oppTopo++; }
   }
   const discWeight = counts.empty < Math.max(16, logic.topology.totalVertices * 0.15) ? 5.5 : 1.2;
   return discWeight * ((counts[player] || 0) - (counts[opponent] || 0)) + 10 * (moves - oppMoves) + 45 * (anchors - oppAnchors) - 4 * (frontier - oppFrontier) + 3 * (topo - oppTopo);
@@ -27,6 +27,9 @@ function reason(logic, move, before, after) {
   if (logic.topology.topology === 'r3_random') reasons.push('uses fixed 3D RBC boundary map');
   if (logic.topology.lattice === 'hcp') reasons.push('uses HCP bracket directions');
   if (logic.topology.topology === 'sphere') reasons.push('uses sphere embedded graph');
+  if (logic.topology.topology === 'klein') reasons.push('checks Klein bottle flipped wrap');
+  if (logic.topology.topology === 'mobius') reasons.push('checks Mobius twisted seam');
+  if (logic.topology.topology === 'rp2') reasons.push('checks RP2 antipodal boundary');
   return reasons;
 }
 function analyzeLogic(logic, depth = 2) {

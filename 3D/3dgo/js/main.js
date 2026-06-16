@@ -30,6 +30,16 @@ import {
 } from './SphereGoTopology.js';
 import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
+import {
+    createKleinBottleSurfaceGeometry,
+    kleinBottleGraphEdgePoints,
+    kleinBottlePose
+} from '../../../js/geometry/KleinBottleGeometry.js';
+import {
+    advanceIndexedPieceAges,
+    createAgeArray,
+    normalizePieceTimeConfig
+} from '../../../js/time/PieceAgeClock.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
@@ -226,7 +236,12 @@ class Go3DRenderer {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x0b0f14);
         this.camera = new THREE.PerspectiveCamera(48, 1, 0.1, 120);
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: false });
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: this.canvas,
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: true
+        });
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -314,8 +329,7 @@ class Go3DRenderer {
         this.height = logic.height;
         this.lattice = logic.lattice;
         this.view = view;
-        this.controls.enableRotate = !(logic.topology === KLEIN_BOTTLE_TOPOLOGY
-            || (logic.topology === SPHERE_GO_TOPOLOGY && view === '2d'));
+        this.controls.enableRotate = !(logic.topology === SPHERE_GO_TOPOLOGY && view === '2d');
         this.clearGroup(this.boardGroup);
         this.clearGroup(this.hoverGroup);
         this.pointCoords = [];
@@ -451,120 +465,62 @@ class Go3DRenderer {
     }
 
     buildKlein(width, height) {
-        const scale = 7 / Math.max(width - 1, height - 1);
-        const halfWidth = (width - 1) * scale / 2;
-        const halfHeight = (height - 1) * scale / 2;
-        const linePositions = [];
-        const pointPositions = [];
-
         const surface = new THREE.Mesh(
-            new THREE.PlaneGeometry(halfWidth * 2 + scale * 0.8, halfHeight * 2 + scale * 0.8),
+            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 96, lift: -0.018 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0x5d4225,
-                roughness: 0.78,
-                metalness: 0.01,
-                clearcoat: 0.12,
+                color: 0x8a6a39,
+                roughness: 0.58,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.58,
+                clearcoat: 0.24,
+                clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
         );
-        surface.position.z = -0.045;
+        surface.castShadow = true;
         surface.receiveShadow = true;
         this.boardGroup.add(surface);
 
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const coord = [x, y];
-                const point = this.kleinPosition(coord, width, height);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(point);
-                pointPositions.push(point.x, point.y, point.z);
-                if (x < width - 1) {
-                    const next = this.kleinPosition([x + 1, y], width, height);
-                    linePositions.push(point.x, point.y, 0, next.x, next.y, 0);
-                }
-                if (y < height - 1) {
-                    const next = this.kleinPosition([x, y + 1], width, height);
-                    linePositions.push(point.x, point.y, 0, next.x, next.y, 0);
-                }
+        const gridMaterial = new THREE.LineBasicMaterial({
+            color: 0x0d5f3b,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false
+        });
+        const seamMaterial = new THREE.LineBasicMaterial({
+            color: 0x064e3b,
+            transparent: true,
+            opacity: 0.95,
+            depthWrite: false
+        });
+        const addLine = (points, material = gridMaterial) => {
+            this.boardGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+        };
+        const logic = this.app.logic;
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.055), seam ? seamMaterial : gridMaterial);
             }
         }
 
-        const gridGeometry = new THREE.BufferGeometry();
-        gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-        this.boardGroup.add(new THREE.LineSegments(
-            gridGeometry,
-            new THREE.LineBasicMaterial({ color: 0xe0b86d, transparent: true, opacity: 0.72 })
-        ));
-        this.addNodePoints(pointPositions, width <= 9 ? 0.072 : width <= 13 ? 0.052 : 0.04, {
-            color: 0xffe5a8,
-            opacity: 0.98
+        const pointPositions = [];
+        for (const coord of logic.playableCoords()) {
+            const pose = kleinBottlePose(coord, width, height, 0.095);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(pose.position);
+            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+        }
+        this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
+            color: 0xf0fdf4,
+            opacity: 0.96
         });
-
-        const sideMaterial = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.96 });
-        const seamMaterial = new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.96 });
-        const guideMaterial = new THREE.LineBasicMaterial({ color: 0xfde68a, transparent: true, opacity: 0.24 });
-        const margin = scale * 0.55;
-        const addLine = (points, material) => {
-            this.boardGroup.add(new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints(points),
-                material
-            ));
-        };
-
-        for (const side of [-1, 1]) {
-            const x = side * (halfWidth + margin);
-            addLine([
-                new THREE.Vector3(x, -halfHeight, 0.03),
-                new THREE.Vector3(x, halfHeight, 0.03)
-            ], sideMaterial);
-            const direction = side < 0 ? -1 : 1;
-            this.boardGroup.add(new THREE.ArrowHelper(
-                new THREE.Vector3(direction, 0, 0),
-                new THREE.Vector3(x - direction * scale * 0.25, 0, 0.04),
-                scale * 0.5,
-                0x38bdf8,
-                scale * 0.18,
-                scale * 0.11
-            ));
-        }
-
-        for (const side of [-1, 1]) {
-            const y = side * (halfHeight + margin);
-            addLine([
-                new THREE.Vector3(-halfWidth, y, 0.03),
-                new THREE.Vector3(halfWidth, y, 0.03)
-            ], seamMaterial);
-        }
-
-        const guideCount = Math.min(width, 7);
-        const guideXs = new Set();
-        for (let index = 0; index < guideCount; index++) {
-            guideXs.add(Math.round(index * (width - 1) / Math.max(1, guideCount - 1)));
-        }
-        for (const x of guideXs) {
-            const mirroredX = width - 1 - x;
-            const top = this.kleinPosition([x, 0], width, height, 0.025);
-            const bottom = this.kleinPosition([mirroredX, height - 1], width, height, 0.025);
-            addLine([top, bottom], guideMaterial);
-
-            const arrowLength = scale * 0.42;
-            this.boardGroup.add(new THREE.ArrowHelper(
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(top.x, halfHeight + margin + scale * 0.12, 0.05),
-                arrowLength,
-                0xfbbf24,
-                scale * 0.15,
-                scale * 0.1
-            ));
-            this.boardGroup.add(new THREE.ArrowHelper(
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(bottom.x, -halfHeight - margin - arrowLength - scale * 0.12, 0.05),
-                arrowLength,
-                0xfbbf24,
-                scale * 0.15,
-                scale * 0.1
-            ));
-        }
     }
 
     buildMobius(width, height) {
@@ -595,35 +551,30 @@ class Go3DRenderer {
             opacity: 0.92,
             depthWrite: false
         });
-        const linePoints = [];
+        const logic = this.app.logic;
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.userData = { type: 'grid' };
             this.boardGroup.add(line);
         };
 
-        for (let y = 0; y < height; y++) {
-            const t = this.mobiusTForY(y, height);
-            linePoints.length = 0;
-            for (let step = 0; step <= Math.max(128, width * 10); step++) {
-                const u = (step / Math.max(128, width * 10)) * TWO_PI;
-                linePoints.push(this.mobiusPoint(u, t, 0.045));
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const seam = this.isMobiusSeamEdge(coord, neighbor, width);
+                addLine(
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052),
+                    seam ? seamMaterial : gridMaterial
+                );
             }
-            addLine([...linePoints], y === 0 || y === height - 1 ? seamMaterial : gridMaterial);
-        }
-
-        for (let x = 0; x < width; x++) {
-            const u = (x / Math.max(1, width)) * TWO_PI;
-            linePoints.length = 0;
-            for (let step = 0; step <= 24; step++) {
-                const y = (step / 24) * Math.max(1, height - 1);
-                linePoints.push(this.mobiusPoint(u, this.mobiusTForY(y, height), 0.05));
-            }
-            addLine([...linePoints], x === 0 ? seamMaterial : gridMaterial);
         }
 
         const pointPositions = [];
-        for (const coord of this.app.logic.playableCoords()) {
+        for (const coord of logic.playableCoords()) {
             const pose = this.mobiusPose(coord, width, height, 0.075);
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
@@ -634,6 +585,61 @@ class Go3DRenderer {
             opacity: 0.96
         });
         this.addMobiusStarPoints(width, height);
+    }
+
+    isMobiusSeamEdge(a, b, width) {
+        return Math.abs((a?.[0] ?? 0) - (b?.[0] ?? 0)) > 1
+            || ((a?.[0] === 0 && b?.[0] === width - 1) || (b?.[0] === 0 && a?.[0] === width - 1));
+    }
+
+    mobiusGraphEdgePoints(a, b, width, height, lift = 0.05) {
+        const points = [];
+        const segments = 8;
+        const seam = this.isMobiusSeamEdge(a, b, width);
+        if (seam) {
+            const start = a[0] === width - 1 ? a : b;
+            const end = a[0] === width - 1 ? b : a;
+            const u0 = (start[0] / Math.max(1, width)) * TWO_PI;
+            const t = this.mobiusTForY(start[1], height);
+            for (let step = 0; step < segments; step += 1) {
+                const u = THREE.MathUtils.lerp(u0, TWO_PI, step / segments);
+                points.push(this.mobiusPoint(u, t, lift));
+            }
+            points.push(this.mobiusPose(end, width, height, lift).position);
+            return points;
+        }
+
+        const sameRow = a[1] === b[1];
+        const sameColumn = a[0] === b[0];
+        if (sameRow) {
+            const start = a[0] <= b[0] ? a : b;
+            const end = start === a ? b : a;
+            const u0 = (start[0] / Math.max(1, width)) * TWO_PI;
+            const u1 = (end[0] / Math.max(1, width)) * TWO_PI;
+            const t = this.mobiusTForY(start[1], height);
+            for (let step = 0; step <= segments; step += 1) {
+                const u = THREE.MathUtils.lerp(u0, u1, step / segments);
+                points.push(this.mobiusPoint(u, t, lift));
+            }
+            return points;
+        }
+
+        if (sameColumn) {
+            const start = a[1] <= b[1] ? a : b;
+            const end = start === a ? b : a;
+            const u = (start[0] / Math.max(1, width)) * TWO_PI;
+            const t0 = this.mobiusTForY(start[1], height);
+            const t1 = this.mobiusTForY(end[1], height);
+            for (let step = 0; step <= segments; step += 1) {
+                const t = THREE.MathUtils.lerp(t0, t1, step / segments);
+                points.push(this.mobiusPoint(u, t, lift));
+            }
+            return points;
+        }
+
+        points.push(this.mobiusPose(a, width, height, lift).position);
+        points.push(this.mobiusPose(b, width, height, lift).position);
+        return points;
     }
 
     buildRP2(width, height) {
@@ -1104,14 +1110,16 @@ class Go3DRenderer {
 
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
-        if (!hit || !logic || !['t2', MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
+        if (!hit || !logic || !['t2', KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
             ? this.torusPosition(coord, logic.size, 0.055)
             : logic.topology === RP2_GO_TOPOLOGY
                 ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
-                : this.mobiusPose(coord, logic.width, logic.height, 0.075);
+                : logic.topology === KLEIN_BOTTLE_TOPOLOGY
+                    ? kleinBottlePose(coord, logic.width, logic.height, 0.095)
+                    : this.mobiusPose(coord, logic.width, logic.height, 0.075);
         return this.isPoseFacingCamera(pose.position, pose.normal);
     }
 
@@ -1175,7 +1183,7 @@ class Go3DRenderer {
             return this.rp2Position(coord, logic.width, logic.height, 0.18);
         }
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            return this.kleinPosition(coord, logic.width, logic.height, 0.14);
+            return kleinBottlePose(coord, logic.width, logic.height, 0.18).position;
         }
         if (logic.topology === SPHERE_GO_TOPOLOGY) {
             if (this.view === '2d') {
@@ -1194,15 +1202,6 @@ class Go3DRenderer {
     spherePosition(coord, width, height, lift = 0) {
         const point = sphereVertexPosition(coord, width, height, 3.45, lift);
         return new THREE.Vector3(point.x, point.y, point.z);
-    }
-
-    kleinPosition(coord, width, height, lift = 0) {
-        const scale = 7 / Math.max(width - 1, height - 1);
-        return new THREE.Vector3(
-            (coord[0] - (width - 1) / 2) * scale,
-            ((height - 1) / 2 - coord[1]) * scale,
-            lift
-        );
     }
 
     rp2BoardStep() {
@@ -1370,7 +1369,7 @@ class Go3DRenderer {
             this.camera.position.set(0, 8.6, 7.4);
             this.controls.target.set(0, 0.35, 0);
         } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            this.camera.position.set(0, 0, 10.5);
+            this.camera.position.set(9.4, 6.2, 12.4);
             this.controls.target.set(0, 0, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
             this.camera.position.set(0, this.view === '2d' ? 0 : 1.8, this.view === '2d' ? 10.5 : 9.4);
@@ -1414,6 +1413,10 @@ class Go3DApp {
         this.whiteTimerEl = document.getElementById('whiteTimer');
         this.blackTimerBox = document.getElementById('blackTimerBox');
         this.whiteTimerBox = document.getElementById('whiteTimerBox');
+        this.timeEvolutionSelect = document.getElementById('timeEvolutionSelect');
+        this.timeLifetimeInput = document.getElementById('timeLifetimeInput');
+        this.noiseModeSelect = document.getElementById('noiseModeSelect');
+        this.noisePeriodInput = document.getElementById('noisePeriodInput');
         this.blackCapturedEl = document.getElementById('blackCaptured');
         this.whiteCapturedEl = document.getElementById('whiteCaptured');
         this.historyEl = document.getElementById('moveHistoryList');
@@ -1440,6 +1443,8 @@ class Go3DApp {
         this.timeLimit = Number(this.timerSelect.value) || 0;
         this.timeRemaining = { black: this.timeLimit, white: this.timeLimit };
         this.timerInterval = null;
+        this.pieceAges = createAgeArray(this.logic.board.length);
+        this.noiseTick = 0;
         this.chatMessages = [];
         this.bindEvents();
         applyLanguage();
@@ -1582,6 +1587,22 @@ class Go3DApp {
             this.resetGame();
         });
         this.timerSelect.addEventListener('change', () => this.resetGame());
+        this.timeEvolutionSelect?.addEventListener('change', () => {
+            this.syncPieceAges();
+            this.updateUI();
+        });
+        this.timeLifetimeInput?.addEventListener('change', () => {
+            this.syncPieceAges();
+            this.updateUI();
+        });
+        this.noiseModeSelect?.addEventListener('change', () => {
+            this.syncPieceAges();
+            this.updateUI();
+        });
+        this.noisePeriodInput?.addEventListener('change', () => {
+            this.syncPieceAges();
+            this.updateUI();
+        });
         this.gameModeSelect.addEventListener('change', () => this.updateOnlineControls());
         document.getElementById('cameraReset').addEventListener('click', () => this.renderer.resetCamera());
         this.passBtn.addEventListener('click', () => this.passTurn());
@@ -1621,17 +1642,127 @@ class Go3DApp {
         });
     }
 
+    pieceTimeConfig() {
+        const mode = this.timeEvolutionSelect?.value || 'off';
+        const noiseEnabled = (this.noiseModeSelect?.value || 'off') !== 'off';
+        return normalizePieceTimeConfig({
+            enabled: mode !== 'off' || noiseEnabled,
+            mode: mode === 'decay' ? 'decay' : 'count',
+            decay: mode === 'decay',
+            lifespan: this.timeLifetimeInput?.value || 12
+        });
+    }
+
+    noiseConfig() {
+        return {
+            mode: this.noiseModeSelect?.value || 'off',
+            period: Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
+        };
+    }
+
+    syncPieceAges() {
+        const next = createAgeArray(this.logic.board.length, this.pieceAges);
+        for (let index = 0; index < this.logic.board.length; index += 1) {
+            if (this.logic.board[index] === COLORS.empty) next[index] = 0;
+        }
+        this.pieceAges = next;
+    }
+
+    resetExternalPositionHistory() {
+        const serialized = this.logic.serializeBoard(this.logic.board);
+        this.logic.positionHistory = [serialized];
+        this.logic.positionSet = new Set([serialized]);
+        this.logic.passCount = 0;
+        this.logic.scoringPending = false;
+        this.logic.countAgreements = { black: false, white: false };
+        this.logic.score = null;
+    }
+
+    randomBoardIndex(filter) {
+        const indexes = [];
+        for (let index = 0; index < this.logic.board.length; index += 1) {
+            if (!this.logic.isPlayableIndex(index)) continue;
+            if (!filter || filter(index)) indexes.push(index);
+        }
+        if (!indexes.length) return -1;
+        return indexes[Math.floor(Math.random() * indexes.length)];
+    }
+
+    applyNoiseTick({ mode, period }) {
+        if (mode === 'off') return '';
+        this.noiseTick += 1;
+        const dueByTurn = this.noiseTick % period === 0;
+        const dueByPiece = (index) => this.logic.board[index] !== COLORS.empty
+            && this.pieceAges[index] > 0
+            && this.pieceAges[index] % period === 0;
+
+        if (mode === 'pieces') {
+            const index = this.randomBoardIndex(dueByPiece);
+            if (index < 0) return '';
+            this.logic.board[index] = COLORS.empty;
+            this.logic.pauliLabels[index] = 'I';
+            this.pieceAges[index] = 0;
+            return 'noise removed one aged stone';
+        }
+
+        if (!dueByTurn) return '';
+        const index = this.randomBoardIndex();
+        if (index < 0) return '';
+        if (this.logic.board[index] === COLORS.empty) {
+            this.logic.board[index] = Math.random() < 0.5 ? COLORS.black : COLORS.white;
+            this.pieceAges[index] = 0;
+            return 'whole-board noise seeded one stone';
+        }
+        this.logic.board[index] = COLORS.empty;
+        this.logic.pauliLabels[index] = 'I';
+        this.pieceAges[index] = 0;
+        return 'whole-board noise removed one stone';
+    }
+
+    advanceEvolution(protectedIndexes = []) {
+        this.syncPieceAges();
+        const time = this.pieceTimeConfig();
+        const before = this.logic.serializeBoard(this.logic.board);
+        const messages = [];
+        const timeResult = advanceIndexedPieceAges({
+            board: this.logic.board,
+            labels: this.logic.pauliLabels,
+            ages: this.pieceAges,
+            config: time,
+            emptyValue: COLORS.empty,
+            protectedIndexes
+        });
+        if (time.decay && timeResult.expired.length) {
+            messages.push(`${timeResult.expired.length} aged ${timeResult.expired.length === 1 ? 'stone vanished' : 'stones vanished'}`);
+        }
+        const noiseMessage = this.applyNoiseTick(this.noiseConfig());
+        if (noiseMessage) messages.push(noiseMessage);
+
+        if (this.logic.serializeBoard(this.logic.board) !== before) {
+            this.resetExternalPositionHistory();
+            this.logic.moveHistory.unshift({
+                type: 'evolution',
+                number: this.logic.moveNumber,
+                message: messages.join('; ') || 'External evolution changed the board'
+            });
+        }
+        return messages.join('; ');
+    }
+
     playAt(coord) {
         if (!this.canActFor(this.logic.currentPlayer)) {
             this.setStatus(tr('status.waitingForColor', { color: this.colorName(this.logic.currentPlayer) }));
             return;
         }
+        const placedIndex = this.logic.indexFromCoord(coord);
         const result = this.logic.tryPlay(coord, this.logic.currentPlayer);
         if (!result.ok) {
             this.setStatus(result.error);
             return;
         }
-        this.afterLocalAction(tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) }));
+        const evolution = this.advanceEvolution([placedIndex]);
+        const base = tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
+        this.afterLocalAction(evolution ? `${base}. ${evolution}.` : base);
     }
 
     passTurn() {
@@ -1645,7 +1776,9 @@ class Go3DApp {
             this.setStatus(result.error);
             return;
         }
-        this.afterLocalAction(this.logic.scoringPending ? tr('status.twoPasses') : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) }));
+        const evolution = this.advanceEvolution();
+        const base = this.logic.scoringPending ? tr('status.twoPasses') : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
+        this.afterLocalAction(evolution ? `${base}. ${evolution}.` : base);
     }
 
     agreeCount() {
@@ -1694,6 +1827,8 @@ class Go3DApp {
         this.settingsLocked = this.network?.isConnected || false;
         this.timeLimit = Number(this.timerSelect.value) || 0;
         this.timeRemaining = { black: this.timeLimit, white: this.timeLimit };
+        this.pieceAges = createAgeArray(this.logic.board.length);
+        this.noiseTick = 0;
         this.stopTimer();
         this.setStatus(tr('status.start'));
         if (broadcast) this.broadcastState();
@@ -1748,6 +1883,10 @@ class Go3DApp {
         this.sizeSelect.disabled = true;
         if (this.customSizeInput) this.customSizeInput.disabled = true;
         this.timerSelect.disabled = true;
+        if (this.timeEvolutionSelect) this.timeEvolutionSelect.disabled = true;
+        if (this.timeLifetimeInput) this.timeLifetimeInput.disabled = true;
+        if (this.noiseModeSelect) this.noiseModeSelect.disabled = true;
+        if (this.noisePeriodInput) this.noisePeriodInput.disabled = true;
     }
 
     unlockSettingsIfLocal() {
@@ -1758,6 +1897,10 @@ class Go3DApp {
         this.sizeSelect.disabled = false;
         if (this.customSizeInput) this.customSizeInput.disabled = false;
         this.timerSelect.disabled = false;
+        if (this.timeEvolutionSelect) this.timeEvolutionSelect.disabled = false;
+        if (this.timeLifetimeInput) this.timeLifetimeInput.disabled = false;
+        if (this.noiseModeSelect) this.noiseModeSelect.disabled = false;
+        if (this.noisePeriodInput) this.noisePeriodInput.disabled = false;
     }
 
     updateSettingsLockState() {
@@ -1768,6 +1911,10 @@ class Go3DApp {
         this.sizeSelect.disabled = locked;
         if (this.customSizeInput) this.customSizeInput.disabled = locked;
         this.timerSelect.disabled = locked;
+        if (this.timeEvolutionSelect) this.timeEvolutionSelect.disabled = locked;
+        if (this.timeLifetimeInput) this.timeLifetimeInput.disabled = locked;
+        if (this.noiseModeSelect) this.noiseModeSelect.disabled = locked;
+        if (this.noisePeriodInput) this.noisePeriodInput.disabled = locked;
     }
 
     updateOnlineControls() {
@@ -1829,6 +1976,7 @@ class Go3DApp {
         this.historyEl.innerHTML = this.logic.moveHistory.slice(0, 80).map((move) => {
             if (move.type === 'play') return `<div class="move-history-item">${move.number}. ${this.capitalize(move.color)} (${move.coord.map((v) => v + 1).join(',')})${move.captured ? ` captures ${move.captured}` : ''}</div>`;
             if (move.type === 'pass') return `<div class="move-history-item">${move.number}. ${this.capitalize(move.color)} passes</div>`;
+            if (move.type === 'evolution') return `<div class="move-history-item">${this.escapeHTML(move.message || 'External evolution changed the board')}</div>`;
             if (move.type === 'surrender') return `<div class="move-history-item">${this.capitalize(move.color)} surrendered</div>`;
             if (move.type === 'score') return `<div class="move-history-item">${tr('status.finalCount')} ${this.resultText()}</div>`;
             return '';
@@ -1940,7 +2088,11 @@ class Go3DApp {
             mode,
             lattice: this.latticeSelect.value,
             size: this.boardSize(),
-            timer: Number(this.timerSelect.value) || 0
+            timer: Number(this.timerSelect.value) || 0,
+            timeEvolution: this.timeEvolutionSelect?.value || 'off',
+            timeLifetime: Math.max(1, Math.min(512, Math.floor(Number(this.timeLifetimeInput?.value) || 12))),
+            noiseMode: this.noiseModeSelect?.value || 'off',
+            noisePeriod: Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
         };
     }
 
@@ -1955,7 +2107,11 @@ class Go3DApp {
             settings.mode,
             settings.lattice,
             settings.size,
-            settings.timer
+            settings.timer,
+            settings.timeEvolution,
+            settings.timeLifetime,
+            settings.noiseMode,
+            settings.noisePeriod
         ].join(':');
     }
 
@@ -1966,7 +2122,13 @@ class Go3DApp {
             timeLimit: this.timeLimit,
             timeRemaining: { ...this.timeRemaining },
             timerValue: Number(this.timerSelect.value) || 0,
-            modeValue: this.modeSelect.value
+            modeValue: this.modeSelect.value,
+            pieceAges: Array.from(this.pieceAges || []),
+            noiseTick: this.noiseTick,
+            timeEvolution: this.timeEvolutionSelect?.value || 'off',
+            timeLifetime: Math.max(1, Math.min(512, Math.floor(Number(this.timeLifetimeInput?.value) || 12))),
+            noiseMode: this.noiseModeSelect?.value || 'off',
+            noisePeriod: Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
         };
     }
 
@@ -1989,11 +2151,17 @@ class Go3DApp {
         this.latticeSelect.value = this.logic.lattice;
         this.setSizeSelection(this.logic.size);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
+        if (this.timeEvolutionSelect) this.timeEvolutionSelect.value = state.timeEvolution || 'off';
+        if (this.timeLifetimeInput) this.timeLifetimeInput.value = String(state.timeLifetime || 12);
+        if (this.noiseModeSelect) this.noiseModeSelect.value = state.noiseMode || 'off';
+        if (this.noisePeriodInput) this.noisePeriodInput.value = String(state.noisePeriod || 6);
         this.timeLimit = Number(state.timeLimit) || 0;
         this.timeRemaining = {
             black: Number(state.timeRemaining?.black) || this.timeLimit,
             white: Number(state.timeRemaining?.white) || this.timeLimit
         };
+        this.pieceAges = createAgeArray(this.logic.board.length, state.pieceAges);
+        this.noiseTick = Number(state.noiseTick) || 0;
         this.gameStarted = Boolean(state.gameStarted);
         this.lockSettings();
         if (this.gameStarted && !this.logic.gameOver && !this.logic.scoringPending) this.startTimer();

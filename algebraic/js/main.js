@@ -3,6 +3,9 @@ import { CliffordGoGame } from '../../js/localgames/CliffordGo.js';
 import { PhysicalCliffordReversiGame } from '../../js/localgames/PhysicalCliffordReversi.js';
 import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
+import { CliffordJumpGame } from '../../js/localgames/CliffordJump.js';
+import { VirasoroJumpGame } from '../../js/localgames/VirasoroJump.js';
+import { AnyonReversiGame } from '../../js/localgames/AnyonReversi.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import {
     braidWordToText,
@@ -164,7 +167,9 @@ const els = {
     manualTimeButton: document.querySelector('#manualTimeButton'),
     dropAnyonButton: document.querySelector('#dropAnyonButton'),
     rulesIntroButton: document.querySelector('#rulesIntroButton'),
+    rulesIntroCloseButton: document.querySelector('#rulesIntroCloseButton'),
     rulesIntroPanel: document.querySelector('#rulesIntroPanel'),
+    rulesIntroTitle: document.querySelector('#rulesIntroTitle'),
     exportButton: document.querySelector('#exportButton'),
     playModeSelect: document.querySelector('#playModeSelect'),
     onlineRoomInput: document.querySelector('#onlineRoomInput'),
@@ -256,8 +261,11 @@ const els = {
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
     clifford_go: 'Clifford Go',
+    clifford_jump: 'Clifford Jump Chess',
+    anyon_reversi: 'Anyon Reversi',
     physical_virasoro_go: 'Virasoro Go',
     physical_virasoro_reversi: 'Virasoro Reversi',
+    virasoro_jump: 'Virasoro Jump Chess',
     anyon_jump: 'Anyon Jump Chess'
 };
 const ANYON_SYMBOLS = {
@@ -336,6 +344,9 @@ if (URL_PHYSICAL_PROBLEM_ID && els.physicalProblemSelect) {
 
 function normalizeMode(value) {
     if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
+    if (value === 'anyon_reversi_game') return 'anyon_reversi';
+    if (value === 'clifford_jump_chess') return 'clifford_jump';
+    if (value === 'virasoro_jump_chess' || value === 'cft_jump') return 'virasoro_jump';
     if (value === 'clifford' || value === 'reversi') return 'clifford_reversi';
     if (value === 'physical_clifford_reversi' || value === 'physical_clifford' || value === 'physical_reversi') {
         return 'clifford_reversi';
@@ -357,7 +368,23 @@ function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_reversi' || mode === 'physical_virasoro_reversi';
+    return mode === 'clifford_reversi' || mode === 'physical_virasoro_reversi' || isAnyonReversiMode(mode);
+}
+
+function isAnyonReversiMode(mode = game?.mode || selectedMode()) {
+    return mode === 'anyon_reversi';
+}
+
+function isCliffordJumpMode(mode = game?.mode || selectedMode()) {
+    return mode === 'clifford_jump';
+}
+
+function isVirasoroJumpMode(mode = game?.mode || selectedMode()) {
+    return mode === 'virasoro_jump';
+}
+
+function isJumpMode(mode = game?.mode || selectedMode()) {
+    return mode === 'anyon_jump' || isCliffordJumpMode(mode) || isVirasoroJumpMode(mode);
 }
 
 function isCliffordGoMode(mode = game?.mode || selectedMode()) {
@@ -443,12 +470,30 @@ function selectedAnyonGrade() {
     return Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5)));
 }
 
-function selectedAnyonEngineModel() {
+function selectedAnyonEngineModel(mode = selectedMode()) {
+    if (isCliffordJumpMode(mode)) return 'toric_code';
+    if (isVirasoroJumpMode(mode)) return 'ising';
     return els.anyonModelSelect.value === 'zn_phase' ? 'zn' : els.anyonModelSelect.value;
 }
 
-function excitationCatalog() {
-    const model = selectedAnyonEngineModel();
+function excitationCatalog(mode = selectedMode()) {
+    if (isCliffordJumpMode(mode)) {
+        return {
+            model: 'toric_code',
+            grade: 2,
+            types: ['X', 'Z', 'Y'],
+            costs: { X: 2, Z: 2, Y: 4 }
+        };
+    }
+    if (isVirasoroJumpMode(mode)) {
+        return {
+            model: 'ising',
+            grade: 2,
+            types: ['sigma', 'epsilon'],
+            costs: { sigma: 2, epsilon: 4 }
+        };
+    }
+    const model = selectedAnyonEngineModel(mode);
     const grade = selectedAnyonGrade();
     const types = anyonTypes(model, grade).filter((type) => type !== '1');
     const costs = Object.fromEntries(types.map((type) => {
@@ -467,7 +512,7 @@ function syncAnyonExcitationTypeOptions() {
         option.value = type;
         const cost = Number(game?.excitationCost?.(type) ?? excitationCatalog().costs[type] ?? 0);
         const energy = Number(game?.energy?.[game.currentPlayer] ?? 12);
-        option.textContent = `${anyonDisplay(type)} - ${formatNumber(cost)} energy`;
+        option.textContent = `${jumpTypeDisplay(type)} - ${formatNumber(cost)} energy`;
         option.disabled = cost > energy;
         return option;
     }));
@@ -579,28 +624,34 @@ window.addEventListener('scroll', () => {
 function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
+    const isJump = isJumpMode(mode);
+    const isAnyonReversi = isAnyonReversiMode(mode);
+    const isCliffordJump = isCliffordJumpMode(mode);
+    const isVirasoroJump = isVirasoroJumpMode(mode);
+    const usesAnyonControls = isJump || isAnyonReversi;
+    const usesFreeAnyonModel = isAnyon || isAnyonReversi;
     const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
     const isCFTReversi = mode === 'physical_virasoro_reversi';
-    const isClifford = mode === 'clifford_reversi' || isCliffordGoMode(mode);
+    const isClifford = mode === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump;
     const isPhysicalClifford = mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical';
     const isStandardClifford = isClifford && !isPhysicalClifford;
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (els.modeControl) els.modeControl.hidden = false;
     if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isClifford;
-    if (els.cliffordAlgebraSetControl) els.cliffordAlgebraSetControl.hidden = isCliffordGoMode(mode);
+    if (els.cliffordAlgebraSetControl) els.cliffordAlgebraSetControl.hidden = isCliffordGoMode(mode) || isCliffordJump;
     if (els.physicalCliffordControls) els.physicalCliffordControls.hidden = !isPhysicalClifford;
-    if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !isAnyon;
+    if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !usesAnyonControls;
     if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = true;
-    if (els.cftReversiControls) els.cftReversiControls.hidden = !isVirasoroGo && !isCFTReversi;
-    if (isVirasoroGo || isCFTReversi) {
-        syncCFTInitialStateOptions(isVirasoroGo);
+    if (els.cftReversiControls) els.cftReversiControls.hidden = !isVirasoroGo && !isCFTReversi && !isVirasoroJump;
+    if (isVirasoroGo || isCFTReversi || isVirasoroJump) {
+        syncCFTInitialStateOptions(isVirasoroGo || isVirasoroJump);
         if (isCFTReversi) els.cftModelSelect.value = 'ising_CFT';
         syncCFTPrimaryOptions();
     }
-    if (els.cftModelControl) els.cftModelControl.hidden = !isVirasoroGo;
+    if (els.cftModelControl) els.cftModelControl.hidden = !isVirasoroGo && !isVirasoroJump;
     setAllowedSelectValues(
         els.latticeSelect,
-        isVirasoroGo ? ['square', 'honeycomb', 'triangular'] : ['square', 'honeycomb'],
+        isVirasoroGo || isVirasoroJump ? ['square', 'honeycomb', 'triangular'] : ['square', 'honeycomb'],
         'square'
     );
     if (els.physicalProblemSelect) {
@@ -634,22 +685,23 @@ function syncModeControls() {
     } else {
         setAllowedSelectValues(
             els.noiseModeSelect,
-            isAnyon
+            isJump
                 ? ['off', 'anyon_pair_creation', 'measurement_error', 'field_noise', 'custom']
+                : isAnyonReversi ? ['off', 'measurement_error', 'field_noise']
                 : ['off', 'pauli', 'measurement_error', 'field_noise', 'custom']
         );
         setAllowedSelectValues(
             els.floquetModeSelect,
-            isAnyon
+            isJump
                 ? ['off', 'basic', 'anyon', 'virasoro']
                 : ['off', 'basic', 'clifford', 'virasoro']
         );
     }
-    if (!isAnyon) els.anyonFlipSelect.value = 'off';
+    if (!isJump) els.anyonFlipSelect.value = 'off';
 
     els.pauliControl.hidden = !isStandardClifford;
-    els.transformControl.hidden = !isClifford;
-    els.phaseSignControl.hidden = !isStandardClifford;
+    els.transformControl.hidden = !isClifford || isCliffordJump;
+    els.phaseSignControl.hidden = !isStandardClifford || isCliffordJump;
     if (isPhysicalClifford) {
         let action = els.physicalActionSelect.value;
         const stabilizerProblem = selectedPhysicalProblemId() === 'stabilizer_pauli_recovery';
@@ -682,23 +734,23 @@ function syncModeControls() {
         els.physicalDomainWallThicknessControl.hidden = !isPhysicalClifford
             || els.physicalInitialStateSelect.value !== 'domain_wall_seed';
     }
-    els.braidMemoryControl.hidden = !isAnyon;
-    els.anyonModelControl.hidden = !isAnyon;
-    if (isAnyon && els.anyonModelSelect.value === 'zn_phase'
+    els.braidMemoryControl.hidden = !isJump;
+    els.anyonModelControl.hidden = !usesFreeAnyonModel;
+    if (usesFreeAnyonModel && els.anyonModelSelect.value === 'zn_phase'
         && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel') {
         els.braidMemoryModeSelect.value = 'word_exact';
     }
-    if (isAnyon) syncAnyonExcitationTypeOptions();
-    if (els.anyonGradeControl) els.anyonGradeControl.hidden = !isAnyon || els.anyonModelSelect.value !== 'zn_phase';
-    const nonabelianMemory = isAnyon
+    if (usesAnyonControls) syncAnyonExcitationTypeOptions();
+    if (els.anyonGradeControl) els.anyonGradeControl.hidden = !usesFreeAnyonModel || els.anyonModelSelect.value !== 'zn_phase';
+    const nonabelianMemory = isJump
         && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel';
     if (els.entanglementRangeControl) els.entanglementRangeControl.hidden = !nonabelianMemory;
     if (els.entanglementDistanceControl) {
         els.entanglementDistanceControl.hidden = !nonabelianMemory
             || els.entanglementRangeSelect.value !== 'finite';
     }
-    if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
-    const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
+    if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isJump;
+    const excitationMode = isJump && els.anyonSetupSelect?.value === 'excitation';
     if (els.anyonActionControl) els.anyonActionControl.hidden = true;
     if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
@@ -706,13 +758,13 @@ function syncModeControls() {
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
-    els.braidedCaptureDetails.hidden = !isAnyon;
-    els.braidCancellationControl.hidden = !isAnyon
+    els.braidedCaptureDetails.hidden = !isJump;
+    els.braidCancellationControl.hidden = !isJump
         || !['word_exact', 'nonabelian_fusion_channel'].includes(els.braidMemoryModeSelect.value);
-    if (isVirasoroGo || isCFTReversi) {
+    if (isVirasoroGo || isCFTReversi || isVirasoroJump) {
         const action = els.cftActionSelect.value;
-        els.cftDirectionControl.hidden = !['L-1', 'L-2'].includes(action);
-        els.cftMeasurementControl.hidden = action !== 'measure';
+        els.cftDirectionControl.hidden = isVirasoroJump || !['L-1', 'L-2'].includes(action);
+        els.cftMeasurementControl.hidden = isVirasoroJump || action !== 'measure';
         if (els.cftDomainWallThicknessControl) {
             els.cftDomainWallThicknessControl.hidden = !isCFTReversi
                 || els.cftInitialStateSelect.value !== 'domain_wall_seed';
@@ -725,10 +777,10 @@ function syncModeControls() {
             'place'
         );
     }
-    els.passButton.hidden = isAnyon;
+    els.passButton.hidden = isJump;
     els.countButton.hidden = !isGoMode(mode);
     els.measureButton.hidden = isGoMode(mode) || isPhysicalClifford || isCFTReversi;
-    els.unbraidHintButton.hidden = !isAnyon;
+    els.unbraidHintButton.hidden = !isJump;
     els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
@@ -748,18 +800,23 @@ function syncModeControls() {
                 : ['1,0', '-1,0', '0,1', '0,-1'],
         '1,0'
     );
-    if (els.blackBraidCard) els.blackBraidCard.hidden = !isAnyon && !isCFTReversi;
-    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isAnyon && !isCFTReversi;
-    if (els.braidEventSection) els.braidEventSection.hidden = !isAnyon;
+    if (els.blackBraidCard) els.blackBraidCard.hidden = !isJump && !isCFTReversi;
+    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isJump && !isCFTReversi;
+    if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
     if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
-    if (els.anyonRules) els.anyonRules.hidden = !isAnyon;
-    if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo;
+    if (els.anyonRules) els.anyonRules.hidden = !isAnyon && !isAnyonReversi;
+    if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo && !isVirasoroJump;
     if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
-        els.rulesIntroButton.textContent = isVirasoroGo
+        const introLabel = isVirasoroGo
             ? 'Virasoro Go Intro'
-            : isCFTReversi ? 'CFT Reversi Intro' : isAnyon ? 'Anyon Intro' : 'Clifford Intro';
+            : isVirasoroJump ? 'Virasoro Jump Intro'
+            : isCFTReversi ? 'CFT Reversi Intro'
+            : isAnyon || isAnyonReversi ? 'Anyon Intro'
+            : isCliffordJump ? 'Clifford Jump Intro' : 'Clifford Intro';
+        els.rulesIntroButton.textContent = introLabel;
+        if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = introLabel.replace('Intro', 'Introduction');
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
     return mode;
@@ -864,17 +921,21 @@ function selectedDirection() {
 }
 
 function anyonConfig() {
-    if (els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel'
+    const mode = selectedMode();
+    const fixedJumpAlgebra = isCliffordJumpMode(mode) || isVirasoroJumpMode(mode);
+    if (!fixedJumpAlgebra
+        && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel'
         && els.anyonModelSelect.value === 'toric_code') {
         els.anyonModelSelect.value = 'ising';
     }
-    if (els.anyonModelSelect.value === 'zn_phase'
+    if (!fixedJumpAlgebra
+        && els.anyonModelSelect.value === 'zn_phase'
         && els.braidMemoryModeSelect.value === 'nonabelian_fusion_channel') {
         els.braidMemoryModeSelect.value = 'word_exact';
     }
-    const selectedAnyonModel = els.anyonModelSelect.value;
+    const selectedAnyonModel = fixedJumpAlgebra ? excitationCatalog(mode).model : els.anyonModelSelect.value;
     const useGeneralPhase = selectedAnyonModel === 'zn_phase';
-    const catalog = excitationCatalog();
+    const catalog = excitationCatalog(mode);
     return {
         anyonModel: catalog.model,
         phaseModel: useGeneralPhase ? 'zn_phase' : 'off',
@@ -978,7 +1039,10 @@ function createGame() {
     }
     const options = {
         topology: topologyConfig(),
-        algebraSet: mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : null,
+        algebraSet: mode === 'clifford_reversi'
+            ? els.cliffordAlgebraSetSelect.value
+            : isCliffordJumpMode(mode) ? 'clifford_jump'
+                : isAnyonReversiMode(mode) ? 'anyon' : null,
         defaultFlipTransform: els.transformSelect.value,
         trackPhaseSigns: phaseSignsEnabled(),
         physicalInitialState: els.physicalInitialStateSelect.value,
@@ -999,6 +1063,9 @@ function createGame() {
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
+    else if (mode === 'clifford_jump') game = new CliffordJumpGame(options);
+    else if (mode === 'virasoro_jump') game = new VirasoroJumpGame(options);
+    else if (mode === 'anyon_reversi') game = new AnyonReversiGame(options);
     else if (mode === 'clifford_go') game = new CliffordGoGame(options);
     else if (mode === 'physical_virasoro_go') game = new VirasoroGoGame(options);
     else if (mode === 'physical_virasoro_reversi') game = new PhysicalVirasoroReversiGame(options);
@@ -1024,9 +1091,9 @@ function currentOnlineMatchKey() {
         topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '',
         topology === 'flat_4d_grid' ? els.wSizeInput.value : '',
         mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
-        mode === 'anyon_jump' ? els.anyonSetupSelect.value : '',
-        mode === 'anyon_jump' ? els.anyonModelSelect.value : '',
-        mode === 'anyon_jump' ? els.braidMemoryModeSelect.value : ''
+        isJumpMode(mode) ? els.anyonSetupSelect.value : '',
+        mode === 'anyon_jump' || mode === 'anyon_reversi' ? els.anyonModelSelect.value : '',
+        isJumpMode(mode) ? els.braidMemoryModeSelect.value : ''
     ].join(':');
 }
 
@@ -1130,7 +1197,7 @@ function loadOnlineGameState(state) {
         if (state.cftConfig?.model) els.cftModelSelect.value = state.cftConfig.model;
         if (state.cftConfig?.initialState) els.cftInitialStateSelect.value = state.cftConfig.initialState;
         createGame();
-        if (state.mode === 'anyon_jump') restoreAnyonState(state);
+        if (isJumpMode(state.mode)) restoreAnyonState(state);
         else if (state.go) restoreGoState(state);
         else restoreReversiState(state);
         lastOnlineSnapshotJSON = JSON.stringify(game.exportState());
@@ -1275,7 +1342,6 @@ async function runOnlineAction(action) {
 }
 
 async function prepareOnline() {
-    if (onlineReady) return onlineReady;
     onlineReady = initOnline(onlineHooks());
     return onlineReady;
 }
@@ -1433,7 +1499,7 @@ function currentReversiPreview() {
     return game.previewMove(
         hoverCoord,
         game.currentPlayer,
-        isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+        selectedReversiAlgebraValue()
     );
 }
 
@@ -1441,6 +1507,12 @@ function reversiPlacementActive() {
     return isReversiMode(game.mode)
         && (!isPhysicalCliffordMode(game.mode) || els.physicalActionSelect.value === 'reversi')
         && (!isCFTReversiMode(game.mode) || els.cftActionSelect.value === 'place');
+}
+
+function selectedReversiAlgebraValue() {
+    if (isCFTReversiMode(game?.mode)) return els.cftPrimarySelect.value;
+    if (isAnyonReversiMode(game?.mode)) return els.anyonExcitationTypeSelect.value || game?.placementTypes?.()[0] || 'e';
+    return els.transformSelect.value;
 }
 
 function currentVirasoroPreview() {
@@ -1480,7 +1552,7 @@ function render() {
     if (!game) return;
     normalizeLayerControls();
     const mode = syncModeControls();
-    const isAnyon = mode === 'anyon_jump';
+    const isJump = isJumpMode(mode);
     els.modeTitle.textContent = MODE_LABELS[mode];
     els.currentPlayer.textContent = capitalize(game.currentPlayer);
     els.topologyHint.textContent = game.topology.seamSummary();
@@ -1499,8 +1571,8 @@ function render() {
     els.timeDetails.hidden = !timeEnabled;
     els.manualNoiseButton.hidden = !noiseEnabled;
     els.manualTimeButton.hidden = !timeEnabled;
-    els.pauliNoiseControl.hidden = isAnyon || !['pauli', 'custom'].includes(els.noiseModeSelect.value);
-    els.anyonFlipControl.hidden = !isAnyon || !['anyon_pair_creation', 'custom'].includes(els.noiseModeSelect.value);
+    els.pauliNoiseControl.hidden = isJump || isAnyonReversiMode(mode) || !['pauli', 'custom'].includes(els.noiseModeSelect.value);
+    els.anyonFlipControl.hidden = !isJump || !['anyon_pair_creation', 'custom'].includes(els.noiseModeSelect.value);
     const online = getOnlineState();
     const onlineLocked = els.playModeSelect.value === 'online'
         && (online.room?.status !== 'playing' || online.playerColor !== game.currentPlayer);
@@ -1655,14 +1727,14 @@ function renderFlatBoard() {
     const legalReversi = reversiPlacementActive()
         ? new Set(game.legalMoves(
             game.currentPlayer,
-            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+            selectedReversiAlgebraValue()
         ).map((move) => coordKey(move.coord)))
         : new Set();
-    const legalAnyon = game.mode === 'anyon_jump' && selectedToken
+    const legalAnyon = isJumpMode(game.mode) && selectedToken
         ? game.legalActionsForToken(selectedToken)
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
-    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+    const legalAnyonExciteTargets = isJumpMode(game.mode) && game.config?.setupMode === 'excitation'
         ? new Set(game.topology.vertices()
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey))
@@ -1692,7 +1764,7 @@ function renderFlatBoard() {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
         if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
-        const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
+        const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
         if (token) {
@@ -1714,7 +1786,7 @@ function renderFlatBoard() {
         if (isCFTReversiMode(game.mode) && selectedCFTCoords.some((entry) => coordKey(entry) === key)) {
             cell.classList.add('cft-selected-region');
         }
-        if (game.mode === 'anyon_jump' && game.isFusionSite(coord)) cell.classList.add('fusion-site');
+        if (isJumpMode(game.mode) && game.isFusionSite(coord)) cell.classList.add('fusion-site');
         if (isPhysicalVirasoroGoMode(game.mode)) {
             const stress = game.stressAt(coord);
             if (stress.stress > 0) {
@@ -1755,7 +1827,7 @@ function renderFlatBoard() {
 
         if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
-        else if (game.mode === 'anyon_jump') renderAnyonToken(cell, coord);
+        else if (isJumpMode(game.mode)) renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
 
         if (isCFTMode(game.mode)) renderStress(cell, coord);
@@ -1792,24 +1864,24 @@ function algebraic3DViewState() {
             game.topology.sizes.join('x'),
             game.moveNumber,
             game.currentPlayer,
-            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+            selectedReversiAlgebraValue()
         ].join(':');
         if (legalReversiCache.signature !== signature) {
-            legalReversiCache = {
-                signature,
-                keys: game.legalMoves(
-                    game.currentPlayer,
-                    isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
-                )
+                legalReversiCache = {
+                    signature,
+                    keys: game.legalMoves(
+                        game.currentPlayer,
+                        selectedReversiAlgebraValue()
+                    )
                     .map((move) => coordKey(move.coord))
             };
         }
         legalReversi = legalReversiCache.keys;
     }
-    const legalAnyon = game.mode === 'anyon_jump' && selectedToken
+    const legalAnyon = isJumpMode(game.mode) && selectedToken
         ? game.legalActionsForToken(selectedToken)
         : [];
-    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+    const legalAnyonExciteTargets = isJumpMode(game.mode) && game.config?.setupMode === 'excitation'
         ? game.topology.vertices()
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey)
@@ -1838,7 +1910,7 @@ function algebraic3DViewState() {
         ]),
         trailKeys: braidTrailCells(),
         physicsView: els.physicsViewSelect.value,
-        paths: game.mode === 'anyon_jump'
+        paths: isJumpMode(game.mode)
             ? [
                 ...legalAnyon.map((action) => action.path),
                 ...(game.braidEventLog || []).map((event) => event.path)
@@ -1865,14 +1937,14 @@ function updateBoardHighlights() {
     const legalReversi = reversiPlacementActive()
         ? new Set(game.legalMoves(
             game.currentPlayer,
-            isCFTReversiMode(game.mode) ? els.cftPrimarySelect.value : els.transformSelect.value
+            selectedReversiAlgebraValue()
         ).map((move) => coordKey(move.coord)))
         : new Set();
-    const legalAnyon = game.mode === 'anyon_jump' && selectedToken
+    const legalAnyon = isJumpMode(game.mode) && selectedToken
         ? game.legalActionsForToken(selectedToken)
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
-    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+    const legalAnyonExciteTargets = isJumpMode(game.mode) && game.config?.setupMode === 'excitation'
         ? new Set(game.topology.vertices()
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey))
@@ -1894,7 +1966,7 @@ function updateBoardHighlights() {
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
-        const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
+        const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
@@ -1911,7 +1983,7 @@ function updateBoardHighlights() {
         cell.classList.toggle('stress-preview', virasoroAffected.has(key));
         cell.classList.toggle('stress-preview', virasoroAffected.has(key) || cftAffected.has(key));
         cell.classList.toggle('cft-selected-region', selectedCFTCoords.some((entry) => coordKey(entry) === key));
-        cell.classList.toggle('fusion-site', game.mode === 'anyon_jump' && game.isFusionSite(coord));
+        cell.classList.toggle('fusion-site', isJumpMode(game.mode) && game.isFusionSite(coord));
         const stress = isCFTMode(game.mode) ? game.stressAt(coord) : null;
         cell.classList.toggle('stressed', Boolean(stress?.stress > 0));
         cell.classList.toggle('unstable-group', false);
@@ -1928,7 +2000,7 @@ function updateBoardHighlights() {
 }
 
 function cancelTargetForSelectedToken() {
-    if (game?.mode !== 'anyon_jump' || !selectedToken) return '';
+    if (!isJumpMode(game?.mode) || !selectedToken) return '';
     const token = game.tokens.get(selectedToken);
     if (!token) return '';
     if (game.config?.braidMemoryMode === 'abelian_parity') {
@@ -1938,7 +2010,7 @@ function cancelTargetForSelectedToken() {
 }
 
 function wrongUnbraidTargetIds() {
-    if (game?.mode !== 'anyon_jump' || !selectedToken) return new Set();
+    if (!isJumpMode(game?.mode) || !selectedToken) return new Set();
     const selected = game.tokens.get(selectedToken);
     if (!selected || (!selected.isBraided && Number(selected.braidParity || 0) === 0)) return new Set();
     const cancelTarget = cancelTargetForSelectedToken();
@@ -1948,7 +2020,7 @@ function wrongUnbraidTargetIds() {
 }
 
 function braidTrailCells() {
-    if (game?.mode !== 'anyon_jump') return new Set();
+    if (!isJumpMode(game?.mode)) return new Set();
     const cells = new Set();
     for (const event of game.braidEventLog || []) {
         for (const coord of event.path || []) cells.add(coordKey(coord));
@@ -1978,13 +2050,18 @@ function renderReversiStone(cell, coord) {
     if (stone.nonStabilizerApprox) node.classList.add('non-stabilizer');
     if (stone.revealed === false || stone.pauliLabel === 'unknown') node.classList.add('hidden');
     const isPhysical = isPhysicalCliffordMode(game.mode);
-    const display = isPhysical
+    const isAnyonReversi = isAnyonReversiMode(game.mode);
+    const display = isAnyonReversi
+        ? jumpTypeDisplay(stone.anyonType)
+        : isPhysical
         ? (els.physicsViewSelect.value === 'physics'
             ? game.physicalLabel(stone)
             : stone.isAncilla ? 'A' : stone.color === 'black' ? 'B' : 'W')
         : pauliDisplay(stone);
     node.textContent = stone.revealed === false || stone.pauliLabel === 'unknown' ? '?' : display;
-    node.title = isPhysical
+    node.title = isAnyonReversi
+        ? `${stone.color} ${jumpTypeDisplay(stone.anyonType)} (${stone.anyonType}); fusions ${stone.fusionHistory?.length || 0}; ${game.time?.tooltipForEntity(stone) || ''}`
+        : isPhysical
         ? `${stone.color} sector; ${game.physicalLabel(stone)}; Pauli ${stone.pauliLabel}; sign ${stone.pauliSign}; phase ${stone.phase}; ancilla ${stone.isAncilla ? stone.ancillaBasis : 'no'}; non-stabilizer ${stone.nonStabilizerApprox ? 'yes' : 'no'}; last ${stone.lastUpdate?.action || 'setup'}`
         : `${stone.color} ${pauliDisplay(stone)}; ${game.time?.tooltipForEntity(stone) || ''}`;
     cell.append(node);
@@ -2046,7 +2123,7 @@ function renderAnyonToken(cell, coord) {
     if (phase.active) node.classList.add('phase-active', phase.sign > 0 ? 'phase-positive' : 'phase-negative');
     const label = document.createElement('span');
     label.className = 'anyon-label';
-    label.textContent = token.revealed === false ? '?' : anyonDisplay(token.anyonType);
+    label.textContent = token.revealed === false ? '?' : jumpTypeDisplay(token.anyonType);
     node.append(label);
     if (phase.active) {
         const phaseNode = document.createElement('span');
@@ -2065,7 +2142,7 @@ function renderAnyonToken(cell, coord) {
     const phaseInfo = phase.enabled ? `; Z_${phase.denominator} phase ${phase.active ? phase.text : '0'}` : '';
     const braidInfo = ` status ${braidStatusLabel(token)}; parity ${parity}; braid word ${word}; required inverse ${required}${phaseInfo}${channelInfo}${measured}${inverseInfo}`;
     const energyInfo = game.config?.setupMode === 'excitation' ? `; gap ${game.excitationGap?.(token.anyonType) ?? 0}` : '';
-    node.title = `${token.id} ${token.owner} ${anyonDisplay(token.anyonType)} (${token.anyonType})${energyInfo};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
+    node.title = `${token.id} ${token.owner} ${jumpTypeDisplay(token.anyonType)} (${token.anyonType})${energyInfo};${braidInfo}; ${game.time?.tooltipForEntity(token) || ''}`;
     cell.append(node);
 }
 
@@ -2345,6 +2422,36 @@ function showCFTPrimaryPalette(coord, event, { go = false } = {}) {
     });
 }
 
+function executeAnyonReversiPlacement(coord, anyonType = els.anyonExcitationTypeSelect.value) {
+    if ([...els.anyonExcitationTypeSelect.options].some((option) => option.value === anyonType)) {
+        els.anyonExcitationTypeSelect.value = anyonType;
+    }
+    const result = game.place(coord, {
+        anyonType,
+        player: game.currentPlayer
+    });
+    if (result?.ok) {
+        hoverCoord = null;
+        els.statusText.textContent = `Placed ${jumpTypeDisplay(result.event.anyonType)}; fused ${result.event.flipped.length} interval charge${result.event.flipped.length === 1 ? '' : 's'}.`;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function showAnyonReversiPalette(coord, event) {
+    const types = game.placementTypes?.() || excitationCatalog().types;
+    return showActionPalette(coord, event, {
+        title: `Place charge at ${game.topology.displayCoord(coord)}`,
+        status: 'Choose the anyon charge for this Reversi placement.',
+        items: types.map((type) => ({
+            label: `Place ${jumpTypeDisplay(type)}`,
+            detail: game.config?.anyonModel === 'zn' ? `Z_${game.config.generalAnyonGrade} charge ${type}` : type,
+            onChoose: () => executeAnyonReversiPlacement(coord, type)
+        }))
+    });
+}
+
 function executeAnyonDrop(tokenId) {
     const result = game.dropAnyon(tokenId, game.currentPlayer);
     els.statusText.textContent = result.ok
@@ -2358,7 +2465,7 @@ function executeAnyonExcite(coord, anyonType) {
     els.anyonExcitationTypeSelect.value = anyonType;
     const result = game.exciteAnyon(coord, anyonType, game.currentPlayer);
     els.statusText.textContent = result.ok
-        ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
+        ? `${capitalize(result.event.player)} excited ${jumpTypeDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
         : result.error;
     if (result.ok) {
         selectedToken = '';
@@ -2369,7 +2476,7 @@ function executeAnyonExcite(coord, anyonType) {
 
 function executeAnyonSelect(token) {
     selectedToken = token.id;
-    els.statusText.textContent = `Selected ${token.id} (${token.anyonType}). Click an empty site to move, another anyon to braid/unbraid, or choose Recombine / Recover from its site menu.`;
+    els.statusText.textContent = `Selected ${token.id} (${jumpTypeDisplay(token.anyonType)}). Click an empty site to move, another token to braid/unbraid, or use Recombine / Recover.`;
     render();
 }
 
@@ -2441,11 +2548,13 @@ function executeAnyonMove(coord) {
     render();
 }
 
-function anyonExcitationItems(coord) {
+function anyonExcitationItems(coord, { availableOnly = false } = {}) {
     syncAnyonExcitationTypeOptions();
-    return [...els.anyonExcitationTypeSelect.options].map((option) => ({
-        label: `Excite ${anyonDisplay(option.value)}`,
-        detail: option.textContent.trim().replace(`${anyonDisplay(option.value)} - `, ''),
+    const options = [...els.anyonExcitationTypeSelect.options]
+        .filter((option) => !availableOnly || !option.disabled);
+    return options.map((option) => ({
+        label: `Excite ${jumpTypeDisplay(option.value)}`,
+        detail: option.textContent.trim().replace(`${jumpTypeDisplay(option.value)} - `, ''),
         disabled: option.disabled,
         onChoose: () => executeAnyonExcite(coord, option.value)
     }));
@@ -2454,64 +2563,38 @@ function anyonExcitationItems(coord) {
 function handleAnyonExcitationClick(coord, event) {
     const token = game.tokenAt(coord);
     if (token) {
-        const items = [];
         if (selectedToken && token.id !== selectedToken) {
-            items.push({
-                label: 'Braid / Unbraid With Selected',
-                detail: `${selectedToken} -> ${token.id}`,
-                onChoose: () => executeAnyonTargetToken(token)
-            });
-        }
-        if (token.owner === game.currentPlayer) {
-            items.push({
-                label: token.id === selectedToken ? 'Keep Selected for Move' : 'Select for Move / Braid',
-                detail: `${token.id} ${anyonDisplay(token.anyonType)}`,
-                onChoose: () => executeAnyonSelect(token)
-            });
-            items.push({
-                label: 'Recombine / Recover',
-                detail: `return gap energy minus ${formatNumber(Number(els.anyonDropLossInput.value || 0) * 100)}%`,
-                onChoose: () => executeAnyonDrop(token.id)
-            });
-            if (token.id === selectedToken) {
-                items.push({
-                    label: 'Clear Selection',
-                    onChoose: () => {
-                        selectedToken = '';
-                        els.statusText.textContent = 'Selection cleared.';
-                        render();
-                    }
-                });
-            }
-        }
-        if (!items.length) {
-            els.statusText.textContent = selectedToken
-                ? 'Choose Braid / Unbraid with selected from a valid target.'
-                : 'Select one of your anyons first.';
+            executeAnyonTargetToken(token);
             return;
         }
-        showActionPalette(coord, event, {
-            title: `Anyon at ${game.topology.displayCoord(coord)}`,
-            status: 'Choose the local anyon action for this site.',
-            items
-        });
+        if (token.owner === game.currentPlayer) {
+            if (token.id === selectedToken) {
+                selectedToken = '';
+                els.statusText.textContent = 'Selection cleared.';
+                render();
+                return;
+            }
+            executeAnyonSelect(token);
+            return;
+        }
+        els.statusText.textContent = selectedToken
+            ? 'That target cannot be braided or unbraided by the selected anyon.'
+            : 'Select one of your own anyons first.';
         return;
     }
 
-    const items = [];
     if (selectedToken) {
-        items.push({
-            label: 'Move Selected Here',
-            detail: selectedToken,
-            onChoose: () => executeAnyonMove(coord)
-        });
+        executeAnyonMove(coord);
+        return;
     }
-    items.push(...anyonExcitationItems(coord));
+    const items = anyonExcitationItems(coord, { availableOnly: true });
+    if (!items.length) {
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} has no affordable excitation for this empty site.`;
+        return;
+    }
     showActionPalette(coord, event, {
         title: `Empty site ${game.topology.displayCoord(coord)}`,
-        status: selectedToken
-            ? 'Move the selected anyon here, or excite a new particle on this site.'
-            : 'Choose the excitation particle for this site.',
+        status: 'Choose an available excitation particle for this site.',
         items
     });
 }
@@ -2539,6 +2622,10 @@ function handleCellClick(coord, event = null) {
             return;
         }
         handleCFTReversiClick(coord);
+        return;
+    }
+    if (isAnyonReversiMode(game.mode)) {
+        showAnyonReversiPalette(coord, event);
         return;
     }
     if (isCliffordGoMode(game.mode)) {
@@ -2661,7 +2748,7 @@ function handleCellClick(coord, event = null) {
         const selectedType = els.anyonExcitationTypeSelect.value;
         const result = game.exciteAnyon(coord, selectedType, game.currentPlayer);
         els.statusText.textContent = result.ok
-            ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
+            ? `${capitalize(result.event.player)} excited ${jumpTypeDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
             : result.error;
         if (result.ok) {
             selectedToken = '';
@@ -2716,7 +2803,7 @@ function handleCellClick(coord, event = null) {
 }
 
 function handleCellDoubleClick(coord) {
-    if (game.mode !== 'anyon_jump' || game.config?.setupMode !== 'excitation') return;
+    if (!isJumpMode(game.mode) || game.config?.setupMode !== 'excitation') return;
     const token = game.tokenAt(coord);
     if (!token || token.owner !== game.currentPlayer) return;
     const result = game.dropAnyon(token.id, game.currentPlayer);
@@ -2734,9 +2821,11 @@ function measureTarget() {
     }
     if (isReversiMode(game.mode)) {
         const target = hoverCoord || [...game.board.keys()][0]?.split(',').map(Number);
-        const result = game.measurePauliParity(target, game.currentPlayer);
+        const result = isAnyonReversiMode(game.mode)
+            ? game.measureAnyonChargeAt(target, game.currentPlayer)
+            : game.measurePauliParity(target, game.currentPlayer);
         els.statusText.textContent = result.ok
-            ? `Measured Pauli parity: ${result.measurement.reported}${result.measurement.error ? ' (error)' : ''}.`
+            ? `Measured ${isAnyonReversiMode(game.mode) ? 'anyon charge' : 'Pauli parity'}: ${result.measurement.reported}${result.measurement.error ? ' (error)' : ''}.`
             : result.error;
         render();
         return;
@@ -2779,8 +2868,8 @@ function applyTimeNow() {
 }
 
 function dropSelectedAnyon() {
-    if (game.mode !== 'anyon_jump' || game.config?.setupMode !== 'excitation') {
-        els.statusText.textContent = 'Drop recovery is only available in Anyon excitation mode.';
+    if (!isJumpMode(game.mode) || game.config?.setupMode !== 'excitation') {
+        els.statusText.textContent = 'Drop recovery is only available in Jump excitation mode.';
         return;
     }
     if (!selectedToken) {
@@ -2804,11 +2893,9 @@ function setRulesIntroOpen(open) {
     els.rulesIntroPanel.classList.toggle('is-open', open);
     els.rulesIntroPanel.setAttribute('aria-hidden', String(!open));
     els.rulesIntroButton.setAttribute('aria-expanded', String(open));
-    if (open) {
-        window.requestAnimationFrame(() => {
-            els.rulesIntroPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        });
-    }
+    document.body.classList.toggle('modal-open', open);
+    if (open) window.requestAnimationFrame(() => els.rulesIntroPanel.focus({ preventScroll: true }));
+    else els.rulesIntroButton.focus({ preventScroll: true });
 }
 
 function toggleRulesIntro() {
@@ -2848,6 +2935,20 @@ function renderStats() {
     }
     if (isReversiMode(game.mode)) {
         const counts = game.counts();
+        if (isAnyonReversiMode(game.mode)) {
+            els.blackCountLabel.textContent = 'Black Charges';
+            els.whiteCountLabel.textContent = 'White Charges';
+            els.blackBraidLabel.textContent = 'Charge Types';
+            els.whiteBraidLabel.textContent = 'Fusion Moves';
+            els.blackCount.textContent = counts.black;
+            els.whiteCount.textContent = counts.white;
+            els.blackBraid.textContent = Object.entries(counts.labels || {})
+                .filter(([, count]) => count)
+                .map(([type, count]) => `${jumpTypeDisplay(type)}:${count}`)
+                .join(' ') || '0';
+            els.whiteBraid.textContent = game.history.filter((event) => event.type === 'place').length;
+            return;
+        }
         els.blackCount.textContent = counts.black;
         els.whiteCount.textContent = counts.white;
         els.blackBraid.textContent = '0';
@@ -2949,6 +3050,16 @@ function updateStatus() {
     }
     if (isReversiMode(game.mode)) {
         const preview = currentReversiPreview();
+        if (isAnyonReversiMode(game.mode)) {
+            const selectedType = selectedReversiAlgebraValue();
+            if (preview?.legal) {
+                els.statusText.textContent = `${capitalize(game.currentPlayer)} can fuse ${preview.flips.length} bracketed charge${preview.flips.length === 1 ? '' : 's'} with ${jumpTypeDisplay(selectedType)}.`;
+            } else if (!hoverCoord) {
+                const moves = game.legalMoves(game.currentPlayer, selectedType).length;
+                els.statusText.textContent = `${capitalize(game.currentPlayer)} has ${moves} legal Anyon Reversi move${moves === 1 ? '' : 's'}.`;
+            }
+            return;
+        }
         if (preview?.legal) {
             const phase = phaseSignsEnabled() ? ' with phase signs' : '';
             els.statusText.textContent = `${capitalize(game.currentPlayer)} can flip ${preview.flips.length} with ${els.transformSelect.value}${phase}.`;
@@ -2997,7 +3108,7 @@ function updateStatus() {
             return;
         }
         if (anyonTurnAction === 'excite') {
-            els.statusText.textContent = `Excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)}: click an empty vertex. Choose Move / Braid to move ${selectedToken}.`;
+            els.statusText.textContent = `Excite ${jumpTypeDisplay(els.anyonExcitationTypeSelect.value)}: click an empty vertex. Choose Move / Braid to move ${selectedToken}.`;
             return;
         }
         const inverse = token && ((token.braidParity || 0) === 1 || token.isBraided)
@@ -3018,7 +3129,7 @@ function updateStatus() {
     } else {
         const anyonTurnAction = game.config?.setupMode === 'excitation' ? els.anyonActionSelect.value : 'move';
         els.statusText.textContent = game.config?.setupMode === 'excitation' && anyonTurnAction === 'excite'
-            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)} on an empty vertex.`
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Excite ${jumpTypeDisplay(els.anyonExcitationTypeSelect.value)} on an empty vertex.`
             : game.config?.setupMode === 'excitation' && anyonTurnAction === 'recombine'
             ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an owned anyon to recombine and recover energy.`
             : game.config?.setupMode === 'excitation'
@@ -3046,6 +3157,14 @@ function renderLegend() {
             'T(v) is the discrete stress proxy',
             'Correlations, blocks, and entropy are graph estimators'
         ]
+        : isAnyonReversiMode(game.mode)
+        ? [
+            `${els.anyonModelSelect.value === 'zn_phase' ? 'Z_n charges' : 'Anyon charges'} are placed with the local site palette`,
+            'Gold outline previews bracketed fusion flips',
+            'Flipped chains fuse with the placed charge',
+            'Twisted seams apply the topology charge automorphism',
+            'Measurement reports connected-domain total charge'
+        ]
         : isReversiMode(game.mode)
         ? [
             phaseSignsEnabled() ? '+/- phase signs shown' : 'X,Y,Z Pauli labels',
@@ -3071,7 +3190,11 @@ function renderLegend() {
                     'Pass twice, then both players agree to count'
                 ]
             : [
-            els.anyonModelSelect.value === 'zn_phase'
+            isCliffordJumpMode(game.mode)
+                ? 'Clifford Jump labels: X, Z, and Y move by Anyon Jump rules'
+                : isVirasoroJumpMode(game.mode)
+                ? 'Virasoro Jump labels: sigma and epsilon primary excitations'
+                : els.anyonModelSelect.value === 'zn_phase'
                 ? `General Z_${Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5)))} phase: braid +1/n, inverse -1/n`
                 : els.anyonModelSelect.value === 'ising'
                 ? 'Ising anyons: 1, \u03c3, \u03c8'
@@ -3083,8 +3206,8 @@ function renderLegend() {
             'Braided marker: nontrivial memory',
             'Green UNBRAID badge: next inverse loop',
             game.config?.setupMode === 'excitation'
-                ? `Excitation mode: ${excitationCatalog().types.map(anyonDisplay).join(', ')} use energy; drop/fusion recovers energy with loss`
-                : 'Standard mode: fixed initial anyon set',
+                ? `Excitation mode: ${excitationCatalog().types.map(jumpTypeDisplay).join(', ')} use energy; drop/fusion recovers energy with loss`
+                : 'Standard mode: fixed initial token set',
             game.config?.braidMemoryMode === 'nonabelian_fusion_channel'
                 ? `Entanglement range: ${game.config.entanglementRangeMode === 'finite'
                     ? `${game.config.entanglementDistance} graph steps`
@@ -3131,7 +3254,11 @@ function renderHistory() {
             item.textContent = `#${event.number} ${event.player || event.color} passed.`;
         } else if (isReversiMode(game.mode)) {
             const time = event.time?.applied ? `; t${event.time.after.tick} phase ${event.time.phase}` : '';
-            item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
+            if (isAnyonReversiMode(game.mode)) {
+                item.textContent = `#${event.number} ${event.player} ${jumpTypeDisplay(event.anyonType)}@${event.coord.join(',')} fused ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
+            } else {
+                item.textContent = `#${event.number} ${event.player} ${event.pauliLabel}@${event.coord.join(',')} flipped ${event.flipped.length}; winding (${event.winding.x},${event.winding.y})${time}.`;
+            }
         } else if (isGoMode(game.mode)) {
             if (event.type === 'play') {
                 const inserted = isCliffordGoMode(game.mode)
@@ -3156,7 +3283,7 @@ function renderHistory() {
                     || '';
                 item.textContent = `#${event.number} ${event.player} attempt_unbraid ${event.tokenId} around ${event.targetId}: ${result}, parity ${event.unbraid.braidParity}, word ${event.unbraid.afterLength}${channel ? `, channel ${channel}` : ''}.`;
             } else if (event.kind === 'excite') {
-                item.textContent = `#${event.number} ${event.player} excited ${anyonDisplay(event.anyonType)} at ${event.coord.join(',')}; cost ${event.cost}.`;
+                item.textContent = `#${event.number} ${event.player} excited ${jumpTypeDisplay(event.anyonType)} at ${event.coord.join(',')}; cost ${event.cost}.`;
             } else if (event.kind === 'drop') {
                 item.textContent = `#${event.number} ${event.player} dropped ${event.tokenId}; recovered ${formatNumber(event.recovered)}.`;
             } else {
@@ -3204,12 +3331,12 @@ function renderStochasticLog() {
 function renderBraidEventLog() {
     if (!els.braidEventList) return;
     els.braidEventList.innerHTML = '';
-    const events = game.mode === 'anyon_jump' ? [...(game.braidEventLog || [])].slice(-18).reverse() : [];
+    const events = isJumpMode(game.mode) ? [...(game.braidEventLog || [])].slice(-18).reverse() : [];
     if (!events.length) {
         const item = document.createElement('li');
-        item.textContent = game.mode === 'anyon_jump'
+        item.textContent = isJumpMode(game.mode)
             ? 'No braid or unbraid events yet.'
-            : 'Braid memory is available in Anyon Jump.';
+            : 'Braid memory is available in Jump modes.';
         els.braidEventList.append(item);
         return;
     }
@@ -3261,6 +3388,17 @@ function anyonDisplay(type) {
     return ANYON_SYMBOLS[type] || type;
 }
 
+function jumpTypeDisplay(type) {
+    if (game?.displayType) return game.displayType(type);
+    if (isCliffordJumpMode()) {
+        return ({ e: 'X', m: 'Z', psi: 'Y', 1: 'I' })[type] || type;
+    }
+    if (isVirasoroJumpMode()) {
+        return ({ sigma: '\u03c3', epsilon: '\u03b5', psi: '\u03b5', 1: '1', identity: '1' })[type] || anyonDisplay(type);
+    }
+    return anyonDisplay(type);
+}
+
 function formatNumber(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '0';
@@ -3281,7 +3419,7 @@ function anyonPhaseDisplay(token) {
 }
 
 function showUnbraidHint() {
-    if (game?.mode !== 'anyon_jump') return;
+    if (!isJumpMode(game?.mode)) return;
     if (!selectedToken) {
         els.statusText.textContent = 'Select a braided anyon first. A green UNBRAID badge will mark the next inverse target.';
         return;
@@ -3437,6 +3575,13 @@ els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
 els.dropAnyonButton.addEventListener('click', dropSelectedAnyon);
 els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
+els.rulesIntroCloseButton.addEventListener('click', () => setRulesIntroOpen(false));
+els.rulesIntroPanel.addEventListener('pointerdown', (event) => {
+    if (event.target === els.rulesIntroPanel) setRulesIntroOpen(false);
+});
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && rulesIntroIsOpen()) setRulesIntroOpen(false);
+});
 els.playModeSelect.addEventListener('change', async () => {
     const online = els.playModeSelect.value === 'online';
     syncOnlineModeVisibility();

@@ -4,6 +4,12 @@ import {
     setPauliLabel
 } from '../../../js/algebra/PauliAlgebra.js';
 import { SeededRandom } from '../../../js/probability/SeededRandom.js';
+import {
+    advanceIndexedPieceAges,
+    clockProgress,
+    createAgeArray,
+    normalizePieceTimeConfig
+} from '../../../js/time/PieceAgeClock.js';
 
 export const COLORS = {
     empty: 0,
@@ -114,7 +120,7 @@ export class GoGameLogic {
         this.reset(options);
     }
 
-    reset({ size = 9, dimension = 2, topology = 'open2d', lattice = 'square', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null } = {}) {
+    reset({ size = 9, dimension = 2, topology = 'open2d', lattice = 'square', komi = 7.5, randomBoundarySeed = '', randomBoundaryMap = null, pieceTime = null, pieceAges = null } = {}) {
         this.size = Number(size) || 9;
         this.dimension = Number(dimension) || 2;
         this.topology = normalizeTopology(topology);
@@ -127,6 +133,8 @@ export class GoGameLogic {
         this.total = this.size ** this.dimension;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
+        this.pieceTime = normalizePieceTimeConfig(pieceTime);
+        this.pieceAges = createAgeArray(this.total, pieceAges);
         this.cliffordGoEnabled = false;
         this.currentPlayer = 'black';
         this.captures = { black: 0, white: 0 };
@@ -140,6 +148,29 @@ export class GoGameLogic {
         this.moveHistory = [];
         this.positionHistory = [this.serializeBoard(this.board)];
         this.positionSet = new Set(this.positionHistory);
+    }
+
+    setPieceTimeConfig(config = {}) {
+        this.pieceTime = normalizePieceTimeConfig(config);
+        if (!this.pieceAges || this.pieceAges.length !== this.total) this.pieceAges = createAgeArray(this.total);
+    }
+
+    pieceAgeAt(index) {
+        return this.pieceAges?.[Number(index)] || 0;
+    }
+
+    pieceClockProgressAt(index) {
+        return clockProgress(this.pieceAgeAt(index), this.pieceTime?.lifespan);
+    }
+
+    applyPieceTime(protectedIndexes = []) {
+        return advanceIndexedPieceAges({
+            board: this.board,
+            labels: this.pauliLabels,
+            ages: this.pieceAges,
+            config: this.pieceTime,
+            protectedIndexes
+        });
     }
 
     coordKey(coord) {
@@ -284,8 +315,10 @@ export class GoGameLogic {
         const enemyValue = colorToValue(otherColor(color));
         const nextBoard = new Uint8Array(this.board);
         const nextLabels = [...this.pauliLabels];
+        const nextAges = createAgeArray(nextBoard.length, this.pieceAges);
         nextBoard[index] = ownValue;
         nextLabels[index] = normalizePauliLabel(options.pauli || options.pauliLabel || 'I');
+        nextAges[index] = 0;
 
         let captured = 0;
         const checkedEnemyGroups = new Set();
@@ -297,6 +330,7 @@ export class GoGameLogic {
                 for (const stone of enemy.group) {
                     nextBoard[stone] = COLORS.empty;
                     nextLabels[stone] = 'I';
+                    nextAges[stone] = 0;
                     captured++;
                 }
             }
@@ -307,6 +341,13 @@ export class GoGameLogic {
             return { ok: false, error: 'Suicide is not allowed.' };
         }
 
+        const timeResult = advanceIndexedPieceAges({
+            board: nextBoard,
+            labels: nextLabels,
+            ages: nextAges,
+            config: this.pieceTime,
+            protectedIndexes: [index]
+        });
         const serialized = this.serializeBoard(nextBoard);
         if (this.positionSet.has(serialized)) {
             return { ok: false, error: 'Superko: this board position already occurred.' };
@@ -314,6 +355,7 @@ export class GoGameLogic {
 
         this.board = nextBoard;
         this.pauliLabels = nextLabels;
+        this.pieceAges = nextAges;
         this.captures[color] += captured;
         this.passCount = 0;
         this.countAgreements = { black: false, white: false };
@@ -323,12 +365,13 @@ export class GoGameLogic {
             color,
             coord: [...coord],
             captured,
+            expired: timeResult.expired.map((stone) => this.coordFromIndex(stone)),
             number: this.moveNumber
         });
         this.positionHistory.push(serialized);
         this.positionSet.add(serialized);
         this.currentPlayer = otherColor(color);
-        return { ok: true, captured };
+        return { ok: true, captured, expired: timeResult.expired.length };
     }
 
     setPauliAt(coord, label) {
@@ -373,7 +416,13 @@ export class GoGameLogic {
 
         this.passCount++;
         this.moveNumber++;
-        this.moveHistory.unshift({ type: 'pass', color, number: this.moveNumber });
+        const timeResult = this.applyPieceTime();
+        this.moveHistory.unshift({ type: 'pass', color, number: this.moveNumber, expired: timeResult.expired.map((stone) => this.coordFromIndex(stone)) });
+        if (timeResult.expired.length) {
+            const serialized = this.serializeBoard(this.board);
+            this.positionHistory.push(serialized);
+            this.positionSet.add(serialized);
+        }
         this.currentPlayer = otherColor(color);
         if (this.passCount >= 2) {
             this.scoringPending = true;
@@ -453,6 +502,8 @@ export class GoGameLogic {
             komi: this.komi,
             board: Array.from(this.board),
             pauliLabels: [...this.pauliLabels],
+            pieceTime: { ...this.pieceTime },
+            pieceAges: Array.from(this.pieceAges || []),
             cliffordGoEnabled: this.cliffordGoEnabled,
             currentPlayer: this.currentPlayer,
             captures: { ...this.captures },
@@ -482,6 +533,8 @@ export class GoGameLogic {
         this.total = this.size ** this.dimension;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
+        this.pieceTime = normalizePieceTimeConfig(state.pieceTime);
+        this.pieceAges = createAgeArray(this.total, state.pieceAges);
         if (Array.isArray(state.board)) {
             for (let i = 0; i < Math.min(this.board.length, state.board.length); i++) {
                 const value = Number(state.board[i]);

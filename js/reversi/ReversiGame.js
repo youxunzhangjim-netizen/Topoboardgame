@@ -16,7 +16,9 @@ export const REVERSI_TOPOLOGIES = {
     R3_RANDOM: 'r3_random',
     R4: 'r4',
     T2: 't2',
-    SPHERE: 'sphere'
+    SPHERE: 'sphere',
+    MOBIUS: 'mobius',
+    RP2: 'rp2'
 };
 
 export function otherReversiColor(color) {
@@ -51,6 +53,39 @@ export function normalizeKlein(x, y, width, height) {
         normalizedX = width - 1 - normalizedX;
     }
     return [mod(normalizedX, width), normalizedY];
+}
+
+export function normalizeMobius(x, y, width, height) {
+    if (y < 0 || y >= height) return null;
+    const wraps = Math.floor(x / width);
+    const normalizedX = mod(x, width);
+    const normalizedY = Math.abs(wraps) % 2 === 1 ? height - 1 - y : y;
+    return [normalizedX, normalizedY];
+}
+
+export function normalizeRP2(x, y, width, height) {
+    let nx = x;
+    let ny = y;
+    let guard = 0;
+    const limit = Math.max(16, (width + height) * 8);
+    while ((nx < 0 || nx >= width || ny < 0 || ny >= height) && guard < limit) {
+        if (nx < 0) {
+            nx += width;
+            ny = height - 1 - ny;
+        } else if (nx >= width) {
+            nx -= width;
+            ny = height - 1 - ny;
+        }
+        if (ny < 0) {
+            ny += height;
+            nx = width - 1 - nx;
+        } else if (ny >= height) {
+            ny -= height;
+            nx = width - 1 - nx;
+        }
+        guard += 1;
+    }
+    return [mod(nx, width), mod(ny, height)];
 }
 
 function coordinateKey(coord) {
@@ -279,6 +314,12 @@ export function createReversiTopology(options = {}) {
             if (topology === REVERSI_TOPOLOGIES.KLEIN) {
                 return normalizeKlein(x, y, width, height);
             }
+            if (topology === REVERSI_TOPOLOGIES.MOBIUS) {
+                return normalizeMobius(x, y, width, height);
+            }
+            if (topology === REVERSI_TOPOLOGIES.RP2) {
+                return normalizeRP2(x, y, width, height);
+            }
             if (topology === REVERSI_TOPOLOGIES.RANDOM) {
                 if (x < 0 || x >= width || y < 0 || y >= height) return null;
                 return [x, y];
@@ -367,6 +408,8 @@ export function normalizeReversiTopology(value) {
     if (['r4', '4d', 'flat_4d_reversi', 'flat4d', '4d_reversi'].includes(text)) return REVERSI_TOPOLOGIES.R4;
     if (['t2', 'torus', 'torus2d'].includes(text)) return REVERSI_TOPOLOGIES.T2;
     if (['s2', 'sphere', 'sphere_latitude_ring'].includes(text)) return REVERSI_TOPOLOGIES.SPHERE;
+    if (['mobius', 'moebius', 'mobius_strip', 'mobius-strip'].includes(text)) return REVERSI_TOPOLOGIES.MOBIUS;
+    if (['rp2', 'projective', 'real_projective_plane', 'real-projective-plane'].includes(text)) return REVERSI_TOPOLOGIES.RP2;
     return REVERSI_TOPOLOGIES.OPEN_2D;
 }
 

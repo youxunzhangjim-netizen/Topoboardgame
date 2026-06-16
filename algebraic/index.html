@@ -33,8 +33,11 @@
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
                             <option value="clifford_go">Clifford Go</option>
+                            <option value="clifford_jump">Clifford Jump Chess</option>
+                            <option value="anyon_reversi">Anyon Reversi</option>
                             <option value="physical_virasoro_reversi">Virasoro Reversi</option>
                             <option value="physical_virasoro_go">Virasoro Go</option>
+                            <option value="virasoro_jump">Virasoro Jump Chess</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
                         </select>
                     </label>
@@ -685,7 +688,16 @@
                     <canvas id="algebraic3dBoard" class="algebraic-3d-board" aria-label="Interactive algebraic board in 3D space" hidden></canvas>
                     <button id="reset3dCameraButton" class="reset-3d-camera" type="button" hidden>Reset Camera</button>
                 </div>
-                <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
+                <section class="rules-intro-panel" id="rulesIntroPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="rulesIntroTitle" tabindex="-1">
+                    <div class="rules-intro-dialog">
+                        <div class="rules-intro-header">
+                            <div>
+                                <span>Introduction</span>
+                                <strong id="rulesIntroTitle">Algebraic Game Guide</strong>
+                            </div>
+                            <button id="rulesIntroCloseButton" type="button" aria-label="Close introduction">Cancel</button>
+                        </div>
+                        <div class="rules-intro-content" aria-live="polite">
                     <div data-rules-mode="clifford">
                         <h2>Clifford Introduction and Observables</h2>
                         <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Stabilizer Algebra to use qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
@@ -731,7 +743,7 @@
                         <p><strong>Vacuum 1:</strong> 1 is the trivial topological charge, meaning no nontrivial anyon remains. It acts like the identity in fusion: 1 x a = a.</p>
                         <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
                         <p><strong>Unbraiding:</strong> select a braided token. The valid target is marked with a green UNBRAID badge. Clicking that target applies the next inverse generator. Full unbraiding requires the reverse inverse sequence; a wrong target or wrong sign appends a new braid instead of clearing the word. A successful inverse also reduces the visible braid count.</p>
-                        <p><strong>Local excitation choice:</strong> in Excitation Energy mode, click an empty site to open the particle palette at that site. Click an owned anyon to select movement, braid/unbraid, or Recombine / Recover from a local action menu.</p>
+                        <p><strong>Local excitation choice:</strong> in Excitation Energy mode, click an empty site to open only the affordable particle palette. Click an owned anyon to select it, then click an empty site to move or another token to braid/unbraid naturally; use Recombine / Recover for the selected anyon.</p>
                         <p><strong>General Z_n phase:</strong> the selectable non-vacuum charges are &alpha;<sub>1</sub> through &alpha;<sub>n-1</sub>. Fusion adds grades modulo n, so &alpha;<sub>i</sub> x &alpha;<sub>j</sub> = &alpha;<sub>(i+j) mod n</sub>, with grade 0 equal to vacuum 1. A positive braid adds +1/n, an inverse unbraid subtracts 1/n, and the token shows the signed net phase as a flat shadow under the piece.</p>
                         <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, &psi; x &psi; = 1, e x m = &psi;, e x &psi; = m, and m x &psi; = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
                         <p><strong>Toric Memory Unbraid:</strong> the physical-problem option initializes local e and m pairs with vacuum total charge, records the logical winding sector, and shows QEC observables after every move. Crossing a noncontractible cycle can create a logical error; exact inverse braids reduce braid memory; complete vacuum fusion is recorded as vacuum recovery.</p>
@@ -753,6 +765,8 @@
                         <p><strong>Measurements:</strong> measure a two-point estimate, four-point block, region entropy, OPE channel, dominant block, or stress. Hidden channels collapse when measured and seeded measurement errors are logged.</p>
                         <p><strong>Observables:</strong> every turn records primary counts, approximate correlators, cross-ratio, conformal-block weights, dominant block, stress proxy, total conformal weight, OPE clusters, entropy, mutual information, anomaly events, and topology sector.</p>
                         <p><strong>Results:</strong> CFT Conformal Block Observables exports initial and final observables, full physics history, block distribution, strongest two-point correlations, entropy trend, anomaly count, vacuum-block dominance, and a final summary of the discrete graph estimate.</p>
+                    </div>
+                        </div>
                     </div>
                 </section>
             </div>

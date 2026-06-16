@@ -20,7 +20,7 @@
             <header class="top-bar">
                 <div>
                     <h1>3D Reversi</h1>
-                    <p>Common Reversi embedded in rotatable R3, T3 PBC, 3D RBC, T2 torus, and S2 sphere boards.</p>
+                    <p>Common Reversi embedded in rotatable R3, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 boards.</p>
                 </div>
             </header>
 
@@ -85,6 +85,9 @@
                     <option value="r3_random">3D RBC Reversi</option>
                     <option value="t2">T2 Torus Reversi</option>
                     <option value="sphere">S2 Sphere Reversi</option>
+                    <option value="klein">Klein Bottle Reversi</option>
+                    <option value="mobius">Mobius Strip Reversi</option>
+                    <option value="rp2">RP2 Reversi</option>
                 </select>
             </div>
 
@@ -118,6 +121,28 @@
             </div>
 
             <div class="boundary-info" id="modeInfo">R3 Standard uses a cubic graph with ordinary open boundaries. Moves can bracket along 26 topology-aware ray directions.</div>
+
+            <div class="control-group">
+                <label for="timeEvolutionSelect">Time Evolution</label>
+                <select id="timeEvolutionSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="count">Count age only</option>
+                    <option value="decay">Decay and vanish</option>
+                </select>
+                <input id="timeLifetimeInput" class="custom-size-input" type="number" min="1" max="512" step="1" value="12" aria-label="Piece lifetime in turns">
+                <div class="boundary-info">Age advances after moves and passes. Decay removes pieces only when selected.</div>
+            </div>
+
+            <div class="control-group">
+                <label for="noiseModeSelect">Noise</label>
+                <select id="noiseModeSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="pieces">Existing pieces</option>
+                    <option value="board">Whole board</option>
+                </select>
+                <input id="noisePeriodInput" class="custom-size-input" type="number" min="1" max="512" step="1" value="6" aria-label="Noise period in age turns">
+                <div class="boundary-info">Noise uses the age clock even when age decay is off.</div>
+            </div>
 
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
@@ -203,6 +228,6 @@
             }, 2600);
         })();
     </script>
-    <script type="module" src="./js/main.js?v=20260615-hcp-lattice"></script>
+    <script type="module" src="./js/main.js?v=20260616-multimode-surfaces"></script>
 </body>
 </html>

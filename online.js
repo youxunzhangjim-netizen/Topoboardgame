@@ -1,8 +1,12 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import {
+    browserSessionPersistence,
     getAuth,
+    initializeAuth,
     onAuthStateChanged,
-    signInAnonymously
+    setPersistence,
+    signInAnonymously,
+    signOut
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import {
     addDoc,
@@ -42,6 +46,11 @@ const reconnectStorageKey = 'topoboardgame:firebase-room';
 const operationTimeoutMs = 10000;
 const matchmakingBucketMs = 60000;
 const matchmakingSlotCount = 8;
+const identityBroadcastName = 'topoboardgame:firebase-identity';
+const duplicateIdentityWaitMs = 220;
+const tabInstanceId = globalThis.crypto?.randomUUID?.()
+    || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+let identityChannel = null;
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
@@ -184,6 +193,69 @@ function waitForAuth(authInstance) {
     });
 }
 
+function getIdentityChannel() {
+    if (identityChannel || !globalThis.BroadcastChannel) return identityChannel;
+    identityChannel = new BroadcastChannel(identityBroadcastName);
+    identityChannel.addEventListener('message', (event) => {
+        const message = event.data || {};
+        if (message.source !== 'topoboardgame' || message.tabId === tabInstanceId) return;
+        if (message.type !== 'uid-presence-check') return;
+        const currentUid = user?.uid || auth?.currentUser?.uid;
+        if (!currentUid || currentUid !== message.uid) return;
+        identityChannel.postMessage({
+            source: 'topoboardgame',
+            type: 'uid-present',
+            uid: currentUid,
+            tabId: tabInstanceId,
+            to: message.tabId
+        });
+    });
+    return identityChannel;
+}
+
+function waitMs(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function ensureDistinctTabIdentity() {
+    const channel = getIdentityChannel();
+    if (!channel || !auth?.currentUser?.isAnonymous) return auth?.currentUser || null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return auth.currentUser || null;
+        let duplicateSeen = false;
+        const onMessage = (event) => {
+            const message = event.data || {};
+            if (message.source !== 'topoboardgame'
+                || message.type !== 'uid-present'
+                || message.to !== tabInstanceId
+                || message.uid !== uid
+                || message.tabId === tabInstanceId) {
+                return;
+            }
+            duplicateSeen = true;
+        };
+        channel.addEventListener('message', onMessage);
+        channel.postMessage({
+            source: 'topoboardgame',
+            type: 'uid-presence-check',
+            uid,
+            tabId: tabInstanceId
+        });
+        await waitMs(duplicateIdentityWaitMs);
+        channel.removeEventListener('message', onMessage);
+        if (!duplicateSeen) return auth.currentUser;
+
+        status('Refreshing online identity for this browser tab...');
+        await signOut(auth);
+        await signInAnonymously(auth);
+        user = auth.currentUser || await waitForAuth(auth);
+    }
+
+    return auth.currentUser || null;
+}
+
 async function verifyFirestoreService() {
     const token = await user.getIdToken();
     const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/${roomsPath}?pageSize=1`;
@@ -234,13 +306,25 @@ export async function initOnline(options = {}) {
 
     initializationPromise = (async () => {
     const app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    try {
+        auth = initializeAuth(app, {
+            persistence: browserSessionPersistence
+        });
+    } catch {
+        auth = getAuth(app);
+        try {
+            await setPersistence(auth, browserSessionPersistence);
+        } catch {
+            // Fall back to Firebase's default persistence if the browser blocks session storage.
+        }
+    }
     db = initializeFirestore(app, {
         experimentalAutoDetectLongPolling: true
     });
     status('Signing in anonymously...');
     if (!auth.currentUser) await signInAnonymously(auth);
     user = auth.currentUser || await waitForAuth(auth);
+    user = await ensureDistinctTabIdentity();
     initialized = true;
     try {
         await verifyFirestoreService();
@@ -374,7 +458,7 @@ async function findWaitingMatchCandidate() {
         where('status', '==', 'waiting'),
         where('public', '==', true),
         where('matchKey', '==', hooks.matchKey),
-        limit(20)
+        limit(200)
     );
     try {
         const exactCandidates = await withTimeout(getDocs(exactQuery), 'Find match');
@@ -390,7 +474,7 @@ async function findWaitingMatchCandidate() {
     const fallbackQuery = query(
         collection(db, roomsPath),
         where('status', '==', 'waiting'),
-        limit(80)
+        limit(200)
     );
     const candidates = await withTimeout(getDocs(fallbackQuery), 'Find match');
     const match = candidates.docs.find((candidate) => roomMatchesCurrentBucket(candidate.data()));
@@ -463,6 +547,24 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
     }), 'Find match');
 }
 
+function enterPublicMatchResult(result) {
+    if (!result) return null;
+    roomId = result.roomId;
+    playerColor = result.color || null;
+    lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
+    localStorage.setItem(reconnectStorageKey, roomId);
+    if (result.room?.board && result.action === 'joined') {
+        hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
+        hooks.renderBoard?.();
+    }
+    status(result.action === 'joined'
+        ? `Matched in room ${roomId} as ${playerColor}.`
+        : `Room ${roomId}: waiting for an opponent.`);
+    listenToRoom(roomId);
+    listenToChat(roomId);
+    return { roomId, playerColor };
+}
+
 export async function findMatch(initialBoard) {
     requireReady();
     await leaveRoom({ updateRemote: false });
@@ -471,50 +573,35 @@ export async function findMatch(initialBoard) {
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
 
+    const existingRoomId = await findWaitingMatchCandidate();
+    if (existingRoomId) {
+        const result = await claimPublicMatchRoom(existingRoomId, board, initialTurn);
+        const entered = enterPublicMatchResult(result);
+        if (entered) return entered;
+    }
+
+    let lastSlotError = null;
     for (const id of publicMatchRoomIds()) {
         try {
             const result = await claimPublicMatchRoom(id, board, initialTurn, { allowCreate: true });
             if (!result) continue;
-            roomId = result.roomId;
-            playerColor = result.color || null;
-            lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
-            localStorage.setItem(reconnectStorageKey, roomId);
-            if (result.room?.board && result.action === 'joined') {
-                hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
-                hooks.renderBoard?.();
-            }
-            status(result.action === 'joined'
-                ? `Matched in room ${roomId} as ${playerColor}.`
-                : `Room ${roomId}: waiting for an opponent.`);
-            listenToRoom(roomId);
-            listenToChat(roomId);
-            return { roomId, playerColor };
-        } catch {
+            const entered = enterPublicMatchResult(result);
+            if (entered) return entered;
+        } catch (error) {
+            lastSlotError = error;
             // Try the next deterministic slot if this one races or fails.
         }
     }
 
-    const existingRoomId = await findWaitingMatchCandidate();
-    if (existingRoomId) {
-        const result = await claimPublicMatchRoom(existingRoomId, board, initialTurn);
-        if (result) {
-            roomId = result.roomId;
-            playerColor = result.color || null;
-            lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
-            localStorage.setItem(reconnectStorageKey, roomId);
-            if (result.room?.board && result.action === 'joined') {
-                hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
-                hooks.renderBoard?.();
-            }
-            status(result.action === 'joined'
-                ? `Matched in room ${roomId} as ${playerColor}.`
-                : `Room ${roomId}: waiting for an opponent.`);
-            listenToRoom(roomId);
-            listenToChat(roomId);
-            return { roomId, playerColor };
-        }
+    const retryRoomId = await findWaitingMatchCandidate();
+    if (retryRoomId) {
+        const result = await claimPublicMatchRoom(retryRoomId, board, initialTurn);
+        const entered = enterPublicMatchResult(result);
+        if (entered) return entered;
     }
-    throw new Error('Could not reserve a matchmaking slot. Try Find Match again.');
+
+    const reason = lastSlotError?.message ? ` Last slot error: ${lastSlotError.message}` : '';
+    throw new Error(`Could not reserve or join a matchmaking slot.${reason}`);
 }
 
 export function listenToRoom(id = roomId) {
@@ -724,7 +811,12 @@ export class FirebaseOnlineAdapter {
         this.isConnected = false;
         this.roomId = '';
         this.myColor = null;
-        this.ready = initOnline({
+        this.ready = initOnline(this.onlineOptions());
+    }
+
+    onlineOptions() {
+        const game = this.game;
+        return {
             getCurrentBoardState: () => game.getCurrentBoardState(),
             loadBoardState: (state) => game.loadBoardState(state),
             applyMove: (state, move, color) => game.applyMoveToBoardState(state, move, color),
@@ -745,12 +837,17 @@ export class FirebaseOnlineAdapter {
             matchKey: game.onlineMatchKey?.() || game.onlineGameKey?.() || '2dchess',
             getCurrentTurn: (state) => state?.currentPlayer || game.currentPlayer,
             getTurnFromBoard: (state) => state?.currentPlayer
-        });
+        };
+    }
+
+    async ensureReady() {
+        this.ready = initOnline(this.onlineOptions());
+        return this.ready;
     }
 
     async createRoom() {
         try {
-            const ready = await this.ready;
+            const ready = await this.ensureReady();
             if (!ready.ok) return;
             const result = await createPrivateRoom(this.game.getCurrentBoardState());
             this.roomId = result.roomId;
@@ -764,7 +861,7 @@ export class FirebaseOnlineAdapter {
 
     async resumeOrJoinRoom(id) {
         try {
-            const ready = await this.ready;
+            const ready = await this.ensureReady();
             if (!ready.ok) return;
             const result = await joinPrivateRoom(id);
             this.roomId = result.roomId;
@@ -777,7 +874,7 @@ export class FirebaseOnlineAdapter {
 
     async findMatch() {
         try {
-            const ready = await this.ready;
+            const ready = await this.ensureReady();
             if (!ready.ok) return;
             const result = await findMatch(this.game.getCurrentBoardState());
             this.roomId = result.roomId;
@@ -816,7 +913,7 @@ export class FirebaseOnlineAdapter {
 
     async reconnect() {
         try {
-            const ready = await this.ready;
+            const ready = await this.ensureReady();
             if (!ready.ok) return false;
             const result = await reconnectRoom();
             return Boolean(result.ok);
