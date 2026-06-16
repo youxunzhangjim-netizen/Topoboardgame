@@ -176,7 +176,7 @@ export class GraphGoGame {
         };
     }
 
-    tryPlay(coord, color = this.currentPlayer) {
+    previewPlay(coord, color = this.currentPlayer) {
         if (this.gameOver) return { ok: false, error: 'Game is already over.' };
         if (this.scoringPending) return { ok: false, error: 'Counting is pending.' };
         if (color !== this.currentPlayer) return { ok: false, error: `It is ${this.currentPlayer}'s turn.` };
@@ -216,24 +216,46 @@ export class GraphGoGame {
             return { ok: false, error: 'Superko: this board position already occurred.' };
         }
 
-        this.board = nextBoard;
-        this.captures[color] += captured;
+        return {
+            ok: true,
+            key,
+            normalized,
+            board: nextBoard,
+            captured,
+            capturedStones,
+            serialized
+        };
+    }
+
+    legalMoves(color = this.currentPlayer) {
+        return this.vertexKeys
+            .filter((key) => this.valueAtKey(key) === GO_COLORS.empty)
+            .map((key) => this.coordFromKey(key))
+            .filter((coord) => this.previewPlay(coord, color).ok);
+    }
+
+    tryPlay(coord, color = this.currentPlayer) {
+        const preview = this.previewPlay(coord, color);
+        if (!preview.ok) return preview;
+
+        this.board = preview.board;
+        this.captures[color] += preview.captured;
         this.passCount = 0;
         this.countAgreements = { black: false, white: false };
         this.moveNumber++;
         const event = {
             type: 'play',
             color,
-            coord: normalized,
-            captured,
-            capturedStones: capturedStones.map((stone) => this.coordFromKey(stone)),
+            coord: preview.normalized,
+            captured: preview.captured,
+            capturedStones: preview.capturedStones.map((stone) => this.coordFromKey(stone)),
             number: this.moveNumber
         };
         this.moveHistory.unshift(event);
-        this.positionHistory.push(serialized);
-        this.positionSet.add(serialized);
+        this.positionHistory.push(preview.serialized);
+        this.positionSet.add(preview.serialized);
         this.currentPlayer = otherGoColor(color);
-        return { ok: true, event, captured };
+        return { ok: true, event, captured: preview.captured };
     }
 
     pass(color = this.currentPlayer) {

@@ -1,7 +1,11 @@
 import {
     SPHERE_GO_TOPOLOGY,
+    isSphereNorthPole,
+    isSphereSouthPole,
     sphereContainsCoord,
-    sphereLatitudeRingNeighbors
+    sphereLatitudeRingNeighbors,
+    sphereNorthPoleCoord,
+    sphereSouthPoleCoord
 } from './SphereGoTopology.js';
 import {
     KLEIN_BOTTLE_TOPOLOGY,
@@ -177,7 +181,9 @@ export class GoGameLogic {
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
             ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
             : new Map();
-        this.total = this.dimension === 3 ? this.size ** 3 : this.width * this.height;
+        this.total = this.dimension === 3
+            ? this.size ** 3
+            : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
         this.cliffordGoEnabled = false;
@@ -204,6 +210,11 @@ export class GoGameLogic {
         if (this.dimension === 3) {
             return coord[0] + this.size * (coord[1] + this.size * coord[2]);
         }
+        if (this.topology === SPHERE_GO_TOPOLOGY) {
+            const surfaceTotal = this.width * this.height;
+            if (isSphereNorthPole(coord, this.height)) return surfaceTotal;
+            if (isSphereSouthPole(coord, this.height)) return surfaceTotal + 1;
+        }
         return coord[0] + this.width * coord[1];
     }
 
@@ -215,6 +226,11 @@ export class GoGameLogic {
             const y = Math.floor(rem / this.size);
             const x = rem - y * this.size;
             return [x, y, z];
+        }
+        if (this.topology === SPHERE_GO_TOPOLOGY) {
+            const surfaceTotal = this.width * this.height;
+            if (value === surfaceTotal) return sphereNorthPoleCoord();
+            if (value === surfaceTotal + 1) return sphereSouthPoleCoord(this.height);
         }
         const y = Math.floor(value / this.width);
         const x = value - y * this.width;
@@ -259,6 +275,9 @@ export class GoGameLogic {
         }
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) coords.push([x, y]);
+        }
+        if (this.topology === SPHERE_GO_TOPOLOGY) {
+            coords.push(sphereNorthPoleCoord(), sphereSouthPoleCoord(this.height));
         }
         return coords;
     }
@@ -590,7 +609,9 @@ export class GoGameLogic {
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
             ? new Map(Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
             : new Map();
-        this.total = this.dimension === 3 ? this.size ** 3 : this.width * this.height;
+        this.total = this.dimension === 3
+            ? this.size ** 3
+            : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
         if (Array.isArray(state.board)) {

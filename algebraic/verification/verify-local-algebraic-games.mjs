@@ -14,6 +14,7 @@ import {
 import { createGraphTopology } from '../../js/topology/GraphTopologies.js';
 import { nextRequiredUnbraidGenerator } from '../../js/anyon/BraidMemory.js';
 import { anyonTypes, createFusionResult } from '../../js/anyon/AnyonAlgebra.js';
+import { GO_COLORS } from '../../js/go/GraphGoGame.js';
 
 const klein = createGraphTopology({ topology: 'klein_bottle', width: 6, height: 6 });
 assert.deepEqual(klein.normalize([2, 6]), [3, 0], 'Klein vertical crossing flips x.');
@@ -401,6 +402,37 @@ triangularGo.currentPlayer = 'white';
 const triangularCapture = triangularGo.tryPlay(triangularLiberties.at(-1), 'white');
 assert.equal(triangularCapture.ok, true);
 assert.equal(triangularCapture.captured, 1, 'Algebraic triangular Go captures after all six graph liberties are enclosed.');
+
+const noLibertyGraphGo = new VirasoroGoGame({
+    topology: { topology: 'flat', width: 5, height: 5 }
+});
+const noLibertyVitalPoint = [2, 2];
+for (const coord of [[1, 2], [3, 2], [2, 1], [2, 3]]) {
+    noLibertyGraphGo.go.board.set(noLibertyGraphGo.go.key(coord), GO_COLORS.white);
+}
+for (const coord of [[0, 2], [1, 1], [1, 3], [4, 2], [3, 1], [3, 3], [2, 0], [2, 4]]) {
+    noLibertyGraphGo.go.board.set(noLibertyGraphGo.go.key(coord), GO_COLORS.black);
+}
+noLibertyGraphGo.currentPlayer = 'black';
+const noLibertyGraphLegalKeys = new Set(noLibertyGraphGo.legalMoves().map((coord) => coord.join(',')));
+assert.equal(noLibertyGraphLegalKeys.has(noLibertyVitalPoint.join(',')), true, 'Algebraic Go legal highlights include no-liberty captures that become alive.');
+const noLibertyGraphCapture = noLibertyGraphGo.tryPlay(noLibertyVitalPoint, 'black');
+assert.equal(noLibertyGraphCapture.ok, true, 'Algebraic Go allows a no-liberty placement that captures adjacent stones.');
+assert.equal(noLibertyGraphCapture.captured, 4, 'Algebraic Go removes captured stones before checking own liberties.');
+assert.equal(
+    noLibertyGraphGo.go.getGroupAndLiberties(noLibertyGraphGo.go.board, noLibertyGraphGo.go.key(noLibertyVitalPoint)).liberties.size,
+    4,
+    'Algebraic Go played stone is alive after the capture.'
+);
+const graphGoSuicide = new VirasoroGoGame({
+    topology: { topology: 'flat', width: 5, height: 5 }
+});
+for (const coord of [[1, 2], [3, 2], [2, 1], [2, 3]]) {
+    graphGoSuicide.go.board.set(graphGoSuicide.go.key(coord), GO_COLORS.black);
+}
+graphGoSuicide.currentPlayer = 'white';
+const graphGoSuicideLegalKeys = new Set(graphGoSuicide.legalMoves().map((coord) => coord.join(',')));
+assert.equal(graphGoSuicideLegalKeys.has(noLibertyVitalPoint.join(',')), false, 'Algebraic Go legal highlights reject true suicide.');
 
 const exact = new AnyonJumpGame({
     topology: { topology: 'torus', width: 4, height: 4 },

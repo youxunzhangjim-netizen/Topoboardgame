@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
     BCC_LATTICE,
+    COLORS,
     FCC_LATTICE,
     GoGameLogic,
     HCP_LATTICE,
@@ -61,6 +62,30 @@ assert.deepEqual(
     '3D RBC maps are deterministic for the same seed.'
 );
 assert.equal(first.neighborsFromCoord([0, 4, 4]).length, 6, '3D RBC edge points still expose six graph-neighbor directions.');
+
+const noLibertyCapture = new GoGameLogic({
+    size: 5,
+    dimension: 3,
+    topology: R3_STANDARD_TOPOLOGY,
+    lattice: SIMPLE_CUBIC_LATTICE
+});
+const vitalPoint = [2, 2, 2];
+const enemyShell = noLibertyCapture.neighborsFromCoord(vitalPoint);
+for (const coord of enemyShell) {
+    noLibertyCapture.board[noLibertyCapture.indexFromCoord(coord)] = COLORS.white;
+}
+for (const enemy of enemyShell) {
+    for (const coord of noLibertyCapture.neighborsFromCoord(enemy)) {
+        if (coord.join(',') !== vitalPoint.join(',')) {
+            noLibertyCapture.board[noLibertyCapture.indexFromCoord(coord)] = COLORS.black;
+        }
+    }
+}
+noLibertyCapture.currentPlayer = 'black';
+const legalCaptureAtNoLiberty = noLibertyCapture.tryPlay(vitalPoint, 'black');
+assert.equal(legalCaptureAtNoLiberty.ok, true, 'A 3D move with no immediate liberties is legal when it captures adjacent enemy stones.');
+assert.equal(legalCaptureAtNoLiberty.captured, 6, 'The 3D no-liberty placement should capture the six adjacent white stones first.');
+assert.equal(noLibertyCapture.getGroupAndLiberties(noLibertyCapture.board, noLibertyCapture.indexFromCoord(vitalPoint)).liberties.size, 6, 'The 3D played stone is alive after captures are removed.');
 
 const restored = new GoGameLogic();
 restored.importState(fcc.exportState());

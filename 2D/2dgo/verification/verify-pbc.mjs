@@ -68,6 +68,20 @@ const enclosed = triangularCapture.tryPlay(surrounding.at(-1), 'white');
 assert.equal(enclosed.ok, true);
 assert.equal(enclosed.captured, 1, 'Filling the sixth triangular neighbor captures the enclosed stone');
 
+const noLibertyCapture = new GoGameLogic({ size: 5, dimension: 2, topology: 'open2d' });
+const vitalPoint = [2, 2];
+for (const coord of [[1, 2], [3, 2], [2, 1], [2, 3]]) {
+    noLibertyCapture.board[noLibertyCapture.indexFromCoord(coord)] = COLORS.white;
+}
+for (const coord of [[0, 2], [1, 1], [1, 3], [4, 2], [3, 1], [3, 3], [2, 0], [2, 4]]) {
+    noLibertyCapture.board[noLibertyCapture.indexFromCoord(coord)] = COLORS.black;
+}
+noLibertyCapture.currentPlayer = 'black';
+const legalCaptureAtNoLiberty = noLibertyCapture.tryPlay(vitalPoint, 'black');
+assert.equal(legalCaptureAtNoLiberty.ok, true, 'A move with no immediate liberties is legal when it captures adjacent enemy stones.');
+assert.equal(legalCaptureAtNoLiberty.captured, 4, 'The no-liberty placement should capture the four adjacent white stones first.');
+assert.equal(noLibertyCapture.getGroupAndLiberties(noLibertyCapture.board, noLibertyCapture.indexFromCoord(vitalPoint)).liberties.size, 4, 'The played stone is alive after captures are removed.');
+
 const imported = new GoGameLogic();
 imported.importState({ ...periodic.exportState(), topology: 'pbc-x' });
 assert.equal(imported.topology, 'pbc', 'legacy pbc-x states should normalize to full PBC');

@@ -38,6 +38,8 @@ const LANGUAGE_STORAGE_KEY = '3dgo:language';
 const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 
 const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY]);
+const MOBIUS_BAND_RADIUS = 3.05;
+const MOBIUS_BAND_HALF_WIDTH = 1.18;
 
 function isR3LikeTopology(topology) {
     return R3_LIKE_TOPOLOGIES.has(topology);
@@ -65,7 +67,7 @@ const I18N = {
         controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', resetCamera: 'Reset Camera', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
         online: { localStatus: 'Local pass and play', findMatch: 'Find Match', privateRoom: 'PRIVATE ROOM', createRoom: 'Create Room', or: 'OR', roomInput: '5-digit room code or shared link', joinRoom: 'Join Room', roomCode: 'Room Code', copy: 'Copy', copied: 'Copied', onlineAs: ({ color }) => 'Online as ' + color },
         chat: { title: 'Online Chat', empty: 'Connect online to chat.', placeholder: 'Message online opponent', send: 'Send', player: 'Player', connectFirst: 'Connect online before chatting.' },
-        mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The first and last latitude rings have degree 3; there are no playable pole nodes or pole-crossing links.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
+        mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The north and south pole nodes are playable and connect to every point on the nearest latitude ring.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
         timer: { none: 'No Timer', five: '5 Minutes', ten: '10 Minutes', thirty: '30 Minutes', hour: '1 Hour', oneDay: '1 Day' },
         history: { title: 'Move History', started: 'Game started.' },
         rules: { title: 'Rules', text: 'Area scoring with 7.5 komi. Captures, liberties, superko, and territory use the selected board graph.' },
@@ -80,7 +82,7 @@ const I18N = {
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
         controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', resetCamera: '重設視角', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
         online: { localStatus: '本地輪流', findMatch: '尋找配對', privateRoom: '私人房間', createRoom: '建立房間', or: '或', roomInput: '5 位房間碼或分享連結', joinRoom: '加入房間', roomCode: '房間碼', copy: '複製', copied: '已複製', onlineAs: ({ color }) => '線上身分：' + color },
-        mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。最南與最北緯度環的節點度數為 3；南北極沒有可落子節點，也沒有穿越極點的連線。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
+        mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。南北極點可落子，並連到最近緯度環上的每個節點。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
         timer: { none: '無計時', five: '5 分鐘', ten: '10 分鐘', thirty: '30 分鐘', hour: '1 小時', oneDay: '1 天' },
         history: { title: '走法記錄', started: '遊戲開始。' },
         rules: { title: '規則', text: '面積計分，貼目 7.5。提子、氣、超級劫與領地皆使用所選棋盤的圖相鄰關係。' },
@@ -143,7 +145,7 @@ Object.assign(I18N.zh.mode, {
     t3Info: 'T3 PBC 會在 x、y、z 三個方向週期包回。',
     r3RandomInfo: '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。',
     t2Info: 'T2 torus 會在環面上的兩個方向週期包回。',
-    sphereInfo: 'S2 sphere 使用經度環；水平方向包回，第一與最後一圈緯度環度數為 3，沒有可落子的極點節點。',
+    sphereInfo: 'S2 sphere 使用經度環；水平方向包回，南北極點可落子並連到最近緯度環。',
     kleinInfo: 'Klein bottle 左右正常包回，上下包回時 x 會翻轉為 width - 1 - x。',
     mobiusInfo: 'Mobius strip 使用單一扭轉方向包回，垂直方向維持開放邊界。',
     rp2Info: 'RP2 使用對映邊界識別，每次穿越邊界會翻轉另一個座標。'
@@ -308,7 +310,6 @@ class Go3DRenderer {
         this.lattice = logic.lattice;
         this.view = view;
         this.controls.enableRotate = !(logic.topology === KLEIN_BOTTLE_TOPOLOGY
-            || logic.topology === MOBIUS_GO_TOPOLOGY
             || logic.topology === RP2_GO_TOPOLOGY
             || (logic.topology === SPHERE_GO_TOPOLOGY && view === '2d'));
         this.clearGroup(this.boardGroup);
@@ -318,13 +319,15 @@ class Go3DRenderer {
         this.nodePoints = null;
         if (isR3LikeTopology(logic.topology)) this.buildR3(logic);
         else if (logic.topology === 't2') this.buildTorus(logic);
-        else if ([KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) this.buildKlein(logic.width, logic.height);
+        else if (logic.topology === MOBIUS_GO_TOPOLOGY) this.buildMobius(logic.width, logic.height);
+        else if ([KLEIN_BOTTLE_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) this.buildKlein(logic.width, logic.height);
         else if (view === '2d') this.buildSphereFlat(logic.width, logic.height);
         else this.buildSphere(logic.width, logic.height);
         this.resetCamera();
     }
 
     buildSphere(width, height) {
+        const logic = this.app.logic;
         const radius = 3.45;
         const surface = new THREE.Mesh(
             new THREE.SphereGeometry(radius - 0.045, 96, 48),
@@ -343,14 +346,17 @@ class Go3DRenderer {
 
         const linePositions = [];
         const addEdge = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const current = this.spherePosition([x, y], width, height, 0.04);
-                const horizontal = this.spherePosition([(x + 1) % width, y], width, height, 0.04);
-                addEdge(current, horizontal);
-                if (y < height - 1) {
-                    addEdge(current, this.spherePosition([x, y + 1], width, height, 0.04));
-                }
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                addEdge(
+                    this.spherePosition(coord, width, height, 0.04),
+                    this.spherePosition(neighbor, width, height, 0.04)
+                );
             }
         }
         const geometry = new THREE.BufferGeometry();
@@ -361,14 +367,11 @@ class Go3DRenderer {
         ));
 
         const pointPositions = [];
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const coord = [x, y];
-                const point = this.spherePosition(coord, width, height, 0.075);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(point);
-                pointPositions.push(point.x, point.y, point.z);
-            }
+        for (const coord of logic.playableCoords()) {
+            const point = this.spherePosition(coord, width, height, 0.075);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(point);
+            pointPositions.push(point.x, point.y, point.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.075 : width <= 13 ? 0.056 : 0.042, {
             color: 0xffe3a3,
@@ -377,29 +380,30 @@ class Go3DRenderer {
     }
 
     buildSphereFlat(width, height) {
+        const logic = this.app.logic;
         const linePositions = [];
         const pointPositions = [];
         const scale = 7 / Math.max(width - 1, height - 1);
         const position = ([x, y]) => new THREE.Vector3(
-            (x - (width - 1) / 2) * scale,
-            ((height - 1) / 2 - y) * scale,
+            x === 0 && y === -1 ? 0 : x === 0 && y === height ? 0 : (x - (width - 1) / 2) * scale,
+            y === -1 ? ((height - 1) / 2 + 1.2) * scale
+                : y === height ? (-(height - 1) / 2 - 1.2) * scale
+                : ((height - 1) / 2 - y) * scale,
             0
         );
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const coord = [x, y];
-                const point = position(coord);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(point);
-                pointPositions.push(point.x, point.y, point.z);
-                if (x < width - 1) {
-                    const next = position([x + 1, y]);
-                    linePositions.push(point.x, point.y, 0, next.x, next.y, 0);
-                }
-                if (y < height - 1) {
-                    const next = position([x, y + 1]);
-                    linePositions.push(point.x, point.y, 0, next.x, next.y, 0);
-                }
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const point = position(coord);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(point);
+            pointPositions.push(point.x, point.y, point.z);
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const next = position(neighbor);
+                linePositions.push(point.x, point.y, 0, next.x, next.y, 0);
             }
         }
         const geometry = new THREE.BufferGeometry();
@@ -558,6 +562,75 @@ class Go3DRenderer {
         }
     }
 
+    buildMobius(width, height) {
+        const surface = new THREE.Mesh(
+            this.createMobiusSurfaceGeometry(220, 48, -0.018),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x8f6238,
+                roughness: 0.58,
+                metalness: 0.02,
+                clearcoat: 0.28,
+                clearcoatRoughness: 0.48,
+                side: THREE.DoubleSide
+            })
+        );
+        surface.castShadow = true;
+        surface.receiveShadow = true;
+        this.boardGroup.add(surface);
+
+        const gridMaterial = new THREE.LineBasicMaterial({
+            color: 0x24150c,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false
+        });
+        const seamMaterial = new THREE.LineBasicMaterial({
+            color: 0xfbbf24,
+            transparent: true,
+            opacity: 0.92,
+            depthWrite: false
+        });
+        const linePoints = [];
+        const addLine = (points, material = gridMaterial) => {
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.userData = { type: 'grid' };
+            this.boardGroup.add(line);
+        };
+
+        for (let y = 0; y < height; y++) {
+            const t = this.mobiusTForY(y, height);
+            linePoints.length = 0;
+            for (let step = 0; step <= Math.max(128, width * 10); step++) {
+                const u = (step / Math.max(128, width * 10)) * TWO_PI;
+                linePoints.push(this.mobiusPoint(u, t, 0.045));
+            }
+            addLine([...linePoints], y === 0 || y === height - 1 ? seamMaterial : gridMaterial);
+        }
+
+        for (let x = 0; x < width; x++) {
+            const u = (x / Math.max(1, width)) * TWO_PI;
+            linePoints.length = 0;
+            for (let step = 0; step <= 24; step++) {
+                const y = (step / 24) * Math.max(1, height - 1);
+                linePoints.push(this.mobiusPoint(u, this.mobiusTForY(y, height), 0.05));
+            }
+            addLine([...linePoints], x === 0 ? seamMaterial : gridMaterial);
+        }
+
+        const pointPositions = [];
+        for (const coord of this.app.logic.playableCoords()) {
+            const pose = this.mobiusPose(coord, width, height, 0.075);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(pose.position);
+            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+        }
+        this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
+            color: 0x24130b,
+            opacity: 0.96
+        });
+        this.addMobiusStarPoints(width, height);
+    }
+
     buildR3(logic) {
         const size = logic.size;
         const linePositions = [];
@@ -702,6 +775,31 @@ class Go3DRenderer {
         this.boardGroup.add(mesh);
     }
 
+    addMobiusStarPoints(width, height) {
+        const coords = this.starPoints(Math.min(width, height))
+            .map(([x, y]) => [
+                Math.round(x * (width - 1) / Math.max(1, Math.min(width, height) - 1)),
+                Math.round(y * (height - 1) / Math.max(1, Math.min(width, height) - 1))
+            ]);
+        const unique = [...new Map(coords.map((coord) => [coord.join(','), coord])).values()]
+            .filter(([x, y]) => x >= 0 && x < width && y >= 0 && y < height);
+        if (!unique.length) return;
+        const mesh = new THREE.InstancedMesh(
+            new THREE.SphereGeometry(width <= 9 ? 0.074 : width <= 13 ? 0.06 : 0.045, 16, 10),
+            new THREE.MeshStandardMaterial({ color: 0x190d08, roughness: 0.7, metalness: 0.02 }),
+            unique.length
+        );
+        const matrix = new THREE.Matrix4();
+        unique.forEach((coord, index) => {
+            const position = this.mobiusPose(coord, width, height, 0.1).position;
+            matrix.makeTranslation(position.x, position.y, position.z);
+            mesh.setMatrixAt(index, matrix);
+        });
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.boardGroup.add(mesh);
+    }
+
     starPoints(size) {
         if (size === 9) return [2, 4, 6].flatMap((x) => [2, 4, 6].map((y) => [x, y]));
         if (size === 13) return [3, 6, 9].flatMap((x) => [3, 6, 9].map((y) => [x, y]));
@@ -808,8 +906,23 @@ class Go3DRenderer {
         this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.pointer, this.camera);
         const hits = this.raycaster.intersectObject(this.nodePoints, false);
-        if (!hits.length) return null;
-        return this.pointCoords[hits[0].index] || null;
+        const hit = hits.find((candidate) => this.pickHitIsCameraFacing(candidate));
+        return hit ? this.pointCoords[hit.index] || null : null;
+    }
+
+    pickHitIsCameraFacing(hit) {
+        const logic = this.app.logic;
+        if (!hit || !logic || !['t2', MOBIUS_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
+        const coord = this.pointCoords[hit.index];
+        if (!coord) return false;
+        const pose = logic.topology === 't2'
+            ? this.torusPosition(coord, logic.size, 0.055)
+            : this.mobiusPose(coord, logic.width, logic.height, 0.075);
+        return this.isPoseFacingCamera(pose.position, pose.normal);
+    }
+
+    isPoseFacingCamera(position, normal, threshold = 0.04) {
+        return normal.clone().normalize().dot(this.camera.position.clone().sub(position).normalize()) > threshold;
     }
 
     handlePointerMove(event) {
@@ -861,7 +974,10 @@ class Go3DRenderer {
 
     positionForCoord(coord, logic) {
         if (logic.topology === 't2') return this.torusPosition(coord, logic.size, 0.18).position;
-        if ([KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) {
+        if (logic.topology === MOBIUS_GO_TOPOLOGY) {
+            return this.mobiusPose(coord, logic.width, logic.height, 0.18).position;
+        }
+        if ([KLEIN_BOTTLE_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) {
             return this.kleinPosition(coord, logic.width, logic.height, 0.14);
         }
         if (logic.topology === SPHERE_GO_TOPOLOGY) {
@@ -922,9 +1038,81 @@ class Go3DRenderer {
         return { position, normal };
     }
 
+    mobiusTForY(y, height) {
+        if (height <= 1) return 0;
+        return THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, Number(y) / (height - 1));
+    }
+
+    mobiusPoint(u, t, lift = 0) {
+        const basis = this.mobiusBasis(u, t);
+        const radial = MOBIUS_BAND_RADIUS + t * Math.cos(u / 2);
+        const base = new THREE.Vector3(
+            radial * Math.cos(u),
+            t * Math.sin(u / 2),
+            radial * Math.sin(u)
+        );
+        return base.add(basis.normal.clone().multiplyScalar(lift));
+    }
+
+    mobiusBasis(u, t) {
+        const sinU = Math.sin(u);
+        const cosU = Math.cos(u);
+        const sinHalf = Math.sin(u / 2);
+        const cosHalf = Math.cos(u / 2);
+        const radial = MOBIUS_BAND_RADIUS + t * cosHalf;
+        const tangentU = new THREE.Vector3(
+            -0.5 * t * sinHalf * cosU - radial * sinU,
+            0.5 * t * cosHalf,
+            -0.5 * t * sinHalf * sinU + radial * cosU
+        ).normalize();
+        const tangentT = new THREE.Vector3(cosHalf * cosU, sinHalf, cosHalf * sinU).normalize();
+        const normal = new THREE.Vector3().crossVectors(tangentT, tangentU).normalize();
+        return { tangentU, tangentT, normal };
+    }
+
+    mobiusPose(coord, width, height, lift = 0) {
+        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
+        const t = this.mobiusTForY(Number(coord[1]), height);
+        return {
+            position: this.mobiusPoint(u, t, lift),
+            normal: this.mobiusBasis(u, t).normal
+        };
+    }
+
+    createMobiusSurfaceGeometry(uSegments = 220, tSegments = 48, lift = 0) {
+        const positions = [];
+        const indices = [];
+        for (let iu = 0; iu <= uSegments; iu++) {
+            const u = (iu / uSegments) * TWO_PI;
+            for (let it = 0; it <= tSegments; it++) {
+                const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, it / tSegments);
+                const point = this.mobiusPoint(u, t, lift);
+                positions.push(point.x, point.y, point.z);
+            }
+        }
+        const row = tSegments + 1;
+        for (let iu = 0; iu < uSegments; iu++) {
+            for (let it = 0; it < tSegments; it++) {
+                const a = iu * row + it;
+                const b = (iu + 1) * row + it;
+                const c = (iu + 1) * row + it + 1;
+                const d = iu * row + it + 1;
+                indices.push(a, b, d, b, c, d);
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        return geometry;
+    }
+
     resetCamera() {
         if (this.app?.logic?.topology === 't2') {
             this.camera.position.set(0, 5.6, 9.8);
+            this.controls.target.set(0, 0, 0);
+        } else if (this.app?.logic?.topology === MOBIUS_GO_TOPOLOGY) {
+            this.camera.position.set(6.4, 4.8, 7.4);
             this.controls.target.set(0, 0, 0);
         } else if ([KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(this.app?.logic?.topology)) {
             this.camera.position.set(0, 0, 10.5);

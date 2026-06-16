@@ -4,7 +4,6 @@ import {
     transformSignedPauli
 } from '../algebra/PauliAlgebra.js';
 import {
-    GO_COLORS,
     GraphGoGame,
     goValueToColor
 } from '../go/GraphGoGame.js';
@@ -74,9 +73,7 @@ export class CliffordGoGame {
     }
 
     legalMoves() {
-        return this.go.vertexKeys
-            .filter((key) => this.go.valueAtKey(key) === GO_COLORS.empty)
-            .map((key) => this.go.coordFromKey(key));
+        return this.go.legalMoves(this.currentPlayer);
     }
 
     tryPlay(coord, color = this.currentPlayer, options = {}) {

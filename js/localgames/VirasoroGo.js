@@ -279,7 +279,7 @@ export class VirasoroGoGame {
     }
 
     legalMoves() {
-        return this.emptyLegalKeys().map((key) => this.go.coordFromKey(key));
+        return this.go.legalMoves(this.currentPlayer);
     }
 
     resolveAdjacentOPE(coord, stone) {

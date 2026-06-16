@@ -115,5 +115,6 @@ export function installGo3DRobot(app) {
   panel.querySelector('#goRobotAnalyzeBtn')?.addEventListener('click', () => render(out, analyzeLogic(app.logic, Number(level.value) || 1)));
   side.addEventListener('change', schedule); modeSelect?.addEventListener('change', () => { document.getElementById('onlineControls')?.classList.toggle('active', modeSelect.value === 'online'); schedule(); });
   const oldAfter = app.afterLocalAction?.bind(app); if (oldAfter) app.afterLocalAction = function(...args) { const result = oldAfter(...args); schedule(); return result; };
+  const oldReset = app.resetGame?.bind(app); if (oldReset) app.resetGame = function(...args) { const result = oldReset(...args); schedule(); return result; };
   schedule();
 }
