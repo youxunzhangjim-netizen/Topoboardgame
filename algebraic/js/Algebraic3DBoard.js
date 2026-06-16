@@ -575,7 +575,7 @@ export class Algebraic3DBoard {
         this.controls.update();
         this.controls.enableDamping = true;
         const coord = this.pick(event);
-        if (coord) this.onSelect?.(coord);
+        if (coord) this.onSelect?.(coord, event);
     }
 
     resetCamera() {

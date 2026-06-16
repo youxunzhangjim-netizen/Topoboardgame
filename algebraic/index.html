@@ -506,7 +506,7 @@
                         <input id="cftTemperatureInput" type="number" min="0" max="4" step="0.05" value="0.35">
                     </label>
                 </div>
-                <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Rules Intro</button>
+                <button id="rulesIntroButton" type="button" aria-expanded="false" aria-controls="rulesIntroPanel">Introduction</button>
             </div>
 
             <div class="control-section section-dynamics" id="dynamicsSection">
@@ -687,17 +687,19 @@
                 </div>
                 <section class="rules-intro-panel" id="rulesIntroPanel" aria-hidden="true" aria-live="polite">
                     <div data-rules-mode="clifford">
-                        <h2>Clifford Reversi: Standard Pauli Set</h2>
+                        <h2>Clifford Introduction and Observables</h2>
                         <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Stabilizer Algebra to use qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
+                        <p><strong>Local operator choice:</strong> Clifford Go opens a small operator palette at the clicked site, so X/Y/Z are chosen where the insertion happens. The side Pauli selector remains a default for exports and keyboard-style operation.</p>
                         <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
                         <p><strong>Pauli math:</strong> I=(0,0), X=(1,0), Z=(0,1), Y=(1,1). The symplectic product is x1*z2 + z1*x2 mod 2. Labels anticommute when this value is 1.</p>
                         <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase Signs on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
                         <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Basic Floquet ages pieces and diffuses fields. Clifford Floquet applies H/S at marked defect vertices. Virasoro Floquet evolves a stress field T(v): phase 1 diffuses stress, phase 2 applies L0 scaling near marked vertices, phase 3 focuses stress like L1, and optional anomaly phases add L2-style stress.</p>
+                        <p><strong>Results:</strong> the export records topology, lattice, board labels, move history, position history, probability/noise events, Floquet time state, and final counts. These results let you compare how the same Clifford rule behaves on flat, random-boundary, torus, Klein, Mobius, RP2, S2, R3, and 4D graphs.</p>
                     </div>
                     <div data-rules-mode="physical-clifford" hidden>
-                        <h2>Clifford Reversi: Stabilizer Algebra Set</h2>
+                        <h2>Stabilizer Introduction and Observables</h2>
                         <p><strong>Algebra set:</strong> this is the Stabilizer Algebra configuration of the same Clifford Reversi game. Switch Algebra Set back to Standard Pauli Reversi to restore the ordinary opening and controls.</p>
                         <p><strong>Qubit sites:</strong> empty vertices are identity I with no active excitation. Occupied vertices store owner, Pauli I/X/Y/Z, sign, phase modulo four, and optional ancilla data. Black is the positive sector and white is the negative sector.</p>
                         <p><strong>Initial states:</strong> Stabilizer Vacuum is empty with positive checks. Sparse Errors seeds low-density X/Y/Z faults. Paired Defects creates nearby opposite-sign pairs. Domain Wall Seed separates positive and negative domains. Prepared Circuit applies ancilla preparations, H, S, CNOT, CZ, and measurement to a vacuum start.</p>
@@ -707,9 +709,10 @@
                         <p><strong>Stabilizer Recovery problem:</strong> this optional physical problem treats local Clifford/Reversi actions as Pauli-frame recovery. It adds graph-neighborhood X/Z syndromes, topology-cycle logical checks, recovery time, seeded measurement errors, and a dedicated QEC export without changing ordinary Reversi.</p>
                         <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
+                        <p><strong>Results:</strong> Stabilizer Pauli Recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
-                        <h2>Virasoro/CFT Reversi Rules</h2>
+                        <h2>Virasoro Reversi Introduction and Observables</h2>
                         <p><strong>Approximation:</strong> this is a discrete graph simulator inspired by CFT. Correlations, conformal blocks, stress, entropy, and topology sectors are lattice estimators rather than exact continuum observables.</p>
                         <p><strong>Fields:</strong> an empty vertex is identity. Occupied vertices carry a domain sign and a primary field. The default Ising CFT uses c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2.</p>
                         <p><strong>Initial states:</strong> Vacuum is empty. Domain Wall Seed creates opposite spin domains. Four Sigma Block tracks identity and epsilon blocks. Boundary Condition Change places seam/boundary insertions. Thermal Sample uses seeded temperature-weighted sigma/epsilon insertions.</p>
@@ -717,9 +720,10 @@
                         <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, L_1. N=2 also enables L_-2 splitting and L_2 concentration. Overlap of N=2 actions can create central-charge anomaly markers.</p>
                         <p><strong>Measurements:</strong> measure line parity, hidden OPE channels, the four-point block, region entropy, or local/region stress. Measurement errors are seeded and logged.</p>
                         <p><strong>Output:</strong> every turn records primary/sign counts, domain walls, connected domains, correlation estimates, cross-ratio, block weights, stress T(v), entropy, mutual information, OPE transitions, anomaly events, and topology sector.</p>
+                        <p><strong>Results:</strong> the CFT observables panel summarizes the current central charge, dominant block, entropy, strongest correlation, OPE-channel counts, anomaly count, and vacuum-block status. Export JSON keeps the full per-turn physics history and final estimator answer.</p>
                     </div>
                     <div data-rules-mode="anyon">
-                        <h2>Anyon Jump Chess Rules</h2>
+                        <h2>Anyon Introduction and Observables</h2>
                         <p><strong>3D boards:</strong> R3, T2, and S2 use rotatable graph embeddings. Legal hops, jumps, braid paths, fusion sites, labels, and braid-state shadows are drawn directly on the 3D board.</p>
                         <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
                         <p><strong>2D RBC:</strong> when selected, each boundary exit is linked to one fixed random boundary square for the current game. Anyon hops and jumps use those links through the same graph-neighbor system as the other topologies.</p>
@@ -727,6 +731,7 @@
                         <p><strong>Vacuum 1:</strong> 1 is the trivial topological charge, meaning no nontrivial anyon remains. It acts like the identity in fusion: 1 x a = a.</p>
                         <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
                         <p><strong>Unbraiding:</strong> select a braided token. The valid target is marked with a green UNBRAID badge. Clicking that target applies the next inverse generator. Full unbraiding requires the reverse inverse sequence; a wrong target or wrong sign appends a new braid instead of clearing the word. A successful inverse also reduces the visible braid count.</p>
+                        <p><strong>Local excitation choice:</strong> in Excitation Energy mode, click an empty site to open the particle palette at that site. Click an owned anyon to select movement, braid/unbraid, or Recombine / Recover from a local action menu.</p>
                         <p><strong>General Z_n phase:</strong> the selectable non-vacuum charges are &alpha;<sub>1</sub> through &alpha;<sub>n-1</sub>. Fusion adds grades modulo n, so &alpha;<sub>i</sub> x &alpha;<sub>j</sub> = &alpha;<sub>(i+j) mod n</sub>, with grade 0 equal to vacuum 1. A positive braid adds +1/n, an inverse unbraid subtracts 1/n, and the token shows the signed net phase as a flat shadow under the piece.</p>
                         <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, &psi; x &psi; = 1, e x m = &psi;, e x &psi; = m, and m x &psi; = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
                         <p><strong>Toric Memory Unbraid:</strong> the physical-problem option initializes local e and m pairs with vacuum total charge, records the logical winding sector, and shows QEC observables after every move. Crossing a noncontractible cycle can create a logical error; exact inverse braids reduce braid memory; complete vacuum fusion is recorded as vacuum recovery.</p>
@@ -735,17 +740,19 @@
                         <p><strong>Non-Abelian fusion:</strong> Ising uses &sigma; x &sigma; = 1 + &psi;. The plus sign lists alternative channels, not simultaneous products: resolving to 1 removes both incoming &sigma; anyons as vacuum, while resolving to &psi; replaces the pair with one &psi; excitation. Also, &sigma; x &psi; = &sigma; and &psi; x &psi; = 1. Fibonacci similarly uses &tau; x &tau; = 1 + &tau;. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                         <p><strong>Entanglement distance:</strong> Infinite keeps fusion-channel memory regardless of graph separation. Finite Distance measures shortest legal graph steps and decoheres that hidden pair channel when the anyons separate beyond the selected distance. Braid words remain recorded independently.</p>
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
+                        <p><strong>Observables and results:</strong> the QEC panel reports total fusion charge, logical sector, memory alive/lost, vacuum recovery, average and maximum braid word length, and successful or failed unbraids. Research export keeps worldlines, braid tokens, fusion outcomes, logical-sector history, energy history, memory lifetime, logical-error rate, unbraid success rate, and final physical answer.</p>
                     </div>
                     <div data-rules-mode="virasoro">
-                        <h2>Virasoro Go Rules</h2>
+                        <h2>Virasoro Go Introduction and Observables</h2>
                         <p><strong>Approximation:</strong> this is a discrete CFT-inspired estimator on a graph, not an exact continuum CFT solver. Normal graph-Go remains a separate game.</p>
                         <p><strong>Go rules:</strong> liberties, groups, captures, suicide, superko, passing, and area scoring are unchanged and use only topology adjacency.</p>
-                        <p><strong>Primary insertions:</strong> a legal Go placement inserts a primary field. Ising CFT uses identity, sigma with h=1/16, and epsilon with h=1/2 at c=1/2. Free Boson uses identity and a configurable vertex operator at c=1.</p>
+                        <p><strong>Primary insertions:</strong> a legal Go placement inserts a primary field. Ising CFT uses identity, sigma with h=1/16, and epsilon with h=1/2 at c=1/2. Free Boson uses identity and a configurable vertex operator at c=1. The primary/operator palette opens at the clicked Go vertex.</p>
                         <p><strong>Initial states:</strong> choose vacuum, two-point insertions, four-point block, boundary CFT insertions, or a seeded thermal sparse state.</p>
                         <p><strong>OPE and capture:</strong> adjacent compatible primaries form approximate OPE clusters and channel labels. A normal Go capture removes the captured primary insertions after the liberty calculation.</p>
                         <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, and L_1. N=2 adds L_-2 and L_2. They approximate discrete conformal deformations by changing stress, phase, and symbolic channel data; overlapping N=2 actions can add central-charge anomaly markers.</p>
                         <p><strong>Measurements:</strong> measure a two-point estimate, four-point block, region entropy, OPE channel, dominant block, or stress. Hidden channels collapse when measured and seeded measurement errors are logged.</p>
                         <p><strong>Observables:</strong> every turn records primary counts, approximate correlators, cross-ratio, conformal-block weights, dominant block, stress proxy, total conformal weight, OPE clusters, entropy, mutual information, anomaly events, and topology sector.</p>
+                        <p><strong>Results:</strong> CFT Conformal Block Observables exports initial and final observables, full physics history, block distribution, strongest two-point correlations, entropy trend, anomaly count, vacuum-block dominance, and a final summary of the discrete graph estimate.</p>
                     </div>
                 </section>
             </div>

@@ -302,6 +302,8 @@ let applyingRemoteState = false;
 let onlineReady = null;
 let statusHoldUntil = 0;
 let legalReversiCache = { signature: '', keys: [] };
+let actionPalette = null;
+let actionPaletteOpenedAt = 0;
 const algebraic3d = new Algebraic3DBoard({
     canvas: els.algebraic3dBoard,
     resetButton: els.reset3dCameraButton,
@@ -312,8 +314,8 @@ const algebraic3d = new Algebraic3DBoard({
             updateStatus();
         }
     },
-    onSelect(coord) {
-        handleCellClick(coord);
+    onSelect(coord, event) {
+        handleCellClick(coord, event);
     }
 });
 window.algebraic3dBoard = algebraic3d;
@@ -475,6 +477,105 @@ function syncAnyonExcitationTypeOptions() {
     els.anyonExcitationTypeSelect.value = selected?.value || available[0]?.value || types[0];
 }
 
+function closeActionPalette() {
+    actionPalette?.remove();
+    actionPalette = null;
+    actionPaletteOpenedAt = 0;
+}
+
+function paletteAnchorFor(coord, event = null) {
+    if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+        return { x: event.clientX, y: event.clientY };
+    }
+    const key = coordKey(coord);
+    const escapedKey = window.CSS?.escape ? CSS.escape(key) : key.replace(/["\\]/g, '\\$&');
+    const cell = els.board?.querySelector(`[data-key="${escapedKey}"]`);
+    const rect = cell?.getBoundingClientRect();
+    if (rect) return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    const canvasRect = els.algebraic3dBoard?.hidden ? null : els.algebraic3dBoard?.getBoundingClientRect();
+    if (canvasRect) return { x: canvasRect.left + canvasRect.width / 2, y: canvasRect.top + canvasRect.height / 2 };
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+}
+
+function showActionPalette(coord, event, { title, items, status = '' }) {
+    const enabledItems = items.filter(Boolean);
+    if (!enabledItems.length) return false;
+    event?.stopPropagation?.();
+    closeActionPalette();
+
+    const palette = document.createElement('div');
+    palette.className = 'site-action-palette';
+    palette.setAttribute('role', 'menu');
+    palette.dataset.coord = coordKey(coord);
+
+    const heading = document.createElement('div');
+    heading.className = 'site-action-title';
+    heading.textContent = title;
+    palette.append(heading);
+
+    for (const item of enabledItems) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'site-action-choice';
+        button.disabled = Boolean(item.disabled);
+        button.setAttribute('role', 'menuitem');
+        const label = document.createElement('span');
+        label.textContent = item.label;
+        button.append(label);
+        if (item.detail) {
+            const detail = document.createElement('small');
+            detail.textContent = item.detail;
+            button.append(detail);
+        }
+        button.addEventListener('click', (choiceEvent) => {
+            choiceEvent.stopPropagation();
+            if (button.disabled) return;
+            closeActionPalette();
+            item.onChoose?.();
+        });
+        palette.append(button);
+    }
+
+    const anchor = paletteAnchorFor(coord, event);
+    palette.style.left = `${anchor.x}px`;
+    palette.style.top = `${anchor.y}px`;
+    document.body.append(palette);
+    const rect = palette.getBoundingClientRect();
+    const margin = 10;
+    const left = Math.min(window.innerWidth - rect.width - margin, Math.max(margin, anchor.x - rect.width / 2));
+    const top = Math.min(window.innerHeight - rect.height - margin, Math.max(margin, anchor.y + 14));
+    palette.style.left = `${left}px`;
+    palette.style.top = `${top}px`;
+    actionPalette = palette;
+    actionPaletteOpenedAt = Date.now();
+    if (status) els.statusText.textContent = status;
+    return true;
+}
+
+function optionItems(select, onChoose) {
+    return [...select.options]
+        .filter((option) => !option.hidden)
+        .map((option) => ({
+            label: option.textContent.trim(),
+            disabled: option.disabled,
+            onChoose: () => onChoose(option.value)
+        }));
+}
+
+document.addEventListener('pointerdown', (event) => {
+    if (actionPalette && !actionPalette.contains(event.target)) closeActionPalette();
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeActionPalette();
+});
+
+window.addEventListener('resize', closeActionPalette);
+window.addEventListener('scroll', () => {
+    if (!actionPalette || Date.now() - actionPaletteOpenedAt < 350) return;
+    closeActionPalette();
+}, true);
+
 function syncModeControls() {
     const mode = selectedMode();
     const isAnyon = mode === 'anyon_jump';
@@ -598,10 +699,10 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
+    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
     if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
+        els.anyonExcitationTypeControl.hidden = true;
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -657,8 +758,8 @@ function syncModeControls() {
     if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
         els.rulesIntroButton.textContent = isVirasoroGo
-            ? 'Virasoro Go Rules'
-            : isCFTReversi ? 'CFT Reversi Rules' : isAnyon ? 'Anyon Rules' : 'Clifford Rules';
+            ? 'Virasoro Go Intro'
+            : isCFTReversi ? 'CFT Reversi Intro' : isAnyon ? 'Anyon Intro' : 'Clifford Intro';
     }
     document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
     return mode;
@@ -1561,6 +1662,11 @@ function renderFlatBoard() {
         ? game.legalActionsForToken(selectedToken)
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
+    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+        ? new Set(game.topology.vertices()
+            .filter((coord) => !game.tokenAt(coord))
+            .map(coordKey))
+        : new Set();
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
@@ -1585,7 +1691,7 @@ function renderFlatBoard() {
         if (honeycombNodes || hexCells) {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
-        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
@@ -1641,7 +1747,7 @@ function renderFlatBoard() {
             updateBoardHighlights();
             updateStatus();
         });
-        cell.addEventListener('click', () => handleCellClick(coord));
+        cell.addEventListener('click', (event) => handleCellClick(coord, event));
         cell.addEventListener('dblclick', (event) => {
             event.preventDefault();
             handleCellDoubleClick(coord);
@@ -1703,6 +1809,11 @@ function algebraic3DViewState() {
     const legalAnyon = game.mode === 'anyon_jump' && selectedToken
         ? game.legalActionsForToken(selectedToken)
         : [];
+    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+        ? game.topology.vertices()
+            .filter((coord) => !game.tokenAt(coord))
+            .map(coordKey)
+        : [];
     const virasoroPreview = currentVirasoroPreview();
     const cftPreview = currentCFTPreview();
     const legalGo = isGoMode(game.mode)
@@ -1715,6 +1826,7 @@ function algebraic3DViewState() {
         legalKeys: new Set([
             ...legalReversi,
             ...legalAnyon.map((action) => coordKey(action.to)),
+            ...legalAnyonExciteTargets,
             ...legalGo
         ]),
         previewKeys: new Set((preview?.flips || []).map((flip) => flip.key)),
@@ -1760,6 +1872,11 @@ function updateBoardHighlights() {
         ? game.legalActionsForToken(selectedToken)
         : [];
     const legalAnyonTargets = new Set(legalAnyon.map((action) => coordKey(action.to)));
+    const legalAnyonExciteTargets = game.mode === 'anyon_jump' && game.config?.setupMode === 'excitation'
+        ? new Set(game.topology.vertices()
+            .filter((coord) => !game.tokenAt(coord))
+            .map(coordKey))
+        : new Set();
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
@@ -1779,7 +1896,7 @@ function updateBoardHighlights() {
         const coord = JSON.parse(cell.dataset.coord);
         const token = game.mode === 'anyon_jump' ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalGoTargets.has(key));
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
@@ -2165,7 +2282,242 @@ function handleCFTGoClick(coord) {
     }
 }
 
-function handleCellClick(coord) {
+function executeCliffordGoPlacement(coord, pauliLabel = els.pauliSelect.value) {
+    els.pauliSelect.value = pauliLabel;
+    const result = game.tryPlay(coord, game.currentPlayer, { pauliLabel });
+    els.statusText.textContent = result.ok
+        ? `Inserted ${game.primaryLabel(game.getStone(coord))}; captured ${result.captured || 0}.`
+        : result.error;
+    if (result.ok) hoverCoord = null;
+    render();
+}
+
+function showCliffordGoPalette(coord, event) {
+    return showActionPalette(coord, event, {
+        title: `Set Pauli at ${game.topology.displayCoord(coord)}`,
+        status: 'Choose the Pauli operator for this Clifford Go insertion.',
+        items: optionItems(els.pauliSelect, (value) => executeCliffordGoPlacement(coord, value))
+    });
+}
+
+function executeCFTGoPrimaryPlacement(coord, primaryType = els.cftPrimarySelect.value) {
+    els.cftPrimarySelect.value = primaryType;
+    const result = game.tryPlay(coord, game.currentPlayer, { primaryType });
+    let message = '';
+    if (result?.ok) {
+        hoverCoord = null;
+        selectedCFTCoords = [];
+        message = `Inserted ${els.cftPrimarySelect.value}; captured ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
+    } else if (result) {
+        message = result.error;
+    }
+    render();
+    if (message) {
+        els.statusText.textContent = message;
+        statusHoldUntil = Date.now() + 1800;
+    }
+}
+
+function executeCFTReversiPrimaryPlacement(coord, primaryType = els.cftPrimarySelect.value) {
+    els.cftPrimarySelect.value = primaryType;
+    const result = game.place(coord, {
+        primaryType,
+        player: game.currentPlayer
+    });
+    if (result?.ok) {
+        hoverCoord = null;
+        selectedCFTCoords = [];
+        els.statusText.textContent = `Placed ${primaryType}; transformed ${result.event.flipped.length} interval site${result.event.flipped.length === 1 ? '' : 's'}.`;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function showCFTPrimaryPalette(coord, event, { go = false } = {}) {
+    return showActionPalette(coord, event, {
+        title: `Insert primary at ${game.topology.displayCoord(coord)}`,
+        status: 'Choose the CFT primary/operator for this site.',
+        items: optionItems(els.cftPrimarySelect, (value) => {
+            if (go) executeCFTGoPrimaryPlacement(coord, value);
+            else executeCFTReversiPrimaryPlacement(coord, value);
+        })
+    });
+}
+
+function executeAnyonDrop(tokenId) {
+    const result = game.dropAnyon(tokenId, game.currentPlayer);
+    els.statusText.textContent = result.ok
+        ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
+        : result.error;
+    if (result.ok) selectedToken = '';
+    render();
+}
+
+function executeAnyonExcite(coord, anyonType) {
+    els.anyonExcitationTypeSelect.value = anyonType;
+    const result = game.exciteAnyon(coord, anyonType, game.currentPlayer);
+    els.statusText.textContent = result.ok
+        ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
+        : result.error;
+    if (result.ok) {
+        selectedToken = '';
+        hoverCoord = null;
+    }
+    render();
+}
+
+function executeAnyonSelect(token) {
+    selectedToken = token.id;
+    els.statusText.textContent = `Selected ${token.id} (${token.anyonType}). Click an empty site to move, another anyon to braid/unbraid, or choose Recombine / Recover from its site menu.`;
+    render();
+}
+
+function executeAnyonTargetToken(token) {
+    if (!selectedToken) {
+        els.statusText.textContent = 'Select one of your anyons first.';
+        return;
+    }
+    const selected = game.tokens.get(selectedToken);
+    const path = selected ? [selected.coord, token.coord] : [];
+    const direction = selected ? token.coord.map((value, axis) => value - selected.coord[axis]) : [];
+    const expected = selected ? nextRequiredUnbraidGenerator(selected.braidWord) : null;
+    const exactInverse = expected?.targetId === token.id
+        ? { sign: expected.sign, index: expected.index }
+        : {};
+    const result = game.attemptUnbraid(selectedToken, token.id, { path, direction, ...exactInverse });
+    if (result.ok) {
+        if (result.event.unbraid.successfulPartialUnbraid || result.event.unbraid.fullyUnbraided) {
+            lastCancellation = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
+            lastWrongUnbraid = null;
+        } else {
+            lastWrongUnbraid = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
+            lastCancellation = null;
+        }
+        selectedToken = '';
+        hoverCoord = null;
+        els.statusText.textContent = result.event.unbraid.fullyUnbraided
+            ? 'Full inverse sequence completed; token is unbraided.'
+            : result.event.unbraid.successfulPartialUnbraid
+                ? 'Correct inverse generator applied; braid word shortened.'
+                : 'Wrong unbraid path/order; braid word grew.';
+    } else {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function executeAnyonMove(coord) {
+    if (!selectedToken) {
+        els.statusText.textContent = 'Select one of your anyons first.';
+        return;
+    }
+    const result = game.move(selectedToken, coord);
+    if (result.ok) {
+        if (result.event.braid?.unbraid?.successfulPartialUnbraid || result.event.braid?.fullyUnbraided) {
+            lastCancellation = {
+                movingTokenId: selectedToken,
+                targetId: result.event.braid.targetId,
+                tick: Date.now()
+            };
+            lastWrongUnbraid = null;
+        }
+        selectedToken = '';
+        hoverCoord = null;
+        if (result.event.fusion?.blocked) {
+            els.statusText.textContent = `Capture blocked: ${result.event.fusion.reason}.`;
+        } else if (result.event.entanglement?.length) {
+            els.statusText.textContent = `${capitalize(result.event.kind)} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
+        } else if (result.event.braid?.unbraid?.successfulPartialUnbraid) {
+            els.statusText.textContent = 'Inverse jump shortened the braid word.';
+        } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
+            els.statusText.textContent = 'Jump recorded a nontrivial braid token.';
+        } else {
+            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`;
+        }
+    } else {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function anyonExcitationItems(coord) {
+    syncAnyonExcitationTypeOptions();
+    return [...els.anyonExcitationTypeSelect.options].map((option) => ({
+        label: `Excite ${anyonDisplay(option.value)}`,
+        detail: option.textContent.trim().replace(`${anyonDisplay(option.value)} - `, ''),
+        disabled: option.disabled,
+        onChoose: () => executeAnyonExcite(coord, option.value)
+    }));
+}
+
+function handleAnyonExcitationClick(coord, event) {
+    const token = game.tokenAt(coord);
+    if (token) {
+        const items = [];
+        if (selectedToken && token.id !== selectedToken) {
+            items.push({
+                label: 'Braid / Unbraid With Selected',
+                detail: `${selectedToken} -> ${token.id}`,
+                onChoose: () => executeAnyonTargetToken(token)
+            });
+        }
+        if (token.owner === game.currentPlayer) {
+            items.push({
+                label: token.id === selectedToken ? 'Keep Selected for Move' : 'Select for Move / Braid',
+                detail: `${token.id} ${anyonDisplay(token.anyonType)}`,
+                onChoose: () => executeAnyonSelect(token)
+            });
+            items.push({
+                label: 'Recombine / Recover',
+                detail: `return gap energy minus ${formatNumber(Number(els.anyonDropLossInput.value || 0) * 100)}%`,
+                onChoose: () => executeAnyonDrop(token.id)
+            });
+            if (token.id === selectedToken) {
+                items.push({
+                    label: 'Clear Selection',
+                    onChoose: () => {
+                        selectedToken = '';
+                        els.statusText.textContent = 'Selection cleared.';
+                        render();
+                    }
+                });
+            }
+        }
+        if (!items.length) {
+            els.statusText.textContent = selectedToken
+                ? 'Choose Braid / Unbraid with selected from a valid target.'
+                : 'Select one of your anyons first.';
+            return;
+        }
+        showActionPalette(coord, event, {
+            title: `Anyon at ${game.topology.displayCoord(coord)}`,
+            status: 'Choose the local anyon action for this site.',
+            items
+        });
+        return;
+    }
+
+    const items = [];
+    if (selectedToken) {
+        items.push({
+            label: 'Move Selected Here',
+            detail: selectedToken,
+            onChoose: () => executeAnyonMove(coord)
+        });
+    }
+    items.push(...anyonExcitationItems(coord));
+    showActionPalette(coord, event, {
+        title: `Empty site ${game.topology.displayCoord(coord)}`,
+        status: selectedToken
+            ? 'Move the selected anyon here, or excite a new particle on this site.'
+            : 'Choose the excitation particle for this site.',
+        items
+    });
+}
+
+function handleCellClick(coord, event = null) {
+    closeActionPalette();
     if (els.playModeSelect.value === 'online') {
         const online = getOnlineState();
         if (online.room?.status !== 'playing') {
@@ -2182,21 +2534,22 @@ function handleCellClick(coord) {
         return;
     }
     if (isCFTReversiMode(game.mode)) {
+        if (els.cftActionSelect.value === 'place') {
+            showCFTPrimaryPalette(coord, event, { go: false });
+            return;
+        }
         handleCFTReversiClick(coord);
         return;
     }
     if (isCliffordGoMode(game.mode)) {
-        const result = game.tryPlay(coord, game.currentPlayer, {
-            pauliLabel: els.pauliSelect.value
-        });
-        els.statusText.textContent = result.ok
-            ? `Inserted ${game.primaryLabel(game.getStone(coord))}; captured ${result.captured || 0}.`
-            : result.error;
-        if (result.ok) hoverCoord = null;
-        render();
+        showCliffordGoPalette(coord, event);
         return;
     }
     if (isPhysicalVirasoroGoMode(game.mode)) {
+        if (els.cftActionSelect.value === 'place') {
+            showCFTPrimaryPalette(coord, event, { go: true });
+            return;
+        }
         handleCFTGoClick(coord);
         return;
     }
@@ -2215,6 +2568,10 @@ function handleCellClick(coord) {
 
     const token = game.tokenAt(coord);
     const excitationMode = game.config?.setupMode === 'excitation';
+    if (excitationMode) {
+        handleAnyonExcitationClick(coord, event);
+        return;
+    }
     const anyonTurnAction = excitationMode ? els.anyonActionSelect.value : 'move';
     if (token && selectedToken && token.id === selectedToken) {
         if (excitationMode && anyonTurnAction === 'recombine' && token.owner === game.currentPlayer) {

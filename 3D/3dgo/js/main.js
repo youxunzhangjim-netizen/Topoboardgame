@@ -38,8 +38,13 @@ const LANGUAGE_STORAGE_KEY = '3dgo:language';
 const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 
 const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY]);
+const TWO_PI = Math.PI * 2;
 const MOBIUS_BAND_RADIUS = 3.05;
 const MOBIUS_BAND_HALF_WIDTH = 1.18;
+const RP2_CELL_SIZE = 0.72;
+const RP2_CELL_GAP = 0.035;
+const RP2_EDGE_GAP = 0.84;
+const RP2_BOARD_LIFT = 0.02;
 
 function isR3LikeTopology(topology) {
     return R3_LIKE_TOPOLOGIES.has(topology);
@@ -148,7 +153,7 @@ Object.assign(I18N.zh.mode, {
     sphereInfo: 'S2 sphere 使用經度環；水平方向包回，南北極點可落子並連到最近緯度環。',
     kleinInfo: 'Klein bottle 左右正常包回，上下包回時 x 會翻轉為 width - 1 - x。',
     mobiusInfo: 'Mobius strip 使用單一扭轉方向包回，垂直方向維持開放邊界。',
-    rp2Info: 'RP2 使用對映邊界識別，每次穿越邊界會翻轉另一個座標。'
+    rp2Info: 'RP2 使用立體對映邊界板；升起的弧線顯示對邊反轉黏合，每次穿越邊界會翻轉另一個座標。'
 });
 
 
@@ -158,7 +163,7 @@ Object.assign(I18N.en.mode, {
     mobiusDisplay: ({ width, height }) => width + ' x ' + height + ' Mobius Strip Go',
     rp2Display: ({ width, height }) => width + ' x ' + height + ' RP2 Go',
     mobiusInfo: 'Mobius strip uses one twisted horizontal wrap with open vertical edges.',
-    rp2Info: 'RP2 uses antipodal boundary identification: crossing any cut edge flips the transverse coordinate.'
+    rp2Info: 'RP2 uses a raised projective board with antipodal glue arcs; crossing any cut edge flips the transverse coordinate.'
 });
 
 function normalizeLanguage(value) {
@@ -310,7 +315,6 @@ class Go3DRenderer {
         this.lattice = logic.lattice;
         this.view = view;
         this.controls.enableRotate = !(logic.topology === KLEIN_BOTTLE_TOPOLOGY
-            || logic.topology === RP2_GO_TOPOLOGY
             || (logic.topology === SPHERE_GO_TOPOLOGY && view === '2d'));
         this.clearGroup(this.boardGroup);
         this.clearGroup(this.hoverGroup);
@@ -320,7 +324,8 @@ class Go3DRenderer {
         if (isR3LikeTopology(logic.topology)) this.buildR3(logic);
         else if (logic.topology === 't2') this.buildTorus(logic);
         else if (logic.topology === MOBIUS_GO_TOPOLOGY) this.buildMobius(logic.width, logic.height);
-        else if ([KLEIN_BOTTLE_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) this.buildKlein(logic.width, logic.height);
+        else if (logic.topology === RP2_GO_TOPOLOGY) this.buildRP2(logic.width, logic.height);
+        else if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) this.buildKlein(logic.width, logic.height);
         else if (view === '2d') this.buildSphereFlat(logic.width, logic.height);
         else this.buildSphere(logic.width, logic.height);
         this.resetCamera();
@@ -631,6 +636,168 @@ class Go3DRenderer {
         this.addMobiusStarPoints(width, height);
     }
 
+    buildRP2(width, height) {
+        const spanX = this.rp2BoardSpanX(width);
+        const spanZ = this.rp2BoardSpanZ(height);
+        const surface = new THREE.Mesh(
+            new THREE.BoxGeometry(spanX + RP2_CELL_SIZE * 0.9, 0.065, spanZ + RP2_CELL_SIZE * 0.9),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x664525,
+                roughness: 0.62,
+                metalness: 0.02,
+                clearcoat: 0.18,
+                clearcoatRoughness: 0.48
+            })
+        );
+        surface.position.y = RP2_BOARD_LIFT - 0.075;
+        surface.receiveShadow = true;
+        this.boardGroup.add(surface);
+
+        const cellMaterialA = new THREE.MeshPhysicalMaterial({
+            color: 0xb88246,
+            roughness: 0.5,
+            metalness: 0.02,
+            clearcoat: 0.2
+        });
+        const cellMaterialB = new THREE.MeshPhysicalMaterial({
+            color: 0x805936,
+            roughness: 0.55,
+            metalness: 0.02,
+            clearcoat: 0.18
+        });
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const cell = new THREE.Mesh(
+                    new THREE.BoxGeometry(RP2_CELL_SIZE * 0.96, 0.035, RP2_CELL_SIZE * 0.96),
+                    (x + y) % 2 === 0 ? cellMaterialA : cellMaterialB
+                );
+                cell.position.copy(this.rp2Position([x, y], width, height, -0.018));
+                cell.castShadow = true;
+                cell.receiveShadow = true;
+                this.boardGroup.add(cell);
+            }
+        }
+
+        const linePositions = [];
+        const pointPositions = [];
+        const addLine = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const coord = [x, y];
+                const point = this.rp2Position(coord, width, height, 0.06);
+                this.pointCoords.push(coord);
+                this.pointPositions.push(point);
+                pointPositions.push(point.x, point.y, point.z);
+                if (x < width - 1) addLine(point, this.rp2Position([x + 1, y], width, height, 0.06));
+                if (y < height - 1) addLine(point, this.rp2Position([x, y + 1], width, height, 0.06));
+            }
+        }
+
+        const gridGeometry = new THREE.BufferGeometry();
+        gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        this.boardGroup.add(new THREE.LineSegments(
+            gridGeometry,
+            new THREE.LineBasicMaterial({ color: 0x24150c, transparent: true, opacity: 0.76, depthWrite: false })
+        ));
+        this.addNodePoints(pointPositions, width <= 9 ? 0.062 : width <= 13 ? 0.048 : 0.037, {
+            color: 0x23140d,
+            opacity: 0.97
+        });
+        this.addRP2BoundaryRails(width, height);
+        this.addRP2GlueLinks(width, height);
+        this.addRP2StarPoints(width, height);
+    }
+
+    addRP2BoundaryRails(width, height) {
+        const lrMaterial = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0ea5e9,
+            emissiveIntensity: 0.2,
+            roughness: 0.34
+        });
+        const tbMaterial = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24,
+            emissive: 0xf59e0b,
+            emissiveIntensity: 0.2,
+            roughness: 0.36
+        });
+        for (let y = 0; y < height; y++) {
+            for (const side of ['left', 'right']) {
+                const rail = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.12, 0.08, RP2_CELL_SIZE * 0.72),
+                    lrMaterial
+                );
+                rail.position.copy(this.rp2EdgePoint(side, y, width, height, 0.075));
+                rail.castShadow = true;
+                this.boardGroup.add(rail);
+            }
+        }
+        for (let x = 0; x < width; x++) {
+            for (const side of ['top', 'bottom']) {
+                const rail = new THREE.Mesh(
+                    new THREE.BoxGeometry(RP2_CELL_SIZE * 0.72, 0.08, 0.12),
+                    tbMaterial
+                );
+                rail.position.copy(this.rp2EdgePoint(side, x, width, height, 0.075));
+                rail.castShadow = true;
+                this.boardGroup.add(rail);
+            }
+        }
+    }
+
+    addRP2GlueLinks(width, height) {
+        for (let y = 0; y < height; y++) this.addRP2BoundaryLink('left', y, width, height);
+        for (let x = 0; x < width; x++) this.addRP2BoundaryLink('top', x, width, height);
+    }
+
+    addRP2BoundaryLink(side, index, width, height) {
+        const horizontal = side === 'left' || side === 'right';
+        const targetSide = this.rp2OppositeSide(side);
+        const reversedIndex = horizontal ? height - 1 - index : width - 1 - index;
+        const start = this.rp2EdgePoint(side, index, width, height, 1.42);
+        const end = this.rp2EdgePoint(targetSide, reversedIndex, width, height, 1.42);
+        const maxIndex = Math.max(1, (horizontal ? height : width) - 1);
+        const normalized = (index / maxIndex) * 2 - 1;
+        const domeAmount = Math.sqrt(Math.max(0, 1 - normalized * normalized));
+        const apex = start.clone().add(end).multiplyScalar(0.5);
+        apex.y = THREE.MathUtils.lerp(4.6, 6.8, domeAmount);
+        if (horizontal) apex.z = normalized * this.rp2BoardSpanZ(height) * 0.44;
+        else apex.x = normalized * this.rp2BoardSpanX(width) * 0.44;
+
+        const curve = new THREE.CatmullRomCurve3([start, apex, end], false, 'centripetal', 0.42);
+        const material = new THREE.MeshBasicMaterial({
+            color: horizontal ? 0xa5f3fc : 0xfde68a,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false
+        });
+        const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.007, 8, false), material);
+        tube.renderOrder = 5;
+        this.boardGroup.add(tube);
+
+        const arrowMaterial = new THREE.MeshStandardMaterial({
+            color: horizontal ? 0xa5f3fc : 0xfde68a,
+            emissive: horizontal ? 0x22d3ee : 0xfbbf24,
+            emissiveIntensity: 0.55,
+            roughness: 0.24,
+            transparent: true,
+            opacity: 0.9
+        });
+        for (const t of [0.16, 0.84]) {
+            const arrow = this.createRP2Arrow(curve.getPoint(t), curve.getTangent(t), arrowMaterial);
+            this.boardGroup.add(arrow);
+        }
+    }
+
+    createRP2Arrow(position, direction, material) {
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.052, 0.15, 18), material);
+        const tangent = direction.clone().normalize();
+        cone.position.copy(position).add(tangent.clone().multiplyScalar(-0.062));
+        cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+        cone.castShadow = true;
+        return cone;
+    }
+
     buildR3(logic) {
         const size = logic.size;
         const linePositions = [];
@@ -800,6 +967,31 @@ class Go3DRenderer {
         this.boardGroup.add(mesh);
     }
 
+    addRP2StarPoints(width, height) {
+        const coords = this.starPoints(Math.min(width, height))
+            .map(([x, y]) => [
+                Math.round(x * (width - 1) / Math.max(1, Math.min(width, height) - 1)),
+                Math.round(y * (height - 1) / Math.max(1, Math.min(width, height) - 1))
+            ]);
+        const unique = [...new Map(coords.map((coord) => [coord.join(','), coord])).values()]
+            .filter(([x, y]) => x >= 0 && x < width && y >= 0 && y < height);
+        if (!unique.length) return;
+        const mesh = new THREE.InstancedMesh(
+            new THREE.SphereGeometry(width <= 9 ? 0.072 : width <= 13 ? 0.056 : 0.043, 16, 10),
+            new THREE.MeshStandardMaterial({ color: 0x120b07, roughness: 0.68, metalness: 0.02 }),
+            unique.length
+        );
+        const matrix = new THREE.Matrix4();
+        unique.forEach((coord, index) => {
+            const position = this.rp2Position(coord, width, height, 0.12);
+            matrix.makeTranslation(position.x, position.y, position.z);
+            mesh.setMatrixAt(index, matrix);
+        });
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.boardGroup.add(mesh);
+    }
+
     starPoints(size) {
         if (size === 9) return [2, 4, 6].flatMap((x) => [2, 4, 6].map((y) => [x, y]));
         if (size === 13) return [3, 6, 9].flatMap((x) => [3, 6, 9].map((y) => [x, y]));
@@ -912,12 +1104,14 @@ class Go3DRenderer {
 
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
-        if (!hit || !logic || !['t2', MOBIUS_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
+        if (!hit || !logic || !['t2', MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
             ? this.torusPosition(coord, logic.size, 0.055)
-            : this.mobiusPose(coord, logic.width, logic.height, 0.075);
+            : logic.topology === RP2_GO_TOPOLOGY
+                ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
+                : this.mobiusPose(coord, logic.width, logic.height, 0.075);
         return this.isPoseFacingCamera(pose.position, pose.normal);
     }
 
@@ -977,7 +1171,10 @@ class Go3DRenderer {
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
             return this.mobiusPose(coord, logic.width, logic.height, 0.18).position;
         }
-        if ([KLEIN_BOTTLE_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) {
+        if (logic.topology === RP2_GO_TOPOLOGY) {
+            return this.rp2Position(coord, logic.width, logic.height, 0.18);
+        }
+        if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
             return this.kleinPosition(coord, logic.width, logic.height, 0.14);
         }
         if (logic.topology === SPHERE_GO_TOPOLOGY) {
@@ -1006,6 +1203,61 @@ class Go3DRenderer {
             ((height - 1) / 2 - coord[1]) * scale,
             lift
         );
+    }
+
+    rp2BoardStep() {
+        return RP2_CELL_SIZE + RP2_CELL_GAP;
+    }
+
+    rp2BoardSpanX(width) {
+        return width * RP2_CELL_SIZE + (width - 1) * RP2_CELL_GAP;
+    }
+
+    rp2BoardSpanZ(height) {
+        return height * RP2_CELL_SIZE + (height - 1) * RP2_CELL_GAP;
+    }
+
+    rp2CellX(x, width) {
+        return (Number(x) - (width - 1) / 2) * this.rp2BoardStep();
+    }
+
+    rp2CellZ(y, height) {
+        return (Number(y) - (height - 1) / 2) * this.rp2BoardStep();
+    }
+
+    rp2Position(coord, width, height, lift = 0) {
+        return new THREE.Vector3(
+            this.rp2CellX(coord[0], width),
+            RP2_BOARD_LIFT + lift,
+            this.rp2CellZ(coord[1], height)
+        );
+    }
+
+    rp2Pose(coord, width, height, lift = 0) {
+        return {
+            position: this.rp2Position(coord, width, height, lift),
+            normal: new THREE.Vector3(0, 1, 0)
+        };
+    }
+
+    rp2EdgePoint(side, index, width, height, lift = 0.12) {
+        const left = this.rp2CellX(0, width) - RP2_CELL_SIZE / 2 - RP2_EDGE_GAP;
+        const right = this.rp2CellX(width - 1, width) + RP2_CELL_SIZE / 2 + RP2_EDGE_GAP;
+        const top = this.rp2CellZ(0, height) - RP2_CELL_SIZE / 2 - RP2_EDGE_GAP;
+        const bottom = this.rp2CellZ(height - 1, height) + RP2_CELL_SIZE / 2 + RP2_EDGE_GAP;
+        if (side === 'left') return new THREE.Vector3(left, RP2_BOARD_LIFT + lift, this.rp2CellZ(index, height));
+        if (side === 'right') return new THREE.Vector3(right, RP2_BOARD_LIFT + lift, this.rp2CellZ(index, height));
+        if (side === 'top') return new THREE.Vector3(this.rp2CellX(index, width), RP2_BOARD_LIFT + lift, top);
+        return new THREE.Vector3(this.rp2CellX(index, width), RP2_BOARD_LIFT + lift, bottom);
+    }
+
+    rp2OppositeSide(side) {
+        return {
+            left: 'right',
+            right: 'left',
+            top: 'bottom',
+            bottom: 'top'
+        }[side] || side;
     }
 
     r3Scale(size) {
@@ -1114,7 +1366,10 @@ class Go3DRenderer {
         } else if (this.app?.logic?.topology === MOBIUS_GO_TOPOLOGY) {
             this.camera.position.set(6.4, 4.8, 7.4);
             this.controls.target.set(0, 0, 0);
-        } else if ([KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(this.app?.logic?.topology)) {
+        } else if (this.app?.logic?.topology === RP2_GO_TOPOLOGY) {
+            this.camera.position.set(0, 8.6, 7.4);
+            this.controls.target.set(0, 0.35, 0);
+        } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
             this.camera.position.set(0, 0, 10.5);
             this.controls.target.set(0, 0, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
