@@ -598,10 +598,10 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
+    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
     if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = !excitationMode;
+        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -2215,8 +2215,9 @@ function handleCellClick(coord) {
 
     const token = game.tokenAt(coord);
     const excitationMode = game.config?.setupMode === 'excitation';
+    const anyonTurnAction = excitationMode ? els.anyonActionSelect.value : 'move';
     if (token && selectedToken && token.id === selectedToken) {
-        if (excitationMode && token.owner === game.currentPlayer) {
+        if (excitationMode && anyonTurnAction === 'recombine' && token.owner === game.currentPlayer) {
             const result = game.dropAnyon(token.id, game.currentPlayer);
             els.statusText.textContent = result.ok
                 ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
@@ -2232,6 +2233,21 @@ function handleCellClick(coord) {
         return;
     }
     if (token && selectedToken && token.id !== selectedToken) {
+        if (excitationMode && anyonTurnAction === 'recombine' && token.owner === game.currentPlayer) {
+            const result = game.dropAnyon(token.id, game.currentPlayer);
+            els.statusText.textContent = result.ok
+                ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
+                : result.error;
+            if (result.ok) selectedToken = '';
+            render();
+            return;
+        }
+        if (excitationMode && anyonTurnAction !== 'move') {
+            els.statusText.textContent = anyonTurnAction === 'excite'
+                ? 'Excite targets an empty vertex. Choose Move / Braid to unbraid or move existing anyons.'
+                : 'Recombine / Recover targets one of your own anyons.';
+            return;
+        }
         const selected = game.tokens.get(selectedToken);
         const path = selected ? [selected.coord, coord] : [];
         const direction = selected ? coord.map((value, axis) => value - selected.coord[axis]) : [];
@@ -2263,14 +2279,27 @@ function handleCellClick(coord) {
     }
 
     if (token && token.owner === game.currentPlayer) {
+        if (excitationMode && anyonTurnAction === 'recombine') {
+            const result = game.dropAnyon(token.id, game.currentPlayer);
+            els.statusText.textContent = result.ok
+                ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
+                : result.error;
+            if (result.ok) selectedToken = '';
+            render();
+            return;
+        }
+        if (excitationMode && anyonTurnAction === 'excite') {
+            els.statusText.textContent = 'Excite creates a new anyon on an empty vertex. Choose Move / Braid to select existing anyons.';
+            return;
+        }
         selectedToken = token.id;
         els.statusText.textContent = excitationMode
-            ? `Selected ${token.id} (${token.anyonType}). Click a legal empty target to move, or click it again to recover energy.`
+            ? `Selected ${token.id} (${token.anyonType}). Click a legal empty target to move, or choose Recombine / Recover to reclaim energy.`
             : `Selected ${token.id} (${token.anyonType}).`;
         render();
         return;
     }
-    if (!token && excitationMode && !selectedToken) {
+    if (!token && excitationMode && anyonTurnAction === 'excite') {
         syncAnyonExcitationTypeOptions();
         const selectedType = els.anyonExcitationTypeSelect.value;
         const result = game.exciteAnyon(coord, selectedType, game.currentPlayer);
@@ -2285,9 +2314,19 @@ function handleCellClick(coord) {
         return;
     }
     if (!selectedToken) {
-        els.statusText.textContent = excitationMode
-            ? 'Click an empty vertex to excite the selected particle type, or select one of your anyons to move and braid.'
+        els.statusText.textContent = excitationMode && anyonTurnAction === 'recombine'
+            ? 'Choose one of your own anyons to recombine and recover energy.'
+            : excitationMode && anyonTurnAction === 'excite'
+            ? 'Click an empty vertex to excite the selected particle type.'
+            : excitationMode
+            ? 'Select one of your anyons first, or choose Excite Anyon to create a new particle.'
             : 'Select one of your anyons first.';
+        return;
+    }
+    if (excitationMode && anyonTurnAction !== 'move') {
+        els.statusText.textContent = anyonTurnAction === 'recombine'
+            ? 'Choose one of your own anyons to recombine and recover energy.'
+            : 'Click an empty vertex to excite the selected particle type.';
         return;
     }
     const result = game.move(selectedToken, coord);
@@ -2595,6 +2634,15 @@ function updateStatus() {
     if (selectedToken) {
         const actions = game.legalActionsForToken(selectedToken);
         const token = game.tokens.get(selectedToken);
+        const anyonTurnAction = game.config?.setupMode === 'excitation' ? els.anyonActionSelect.value : 'move';
+        if (anyonTurnAction === 'recombine') {
+            els.statusText.textContent = `Recombine / Recover: click ${selectedToken} or another owned anyon to recover energy.`;
+            return;
+        }
+        if (anyonTurnAction === 'excite') {
+            els.statusText.textContent = `Excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)}: click an empty vertex. Choose Move / Braid to move ${selectedToken}.`;
+            return;
+        }
         const inverse = token && ((token.braidParity || 0) === 1 || token.isBraided)
             ? ' Click a braid target to try the inverse loop.'
             : '';
@@ -2607,12 +2655,17 @@ function updateStatus() {
             ? ` Warning: attempting this unbraid appends ${braidWordToText([game.braidGeneratorFor(token, hoveredToken.id, { path: [token.coord, hoveredToken.coord] })])} instead of cancelling.`
             : '';
         const recovery = game.config?.setupMode === 'excitation'
-            ? ' Click this anyon again or use Recover to recombine it.'
+            ? ' Choose Recombine / Recover to reclaim its energy.'
             : '';
         els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}${recovery}`;
     } else {
-        els.statusText.textContent = game.config?.setupMode === 'excitation'
-            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an empty vertex to excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)}, or select an owned anyon to move.`
+        const anyonTurnAction = game.config?.setupMode === 'excitation' ? els.anyonActionSelect.value : 'move';
+        els.statusText.textContent = game.config?.setupMode === 'excitation' && anyonTurnAction === 'excite'
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)} on an empty vertex.`
+            : game.config?.setupMode === 'excitation' && anyonTurnAction === 'recombine'
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an owned anyon to recombine and recover energy.`
+            : game.config?.setupMode === 'excitation'
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Select an owned anyon to move/braid, or choose Excite Anyon.`
             : 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
 }
@@ -2933,7 +2986,6 @@ for (const control of [
     els.braidMemoryModeSelect,
     els.anyonModelSelect,
     els.anyonSetupSelect,
-    els.anyonExcitationTypeSelect,
     els.anyonDropLossInput,
     els.anyonGradeInput,
     els.cliffordAlgebraSetSelect,
@@ -2999,6 +3051,11 @@ els.physicalActionSelect.addEventListener('change', () => {
 els.physicalPhaseGateSelect.addEventListener('change', render);
 els.virasoroActionSelect.addEventListener('change', render);
 els.virasoroDirectionSelect.addEventListener('change', render);
+els.anyonActionSelect.addEventListener('change', () => {
+    syncModeControls();
+    render();
+});
+els.anyonExcitationTypeSelect.addEventListener('change', render);
 els.cftActionSelect.addEventListener('change', () => {
     selectedCFTCoords = [];
     syncModeControls();
