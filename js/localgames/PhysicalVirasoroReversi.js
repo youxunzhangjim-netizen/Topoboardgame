@@ -34,7 +34,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         this.mode = PHYSICAL_VIRASORO_REVERSI_MODE;
         this.algebraSet = 'virasoro_cft';
         this.cftConfig = {
-            initialState: CFT_REVERSI_INITIAL_STATES.includes(options.cftReversiInitialState) && options.cftReversiInitialState !== 'vacuum'
+            initialState: CFT_REVERSI_INITIAL_STATES.includes(options.cftReversiInitialState)
                 ? options.cftReversiInitialState
                 : 'four_sigma_block',
             primaryType: options.primaryType || 'sigma',
@@ -86,7 +86,6 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
 
     setupCFTInitialState(initialState) {
         if (initialState === 'vacuum') {
-            this.setupFourSigmaBlock();
             return;
         }
         if (initialState === 'domain_wall_seed') this.setupDomainWallSeed();

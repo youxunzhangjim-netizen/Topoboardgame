@@ -84,6 +84,8 @@ const els = {
     phaseSignControl: document.querySelector('#phaseSignControl'),
     phaseSignSelect: document.querySelector('#phaseSignSelect'),
     physicalInitialStateSelect: document.querySelector('#physicalInitialStateSelect'),
+    physicalDomainWallThicknessControl: document.querySelector('#physicalDomainWallThicknessControl'),
+    physicalDomainWallThicknessInput: document.querySelector('#physicalDomainWallThicknessInput'),
     physicsViewSelect: document.querySelector('#physicsViewSelect'),
     physicalActionSelect: document.querySelector('#physicalActionSelect'),
     physicalPauliControl: document.querySelector('#physicalPauliControl'),
@@ -575,6 +577,10 @@ function syncModeControls() {
         els.phaseKickThetaControl.hidden = action !== 'phase_action'
             || els.physicalPhaseGateSelect.value !== 'phase_kick';
     }
+    if (els.physicalDomainWallThicknessControl) {
+        els.physicalDomainWallThicknessControl.hidden = !isPhysicalClifford
+            || els.physicalInitialStateSelect.value !== 'domain_wall_seed';
+    }
     els.braidMemoryControl.hidden = !isAnyon;
     els.anyonModelControl.hidden = !isAnyon;
     if (isAnyon && els.anyonModelSelect.value === 'zn_phase'
@@ -860,6 +866,11 @@ function createGame() {
     legalReversiCache = { signature: '', keys: [] };
     const config = anyonConfig();
     const physicalProblem = physicalProblemConfig(mode);
+    const usePhysicalWallThickness = mode === 'clifford_reversi'
+        && els.cliffordAlgebraSetSelect.value === 'physical';
+    const domainWallThicknessInput = usePhysicalWallThickness
+        ? els.physicalDomainWallThicknessInput
+        : els.cftDomainWallThicknessInput;
     if (physicalProblem?.id === 'toric_code_memory_unbraid') {
         config.anyonModel = 'toric_code';
         config.braidEffect = 'add_braid_token';
@@ -879,7 +890,7 @@ function createGame() {
         centralCharge: Number(els.cftCentralChargeInput.value),
         maxMode: Number(els.cftMaxModeSelect.value),
         temperature: Number(els.cftTemperatureInput.value),
-        domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(els.cftDomainWallThicknessInput?.value) || 1))),
+        domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(domainWallThicknessInput?.value) || 1))),
         config,
         virasoro: virasoroConfig(),
         probability: probabilityConfig(),
@@ -2926,6 +2937,7 @@ for (const control of [
     els.braidedPiecePenaltySelect,
     els.virasoroLayerSelect,
     els.physicalProblemSelect,
+    els.physicalDomainWallThicknessInput,
     els.qecPairsEInput,
     els.qecPairsMInput,
     els.qecPairSeparationInput,
@@ -2947,6 +2959,7 @@ els.phaseSignSelect.addEventListener('change', createGame);
 els.centralChargeInput.addEventListener('change', createGame);
 for (const control of [
     els.cftInitialStateSelect,
+    els.cftDomainWallThicknessInput,
     els.cftHiddenChannelSelect,
     els.cftMaxModeSelect,
     els.cftCentralChargeInput,

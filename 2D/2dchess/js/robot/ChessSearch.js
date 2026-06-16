@@ -5,6 +5,7 @@ import {
     getLegalMovesForPiece,
     getPiece,
     isInCheck,
+    normalizeState,
     opponentOf,
     validateMoveStillLegal
 } from './ChessRobotAdapter.js';
@@ -14,14 +15,21 @@ const INF = 1000000000;
 const DEFAULT_NODE_LIMIT = 45000;
 
 export function chooseRobotMove(game, depth = 2) {
-    const state = createAnalysisState(game);
-    const player = state.currentPlayer;
-    const context = makeSearchContext(depth);
-    const result = negamax(state, depth, -INF, INF, player, context);
+    const result = chooseRobotMoveFromState(createAnalysisState(game), depth);
     const legalMove = validateMoveStillLegal(game, result.move);
     return {
         ...result,
-        move: legalMove,
+        move: legalMove
+    };
+}
+
+export function chooseRobotMoveFromState(inputState, depth = 2) {
+    const state = normalizeState(inputState);
+    const player = state.currentPlayer;
+    const context = makeSearchContext(depth);
+    const result = negamax(state, depth, -INF, INF, player, context);
+    return {
+        ...result,
         depth,
         nodes: context.nodes,
         truncated: context.truncated
@@ -29,7 +37,11 @@ export function chooseRobotMove(game, depth = 2) {
 }
 
 export function analyzePosition(game, depth = 2) {
-    const state = createAnalysisState(game);
+    return analyzePositionFromState(createAnalysisState(game), depth);
+}
+
+export function analyzePositionFromState(inputState, depth = 2) {
+    const state = normalizeState(inputState);
     const player = state.currentPlayer;
     const moves = orderMoves(getAllLegalMoves(state, player), state, player);
     const context = makeSearchContext(depth, Math.max(DEFAULT_NODE_LIMIT, moves.length * 6000));

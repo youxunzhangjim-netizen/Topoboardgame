@@ -155,7 +155,8 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
             enableAncillaActions: !physicalProblemSource || physicalProblemConfig.enableAncillaActions !== false,
             enableNonCliffordPhaseKick: !physicalProblemSource
                 || Boolean(physicalProblemConfig.enableNonCliffordPhaseKick),
-            maxTurns: Math.max(1, Math.floor(Number(physicalProblemConfig.maxTurns) || 100))
+            maxTurns: Math.max(1, Math.floor(Number(physicalProblemConfig.maxTurns) || 100)),
+            domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(options.domainWallThickness) || 1)))
         };
         if (physicalProblemSource && Number.isFinite(Number(physicalProblemConfig.measurementErrorRate))) {
             this.probability.config.measurementErrorRate = Math.max(
@@ -279,16 +280,34 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     }
 
     setupDomainWallSeed() {
-        const middle = Math.floor(this.topology.sizes[0] / 2);
+        const width = this.topology.sizes[0];
+        const height = this.topology.sizes[1];
+        const middle = Math.floor(width / 2);
+        const thickness = Math.max(1, Math.min(this.physicalConfig.domainWallThickness, Math.floor((width - 2) / 2) || 1));
+        const leftStart = Math.max(1, middle - thickness);
+        const leftEnd = Math.max(leftStart, middle - 1);
+        const rightStart = middle;
+        const rightEnd = Math.min(width - 2, middle + thickness - 1);
+        const yMin = height > 2 ? 1 : 0;
+        const yMax = height > 2 ? height - 2 : height - 1;
         for (const coord of this.activeSliceVertices()) {
-            if (coord[0] === middle) continue;
-            const positive = coord[0] < middle;
+            const x = coord[0];
+            const y = coord[1];
+            if (y < yMin || y > yMax) continue;
+            let sign = 0;
+            if (x >= leftStart && x <= leftEnd) sign = 1;
+            else if (x >= rightStart && x <= rightEnd) sign = -1;
+            if (!sign) continue;
             this.setStone(coord, {
-                color: positive ? 'black' : 'white',
-                pauliLabel: coord[1] % 2 ? 'Z' : 'X',
-                pauliSign: positive ? 1 : -1,
+                color: sign > 0 ? 'black' : 'white',
+                pauliLabel: y % 2 ? 'Z' : 'X',
+                pauliSign: sign,
                 phase: 0,
-                lastUpdate: { action: 'domain_wall_seed', tick: 0 }
+                lastUpdate: {
+                    action: 'domain_wall_seed',
+                    tick: 0,
+                    wallThickness: thickness
+                }
             });
         }
     }

@@ -194,6 +194,37 @@ assert.equal(faultyReadout.event.measurements[0].trueResult, 'even');
 assert.equal(faultyReadout.event.measurements[0].reported, 'odd', 'Readout error changes the report.');
 assert.equal(readoutErrorGame.getStone([1, 1]).sign, 1, 'Readout error does not change the true collapsed state.');
 
+const physicalDomainWall = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    physicalInitialState: 'domain_wall_seed',
+    domainWallThickness: 1,
+    probability: { seed: 'physical-domain-wall', measurementErrorRate: 0 }
+});
+const physicalDomainWallCoords = [...physicalDomainWall.board.keys()].map((key) => key.split(',').map(Number));
+assert.deepEqual(
+    [...new Set(physicalDomainWallCoords.map(([x]) => x))].sort((a, b) => a - b),
+    [3, 4],
+    'Physical Clifford domain wall uses the Virasoro-style two-column wall.'
+);
+assert.ok(
+    physicalDomainWallCoords.every(([, y]) => y >= 1 && y <= 6),
+    'Physical Clifford domain wall leaves the top and bottom rows open.'
+);
+assert.ok(physicalDomainWall.legalMoves('black', 'H').length > 0, 'Black can move from the domain-wall seed.');
+assert.ok(physicalDomainWall.legalMoves('white', 'H').length > 0, 'White can move from the domain-wall seed.');
+
+const thickPhysicalDomainWall = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    physicalInitialState: 'domain_wall_seed',
+    domainWallThickness: 2,
+    probability: { seed: 'physical-domain-wall-thick', measurementErrorRate: 0 }
+});
+assert.deepEqual(
+    [...new Set([...thickPhysicalDomainWall.board.keys()].map((key) => Number(key.split(',')[0])))].sort((a, b) => a - b),
+    [2, 3, 4, 5],
+    'Physical Clifford wall thickness matches the Virasoro Reversi arrangement control.'
+);
+
 const physicalFlip = new PhysicalCliffordReversiGame({
     topology: { topology: 'flat', width: 8, height: 8 },
     physicalInitialState: 'stabilizer_vacuum'

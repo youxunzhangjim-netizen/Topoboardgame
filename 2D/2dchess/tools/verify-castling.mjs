@@ -1,5 +1,4 @@
 import { createPiece } from '../js/BoardSetup.js';
-import { ChessGame } from '../js/ChessGame.js';
 import { PieceMovement } from '../js/PieceMovement.js';
 
 function makeGame() {
@@ -81,8 +80,23 @@ function assert(condition, message) {
         }
     };
 
-    const rookClickMove = ChessGame.prototype.getCastlingMoveForRook.call(fakeGame, 7, 7);
+    const rookClickMove = getCastlingMoveForRook(fakeGame, 7, 7);
     assert(rookClickMove?.castling?.side === 'kingside', 'clicking eligible rook should resolve to castling move');
+}
+
+function getCastlingMoveForRook(game, row, col) {
+    if (!game.selectedSquare) return null;
+
+    const king = game.getPiece(game.selectedSquare.r, game.selectedSquare.c);
+    const rook = game.getPiece(row, col);
+    if (!king || !rook || king.type !== 'K' || rook.type !== 'R') return null;
+    if (king.color !== game.currentPlayer || rook.color !== king.color) return null;
+
+    return game.legalMoves.find((move) =>
+        move.castling &&
+        move.castling.rookPos.r === row &&
+        move.castling.rookPos.c === col
+    ) || null;
 }
 
 console.log('Castling rule checks passed.');

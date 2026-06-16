@@ -72,6 +72,17 @@ function moveLabel(move) {
   return `${piece} ${formatCoord(move.from)} → ${formatCoord(move.to)}${move.promotion ? '=' + move.promotion : ''}`;
 }
 
+function waitForBrowser() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function maybeYield(stats) {
+  const now = globalThis.performance?.now?.() ?? Date.now();
+  if (now - stats.lastYield < 12) return;
+  await waitForBrowser();
+  stats.lastYield = globalThis.performance?.now?.() ?? Date.now();
+}
+
 function allPieces(game, state, color = null) {
   const out = [];
   const board = state.board;
@@ -223,6 +234,26 @@ function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
   }
   return { score: bestScore, move: bestMove };
 }
+
+async function negamaxAsync(game, state, depth, alpha, beta, color, rootColor, stats) {
+  stats.nodes += 1;
+  if ((stats.nodes & 31) === 0) await maybeYield(stats);
+  if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
+  const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
+  if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
+  let bestMove = moves[0];
+  let bestScore = -Infinity;
+  for (const move of moves.slice(0, depth >= 3 ? 60 : 140)) {
+    const next = simulateMove(game, state, move);
+    const result = await negamaxAsync(game, next, depth - 1, -beta, -alpha, other(color), rootColor, stats);
+    const score = -result.score;
+    if (score > bestScore) { bestScore = score; bestMove = move; }
+    alpha = Math.max(alpha, score);
+    if (alpha >= beta) break;
+  }
+  return { score: bestScore, move: bestMove };
+}
+
 function explainMove(game, before, move, scoreBefore, scoreAfter) {
   const reasons = [];
   if (move.capturedPiece) reasons.push(`captures ${move.capturedPiece.type}`);
@@ -255,6 +286,46 @@ function analyze(game, depth = 2) {
   const pieces = allPieces(game, state, player).map((entry) => ({ label: `${entry.piece.type} ${formatCoord(entry)}`, value: pieceDynamicValue(game, state, entry) })).sort((a, b) => b.value - a.value).slice(0, 12);
   return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
 }
+
+async function analyzeAsync(game, depth = 2) {
+  const state = cloneState(game);
+  const player = state.currentPlayer;
+  const scoreBefore = evaluate(game, state, player);
+  const moves = legalMovesFor(game, state, player).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a)).slice(0, depth >= 3 ? 80 : 180);
+  const rows = [];
+  let nodes = 0;
+  const yieldStats = { nodes: 0, lastYield: globalThis.performance?.now?.() ?? Date.now() };
+  for (const move of moves) {
+    await maybeYield(yieldStats);
+    const next = simulateMove(game, state, move);
+    const stats = { nodes: 0, lastYield: yieldStats.lastYield };
+    const result = depth <= 1 ? { score: evaluate(game, next, player) } : await negamaxAsync(game, next, depth - 1, -Infinity, Infinity, other(player), player, stats);
+    yieldStats.lastYield = stats.lastYield;
+    nodes += stats.nodes;
+    const score = -result.score;
+    rows.push({ move, score, winRate: sigmoid(score), reasons: explainMove(game, state, move, scoreBefore, score) });
+  }
+  rows.sort((a, b) => b.score - a.score);
+  const pieces = allPieces(game, state, player).map((entry) => ({ label: `${entry.piece.type} ${formatCoord(entry)}`, value: pieceDynamicValue(game, state, entry) })).sort((a, b) => b.value - a.value).slice(0, 12);
+  return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
+}
+
+function liveLegalMoveFor(game, move) {
+  if (!move?.from || !move?.to) return null;
+  const fromLayer = move.from.z ?? move.from.sheet ?? 0;
+  const moves = game.getLegalMoves?.(move.from.x, move.from.y, fromLayer) || [];
+  return moves.find((candidate) => sameCoord(candidate, move.to)) || null;
+}
+
+function livePromotionFor(game, move, liveMove) {
+  const fromLayer = move.from.z ?? move.from.sheet ?? 0;
+  const targetLayer = liveMove.z ?? liveMove.sheet ?? move.to.z ?? move.to.sheet ?? 0;
+  const piece = game.getPiece?.(move.from.x, move.from.y, fromLayer);
+  if (piece?.type !== 'P') return null;
+  if (!game.isPromotionSquare?.(piece.color, liveMove.x, liveMove.y, targetLayer)) return null;
+  return PROMOTION_TYPES.includes(move.promotion) ? move.promotion : 'Q';
+}
+
 function renderAnalysis(panel, analysis) {
   const fmt = (score) => `${score >= 0 ? '+' : ''}${(score / 100).toFixed(2)}`;
   panel.innerHTML = `
@@ -290,24 +361,46 @@ export function installChess3DRobot(shell) {
   const sideSelect = panel.querySelector('#robotSideSelect');
   const depthSelect = panel.querySelector('#robotDepthSelect');
   const analysisPanel = panel.querySelector('#robotAnalysisPanel');
+  let thinking = false;
   function isRobotMode() { return modeSelect?.value === 'robot'; }
   function robotSide() { return sideSelect?.value || 'black'; }
   async function makeRobotMove() {
-    if (!isRobotMode() || game.gameOver || game.currentPlayer !== robotSide()) return;
+    if (thinking || !isRobotMode() || game.gameOver || game.currentPlayer !== robotSide()) return;
     const depth = Math.max(1, Number(depthSelect?.value) || 2);
     analysisPanel.textContent = 'Robot is thinking...';
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    const result = analyze(game, depth);
-    renderAnalysis(analysisPanel, result);
-    const move = result.topMoves[0]?.move;
-    const legalIds = new Set(legalMovesFor(game, cloneState(game), game.currentPlayer).map(moveId));
-    if (move && legalIds.has(moveId(move))) {
-      await game.applyMove({ from: move.from, to: move.to, promotion: move.promotion || null }, { robot: true });
+    thinking = true;
+    await waitForBrowser();
+    try {
+      const result = await analyzeAsync(game, depth);
+      renderAnalysis(analysisPanel, result);
+      const move = result.topMoves[0]?.move;
+      const liveMove = liveLegalMoveFor(game, move);
+      if (move && liveMove) {
+        await game.applyMove({
+          from: move.from,
+          to: liveMove,
+          promotion: livePromotionFor(game, move, liveMove)
+        }, { robot: true });
+      } else if (move) {
+        analysisPanel.textContent = 'Robot move was rejected by the current board rules.';
+      }
+    } finally {
+      thinking = false;
     }
   }
   function scheduleRobotMove() { if (isRobotMode()) window.setTimeout(makeRobotMove, 180); }
   panel.querySelector('#robotMoveBtn')?.addEventListener('click', makeRobotMove);
-  panel.querySelector('#robotAnalyzeBtn')?.addEventListener('click', () => renderAnalysis(analysisPanel, analyze(game, Math.max(1, Number(depthSelect?.value) || 2))));
+  panel.querySelector('#robotAnalyzeBtn')?.addEventListener('click', async () => {
+    if (thinking) return;
+    thinking = true;
+    analysisPanel.textContent = 'Robot is analyzing...';
+    await waitForBrowser();
+    try {
+      renderAnalysis(analysisPanel, await analyzeAsync(game, Math.max(1, Number(depthSelect?.value) || 2)));
+    } finally {
+      thinking = false;
+    }
+  });
   sideSelect?.addEventListener('change', scheduleRobotMove);
   modeSelect?.addEventListener('change', () => {
     const robot = isRobotMode();

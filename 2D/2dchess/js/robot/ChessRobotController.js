@@ -2,6 +2,10 @@ import { chooseRobotMove, analyzePosition } from './ChessSearch.js';
 import { createAnalysisState, getAllLegalMoves, validateMoveStillLegal } from './ChessRobotAdapter.js';
 import { formatScore } from './ChessEvaluator.js';
 
+export function robotPromotionForMove(legalMove) {
+    return legalMove?.promotion || null;
+}
+
 export class ChessRobotController {
     constructor(game) {
         this.game = game;
@@ -10,6 +14,8 @@ export class ChessRobotController {
         this.depth = 2;
         this.thinking = false;
         this.pendingTimer = null;
+        this.worker = null;
+        this.workerRequestId = 0;
     }
 
     attachEventListeners() {
@@ -67,7 +73,7 @@ export class ChessRobotController {
         await nextFrame();
 
         try {
-            const result = chooseRobotMove(this.game, this.depth);
+            const result = await this.runSearch('move');
             const legal = validateMoveStillLegal(this.game, result.move);
             if (!legal) {
                 this.setPanelMessage('Robot found no legal move. Try Analyze Position to inspect the state.');
@@ -77,7 +83,7 @@ export class ChessRobotController {
             const ok = await this.game.applyMove({
                 from: legal.from,
                 to: legal.to,
-                promotion: legal.promotion || 'Q'
+                promotion: robotPromotionForMove(legal)
             }, { robot: true });
 
             if (ok) {
@@ -108,7 +114,7 @@ export class ChessRobotController {
                 this.setPanelMessage('No legal moves in the current position.');
                 return;
             }
-            const analysis = analyzePosition(this.game, this.depth);
+            const analysis = await this.runSearch('analyze');
             this.renderAnalysisResult(analysis);
         } catch (error) {
             console.error(error);
@@ -169,6 +175,52 @@ export class ChessRobotController {
         if (moveBtn) moveBtn.disabled = this.thinking || !['local', 'robot'].includes(this.game.gameMode) || this.game.gameOver;
         if (analyzeBtn) analyzeBtn.disabled = this.thinking || this.game.gameOver;
     }
+
+    async runSearch(type) {
+        const state = createAnalysisState(this.game);
+        if (window.Worker) {
+            try {
+                return await this.runWorkerSearch(type, state);
+            } catch (error) {
+                console.warn('Robot worker unavailable; falling back to main-thread search.', error);
+            }
+        }
+        await idleYield();
+        return type === 'analyze'
+            ? analyzePosition(this.game, this.depth)
+            : chooseRobotMove(this.game, this.depth);
+    }
+
+    runWorkerSearch(type, state) {
+        return new Promise((resolve, reject) => {
+            const worker = this.ensureWorker();
+            const id = ++this.workerRequestId;
+            const cleanup = () => {
+                worker.removeEventListener('message', onMessage);
+                worker.removeEventListener('error', onError);
+            };
+            const onMessage = (event) => {
+                if (event.data?.id !== id) return;
+                cleanup();
+                if (event.data.ok) resolve(event.data.result);
+                else reject(new Error(event.data.error || 'Robot search failed.'));
+            };
+            const onError = (event) => {
+                cleanup();
+                reject(event.error || new Error(event.message || 'Robot worker error.'));
+            };
+            worker.addEventListener('message', onMessage);
+            worker.addEventListener('error', onError);
+            worker.postMessage({ id, type, depth: this.depth, state });
+        });
+    }
+
+    ensureWorker() {
+        if (!this.worker) {
+            this.worker = new Worker(new URL('./ChessRobotWorker.js', import.meta.url), { type: 'module' });
+        }
+        return this.worker;
+    }
 }
 
 function moveRow(rank, item) {
@@ -192,4 +244,8 @@ function escapeHtml(value) {
 
 function nextFrame() {
     return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+function idleYield() {
+    return new Promise((resolve) => window.setTimeout(resolve, 0));
 }

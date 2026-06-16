@@ -10,7 +10,8 @@
     "preview": "vite preview --host 0.0.0.0 --port 4174",
     "verify:castling": "node tools/verify-castling.mjs",
     "verify:open": "node tools/verify-open-boundary.mjs",
-    "verify:random": "node tools/verify-random-boundary.mjs"
+    "verify:random": "node tools/verify-random-boundary.mjs",
+    "verify:robot": "node tools/verify-robot.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.5"
