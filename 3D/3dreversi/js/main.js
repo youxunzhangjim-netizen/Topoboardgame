@@ -242,6 +242,9 @@ class Reversi3DRenderer {
                 color: 0x8f6238,
                 roughness: 0.58,
                 metalness: 0.02,
+                transparent: true,
+                opacity: 0.66,
+                depthWrite: false,
                 clearcoat: 0.28,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -255,16 +258,20 @@ class Reversi3DRenderer {
             color: 0x24150c,
             transparent: true,
             opacity: 0.78,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0xfbbf24,
             transparent: true,
             opacity: 0.92,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
-            this.boardGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.renderOrder = 6;
+            this.boardGroup.add(line);
         };
 
         for (let y = 0; y < height; y += 1) {
@@ -297,7 +304,9 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
             color: 0xffe3a3,
-            opacity: 0.98
+            opacity: 0.98,
+            depthTest: false,
+            renderOrder: 7
         });
     }
 
@@ -311,6 +320,7 @@ class Reversi3DRenderer {
                 metalness: 0.02,
                 transparent: true,
                 opacity: 0.58,
+                depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -324,16 +334,20 @@ class Reversi3DRenderer {
             color: 0x0d5f3b,
             transparent: true,
             opacity: 0.78,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x064e3b,
             transparent: true,
             opacity: 0.95,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
-            this.boardGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.renderOrder = 6;
+            this.boardGroup.add(line);
         };
 
         const drawn = new Set();
@@ -358,7 +372,9 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.054 : 0.039, {
             color: 0xf0fdf4,
-            opacity: 0.96
+            opacity: 0.96,
+            depthTest: false,
+            renderOrder: 7
         });
     }
 
@@ -499,9 +515,11 @@ class Reversi3DRenderer {
             sizeAttenuation: true,
             transparent: true,
             opacity: options.opacity ?? 0.86,
+            depthTest: options.depthTest ?? true,
             depthWrite: false
         });
         this.nodePoints = new THREE.Points(geometry, material);
+        this.nodePoints.renderOrder = options.renderOrder ?? 0;
         this.boardGroup.add(this.nodePoints);
     }
 

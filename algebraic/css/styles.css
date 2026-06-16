@@ -943,6 +943,20 @@ h2 {
     overflow: visible;
 }
 
+.stone.ising-spin {
+    inset: 15%;
+    font-size: clamp(11px, 1.5vw, 18px);
+    font-weight: 1000;
+}
+
+.stone.ising-spin.black {
+    box-shadow: 0 0 0 2px rgba(66, 198, 255, 0.32), 0 10px 20px rgba(0, 0, 0, 0.32);
+}
+
+.stone.ising-spin.white {
+    box-shadow: 0 0 0 2px rgba(242, 196, 100, 0.38), 0 10px 20px rgba(255, 255, 255, 0.14);
+}
+
 .stone.go-stone.unstable {
     outline: 2px solid rgba(255, 115, 115, 0.92);
     outline-offset: 2px;

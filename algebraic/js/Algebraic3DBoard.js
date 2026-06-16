@@ -300,10 +300,23 @@ export class Algebraic3DBoard {
         for (const coord of this.game.topology.vertices()) {
             const stone = this.game.getStone(coord);
             if (!stone) continue;
-            if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
+            if (this.game.mode === 'ising_domain_game') this.addIsingSpin(coord, stone);
+            else if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
             else if (this.game.mode === 'physical_virasoro_reversi') this.addCFTStone(coord, stone);
             else this.addCliffordStone(coord, stone);
         }
+    }
+
+    addIsingSpin(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, 0.95);
+        const label = stone.spin > 0 ? '+1' : '-1';
+        const sprite = labelSprite(label, {
+            foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
+            background: stone.color === 'black' ? 'rgba(4,8,12,.88)' : 'rgba(246,248,251,.92)'
+        });
+        sprite.position.y = this.entityRadius() * 1.8;
+        group.add(sprite);
+        this.entityGroup.add(group);
     }
 
     addCliffordStone(coord, stone) {

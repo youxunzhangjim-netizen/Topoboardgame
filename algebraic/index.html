@@ -32,13 +32,20 @@
                         Mode
                         <select id="modeSelect">
                             <option value="clifford_reversi">Clifford Reversi</option>
+                            <option value="physical_clifford_reversi">Physical Clifford Reversi</option>
                             <option value="clifford_go">Clifford Go</option>
+                            <option value="physical_clifford_go">Physical Clifford Go</option>
                             <option value="clifford_jump">Clifford Jump Chess</option>
+                            <option value="physical_clifford_jump">Physical Clifford Jump Chess</option>
                             <option value="anyon_reversi">Anyon Reversi</option>
+                            <option value="physical_anyon_reversi">Physical Anyon Reversi</option>
                             <option value="physical_virasoro_reversi">Virasoro Reversi</option>
                             <option value="physical_virasoro_go">Virasoro Go</option>
                             <option value="virasoro_jump">Virasoro Jump Chess</option>
+                            <option value="physical_virasoro_jump">Physical Virasoro Jump Chess</option>
                             <option value="anyon_jump">Anyon Jump Chess</option>
+                            <option value="physical_anyon_jump">Physical Anyon Jump Chess</option>
+                            <option value="ising_domain_game">Ising Domain Game</option>
                         </select>
                     </label>
                     <label>
@@ -113,6 +120,62 @@
                     <label id="stabilizerMaxTurnsControl" hidden>
                         Maximum Turns
                         <input id="stabilizerMaxTurnsInput" type="number" min="1" max="10000" value="100">
+                    </label>
+                    <label id="isingInitialStateControl" hidden>
+                        Ising Initial State
+                        <select id="isingInitialStateSelect">
+                            <option value="domain_wall_seed" selected>Domain Wall Seed</option>
+                            <option value="random_spins">Random Spins</option>
+                            <option value="droplet_seed">Droplet Seed</option>
+                            <option value="stripe_seed">Stripe Seed</option>
+                            <option value="checkerboard">Checkerboard</option>
+                            <option value="thermal_sample">Thermal Sample</option>
+                        </select>
+                    </label>
+                    <label id="isingActionControl" hidden>
+                        Ising Action
+                        <select id="isingActionSelect">
+                            <option value="place_or_flip" selected>Place / Flip Spin</option>
+                            <option value="flip_domain">Flip Connected Domain</option>
+                            <option value="bracket_flip">Bracket Flip</option>
+                        </select>
+                    </label>
+                    <label id="isingJControl" hidden>
+                        Coupling J
+                        <input id="isingJInput" type="number" step="0.1" value="1">
+                    </label>
+                    <label id="isingHControl" hidden>
+                        Field h
+                        <input id="isingHInput" type="number" step="0.1" value="0">
+                    </label>
+                    <label id="isingTemperatureControl" hidden>
+                        Temperature T
+                        <input id="isingTemperatureInput" type="number" min="0" step="0.1" value="0">
+                    </label>
+                    <label id="isingWallThicknessControl" hidden>
+                        Wall Thickness
+                        <input id="isingWallThicknessInput" type="number" min="1" max="8" step="1" value="1">
+                    </label>
+                    <label id="isingMetropolisControl" hidden>
+                        Metropolis
+                        <select id="isingMetropolisSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="on">On</option>
+                        </select>
+                    </label>
+                    <label id="isingDomainFlipControl" hidden>
+                        Domain Flip
+                        <select id="isingDomainFlipSelect">
+                            <option value="on" selected>On</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </label>
+                    <label id="isingBracketFlipControl" hidden>
+                        Bracket Flip
+                        <select id="isingBracketFlipSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="on">On</option>
+                        </select>
                     </label>
                 </div>
             </div>
@@ -609,6 +672,7 @@
                     <button id="manualTimeButton" type="button">Time Step</button>
                     <button id="dropAnyonButton" type="button" hidden>Recombine / Recover</button>
                     <button id="exportButton" type="button">Export JSON</button>
+                    <button id="exportCsvButton" type="button">Export CSV</button>
                 </div>
             </div>
 

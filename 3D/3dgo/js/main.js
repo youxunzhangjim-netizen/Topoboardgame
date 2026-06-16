@@ -473,6 +473,7 @@ class Go3DRenderer {
                 metalness: 0.02,
                 transparent: true,
                 opacity: 0.58,
+                depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -486,16 +487,20 @@ class Go3DRenderer {
             color: 0x0d5f3b,
             transparent: true,
             opacity: 0.78,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x064e3b,
             transparent: true,
             opacity: 0.95,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
-            this.boardGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.renderOrder = 6;
+            this.boardGroup.add(line);
         };
         const logic = this.app.logic;
         const drawn = new Set();
@@ -519,7 +524,9 @@ class Go3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
             color: 0xf0fdf4,
-            opacity: 0.96
+            opacity: 0.96,
+            depthTest: false,
+            renderOrder: 7
         });
     }
 
@@ -530,6 +537,9 @@ class Go3DRenderer {
                 color: 0x8f6238,
                 roughness: 0.58,
                 metalness: 0.02,
+                transparent: true,
+                opacity: 0.66,
+                depthWrite: false,
                 clearcoat: 0.28,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -543,18 +553,21 @@ class Go3DRenderer {
             color: 0x24150c,
             transparent: true,
             opacity: 0.78,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0xfbbf24,
             transparent: true,
             opacity: 0.92,
+            depthTest: false,
             depthWrite: false
         });
         const logic = this.app.logic;
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.userData = { type: 'grid' };
+            line.renderOrder = 6;
             this.boardGroup.add(line);
         };
 
@@ -582,7 +595,9 @@ class Go3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x24130b,
-            opacity: 0.96
+            opacity: 0.96,
+            depthTest: false,
+            renderOrder: 7
         });
         this.addMobiusStarPoints(width, height);
     }
@@ -959,7 +974,7 @@ class Go3DRenderer {
         if (!unique.length) return;
         const mesh = new THREE.InstancedMesh(
             new THREE.SphereGeometry(width <= 9 ? 0.074 : width <= 13 ? 0.06 : 0.045, 16, 10),
-            new THREE.MeshStandardMaterial({ color: 0x190d08, roughness: 0.7, metalness: 0.02 }),
+            new THREE.MeshStandardMaterial({ color: 0x190d08, roughness: 0.7, metalness: 0.02, depthTest: false }),
             unique.length
         );
         const matrix = new THREE.Matrix4();
@@ -970,6 +985,7 @@ class Go3DRenderer {
         });
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.renderOrder = 8;
         this.boardGroup.add(mesh);
     }
 
@@ -1024,9 +1040,11 @@ class Go3DRenderer {
             sizeAttenuation: true,
             transparent: true,
             opacity: options.opacity ?? 0.86,
+            depthTest: options.depthTest ?? true,
             depthWrite: false
         });
         this.nodePoints = new THREE.Points(geometry, material);
+        this.nodePoints.renderOrder = options.renderOrder ?? 0;
         this.boardGroup.add(this.nodePoints);
     }
 

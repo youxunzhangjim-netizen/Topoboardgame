@@ -7,6 +7,7 @@ import { CliffordJumpGame } from '../../js/localgames/CliffordJump.js';
 import { VirasoroJumpGame } from '../../js/localgames/VirasoroJump.js';
 import { AnyonReversiGame } from '../../js/localgames/AnyonReversi.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
+import { IsingDomainGame } from '../../js/localgames/IsingDomainGame.js';
 import {
     braidWordToText,
     nextRequiredUnbraidGenerator,
@@ -15,6 +16,12 @@ import {
 import { anyonTypes } from '../../js/anyon/AnyonAlgebra.js';
 import { fusionChannelDisplay } from '../../js/anyon/NonabelianFusionMemory.js';
 import { Algebraic3DBoard, usesAlgebraic3DView } from './Algebraic3DBoard.js';
+import {
+    attachPhysicalGameFramework,
+    baseModeForPhysicalVariant,
+    createPhysicalModeDefinition,
+    isPhysicalVariantMode
+} from '../../js/physics/PhysicalGameFramework.js';
 import {
     createPrivateRoom,
     findMatch,
@@ -48,6 +55,24 @@ const els = {
     stabilizerPhaseKickSelect: document.querySelector('#stabilizerPhaseKickSelect'),
     stabilizerMaxTurnsControl: document.querySelector('#stabilizerMaxTurnsControl'),
     stabilizerMaxTurnsInput: document.querySelector('#stabilizerMaxTurnsInput'),
+    isingInitialStateControl: document.querySelector('#isingInitialStateControl'),
+    isingInitialStateSelect: document.querySelector('#isingInitialStateSelect'),
+    isingActionControl: document.querySelector('#isingActionControl'),
+    isingActionSelect: document.querySelector('#isingActionSelect'),
+    isingJControl: document.querySelector('#isingJControl'),
+    isingJInput: document.querySelector('#isingJInput'),
+    isingHControl: document.querySelector('#isingHControl'),
+    isingHInput: document.querySelector('#isingHInput'),
+    isingTemperatureControl: document.querySelector('#isingTemperatureControl'),
+    isingTemperatureInput: document.querySelector('#isingTemperatureInput'),
+    isingWallThicknessControl: document.querySelector('#isingWallThicknessControl'),
+    isingWallThicknessInput: document.querySelector('#isingWallThicknessInput'),
+    isingMetropolisControl: document.querySelector('#isingMetropolisControl'),
+    isingMetropolisSelect: document.querySelector('#isingMetropolisSelect'),
+    isingDomainFlipControl: document.querySelector('#isingDomainFlipControl'),
+    isingDomainFlipSelect: document.querySelector('#isingDomainFlipSelect'),
+    isingBracketFlipControl: document.querySelector('#isingBracketFlipControl'),
+    isingBracketFlipSelect: document.querySelector('#isingBracketFlipSelect'),
     topologySelect: document.querySelector('#topologySelect'),
     latticeControl: document.querySelector('#latticeControl'),
     latticeSelect: document.querySelector('#latticeSelect'),
@@ -171,6 +196,7 @@ const els = {
     rulesIntroPanel: document.querySelector('#rulesIntroPanel'),
     rulesIntroTitle: document.querySelector('#rulesIntroTitle'),
     exportButton: document.querySelector('#exportButton'),
+    exportCsvButton: document.querySelector('#exportCsvButton'),
     playModeSelect: document.querySelector('#playModeSelect'),
     onlineRoomInput: document.querySelector('#onlineRoomInput'),
     onlineButtonGrid: document.querySelector('#onlineButtonGrid'),
@@ -260,13 +286,20 @@ const els = {
 
 const MODE_LABELS = {
     clifford_reversi: 'Clifford Reversi',
+    physical_clifford_reversi: 'Physical Clifford Reversi',
     clifford_go: 'Clifford Go',
+    physical_clifford_go: 'Physical Clifford Go',
     clifford_jump: 'Clifford Jump Chess',
+    physical_clifford_jump: 'Physical Clifford Jump Chess',
     anyon_reversi: 'Anyon Reversi',
+    physical_anyon_reversi: 'Physical Anyon Reversi',
     physical_virasoro_go: 'Virasoro Go',
     physical_virasoro_reversi: 'Virasoro Reversi',
     virasoro_jump: 'Virasoro Jump Chess',
-    anyon_jump: 'Anyon Jump Chess'
+    physical_virasoro_jump: 'Physical Virasoro Jump Chess',
+    anyon_jump: 'Anyon Jump Chess',
+    physical_anyon_jump: 'Physical Anyon Jump Chess',
+    ising_domain_game: 'Ising Domain Game'
 };
 const ANYON_SYMBOLS = {
     psi: '\u03c8',
@@ -294,6 +327,7 @@ const RAW_INITIAL_MODE = params.get('mode') || params.get('game') || params.get(
 const INITIAL_MODE = normalizeMode(RAW_INITIAL_MODE);
 const INITIAL_CLIFFORD_ALGEBRA_SET = params.get('algebraSet')
     || (['physical_clifford_reversi', 'physical_clifford', 'physical_reversi'].includes(RAW_INITIAL_MODE)
+        || INITIAL_MODE === 'physical_clifford_reversi'
         ? 'physical'
         : '');
 const INITIAL_TOPOLOGY = params.get('topology') || params.get('board') || '';
@@ -343,6 +377,7 @@ if (URL_PHYSICAL_PROBLEM_ID && els.physicalProblemSelect) {
 }
 
 function normalizeMode(value) {
+    if (Object.hasOwn(MODE_LABELS, value)) return value;
     if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
     if (value === 'anyon_reversi_game') return 'anyon_reversi';
     if (value === 'clifford_jump_chess') return 'clifford_jump';
@@ -355,40 +390,58 @@ function normalizeMode(value) {
     if (['go', 'virasoro', 'virasoro_go', 'virasoro_go_game'].includes(value)) {
         return 'physical_virasoro_go';
     }
-    return Object.hasOwn(MODE_LABELS, value) ? value : '';
+    return '';
 }
 
 function selectedMode() {
     return normalizeMode(els.modeSelect.value) || 'clifford_reversi';
 }
 
+function baseMode(mode = selectedMode()) {
+    return baseModeForPhysicalVariant(normalizeMode(mode) || mode);
+}
+
+function isSharedPhysicalMode(mode = selectedMode()) {
+    mode = normalizeMode(mode) || mode;
+    return isPhysicalVariantMode(mode)
+        || mode === 'ising_domain_game'
+        || (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical');
+}
+
+function isIsingDomainMode(mode = game?.mode || selectedMode()) {
+    return (normalizeMode(mode) || mode) === 'ising_domain_game';
+}
+
 function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
     if (game && (game.algebraSet === 'physical' || game.physicalConfig)) return true;
-    return mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical';
+    return baseMode(mode) === 'clifford_reversi'
+        && (els.cliffordAlgebraSetSelect?.value === 'physical' || normalizeMode(mode) === 'physical_clifford_reversi');
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_reversi' || mode === 'physical_virasoro_reversi' || isAnyonReversiMode(mode);
+    if (isIsingDomainMode(mode)) return false;
+    const base = baseMode(mode);
+    return base === 'clifford_reversi' || base === 'physical_virasoro_reversi' || isAnyonReversiMode(mode);
 }
 
 function isAnyonReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'anyon_reversi';
+    return baseMode(mode) === 'anyon_reversi';
 }
 
 function isCliffordJumpMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_jump';
+    return baseMode(mode) === 'clifford_jump';
 }
 
 function isVirasoroJumpMode(mode = game?.mode || selectedMode()) {
-    return mode === 'virasoro_jump';
+    return baseMode(mode) === 'virasoro_jump';
 }
 
 function isJumpMode(mode = game?.mode || selectedMode()) {
-    return mode === 'anyon_jump' || isCliffordJumpMode(mode) || isVirasoroJumpMode(mode);
+    return baseMode(mode) === 'anyon_jump' || isCliffordJumpMode(mode) || isVirasoroJumpMode(mode);
 }
 
 function isCliffordGoMode(mode = game?.mode || selectedMode()) {
-    return mode === 'clifford_go';
+    return baseMode(mode) === 'clifford_go';
 }
 
 function isGoMode(mode = game?.mode || selectedMode()) {
@@ -396,11 +449,11 @@ function isGoMode(mode = game?.mode || selectedMode()) {
 }
 
 function isCFTReversiMode(mode = game?.mode || selectedMode()) {
-    return mode === 'physical_virasoro_reversi';
+    return baseMode(mode) === 'physical_virasoro_reversi';
 }
 
 function isPhysicalVirasoroGoMode(mode = game?.mode || selectedMode()) {
-    return mode === 'physical_virasoro_go';
+    return baseMode(mode) === 'physical_virasoro_go';
 }
 
 function isCFTMode(mode = game?.mode || selectedMode()) {
@@ -623,7 +676,9 @@ window.addEventListener('scroll', () => {
 
 function syncModeControls() {
     const mode = selectedMode();
-    const isAnyon = mode === 'anyon_jump';
+    const base = baseMode(mode);
+    const isIsing = isIsingDomainMode(mode);
+    const isAnyon = base === 'anyon_jump';
     const isJump = isJumpMode(mode);
     const isAnyonReversi = isAnyonReversiMode(mode);
     const isCliffordJump = isCliffordJumpMode(mode);
@@ -631,11 +686,13 @@ function syncModeControls() {
     const usesAnyonControls = isJump || isAnyonReversi;
     const usesFreeAnyonModel = isAnyon || isAnyonReversi;
     const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
-    const isCFTReversi = mode === 'physical_virasoro_reversi';
-    const isClifford = mode === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump;
-    const isPhysicalClifford = mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical';
+    const isCFTReversi = base === 'physical_virasoro_reversi';
+    const isClifford = !isIsing && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
+    const isPhysicalClifford = base === 'clifford_reversi'
+        && (els.cliffordAlgebraSetSelect.value === 'physical' || mode === 'physical_clifford_reversi');
     const isStandardClifford = isClifford && !isPhysicalClifford;
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
+    if (mode === 'physical_clifford_reversi') els.cliffordAlgebraSetSelect.value = 'physical';
     if (els.modeControl) els.modeControl.hidden = false;
     if (els.cliffordAlgebraControls) els.cliffordAlgebraControls.hidden = !isClifford;
     if (els.cliffordAlgebraSetControl) els.cliffordAlgebraSetControl.hidden = isCliffordGoMode(mode) || isCliffordJump;
@@ -643,6 +700,19 @@ function syncModeControls() {
     if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !usesAnyonControls;
     if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = true;
     if (els.cftReversiControls) els.cftReversiControls.hidden = !isVirasoroGo && !isCFTReversi && !isVirasoroJump;
+    for (const control of [
+        els.isingInitialStateControl,
+        els.isingActionControl,
+        els.isingJControl,
+        els.isingHControl,
+        els.isingTemperatureControl,
+        els.isingWallThicknessControl,
+        els.isingMetropolisControl,
+        els.isingDomainFlipControl,
+        els.isingBracketFlipControl
+    ]) {
+        if (control) control.hidden = !isIsing;
+    }
     if (isVirasoroGo || isCFTReversi || isVirasoroJump) {
         syncCFTInitialStateOptions(isVirasoroGo || isVirasoroJump);
         if (isCFTReversi) els.cftModelSelect.value = 'ising_CFT';
@@ -657,13 +727,13 @@ function syncModeControls() {
     if (els.physicalProblemSelect) {
         setAllowedSelectValues(
             els.physicalProblemSelect,
-            isAnyon
+            isIsing ? [''] : isAnyon
                 ? ['', 'toric_code_memory_unbraid']
                 : isVirasoroGo
                     ? ['', 'cft_conformal_block_observables']
-                : isStandardClifford && mode === 'clifford_reversi'
+                : isStandardClifford && base === 'clifford_reversi'
                     ? ['', 'ising_domain_wall_topology']
-                    : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
+                : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
             ''
         );
     }
@@ -779,9 +849,9 @@ function syncModeControls() {
     }
     els.passButton.hidden = isJump;
     els.countButton.hidden = !isGoMode(mode);
-    els.measureButton.hidden = isGoMode(mode) || isPhysicalClifford || isCFTReversi;
+    els.measureButton.hidden = isIsing || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isJump;
-    els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
+    els.dynamicsSection.hidden = isIsing || isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
         Number(els.virasoroMaxModeSelect.value) >= 2
@@ -803,7 +873,7 @@ function syncModeControls() {
     if (els.blackBraidCard) els.blackBraidCard.hidden = !isJump && !isCFTReversi;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isJump && !isCFTReversi;
     if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
-    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford;
+    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon && !isAnyonReversi;
     if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo && !isVirasoroJump;
@@ -960,10 +1030,25 @@ function anyonConfig() {
     };
 }
 
+function isingConfig() {
+    return {
+        J: Number(els.isingJInput?.value ?? 1),
+        h: Number(els.isingHInput?.value ?? 0),
+        temperature: Number(els.isingTemperatureInput?.value ?? 0),
+        metropolis: els.isingMetropolisSelect?.value === 'on',
+        domainFlipEnabled: els.isingDomainFlipSelect?.value !== 'off',
+        bracketFlipEnabled: els.isingBracketFlipSelect?.value === 'on',
+        wallThickness: Number(els.isingWallThicknessInput?.value ?? 1),
+        initialState: els.isingInitialStateSelect?.value || 'domain_wall_seed',
+        seed: els.noiseSeedInput?.value || 'ising-domain-game'
+    };
+}
+
 function physicalProblemConfig(mode) {
+    const base = baseMode(mode);
     const topology = topologyConfig();
     const physicalProblemId = selectedPhysicalProblemId();
-    if (mode === 'anyon_jump' && physicalProblemId === 'toric_code_memory_unbraid') {
+    if (base === 'anyon_jump' && physicalProblemId === 'toric_code_memory_unbraid') {
         return {
             id: physicalProblemId,
             topology: params.get('problemTopology') || topology.topology,
@@ -975,7 +1060,7 @@ function physicalProblemConfig(mode) {
             enableTwistSeam: params.get('enableTwistSeam') !== 'false'
         };
     }
-    if (mode === 'clifford_reversi' && physicalProblemId === 'ising_domain_wall_topology') {
+    if (base === 'clifford_reversi' && physicalProblemId === 'ising_domain_wall_topology') {
         return {
             id: physicalProblemId,
             topology: params.get('problemTopology') || topology.topology,
@@ -989,7 +1074,7 @@ function physicalProblemConfig(mode) {
             seed: params.get('seed') || 'ising-domain-wall'
         };
     }
-    if (mode === 'clifford_reversi'
+    if (base === 'clifford_reversi'
         && els.cliffordAlgebraSetSelect.value === 'physical'
         && physicalProblemId === 'stabilizer_pauli_recovery') {
         return {
@@ -1002,7 +1087,7 @@ function physicalProblemConfig(mode) {
             maxTurns: Number(els.stabilizerMaxTurnsInput.value || 100)
         };
     }
-    if (mode === 'physical_virasoro_go'
+    if (base === 'physical_virasoro_go'
         && physicalProblemId === 'cft_conformal_block_observables') {
         return {
             id: physicalProblemId,
@@ -1019,6 +1104,7 @@ function physicalProblemConfig(mode) {
 
 function createGame() {
     const mode = syncModeControls();
+    const base = baseMode(mode);
     selectedToken = '';
     selectedPhysicalCoord = null;
     selectedCFTCoords = [];
@@ -1028,7 +1114,7 @@ function createGame() {
     legalReversiCache = { signature: '', keys: [] };
     const config = anyonConfig();
     const physicalProblem = physicalProblemConfig(mode);
-    const usePhysicalWallThickness = mode === 'clifford_reversi'
+    const usePhysicalWallThickness = base === 'clifford_reversi'
         && els.cliffordAlgebraSetSelect.value === 'physical';
     const domainWallThicknessInput = usePhysicalWallThickness
         ? els.physicalDomainWallThicknessInput
@@ -1039,7 +1125,7 @@ function createGame() {
     }
     const options = {
         topology: topologyConfig(),
-        algebraSet: mode === 'clifford_reversi'
+        algebraSet: base === 'clifford_reversi'
             ? els.cliffordAlgebraSetSelect.value
             : isCliffordJumpMode(mode) ? 'clifford_jump'
                 : isAnyonReversiMode(mode) ? 'anyon' : null,
@@ -1059,26 +1145,42 @@ function createGame() {
         config,
         virasoro: virasoroConfig(),
         probability: probabilityConfig(),
-        time: timeConfig()
+        time: timeConfig(),
+        ising: isingConfig()
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
-    if (mode === 'anyon_jump') game = new AnyonJumpGame(options);
-    else if (mode === 'clifford_jump') game = new CliffordJumpGame(options);
-    else if (mode === 'virasoro_jump') game = new VirasoroJumpGame(options);
-    else if (mode === 'anyon_reversi') game = new AnyonReversiGame(options);
-    else if (mode === 'clifford_go') game = new CliffordGoGame(options);
-    else if (mode === 'physical_virasoro_go') game = new VirasoroGoGame(options);
-    else if (mode === 'physical_virasoro_reversi') game = new PhysicalVirasoroReversiGame(options);
-    else if (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical') {
+    if (mode === 'ising_domain_game') game = new IsingDomainGame(options);
+    else if (base === 'anyon_jump') game = new AnyonJumpGame(options);
+    else if (base === 'clifford_jump') game = new CliffordJumpGame(options);
+    else if (base === 'virasoro_jump') game = new VirasoroJumpGame(options);
+    else if (base === 'anyon_reversi') game = new AnyonReversiGame(options);
+    else if (base === 'clifford_go') game = new CliffordGoGame(options);
+    else if (base === 'physical_virasoro_go') game = new VirasoroGoGame(options);
+    else if (base === 'physical_virasoro_reversi') game = new PhysicalVirasoroReversiGame(options);
+    else if (base === 'clifford_reversi' && els.cliffordAlgebraSetSelect.value === 'physical') {
         game = new PhysicalCliffordReversiGame(options);
     }
     else game = new CliffordReversiGame(options);
+    if (isSharedPhysicalMode(mode)) {
+        const definition = mode === 'ising_domain_game'
+            ? createPhysicalModeDefinition(mode, {
+                physicalSystemName: 'Ising spin-domain graph system',
+                blackWhiteMeaning: 'black = spin up s=+1; white = spin down s=-1; empty = unoccupied / undecided site; board = graph embedded in the selected topology',
+                initialStateOptions: ['random_spins', 'domain_wall_seed', 'droplet_seed', 'stripe_seed', 'checkerboard', 'thermal_sample'],
+                allowedActions: ['place_spin', 'flip_spin', 'flip_domain', 'bracket_flip', 'pass'],
+                localUpdateRules: 'Energy is E=-J sum_<ij> s_i s_j - h sum_i s_i over topology.neighbors(vertex). Local updates propose changed spins on graph vertices, compute deltaE, optionally apply Metropolis acceptance, then recompute domain-wall and topology observables.'
+            })
+            : createPhysicalModeDefinition(mode);
+        attachPhysicalGameFramework(game, definition);
+        game.mode = mode;
+    }
     normalizeLayerControls();
     render();
 }
 
 function currentOnlineMatchKey() {
     const mode = selectedMode();
+    const base = baseMode(mode);
     const topology = els.topologySelect.value;
     const lattice = els.latticeSelect.value;
     return [
@@ -1090,9 +1192,9 @@ function currentOnlineMatchKey() {
         els.heightInput.value,
         topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '',
         topology === 'flat_4d_grid' ? els.wSizeInput.value : '',
-        mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
+        base === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
         isJumpMode(mode) ? els.anyonSetupSelect.value : '',
-        mode === 'anyon_jump' || mode === 'anyon_reversi' ? els.anyonModelSelect.value : '',
+        base === 'anyon_jump' || base === 'anyon_reversi' ? els.anyonModelSelect.value : '',
         isJumpMode(mode) ? els.braidMemoryModeSelect.value : ''
     ].join(':');
 }
@@ -1752,7 +1854,9 @@ function renderFlatBoard() {
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : new Set();
-
+    const legalIsingTargets = isIsingDomainMode(game.mode)
+        ? new Set(game.topology.vertices().map(coordKey))
+        : new Set();
     for (const coord of visibleCells()) {
         const key = coordKey(coord);
         const cell = document.createElement('button');
@@ -1763,7 +1867,7 @@ function renderFlatBoard() {
         if (honeycombNodes || hexCells) {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
-        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key)) cell.classList.add('legal');
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
@@ -1825,7 +1929,8 @@ function renderFlatBoard() {
             handleCellDoubleClick(coord);
         });
 
-        if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
+        if (isIsingDomainMode(game.mode)) renderIsingSpin(cell, coord);
+        else if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
         else if (isJumpMode(game.mode)) renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
@@ -1893,13 +1998,17 @@ function algebraic3DViewState() {
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : [];
+    const legalIsing = isIsingDomainMode(game.mode)
+        ? game.topology.vertices().map(coordKey)
+        : [];
     return {
         selectedToken,
         legalKeys: new Set([
             ...legalReversi,
             ...legalAnyon.map((action) => coordKey(action.to)),
             ...legalAnyonExciteTargets,
-            ...legalGo
+            ...legalGo,
+            ...legalIsing
         ]),
         previewKeys: new Set((preview?.flips || []).map((flip) => flip.key)),
         affectedKeys: new Set([
@@ -1962,13 +2071,16 @@ function updateBoardHighlights() {
             ? game.legalMoves().map(coordKey)
             : (hoverCoord && virasoroPreview?.ok ? [coordKey(hoverCoord)] : []))
         : new Set();
+    const legalIsingTargets = isIsingDomainMode(game.mode)
+        ? new Set(game.topology.vertices().map(coordKey))
+        : new Set();
 
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key));
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
@@ -2067,6 +2179,16 @@ function renderReversiStone(cell, coord) {
     cell.append(node);
 }
 
+function renderIsingSpin(cell, coord) {
+    const stone = game.getStone(coord);
+    if (!stone) return;
+    const node = document.createElement('span');
+    node.className = `stone ising-spin ${stone.color}`;
+    node.textContent = stone.spin > 0 ? '+1' : '-1';
+    node.title = `${stone.color === 'black' ? 'spin up' : 'spin down'} ${stone.label}`;
+    cell.append(node);
+}
+
 function renderCFTStone(cell, coord) {
     const stone = game.getStone(coord);
     if (!stone) return;
@@ -2147,6 +2269,13 @@ function renderAnyonToken(cell, coord) {
 }
 
 function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
+    if (isIsingDomainMode(game.mode)) {
+        const spin = game.getSpin(coord);
+        if (spin == null) return `${game.topology.displayCoord(coord)} empty / undecided Ising site`;
+        const same = game.topology.neighbors(coord).filter((neighbor) => game.getSpin(neighbor) === spin).length;
+        const opposite = game.topology.neighbors(coord).filter((neighbor) => game.getSpin(neighbor) === -spin).length;
+        return `${game.topology.displayCoord(coord)} ${spin > 0 ? 'spin up s=+1' : 'spin down s=-1'}; same neighbors ${same}; opposite neighbors ${opposite}`;
+    }
     if (isCFTReversiMode(game.mode)) {
         const stone = game.getStone(coord);
         const stress = game.stressAt(coord);
@@ -2359,6 +2488,28 @@ function handleCFTGoClick(coord) {
     }
 }
 
+function handleIsingClick(coord) {
+    const action = els.isingActionSelect?.value || 'place_or_flip';
+    let result = null;
+    if (action === 'flip_domain') {
+        result = game.flipDomain(coord, game.currentPlayer);
+    } else if (action === 'bracket_flip') {
+        result = game.bracketFlip(coord, game.currentPlayer);
+    } else if (game.isEmpty(coord)) {
+        result = game.placeSpin(coord, game.currentPlayer);
+    } else {
+        result = game.flipSpin(coord, game.currentPlayer);
+    }
+    if (result?.ok) {
+        hoverCoord = null;
+        const update = result.event.physicalUpdate;
+        els.statusText.textContent = `${result.event.action.replaceAll('_', ' ')} ${update.acceptedMove ? 'accepted' : 'rejected'}; deltaE ${formatNumber(update.deltaEnergy)}; E ${formatNumber(result.event.observables.energy)}.`;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
 function executeCliffordGoPlacement(coord, pauliLabel = els.pauliSelect.value) {
     els.pauliSelect.value = pauliLabel;
     const result = game.tryPlay(coord, game.currentPlayer, { pauliLabel });
@@ -2483,6 +2634,19 @@ function executeAnyonSelect(token) {
 function executeAnyonTargetToken(token) {
     if (!selectedToken) {
         els.statusText.textContent = 'Select one of your anyons first.';
+        return;
+    }
+    if (isIsingDomainMode(game.mode)) {
+        const counts = game.counts();
+        const observables = game.computePhysicalObservables();
+        els.blackCountLabel.textContent = 'Spin Up / +1';
+        els.whiteCountLabel.textContent = 'Spin Down / -1';
+        els.blackBraidLabel.textContent = 'Energy / M';
+        els.whiteBraidLabel.textContent = 'Wall / Domains';
+        els.blackCount.textContent = counts.black;
+        els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = `${formatNumber(observables.energy)} / ${formatNumber(observables.magnetization)}`;
+        els.whiteBraid.textContent = `${observables.domainWallLength} / ${observables.numberOfBlackDomains + observables.numberOfWhiteDomains}`;
         return;
     }
     const selected = game.tokens.get(selectedToken);
@@ -2614,6 +2778,10 @@ function handleCellClick(coord, event = null) {
     }
     if (isPhysicalCliffordMode(game.mode)) {
         handlePhysicalCliffordClick(coord);
+        return;
+    }
+    if (isIsingDomainMode(game.mode)) {
+        handleIsingClick(coord);
         return;
     }
     if (isCFTReversiMode(game.mode)) {
@@ -2933,6 +3101,19 @@ function renderStats() {
         els.whiteBraid.textContent = observables.centralChargeAnomalyEvents.length;
         return;
     }
+    if (isIsingDomainMode(game.mode)) {
+        const counts = game.counts();
+        const observables = game.computePhysicalObservables();
+        els.blackCountLabel.textContent = 'Spin Up / +1';
+        els.whiteCountLabel.textContent = 'Spin Down / -1';
+        els.blackBraidLabel.textContent = 'Energy / M';
+        els.whiteBraidLabel.textContent = 'Wall / Domains';
+        els.blackCount.textContent = counts.black;
+        els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = `${formatNumber(observables.energy)} / ${formatNumber(observables.magnetization)}`;
+        els.whiteBraid.textContent = `${observables.domainWallLength} / ${observables.numberOfBlackDomains + observables.numberOfWhiteDomains}`;
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const counts = game.counts();
         if (isAnyonReversiMode(game.mode)) {
@@ -3001,6 +3182,13 @@ function renderTimePanel() {
 function updateStatus() {
     if (!game) return;
     if (Date.now() < statusHoldUntil) return;
+    if (isIsingDomainMode(game.mode)) {
+        const observables = game.computePhysicalObservables();
+        const answer = game.computePhysicalAnswer();
+        const action = els.isingActionSelect?.value || 'place_or_flip';
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} ${action.replaceAll('_', ' ')}. E=${formatNumber(observables.energy)}, M=${formatNumber(observables.magnetization)}, wall=${observables.domainWallLength}, density=${formatNumber(observables.domainWallDensity)}, phase=${answer.finalPhase}.`;
+        return;
+    }
     if (isPhysicalCliffordMode(game.mode)) {
         const action = els.physicalActionSelect.value;
         const observables = game.computePhysicalObservables();
@@ -3246,6 +3434,10 @@ function renderHistory() {
             } else {
                 item.textContent = `#${event.number} ${event.player} ${event.type}.`;
             }
+        } else if (isIsingDomainMode(game.mode)) {
+            const update = event.physicalUpdate || {};
+            const affected = event.affectedVertices?.length || 0;
+            item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; affected ${affected}; dE ${formatNumber(update.deltaEnergy)}; ${update.acceptedMove === false ? 'rejected' : 'accepted'}.`;
         } else if (event.type === 'measurement') {
             item.textContent = `measurement ${event.measurement.type}: ${event.measurement.reported}${event.measurement.error ? ' with error' : ''}.`;
         } else if (event.type === 'noise') {
@@ -3370,6 +3562,28 @@ function exportJson() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `${game.mode}-${game.topology.name}-history.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportCsv() {
+    const csv = typeof game.exportPhysicalHistoryCSV === 'function'
+        ? game.exportPhysicalHistoryCSV()
+        : [
+            'number,player,type,coord,event',
+            ...(Array.isArray(game.history) ? game.history : []).map((event) => [
+                event.number ?? event.tick ?? '',
+                event.player ?? '',
+                event.type ?? event.kind ?? event.action ?? '',
+                event.coord ? event.coord.join('|') : event.to ? event.to.join('|') : '',
+                JSON.stringify(event ?? {}).replaceAll('"', '""')
+            ].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
+        ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${game.mode}-${game.topology.name}-physics-history.csv`;
     link.click();
     URL.revokeObjectURL(url);
 }
@@ -3502,11 +3716,20 @@ for (const control of [
     els.stabilizerAncillaSelect,
     els.stabilizerPhaseKickSelect,
     els.stabilizerMaxTurnsInput,
+    els.isingInitialStateSelect,
+    els.isingJInput,
+    els.isingHInput,
+    els.isingTemperatureInput,
+    els.isingWallThicknessInput,
+    els.isingMetropolisSelect,
+    els.isingDomainFlipSelect,
+    els.isingBracketFlipSelect,
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
     control.addEventListener('change', createGame);
 }
+els.isingActionSelect?.addEventListener('change', render);
 els.noiseRateInput.addEventListener('change', createGame);
 els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
@@ -3638,7 +3861,10 @@ els.onlineChatInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') submitOnlineChat();
 });
 els.passButton.addEventListener('click', () => {
-    if (isReversiMode(game?.mode)) {
+    if (isIsingDomainMode(game?.mode)) {
+        game.pass();
+        render();
+    } else if (isReversiMode(game?.mode)) {
         game.pass();
         render();
     } else if (isGoMode(game?.mode)) {
@@ -3648,6 +3874,7 @@ els.passButton.addEventListener('click', () => {
     }
 });
 els.exportButton.addEventListener('click', exportJson);
+els.exportCsvButton?.addEventListener('click', exportCsv);
 window.addEventListener('pageshow', () => {
     syncOnlineModeVisibility();
     if (!game) createGame();
