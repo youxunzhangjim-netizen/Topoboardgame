@@ -598,10 +598,10 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
+    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
     if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
+        els.anyonExcitationTypeControl.hidden = !excitationMode;
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -922,7 +922,10 @@ function currentOnlineMatchKey() {
         els.heightInput.value,
         topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '',
         topology === 'flat_4d_grid' ? els.wSizeInput.value : '',
-        mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : ''
+        mode === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
+        mode === 'anyon_jump' ? els.anyonSetupSelect.value : '',
+        mode === 'anyon_jump' ? els.anyonModelSelect.value : '',
+        mode === 'anyon_jump' ? els.braidMemoryModeSelect.value : ''
     ].join(':');
 }
 
@@ -2211,7 +2214,17 @@ function handleCellClick(coord) {
     }
 
     const token = game.tokenAt(coord);
+    const excitationMode = game.config?.setupMode === 'excitation';
     if (token && selectedToken && token.id === selectedToken) {
+        if (excitationMode && token.owner === game.currentPlayer) {
+            const result = game.dropAnyon(token.id, game.currentPlayer);
+            els.statusText.textContent = result.ok
+                ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
+                : result.error;
+            if (result.ok) selectedToken = '';
+            render();
+            return;
+        }
         selectedToken = '';
         hoverCoord = null;
         els.statusText.textContent = 'Selection cleared.';
@@ -2250,21 +2263,14 @@ function handleCellClick(coord) {
     }
 
     if (token && token.owner === game.currentPlayer) {
-        if (game.config?.setupMode === 'excitation' && els.anyonActionSelect.value === 'recombine') {
-            const result = game.dropAnyon(token.id, game.currentPlayer);
-            els.statusText.textContent = result.ok
-                ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy.`
-                : result.error;
-            if (result.ok) selectedToken = '';
-            render();
-            return;
-        }
         selectedToken = token.id;
-        els.statusText.textContent = `Selected ${token.id} (${token.anyonType}).`;
+        els.statusText.textContent = excitationMode
+            ? `Selected ${token.id} (${token.anyonType}). Click a legal empty target to move, or click it again to recover energy.`
+            : `Selected ${token.id} (${token.anyonType}).`;
         render();
         return;
     }
-    if (!token && game.config?.setupMode === 'excitation' && els.anyonActionSelect.value === 'excite') {
+    if (!token && excitationMode && !selectedToken) {
         syncAnyonExcitationTypeOptions();
         const selectedType = els.anyonExcitationTypeSelect.value;
         const result = game.exciteAnyon(coord, selectedType, game.currentPlayer);
@@ -2279,8 +2285,8 @@ function handleCellClick(coord) {
         return;
     }
     if (!selectedToken) {
-        els.statusText.textContent = game.config?.setupMode === 'excitation'
-            ? 'Use Turn Action = Excite Anyon to create a chosen particle, Move / Braid to move, or Recombine / Recover / double-click your anyon to regain energy.'
+        els.statusText.textContent = excitationMode
+            ? 'Click an empty vertex to excite the selected particle type, or select one of your anyons to move and braid.'
             : 'Select one of your anyons first.';
         return;
     }
@@ -2600,10 +2606,13 @@ function updateStatus() {
         const warning = hoveredToken && hoveredToken.id !== selectedToken && wrongUnbraidTargetIds().has(hoveredToken.id)
             ? ` Warning: attempting this unbraid appends ${braidWordToText([game.braidGeneratorFor(token, hoveredToken.id, { path: [token.coord, hoveredToken.coord] })])} instead of cancelling.`
             : '';
-        els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}`;
+        const recovery = game.config?.setupMode === 'excitation'
+            ? ' Click this anyon again or use Recover to recombine it.'
+            : '';
+        els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}${recovery}`;
     } else {
         els.statusText.textContent = game.config?.setupMode === 'excitation'
-            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Choose Excite and click empty vertex, or choose Recombine / double-click an owned anyon to recover energy.`
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an empty vertex to excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)}, or select an owned anyon to move.`
             : 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
 }

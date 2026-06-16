@@ -51,6 +51,37 @@ function randomPlayerColor() {
     return Math.random() < 0.5 ? 'white' : 'black';
 }
 
+function playerColorInRoom(room, uid = user?.uid) {
+    if (!uid) return null;
+    if (room?.players?.white === uid) return 'white';
+    if (room?.players?.black === uid) return 'black';
+    return null;
+}
+
+function waitingPlayerUid(room) {
+    const players = room?.players || {};
+    if (players.waiting) return players.waiting;
+    const assigned = [players.white, players.black].filter(Boolean);
+    if (assigned.length === 1 && room?.status === 'waiting') return assigned[0];
+    return room?.hostUid || null;
+}
+
+function randomizeMatchedPlayers(room, joiningUid) {
+    const waitingUid = waitingPlayerUid(room);
+    if (!waitingUid || waitingUid === joiningUid) return null;
+    const waitingColor = randomPlayerColor();
+    const joiningColor = opposite(waitingColor);
+    return {
+        color: joiningColor,
+        players: {
+            ...(room.players || {}),
+            white: waitingColor === 'white' ? waitingUid : joiningUid,
+            black: waitingColor === 'black' ? waitingUid : joiningUid,
+            waiting: null
+        }
+    };
+}
+
 function firestoreValue(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -89,12 +120,16 @@ function normalizeRoomId(value) {
 }
 
 function roomMatchesCurrentBucket(room) {
+    const waitingUid = waitingPlayerUid(room);
+    const assignedPlayers = new Set([room?.players?.white, room?.players?.black].filter(Boolean));
     return room?.status === 'waiting'
         && room?.public === true
         && room?.matchKey === hooks.matchKey
         && room?.gameKey === hooks.gameKey
-        && room?.players?.white !== user?.uid
-        && room?.players?.black !== user?.uid;
+        && waitingUid
+        && waitingUid !== user?.uid
+        && !assignedPlayers.has(user?.uid)
+        && assignedPlayers.size < 2;
 }
 
 function publicMatchRoomIds() {
@@ -278,6 +313,24 @@ export async function joinPrivateRoom(rawRoomId) {
             ? 'white'
             : room.players?.black === user.uid ? 'black' : null;
         if (existingColor) return { room, color: existingColor };
+        if (room.public && room.players?.waiting === user.uid) return { room, color: null };
+        if (room.public && room.status === 'waiting') {
+            const assignment = randomizeMatchedPlayers(room, user.uid);
+            if (!assignment) throw new Error('Room is full or already finished.');
+            const nextRoom = {
+                ...room,
+                status: 'playing',
+                players: assignment.players,
+                turn: room.turn || 'white'
+            };
+            transaction.update(ref, {
+                players: assignment.players,
+                status: 'playing',
+                turn: nextRoom.turn,
+                updatedAt: serverTimestamp()
+            });
+            return { room: nextRoom, color: assignment.color };
+        }
         const openColor = room.players?.white == null
             ? 'white'
             : room.players?.black == null ? 'black' : null;
@@ -307,7 +360,9 @@ export async function joinPrivateRoom(rawRoomId) {
         hooks.loadBoardState?.(decodeBoardFromFirestore(joined.room.board));
         hooks.renderBoard?.();
     }
-    status(`Joined room ${roomId} as ${playerColor}.`);
+    status(playerColor
+        ? `Joined room ${roomId} as ${playerColor}.`
+        : `Room ${roomId}: waiting for an opponent.`);
     listenToRoom(roomId);
     listenToChat(roomId);
     return { roomId, playerColor };
@@ -342,6 +397,72 @@ async function findWaitingMatchCandidate() {
     return match?.id || '';
 }
 
+async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = false } = {}) {
+    const ref = roomReference(id);
+    return withTimeout(runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists()) {
+            if (!allowCreate) return null;
+            const room = {
+                status: 'waiting',
+                public: true,
+                players: {
+                    waiting: user.uid,
+                    white: null,
+                    black: null
+                },
+                hostUid: user.uid,
+                turn: initialTurn,
+                gameKey: hooks.gameKey,
+                matchKey: hooks.matchKey,
+                board: encodeBoardForFirestore(board),
+                moveNumber: 0,
+                lastMove: null,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+            transaction.set(ref, room);
+            return { action: 'created', roomId: id, color: null, room };
+        }
+
+        const room = snapshot.data();
+        if (room.gameKey !== hooks.gameKey || room.matchKey !== hooks.matchKey) return null;
+        const existingColor = playerColorInRoom(room);
+        if (existingColor) {
+            return {
+                action: room.status === 'playing' ? 'joined' : 'waiting',
+                roomId: id,
+                color: existingColor,
+                room
+            };
+        }
+        if (room.players?.waiting === user.uid) {
+            return { action: 'waiting', roomId: id, color: null, room };
+        }
+        if (!roomMatchesCurrentBucket(room)) return null;
+        const assignment = randomizeMatchedPlayers(room, user.uid);
+        if (!assignment) return null;
+        const nextRoom = {
+            ...room,
+            status: 'playing',
+            players: assignment.players,
+            turn: room.turn || initialTurn
+        };
+        transaction.update(ref, {
+            players: assignment.players,
+            status: 'playing',
+            turn: nextRoom.turn,
+            updatedAt: serverTimestamp()
+        });
+        return {
+            action: 'joined',
+            roomId: id,
+            color: assignment.color,
+            room: nextRoom
+        };
+    }), 'Find match');
+}
+
 export async function findMatch(initialBoard) {
     requireReady();
     await leaveRoom({ updateRemote: false });
@@ -349,65 +470,13 @@ export async function findMatch(initialBoard) {
 
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
     const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
-    const firstPlayerColor = randomPlayerColor();
-    const roomTemplate = {
-        status: 'waiting',
-        public: true,
-        players: {
-            white: firstPlayerColor === 'white' ? user.uid : null,
-            black: firstPlayerColor === 'black' ? user.uid : null
-        },
-        turn: initialTurn,
-        gameKey: hooks.gameKey,
-        matchKey: hooks.matchKey,
-        board: encodeBoardForFirestore(board),
-        moveNumber: 0,
-        lastMove: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-    };
 
     for (const id of publicMatchRoomIds()) {
-        const ref = roomReference(id);
         try {
-            const result = await withTimeout(runTransaction(db, async (transaction) => {
-                const snapshot = await transaction.get(ref);
-                if (!snapshot.exists()) {
-                    transaction.set(ref, roomTemplate);
-                    return { action: 'created', roomId: id, color: firstPlayerColor, room: roomTemplate };
-                }
-                const room = snapshot.data();
-                if (room.gameKey !== hooks.gameKey || room.matchKey !== hooks.matchKey) return null;
-                const existingColor = room.players?.white === user.uid
-                    ? 'white'
-                    : room.players?.black === user.uid ? 'black' : null;
-                if (existingColor && room.status === 'waiting') {
-                    return { action: 'waiting', roomId: id, color: existingColor, room };
-                }
-                if (!roomMatchesCurrentBucket(room)) return null;
-                const openColor = room.players?.white == null
-                    ? 'white'
-                    : room.players?.black == null ? 'black' : null;
-                if (!openColor) return null;
-                transaction.update(ref, {
-                    [`players.${openColor}`]: user.uid,
-                    status: 'playing',
-                    updatedAt: serverTimestamp()
-                });
-                return {
-                    action: 'joined',
-                    roomId: id,
-                    color: openColor,
-                    room: {
-                        ...room,
-                        status: 'playing',
-                        players: { ...room.players, [openColor]: user.uid }
-                    }
-                };
-            }), 'Find match');
+            const result = await claimPublicMatchRoom(id, board, initialTurn, { allowCreate: true });
             if (!result) continue;
             roomId = result.roomId;
-            playerColor = result.color;
+            playerColor = result.color || null;
             lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
             localStorage.setItem(reconnectStorageKey, roomId);
             if (result.room?.board && result.action === 'joined') {
@@ -426,7 +495,25 @@ export async function findMatch(initialBoard) {
     }
 
     const existingRoomId = await findWaitingMatchCandidate();
-    if (existingRoomId) return joinPrivateRoom(existingRoomId);
+    if (existingRoomId) {
+        const result = await claimPublicMatchRoom(existingRoomId, board, initialTurn);
+        if (result) {
+            roomId = result.roomId;
+            playerColor = result.color || null;
+            lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
+            localStorage.setItem(reconnectStorageKey, roomId);
+            if (result.room?.board && result.action === 'joined') {
+                hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
+                hooks.renderBoard?.();
+            }
+            status(result.action === 'joined'
+                ? `Matched in room ${roomId} as ${playerColor}.`
+                : `Room ${roomId}: waiting for an opponent.`);
+            listenToRoom(roomId);
+            listenToChat(roomId);
+            return { roomId, playerColor };
+        }
+    }
     throw new Error('Could not reserve a matchmaking slot. Try Find Match again.');
 }
 
@@ -580,12 +667,15 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
                 const color = room.players?.white === user.uid
                     ? 'white'
                     : room.players?.black === user.uid ? 'black' : null;
-                if (!color) return;
-                transaction.update(ref, {
-                    [`players.${color}`]: null,
+                const waiting = room.players?.waiting === user.uid;
+                if (!color && !waiting) return;
+                const updates = {
                     status: 'finished',
                     updatedAt: serverTimestamp()
-                });
+                };
+                if (color) updates[`players.${color}`] = null;
+                if (waiting) updates['players.waiting'] = null;
+                transaction.update(ref, updates);
             });
         } catch {
             // Leaving should still clean up local state if the network is gone.

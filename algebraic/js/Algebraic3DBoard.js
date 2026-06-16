@@ -96,8 +96,8 @@ export class Algebraic3DBoard {
         this.controls.dampingFactor = 0.075;
         this.controls.zoomSpeed = 0.45;
         this.controls.enablePan = false;
-        this.controls.minDistance = 4.5;
-        this.controls.maxDistance = 24;
+        this.controls.minDistance = 7;
+        this.controls.maxDistance = 16;
 
         this.raycaster = new THREE.Raycaster();
         this.raycaster.params.Points.threshold = 0.2;
@@ -132,6 +132,7 @@ export class Algebraic3DBoard {
     bind() {
         window.addEventListener('resize', () => this.resize());
         this.resetButton?.addEventListener('click', () => this.resetCamera());
+        window.matchMedia?.('(pointer: coarse)')?.addEventListener?.('change', () => this.applySafeZoomRange());
         this.canvas.addEventListener('pointerdown', (event) => this.pointerDown(event));
         this.canvas.addEventListener('pointermove', (event) => this.pointerMove(event));
         this.canvas.addEventListener('pointerup', (event) => this.pointerUp(event));
@@ -153,6 +154,7 @@ export class Algebraic3DBoard {
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, false);
+        this.applySafeZoomRange();
     }
 
     renderGame(game, viewState = {}) {
@@ -577,12 +579,43 @@ export class Algebraic3DBoard {
     }
 
     resetCamera() {
-        const topology = this.game?.topology?.name;
-        if (topology === 'torus') this.camera.position.set(0, 5.7, 9.9);
-        else if (topology === 'sphere_latitude') this.camera.position.set(0, 2.2, 9.6);
-        else this.camera.position.set(8.2, 7.6, 8.6);
+        this.camera.position.copy(this.homeCameraPosition());
         this.controls.target.set(0, 0, 0);
+        this.applySafeZoomRange();
         this.controls.update();
+    }
+
+    homeCameraPosition() {
+        const topology = this.game?.topology?.name;
+        if (topology === 'torus') return new THREE.Vector3(0, 5.7, 9.9);
+        if (topology === 'sphere_latitude') return new THREE.Vector3(0, 2.2, 9.6);
+        return new THREE.Vector3(8.2, 7.6, 8.6);
+    }
+
+    safeZoomRange() {
+        const homeDistance = this.homeCameraPosition().distanceTo(this.controls.target);
+        const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
+        const narrowViewport = this.camera.aspect < 0.82;
+        const mobile = coarsePointer || narrowViewport;
+        return mobile
+            ? [homeDistance * 0.86, homeDistance * 1.16]
+            : [homeDistance * 0.72, homeDistance * 1.34];
+    }
+
+    applySafeZoomRange() {
+        if (!this.controls) return;
+        const [minDistance, maxDistance] = this.safeZoomRange();
+        this.controls.minDistance = minDistance;
+        this.controls.maxDistance = maxDistance;
+        this.controls.zoomSpeed = minDistance === maxDistance ? 0 : (this.camera.aspect < 0.82 ? 0.28 : 0.4);
+        const offset = this.camera.position.clone().sub(this.controls.target);
+        const distance = offset.length();
+        const clamped = Math.min(maxDistance, Math.max(minDistance, distance || minDistance));
+        if (Math.abs(clamped - distance) > 0.01) {
+            offset.setLength(clamped);
+            this.camera.position.copy(this.controls.target).add(offset);
+            this.camera.updateProjectionMatrix();
+        }
     }
 
     animate() {
