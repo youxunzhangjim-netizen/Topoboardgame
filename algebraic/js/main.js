@@ -67,6 +67,8 @@ const els = {
     cftModelControl: document.querySelector('#cftModelControl'),
     cftModelSelect: document.querySelector('#cftModelSelect'),
     cftInitialStateSelect: document.querySelector('#cftInitialStateSelect'),
+    cftDomainWallThicknessControl: document.querySelector('#cftDomainWallThicknessControl'),
+    cftDomainWallThicknessInput: document.querySelector('#cftDomainWallThicknessInput'),
     cftPrimarySelect: document.querySelector('#cftPrimarySelect'),
     cftActionSelect: document.querySelector('#cftActionSelect'),
     cftDirectionControl: document.querySelector('#cftDirectionControl'),
@@ -384,7 +386,6 @@ function syncCFTInitialStateOptions(isGo) {
             ['thermal_sparse', 'Thermal Sparse']
         ]
         : [
-            ['vacuum', 'Vacuum'],
             ['domain_wall_seed', 'Domain Wall Seed'],
             ['four_sigma_block', 'Four Sigma Block'],
             ['boundary_condition_change', 'Boundary Condition Change'],
@@ -591,10 +592,10 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isAnyon;
     const excitationMode = isAnyon && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
-    els.anyonActionSelect.value = 'move';
+    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
+    if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = !excitationMode;
+        els.anyonExcitationTypeControl.hidden = !excitationMode || els.anyonActionSelect.value !== 'excite';
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -605,6 +606,10 @@ function syncModeControls() {
         const action = els.cftActionSelect.value;
         els.cftDirectionControl.hidden = !['L-1', 'L-2'].includes(action);
         els.cftMeasurementControl.hidden = action !== 'measure';
+        if (els.cftDomainWallThicknessControl) {
+            els.cftDomainWallThicknessControl.hidden = !isCFTReversi
+                || els.cftInitialStateSelect.value !== 'domain_wall_seed';
+        }
         setAllowedSelectValues(
             els.cftActionSelect,
             Number(els.cftMaxModeSelect.value) >= 2
@@ -874,6 +879,7 @@ function createGame() {
         centralCharge: Number(els.cftCentralChargeInput.value),
         maxMode: Number(els.cftMaxModeSelect.value),
         temperature: Number(els.cftTemperatureInput.value),
+        domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(els.cftDomainWallThicknessInput?.value) || 1))),
         config,
         virasoro: virasoroConfig(),
         probability: probabilityConfig(),
@@ -1338,6 +1344,11 @@ function selectedCFTDirection() {
     return els.cftDirectionSelect.value.split(',').map(Number);
 }
 
+function cftChannelDisplay(stone) {
+    if (!stone) return 'identity';
+    return stone.hiddenChannel ? 'unmeasured' : (stone.channelLabel || 'identity');
+}
+
 function currentCFTPreview() {
     if (!hoverCoord || !isCFTReversiMode(game?.mode)) return null;
     const action = els.cftActionSelect.value;
@@ -1617,6 +1628,10 @@ function renderFlatBoard() {
             updateStatus();
         });
         cell.addEventListener('click', () => handleCellClick(coord));
+        cell.addEventListener('dblclick', (event) => {
+            event.preventDefault();
+            handleCellDoubleClick(coord);
+        });
 
         if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
@@ -1852,10 +1867,10 @@ function renderCFTStone(cell, coord) {
     node.textContent = game.primaryLabel(stone);
     if (stone.hiddenChannel) node.classList.add('hidden-channel');
     const stress = game.stressAt(coord);
-    node.title = `${stone.color} ${game.primaryLabel(stone)}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; phase=${formatNumber(stone.phaseAngle)}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}; T=${formatNumber(stress.stress)}; last=${stone.lastUpdate?.action || 'setup'}`;
+    node.title = `${stone.color} ${game.primaryLabel(stone)}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; phase=${formatNumber(stone.phaseAngle)}; channel=${cftChannelDisplay(stone)}; T=${formatNumber(stress.stress)}; last=${stone.lastUpdate?.action || 'setup'}`;
     const channel = document.createElement('span');
     channel.className = 'cft-badge';
-    channel.textContent = stone.hiddenChannel ? '?' : stone.channelLabel;
+    channel.textContent = cftChannelDisplay(stone);
     node.append(channel);
     cell.append(node);
 }
@@ -1872,7 +1887,7 @@ function renderGoStone(cell, coord) {
         || (groupInfo ? `h=${formatNumber(groupInfo.h)}` : 'h=0');
     node.append(cft);
     node.title = groupInfo
-        ? `${stone.color} ${game.primaryLabel?.(stone) || 'primary'}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; liberties=${groupInfo.liberties.size}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}`
+        ? `${stone.color} ${game.primaryLabel?.(stone) || 'primary'}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; liberties=${groupInfo.liberties.size}; channel=${cftChannelDisplay(stone)}`
         : stone.color;
     cell.append(node);
 }
@@ -1928,7 +1943,7 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         const stone = game.getStone(coord);
         const stress = game.stressAt(coord);
         return stone
-            ? `${game.topology.displayCoord(coord)} ${game.primaryLabel(stone)}; h=${stone.h}, hbar=${stone.hbar}; phase=${stone.phaseAngle}; channel=${stone.hiddenChannel ? '?' : stone.channelLabel}; T=${stress.stress.toFixed(2)}`
+            ? `${game.topology.displayCoord(coord)} ${game.primaryLabel(stone)}; h=${stone.h}, hbar=${stone.hbar}; phase=${stone.phaseAngle}; channel=${cftChannelDisplay(stone)}; T=${stress.stress.toFixed(2)}`
             : `${game.topology.displayCoord(coord)} identity/empty; T=${stress.stress.toFixed(2)}`;
     }
     if (isPhysicalVirasoroGoMode(game.mode)) {
@@ -1936,7 +1951,7 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         const groupInfo = goStone ? game.groupInfoAt(coord) : null;
         const stressText = `T=${stress.stress.toFixed(2)}${stress.owner ? ` owner=${stress.owner}` : ''}`;
         if (groupInfo) {
-            const channel = goStone.hiddenChannel ? '?' : goStone.channelLabel;
+            const channel = cftChannelDisplay(goStone);
             return `${game.topology.displayCoord(coord)} ${goStone.color} ${game.primaryLabel(goStone)}; h=${goStone.h}, hbar=${goStone.hbar}; channel=${channel}; group liberties=${groupInfo.liberties.size}; ${stressText}`;
         }
         return `${game.topology.displayCoord(coord)} empty; ${stressText}`;
@@ -2224,13 +2239,24 @@ function handleCellClick(coord) {
     }
 
     if (token && token.owner === game.currentPlayer) {
+        if (game.config?.setupMode === 'excitation' && els.anyonActionSelect.value === 'recombine') {
+            const result = game.dropAnyon(token.id, game.currentPlayer);
+            els.statusText.textContent = result.ok
+                ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy.`
+                : result.error;
+            if (result.ok) selectedToken = '';
+            render();
+            return;
+        }
         selectedToken = token.id;
         els.statusText.textContent = `Selected ${token.id} (${token.anyonType}).`;
         render();
         return;
     }
-    if (!token && game.config?.setupMode === 'excitation') {
-        const result = game.exciteAnyon(coord, els.anyonExcitationTypeSelect.value, game.currentPlayer);
+    if (!token && game.config?.setupMode === 'excitation' && els.anyonActionSelect.value === 'excite') {
+        syncAnyonExcitationTypeOptions();
+        const selectedType = els.anyonExcitationTypeSelect.value;
+        const result = game.exciteAnyon(coord, selectedType, game.currentPlayer);
         els.statusText.textContent = result.ok
             ? `${capitalize(result.event.player)} excited ${anyonDisplay(result.event.anyonType)} at (${result.event.coord.join(',')}); energy ${formatNumber(result.event.energyAfter)}.`
             : result.error;
@@ -2243,7 +2269,7 @@ function handleCellClick(coord) {
     }
     if (!selectedToken) {
         els.statusText.textContent = game.config?.setupMode === 'excitation'
-            ? 'Choose Excite Anyon to create a particle, or select one of your anyons to move and braid.'
+            ? 'Use Turn Action = Excite Anyon to create a chosen particle, Move / Braid to move, or Recombine / Recover / double-click your anyon to regain energy.'
             : 'Select one of your anyons first.';
         return;
     }
@@ -2273,6 +2299,18 @@ function handleCellClick(coord) {
     } else {
         els.statusText.textContent = result.error;
     }
+    render();
+}
+
+function handleCellDoubleClick(coord) {
+    if (game.mode !== 'anyon_jump' || game.config?.setupMode !== 'excitation') return;
+    const token = game.tokenAt(coord);
+    if (!token || token.owner !== game.currentPlayer) return;
+    const result = game.dropAnyon(token.id, game.currentPlayer);
+    els.statusText.textContent = result.ok
+        ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
+        : result.error;
+    if (result.ok) selectedToken = '';
     render();
 }
 
@@ -2554,7 +2592,7 @@ function updateStatus() {
         els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}`;
     } else {
         els.statusText.textContent = game.config?.setupMode === 'excitation'
-            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an empty vertex to excite ${anyonDisplay(els.anyonExcitationTypeSelect.value)}, or select an anyon to braid/drop.`
+            ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Choose Excite and click empty vertex, or choose Recombine / double-click an owned anyon to recover energy.`
             : 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
     }
 }

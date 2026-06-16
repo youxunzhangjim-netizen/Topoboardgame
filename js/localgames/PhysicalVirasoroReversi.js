@@ -25,7 +25,7 @@ function primarySymbol(primaryType) {
     if (primaryType === 'sigma') return '\u03c3';
     if (primaryType === 'epsilon') return '\u03b5';
     if (primaryType === 'identity') return 'I';
-    return String(primaryType || '?').slice(0, 3);
+    return String(primaryType || 'field').slice(0, 5);
 }
 
 export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
@@ -34,14 +34,15 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         this.mode = PHYSICAL_VIRASORO_REVERSI_MODE;
         this.algebraSet = 'virasoro_cft';
         this.cftConfig = {
-            initialState: CFT_REVERSI_INITIAL_STATES.includes(options.cftReversiInitialState)
+            initialState: CFT_REVERSI_INITIAL_STATES.includes(options.cftReversiInitialState) && options.cftReversiInitialState !== 'vacuum'
                 ? options.cftReversiInitialState
                 : 'four_sigma_block',
             primaryType: options.primaryType || 'sigma',
             hiddenChannels: options.hiddenChannels !== false,
             centralCharge: Number.isFinite(Number(options.centralCharge)) ? Number(options.centralCharge) : 0.5,
             maxMode: Number(options.maxMode) >= 2 ? 2 : 1,
-            temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : 0.35
+            temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : 0.35,
+            domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(options.domainWallThickness) || 1)))
         };
         this.board.clear();
         this.history = [];
@@ -84,6 +85,10 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
     }
 
     setupCFTInitialState(initialState) {
+        if (initialState === 'vacuum') {
+            this.setupFourSigmaBlock();
+            return;
+        }
         if (initialState === 'domain_wall_seed') this.setupDomainWallSeed();
         if (initialState === 'four_sigma_block') this.setupFourSigmaBlock();
         if (initialState === 'boundary_condition_change') this.setupBoundaryConditionChange();
@@ -100,16 +105,37 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         const width = this.topology.sizes[0];
         const height = this.topology.sizes[1];
         const middle = Math.floor(width / 2);
+        const thickness = Math.max(1, Math.min(this.cftConfig.domainWallThickness, Math.floor((width - 2) / 2) || 1));
+        const leftStart = Math.max(1, middle - thickness);
+        const leftEnd = Math.max(leftStart, middle - 1);
+        const rightStart = middle;
+        const rightEnd = Math.min(width - 2, middle + thickness - 1);
+        const yMin = 1;
+        const yMax = Math.max(1, height - 2);
         for (const coord of this.activeSliceVertices()) {
-            if (coord[0] === middle || coord[1] === 0 || coord[1] === height - 1) continue;
-            const positive = coord[0] < middle;
+            const x = coord[0];
+            const y = coord[1];
+            if (y < yMin || y > yMax) continue;
+            let sign = 0;
+            if (x >= leftStart && x <= leftEnd) sign = 1;
+            else if (x >= rightStart && x <= rightEnd) sign = -1;
+            if (!sign) continue;
             this.setStone(coord, {
-                sign: positive ? 1 : -1,
-                primaryType: coord[1] % 3 === 0 ? 'epsilon' : 'sigma',
+                sign,
+                primaryType: y % 3 === 0 ? 'epsilon' : 'sigma',
                 channelLabel: 'identity',
-                lastUpdate: { action: 'domain_wall_seed', tick: 0 }
+                lastUpdate: {
+                    action: 'domain_wall_seed',
+                    tick: 0,
+                    wallThickness: thickness
+                }
             });
         }
+        const midY = Math.floor(height / 2);
+        this.lastFlippedPath = [
+            [leftEnd, midY, ...this.topology.sizes.slice(2).map((size) => Math.floor(size / 2))],
+            [rightStart, midY, ...this.topology.sizes.slice(2).map((size) => Math.floor(size / 2))]
+        ];
     }
 
     setupFourSigmaBlock() {
@@ -129,7 +155,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
             this.setStone(coord, {
                 sign,
                 primaryType: 'sigma',
-                channelLabel: this.cftConfig.hiddenChannels ? 'hidden' : 'identity',
+                channelLabel: this.cftConfig.hiddenChannels ? 'unmeasured' : 'identity',
                 hiddenChannel: this.cftConfig.hiddenChannels ? 'identity' : null,
                 lastUpdate: { action: 'four_sigma_block', tick: 0 }
             });

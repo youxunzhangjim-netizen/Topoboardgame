@@ -45,6 +45,7 @@
                             <option value="r3">R3 Standard</option>
                             <option value="torus">T2 Torus</option>
                             <option value="klein_bottle">Klein Bottle</option>
+                            <option value="mobius">Mobius Strip</option>
                             <option value="rp2">RP2</option>
                             <option value="sphere_latitude">S2 Latitude</option>
                             <option value="random_boundary">2D RBC</option>
@@ -280,6 +281,7 @@
                         <select id="anyonActionSelect">
                             <option value="move" selected>Move / Braid</option>
                             <option value="excite">Excite Anyon</option>
+                            <option value="recombine">Recombine / Recover</option>
                         </select>
                     </label>
                     <label id="anyonExcitationTypeControl" hidden>
@@ -291,7 +293,7 @@
                         </select>
                     </label>
                     <label id="anyonDropLossControl" hidden>
-                        Drop Loss
+                        Recombination Loss
                         <input id="anyonDropLossInput" type="number" min="0" max="1" step="0.05" value="0.25">
                     </label>
                     <label id="braidMemoryControl">
@@ -424,12 +426,15 @@
                     <label>
                         Initial State
                         <select id="cftInitialStateSelect">
-                            <option value="vacuum">Vacuum</option>
                             <option value="domain_wall_seed">Domain Wall Seed</option>
                             <option value="four_sigma_block" selected>Four Sigma Block</option>
                             <option value="boundary_condition_change">Boundary Condition Change</option>
                             <option value="thermal_cft_sample">Thermal CFT Sample</option>
                         </select>
+                    </label>
+                    <label id="cftDomainWallThicknessControl" hidden>
+                        Wall Thickness
+                        <input id="cftDomainWallThicknessInput" type="number" min="1" max="6" step="1" value="1">
                     </label>
                     <label>
                         Primary Field
@@ -595,7 +600,7 @@
                     <button id="unbraidHintButton" type="button">Unbraid Hint</button>
                     <button id="manualNoiseButton" type="button">Noise Tick</button>
                     <button id="manualTimeButton" type="button">Time Step</button>
-                    <button id="dropAnyonButton" type="button" hidden>Drop Anyon</button>
+                    <button id="dropAnyonButton" type="button" hidden>Recombine / Recover</button>
                     <button id="exportButton" type="button">Export JSON</button>
                 </div>
             </div>
@@ -722,7 +727,7 @@
                         <p><strong>Toric code fusion:</strong> e x e = 1, m x m = 1, &psi; x &psi; = 1, e x m = &psi;, e x &psi; = m, and m x &psi; = e. Fusion to 1 is vacuum fusion and removes or neutralizes the fused pair according to config.</p>
                         <p><strong>Toric Memory Unbraid:</strong> the physical-problem option initializes local e and m pairs with vacuum total charge, records the logical winding sector, and shows QEC observables after every move. Crossing a noncontractible cycle can create a logical error; exact inverse braids reduce braid memory; complete vacuum fusion is recorded as vacuum recovery.</p>
                         <p><strong>QEC export:</strong> JSON includes vertex-based initial state, move history, braid and fusion histories, logical-sector history, memory lifetime, logical-error rate, unbraid success rate, and the final physical answer.</p>
-                        <p><strong>Excitation Energy:</strong> both players start with 12 energy. The selector offers every non-vacuum type in the chosen model: e, m, &psi; for Toric Code; &sigma;, &psi; for Ising; &tau; for Fibonacci; and every &alpha;<sub>k</sub> grade for Z_n. Exciting one on an empty vertex consumes one turn and its model cost. Dropping an owned anyon or completing a vacuum fusion returns its gap energy after the configured loss rate.</p>
+                        <p><strong>Excitation Energy:</strong> both players start with 12 energy. The selector offers every non-vacuum type in the chosen model: e, m, &psi; for Toric Code; &sigma;, &psi; for Ising; &tau; for Fibonacci; and every &alpha;<sub>k</sub> grade for Z_n. Exciting one on an empty vertex consumes one turn and its model cost. Recombining/dropping an owned anyon by button, action, or double-click returns its gap energy after the configured loss rate; completing a vacuum fusion also returns energy.</p>
                         <p><strong>Non-Abelian fusion:</strong> Ising uses &sigma; x &sigma; = 1 + &psi;. The plus sign lists alternative channels, not simultaneous products: resolving to 1 removes both incoming &sigma; anyons as vacuum, while resolving to &psi; replaces the pair with one &psi; excitation. Also, &sigma; x &psi; = &sigma; and &psi; x &psi; = 1. Fibonacci similarly uses &tau; x &tau; = 1 + &tau;. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                         <p><strong>Entanglement distance:</strong> Infinite keeps fusion-channel memory regardless of graph separation. Finite Distance measures shortest legal graph steps and decoheres that hidden pair channel when the anyons separate beyond the selected distance. Braid words remain recorded independently.</p>
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>

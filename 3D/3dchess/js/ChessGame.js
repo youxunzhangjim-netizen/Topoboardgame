@@ -13,7 +13,7 @@ const VARIANTS = {
         tagline: '2D chess on a longer 3D torus: 8 cells around the short side and a 14-row route through the extended direction.',
         canvasLabel: '3D torus chess board',
         rulesTitle: 'Torus Rules',
-        rulesText: 'Rooks, bishops, queens, knights, kings, castling, en passant, check, and mate use 2D chess movement on 112 torus blocks. The board is 8 columns by 14 periodic rows, with the six extra blank rows placed between the initial armies so the king rows start opposite each other. Pawns promote when they reach the opponent home row.',
+        rulesText: 'Rooks, bishops, queens, knights, kings, castling, check, and mate use 2D chess movement on 112 torus blocks. The board is 8 columns by 14 periodic rows, with the six extra blank rows placed between the initial armies so the king rows start opposite each other. Pawns move one step only, cannot double-step or use en passant, and promote when they reach the opponent home row.',
         boundaryValue: 'periodic',
         controller: TorusChessGame,
         zh: {
@@ -21,7 +21,7 @@ const VARIANTS = {
                   "tagline": "在加長三維環面上的二維國際象棋：短方向 8 格，長方向 14 行。",
                   "canvasLabel": "三維環面棋盤",
                   "rulesTitle": "環面規則",
-                  "rulesText": "車、象、后、馬、王、易位、吃過路兵、將軍與將死都使用 112 個環面格上的二維國際象棋走法。棋盤為 8 列 x 14 個週期行，雙方初始陣之間有六行空格。兵到達對方底線時升變。"
+                  "rulesText": "車、象、后、馬、王、易位、將軍與將死都使用 112 個環面格上的二維國際象棋走法。棋盤為 8 列 x 14 個週期行，雙方初始陣之間有六行空格。兵只能前進一步，不使用起始兩步或吃過路兵，到達對方底線時升變。"
         }
     },
     cube: {
@@ -30,7 +30,7 @@ const VARIANTS = {
         tagline: 'Local and online cubic chess with full 3D movement.',
         canvasLabel: '3D chess board',
         rulesTitle: '3D Movement',
-        rulesText: "Rook: axes. Bishop: plane and body diagonals. Queen: all straight 3D lines. Knight: 2-1 jumps on any plane. King: one cell in any direction. Pawn: forward on X, Y, or Z, captures forward diagonals, and promotes only on the opponent's Y or Z home face inside the bottom three rows.",
+        rulesText: "Rook: axes. Bishop: plane and body diagonals. Queen: all straight 3D lines. Knight: 2-1 jumps on any plane. King: one cell in any direction except true cube-corner steps on the R3 and T3 PBC boards. Pawn: forward on X, Y, or Z, captures forward diagonals, and promotes only on the opponent's Y or Z home face inside the bottom three rows.",
         boundaryValue: 'forbidden',
         controller: CubeChessGame,
         zh: {
@@ -38,7 +38,7 @@ const VARIANTS = {
                   "tagline": "支援本地與線上的立方體國際象棋，使用完整三維走法。",
                   "canvasLabel": "三維棋盤",
                   "rulesTitle": "三維走法",
-                  "rulesText": "車沿座標軸走，象沿平面與空間對角線走，后可走所有三維直線，馬在任意平面跳 2-1，王向任意方向走一格。兵沿 X、Y 或 Z 前進並斜向吃子。"
+                  "rulesText": "車沿座標軸走，象沿平面與空間對角線走，后可走所有三維直線，馬在任意平面跳 2-1；R3 與 T3 週期棋盤的王可走一格，但不能走真正的立方體角落方向。兵沿 X、Y 或 Z 前進並斜向吃子。"
         }
     },
     rp2: {

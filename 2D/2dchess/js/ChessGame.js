@@ -2,6 +2,7 @@ import { BoardSetup, BOARD_THEMES, PIECE_GLYPHS, PROMOTION_TYPES, createPiece } 
 import { PieceMovement, createRandomChessBoundaryState } from './PieceMovement.js';
 import { FirebaseOnlineAdapter } from '../../../online.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
+import { ChessRobotController } from './robot/ChessRobotController.js';
 
 const SIZE = 8;
 
@@ -35,6 +36,7 @@ export class ChessGame {
 
         this.movement = new PieceMovement(this);
         this.network = new FirebaseOnlineAdapter(this);
+        this.robot = new ChessRobotController(this);
 
         this.init();
     }
@@ -211,6 +213,11 @@ export class ChessGame {
     async handleSquareClick(row, col) {
         if (this.gameOver) return;
 
+        if (this.robot?.shouldBlockHumanInput()) {
+            this.setStatus(this.robot.thinking ? 'status.robotThinking' : 'status.robotTurn');
+            return;
+        }
+
         if (this.gameMode === 'online') {
             if (!this.network.isConnected) {
                 this.setStatus('status.connectBeforeMove');
@@ -368,6 +375,8 @@ export class ChessGame {
             this.network.sendMove(sentMove);
         }
 
+        this.robot?.handlePostMove(options);
+
         return true;
     }
 
@@ -417,6 +426,8 @@ export class ChessGame {
         if (!options.remote && this.gameMode === 'online') {
             this.network.sendMove(sentMove);
         }
+
+        this.robot?.handlePostMove(options);
 
         return true;
     }
@@ -639,6 +650,8 @@ export class ChessGame {
         if (onlineColorStatus) {
             if (this.gameMode === 'local') {
                 onlineColorStatus.textContent = this.tr('online.localStatus');
+            } else if (this.gameMode === 'robot') {
+                onlineColorStatus.textContent = `Local robot opponent (${this.robot?.side || 'black'}).`;
             } else if (this.network.isConnected) {
                 onlineColorStatus.textContent = this.tr('online.youAre', { color: this.myColor });
             } else {
@@ -711,8 +724,9 @@ export class ChessGame {
             this.timerInterval = null;
         }
 
+        const previousMode = this.gameMode;
         if (!keepOnline) {
-            this.gameMode = 'local';
+            this.gameMode = previousMode === 'robot' ? 'robot' : 'local';
             this.myColor = null;
             this.network.close();
             document.getElementById('onlineControls').classList.remove('active');
@@ -725,8 +739,10 @@ export class ChessGame {
         this.unlockGameSettings();
         if (keepOnline) this.lockGameSettings();
         this.setStatus('status.newGame');
+        this.robot?.clearAnalysis();
         this.renderBoard();
         this.updateUI();
+        this.robot?.scheduleRobotMoveIfNeeded();
         if (this.gameMode === 'online') this.network.persistState();
     }
 
@@ -774,12 +790,14 @@ export class ChessGame {
 
             this.gameMode = event.target.value;
             document.getElementById('onlineControls').classList.toggle('active', this.gameMode === 'online');
-            if (this.gameMode === 'local') {
+            if (this.gameMode !== 'online') {
                 this.myColor = null;
                 this.network.close();
                 this.network.setStatus('disconnected', 'online.disconnected');
             }
+            this.robot?.updatePanelState();
             this.updateUI();
+            this.robot?.scheduleRobotMoveIfNeeded();
         });
 
         document.getElementById('createRoomBtn').addEventListener('click', () => {
@@ -811,6 +829,8 @@ export class ChessGame {
             document.getElementById('onlineControls').classList.remove('active');
             this.updateUI();
         });
+
+        this.robot?.attachEventListeners();
 
         document.getElementById('copyLinkBtn').addEventListener('click', async () => {
             const input = document.getElementById('shareLinkInput');

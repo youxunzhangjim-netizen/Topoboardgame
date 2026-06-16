@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { installReversi3DRobot } from './robot/Reversi3DRobot.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ReversiGame, REVERSI_TOPOLOGIES, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
@@ -819,6 +820,7 @@ class Reversi3DApp {
 
 try {
     window.reversi3dApp = new Reversi3DApp();
+    installReversi3DRobot(window.reversi3dApp);
 } catch (error) {
     window.drawReversiFallback?.(error);
 }

@@ -881,3 +881,96 @@ body > .language-switch .lang-divider {
         font-size: 1.8em;
     }
 }
+
+
+.robot-panel {
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    background: rgba(15, 23, 42, 0.48);
+    border-radius: 14px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.robot-panel h3,
+.robot-panel h4 {
+    margin: 0.35rem 0 0.55rem;
+    color: #e0f2fe;
+}
+
+.compact-control {
+    margin-bottom: 0.65rem;
+}
+
+.robot-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    margin: 0.7rem 0;
+}
+
+.robot-controls button.secondary {
+    background: linear-gradient(135deg, #0369a1, #075985);
+}
+
+.robot-controls button:disabled {
+    cursor: wait;
+    opacity: 0.58;
+}
+
+.robot-analysis {
+    max-height: 340px;
+    overflow: auto;
+    padding: 0.75rem;
+    background: rgba(2, 6, 23, 0.45);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 12px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.robot-muted {
+    color: #94a3b8;
+    font-size: 0.82rem;
+}
+
+.robot-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+}
+
+.robot-summary-grid > div {
+    padding: 0.55rem;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.robot-label {
+    display: block;
+    color: #93c5fd;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.robot-move-list,
+.robot-piece-list {
+    padding-left: 1.15rem;
+    margin: 0.35rem 0 0.8rem;
+}
+
+.robot-move-list > li,
+.robot-piece-list > li {
+    margin-bottom: 0.6rem;
+}
+
+.robot-move-list ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1rem;
+}
+
+.robot-bad-list strong {
+    color: #fecaca;
+}

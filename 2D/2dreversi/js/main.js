@@ -1,5 +1,6 @@
 import { ReversiGame, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { ReversiRobotController } from './robot/ReversiRobot.js';
 
 class Reversi2DApp {
     constructor() {
@@ -36,6 +37,7 @@ class Reversi2DApp {
         this.applyUrlSettings();
         this.logic = this.createLogic();
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
+        this.robot = new ReversiRobotController(this);
         this.bindEvents();
         this.resize();
         this.updateUI();
@@ -93,7 +95,12 @@ class Reversi2DApp {
         this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.passBtn.addEventListener('click', () => this.passTurn());
         this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
-        this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
+        this.gameModeSelect?.addEventListener('change', () => {
+            this.updateOnlineControls();
+            this.robot?.updatePanelState();
+            this.robot?.scheduleIfNeeded();
+            this.updateUI();
+        });
         document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
         document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
         document.getElementById('joinRoomBtn')?.addEventListener('click', () => this.network.joinRoom(this.roomIdInput.value));
@@ -109,6 +116,7 @@ class Reversi2DApp {
             event.preventDefault();
             this.sendChatMessage();
         });
+        this.robot?.attach();
     }
 
     updateCustomSizeVisibility() {
@@ -118,8 +126,10 @@ class Reversi2DApp {
     resetGame({ broadcast = false } = {}) {
         this.logic = this.createLogic();
         this.setStatus('New Reversi game started.');
+        this.robot?.clearAnalysis();
         this.updateUI();
         if (broadcast) this.broadcastState();
+        this.robot?.scheduleIfNeeded();
     }
 
     resize() {
@@ -141,6 +151,10 @@ class Reversi2DApp {
     handleBoardClick(event) {
         const coord = this.coordFromEvent(event);
         if (!coord) return;
+        if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
+            this.setStatus(this.robot.thinking ? 'Robot is thinking.' : "It is the local robot's turn.");
+            return;
+        }
         if (!this.canActFor(this.logic.currentPlayer)) {
             this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
             return;
@@ -152,12 +166,14 @@ class Reversi2DApp {
             this.updateUI();
             return;
         }
-        this.setStatus(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
-        this.updateUI();
-        this.broadcastState();
+        this.afterLocalAction(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
     }
 
     passTurn() {
+        if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
+            this.setStatus(this.robot.thinking ? 'Robot is thinking.' : "It is the local robot's turn.");
+            return;
+        }
         if (!this.canActFor(this.logic.currentPlayer)) {
             this.setStatus(`Waiting for ${this.capitalize(this.logic.currentPlayer)}.`);
             return;
@@ -168,9 +184,14 @@ class Reversi2DApp {
             this.updateUI();
             return;
         }
-        this.setStatus('Turn passed.');
+        this.afterLocalAction('Turn passed.');
+    }
+
+    afterLocalAction(message) {
+        this.setStatus(message);
         this.updateUI();
         this.broadcastState();
+        this.robot?.afterLocalAction();
     }
 
     coordFromEvent(event) {
@@ -414,6 +435,7 @@ class Reversi2DApp {
         if (this.logic.gameOver) this.setStatus(this.resultText());
         this.renderHistory();
         this.render();
+        this.robot?.updatePanelState();
     }
 
     renderHistory() {
@@ -438,16 +460,23 @@ class Reversi2DApp {
     }
 
     canActFor(color) {
+        if (this.gameModeSelect?.value === 'robot' && this.robot?.side === color) return false;
         return this.gameModeSelect?.value !== 'online' || (this.network?.isConnected && this.myColor === color);
     }
 
     updateOnlineControls() {
-        const online = this.gameModeSelect?.value === 'online';
+        const mode = this.gameModeSelect?.value || 'local';
+        const online = mode === 'online';
         if (this.onlineControls) this.onlineControls.hidden = !online;
         if (!online) {
             this.myColor = null;
             this.network?.close?.({ silent: true });
             this.setOnlineColor(null);
+            if (this.onlineColorEl) {
+                this.onlineColorEl.textContent = mode === 'robot'
+                    ? `Local robot opponent (${this.robot?.side || 'white'})`
+                    : 'Local pass and play';
+            }
         }
     }
 

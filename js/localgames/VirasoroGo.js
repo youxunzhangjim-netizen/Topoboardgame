@@ -51,7 +51,7 @@ function primarySymbol(primaryType) {
     if (primaryType === 'epsilon') return '\u03b5';
     if (primaryType === 'identity') return '1';
     if (primaryType === 'vertex') return 'V';
-    return String(primaryType || '?').slice(0, 3);
+    return String(primaryType || 'field').slice(0, 5);
 }
 
 function signForColor(color) {

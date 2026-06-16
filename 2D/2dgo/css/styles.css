@@ -222,3 +222,37 @@ button:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
     .timer-section { grid-template-columns: 1fr 1fr; }
     #goBoard { width: min(96vw, 100%); }
 }
+
+.robot-panel {
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    background: rgba(15, 23, 42, 0.48);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+}
+.robot-panel h3,
+.robot-panel h4 { margin: 0.25rem 0 0.45rem; color: #e0f7ff; }
+.compact-control { margin-bottom: 0.4rem; }
+.robot-controls { margin: 0.35rem 0; }
+.robot-controls button:last-child { border-color: rgba(56, 189, 248, 0.7); }
+.robot-controls button:disabled { cursor: wait; opacity: 0.58; }
+.robot-analysis {
+    max-height: 360px;
+    overflow: auto;
+    padding: 0.75rem;
+    background: rgba(2, 6, 23, 0.45);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+.robot-muted { color: #94a3b8; font-size: 0.82rem; }
+.robot-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.6rem; }
+.robot-summary-grid > div { padding: 0.5rem; border-radius: 8px; background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(148, 163, 184, 0.16); }
+.robot-label { display: block; color: #93c5fd; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.robot-move-list,
+.robot-piece-list { padding-left: 1.15rem; margin: 0.35rem 0 0.8rem; }
+.robot-move-list > li,
+.robot-piece-list > li { margin-bottom: 0.6rem; }
+.robot-move-list ul { margin: 0.25rem 0 0; padding-left: 1rem; }
+.robot-bad-list strong { color: #fecaca; }

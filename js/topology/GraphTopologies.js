@@ -6,6 +6,7 @@ const TOPOLOGY_NAMES = Object.freeze([
     'random_boundary',
     'torus',
     'klein_bottle',
+    'mobius',
     'rp2',
     'sphere_latitude',
     'r3',
@@ -209,6 +210,17 @@ function makeEdge({ topology, from, rawTo, to, direction, wrap = {}, twisted = f
     };
 }
 
+
+function normalizeMobiusCoord(rawCoord, sizes) {
+    let [x, y] = rawCoord;
+    const [width, height] = sizes;
+    if (y < 0 || y >= height) return null;
+    const crossings = Math.floor(x / width);
+    const normalizedX = mod(x, width);
+    const normalizedY = crossings % 2 !== 0 ? height - 1 - y : y;
+    return [normalizedX, normalizedY];
+}
+
 function normalizeKleinCoord(rawCoord, sizes) {
     let [x, y] = rawCoord;
     const [width, height] = sizes;
@@ -250,9 +262,9 @@ function create2DTopology(config) {
     const width = integer(config.width, 8, 2, 32);
     const height = integer(config.height, 8, 2, 32);
     const sizes = [width, height];
-    const finiteVertical = name === 'flat' || name === 'sphere_latitude';
+    const finiteVertical = name === 'flat' || name === 'sphere_latitude' || name === 'mobius';
     const finiteHorizontal = name === 'flat';
-    const nonorientable = name === 'klein_bottle' || name === 'rp2';
+    const nonorientable = name === 'klein_bottle' || name === 'rp2' || name === 'mobius';
     const randomBoundarySeed = name === 'random_boundary' ? (config.randomBoundarySeed || randomSeed()) : '';
     const randomBoundaryMap = name === 'random_boundary'
         ? new Map(Array.isArray(config.randomBoundaryMap)
@@ -277,6 +289,7 @@ function create2DTopology(config) {
         }
         if (name === 'torus') return [mod(x, width), mod(y, height)];
         if (name === 'klein_bottle') return normalizeKleinCoord([x, y], sizes);
+        if (name === 'mobius') return normalizeMobiusCoord([x, y], sizes);
         if (name === 'rp2') return normalizeRP2Coord([x, y], sizes);
         return [x, y];
     }
@@ -409,6 +422,7 @@ function create2DTopology(config) {
             if (name === 'sphere_latitude') return 'Sphere latitude graph: longitude wraps, top and bottom latitude rings stop.' + latticeText;
             if (name === 'torus') return 'Torus: x and y wrap periodically.' + latticeText;
             if (name === 'klein_bottle') return 'Klein bottle: x wraps normally, y wraps with x flip and H/twist seam transport.' + latticeText;
+            if (name === 'mobius') return 'Mobius strip: x wraps with y flip and H/twist seam transport; y is an open boundary.' + latticeText;
             if (name === 'rp2') return 'RP2: every boundary crossing uses antipodal identification with H/twist seam transport.' + latticeText;
             return '';
         }

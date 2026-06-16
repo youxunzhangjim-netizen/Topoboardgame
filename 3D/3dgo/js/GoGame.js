@@ -9,6 +9,15 @@ import {
     kleinContainsCoord
 } from './KleinBottleTopology.js';
 import {
+    MOBIUS_GO_TOPOLOGY,
+    RP2_GO_TOPOLOGY,
+    mobiusNeighbors,
+    mobiusStepCoord,
+    nonOrientableContainsCoord,
+    rp2Neighbors,
+    rp2StepCoord
+} from './NonOrientableGoTopology.js';
+import {
     algebraicPressureForIndex,
     normalizePauliLabel,
     setPauliLabel
@@ -219,6 +228,9 @@ export class GoGameLogic {
         if (this.topology === KLEIN_BOTTLE_TOPOLOGY) {
             return kleinContainsCoord(coord, this.width, this.height);
         }
+        if (this.topology === MOBIUS_GO_TOPOLOGY || this.topology === RP2_GO_TOPOLOGY) {
+            return nonOrientableContainsCoord(coord, this.width, this.height);
+        }
         const inside = Array.isArray(coord)
             && coord.length === this.dimension
             && coord.every((value, axis) => Number.isInteger(value)
@@ -273,6 +285,12 @@ export class GoGameLogic {
 
     stepDirection(coord, direction) {
         const next = coord.map((value, axis) => value + (direction[axis] || 0));
+        if (this.topology === MOBIUS_GO_TOPOLOGY && this.dimension === 2) {
+            return mobiusStepCoord(coord, direction, this.width, this.height);
+        }
+        if (this.topology === RP2_GO_TOPOLOGY && this.dimension === 2) {
+            return rp2StepCoord(coord, direction, this.width, this.height);
+        }
         if (this.topology === R3_RANDOM_TOPOLOGY && this.dimension === 3) {
             const changedAxes = direction
                 .map((value, axis) => value ? axis : -1)
@@ -313,6 +331,12 @@ export class GoGameLogic {
         }
         if (this.topology === KLEIN_BOTTLE_TOPOLOGY) {
             return kleinBottleNeighbors(coord, this.width, this.height);
+        }
+        if (this.topology === MOBIUS_GO_TOPOLOGY) {
+            return mobiusNeighbors(coord, this.width, this.height);
+        }
+        if (this.topology === RP2_GO_TOPOLOGY) {
+            return rp2Neighbors(coord, this.width, this.height);
         }
         return [...new Map(this.latticeDirections(coord)
             .map((direction) => this.stepDirection(coord, direction))

@@ -325,15 +325,7 @@ export class TorusChessGame {
             this.capturedPieces[piece.color].push(this.normalizeCapturedPiece(captured));
         }
 
-        this.enPassantTarget = legalMove.pawnDoubleJump
-            ? {
-                x: legalMove.passThrough?.x ?? toCoord.x,
-                y: legalMove.passThrough?.y ?? this.wrapY(fromCoord.y + this.pawnForwardDirection(piece, fromCoord.y, fromCoord.sheet)),
-                sheet: legalMove.passThrough?.sheet ?? toCoord.sheet,
-                capturePos: { x: toCoord.x, y: toCoord.y, sheet: toCoord.sheet },
-                color: piece.color
-            }
-            : null;
+        this.enPassantTarget = null;
 
         const historyEntry = this.createMoveNotation(piece, fromCoord, toCoord, captured, promotion, movedType, castling);
         this.moveHistory.push(historyEntry);
@@ -466,40 +458,10 @@ export class TorusChessGame {
             const one = this.resolveTarget(x, y + direction, originSheet, 0, direction);
             if (!this.sameCoord({ x, y, sheet }, one) && !this.getPiece(one.x, one.y, one.sheet)) {
                 moves.push({ ...one, capture: false });
-
-                const two = this.resolveTarget(one.x, one.y + direction, one.sheet, 0, direction);
-                if (!piece.hasMoved && !this.sameCoord({ x, y, sheet }, two) && !this.getPiece(two.x, two.y, two.sheet)) {
-                    moves.push({
-                        ...two,
-                        capture: false,
-                        pawnDoubleJump: true,
-                        passThrough: { x: one.x, y: one.y, sheet: one.sheet }
-                    });
-                }
             }
         }
 
-        if (this.enPassantTarget && this.enPassantTarget.color !== piece.color) {
-            for (const originSheet of this.originSheetsFor(x, y, sheet)) {
-                for (const dx of [-1, 1]) {
-                    const target = this.resolveTarget(x + dx, y + direction, originSheet, dx, direction);
-                    if (!this.sameCoord(target, this.enPassantTarget)) continue;
-
-                    const capturePos = this.enPassantTarget.capturePos;
-                    const capturedPawn = capturePos ? this.getPiece(capturePos.x, capturePos.y, capturePos.sheet || 0) : null;
-                    if (capturedPawn?.color !== piece.color
-                        && capturedPawn?.type === 'P'
-                        && this.isCaptureLegal(piece, capturedPawn)) {
-                        moves.push({
-                            ...target,
-                            capture: true,
-                            enPassant: true,
-                            capturePos: { ...capturePos }
-                        });
-                    }
-                }
-            }
-        }
+        // T2 torus pawns are intentionally one-step-only; no double-step means no en passant target exists.
 
         return this.uniqueMoves(moves);
     }

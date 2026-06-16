@@ -174,7 +174,7 @@ const DICTIONARY = {
                 forbidden: 'Standard: pieces cannot move outside the 8x8x8 cube.',
                 random: '3D RBC: each cube-boundary exit direction maps to one fixed random boundary cell for this game.',
                 reflection: 'Reflection: a move that reaches an edge bounces back into the cube.',
-                periodic: 'T3 PBC: leaving one cube face wraps to the opposite face in x, y, and z.'
+                periodic: 'T3 PBC: leaving one cube face wraps to the opposite face in x, y, and z. Kings cannot use true cube-corner steps.'
             }
         },
         timer: {
@@ -198,7 +198,7 @@ const DICTIONARY = {
         },
         rules: {
             title: 'Torus Rules',
-            text: 'Rooks, bishops, queens, knights, kings, castling, en passant, check, and mate use 2D chess movement on 112 torus blocks. The board is 8 columns by 14 periodic rows, with the six extra blank rows placed between the initial armies so the king rows start opposite each other. Pawns promote when they reach the opponent home row.'
+            text: 'Rooks, bishops, queens, knights, kings, castling, check, and mate use 2D chess movement on 112 torus blocks. The board is 8 columns by 14 periodic rows, with the six extra blank rows placed between the initial armies so the king rows start opposite each other. Pawns move one step only, cannot double-step or use en passant, and promote when they reach the opponent home row.'
         },
         hints: {
             label: 'Move Hints'
@@ -404,7 +404,7 @@ const DICTIONARY = {
         },
         rules: {
             title: '環面規則',
-            text: '車、象、后、馬、王、易位、吃過路兵、將軍與將死都使用 112 個環面格上的二維國際象棋走法。棋盤為 8 列 x 14 個週期行，雙方初始陣之間有六行空格。兵到達對方底線時升變。'
+            text: '車、象、后、馬、王、易位、將軍與將死都使用 112 個環面格上的二維國際象棋走法。棋盤為 8 列 x 14 個週期行，雙方初始陣之間有六行空格。兵只能前進一步，不使用起始兩步或吃過路兵，到達對方底線時升變。'
         },
         hints: {
             label: '走法提示'
@@ -453,7 +453,7 @@ Object.assign(DICTIONARY.zh.boundary.names, {
 Object.assign(DICTIONARY.zh.boundary.info, {
     forbidden: '標準：棋子不能走出 8x8x8 立方體。',
     random: '3D RBC：每個立方體邊界出口方向會固定映射到一個隨機邊界格。',
-    periodic: 'T3 週期：從任一立方體面離開會從相對面進入。'
+    periodic: 'T3 週期：從任一立方體面離開會從相對面進入；王不能走真正的立方體角落方向。'
 });
 
 Object.assign(DICTIONARY.zh.boundary.names, {
@@ -466,7 +466,7 @@ Object.assign(DICTIONARY.zh.boundary.info, {
     forbidden: 'Standard：棋子不能離開普通 8x8x8 立方體邊界。',
     random: '3D RBC：每個立方體邊界出口方向會固定映射到一個隨機邊界格。',
     reflective: 'Reflection：棋子碰到邊界時會鏡射回棋盤內。',
-    periodic: 'T3 PBC：離開任一立方體面時，會從 x、y、z 的相對面包回。'
+    periodic: 'T3 PBC：離開任一立方體面時，會從 x、y、z 的相對面包回；王不能走真正的立方體角落方向。'
 });
 
 function normalizeLanguage(value) {

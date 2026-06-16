@@ -28,6 +28,7 @@ const DICTIONARY = {
             title: 'Game Controls',
             gameMode: 'Game Mode:',
             local: 'Local (Pass & Play)',
+            robot: 'Local Robot',
             online: 'Online (Multiplayer)',
             boundary: 'Boundary Condition:',
             timer: 'Timer per Player:',
@@ -188,7 +189,9 @@ const DICTIONARY = {
             pieceSuicide: ({ color, type, edge }, lang) =>
                 `${label(lang, `colors.${color}`)} ${pieceName(lang, type)} exited through the ${label(lang, `boundary.edges.${edge}`)} and was removed.`,
             kingSuicideWin: ({ color }, lang) =>
-                `${label(lang, `colors.${color}`)} wins because the opposing king left the board.`
+                `${label(lang, `colors.${color}`)} wins because the opposing king left the board.`,
+            robotThinking: 'Robot is thinking. Please wait.',
+            robotTurn: 'It is the local robot\'s turn.'
         },
         alerts: {
             modeLocked: 'Game mode cannot change after the game starts or after online connection.',
@@ -222,6 +225,7 @@ const DICTIONARY = {
             title: '遊戲控制',
             gameMode: '遊戲模式：',
             local: '本機（輪流操作）',
+            robot: '本機機器人',
             online: '線上對戰',
             boundary: '邊界條件：',
             timer: '每方時間：',
@@ -372,7 +376,9 @@ const DICTIONARY = {
             pieceSuicide: ({ color, type, edge }, lang) =>
                 `${label(lang, `colors.${color}`)} ${pieceName(lang, type)}從${label(lang, `boundary.edges.${edge}`)}離開並已移除。`,
             kingSuicideWin: ({ color }, lang) =>
-                `對方王離開棋盤，${label(lang, `colors.${color}`)}獲勝。`
+                `對方王離開棋盤，${label(lang, `colors.${color}`)}獲勝。`,
+            robotThinking: '機器人正在思考，請稍候。',
+            robotTurn: '現在是本機機器人的回合。'
         },
         alerts: {
             modeLocked: '遊戲開始或連線後不能更改模式。',

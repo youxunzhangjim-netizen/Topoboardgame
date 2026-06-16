@@ -62,6 +62,7 @@
                 <label for="gameModeSelect">Game Mode</label>
                 <select id="gameModeSelect">
                     <option value="local">Local Pass and Play</option>
+                    <option value="robot">Local Robot</option>
                     <option value="online">Online Multiplayer</option>
                 </select>
             </div>
@@ -153,6 +154,34 @@
             <section class="panel">
                 <h3>Rules</h3>
                 <div class="rules-text">Area scoring with 7.5 komi, capture by removing groups with no liberties, suicide forbidden, positional superko, and final scoring after two passes plus both players agreeing to count. Square, honeycomb, and triangular boards use four, three, and six graph neighbors respectively.</div>
+            </section>
+
+            <section class="panel robot-panel" id="robotPanel">
+                <h3>Local Robot & Analysis</h3>
+                <p class="robot-muted">Choose <strong>Local Robot</strong> in Game Mode to play against this local rule+search bot.</p>
+                <div class="control-group compact-control">
+                    <label for="robotSideSelect">Robot Side</label>
+                    <select id="robotSideSelect">
+                        <option value="white" selected>White</option>
+                        <option value="black">Black</option>
+                    </select>
+                </div>
+                <div class="control-group compact-control">
+                    <label for="robotDepthSelect">Robot Search Level</label>
+                    <select id="robotDepthSelect">
+                        <option value="1">Level 1 - fast</option>
+                        <option value="2" selected>Level 2 - balanced</option>
+                        <option value="3">Level 3 - stronger</option>
+                        <option value="4">Level 4 - slow</option>
+                    </select>
+                </div>
+                <div class="control-grid robot-controls">
+                    <button id="robotMoveBtn" type="button">Robot Move</button>
+                    <button id="robotAnalyzeBtn" type="button">Analyze Position</button>
+                </div>
+                <div class="robot-analysis" id="robotAnalysisOutput">
+                    <p class="robot-muted">Click Analyze Position to rank legal plays, estimate win rate, and show group values.</p>
+                </div>
             </section>
         </aside>
     </main>

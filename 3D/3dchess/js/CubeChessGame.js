@@ -644,6 +644,12 @@ export class CubeChessGame {
             for (let dy = -1; dy <= 1; dy++) {
                 for (let dz = -1; dz <= 1; dz++) {
                     if (dx === 0 && dy === 0 && dz === 0) continue;
+                    if ((this.boundaryCondition === 'forbidden' || this.boundaryCondition === 'periodic')
+                        && Math.abs(dx) === 1
+                        && Math.abs(dy) === 1
+                        && Math.abs(dz) === 1) {
+                        continue;
+                    }
                     const target = this.resolveTarget(x + dx, y + dy, z + dz, x, y, z, [dx, dy, dz]);
                     if (!target || this.sameCoord({ x, y, z }, target)) continue;
                     this.addLeaperMove(moves, target, piece, forAttack);

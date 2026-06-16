@@ -185,7 +185,7 @@ export class CFTReversiPhysics {
             input: [first, second],
             outputs,
             resolved,
-            channelLabel: hiddenChannel ? 'hidden' : resolved,
+            channelLabel: hiddenChannel ? 'unmeasured' : resolved,
             hiddenChannel,
             tick: finite(context.tick),
             coord: context.coord ? [...context.coord] : null

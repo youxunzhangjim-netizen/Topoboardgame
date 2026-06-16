@@ -1,5 +1,6 @@
 import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { GoRobotController } from './robot/GoRobot.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dgo/';
 const STORAGE_PREFIX = '2dgo:room:';
@@ -44,6 +45,7 @@ class Go2DApp {
         this.applyUrlSettings();
         this.logic = new GoGameLogic({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.latticeSelect.value, dimension: 2, komi: KOMI });
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
+        this.robot = new GoRobotController(this);
         this.myColor = null;
         this.settingsLocked = false;
         this.gameStarted = false;
@@ -129,7 +131,12 @@ class Go2DApp {
         this.boundarySelect.addEventListener('change', () => this.resetGame());
         this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.timerSelect.addEventListener('change', () => this.resetGame());
-        this.gameModeSelect.addEventListener('change', () => this.updateOnlineControls());
+        this.gameModeSelect.addEventListener('change', () => {
+            this.updateOnlineControls();
+            this.robot?.updatePanelState();
+            this.robot?.scheduleIfNeeded();
+            this.updateUI();
+        });
         this.passBtn.addEventListener('click', () => this.passTurn());
         this.countBtn.addEventListener('click', () => this.agreeCount());
         this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
@@ -158,6 +165,7 @@ class Go2DApp {
             event.preventDefault();
             this.sendChatMessage();
         });
+        this.robot?.attach();
     }
 
     resize() {
@@ -244,6 +252,10 @@ class Go2DApp {
     handleBoardClick(event) {
         const coord = this.pixelToCoord(event);
         if (!coord) return;
+        if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
+            this.setStatus(this.robot.thinking ? 'Robot is thinking.' : "It is the local robot\'s turn.");
+            return;
+        }
         if (!this.canActFor(this.logic.currentPlayer)) {
             this.setStatus(`Waiting for ${this.logic.currentPlayer}.`);
             return;
@@ -257,6 +269,10 @@ class Go2DApp {
     }
 
     passTurn() {
+        if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
+            this.setStatus(this.robot.thinking ? 'Robot is thinking.' : "It is the local robot\'s turn.");
+            return;
+        }
         if (!this.canActFor(this.logic.currentPlayer)) {
             this.setStatus(`Waiting for ${this.logic.currentPlayer}.`);
             return;
@@ -308,6 +324,7 @@ class Go2DApp {
         this.setStatus(message);
         this.broadcastState();
         this.updateUI();
+        this.robot?.afterLocalAction();
     }
 
     resetGame({ broadcast = false } = {}) {
@@ -320,8 +337,10 @@ class Go2DApp {
         this.stopTimer();
         this.hoverCoord = null;
         this.setStatus('Select an empty intersection for Black.');
+        this.robot?.clearAnalysis();
         if (broadcast) this.broadcastState();
         this.updateUI();
+        this.robot?.scheduleIfNeeded();
     }
 
     startTimer() {
@@ -617,6 +636,7 @@ class Go2DApp {
     }
 
     canActFor(color) {
+        if (this.gameModeSelect?.value === 'robot' && this.robot?.side === color) return false;
         if (this.gameModeSelect.value !== 'online') return true;
         return this.network.isConnected && this.myColor === color;
     }
@@ -660,15 +680,19 @@ class Go2DApp {
     }
 
     updateOnlineControls() {
-        const online = this.gameModeSelect.value === 'online';
+        const mode = this.gameModeSelect.value;
+        const online = mode === 'online';
         this.onlineControls.classList.toggle('active', online);
         if (!online) {
             this.network.close({ silent: true });
             this.myColor = null;
-            this.onlineColorEl.textContent = 'Local pass and play';
+            this.onlineColorEl.textContent = mode === 'robot'
+                ? `Local robot opponent (${this.robot?.side || 'white'})`
+                : 'Local pass and play';
             this.unlockSettingsIfLocal();
         }
         this.updateUI();
+        this.robot?.scheduleIfNeeded();
     }
 
     updateUI() {
@@ -702,6 +726,7 @@ class Go2DApp {
         this.renderScore();
         this.renderChatMessages();
         this.render();
+        this.robot?.updatePanelState();
     }
 
     updateTimerDisplay() {
