@@ -491,7 +491,7 @@ class Go3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: true,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -522,7 +522,7 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: true,
+            depthTest: false,
             renderOrder: 3
         });
     }
@@ -595,7 +595,7 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: true,
+            depthTest: false,
             renderOrder: 3
         });
         this.addMobiusStarPoints(width, height);
@@ -1125,7 +1125,35 @@ class Go3DRenderer {
         this.raycaster.setFromCamera(this.pointer, this.camera);
         const hits = this.raycaster.intersectObject(this.nodePoints, false);
         const hit = hits.find((candidate) => this.pickHitIsCameraFacing(candidate));
-        return hit ? this.pointCoords[hit.index] || null : null;
+        if (hit) return this.pointCoords[hit.index] || null;
+        return this.pickCoordByScreenDistance(event, rect);
+    }
+
+    pickCoordByScreenDistance(event, rect) {
+        if (!this.pointPositions.length) return null;
+        const logic = this.app.logic;
+        const isSurfaceGraph = ['t2', KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic?.topology);
+        if (!isSurfaceGraph) return null;
+        const targetX = event.clientX - rect.left;
+        const targetY = event.clientY - rect.top;
+        const maxPixels = logic?.topology === KLEIN_BOTTLE_TOPOLOGY || logic?.topology === MOBIUS_GO_TOPOLOGY ? 24 : 18;
+        const projected = new THREE.Vector3();
+        let best = null;
+        for (let index = 0; index < this.pointPositions.length; index += 1) {
+            projected.copy(this.pointPositions[index]).project(this.camera);
+            if (projected.z < -1 || projected.z > 1) continue;
+            const x = (projected.x * 0.5 + 0.5) * rect.width;
+            const y = (-projected.y * 0.5 + 0.5) * rect.height;
+            const screenDistance = Math.hypot(x - targetX, y - targetY);
+            if (screenDistance > maxPixels) continue;
+            const cameraDistance = this.camera.position.distanceTo(this.pointPositions[index]);
+            if (!best
+                || screenDistance < best.screenDistance - 0.6
+                || (Math.abs(screenDistance - best.screenDistance) <= 0.6 && cameraDistance < best.cameraDistance)) {
+                best = { index, screenDistance, cameraDistance };
+            }
+        }
+        return best ? this.pointCoords[best.index] || null : null;
     }
 
     pickHitIsCameraFacing(hit) {
@@ -1140,9 +1168,8 @@ class Go3DRenderer {
                     : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                     ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                     : this.mobiusPose(coord, logic.width, logic.height, 0.075);
+        if (logic.topology === KLEIN_BOTTLE_TOPOLOGY || logic.topology === MOBIUS_GO_TOPOLOGY) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
-        if (logic.topology === KLEIN_BOTTLE_TOPOLOGY && this.kleinSurfaceOccludes(hit, pose)) return false;
-        if (logic.topology === MOBIUS_GO_TOPOLOGY && this.mobiusSurfaceOccludes(hit)) return false;
         return true;
     }
 

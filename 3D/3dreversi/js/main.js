@@ -307,7 +307,7 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
             color: 0xffe3a3,
             opacity: 0.98,
-            depthTest: true,
+            depthTest: false,
             renderOrder: 3
         });
     }
@@ -390,14 +390,14 @@ class Reversi3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: true,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.95,
-            depthTest: true,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -429,7 +429,7 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.054 : 0.039, {
             color: 0xf0fdf4,
             opacity: 0.96,
-            depthTest: true,
+            depthTest: false,
             renderOrder: 3
         });
     }
@@ -681,7 +681,41 @@ class Reversi3DRenderer {
         this.raycaster.setFromCamera(this.pointer, this.camera);
         const hits = this.raycaster.intersectObject(this.nodePoints, false);
         const hit = hits.find((candidate) => this.pickHitIsCameraFacing(candidate));
-        return hit ? this.pointCoords[hit.index] || null : null;
+        if (hit) return this.pointCoords[hit.index] || null;
+        return this.pickCoordByScreenDistance(event, rect);
+    }
+
+    pickCoordByScreenDistance(event, rect) {
+        if (!this.pointPositions.length) return null;
+        const mode = this.app.logic?.topology?.topology;
+        const isSurfaceGraph = [
+            REVERSI_TOPOLOGIES.T2,
+            REVERSI_TOPOLOGIES.KLEIN,
+            REVERSI_TOPOLOGIES.MOBIUS,
+            REVERSI_TOPOLOGIES.RP2,
+            REVERSI_TOPOLOGIES.SPHERE
+        ].includes(mode);
+        if (!isSurfaceGraph) return null;
+        const targetX = event.clientX - rect.left;
+        const targetY = event.clientY - rect.top;
+        const maxPixels = mode === REVERSI_TOPOLOGIES.KLEIN || mode === REVERSI_TOPOLOGIES.MOBIUS ? 24 : 18;
+        const projected = new THREE.Vector3();
+        let best = null;
+        for (let index = 0; index < this.pointPositions.length; index += 1) {
+            projected.copy(this.pointPositions[index]).project(this.camera);
+            if (projected.z < -1 || projected.z > 1) continue;
+            const x = (projected.x * 0.5 + 0.5) * rect.width;
+            const y = (-projected.y * 0.5 + 0.5) * rect.height;
+            const screenDistance = Math.hypot(x - targetX, y - targetY);
+            if (screenDistance > maxPixels) continue;
+            const cameraDistance = this.camera.position.distanceTo(this.pointPositions[index]);
+            if (!best
+                || screenDistance < best.screenDistance - 0.6
+                || (Math.abs(screenDistance - best.screenDistance) <= 0.6 && cameraDistance < best.cameraDistance)) {
+                best = { index, screenDistance, cameraDistance };
+            }
+        }
+        return best ? this.pointCoords[best.index] || null : null;
     }
 
     pickHitIsCameraFacing(hit) {
@@ -695,9 +729,8 @@ class Reversi3DRenderer {
             : mode === REVERSI_TOPOLOGIES.KLEIN
                 ? this.kleinOutsidePose(coord, logic.topology.width, logic.topology.height, 0.11)
             : this.mobiusPose(coord, logic.topology.width, logic.topology.height, 0.08);
+        if (mode === REVERSI_TOPOLOGIES.KLEIN || mode === REVERSI_TOPOLOGIES.MOBIUS) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
-        if (mode === REVERSI_TOPOLOGIES.KLEIN && this.kleinSurfaceOccludes(hit, pose)) return false;
-        if (mode === REVERSI_TOPOLOGIES.MOBIUS && this.mobiusSurfaceOccludes(hit)) return false;
         return true;
     }
 

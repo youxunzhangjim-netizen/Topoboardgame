@@ -420,6 +420,7 @@ let statusHoldUntil = 0;
 let legalReversiCache = { signature: '', keys: [] };
 let actionPalette = null;
 let actionPaletteOpenedAt = 0;
+let anyonClickTimer = 0;
 const algebraic3d = new Algebraic3DBoard({
     canvas: els.algebraic3dBoard,
     resetButton: els.reset3dCameraButton,
@@ -431,7 +432,10 @@ const algebraic3d = new Algebraic3DBoard({
         }
     },
     onSelect(coord, event) {
-        handleCellClick(coord, event);
+        handleCellPointerActivation(coord, event);
+    },
+    onDoubleSelect(coord, event) {
+        handleCellDoubleClick(coord, event);
     }
 });
 window.algebraic3dBoard = algebraic3d;
@@ -776,6 +780,16 @@ function closeActionPalette() {
     actionPaletteOpenedAt = 0;
 }
 
+function cancelAnyonClickTimer() {
+    if (!anyonClickTimer) return;
+    window.clearTimeout(anyonClickTimer);
+    anyonClickTimer = 0;
+}
+
+function isAnyonInteractionMode(mode = game?.mode) {
+    return isJumpMode(mode) || isAnyonReversiMode(mode);
+}
+
 function paletteAnchorFor(coord, event = null) {
     if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
         return { x: event.clientX, y: event.clientY };
@@ -800,6 +814,14 @@ function showActionPalette(coord, event, { title, items, status = '' }) {
     palette.className = 'site-action-palette';
     palette.setAttribute('role', 'menu');
     palette.dataset.coord = coordKey(coord);
+    palette.addEventListener('pointerdown', (paletteEvent) => {
+        paletteEvent.preventDefault();
+        paletteEvent.stopPropagation();
+    });
+    palette.addEventListener('dblclick', (paletteEvent) => {
+        paletteEvent.preventDefault();
+        paletteEvent.stopPropagation();
+    });
 
     const heading = document.createElement('div');
     heading.className = 'site-action-title';
@@ -2356,10 +2378,11 @@ function renderFlatBoard() {
             updateBoardHighlights();
             updateStatus();
         });
-        cell.addEventListener('click', (event) => handleCellClick(coord, event));
+        cell.addEventListener('click', (event) => handleCellPointerActivation(coord, event));
         cell.addEventListener('dblclick', (event) => {
             event.preventDefault();
-            handleCellDoubleClick(coord);
+            event.stopPropagation();
+            handleCellDoubleClick(coord, event);
         });
 
         if (isIsingDomainMode(game.mode)) renderIsingSpin(cell, coord);
@@ -3541,7 +3564,7 @@ function showOwnedJumpTokenPalette(token, coord, event, { excitationMode = false
     });
 }
 
-function handleAnyonExcitationClick(coord, event) {
+function handleAnyonExcitationClick(coord) {
     const token = game.tokenAt(coord);
     if (token) {
         if (selectedToken && token.id !== selectedToken) {
@@ -3555,7 +3578,7 @@ function handleAnyonExcitationClick(coord, event) {
                 render();
                 return;
             }
-            showOwnedJumpTokenPalette(token, coord, event, { excitationMode: true });
+            executeAnyonSelect(token);
             return;
         }
         els.statusText.textContent = selectedToken
@@ -3573,14 +3596,24 @@ function handleAnyonExcitationClick(coord, event) {
         els.statusText.textContent = `${capitalize(game.currentPlayer)} has no affordable excitation for this empty site.`;
         return;
     }
-    showActionPalette(coord, event, {
-        title: `Empty site ${game.topology.displayCoord(coord)}`,
-        status: 'Choose an available excitation particle for this site.',
-        items
-    });
+    const preferred = items.find((item) => !item.disabled && item.onChoose);
+    preferred?.onChoose?.();
+}
+
+function handleCellPointerActivation(coord, event = null) {
+    if (!isAnyonInteractionMode()) {
+        handleCellClick(coord, event);
+        return;
+    }
+    cancelAnyonClickTimer();
+    anyonClickTimer = window.setTimeout(() => {
+        anyonClickTimer = 0;
+        handleCellClick(coord, event);
+    }, 210);
 }
 
 function handleCellClick(coord, event = null) {
+    cancelAnyonClickTimer();
     closeActionPalette();
     if (els.playModeSelect.value === 'online') {
         const online = getOnlineState();
@@ -3630,7 +3663,7 @@ function handleCellClick(coord, event = null) {
         return;
     }
     if (isAnyonReversiMode(game.mode)) {
-        showAnyonReversiPalette(coord, event);
+        executeAnyonReversiPlacement(coord, els.anyonExcitationTypeSelect.value);
         return;
     }
     if (isCliffordGoMode(game.mode)) {
@@ -3661,7 +3694,7 @@ function handleCellClick(coord, event = null) {
     const token = game.tokenAt(coord);
     const excitationMode = game.config?.setupMode === 'excitation';
     if (excitationMode) {
-        handleAnyonExcitationClick(coord, event);
+        handleAnyonExcitationClick(coord);
         return;
     }
     const anyonTurnAction = excitationMode ? els.anyonActionSelect.value : 'move';
@@ -3738,10 +3771,10 @@ function handleCellClick(coord, event = null) {
             return;
         }
         if (excitationMode && anyonTurnAction === 'excite') {
-            showOwnedJumpTokenPalette(token, coord, event, { excitationMode: true });
+            executeAnyonSelect(token);
             return;
         }
-        showOwnedJumpTokenPalette(token, coord, event, { excitationMode });
+        executeAnyonSelect(token);
         return;
     }
     if (!token && excitationMode && anyonTurnAction === 'excite') {
@@ -3803,16 +3836,49 @@ function handleCellClick(coord, event = null) {
     render();
 }
 
-function handleCellDoubleClick(coord) {
-    if (!isJumpMode(game.mode) || game.config?.setupMode !== 'excitation') return;
+function showAnyonJumpOptions(coord, event = null) {
     const token = game.tokenAt(coord);
-    if (!token || token.owner !== game.currentPlayer) return;
-    const result = game.dropAnyon(token.id, game.currentPlayer);
-    els.statusText.textContent = result.ok
-        ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy${result.event.entanglement?.length ? `; ${result.event.entanglement.length} channel decohered` : ''}.`
-        : result.error;
-    if (result.ok) selectedToken = '';
-    render();
+    const excitationMode = game.config?.setupMode === 'excitation';
+    if (token && token.owner === game.currentPlayer) {
+        showOwnedJumpTokenPalette(token, coord, event, { excitationMode });
+        return true;
+    }
+    if (excitationMode && !token) {
+        const items = anyonExcitationItems(coord, { availableOnly: true });
+        if (!items.length) {
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} has no affordable excitation for this empty site.`;
+            return false;
+        }
+        return showActionPalette(coord, event, {
+            title: `Empty site ${game.topology.displayCoord(coord)}`,
+            status: 'Choose an available excitation particle for this site.',
+            items
+        });
+    }
+    if (token) {
+        els.statusText.textContent = selectedToken
+            ? 'Single-click this target to braid or unbraid with the selected anyon.'
+            : 'Only owned anyons have local option menus.';
+    } else {
+        els.statusText.textContent = selectedToken
+            ? 'Single-click an empty site to move the selected anyon.'
+            : 'Select one of your anyons first, or double-click an owned anyon for options.';
+    }
+    return false;
+}
+
+function handleCellDoubleClick(coord, event = null) {
+    cancelAnyonClickTimer();
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    closeActionPalette();
+    if (isAnyonReversiMode(game.mode)) {
+        showAnyonReversiPalette(coord, event);
+        return;
+    }
+    if (isJumpMode(game.mode)) {
+        showAnyonJumpOptions(coord, event);
+    }
 }
 
 function measureTarget() {

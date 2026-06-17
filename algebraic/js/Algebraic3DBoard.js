@@ -68,11 +68,12 @@ export function usesAlgebraic3DView(topologyName) {
 }
 
 export class Algebraic3DBoard {
-    constructor({ canvas, resetButton, onHover, onSelect }) {
+    constructor({ canvas, resetButton, onHover, onSelect, onDoubleSelect }) {
         this.canvas = canvas;
         this.resetButton = resetButton;
         this.onHover = onHover;
         this.onSelect = onSelect;
+        this.onDoubleSelect = onDoubleSelect;
         this.game = null;
         this.viewState = {};
         this.signature = '';
@@ -138,6 +139,7 @@ export class Algebraic3DBoard {
         this.canvas.addEventListener('pointerup', (event) => this.pointerUp(event));
         this.canvas.addEventListener('pointercancel', () => { this.pointerGesture = null; });
         this.canvas.addEventListener('pointerleave', () => this.onHover?.(null));
+        this.canvas.addEventListener('dblclick', (event) => this.doubleClick(event));
     }
 
     setVisible(visible) {
@@ -663,6 +665,14 @@ export class Algebraic3DBoard {
         this.controls.enableDamping = true;
         const coord = this.pick(event);
         if (coord) this.onSelect?.(coord, event);
+    }
+
+    doubleClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.pointerGesture = null;
+        const coord = this.pick(event);
+        if (coord) this.onDoubleSelect?.(coord, event);
     }
 
     resetCamera() {
