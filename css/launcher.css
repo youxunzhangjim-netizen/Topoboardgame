@@ -347,7 +347,7 @@ h1 {
 
 .lab-card-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
 
@@ -356,11 +356,12 @@ h1 {
     display: grid;
     align-items: start;
     align-content: start;
-    gap: 14px;
+    gap: 12px;
+    padding: 14px;
 }
 
 .advanced-sandbox-card {
-    grid-column: 1 / -1;
+    grid-column: auto;
 }
 
 .lab-card-head {
@@ -371,10 +372,14 @@ h1 {
 }
 
 .lab-facts {
-    display: grid;
+    display: none;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin: 0;
+}
+
+.lab-card:has(.lab-advanced[open]) .lab-facts {
+    display: grid;
 }
 
 .lab-facts div {
@@ -402,15 +407,20 @@ h1 {
 }
 
 .lab-presets {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: none;
+    grid-template-columns: 1fr;
     gap: 8px;
 }
 
-.lab-preset {
-    min-height: 42px;
+.lab-card:has(.lab-advanced[open]) .lab-presets {
     display: grid;
-    place-items: center;
+}
+
+.lab-preset {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 8px 10px;
     border: 1px solid rgba(56, 189, 248, 0.38);
     border-radius: 8px;
@@ -433,14 +443,32 @@ h1 {
 .lab-advanced {
     display: grid;
     gap: 10px;
+    min-width: 0;
 }
 
 .lab-advanced summary {
     cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border: 1px solid rgba(56, 189, 248, 0.38);
+    border-radius: 8px;
+    background: rgba(10, 18, 26, 0.72);
     color: rgba(226, 236, 238, 0.88);
     font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
+}
+
+.lab-advanced summary:hover,
+.lab-advanced summary:focus-visible {
+    border-color: rgba(242, 196, 100, 0.72);
+    outline: none;
 }
 
 .lab-advanced[open] {
