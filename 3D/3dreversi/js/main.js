@@ -254,6 +254,7 @@ class Reversi3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.mobiusPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -428,7 +429,7 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.054 : 0.039, {
             color: 0xf0fdf4,
             opacity: 0.96,
-            depthTest: false,
+            depthTest: true,
             renderOrder: 3
         });
     }
@@ -696,6 +697,7 @@ class Reversi3DRenderer {
             : this.mobiusPose(coord, logic.topology.width, logic.topology.height, 0.08);
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         if (mode === REVERSI_TOPOLOGIES.KLEIN && this.kleinSurfaceOccludes(hit, pose)) return false;
+        if (mode === REVERSI_TOPOLOGIES.MOBIUS && this.mobiusSurfaceOccludes(hit)) return false;
         return true;
     }
 
@@ -716,6 +718,14 @@ class Reversi3DRenderer {
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
         if (!nearest) return false;
         return nearest.distance < hit.distance - 0.08 && !this.kleinClickThroughWindow(pose);
+    }
+
+    mobiusSurfaceOccludes(hit) {
+        const occluders = this.boardGroup.children.filter((child) => child.userData?.mobiusPickOccluder);
+        if (!occluders.length) return false;
+        const surfaceHits = this.raycaster.intersectObjects(occluders, false);
+        const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
+        return Boolean(nearest && nearest.distance < hit.distance - 0.08);
     }
 
     isPoseFacingCamera(position, normal, threshold = 0.04) {

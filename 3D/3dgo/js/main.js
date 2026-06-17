@@ -522,7 +522,7 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: false,
+            depthTest: true,
             renderOrder: 3
         });
     }
@@ -545,6 +545,7 @@ class Go3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.mobiusPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -1141,6 +1142,7 @@ class Go3DRenderer {
                     : this.mobiusPose(coord, logic.width, logic.height, 0.075);
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY && this.kleinSurfaceOccludes(hit, pose)) return false;
+        if (logic.topology === MOBIUS_GO_TOPOLOGY && this.mobiusSurfaceOccludes(hit)) return false;
         return true;
     }
 
@@ -1161,6 +1163,14 @@ class Go3DRenderer {
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
         if (!nearest) return false;
         return nearest.distance < hit.distance - 0.08 && !this.kleinClickThroughWindow(pose);
+    }
+
+    mobiusSurfaceOccludes(hit) {
+        const occluders = this.boardGroup.children.filter((child) => child.userData?.mobiusPickOccluder);
+        if (!occluders.length) return false;
+        const surfaceHits = this.raycaster.intersectObjects(occluders, false);
+        const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
+        return Boolean(nearest && nearest.distance < hit.distance - 0.08);
     }
 
     isPoseFacingCamera(position, normal, threshold = 0.04) {

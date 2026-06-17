@@ -352,7 +352,7 @@ h1 {
 }
 
 .lab-card {
-    min-height: 0;
+    min-height: 250px;
     display: grid;
     align-items: start;
     align-content: start;
@@ -373,7 +373,7 @@ h1 {
 
 .lab-facts {
     display: none;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 10px;
     margin: 0;
 }
@@ -407,17 +407,17 @@ h1 {
 }
 
 .lab-presets {
-    display: none;
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
-.lab-card:has(.lab-advanced[open]) .lab-presets {
-    display: grid;
+.single-preset {
+    grid-template-columns: 1fr;
 }
 
 .lab-preset {
-    min-height: 36px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -444,6 +444,7 @@ h1 {
     display: grid;
     gap: 10px;
     min-width: 0;
+    align-self: end;
 }
 
 .lab-advanced summary {
@@ -505,6 +506,10 @@ h1 {
     color: var(--text);
     text-decoration: none;
     box-shadow: none;
+}
+
+.extra-mode-card.lab-card {
+    min-height: 250px;
 }
 
 .mode-family-card {

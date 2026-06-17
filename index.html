@@ -158,14 +158,14 @@
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
                         <strong id="physicsAlgebraLabsTitle" data-i18n="labs.title">Physics &amp; Algebra Labs</strong>
-                        <small data-i18n="labs.desc">Pick a lab first. Details, presets, and advanced controls open inside each card.</small>
+                        <small data-i18n="labs.desc">Choose a lab preset, or open Info for the physical meaning and observables.</small>
                     </div>
                     <div class="lab-card-grid">
                         <article class="extra-mode-card lab-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong>Spin &amp; Phase Lab</strong>
-                                    <small>Spin up/down or competing phases.</small>
+                                    <small>Spin up/down, phase competition, and domain walls.</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go" aria-label="Online activity"></span>
                             </div>
@@ -174,23 +174,15 @@
                                 <div><dt>Objects</dt><dd>Local spins, domains, droplets, and interfaces.</dd></div>
                                 <div><dt>Goal</dt><dd>Order, coarsen, stabilize, or compare topology-driven domain walls.</dd></div>
                                 <div><dt>Observables</dt><dd>Energy, magnetization, wall length, domain count, area fractions.</dd></div>
+                                <div><dt>Recommended users</dt><dd>Players learning phase competition and researchers testing topology effects.</dd></div>
                             </dl>
                             <div class="lab-presets" aria-label="Spin and phase presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed">Beginner: Ising Domain Wall</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=thermal_sample">Intermediate: Thermal Spin Game</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology">Advanced: Topology Domain-Wall Comparison</a>
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed">Domain Wall</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=thermal_sample">Thermal Spin</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology">Topology Compare</a>
                             </div>
                             <details class="lab-advanced">
-                                <summary>Options</summary>
-                                <label class="mode-family-selector">
-                                    Preset engine
-                                    <select data-mode-select data-open-target="spinAdvancedOpen">
-                                        <option value="./algebraic/?layer=physical&mode=ising_domain_game">Spin &amp; Phase Domain Game</option>
-                                        <option value="./algebraic/?layer=physical&mode=two_phase_competition_game">Two-Phase Competition</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_cluster_go">Physical Cluster Go</option>
-                                    </select>
-                                </label>
-                                <a id="spinAdvancedOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=ising_domain_game">Open selected</a>
+                                <summary>Info</summary>
                             </details>
                         </article>
 
@@ -198,7 +190,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong>Quantum Information Lab</strong>
-                                    <small>Stabilizer signs and Pauli-frame errors.</small>
+                                    <small>Pauli errors, stabilizers, measurements, and recovery.</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_clifford_reversi game-clifford_reversi game-physical_clifford_go game-physical_clifford_jump" aria-label="Online activity"></span>
                             </div>
@@ -207,26 +199,15 @@
                                 <div><dt>Objects</dt><dd>Pauli labels, ancilla sites, stabilizer checks, and logical sectors.</dd></div>
                                 <div><dt>Goal</dt><dd>Recover errors or benchmark Clifford/Pauli dynamics.</dd></div>
                                 <div><dt>Observables</dt><dd>Syndrome weight, logical sector, measurement errors, recovery status.</dd></div>
+                                <div><dt>Recommended users</dt><dd>Quantum information learners, QEC toy-model users, and stabilizer researchers.</dd></div>
                             </dl>
                             <div class="lab-presets" aria-label="Quantum information presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery">Beginner: Pauli Error Recovery</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli">Intermediate: Stabilizer Measurement</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=physical">Advanced: Clifford Benchmark Toy Model</a>
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery">Pauli Recovery</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli">Stabilizer Check</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=physical">Clifford Toy</a>
                             </div>
                             <details class="lab-advanced">
-                                <summary>Options</summary>
-                                <label class="mode-family-selector">
-                                    Preset engine
-                                    <select data-mode-select data-open-target="quantumAdvancedOpen">
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_reversi">Pauli-Frame Recovery</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_go">Physical Clifford Go</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_jump">Physical Clifford Jump Chess</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=clifford_reversi">Stabilizer Recovery</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=clifford_go">Clifford Go</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=clifford_jump">Clifford Jump Chess</option>
-                                    </select>
-                                </label>
-                                <a id="quantumAdvancedOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=physical_clifford_reversi">Open selected</a>
+                                <summary>Info</summary>
                             </details>
                         </article>
 
@@ -234,7 +215,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong>Anyon &amp; Topological Memory Lab</strong>
-                                    <small>Anyons, braids, fusion, and memory.</small>
+                                    <small>Anyon fusion, braiding, unbraiding, and memory.</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-anyon_jump game-physical_anyon_jump game-physical_anyon_reversi game-z2_gauge_loop_game game-physical_jump_particles" aria-label="Online activity"></span>
                             </div>
@@ -243,26 +224,15 @@
                                 <div><dt>Objects</dt><dd>Anyons, worldlines, fusion channels, gauge loops, and memory strings.</dd></div>
                                 <div><dt>Goal</dt><dd>Create, braid, fuse, unbraid, or preserve topological memory.</dd></div>
                                 <div><dt>Observables</dt><dd>Fusion result, braid parity, charge, Wilson sector, memory alive.</dd></div>
+                                <div><dt>Recommended users</dt><dd>Players exploring particle strategy and researchers testing topological memory.</dd></div>
                             </dl>
                             <div class="lab-presets" aria-label="Anyon and topological memory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump">Beginner: Toric-Code Anyons</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid">Intermediate: Braid / Unbraid Memory</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=anyon_jump&excitationEnergy=1">Advanced: Energy-Constrained Excitations</a>
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric Anyons</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid">Braid Memory</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=anyon_jump&excitationEnergy=1">Energy Excite</a>
                             </div>
                             <details class="lab-advanced">
-                                <summary>Options</summary>
-                                <label class="mode-family-selector">
-                                    Preset engine
-                                    <select data-mode-select data-open-target="anyonAdvancedOpen">
-                                        <option value="./algebraic/?layer=algebraic&mode=anyon_jump">Anyon Fusion &amp; Braiding</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=anyon_reversi">Anyon Reversi</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric-Code Anyon Jump Lab</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_reversi">Physical Anyon Reversi</option>
-                                        <option value="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Z2 Gauge Loop Game</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_jump_particles">Physical Jump Particles</option>
-                                    </select>
-                                </label>
-                                <a id="anyonAdvancedOpen" class="mode-family-open" href="./algebraic/?layer=algebraic&mode=anyon_jump">Open selected</a>
+                                <summary>Info</summary>
                             </details>
                         </article>
 
@@ -270,7 +240,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong>CFT / Field Theory Lab</strong>
-                                    <small>Primary fields, correlations, blocks, and entropy.</small>
+                                    <small>Primary fields, conformal blocks, correlations, entropy.</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump game-virasoro_jump" aria-label="Online activity"></span>
                             </div>
@@ -279,24 +249,15 @@
                                 <div><dt>Objects</dt><dd>Primary fields, OPE intervals, conformal blocks, and Virasoro actions.</dd></div>
                                 <div><dt>Goal</dt><dd>Measure correlations, select OPE channels, and test anomaly/stress response.</dd></div>
                                 <div><dt>Observables</dt><dd>Primary counts, cross-ratio, block weights, entropy, anomaly events.</dd></div>
+                                <div><dt>Recommended users</dt><dd>CFT learners, mathematical-physics players, and field-theory researchers.</dd></div>
                             </dl>
                             <div class="lab-presets" aria-label="CFT and field theory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables">Beginner: Ising CFT Four-Sigma Block</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Intermediate: CFT Correlator Game</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi&virasoroN=2">Advanced: Virasoro N=2 Anomaly Mode</a>
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables">Four-Sigma</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Correlator</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi&virasoroN=2">Virasoro N=2</a>
                             </div>
                             <details class="lab-advanced">
-                                <summary>Options</summary>
-                                <label class="mode-family-selector">
-                                    Preset engine
-                                    <select data-mode-select data-open-target="cftAdvancedOpen">
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_go">CFT Field Insertion</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_reversi">CFT Domain-Wall Reversi</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_jump">Physical Virasoro Jump Chess</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=virasoro_jump">Virasoro Jump Chess</option>
-                                    </select>
-                                </label>
-                                <a id="cftAdvancedOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Open selected</a>
+                                <summary>Info</summary>
                             </details>
                         </article>
 
@@ -304,7 +265,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong>Advanced Algebra Sandbox</strong>
-                                    <small>Full manual engine and physics controls.</small>
+                                    <small>Manually combine game engine, topology, algebra, noise, measurement, and energy.</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-clifford_reversi game-clifford_go game-clifford_jump game-anyon_reversi game-anyon_jump game-virasoro_jump game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go game-physical_jump_particles game-spin_ice_vertex_game game-z2_gauge_loop_game game-physical_anyon_jump game-physical_anyon_reversi game-physical_clifford_reversi game-physical_clifford_go game-physical_clifford_jump game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump" aria-label="Online activity"></span>
                             </div>
@@ -313,53 +274,13 @@
                                 <div><dt>Objects</dt><dd>Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.</dd></div>
                                 <div><dt>Goal</dt><dd>Expose the full research workbench without hiding internal controls.</dd></div>
                                 <div><dt>Observables</dt><dd>Every engine export, history trace, physical answer, and raw diagnostic.</dd></div>
+                                <div><dt>Recommended users</dt><dd>Advanced users who want direct access to the full engine and option set.</dd></div>
                             </dl>
-                            <div class="lab-presets" aria-label="Advanced algebra presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=algebraic&mode=clifford_reversi">Beginner: Stabilizer Recovery</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump">Intermediate: Anyon Fusion &amp; Braiding</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Advanced: CFT Field Insertion</a>
+                            <div class="lab-presets single-preset" aria-label="Advanced algebra sandbox">
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi">Open Sandbox</a>
                             </div>
                             <details class="lab-advanced">
-                                <summary>Options</summary>
-                                <label class="mode-family-selector">
-                                    Raw game engine
-                                    <select data-mode-select data-open-target="advancedSandboxOpen">
-                                        <optgroup label="Algebraic engines">
-                                            <option value="./algebraic/?layer=algebraic&mode=clifford_reversi">Stabilizer Recovery</option>
-                                            <option value="./algebraic/?layer=algebraic&mode=clifford_go">Clifford Go</option>
-                                            <option value="./algebraic/?layer=algebraic&mode=clifford_jump">Clifford Jump Chess</option>
-                                            <option value="./algebraic/?layer=algebraic&mode=anyon_reversi">Anyon Reversi</option>
-                                            <option value="./algebraic/?layer=algebraic&mode=anyon_jump">Anyon Fusion &amp; Braiding</option>
-                                            <option value="./algebraic/?layer=algebraic&mode=virasoro_jump">Virasoro Jump Chess</option>
-                                        </optgroup>
-                                        <optgroup label="Physical engines">
-                                            <option value="./algebraic/?layer=physical&mode=ising_domain_game">Spin &amp; Phase Domain Game</option>
-                                            <option value="./algebraic/?layer=physical&mode=two_phase_competition_game">Two-Phase Competition</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_cluster_go">Physical Cluster Go</option>
-                                            <option value="./algebraic/?layer=physical&mode=spin_ice_vertex_game">Spin Ice Vertex Game</option>
-                                            <option value="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Z2 Gauge Loop Game</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_jump_particles">Physical Jump Particles</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric-Code Anyon Jump Lab</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_anyon_reversi">Physical Anyon Reversi</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_reversi">Pauli-Frame Recovery</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_go">Physical Clifford Go</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_jump">Physical Clifford Jump Chess</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_go">CFT Field Insertion</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_reversi">CFT Domain-Wall Reversi</option>
-                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_jump">Physical Virasoro Jump Chess</option>
-                                        </optgroup>
-                                    </select>
-                                </label>
-                                <label class="mode-family-selector">
-                                    Raw physical problem
-                                    <select data-mode-select data-open-target="advancedSandboxOpen">
-                                        <option value="./algebraic/?layer=algebraic&mode=clifford_reversi&physicalProblem=stabilizer_pauli_recovery">Stabilizer Pauli Recovery</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology">Domain-Wall Reversi</option>
-                                        <option value="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid">Topological Memory</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables">CFT Conformal Block Observables</option>
-                                    </select>
-                                </label>
-                                <a id="advancedSandboxOpen" class="mode-family-open" href="./algebraic/?layer=algebraic&mode=clifford_reversi">Open selected sandbox</a>
+                                <summary>Info</summary>
                             </details>
                         </article>
                     </div>
@@ -428,7 +349,7 @@
                     },
                     labs: {
                         title: 'Physics & Algebra Labs',
-                        desc: 'Pick a lab first. Details, presets, and advanced controls open inside each card.',
+                        desc: 'Choose a lab preset, or open Info for the physical meaning and observables.',
                         choose: 'Physics and algebra labs'
                     },
                     feedback: {
@@ -493,7 +414,7 @@
                     },
                     labs: {
                         title: '物理與代數實驗室',
-                        desc: '先選擇實驗室；細節、預設與進階控制都在卡片內點開。',
+                        desc: '選擇實驗室預設，或打開 Info 查看物理意義與觀測量。',
                         choose: '物理與代數實驗室'
                     },
                     feedback: {
