@@ -36,6 +36,7 @@ export function normalizeTopology(topology) {
     if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(value)) return 'pbc';
     if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(value)) return 'klein';
     if (['random', 'random_boundary', 'random-boundary', 'randomboundary'].includes(value)) return 'random';
+    if (['polar', 'polar_center', 'polar-center', 'radial', 'radial_center'].includes(value)) return 'polar';
     return 'open2d';
 }
 
@@ -115,6 +116,14 @@ function createRandomBoundaryMap(size, seed = randomSeed(), lattice = 'square') 
     return entries;
 }
 
+function polarTotal(size) {
+    return 1 + Math.max(0, size - 1) * size;
+}
+
+function polarKey(coord) {
+    return `${coord[0]},${coord[1] || 0}`;
+}
+
 export class GoGameLogic {
     constructor(options = {}) {
         this.reset(options);
@@ -130,7 +139,9 @@ export class GoGameLogic {
         this.randomBoundaryMap = this.topology === 'random'
             ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap(this.size, this.randomBoundarySeed, this.lattice))
             : new Map();
-        this.total = this.size ** this.dimension;
+        this.total = this.topology === 'polar' && this.dimension === 2
+            ? polarTotal(this.size)
+            : this.size ** this.dimension;
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
         this.pieceTime = normalizePieceTimeConfig(pieceTime);
@@ -174,11 +185,15 @@ export class GoGameLogic {
     }
 
     coordKey(coord) {
-        return coord.join(',');
+        return this.topology === 'polar' && this.dimension === 2 ? polarKey(coord) : coord.join(',');
     }
 
     indexFromCoord(coord) {
         if (!this.containsCoord(coord)) return -1;
+        if (this.topology === 'polar' && this.dimension === 2) {
+            if (coord[0] === 0) return 0;
+            return 1 + (coord[0] - 1) * this.size + wrap(coord[1] || 0, this.size);
+        }
         if (this.dimension === 3) {
             return coord[0] + this.size * (coord[1] + this.size * coord[2]);
         }
@@ -194,15 +209,29 @@ export class GoGameLogic {
             const x = rem - y * this.size;
             return [x, y, z];
         }
+        if (this.topology === 'polar') {
+            if (value <= 0) return [0, 0];
+            const ring = Math.floor((value - 1) / this.size) + 1;
+            const sector = (value - 1) % this.size;
+            return [ring, sector];
+        }
         const y = Math.floor(value / this.size);
         const x = value - y * this.size;
         return [x, y];
     }
 
     containsCoord(coord) {
-        return Array.isArray(coord)
-            && coord.length === this.dimension
-            && coord.every((value) => Number.isInteger(value) && value >= 0 && value < this.size);
+        if (!Array.isArray(coord) || coord.length !== this.dimension) return false;
+        if (this.topology === 'polar' && this.dimension === 2) {
+            const ring = coord[0];
+            const sector = coord[1] || 0;
+            return Number.isInteger(ring)
+                && Number.isInteger(sector)
+                && ring >= 0
+                && ring < this.size
+                && (ring === 0 ? sector === 0 : sector >= 0 && sector < this.size);
+        }
+        return coord.every((value) => Number.isInteger(value) && value >= 0 && value < this.size);
     }
 
     isWrapAxis(axis) {
@@ -216,6 +245,21 @@ export class GoGameLogic {
     }
 
     stepDirection(coord, direction) {
+        if (this.topology === 'polar' && this.dimension === 2) {
+            if (!this.containsCoord(coord)) return null;
+            const ring = coord[0];
+            const sector = coord[1] || 0;
+            const dr = direction[0] || 0;
+            const ds = direction[1] || 0;
+            if (ring === 0) {
+                if (dr <= 0) return null;
+                return [1, wrap(ds, this.size)];
+            }
+            const nextRing = ring + dr;
+            if (nextRing < 0 || nextRing >= this.size) return null;
+            if (nextRing === 0) return [0, 0];
+            return [nextRing, wrap(sector + ds, this.size)];
+        }
         if (this.topology === 'random' && this.dimension === 2) {
             const next = [coord[0] + (direction[0] || 0), coord[1] + (direction[1] || 0)];
             if (this.containsCoord(next)) return next;
@@ -242,6 +286,18 @@ export class GoGameLogic {
 
     neighborsFromCoord(coord) {
         const neighbors = [];
+        if (this.topology === 'polar' && this.dimension === 2) {
+            if (!this.containsCoord(coord)) return [];
+            if (coord[0] === 0) {
+                for (let sector = 0; sector < this.size; sector += 1) neighbors.push([1, sector]);
+            } else {
+                for (const direction of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+                    const next = this.stepDirection(coord, direction);
+                    if (next) neighbors.push(next);
+                }
+            }
+            return [...new Map(neighbors.map((neighbor) => [this.coordKey(neighbor), neighbor])).values()];
+        }
         if (this.dimension === 2) {
             for (const direction of latticeDirections(this.lattice, coord)) {
                 const next = this.stepDirection(coord, direction);
@@ -273,6 +329,29 @@ export class GoGameLogic {
                 to: [...target]
             };
         });
+    }
+
+    allCoords() {
+        if (this.topology === 'polar' && this.dimension === 2) {
+            const coords = [[0, 0]];
+            for (let ring = 1; ring < this.size; ring += 1) {
+                for (let sector = 0; sector < this.size; sector += 1) coords.push([ring, sector]);
+            }
+            return coords;
+        }
+        const coords = [];
+        if (this.dimension === 3) {
+            for (let z = 0; z < this.size; z += 1) {
+                for (let y = 0; y < this.size; y += 1) {
+                    for (let x = 0; x < this.size; x += 1) coords.push([x, y, z]);
+                }
+            }
+            return coords;
+        }
+        for (let y = 0; y < this.size; y += 1) {
+            for (let x = 0; x < this.size; x += 1) coords.push([x, y]);
+        }
+        return coords;
     }
 
     serializeBoard(board = this.board) {

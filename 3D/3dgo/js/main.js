@@ -276,6 +276,8 @@ class Go3DRenderer {
     }
 
     initLights() {
+        const ambient = new THREE.AmbientLight(0xeaf6ff, 0.42);
+        this.scene.add(ambient);
         const hemi = new THREE.HemisphereLight(0xdff6ff, 0x15110d, 1.6);
         this.scene.add(hemi);
         const key = new THREE.DirectionalLight(0xffffff, 2.4);
@@ -471,9 +473,9 @@ class Go3DRenderer {
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: true,
-                opacity: 0.58,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -487,12 +489,12 @@ class Go3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 6;
+            line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
@@ -527,8 +529,8 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: false,
-            renderOrder: 7
+            depthTest: true,
+            renderOrder: 3
         });
     }
 
@@ -539,9 +541,9 @@ class Go3DRenderer {
                 color: 0x8f6238,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: true,
-                opacity: 0.66,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.28,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -555,21 +557,21 @@ class Go3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.95,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const logic = this.app.logic;
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.userData = { type: 'grid' };
-            line.renderOrder = 6;
+            line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
@@ -598,8 +600,8 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: false,
-            renderOrder: 7
+            depthTest: true,
+            renderOrder: 3
         });
         this.addMobiusStarPoints(width, height);
     }
@@ -1575,7 +1577,7 @@ class Go3DApp {
 
     normalizedBoardSize(value) {
         const parsed = Math.floor(Number(value));
-        if (!Number.isFinite(parsed)) return 19;
+        if (!Number.isFinite(parsed)) return 9;
         return Math.min(39, Math.max(2, parsed));
     }
 

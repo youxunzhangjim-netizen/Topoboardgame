@@ -2,9 +2,7 @@ import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 
 const SIZE = 8;
 const RANDOM_BOUNDARY_DIRECTIONS = [
-    [-1, -1], [-1, 0], [-1, 1],
-    [0, -1], [0, 1],
-    [1, -1], [1, 0], [1, 1]
+    [0, -1], [0, 1]
 ];
 
 function randomSeed() {
@@ -15,7 +13,7 @@ function boundaryTargets() {
     const targets = [];
     for (let r = 0; r < SIZE; r += 1) {
         for (let c = 0; c < SIZE; c += 1) {
-            if (r === 0 || c === 0 || r === SIZE - 1 || c === SIZE - 1) targets.push([r, c]);
+            if (c === 0 || c === SIZE - 1) targets.push([r, c]);
         }
     }
     return targets;
@@ -456,6 +454,7 @@ export class PieceMovement {
         if (this.game.boundaryCondition === 'random') {
             if (this.inBounds(row, col)) return { valid: true, r: row, c: col };
             if (!this.inBounds(fromRow, fromCol)) return { valid: false, r: row, c: col };
+            if (row < 0 || row >= SIZE || (col >= 0 && col < SIZE)) return { valid: false, r: row, c: col };
 
             const dr = direction?.[0] ?? row - fromRow;
             const dc = direction?.[1] ?? col - fromCol;

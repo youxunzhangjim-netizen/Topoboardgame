@@ -612,6 +612,10 @@ button:active {
 }
 
 .move-history {
+    height: 220px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
     color: #cbd5e1;
     font-size: 0.85em;
     line-height: 1.6;

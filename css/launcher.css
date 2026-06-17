@@ -222,6 +222,16 @@ body::before {
     gap: 8px;
 }
 
+.launcher-spirit {
+    max-width: 780px;
+    margin: 0 0 4px;
+    color: rgba(245, 182, 71, 0.92);
+    font-size: clamp(13px, 1.25vw, 17px);
+    font-weight: 850;
+    line-height: 1.45;
+    letter-spacing: 0;
+}
+
 .eyebrow {
     margin: 0;
     color: var(--gold);

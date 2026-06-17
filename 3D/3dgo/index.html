@@ -77,8 +77,8 @@
                 <label for="gameModeSelect" data-i18n="controls.gameMode">Game Mode</label>
                 <select id="gameModeSelect">
                     <option value="local" data-i18n="controls.local">Local Pass and Play</option>
-                    <option value="robot">Local Robot</option>
                     <option value="online" data-i18n="controls.online">Online Multiplayer</option>
+                    <option value="robot">Local Robot (Baby)</option>
                 </select>
             </div>
 
@@ -138,12 +138,12 @@
             <div class="control-group">
                 <label for="boardSizeSelect" data-i18n="controls.boardScale">Board Scale</label>
                 <select id="boardSizeSelect">
-                    <option value="9">9</option>
+                    <option value="9" selected>9</option>
                     <option value="13">13</option>
-                    <option value="19" selected>19</option>
+                    <option value="19">19</option>
                     <option value="custom">Custom</option>
                 </select>
-                <input id="customBoardSizeInput" type="number" min="2" max="39" step="1" value="19" hidden>
+                <input id="customBoardSizeInput" type="number" min="2" max="39" step="1" value="9" hidden>
             </div>
             <div class="boundary-info" id="modeInfo">R3 Standard uses ordinary open boundaries in x, y, and z. T3 PBC wraps x, y, and z. 3D RBC uses a fixed random boundary map.</div>
 

@@ -62,8 +62,8 @@
                 <label for="gameModeSelect">Game Mode</label>
                 <select id="gameModeSelect">
                     <option value="local">Local Pass and Play</option>
-                    <option value="robot">Local Robot</option>
                     <option value="online">Online Multiplayer</option>
+                    <option value="robot">Local Robot (Baby)</option>
                 </select>
             </div>
 
@@ -100,12 +100,13 @@
                 <label for="boundarySelect">Boundary Condition</label>
                 <select id="boundarySelect">
                     <option value="open2d" selected>Standard</option>
+                    <option value="polar">Polar Center Node</option>
                     <option value="pbc">PBC All Sides</option>
                     <option value="klein">Klein Bottle</option>
                     <option value="random">2D RBC</option>
                 </select>
             </div>
-            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
+            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. Polar adds one center node with radial rings. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
 
             <div class="control-group">
                 <label for="latticeSelect">Lattice</label>

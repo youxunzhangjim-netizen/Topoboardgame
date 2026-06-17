@@ -68,6 +68,7 @@ class Reversi3DRenderer {
     }
 
     initLights() {
+        this.scene.add(new THREE.AmbientLight(0xeaf6ff, 0.42));
         this.scene.add(new THREE.HemisphereLight(0xe0f7ff, 0x17110d, 1.65));
         const key = new THREE.DirectionalLight(0xffffff, 2.35);
         key.position.set(6, 9, 7);
@@ -242,9 +243,9 @@ class Reversi3DRenderer {
                 color: 0x8f6238,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: true,
-                opacity: 0.66,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.28,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -258,19 +259,19 @@ class Reversi3DRenderer {
             color: 0x24150c,
             transparent: true,
             opacity: 0.78,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0xfbbf24,
             transparent: true,
             opacity: 0.92,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 6;
+            line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
@@ -305,8 +306,8 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
             color: 0xffe3a3,
             opacity: 0.98,
-            depthTest: false,
-            renderOrder: 7
+            depthTest: true,
+            renderOrder: 3
         });
     }
 
@@ -318,9 +319,9 @@ class Reversi3DRenderer {
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: true,
-                opacity: 0.58,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -334,19 +335,19 @@ class Reversi3DRenderer {
             color: 0x0d5f3b,
             transparent: true,
             opacity: 0.78,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x064e3b,
             transparent: true,
             opacity: 0.95,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 6;
+            line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
@@ -373,8 +374,8 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.054 : 0.039, {
             color: 0xf0fdf4,
             opacity: 0.96,
-            depthTest: false,
-            renderOrder: 7
+            depthTest: true,
+            renderOrder: 3
         });
     }
 
@@ -876,7 +877,7 @@ class Reversi3DApp {
     }
 
     setSizeSelection(value) {
-        const size = normalizeReversiSize(value, { fallback: 12, max: 19 });
+        const size = normalizeReversiSize(value, { fallback: 8, max: 19 });
         const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
         this.sizeSelect.value = option ? String(size) : 'custom';
         this.customSizeInput.value = String(size);
@@ -885,7 +886,7 @@ class Reversi3DApp {
 
     boardSize() {
         const source = this.sizeSelect.value === 'custom' ? this.customSizeInput.value : this.sizeSelect.value;
-        return normalizeReversiSize(source, { fallback: 12, max: 19 });
+        return normalizeReversiSize(source, { fallback: 8, max: 19 });
     }
 
     createLogic() {

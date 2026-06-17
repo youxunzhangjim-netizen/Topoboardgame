@@ -11,7 +11,7 @@ const DICTIONARY = {
         },
         app: {
             title: '2D Chess with Boundary Conditions',
-            subtitle: 'Local and online multiplayer with standard, open, periodic, reflection, and 2D RBC boundaries.'
+            subtitle: 'Local and online multiplayer with standard, open, periodic, reflection, and two-side RBC boundaries.'
         },
         colors: {
             white: 'White',
@@ -28,7 +28,7 @@ const DICTIONARY = {
             title: 'Game Controls',
             gameMode: 'Game Mode:',
             local: 'Local (Pass & Play)',
-            robot: 'Local Robot',
+            robot: 'Local Robot (Baby)',
             online: 'Online (Multiplayer)',
             boundary: 'Boundary Condition:',
             timer: 'Timer per Player:',
@@ -102,14 +102,14 @@ const DICTIONARY = {
                 open: 'Open',
                 reflection: 'Reflection',
                 periodic: 'Periodic',
-                random: '2D RBC'
+                random: 'RBC Left/Right'
             },
             info: {
                 forbidden: '<strong>Standard:</strong> Pieces cannot move outside the board.',
                 open: '<strong>Open:</strong> A piece may follow a legal movement path across any edge. It is then removed as a suicide. A king suicide loses immediately.',
                 reflection: '<strong>Reflection:</strong> Pieces reflect around the left/right edge-square centers.',
                 periodic: '<strong>Periodic:</strong> Board wraps around left/right edges.',
-                random: '<strong>2D RBC:</strong> Each edge-exit direction maps to a fixed random boundary square for the whole game.'
+                random: '<strong>RBC Left/Right:</strong> Only exits through the left and right sides map to fixed random boundary squares. Top and bottom remain ordinary board edges.'
             },
             edges: {
                 top: 'top edge',
@@ -225,7 +225,7 @@ const DICTIONARY = {
             title: '遊戲控制',
             gameMode: '遊戲模式：',
             local: '本機（輪流操作）',
-            robot: '本機機器人',
+            robot: '本機機器人（Baby）',
             online: '線上對戰',
             boundary: '邊界條件：',
             timer: '每方時間：',

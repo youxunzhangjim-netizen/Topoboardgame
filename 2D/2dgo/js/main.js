@@ -76,6 +76,7 @@ class Go2DApp {
         if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(mode)) this.boundarySelect.value = 'pbc';
         if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(mode)) this.boundarySelect.value = 'klein';
         if (['random', 'random_boundary', 'random-boundary'].includes(mode)) this.boundarySelect.value = 'random';
+        if (['polar', 'polar_center', 'polar-center', 'radial'].includes(mode)) this.boundarySelect.value = 'polar';
         if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
         const lattice = String(params.get('lattice') || '').toLowerCase();
         if (lattice === 'honeycomb' || lattice === 'triangular') this.latticeSelect.value = lattice;
@@ -183,6 +184,16 @@ class Go2DApp {
         const cssSize = this.canvas.width / Math.min(window.devicePixelRatio || 1, 2);
         const margin = Math.max(28, cssSize * 0.07);
         const span = cssSize - margin * 2;
+        if (this.logic.topology === 'polar') {
+            return {
+                x: cssSize / 2,
+                y: cssSize / 2,
+                span,
+                radius: span / 2,
+                step: span / (2 * Math.max(1, this.logic.size - 1)),
+                size: cssSize
+            };
+        }
         if (this.logic.lattice === 'honeycomb') {
             const rawWidth = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
             const rawHeight = Math.max(1, this.logic.size - 0.5);
@@ -204,6 +215,15 @@ class Go2DApp {
 
     coordToPixel(coord) {
         const rect = this.boardRect();
+        if (this.logic.topology === 'polar') {
+            if (coord[0] === 0) return { x: rect.x, y: rect.y };
+            const angle = -Math.PI / 2 + (coord[1] / this.logic.size) * Math.PI * 2;
+            const radius = coord[0] * rect.step;
+            return {
+                x: rect.x + Math.cos(angle) * radius,
+                y: rect.y + Math.sin(angle) * radius
+            };
+        }
         if (this.logic.lattice === 'honeycomb') {
             return {
                 x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
@@ -221,6 +241,19 @@ class Go2DApp {
         const rect = this.boardRect();
         const x = event.clientX - bounds.left;
         const y = event.clientY - bounds.top;
+        if (this.logic.topology === 'polar') {
+            let nearest = null;
+            let nearestDistance = Infinity;
+            for (const coord of this.logic.allCoords()) {
+                const point = this.coordToPixel(coord);
+                const distance = Math.hypot(point.x - x, point.y - y);
+                if (distance < nearestDistance) {
+                    nearest = coord;
+                    nearestDistance = distance;
+                }
+            }
+            return nearestDistance <= Math.max(14, rect.step * 0.42) ? nearest : null;
+        }
         if (this.logic.lattice === 'honeycomb') {
             let nearest = null;
             let nearestDistance = Infinity;
@@ -387,7 +420,9 @@ class Go2DApp {
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
         ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' ? 0.045 : 0.035));
         ctx.beginPath();
-        if (this.logic.lattice !== 'square') {
+        if (this.logic.topology === 'polar') {
+            this.drawPolarGrid(rect);
+        } else if (this.logic.lattice !== 'square') {
             const drawn = new Set();
             for (let y = 0; y < n; y++) {
                 for (let x = 0; x < n; x++) {
@@ -432,8 +467,9 @@ class Go2DApp {
         if (this.logic.topology === 'pbc') this.drawPeriodicBoundary(rect);
         if (this.logic.topology === 'klein') this.drawKleinBoundary(rect);
         if (this.logic.topology === 'random') this.drawRandomBoundary(rect);
+        if (this.logic.topology === 'polar') this.drawPolarBoundary(rect);
 
-        for (const [x, y] of this.logic.lattice === 'square' ? this.starPoints(n) : []) {
+        for (const [x, y] of this.logic.lattice === 'square' && this.logic.topology !== 'polar' ? this.starPoints(n) : []) {
             const p = this.coordToPixel([x, y]);
             ctx.beginPath();
             ctx.arc(p.x, p.y, Math.max(3, rect.step * 0.09), 0, Math.PI * 2);
@@ -454,8 +490,53 @@ class Go2DApp {
             if (!value) continue;
             const color = valueToColor(value);
             const p = this.coordToPixel(this.logic.coordFromIndex(index));
-            this.drawStone(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : 0.42), color);
+            this.drawStone(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42), color);
         }
+    }
+
+    drawPolarGrid(rect) {
+        const ctx = this.ctx;
+        const n = this.logic.size;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
+        ctx.lineWidth = Math.max(1, rect.step * 0.035);
+        for (let ring = 1; ring < n; ring += 1) {
+            ctx.beginPath();
+            ctx.arc(rect.x, rect.y, ring * rect.step, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        for (let sector = 0; sector < n; sector += 1) {
+            const angle = -Math.PI / 2 + (sector / n) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(rect.x, rect.y);
+            ctx.lineTo(rect.x + Math.cos(angle) * rect.radius, rect.y + Math.sin(angle) * rect.radius);
+            ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(42, 27, 14, 0.9)';
+        for (const coord of this.logic.allCoords()) {
+            const p = this.coordToPixel(coord);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, Math.max(1.7, rect.step * 0.035), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    drawPolarBoundary(rect) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(245, 182, 71, 0.92)';
+        ctx.lineWidth = Math.max(2, rect.step * 0.06);
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.arc(rect.x, rect.y, rect.radius + rect.step * 0.28, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(245, 182, 71, 0.92)';
+        ctx.beginPath();
+        ctx.arc(rect.x, rect.y, Math.max(3, rect.step * 0.09), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 
     drawHoneycombFaces(rect) {
@@ -701,13 +782,16 @@ class Go2DApp {
         const periodic = topology === 'pbc';
         const klein = topology === 'klein';
         const random = topology === 'random';
-        this.boundaryEl.textContent = random ? '2D RBC' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'Standard';
+        const polar = topology === 'polar';
+        this.boundaryEl.textContent = polar ? 'Polar Center' : random ? '2D RBC' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.lattice === 'honeycomb'
             ? ' Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links.'
             : this.logic.lattice === 'triangular'
                 ? ' Triangular uses six graph neighbors per interior point. A group is captured only after every exposed axial and diagonal liberty is enclosed.'
                 : ' Square uses the usual four orthogonal graph neighbors.';
-        this.boundaryInfoEl.textContent = (random
+        this.boundaryInfoEl.textContent = (polar
+            ? 'Polar coordinates use one true center node, radial rings, circular angular neighbors, and center-to-first-ring links.'
+            : random
             ? '2D RBC uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.'
             : klein
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x.'

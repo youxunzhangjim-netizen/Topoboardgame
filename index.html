@@ -48,6 +48,7 @@
         <section class="launcher-hero" aria-labelledby="launcherTitle">
             <div class="brand-block">
                 <p class="eyebrow" data-i18n="brand.eyebrow">TopologicalBoardgame</p>
+                <p class="launcher-spirit" data-i18n="brand.spirit">Same rules, different topological spaces: a game, study, test, and research platform for exploring how strategy, information, and physical properties evolve or compete across different topological systems.</p>
                 <h1 id="launcherTitle" data-i18n="brand.title">Topological Board Game</h1>
             </div>
 
@@ -224,10 +225,14 @@
                                 <label class="mode-family-selector">
                                     Game
                                     <select data-mode-select data-open-target="physicalSpinOpen">
-                                        <option value="./algebraic/?layer=physical&mode=ising_domain_game">Ising Domain Game</option>
-                                        <option value="./algebraic/?layer=physical&mode=two_phase_competition_game">Two-Phase Competition</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_cluster_go">Physical Cluster Go</option>
-                                        <option value="./algebraic/?layer=physical&mode=spin_ice_vertex_game">Spin Ice Vertex Game</option>
+                                        <optgroup label="Spin systems">
+                                            <option value="./algebraic/?layer=physical&mode=ising_domain_game">Ising Domain Game</option>
+                                            <option value="./algebraic/?layer=physical&mode=spin_ice_vertex_game">Spin Ice Vertex Game</option>
+                                        </optgroup>
+                                        <optgroup label="Phase and cluster systems">
+                                            <option value="./algebraic/?layer=physical&mode=two_phase_competition_game">Two-Phase Competition</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_cluster_go">Physical Cluster Go</option>
+                                        </optgroup>
                                     </select>
                                 </label>
                                 <a id="physicalSpinOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=ising_domain_game">Open</a>
@@ -243,9 +248,13 @@
                                 <label class="mode-family-selector">
                                     Game
                                     <select data-mode-select data-open-target="physicalGaugeOpen">
-                                        <option value="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Z2 Gauge Loop Game</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric-Code Anyon Jump Lab</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_reversi">Physical Anyon Reversi</option>
+                                        <optgroup label="Gauge systems">
+                                            <option value="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Z2 Gauge Loop Game</option>
+                                        </optgroup>
+                                        <optgroup label="Anyon systems">
+                                            <option value="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric-Code Anyon Jump Lab</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_anyon_reversi">Physical Anyon Reversi</option>
+                                        </optgroup>
                                     </select>
                                 </label>
                                 <a id="physicalGaugeOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Open</a>
@@ -261,12 +270,16 @@
                                 <label class="mode-family-selector">
                                     Game
                                     <select data-mode-select data-open-target="physicalCftOpen">
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_go">CFT Observable Go</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_reversi">CFT Domain-Wall Reversi</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_jump">Physical Virasoro Jump Chess</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_reversi">Physical Clifford Reversi</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_go">Physical Clifford Go</option>
-                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_jump">Physical Clifford Jump Chess</option>
+                                        <optgroup label="CFT / Virasoro systems">
+                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_go">CFT Observable Go</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_reversi">CFT Domain-Wall Reversi</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_virasoro_jump">Physical Virasoro Jump Chess</option>
+                                        </optgroup>
+                                        <optgroup label="Stabilizer / Pauli-frame systems">
+                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_reversi">Physical Clifford Reversi</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_go">Physical Clifford Go</option>
+                                            <option value="./algebraic/?layer=physical&mode=physical_clifford_jump">Physical Clifford Jump Chess</option>
+                                        </optgroup>
                                     </select>
                                 </label>
                                 <a id="physicalCftOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Open</a>
@@ -295,6 +308,7 @@
                     },
                     brand: {
                         eyebrow: 'TopologicalBoardgame',
+                        spirit: 'Same rules, different topological spaces: a game, study, test, and research platform for exploring how strategy, information, and physical properties evolve or compete across different topological systems.',
                         title: 'Topological Board Game'
                     },
                     dimension: {
@@ -352,6 +366,7 @@
                     },
                     brand: {
                         eyebrow: 'TopologicalBoardgame',
+                        spirit: '相同規則，不同拓撲空間：這是一個遊戲、學習、測試與研究平台，用來探索策略、資訊與物理性質如何在不同拓撲系統中演化或競爭。',
                         title: '拓撲棋盤遊戲'
                     },
                     dimension: {

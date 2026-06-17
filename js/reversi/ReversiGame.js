@@ -11,6 +11,7 @@ export const REVERSI_TOPOLOGIES = {
     PBC: 'pbc',
     KLEIN: 'klein',
     RANDOM: 'random',
+    POLAR: 'polar',
     R3: 'r3',
     T3: 't3',
     R3_RANDOM: 'r3_random',
@@ -90,6 +91,52 @@ export function normalizeRP2(x, y, width, height) {
 
 function coordinateKey(coord) {
     return coord.join(',');
+}
+
+function isPolarCenter(coord) {
+    return coord?.[0] === 0;
+}
+
+function polarTotal(width, height) {
+    return 1 + Math.max(0, height - 1) * width;
+}
+
+function polarCoords(width, height) {
+    const coords = [[0, 0]];
+    for (let ring = 1; ring < height; ring += 1) {
+        for (let sector = 0; sector < width; sector += 1) coords.push([ring, sector]);
+    }
+    return coords;
+}
+
+function polarDirectionsFor(coord, sectors) {
+    if (isPolarCenter(coord)) {
+        return Array.from({ length: sectors }, (_, sector) => [1, sector]);
+    }
+    return [
+        [0, 1], [0, -1],
+        [1, 0], [-1, 0],
+        [1, 1], [-1, -1],
+        [1, -1], [-1, 1]
+    ];
+}
+
+function normalizePolar(ring, sector, width, height) {
+    if (ring < 0 || ring >= height) return null;
+    if (ring === 0) return [0, 0];
+    return [ring, mod(sector, width)];
+}
+
+function stepPolar(coord, direction, width, height) {
+    const ring = coord[0];
+    const sector = coord[1] || 0;
+    const dr = direction[0] || 0;
+    const ds = direction[1] || 0;
+    if (ring === 0) {
+        if (dr <= 0) return null;
+        return normalizePolar(1, ds, width, height);
+    }
+    return normalizePolar(ring + dr, ring + dr === 0 ? 0 : sector + ds, width, height);
 }
 
 function randomSeed() {
@@ -248,7 +295,9 @@ export function createReversiTopology(options = {}) {
     });
     const dimension = is4DReversiTopology(topology) ? 4 : is3DReversiTopology(topology) ? 3 : 2;
     const requestedLattice = String(options.lattice || '').toLowerCase();
-    const lattice = dimension === 2 && requestedLattice === 'honeycomb'
+    const lattice = topology === REVERSI_TOPOLOGIES.POLAR
+        ? 'square'
+        : dimension === 2 && requestedLattice === 'honeycomb'
         ? 'honeycomb'
         : dimension === 3 && requestedLattice === 'hcp'
             ? 'hcp'
@@ -287,13 +336,14 @@ export function createReversiTopology(options = {}) {
         wSize,
         directions,
         directionsFor(coord) {
+            if (topology === REVERSI_TOPOLOGIES.POLAR) return polarDirectionsFor(coord, width);
             return lattice === 'hcp'
                 ? hcpDirections(coord)
                 : directions.map((direction) => [...direction]);
         },
         randomBoundarySeed,
         randomBoundaryMap,
-        totalVertices: width * height * depth * wSize,
+        totalVertices: topology === REVERSI_TOPOLOGIES.POLAR ? polarTotal(width, height) : width * height * depth * wSize,
         key: coordinateKey,
         contains(coord) {
             if (!Array.isArray(coord) || coord.length < dimension) return false;
@@ -313,6 +363,9 @@ export function createReversiTopology(options = {}) {
             }
             if (topology === REVERSI_TOPOLOGIES.KLEIN) {
                 return normalizeKlein(x, y, width, height);
+            }
+            if (topology === REVERSI_TOPOLOGIES.POLAR) {
+                return normalizePolar(x, y, width, height);
             }
             if (topology === REVERSI_TOPOLOGIES.MOBIUS) {
                 return normalizeMobius(x, y, width, height);
@@ -341,6 +394,9 @@ export function createReversiTopology(options = {}) {
         },
         step(coord, direction) {
             const next = coord.map((value, index) => value + (direction[index] || 0));
+            if (topology === REVERSI_TOPOLOGIES.POLAR) {
+                return stepPolar(coord, direction, width, height);
+            }
             if (topology === REVERSI_TOPOLOGIES.RANDOM && dimension === 2) {
                 if (next[0] >= 0 && next[0] < width && next[1] >= 0 && next[1] < height) return next;
                 const target = randomBoundaryMap.get(randomExitKey(coord, direction));
@@ -389,6 +445,7 @@ export function createReversiTopology(options = {}) {
                 }
                 return coords;
             }
+            if (topology === REVERSI_TOPOLOGIES.POLAR) return polarCoords(width, height);
             for (let y = 0; y < height; y += 1) {
                 for (let x = 0; x < width; x += 1) coords.push([x, y]);
             }
@@ -402,6 +459,7 @@ export function normalizeReversiTopology(value) {
     if (['pbc', 'periodic', 'periodic2d'].includes(text)) return REVERSI_TOPOLOGIES.PBC;
     if (['klein', 'klein_bottle', 'klein-bottle'].includes(text)) return REVERSI_TOPOLOGIES.KLEIN;
     if (['random', 'random_boundary', 'random-boundary', 'randomboundary'].includes(text)) return REVERSI_TOPOLOGIES.RANDOM;
+    if (['polar', 'polar_center', 'polar-center', 'radial', 'radial_center'].includes(text)) return REVERSI_TOPOLOGIES.POLAR;
     if (['r3', '3d', 'cube'].includes(text)) return REVERSI_TOPOLOGIES.R3;
     if (['t3', 't3_pbc', 't3-pbc', 'pbc3d', '3d_pbc', '3dpbc'].includes(text)) return REVERSI_TOPOLOGIES.T3;
     if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', '3drbc', 'random3d'].includes(text)) return REVERSI_TOPOLOGIES.R3_RANDOM;
@@ -474,6 +532,18 @@ export class ReversiGame {
                     }
                 }
             }
+            return;
+        }
+
+        if (this.topology.topology === REVERSI_TOPOLOGIES.POLAR) {
+            const ring = Math.max(1, Math.min(this.topology.height - 1, Math.floor(this.topology.height / 2)));
+            const a = Math.floor(this.topology.width / 2) % this.topology.width;
+            const b = (a + 1) % this.topology.width;
+            const inner = Math.max(0, ring - 1);
+            this.set([inner, 0], { color: REVERSI_COLORS.WHITE });
+            this.set([ring, b], { color: REVERSI_COLORS.WHITE });
+            this.set([ring, a], { color: REVERSI_COLORS.BLACK });
+            this.set([Math.min(this.topology.height - 1, ring + 1), b], { color: REVERSI_COLORS.BLACK });
             return;
         }
 

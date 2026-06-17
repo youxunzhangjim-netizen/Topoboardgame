@@ -47,7 +47,7 @@ class Reversi2DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
-        this.boundarySelect.value = ['open2d', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
+        this.boundarySelect.value = ['open2d', 'polar', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
         if (String(params.get('lattice') || '').toLowerCase() === 'honeycomb') this.latticeSelect.value = 'honeycomb';
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
@@ -212,6 +212,19 @@ class Reversi2DApp {
             }
             return nearestDistance <= this.lastRect.radius ? nearest : null;
         }
+        if (this.logic.topology.topology === 'polar') {
+            let nearest = null;
+            let nearestDistance = Infinity;
+            for (const coord of this.logic.topology.allCoords()) {
+                const center = this.polarCenter(coord, this.lastRect);
+                const distance = Math.hypot(center.x - x, center.y - y);
+                if (distance < nearestDistance) {
+                    nearest = coord;
+                    nearestDistance = distance;
+                }
+            }
+            return nearestDistance <= Math.max(12, this.lastRect.step * 0.42) ? nearest : null;
+        }
         const col = Math.floor((x - this.lastRect.left) / this.lastRect.step);
         const row = Math.floor((y - this.lastRect.top) / this.lastRect.step);
         if (col < 0 || row < 0 || col >= this.logic.topology.width || row >= this.logic.topology.height) return null;
@@ -223,6 +236,19 @@ class Reversi2DApp {
         const height = this.canvas.clientHeight || width;
         const margin = Math.max(18, Math.min(width, height) * 0.045);
         const usable = Math.min(width, height) - margin * 2;
+        if (this.logic.topology.topology === 'polar') {
+            const radius = usable / 2;
+            return {
+                centerX: width / 2,
+                centerY: height / 2,
+                radius,
+                step: radius / Math.max(1, this.logic.topology.height - 1),
+                left: width / 2 - radius,
+                top: height / 2 - radius,
+                right: width / 2 + radius,
+                bottom: height / 2 + radius
+            };
+        }
         if (this.logic.topology.lattice === 'honeycomb') {
             const n = this.logic.topology.width;
             const rawWidth = 1.5 * (n - 1) + 2;
@@ -263,6 +289,8 @@ class Reversi2DApp {
 
         if (this.logic.topology.lattice === 'honeycomb') {
             for (const coord of this.logic.topology.allCoords()) this.drawHexCell(coord, rect);
+        } else if (this.logic.topology.topology === 'polar') {
+            this.drawPolarBoard(rect);
         } else {
             for (let y = 0; y < n; y += 1) {
                 for (let x = 0; x < n; x += 1) {
@@ -296,6 +324,49 @@ class Reversi2DApp {
         };
     }
 
+    polarCenter(coord, rect) {
+        if (coord[0] === 0) return { x: rect.centerX, y: rect.centerY };
+        const angle = -Math.PI / 2 + (coord[1] / this.logic.topology.width) * Math.PI * 2;
+        const radius = coord[0] * rect.step;
+        return {
+            x: rect.centerX + Math.cos(angle) * radius,
+            y: rect.centerY + Math.sin(angle) * radius
+        };
+    }
+
+    drawPolarBoard(rect) {
+        const ctx = this.ctx;
+        const rings = this.logic.topology.height;
+        const sectors = this.logic.topology.width;
+        ctx.save();
+        ctx.fillStyle = '#255d49';
+        ctx.beginPath();
+        ctx.arc(rect.centerX, rect.centerY, rect.radius + rect.step * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(5, 12, 14, 0.78)';
+        ctx.lineWidth = Math.max(1.25, rect.step * 0.035);
+        for (let ring = 1; ring < rings; ring += 1) {
+            ctx.beginPath();
+            ctx.arc(rect.centerX, rect.centerY, ring * rect.step, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        for (let sector = 0; sector < sectors; sector += 1) {
+            const angle = -Math.PI / 2 + (sector / sectors) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(rect.centerX, rect.centerY);
+            ctx.lineTo(rect.centerX + Math.cos(angle) * rect.radius, rect.centerY + Math.sin(angle) * rect.radius);
+            ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(5, 12, 14, 0.9)';
+        for (const coord of this.logic.topology.allCoords()) {
+            const center = this.polarCenter(coord, rect);
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, Math.max(1.8, rect.step * 0.04), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
     traceHex(center, radius) {
         this.ctx.beginPath();
         for (let side = 0; side < 6; side++) {
@@ -323,10 +394,14 @@ class Reversi2DApp {
         const right = rect.right || rect.left + this.logic.topology.width * rect.step;
         const bottom = rect.bottom || rect.top + this.logic.topology.height * rect.step;
         ctx.save();
-        ctx.strokeStyle = this.boundarySelect.value === 'klein' ? 'rgba(242, 196, 100, 0.82)' : this.boundarySelect.value === 'random' ? 'rgba(216, 180, 254, 0.86)' : 'rgba(72, 199, 244, 0.68)';
+        ctx.strokeStyle = this.boundarySelect.value === 'polar' ? 'rgba(245, 182, 71, 0.9)' : this.boundarySelect.value === 'klein' ? 'rgba(242, 196, 100, 0.82)' : this.boundarySelect.value === 'random' ? 'rgba(216, 180, 254, 0.86)' : 'rgba(72, 199, 244, 0.68)';
         ctx.lineWidth = Math.max(1.5, rect.step * 0.035);
         ctx.setLineDash([rect.step * 0.35, rect.step * 0.22]);
-        if (this.boundarySelect.value === 'pbc') {
+        if (this.boundarySelect.value === 'polar') {
+            ctx.beginPath();
+            ctx.arc(rect.centerX, rect.centerY, rect.radius + rect.step * 0.32, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (this.boundarySelect.value === 'pbc') {
             ctx.strokeRect(rect.left - 5, rect.top - 5, right - rect.left + 10, bottom - rect.top + 10);
         } else if (this.boundarySelect.value === 'klein') {
             ctx.beginPath();
@@ -357,13 +432,15 @@ class Reversi2DApp {
     drawStone(coord, color, rect) {
         const center = this.logic.topology.lattice === 'honeycomb'
             ? this.hexCenter(coord, rect)
+            : this.logic.topology.topology === 'polar'
+            ? this.polarCenter(coord, rect)
             : {
                 x: rect.left + (coord[0] + 0.5) * rect.step,
                 y: rect.top + (coord[1] + 0.5) * rect.step
             };
         const cx = center.x;
         const cy = center.y;
-        const radius = this.logic.topology.lattice === 'honeycomb' ? rect.radius * 0.58 : rect.step * 0.39;
+        const radius = this.logic.topology.lattice === 'honeycomb' ? rect.radius * 0.58 : this.logic.topology.topology === 'polar' ? rect.step * 0.34 : rect.step * 0.39;
         const gradient = this.ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.45, radius * 0.1, cx, cy, radius);
         if (color === 'black') {
             gradient.addColorStop(0, '#5a646d');
@@ -386,6 +463,8 @@ class Reversi2DApp {
     drawLegalDot(coord, rect) {
         const center = this.logic.topology.lattice === 'honeycomb'
             ? this.hexCenter(coord, rect)
+            : this.logic.topology.topology === 'polar'
+            ? this.polarCenter(coord, rect)
             : {
                 x: rect.left + (coord[0] + 0.5) * rect.step,
                 y: rect.top + (coord[1] + 0.5) * rect.step
@@ -401,6 +480,11 @@ class Reversi2DApp {
         this.ctx.lineWidth = Math.max(2, rect.step * 0.05);
         if (this.logic.topology.lattice === 'honeycomb') {
             this.traceHex(this.hexCenter(coord, rect), rect.radius * 0.82);
+            this.ctx.stroke();
+        } else if (this.logic.topology.topology === 'polar') {
+            const center = this.polarCenter(coord, rect);
+            this.ctx.beginPath();
+            this.ctx.arc(center.x, center.y, rect.step * 0.42, 0, Math.PI * 2);
             this.ctx.stroke();
         } else {
             this.ctx.strokeRect(
@@ -421,11 +505,15 @@ class Reversi2DApp {
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const topology = this.boundarySelect.value;
-        this.boundaryEl.textContent = topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
+        this.boundaryEl.textContent = topology === 'polar' ? 'Polar Center' : topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.topology.lattice === 'honeycomb'
             ? ' Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.'
+            : topology === 'polar'
+            ? ' Polar rays can bracket around rings and radially through the center.'
             : ' Square uses the usual eight 2D rays.';
-        this.boundaryInfoEl.textContent = (topology === 'random'
+        this.boundaryInfoEl.textContent = (topology === 'polar'
+            ? 'Polar coordinates use one true center node, radial rings, circular angular neighbors, and ring/ray bracketing.'
+            : topology === 'random'
             ? '2D RBC uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'
             : topology === 'klein'
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped.'
