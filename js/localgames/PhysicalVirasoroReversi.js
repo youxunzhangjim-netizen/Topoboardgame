@@ -8,6 +8,19 @@ import { coordKey, sumHomology } from '../topology/GraphTopologies.js';
 import { CliffordReversiGame } from './CliffordReversi.js';
 
 export const PHYSICAL_VIRASORO_REVERSI_MODE = 'physical_virasoro_reversi';
+export const CFT_REVERSI_PHYSICAL_SYSTEM_NAME = 'CFT/domain-wall interval Reversi on a topology graph';
+export const CFT_REVERSI_BLACK_WHITE_MEANING = 'black = + source/domain sign; white = - source/domain sign; stone = primary field or spin/domain insertion; bracketed Reversi line = discrete CFT interval; flipping = OPE channel/domain transformation';
+export const CFT_REVERSI_ALLOWED_ACTIONS = Object.freeze([
+    'place_primary_domain_stone',
+    'flip_bracketed_interval',
+    'update_ope_channel_along_interval',
+    'measure_interval_parity',
+    'measure_ope_channel',
+    'measure_region_entropy',
+    'apply_Ln_deformation',
+    'pass'
+]);
+export const CFT_REVERSI_LOCAL_UPDATE_RULES = 'A legal Reversi placement brackets an opponent path as a discrete CFT interval. Flipped interval stones change source/domain sign and update Ising OPE channel data. Measurements reveal parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update the stress proxy and N=2 anomaly log.';
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -85,13 +98,11 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
     }
 
     setupCFTInitialState(initialState) {
-        if (initialState === 'vacuum') {
-            return;
-        }
         if (initialState === 'domain_wall_seed') this.setupDomainWallSeed();
         if (initialState === 'four_sigma_block') this.setupFourSigmaBlock();
         if (initialState === 'boundary_condition_change') this.setupBoundaryConditionChange();
         if (initialState === 'thermal_cft_sample') this.setupThermalSample();
+        if (initialState === 'two_phase_interval_seed') this.setupTwoPhaseIntervalSeed();
     }
 
     activeSliceVertices() {
@@ -207,6 +218,32 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
                 lastUpdate: { action: 'thermal_cft_sample', tick: 0 }
             });
         }
+    }
+
+    setupTwoPhaseIntervalSeed() {
+        const [width, height] = this.topology.sizes;
+        const tail = this.topology.dimensions > 2
+            ? this.topology.sizes.slice(2).map((size) => Math.floor(size / 2))
+            : [];
+        const y = Math.max(1, Math.min(height - 2, Math.floor(height / 2)));
+        const x0 = Math.max(1, Math.floor(width / 2) - 2);
+        const placements = [
+            [[x0, y, ...tail], 1, 'sigma', 'phase_A_source'],
+            [[Math.min(width - 2, x0 + 1), y, ...tail], -1, 'sigma', 'interface_sigma'],
+            [[Math.min(width - 2, x0 + 2), y, ...tail], -1, 'epsilon', 'phase_B_energy'],
+            [[Math.min(width - 2, x0 + 3), y, ...tail], 1, 'sigma', 'phase_A_sink']
+        ];
+        for (const [coord, sign, primaryType, channelLabel] of placements) {
+            this.setStone(coord, {
+                sign,
+                primaryType,
+                channelLabel,
+                lastUpdate: { action: 'two_phase_interval_seed', tick: 0 }
+            });
+            this.cft.addStress(coord, primaryType === 'epsilon' ? 0.75 : 0.25, sign > 0 ? 'black' : 'white');
+        }
+        this.lastFlippedPath = placements.map(([coord]) => [...coord]);
+        this.cft.lastInterval = this.lastFlippedPath;
     }
 
     collectCFTRay(coord, direction, player) {
@@ -342,7 +379,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         this.currentPlayer = otherPlayer(player);
         this.appendPhysicsHistory({
             player,
-            action: 'place',
+            action: 'flip_bracketed_interval',
             placedStone: event.placedStone,
             flippedPath: event.flippedPath,
             OPEUpdates: event.OPEUpdates
@@ -379,7 +416,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         this.currentPlayer = otherPlayer(player);
         this.appendPhysicsHistory({
             player,
-            action: 'virasoro',
+            action: 'apply_Ln_deformation',
             VirasoroActions: event.VirasoroActions
         });
         this.recordPosition('cft_virasoro');
@@ -409,9 +446,16 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         };
         this.history.unshift(event);
         this.currentPlayer = otherPlayer(player);
+        const actionByType = {
+            line_parity: 'measure_interval_parity',
+            ope_channel: 'measure_ope_channel',
+            four_point_block: 'measure_four_point_correlator',
+            region_entropy: 'measure_region_entropy',
+            stress: 'measure_stress_proxy'
+        };
         this.appendPhysicsHistory({
             player,
-            action: 'measurement',
+            action: actionByType[type] || 'measurement',
             measurements: event.measurements
         });
         this.recordPosition('cft_measurement');
@@ -448,10 +492,50 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
     }
 
     computeCFTObservables(recordHistory = false) {
-        return this.cft.computeObservables(this.board, {
+        const observables = this.cft.computeObservables(this.board, {
             interval: this.lastFlippedPath,
             recordHistory
         });
+        const opeChannelDistribution = {};
+        for (const event of this.cft.opeChannelHistory || []) {
+            const channel = event.hiddenChannel || event.channelLabel || event.resolved;
+            if (channel) opeChannelDistribution[channel] = (opeChannelDistribution[channel] || 0) + 1;
+        }
+        for (const [key, stone] of this.board.entries()) {
+            const channel = stone.hiddenChannel || stone.channelLabel || 'identity';
+            opeChannelDistribution[channel] = (opeChannelDistribution[channel] || 0) + 1;
+            if (!key) continue;
+        }
+        const finalCFTSector = Object.entries(opeChannelDistribution)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0]
+            || observables.dominantConformalBlock
+            || 'identity';
+        return {
+            ...observables,
+            physicalSystemName: CFT_REVERSI_PHYSICAL_SYSTEM_NAME,
+            blackWhiteMeaning: CFT_REVERSI_BLACK_WHITE_MEANING,
+            primaryCount: this.board.size,
+            primaryFieldCounts: cloneValue(observables.primaryCounts),
+            opeChannelDistribution,
+            OPEChannelDistribution: cloneValue(opeChannelDistribution),
+            OPEChannelTransitions: cloneValue(this.cft.opeChannelHistory || []),
+            conformalBlockWeights: cloneValue(observables.conformalBlockWeights),
+            dominantBlock: observables.dominantConformalBlock,
+            intervalEntropyEstimate: observables.entanglementEntropyEstimate,
+            stressProxy: cloneValue(observables.stressTensorProxy),
+            centralChargeAnomalyEvents: cloneValue(observables.centralChargeAnomalyEvents),
+            anomalyEventCount: observables.centralChargeAnomalyEvents.length,
+            finalDominantOPEChannel: observables.dominantConformalBlock,
+            finalCFTSector,
+            topologicalSector: cloneValue(observables.topologySector),
+            stableTopologicalOrTwistedSector: Boolean(
+                observables.topologySector?.twisted
+                || observables.topologySector?.x
+                || observables.topologySector?.y
+                || observables.topologySector?.z
+                || observables.topologySector?.w
+            )
+        };
     }
 
     appendPhysicsHistory({
@@ -497,16 +581,19 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         return {
             estimatorNotice: observables.estimatorNotice,
             finalDominantOPEChannel: observables.dominantConformalBlock,
+            finalCFTSector: observables.finalCFTSector,
             finalConformalBlockDistribution: cloneValue(observables.conformalBlockWeights),
             finalDomainWallLength: observables.domainWallLength,
             finalEntropyEstimate: observables.entanglementEntropyEstimate,
+            entropyGrowth: entropy.length < 2 ? 0 : entropy[entropy.length - 1] - entropy[0],
             entropyGrowthTrend,
             strongestCorrelations: cloneValue(observables.strongestCorrelations),
             vacuumIdentityChannelDominates: observables.dominantConformalBlock === 'identity',
             stableTopologicalOrTwistedSector: stableTwistedSector,
             topologySector: cloneValue(sector),
+            anomalyCount: observables.centralChargeAnomalyEvents.length,
             anomalyEvents: observables.centralChargeAnomalyEvents.length,
-            summary: `Discrete CFT estimate: ${observables.dominantConformalBlock} block dominates; entropy ${observables.entanglementEntropyEstimate.toFixed(3)}; domain-wall length ${observables.domainWallLength}; ${observables.centralChargeAnomalyEvents.length} N=2 anomaly event${observables.centralChargeAnomalyEvents.length === 1 ? '' : 's'}.`
+            summary: `Discrete CFT/domain-wall interval estimate: ${observables.dominantConformalBlock} OPE/block dominates; final sector ${observables.finalCFTSector}; entropy ${observables.entanglementEntropyEstimate.toFixed(3)}; domain-wall length ${observables.domainWallLength}; ${observables.centralChargeAnomalyEvents.length} N=2 anomaly event${observables.centralChargeAnomalyEvents.length === 1 ? '' : 's'}.`
         };
     }
 
@@ -533,6 +620,11 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         const observables = this.computeCFTObservables();
         return {
             mode: this.mode,
+            physicalSystemName: CFT_REVERSI_PHYSICAL_SYSTEM_NAME,
+            blackWhiteMeaning: CFT_REVERSI_BLACK_WHITE_MEANING,
+            initialStateOptions: [...CFT_REVERSI_INITIAL_STATES],
+            allowedActions: [...CFT_REVERSI_ALLOWED_ACTIONS],
+            localUpdateRules: CFT_REVERSI_LOCAL_UPDATE_RULES,
             topology: {
                 name: this.topology.name,
                 sizes: [...this.topology.sizes],
@@ -552,6 +644,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
             observables,
             cft: this.cft.exportState(),
             answer: this.computeCFTReversiAnswer(),
+            physicalAnswer: this.computeCFTReversiAnswer(),
             probability: this.probability.exportState()
         };
     }

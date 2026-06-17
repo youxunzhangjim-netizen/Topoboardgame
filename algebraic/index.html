@@ -57,8 +57,8 @@
                                 <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Game</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Chiral systems">
-                                <option value="physical_virasoro_go" data-layer="physical">Chiral CFT / Virasoro Go</option>
-                                <option value="physical_virasoro_reversi" data-layer="physical">Chiral CFT / Virasoro Reversi</option>
+                                <option value="physical_virasoro_go" data-layer="physical">CFT Observable Go</option>
+                                <option value="physical_virasoro_reversi" data-layer="physical">CFT Domain-Wall Reversi</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Z2 gauge / toric-code systems">
                                 <option value="z2_gauge_loop_game" data-layer="physical">Z2 Gauge Loop Game</option>
@@ -668,6 +668,7 @@
                             <option value="four_sigma_block" selected>Four Sigma Block</option>
                             <option value="boundary_condition_change">Boundary Condition Change</option>
                             <option value="thermal_cft_sample">Thermal CFT Sample</option>
+                            <option value="two_phase_interval_seed">Two-Phase Interval Seed</option>
                         </select>
                     </label>
                     <label id="cftDomainWallThicknessControl" hidden>
@@ -956,15 +957,15 @@
                         <p><strong>Results:</strong> Stabilizer Pauli Recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
-                        <h2>Virasoro Reversi Introduction and Observables</h2>
-                        <p><strong>Approximation:</strong> this is a discrete graph simulator inspired by CFT. Correlations, conformal blocks, stress, entropy, and topology sectors are lattice estimators rather than exact continuum observables.</p>
-                        <p><strong>Fields:</strong> an empty vertex is identity. Occupied vertices carry a domain sign and a primary field. The default Ising CFT uses c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2.</p>
-                        <p><strong>Initial states:</strong> Vacuum is empty. Domain Wall Seed creates opposite spin domains. Four Sigma Block tracks identity and epsilon blocks. Boundary Condition Change places seam/boundary insertions. Thermal Sample uses seeded temperature-weighted sigma/epsilon insertions.</p>
-                        <p><strong>Reversi interval:</strong> a placement must bracket an opponent path. The path is treated as a discrete conformal interval: signs flip and Ising OPE rules update fields and channels. Sigma x sigma has identity or epsilon channels, sigma x epsilon gives sigma, and epsilon x epsilon gives identity.</p>
+                        <h2>CFT Domain-Wall Reversi Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black is the + source/domain sign and white is the - source/domain sign. A stone is a primary field or spin/domain insertion. A bracketed Reversi line is a discrete CFT interval, and flipping is an OPE channel/domain transformation.</p>
+                        <p><strong>Default CFT:</strong> Ising CFT uses c=1/2 with sigma, epsilon, and identity fields. OPE rules are sigma x sigma -> identity + epsilon, sigma x epsilon -> sigma, and epsilon x epsilon -> identity.</p>
+                        <p><strong>Initial states:</strong> choose domain wall seed, four sigma block, boundary condition change, thermal CFT sample, or two-phase interval seed. Vacuum is not a selectable Virasoro Reversi initial option.</p>
+                        <p><strong>Actions:</strong> place a primary/domain stone, flip a bracketed interval, update OPE channels along the interval, measure interval parity, measure OPE channel, measure region entropy, or apply an L_n deformation.</p>
                         <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, L_1. N=2 also enables L_-2 splitting and L_2 concentration. Overlap of N=2 actions can create central-charge anomaly markers.</p>
-                        <p><strong>Measurements:</strong> measure line parity, hidden OPE channels, the four-point block, region entropy, or local/region stress. Measurement errors are seeded and logged.</p>
-                        <p><strong>Output:</strong> every turn records primary/sign counts, domain walls, connected domains, correlation estimates, cross-ratio, block weights, stress T(v), entropy, mutual information, OPE transitions, anomaly events, and topology sector.</p>
-                        <p><strong>Results:</strong> the CFT observables panel summarizes the current central charge, dominant block, entropy, strongest correlation, OPE-channel counts, anomaly count, and vacuum-block status. Export JSON keeps the full per-turn physics history and final estimator answer.</p>
+                        <p><strong>Observables:</strong> every turn records domain-wall length, primary counts, OPE channel transitions, conformalBlockWeights, dominant block, interval entropy estimate, stress proxy, central-charge anomaly events, and twisted/topological sector when supported by the topology.</p>
+                        <p><strong>Estimator note:</strong> CFT correlations, conformal blocks, entropy, and stress are discrete graph estimators for gameplay and are not exact continuum CFT values.</p>
+                        <p><strong>Answer:</strong> export summarizes final dominant OPE channel, final domain-wall length, whether a stable topological/twisted sector appears, entropy growth, anomaly count, and final CFT sector.</p>
                     </div>
                     <div data-rules-mode="anyon">
                         <h2>Anyon Introduction and Observables</h2>
@@ -987,16 +988,15 @@
                         <p><strong>Observables and results:</strong> the QEC panel reports total fusion charge, logical sector, memory alive/lost, vacuum recovery, average and maximum braid word length, and successful or failed unbraids. Research export keeps worldlines, braid tokens, fusion outcomes, logical-sector history, energy history, memory lifetime, logical-error rate, unbraid success rate, and final physical answer.</p>
                     </div>
                     <div data-rules-mode="virasoro">
-                        <h2>Virasoro Go Introduction and Observables</h2>
-                        <p><strong>Approximation:</strong> this is a discrete CFT-inspired estimator on a graph, not an exact continuum CFT solver. Normal graph-Go remains a separate game.</p>
-                        <p><strong>Go rules:</strong> liberties, groups, captures, suicide, superko, passing, and area scoring are unchanged and use only topology adjacency.</p>
-                        <p><strong>Primary insertions:</strong> a legal Go placement inserts a primary field. Ising CFT uses identity, sigma with h=1/16, and epsilon with h=1/2 at c=1/2. Free Boson uses identity and a configurable vertex operator at c=1. The primary/operator palette opens at the clicked Go vertex.</p>
-                        <p><strong>Initial states:</strong> choose vacuum, two-point insertions, four-point block, boundary CFT insertions, or a seeded thermal sparse state.</p>
-                        <p><strong>OPE and capture:</strong> adjacent compatible primaries form approximate OPE clusters and channel labels. A normal Go capture removes the captured primary insertions after the liberty calculation.</p>
-                        <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, and L_1. N=2 adds L_-2 and L_2. They approximate discrete conformal deformations by changing stress, phase, and symbolic channel data; overlapping N=2 actions can add central-charge anomaly markers.</p>
-                        <p><strong>Measurements:</strong> measure a two-point estimate, four-point block, region entropy, OPE channel, dominant block, or stress. Hidden channels collapse when measured and seeded measurement errors are logged.</p>
-                        <p><strong>Observables:</strong> every turn records primary counts, approximate correlators, cross-ratio, conformal-block weights, dominant block, stress proxy, total conformal weight, OPE clusters, entropy, mutual information, anomaly events, and topology sector.</p>
-                        <p><strong>Results:</strong> CFT Conformal Block Observables exports initial and final observables, full physics history, block distribution, strongest two-point correlations, entropy trend, anomaly count, vacuum-block dominance, and a final summary of the discrete graph estimate.</p>
+                        <h2>CFT Observable Go Introduction and Observables</h2>
+                        <p><strong>Physical system:</strong> the board is a discretized Riemann surface / graph manifold. Empty vertices are identity operators, stones are primary-field insertions, black and white are source sign or player control, and primaryType stores the physical field.</p>
+                        <p><strong>Default CFT:</strong> Ising CFT is the default with c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2. Free Boson remains available as an alternate estimator.</p>
+                        <p><strong>Go rule:</strong> legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency. Captures remove and fuse the captured primary cluster after the graph-liberty calculation.</p>
+                        <p><strong>Initial states:</strong> choose two-point insertions, four-point block, boundary CFT insertions, thermal sparse insertions, or an identity background seeded with sigma/epsilon defects. The empty vacuum is avoided as the default so the observable game starts with physics to measure.</p>
+                        <p><strong>Measurements:</strong> measure OPE channel, two-point correlator, four-point correlator / block, dominant block, region entropy, or stress tensor proxy T(v). Hidden channels collapse when measured and seeded measurement errors are logged.</p>
+                        <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, and L_1. N=2 adds L_-2 and L_2 and records central-charge anomaly events when overlapping N=2 stress updates occur.</p>
+                        <p><strong>Observables:</strong> every move records primary counts, OPE channel distribution, two-point estimates, four-point cross-ratio, conformalBlockWeights, dominant conformal block, stress tensor proxy T(v), entanglement entropy estimate, mutual information estimate, and anomaly events.</p>
+                        <p><strong>Answer:</strong> export summarizes final dominant block, identity/vacuum block dominance, entropy growth, strongest correlations, final OPE sector, and anomaly count.</p>
                     </div>
                         </div>
                     </div>

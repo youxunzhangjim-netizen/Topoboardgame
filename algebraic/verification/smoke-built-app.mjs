@@ -76,6 +76,8 @@ try {
     assert.match(rulesState.parentClass, /board-wrap/, 'Rules intro panel should live inside the board/game area.');
     assert.match(rulesState.text, /Clifford Reversi/);
     assert.doesNotMatch(rulesState.text, /Toric code fusion/);
+    await page.locator('#rulesIntroCloseButton').click();
+    await page.waitForFunction(() => document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') === 'true');
     assert.equal(await page.locator('#topologySelect option[value="random_boundary"]').count(), 1, '2D RBC should be available in the topology selector.');
     await page.selectOption('#topologySelect', 'random_boundary');
     const randomBoundaryState = await page.evaluate(() => {
@@ -549,23 +551,23 @@ try {
             .map((node) => node.textContent || '')
             .join(' ')
     }));
-    assert.equal(fixedGoState.title, 'Virasoro Go');
-    assert.equal(fixedGoState.modeControlHidden, false, 'Launcher-selected Virasoro Go should remain changeable inside the algebraic app.');
-    assert.notEqual(fixedGoState.cftControlsDisplay, 'none', 'Virasoro Go should show its CFT/Virasoro controls.');
-    assert.equal(fixedGoState.cliffordDisplay, 'none', 'Virasoro Go should hide Clifford algebra group.');
-    assert.equal(fixedGoState.anyonDisplay, 'none', 'Virasoro Go should hide Anyon algebra group.');
-    assert.equal(fixedGoState.virasoroDisplay, 'none', 'Virasoro Go should hide the retired legacy Virasoro group.');
-    assert.equal(fixedGoState.pauliHidden, true, 'Virasoro Go should hide Clifford Pauli controls.');
+    assert.equal(fixedGoState.title, 'CFT Observable Go');
+    assert.equal(fixedGoState.modeControlHidden, false, 'Launcher-selected CFT Observable Go should remain changeable inside the algebraic app.');
+    assert.notEqual(fixedGoState.cftControlsDisplay, 'none', 'CFT Observable Go should show its CFT/Virasoro controls.');
+    assert.equal(fixedGoState.cliffordDisplay, 'none', 'CFT Observable Go should hide Clifford algebra group.');
+    assert.equal(fixedGoState.anyonDisplay, 'none', 'CFT Observable Go should hide Anyon algebra group.');
+    assert.equal(fixedGoState.virasoroDisplay, 'none', 'CFT Observable Go should hide the retired legacy Virasoro group.');
+    assert.equal(fixedGoState.pauliHidden, true, 'CFT Observable Go should hide Clifford Pauli controls.');
     assert.equal(fixedGoState.pauliDisplay, 'none', 'Hidden Clifford controls should not occupy layout space.');
-    assert.equal(fixedGoState.braidHidden, true, 'Virasoro Go should hide Anyon braid controls.');
+    assert.equal(fixedGoState.braidHidden, true, 'CFT Observable Go should hide Anyon braid controls.');
     assert.equal(fixedGoState.braidDisplay, 'none', 'Hidden Anyon controls should not occupy layout space.');
-    assert.equal(fixedGoState.rulesButton, 'Virasoro Go Intro');
+    assert.equal(fixedGoState.rulesButton, 'CFT Observable Go Intro');
     assert.deepEqual(
         fixedGoState.physicalProblemOptions,
         ['', 'cft_conformal_block_observables'],
-        'Virasoro Go should expose its compatible CFT observable wrapper only.'
+        'CFT Observable Go should expose its compatible CFT observable wrapper only.'
     );
-    assert.match(fixedGoState.rulesText, /Virasoro Go Introduction/);
+    assert.match(fixedGoState.rulesText, /CFT Observable Go Introduction/);
     await page.locator('#rulesIntroButton').click();
     const visibleVirasoroRules = await page.evaluate(() => ({
         visible: document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') !== 'true',
@@ -573,8 +575,10 @@ try {
             .map((node) => node.textContent || '')
             .join(' ')
     }));
-    assert.equal(visibleVirasoroRules.visible, true, 'Virasoro rules should open in the board area.');
+    assert.equal(visibleVirasoroRules.visible, true, 'CFT Observable Go rules should open in the board area.');
     assert.match(visibleVirasoroRules.text, /Virasoro actions/);
+    await page.locator('#rulesIntroCloseButton').click();
+    await page.waitForFunction(() => document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') === 'true');
     await page.locator('.cell.legal').first().click();
     await page.locator('.site-action-palette .site-action-choice').first().click();
     await page.locator('.cell.legal').first().click();
@@ -584,8 +588,8 @@ try {
         cftBadges: document.querySelectorAll('.stone.go-stone .cft-badge').length,
         firstTitle: document.querySelector('.stone.go-stone.black')?.getAttribute('title') || ''
     }));
-    assert.ok(cftStoneState.blackStones >= 1, 'Virasoro Go stones should render on the board.');
-    assert.ok(cftStoneState.cftBadges >= 1, 'Virasoro Go stones should show CFT h badges.');
+    assert.ok(cftStoneState.blackStones >= 1, 'CFT Observable Go stones should render on the board.');
+    assert.ok(cftStoneState.cftBadges >= 1, 'CFT Observable Go stones should show CFT h badges.');
     assert.match(cftStoneState.firstTitle, /h=/);
     await page.selectOption('#cftActionSelect', 'L0');
     await page.locator('.stone.black').first().locator('xpath=..').click();
@@ -598,7 +602,7 @@ try {
         };
     });
     assert.equal(goState.mode, 'physical_virasoro_go');
-    assert.equal(goState.historyAction, 'virasoro_deformation');
+    assert.equal(goState.historyAction, 'apply_Ln_deformation');
     assert.ok(goState.stressCount > 0, 'Expected L0 to create stress on Go liberties.');
 
     await page.goto(`http://127.0.0.1:${port}/?mode=physical_virasoro_reversi`, { waitUntil: 'networkidle' });
@@ -609,14 +613,24 @@ try {
             mode: exported.mode,
             boardSize: exported.board.length,
             sigmaCount: exported.counts.primaryTypes.sigma,
+            physicalSystemName: exported.physicalSystemName,
+            initialState: exported.cftConfig.initialState,
+            initialOptions: [...document.querySelectorAll('#cftInitialStateSelect option')].map((option) => option.value),
+            measurementOptions: [...document.querySelectorAll('#cftMeasurementSelect option:not([disabled])')].map((option) => option.value),
             controlsVisible: !document.querySelector('#cftReversiControls')?.hidden,
             cliffordHidden: document.querySelector('#cliffordAlgebraControls')?.hidden,
             blockVisible: !document.querySelector('#cftObservablePanel')?.hidden,
             legalMoves: document.querySelectorAll('.cell.legal').length
         };
     });
-    assert.equal(cftInitialState.title, 'Virasoro Reversi');
+    assert.equal(cftInitialState.title, 'CFT Domain-Wall Reversi');
     assert.equal(cftInitialState.mode, 'physical_virasoro_reversi');
+    assert.match(cftInitialState.physicalSystemName, /CFT\/domain-wall interval/);
+    assert.equal(cftInitialState.initialState, 'four_sigma_block');
+    assert.equal(cftInitialState.initialOptions.includes('vacuum'), false);
+    assert.equal(cftInitialState.initialOptions.includes('two_phase_interval_seed'), true);
+    assert.equal(cftInitialState.measurementOptions.includes('line_parity'), true);
+    assert.equal(cftInitialState.measurementOptions.includes('two_point'), false);
     assert.equal(cftInitialState.boardSize, 4);
     assert.equal(cftInitialState.sigmaCount, 4);
     assert.equal(cftInitialState.controlsVisible, true);
@@ -631,21 +645,28 @@ try {
         return {
             moveNumber: exported.moveNumber,
             historyType: exported.history[0]?.type,
+            physicsAction: exported.physicsHistory.at(-1)?.action,
             opeUpdates: exported.history[0]?.OPEUpdates?.length,
             physicsHistory: exported.physicsHistory.length,
+            finalCFTSector: exported.observables.finalCFTSector,
             entropy: exported.observables.entanglementEntropyEstimate
         };
     });
     assert.equal(cftMoveState.moveNumber, 1);
     assert.equal(cftMoveState.historyType, 'place');
+    assert.equal(cftMoveState.physicsAction, 'flip_bracketed_interval');
     assert.ok(cftMoveState.opeUpdates > 0);
     assert.ok(cftMoveState.physicsHistory >= 2);
+    assert.ok(cftMoveState.finalCFTSector.length > 0);
     assert.equal(typeof cftMoveState.entropy, 'number');
 
     await page.locator('#rulesIntroButton').click();
     const cftRules = await page.locator('[data-rules-mode="cft-reversi"]').textContent();
+    assert.match(cftRules, /CFT Domain-Wall Reversi/);
     assert.match(cftRules, /Ising CFT/);
     assert.match(cftRules, /approximation|estimator/i);
+    await page.locator('#rulesIntroCloseButton').click();
+    await page.waitForFunction(() => document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') === 'true');
 
     await page.selectOption('#topologySelect', 'torus');
     await page.waitForTimeout(250);

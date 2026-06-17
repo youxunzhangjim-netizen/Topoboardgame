@@ -336,8 +336,8 @@ const MODE_LABELS = {
     physical_clifford_jump: 'Physical Clifford Jump Chess',
     anyon_reversi: 'Anyon Reversi',
     physical_anyon_reversi: 'Physical Anyon Reversi',
-    physical_virasoro_go: 'Virasoro Go',
-    physical_virasoro_reversi: 'Virasoro Reversi',
+    physical_virasoro_go: 'CFT Observable Go',
+    physical_virasoro_reversi: 'CFT Domain-Wall Reversi',
     virasoro_jump: 'Virasoro Jump Chess',
     physical_virasoro_jump: 'Physical Virasoro Jump Chess',
     anyon_jump: 'Anyon Jump Chess',
@@ -600,17 +600,18 @@ function isCFTMode(mode = game?.mode || selectedMode()) {
 function syncCFTInitialStateOptions(isGo) {
     const choices = isGo
         ? [
-            ['vacuum', 'Vacuum'],
             ['two_point_insertions', 'Two-Point Insertions'],
             ['four_point_block', 'Four-Point Block'],
             ['boundary_cft', 'Boundary CFT'],
-            ['thermal_sparse', 'Thermal Sparse']
+            ['thermal_sparse', 'Thermal Sparse'],
+            ['identity_background_with_defects', 'Identity Background + Defects']
         ]
         : [
             ['domain_wall_seed', 'Domain Wall Seed'],
             ['four_sigma_block', 'Four Sigma Block'],
             ['boundary_condition_change', 'Boundary Condition Change'],
-            ['thermal_cft_sample', 'Thermal CFT Sample']
+            ['thermal_cft_sample', 'Thermal CFT Sample'],
+            ['two_phase_interval_seed', 'Two-Phase Interval Seed']
         ];
     const previous = els.cftInitialStateSelect.value;
     els.cftInitialStateSelect.replaceChildren(...choices.map(([value, label]) => {
@@ -621,7 +622,7 @@ function syncCFTInitialStateOptions(isGo) {
     }));
     els.cftInitialStateSelect.value = choices.some(([value]) => value === previous)
         ? previous
-        : choices[0][0];
+        : isGo ? 'four_point_block' : choices[0][0];
 }
 
 function syncCFTPrimaryOptions() {
@@ -1019,6 +1020,13 @@ function syncModeControls() {
                 : ['place', 'L-1', 'L0', 'L1', 'measure'],
             'place'
         );
+        setAllowedSelectValues(
+            els.cftMeasurementSelect,
+            isVirasoroGo
+                ? ['two_point', 'ope_channel', 'four_point_block', 'dominant_block', 'region_entropy', 'stress']
+                : ['line_parity', 'ope_channel', 'four_point_block', 'dominant_block', 'region_entropy', 'stress'],
+            isVirasoroGo ? 'two_point' : 'line_parity'
+        );
     }
     els.passButton.hidden = isJump;
     els.countButton.hidden = !isGoMode(mode);
@@ -1053,9 +1061,9 @@ function syncModeControls() {
     if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
     if (els.rulesIntroButton) {
         const introLabel = isVirasoroGo
-            ? 'Virasoro Go Intro'
+            ? 'CFT Observable Go Intro'
             : isVirasoroJump ? 'Virasoro Jump Intro'
-            : isCFTReversi ? 'CFT Reversi Intro'
+            : isCFTReversi ? 'CFT Domain-Wall Reversi Intro'
             : isAnyon || isAnyonReversi ? 'Anyon Intro'
             : isCliffordJump ? 'Clifford Jump Intro' : 'Clifford Intro';
         els.rulesIntroButton.textContent = introLabel;
@@ -1406,6 +1414,22 @@ function createGame() {
                     initialStateOptions: ['gauge_vacuum', 'random_edge_errors', 'paired_charge_defects', 'paired_flux_defects', 'logical_loop_error'],
                     allowedActions: ['flip_edge', 'flip_path', 'flip_loop', 'measure_star', 'measure_plaquette', 'noisy_edge_flip', 'pass'],
                     localUpdateRules: 'Open strings flip connected edge paths and create star-charge endpoints. Closed loops preserve local constraints. Noncontractible loops change Wilson-loop logical sectors when the selected topology supports cycles.'
+                })
+            : mode === 'physical_virasoro_go'
+                ? createPhysicalModeDefinition(mode, {
+                    physicalSystemName: 'CFT observable Go on a discretized Riemann graph',
+                    blackWhiteMeaning: 'board = discretized Riemann surface / graph manifold; empty = identity operator; stone = primary-field insertion; black/white = source sign or player control; primaryType carries the physical field',
+                    initialStateOptions: ['two_point_insertions', 'four_point_block', 'boundary_cft', 'thermal_sparse', 'identity_background_with_defects'],
+                    allowedActions: ['place_primary_field', 'capture_fuse_cluster', 'measure_ope_channel', 'measure_two_point_correlator', 'measure_four_point_correlator', 'apply_Ln_deformation', 'pass', 'count'],
+                    localUpdateRules: 'Topology-aware Go placement inserts primary fields and captures/fuses clusters by graph liberties. Measurements estimate OPE channels and two-/four-point CFT observables. L_n Virasoro deformations update stress proxies, with N=2 tracking central-charge anomaly events.'
+                })
+            : mode === 'physical_virasoro_reversi'
+                ? createPhysicalModeDefinition(mode, {
+                    physicalSystemName: 'CFT/domain-wall interval Reversi on a topology graph',
+                    blackWhiteMeaning: 'black = + source/domain sign; white = - source/domain sign; stone = primary field or spin/domain insertion; bracketed Reversi line = discrete CFT interval; flipping = OPE channel/domain transformation',
+                    initialStateOptions: ['domain_wall_seed', 'four_sigma_block', 'boundary_condition_change', 'thermal_cft_sample', 'two_phase_interval_seed'],
+                    allowedActions: ['place_primary_domain_stone', 'flip_bracketed_interval', 'update_ope_channel_along_interval', 'measure_interval_parity', 'measure_ope_channel', 'measure_region_entropy', 'apply_Ln_deformation', 'pass'],
+                    localUpdateRules: 'A legal Reversi placement brackets an opponent path as a discrete CFT interval. Flipped interval stones change source/domain sign and update Ising OPE channels. Measurements reveal interval parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update stress and N=2 anomaly events.'
                 })
             : createPhysicalModeDefinition(mode);
         attachPhysicalGameFramework(game, definition);
@@ -2002,12 +2026,7 @@ function renderCFTObservablePanel() {
     els.cftIdentityBlockValue.textContent = identity.toFixed(3);
     els.cftEpsilonBlockValue.textContent = epsilon.toFixed(3);
     const strongest = observables.strongestCorrelations?.[0];
-    const channels = {};
-    for (const cluster of observables.OPEClusters || []) {
-        for (const channel of cluster.channelLabels || []) {
-            channels[channel] = (channels[channel] || 0) + 1;
-        }
-    }
+    const channels = observables.opeChannelDistribution || {};
     els.cftObservableModel.textContent = observables.cftModel === 'free_boson_CFT'
         ? 'Free Boson CFT'
         : 'Ising CFT';
@@ -2028,7 +2047,7 @@ function renderCFTObservablePanel() {
     const crossRatio = observables.fourPointCrossRatio == null
         ? 'not available'
         : formatNumber(observables.fourPointCrossRatio);
-    els.cftObservableSummary.textContent = `Dominant ${observables.dominantConformalBlock}; cross-ratio ${crossRatio}; entropy ${formatNumber(observables.entanglementEntropyEstimate)}; mutual information ${formatNumber(observables.mutualInformationEstimate)}; wall ${observables.domainWallLength}; anomalies ${observables.centralChargeAnomalyEvents.length}.`;
+    els.cftObservableSummary.textContent = `Dominant ${observables.dominantConformalBlock}; OPE sector ${observables.finalOPESector || 'identity'}; cross-ratio ${crossRatio}; entropy ${formatNumber(observables.entanglementEntropyEstimate)}; mutual information ${formatNumber(observables.mutualInformationEstimate)}; anomalies ${observables.centralChargeAnomalyEvents.length}.`;
 }
 
 function renderBoard() {
@@ -3776,7 +3795,7 @@ function updateStatus() {
                 ? `${action} will affect ${preview.affected.length} stress vertex${preview.affected.length === 1 ? '' : 'es'}.`
                 : (preview?.error || `Choose a valid target for ${action}.`);
         } else if (action === 'place') {
-            els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.cftPrimarySelect.value}. Dominant block ${observables.dominantConformalBlock}; captures black ${game.captures.black}, white ${game.captures.white}.`;
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.cftPrimarySelect.value}. Dominant block ${observables.dominantConformalBlock}; OPE sector ${observables.finalOPESector}; captures black ${game.captures.black}, white ${game.captures.white}.`;
         } else if (action === 'measure') {
             const required = ['four_point_block', 'dominant_block'].includes(els.cftMeasurementSelect.value)
                 ? 4
@@ -4222,6 +4241,17 @@ els.topologySelect.addEventListener('change', () => {
     }
 });
 
+function handleConfigControlChange(event) {
+    if (event?.currentTarget === els.cliffordAlgebraSetSelect
+        && els.cliffordAlgebraSetSelect.value === 'standard'
+        && selectedMode() === 'physical_clifford_reversi') {
+        if (els.gameLayerSelect) els.gameLayerSelect.value = 'algebraic';
+        syncModeCatalogForLayer();
+        els.modeSelect.value = 'clifford_reversi';
+    }
+    createGame();
+}
+
 for (const control of [
     els.gameLayerSelect,
     els.modeSelect,
@@ -4288,7 +4318,7 @@ for (const control of [
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
-    control.addEventListener('change', createGame);
+    control.addEventListener('change', handleConfigControlChange);
 }
 els.isingActionSelect?.addEventListener('change', render);
 els.twoPhaseActionSelect?.addEventListener('change', render);

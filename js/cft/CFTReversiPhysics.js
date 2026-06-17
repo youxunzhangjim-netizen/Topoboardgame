@@ -7,11 +7,11 @@ export const ISING_CFT_PRIMARIES = Object.freeze({
 });
 
 export const CFT_REVERSI_INITIAL_STATES = Object.freeze([
-    'vacuum',
     'domain_wall_seed',
     'four_sigma_block',
     'boundary_condition_change',
-    'thermal_cft_sample'
+    'thermal_cft_sample',
+    'two_phase_interval_seed'
 ]);
 
 export const CFT_MEASUREMENTS = Object.freeze([

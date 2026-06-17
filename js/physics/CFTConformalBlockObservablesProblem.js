@@ -6,11 +6,11 @@ export const CFT_CONFORMAL_BLOCK_COMPATIBLE_MODES = Object.freeze([
 ]);
 
 const INITIAL_STATES = Object.freeze([
-    'vacuum',
     'two_point_insertions',
     'four_point_block',
     'boundary_cft',
-    'thermal_sparse'
+    'thermal_sparse',
+    'identity_background_with_defects'
 ]);
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -42,6 +42,9 @@ function distribution(values) {
 }
 
 function channelDistribution(observables = {}) {
+    if (observables.opeChannelDistribution && Object.keys(observables.opeChannelDistribution).length) {
+        return cloneValue(observables.opeChannelDistribution);
+    }
     const result = {};
     for (const cluster of observables.OPEClusters || []) {
         for (const channel of cluster.channelLabels || []) {
@@ -49,6 +52,14 @@ function channelDistribution(observables = {}) {
         }
     }
     return result;
+}
+
+function finalOPESector(observables = {}) {
+    if (observables.finalOPESector) return observables.finalOPESector;
+    const entries = Object.entries(channelDistribution(observables));
+    if (!entries.length) return 'identity';
+    entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return entries[0][0] || 'identity';
 }
 
 function entropyTrend(history = []) {
@@ -93,14 +104,21 @@ export function computeCFTPhysicalAnswer({
     const answer = {
         estimatorNotice: finalObservables.estimatorNotice
             || 'All CFT values are discrete graph estimators, not exact continuum CFT results.',
+        finalDominantBlock: finalObservables.dominantConformalBlock || 'identity',
         finalDominantConformalBlock: finalObservables.dominantConformalBlock || 'identity',
+        finalOPEChannelDistribution: channelDistribution(finalObservables),
         finalOPEFusionChannelDistribution: channelDistribution(finalObservables),
+        finalOPESector: finalOPESector(finalObservables),
         finalEntropyEstimate: Number(finalObservables.entanglementEntropyEstimate) || 0,
+        entropyGrowth: entropyTrend(physicsHistory),
         entropyGrowthTrend: entropyTrend(physicsHistory),
         entropyGrowthHistory: [...entropyHistory],
+        strongestCorrelations: cloneValue(finalObservables.strongestCorrelations || []),
         strongestTwoPointCorrelations: cloneValue(finalObservables.strongestCorrelations || []),
+        identityBlockDominates: vacuumBlockDominates,
         vacuumBlockDominates,
         closeToIdentityVacuumSector,
+        anomalyCount: finalObservables.centralChargeAnomalyEvents?.length || 0,
         numberOfAnomalyEvents: finalObservables.centralChargeAnomalyEvents?.length || 0,
         finalTotalConformalWeight: nonIdentityWeight
     };

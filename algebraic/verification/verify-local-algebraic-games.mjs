@@ -8,6 +8,7 @@ import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
 import {
+    CFT_REVERSI_INITIAL_STATES,
     estimateIsingBlockWeights,
     isingOPE
 } from '../../js/cft/CFTReversiPhysics.js';
@@ -94,10 +95,12 @@ assert.equal(cftReversi.legalMoves('black', 'sigma').length, 4, 'Four-sigma stat
 const cftBefore = cftReversi.computeCFTObservables();
 assert.ok(cftBefore.fourPointCrossRatio > 0 && cftBefore.fourPointCrossRatio < 1);
 assert.equal(cftBefore.estimatorNotice.includes('not exact continuum'), true);
+assert.equal(cftBefore.physicalSystemName.includes('CFT/domain-wall interval'), true);
+assert.equal(Object.values(cftBefore.opeChannelDistribution).reduce((total, count) => total + count, 0) >= 4, true);
 const cftMove = cftReversi.place([2, 3], { player: 'black', primaryType: 'sigma' });
 assert.equal(cftMove.ok, true, 'CFT Reversi places a primary on a legal bracket.');
 assert.equal(cftMove.event.OPEUpdates.length, 1, 'A bracketed primary creates an OPE update.');
-assert.equal(cftReversi.physicsHistory.at(-1).action, 'place');
+assert.equal(cftReversi.physicsHistory.at(-1).action, 'flip_bracketed_interval');
 const stressAction = cftReversi.applyVirasoroAction({
     action: 'L0',
     coord: [2, 3],
@@ -122,13 +125,23 @@ assert.ok(['identity', 'epsilon'].includes(cftMeasurement.measurement.reported))
 const cftAnswer = cftReversi.computeCFTReversiAnswer();
 assert.ok(['identity', 'epsilon'].includes(cftAnswer.finalDominantOPEChannel));
 assert.equal(typeof cftAnswer.finalEntropyEstimate, 'number');
+assert.equal(cftAnswer.finalCFTSector.length > 0, true);
 assert.equal(cftReversi.exportState().physicsHistory.length >= 3, true, 'CFT physics history is exported.');
+assert.equal(cftReversi.exportState().allowedActions.includes('measure_interval_parity'), true);
+assert.equal(CFT_REVERSI_INITIAL_STATES.includes('vacuum'), false, 'CFT Reversi no longer offers a pure vacuum opening.');
 
 const vacuumCFT = new PhysicalVirasoroReversiGame({
     topology: { topology: 'flat', width: 8, height: 8 },
     cftReversiInitialState: 'vacuum'
 });
-assert.equal(vacuumCFT.board.size, 0, 'Vacuum state is empty/identity rather than the standard opening.');
+assert.equal(vacuumCFT.cftConfig.initialState, 'four_sigma_block', 'Legacy vacuum requests fall back to a playable CFT block.');
+assert.equal(vacuumCFT.board.size, 4, 'Removed vacuum state does not create an empty opening.');
+const twoPhaseCFT = new PhysicalVirasoroReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    cftReversiInitialState: 'two_phase_interval_seed'
+});
+assert.equal(twoPhaseCFT.board.size, 4, 'Two-phase interval seed creates a CFT/domain-wall interval.');
+assert.equal(twoPhaseCFT.computeCFTObservables().finalCFTSector.length > 0, true);
 const hexReversi = new CliffordReversiGame({
     topology: { topology: 'flat', lattice: 'hex_cells', width: 8, height: 8 }
 });

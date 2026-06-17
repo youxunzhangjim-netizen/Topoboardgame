@@ -190,6 +190,32 @@ function answerForGame(game, definition, history) {
 
 function eventAction(result, fallback) {
     const event = result?.event || result?.measurement || result || {};
+    const measurementType = result?.measurement?.type || event.measurement?.type || event.type;
+    const measurementActions = {
+        line_parity: 'measure_interval_parity',
+        ope_channel: 'measure_ope_channel',
+        two_point: 'measure_two_point_correlator',
+        four_point_block: 'measure_four_point_correlator',
+        dominant_block: 'measure_four_point_correlator',
+        region_entropy: 'measure_region_entropy',
+        stress: 'measure_stress_tensor_proxy'
+    };
+    if (fallback === 'applyVirasoroAction') return 'apply_Ln_deformation';
+    if (fallback === 'tryPlay' && event.insertedPrimary) {
+        return Number(event.captured || 0) > 0 ? 'capture_fuse_cluster' : 'place_primary_field';
+    }
+    if (fallback === 'place' && event.mode === 'physical_virasoro_reversi') {
+        return 'flip_bracketed_interval';
+    }
+    if (measurementActions[measurementType]) return measurementActions[measurementType];
+    if (fallback === 'measureTwoPoint') return 'measure_two_point_correlator';
+    if (fallback === 'measureFourPoint' || fallback === 'measureFourPointBlock' || fallback === 'measureDominantBlock') {
+        return 'measure_four_point_correlator';
+    }
+    if (fallback === 'measureOPEChannel') return 'measure_ope_channel';
+    if (fallback === 'measureLineParity') return 'measure_interval_parity';
+    if (fallback === 'measureRegionEntropy') return 'measure_region_entropy';
+    if (fallback === 'measureStress') return 'measure_stress_tensor_proxy';
     return event.kind || event.type || event.action || fallback;
 }
 
@@ -498,7 +524,9 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
                 allowedActions: cloneValue(definition.allowedActions),
                 localUpdateRules: definition.localUpdateRules,
                 physicsHistory: cloneValue(framework.physicsHistory),
-                observables: cloneValue(framework.observables),
+                observables: cloneValue(physicalFramework.finalObservables),
+                observableHistory: cloneValue(framework.observables),
+                observablesAfterEachMove: cloneValue(framework.observables),
                 physicalAnswer: cloneValue(physicalFramework.physicalAnswer),
                 physicalFramework,
                 physicalHistoryCSV: framework.exportCSV()

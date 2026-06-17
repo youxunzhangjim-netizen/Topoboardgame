@@ -143,58 +143,169 @@
                 </section>
             </div>
 
-            <section class="algebraic-mode-panel" aria-labelledby="algebraicModeTitle">
-                <div class="algebraic-mode-heading">
-                    <strong id="algebraicModeTitle" data-i18n="algebraic.title">Algebraic Mode</strong>
-                    <small data-i18n="algebraic.desc">Choose one algebraic game. Each entry opens only its matching controls and rules.</small>
-                </div>
-                <div class="extra-mode-row" aria-label="Algebraic game modes" data-i18n-aria-label="algebraic.choose">
-                    <div class="extra-mode-column">
-                        <span class="extra-mode-column-title">Clifford</span>
-                        <a class="extra-mode-card" href="./algebraic/?mode=clifford_reversi">
-                            <span class="extra-mode-copy">
-                                <strong data-i18n="games.clifford.title">Clifford Reversi</strong>
-                                <small data-i18n="games.clifford.desc">Tune standard Pauli or physical stabilizer rules</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-clifford_reversi" aria-label="Online activity"></span>
-                        </a>
-                        <a class="extra-mode-card" href="./algebraic/?mode=clifford_go">
-                            <span class="extra-mode-copy">
-                                <strong>Clifford Go</strong>
-                                <small>Graph Go with Pauli-labelled stones</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-clifford_go" aria-label="Online activity"></span>
-                        </a>
+            <div class="launcher-mode-layers" aria-label="Algebraic and physical game modes">
+                <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="algebraicGamesTitle">
+                    <div class="algebraic-mode-heading">
+                        <strong id="algebraicGamesTitle" data-i18n="algebraic.title">Algebraic Games</strong>
+                        <small data-i18n="algebraic.desc">Abstract algebraic rule sets. Pick a family, then tune topology and controls inside the app.</small>
                     </div>
-                    <div class="extra-mode-column">
-                        <span class="extra-mode-column-title">Virasoro / CFT</span>
-                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_reversi">
-                            <span class="extra-mode-copy">
-                                <strong data-i18n="games.cftreversi.title">Virasoro Reversi</strong>
-                                <small data-i18n="games.cftreversi.desc">Reversi with CFT intervals, OPE channels, and stress</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi" aria-label="Online activity"></span>
-                        </a>
-                        <a class="extra-mode-card" href="./algebraic/?mode=physical_virasoro_go">
-                            <span class="extra-mode-copy">
-                                <strong data-i18n="games.virasoro.title">Virasoro Go</strong>
-                                <small data-i18n="games.virasoro.desc">Graph Go with approximate CFT observables</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go" aria-label="Online activity"></span>
-                        </a>
+                    <div class="extra-mode-row" aria-label="Algebraic game modes" data-i18n-aria-label="algebraic.choose">
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">Clifford</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_reversi">
+                                <span class="extra-mode-copy">
+                                    <strong>Clifford Reversi</strong>
+                                    <small>Pauli-label interval flips</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-clifford_reversi" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_go">
+                                <span class="extra-mode-copy">
+                                    <strong>Clifford Go</strong>
+                                    <small>Graph Go with Pauli-labelled stones</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-clifford_go" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Clifford Jump Chess</strong>
+                                    <small>Jump game with Clifford labels</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-clifford_jump" aria-label="Online activity"></span>
+                            </a>
+                        </div>
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">Anyon</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=anyon_reversi">
+                                <span class="extra-mode-copy">
+                                    <strong>Anyon Reversi</strong>
+                                    <small>Interval fusion on Reversi rays</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-anyon_reversi" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=anyon_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Anyon Jump Chess</strong>
+                                    <small>Jump game with braiding and fusion</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-anyon_jump" aria-label="Online activity"></span>
+                            </a>
+                        </div>
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">Virasoro</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=virasoro_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Virasoro Jump Chess</strong>
+                                    <small>Jump game with CFT primary labels</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-virasoro_jump" aria-label="Online activity"></span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="extra-mode-column">
-                        <span class="extra-mode-column-title">Anyon</span>
-                        <a class="extra-mode-card" href="./algebraic/?mode=anyon_jump">
-                            <span class="extra-mode-copy">
-                                <strong data-i18n="games.anyon.title">Anyon Jump Chess</strong>
-                                <small data-i18n="games.anyon.desc">Jump game with braiding and fusion</small>
-                            </span>
-                            <span class="game-count-badge" data-popularity-key="game-anyon_jump" aria-label="Online activity"></span>
-                        </a>
+                </section>
+
+                <section class="algebraic-mode-panel launcher-mode-panel physical-lab-panel" aria-labelledby="physicalLabTitle">
+                    <div class="algebraic-mode-heading">
+                        <strong id="physicalLabTitle" data-i18n="physical.title">Physical Systems Lab</strong>
+                        <small data-i18n="physical.desc">Physical observable games with initial conditions, local updates, per-move observables, history export, and final answers.</small>
                     </div>
-                </div>
-            </section>
+                    <div class="extra-mode-row physical-mode-row" aria-label="Physical systems lab modes" data-i18n-aria-label="physical.choose">
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">Spin / Phases</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=ising_domain_game">
+                                <span class="extra-mode-copy">
+                                    <strong>Ising Domain Game</strong>
+                                    <small>Spin domains, energy, walls, and phases</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-ising_domain_game" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=two_phase_competition_game">
+                                <span class="extra-mode-copy">
+                                    <strong>Two-Phase Competition</strong>
+                                    <small>Phase nucleation, interfaces, and coarsening</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-two_phase_competition_game" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=spin_ice_vertex_game">
+                                <span class="extra-mode-copy">
+                                    <strong>Spin Ice Vertex Game</strong>
+                                    <small>Edge arrows, ice-rule defects, and loops</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-spin_ice_vertex_game" aria-label="Online activity"></span>
+                            </a>
+                        </div>
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">Gauge / Anyon</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=z2_gauge_loop_game">
+                                <span class="extra-mode-copy">
+                                    <strong>Z2 Gauge Loop Game</strong>
+                                    <small>Edge variables, star checks, Wilson loops</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-z2_gauge_loop_game" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_anyon_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Toric-Code Anyon Jump Lab</strong>
+                                    <small>Worldlines, memory, unbraiding, recovery</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_anyon_jump" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_anyon_reversi">
+                                <span class="extra-mode-copy">
+                                    <strong>Physical Anyon Reversi</strong>
+                                    <small>Charge placement and interval fusion</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_anyon_reversi" aria-label="Online activity"></span>
+                            </a>
+                        </div>
+                        <div class="extra-mode-column">
+                            <span class="extra-mode-column-title">CFT / Stabilizer</span>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_go">
+                                <span class="extra-mode-copy">
+                                    <strong>CFT Observable Go</strong>
+                                    <small>Primary insertions and correlator observables</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi">
+                                <span class="extra-mode-copy">
+                                    <strong>CFT Domain-Wall Reversi</strong>
+                                    <small>CFT intervals, OPE channels, and domain walls</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Physical Virasoro Jump Chess</strong>
+                                    <small>CFT primary jumps and braid memory</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_jump" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_reversi">
+                                <span class="extra-mode-copy">
+                                    <strong>Physical Clifford Reversi</strong>
+                                    <small>Stabilizer / Pauli-frame recovery</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_reversi" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_go">
+                                <span class="extra-mode-copy">
+                                    <strong>Physical Clifford Go</strong>
+                                    <small>Pauli-frame graph Go variant</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_go" aria-label="Online activity"></span>
+                            </a>
+                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_jump">
+                                <span class="extra-mode-copy">
+                                    <strong>Physical Clifford Jump Chess</strong>
+                                    <small>Clifford jump dynamics and labels</small>
+                                </span>
+                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_jump" aria-label="Online activity"></span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </section>
     </main>
 
@@ -237,16 +348,21 @@
                             desc: 'Tune standard Pauli or physical stabilizer rules'
                         },
                         anyon: { title: 'Anyon Jump Chess', desc: 'Jump game with braiding and fusion' },
-                        virasoro: { title: 'Virasoro Go', desc: 'Go with stress-field actions' },
+                        virasoro: { title: 'CFT Observable Go', desc: 'Primary insertions and correlator observables' },
                         cftreversi: {
-                            title: 'Virasoro Reversi',
-                            desc: 'Reversi with CFT intervals, OPE channels, and stress'
+                            title: 'CFT Domain-Wall Reversi',
+                            desc: 'CFT intervals, OPE channels, and domain walls'
                         }
                     },
                     algebraic: {
-                        title: 'Algebraic Mode',
-                        desc: 'Choose one algebraic game; only its controls and rules are shown.',
+                        title: 'Algebraic Games',
+                        desc: 'Abstract algebraic rule sets. Pick a family, then tune topology and controls inside the app.',
                         choose: 'Algebraic game modes'
+                    },
+                    physical: {
+                        title: 'Physical Systems Lab',
+                        desc: 'Physical observable games with initial conditions, local updates, per-move observables, history export, and final answers.',
+                        choose: 'Physical systems lab modes'
                     },
                     badges: {
                         waiting: '{count} waiting',
@@ -285,16 +401,21 @@
                             desc: '可調整標準 Pauli 或物理穩定子規則'
                         },
                         anyon: { title: 'Anyon Jump Chess', desc: '帶編織與融合的跳躍遊戲' },
-                        virasoro: { title: 'Virasoro 圍棋', desc: '帶應力場操作的圍棋' },
+                        virasoro: { title: 'CFT 觀測量圍棋', desc: '主場插入與關聯函數觀測量' },
                         cftreversi: {
-                            title: 'Virasoro 黑白棋',
-                            desc: '以 CFT 區間、OPE 通道與應力描述的黑白棋'
+                            title: 'CFT 域牆黑白棋',
+                            desc: 'CFT 區間、OPE 通道與域牆'
                         }
                     },
                     algebraic: {
-                        title: '代數模式',
-                        desc: '選擇一種代數遊戲，只顯示對應控制與規則。',
+                        title: '代數遊戲',
+                        desc: '抽象代數規則組。選擇一個家族，再於應用中調整拓撲與控制。',
                         choose: '代數遊戲模式'
+                    },
+                    physical: {
+                        title: '物理系統實驗室',
+                        desc: '含初始條件、局部更新、每步觀測量、歷史匯出與最終答案的物理觀測遊戲。',
+                        choose: '物理系統實驗室模式'
                     },
                     badges: {
                         waiting: '{count} 等待中',
@@ -327,8 +448,21 @@
                 clifford_reversi: 'clifford_reversi',
                 anyon_jump: 'anyon_jump',
                 clifford_go: 'clifford_go',
+                clifford_jump: 'clifford_jump',
+                anyon_reversi: 'anyon_reversi',
+                virasoro_jump: 'virasoro_jump',
+                ising_domain_game: 'ising_domain_game',
+                two_phase_competition_game: 'two_phase_competition_game',
+                spin_ice_vertex_game: 'spin_ice_vertex_game',
+                z2_gauge_loop_game: 'z2_gauge_loop_game',
+                physical_anyon_jump: 'physical_anyon_jump',
+                physical_anyon_reversi: 'physical_anyon_reversi',
+                physical_clifford_reversi: 'physical_clifford_reversi',
+                physical_clifford_go: 'physical_clifford_go',
+                physical_clifford_jump: 'physical_clifford_jump',
                 physical_virasoro_go: 'physical_virasoro_go',
-                physical_virasoro_reversi: 'physical_virasoro_reversi'
+                physical_virasoro_reversi: 'physical_virasoro_reversi',
+                physical_virasoro_jump: 'physical_virasoro_jump'
             };
             const DIMENSION_BY_GAME = {
                 '2dchess': '2d',
@@ -355,8 +489,21 @@
                 'game-clifford_reversi': 0,
                 'game-anyon_jump': 0,
                 'game-clifford_go': 0,
+                'game-clifford_jump': 0,
+                'game-anyon_reversi': 0,
+                'game-virasoro_jump': 0,
+                'game-ising_domain_game': 0,
+                'game-two_phase_competition_game': 0,
+                'game-spin_ice_vertex_game': 0,
+                'game-z2_gauge_loop_game': 0,
+                'game-physical_anyon_jump': 0,
+                'game-physical_anyon_reversi': 0,
+                'game-physical_clifford_reversi': 0,
+                'game-physical_clifford_go': 0,
+                'game-physical_clifford_jump': 0,
                 'game-physical_virasoro_go': 0,
-                'game-physical_virasoro_reversi': 0
+                'game-physical_virasoro_reversi': 0,
+                'game-physical_virasoro_jump': 0
             };
             let lastBadgeState = 'loading';
             let lastBadgeCounts = EMPTY_COUNTS;

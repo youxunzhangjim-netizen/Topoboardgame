@@ -153,6 +153,132 @@ Open directly with:
 https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?mode=two_phase_competition_game
 ```
 
+## CFT Observable Go
+
+Mode id: `physical_virasoro_go`
+
+Physical meaning:
+
+- Board = discretized Riemann surface / graph manifold.
+- Empty vertex = identity operator.
+- Stone = primary-field insertion.
+- Black / white = source sign or player control.
+- `primaryType` carries the physical field.
+
+Default CFT:
+
+- Ising CFT, `c = 1/2`.
+- identity: `h = 0`
+- sigma: `h = 1/16`
+- epsilon: `h = 1/2`
+
+Actions:
+
+- place primary field
+- capture / fuse a cluster by topology-aware Go liberties
+- measure OPE channel
+- measure two-point or four-point correlators
+- apply Virasoro deformation `L_n`
+
+Initial states:
+
+- `two_point_insertions`
+- `four_point_block`
+- `boundary_cft`
+- `thermal_sparse`
+- `identity_background_with_defects`
+
+Observables:
+
+- primary counts
+- OPE channel distribution
+- two-point correlation estimates
+- four-point cross-ratio
+- conformal block weights and dominant block
+- stress tensor proxy `T(v)`
+- entanglement entropy and mutual information estimates
+- anomaly events for N=2 Virasoro actions
+
+Final physical answer:
+
+- final dominant block
+- identity / vacuum block dominance
+- entropy growth
+- strongest correlations
+- final OPE sector
+- anomaly count
+
+Open directly with:
+
+```text
+https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?layer=physical&mode=physical_virasoro_go
+```
+
+## CFT Domain-Wall Reversi
+
+Mode id: `physical_virasoro_reversi`
+
+Physical meaning:
+
+- Black = positive source / domain sign.
+- White = negative source / domain sign.
+- Stone = primary field or spin/domain insertion.
+- Bracketed Reversi line = discrete CFT interval.
+- Flipping = OPE channel and domain transformation.
+
+Default CFT:
+
+- Ising CFT, `c = 1/2`.
+- Primary fields: `identity`, `sigma`, and `epsilon`.
+- OPE rules:
+  - `sigma x sigma -> identity + epsilon`
+  - `sigma x epsilon -> sigma`
+  - `epsilon x epsilon -> identity`
+
+Actions:
+
+- place primary/domain stone
+- flip bracketed interval
+- update OPE channel along the flipped interval
+- measure interval parity
+- measure OPE channel
+- measure region entropy
+- apply Virasoro deformation `L_n`
+
+Initial states:
+
+- `domain_wall_seed`
+- `four_sigma_block`
+- `boundary_condition_change`
+- `thermal_cft_sample`
+- `two_phase_interval_seed`
+
+Observables:
+
+- domain-wall length
+- primary counts
+- OPE channel transitions
+- conformal block weights and dominant block
+- interval entropy estimate
+- stress proxy
+- central-charge anomaly events
+- twisted / topological sector when supported
+
+Final physical answer:
+
+- final dominant OPE channel
+- final domain-wall length
+- stable topological or twisted sector
+- entropy growth
+- anomaly count
+- final CFT sector
+
+Open directly with:
+
+```text
+https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?layer=physical&mode=physical_virasoro_reversi
+```
+
 ## Spin Ice Vertex Game
 
 Mode id: `spin_ice_vertex_game`
