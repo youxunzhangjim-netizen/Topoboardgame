@@ -210,12 +210,31 @@ body::before {
     padding: clamp(20px, 4vw, 52px);
 }
 
+.launcher-shell::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: clamp(360px, 43vh, 560px);
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        rgba(4, 18, 42, 0.98) 0%,
+        rgba(7, 25, 54, 0.9) 45%,
+        rgba(8, 22, 42, 0.48) 78%,
+        rgba(8, 22, 42, 0) 100%
+    );
+}
+
 .launcher-hero {
     width: min(1180px, 100%);
     display: grid;
     gap: 28px;
     margin: 0 auto;
     position: relative;
+    z-index: 1;
 }
 
 .brand-block {
@@ -228,22 +247,7 @@ body::before {
 }
 
 .brand-block::before {
-    content: "";
-    position: absolute;
-    top: -48px;
-    bottom: -132px;
-    left: 50%;
-    width: 100vw;
-    transform: translateX(-50%);
-    z-index: -1;
-    pointer-events: none;
-    background: linear-gradient(
-        180deg,
-        rgba(4, 18, 42, 0.96) 0%,
-        rgba(7, 25, 54, 0.84) 42%,
-        rgba(8, 22, 42, 0.46) 74%,
-        rgba(8, 22, 42, 0) 100%
-    );
+    display: none;
 }
 
 .brand-title-row {
@@ -350,18 +354,18 @@ h1 {
 
 .lab-card-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
 }
 
 .lab-card {
-    min-height: 0;
+    min-height: 282px;
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.6fr) minmax(92px, 0.35fr);
-    align-items: start;
-    align-content: center;
-    gap: 14px;
-    padding: 14px;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    align-content: start;
+    gap: 16px;
+    padding: 18px;
 }
 
 .advanced-sandbox-card {
@@ -384,7 +388,6 @@ h1 {
 
 .lab-card:has(.lab-advanced[open]) .lab-facts {
     display: grid;
-    grid-column: 1 / -1;
 }
 
 .lab-facts div {
@@ -413,8 +416,8 @@ h1 {
 
 .lab-presets {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 10px;
 }
 
 .single-preset {
@@ -422,10 +425,10 @@ h1 {
 }
 
 .lab-preset {
-    min-height: 40px;
+    min-height: 44px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 8px 10px;
     border: 1px solid rgba(56, 189, 248, 0.38);
     border-radius: 8px;
@@ -434,7 +437,7 @@ h1 {
     font-size: 12px;
     font-weight: 900;
     line-height: 1.25;
-    text-align: center;
+    text-align: left;
     text-decoration: none;
 }
 
@@ -514,12 +517,12 @@ h1 {
 }
 
 .extra-mode-card.lab-card {
-    min-height: 112px;
+    min-height: 282px;
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.6fr) minmax(92px, 0.35fr);
-    align-items: start;
-    align-content: center;
-    gap: 14px;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    align-content: start;
+    gap: 16px;
 }
 
 .mode-family-card {
@@ -788,12 +791,8 @@ h1 {
         padding-inline: 0;
     }
 
-    .brand-block::before {
-        top: -34px;
-        right: auto;
-        bottom: -112px;
-        left: 50%;
-        width: 100vw;
+    .launcher-shell::before {
+        height: clamp(420px, 58vh, 680px);
     }
 
     .brand-title-row {
@@ -809,6 +808,10 @@ h1 {
 
     .extra-mode-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lab-card-grid {
+        grid-template-columns: 1fr;
     }
 
     .dimension-grid {
@@ -860,7 +863,6 @@ h1 {
         grid-template-columns: 1fr;
     }
 
-    .lab-card-grid,
     .lab-facts,
     .lab-presets {
         grid-template-columns: 1fr;
