@@ -12,7 +12,11 @@ import {
 import { evaluatePieces, evaluateState, formatScore, PIECE_VALUES, scoreToWinRate } from './ChessEvaluator.js';
 
 const INF = 1000000000;
-const DEFAULT_NODE_LIMIT = 45000;
+const DEFAULT_NODE_LIMIT = 55000;
+const TIME_BY_DEPTH_MS = { 1: 80, 2: 180, 3: 420, 4: 850 };
+const ANALYSIS_TIME_BY_DEPTH_MS = { 1: 150, 2: 420, 3: 900, 4: 1600 };
+const ROOT_CAP_BY_DEPTH = { 1: 80, 2: 48, 3: 30, 4: 22 };
+const NODE_CAP_BY_PLY = { 1: 120, 2: 64, 3: 38, 4: 26 };
 
 export function chooseRobotMove(game, depth = 2) {
     const result = chooseRobotMoveFromState(createAnalysisState(game), depth);
@@ -26,13 +30,40 @@ export function chooseRobotMove(game, depth = 2) {
 export function chooseRobotMoveFromState(inputState, depth = 2) {
     const state = normalizeState(inputState);
     const player = state.currentPlayer;
-    const context = makeSearchContext(depth);
-    const result = negamax(state, depth, -INF, INF, player, context);
+    const maxDepth = clampDepth(depth);
+    const legal = orderMoves(getAllLegalMoves(state, player), state, player).slice(0, ROOT_CAP_BY_DEPTH[maxDepth] || 30);
+    const currentScore = evaluateState(state, player);
+    if (!legal.length) return { move: null, score: currentScore, scoreText: formatScore(currentScore), winRate: scoreToWinRate(currentScore), depth: 0, nodes: 0, truncated: false, completedDepth: 0 };
+
+    const context = makeSearchContext(maxDepth, DEFAULT_NODE_LIMIT + maxDepth * 22000, TIME_BY_DEPTH_MS[maxDepth] || 420);
+    let best = { move: legal[0], score: -INF };
+    let completedDepth = 0;
+
+    for (let d = 1; d <= maxDepth; d += 1) {
+        context.iterationDepth = d;
+        const result = negamax(state, d, -INF, INF, player, context, 0, best.move);
+        if (result.move && !context.hardTruncated) {
+            best = result;
+            completedDepth = d;
+        } else if (!best.move && result.move) {
+            best = result;
+        }
+        if (context.timeUp() || context.nodes >= context.nodeLimit) break;
+    }
+
+    if (!Number.isFinite(best.score) || best.score <= -INF / 2) {
+        best = onePlyFallback(state, player, legal);
+    }
+
     return {
-        ...result,
-        depth,
+        move: best.move,
+        score: best.score,
+        scoreText: formatScore(best.score),
+        winRate: scoreToWinRate(best.score),
+        depth: maxDepth,
+        completedDepth,
         nodes: context.nodes,
-        truncated: context.truncated
+        truncated: context.truncated || completedDepth < maxDepth
     };
 }
 
@@ -43,18 +74,21 @@ export function analyzePosition(game, depth = 2) {
 export function analyzePositionFromState(inputState, depth = 2) {
     const state = normalizeState(inputState);
     const player = state.currentPlayer;
-    const moves = orderMoves(getAllLegalMoves(state, player), state, player);
-    const context = makeSearchContext(depth, Math.max(DEFAULT_NODE_LIMIT, moves.length * 6000));
+    const maxDepth = clampDepth(depth);
+    const allMoves = orderMoves(getAllLegalMoves(state, player), state, player);
+    const context = makeSearchContext(maxDepth, Math.max(DEFAULT_NODE_LIMIT, allMoves.length * 4500), ANALYSIS_TIME_BY_DEPTH_MS[maxDepth] || 900);
     const currentScore = evaluateState(state, player);
     const results = [];
+    const rootCap = Math.min(allMoves.length, Math.max(12, ROOT_CAP_BY_DEPTH[maxDepth] || 24));
+    const moves = allMoves.slice(0, rootCap);
 
     for (const move of moves) {
-        if (context.nodes >= context.nodeLimit) {
+        if (context.timeUp() || context.nodes >= context.nodeLimit) {
             context.truncated = true;
             break;
         }
         const next = applyMoveToState(state, move);
-        const searched = negamax(next, Math.max(0, depth - 1), -INF, INF, opponentOf(player), context);
+        const searched = negamax(next, Math.max(0, maxDepth - 1), -INF, INF, opponentOf(player), context, 1, null);
         const score = -searched.score;
         results.push({
             move,
@@ -65,12 +99,28 @@ export function analyzePositionFromState(inputState, depth = 2) {
         });
     }
 
+    // Keep an explicitly bad-move list even when deep analysis is capped: use one-ply score
+    // for remaining moves so the panel still warns against obvious blunders.
+    if (results.length < allMoves.length && !context.timeUp()) {
+        for (const move of allMoves.slice(results.length, Math.min(allMoves.length, results.length + 30))) {
+            const next = applyMoveToState(state, move);
+            const score = evaluateState(next, player);
+            results.push({
+                move,
+                score,
+                scoreText: formatScore(score),
+                winRate: scoreToWinRate(score),
+                reasons: explainMove(state, next, move, player, score)
+            });
+        }
+    }
+
     results.sort((a, b) => b.score - a.score);
 
     return {
         player,
         boundaryCondition: state.boundaryCondition,
-        depth,
+        depth: maxDepth,
         nodes: context.nodes,
         truncated: context.truncated,
         currentScore,
@@ -78,56 +128,82 @@ export function analyzePositionFromState(inputState, depth = 2) {
         currentWinRate: scoreToWinRate(currentScore),
         topMoves: results.slice(0, 5),
         badMoves: results.slice(-5).reverse(),
-        pieceValues: evaluatePieces(state, player).slice(0, 8)
+        pieceValues: evaluatePieces(state, player).slice(0, 10)
     };
 }
 
-function makeSearchContext(depth, nodeLimit = DEFAULT_NODE_LIMIT) {
+function makeSearchContext(depth, nodeLimit = DEFAULT_NODE_LIMIT, timeMs = TIME_BY_DEPTH_MS[depth] || 420) {
+    const start = now();
     return {
         nodes: 0,
-        nodeLimit: Math.max(5000, nodeLimit + depth * 15000),
+        nodeLimit: Math.max(6000, nodeLimit),
+        start,
+        deadline: start + Math.max(40, timeMs),
         truncated: false,
-        tt: new Map()
+        hardTruncated: false,
+        tt: new Map(),
+        history: new Map(),
+        killers: Array.from({ length: 16 }, () => []) ,
+        iterationDepth: depth,
+        timeUp() {
+            return now() >= this.deadline;
+        }
     };
 }
 
-function negamax(state, depth, alpha, beta, player, context) {
+function negamax(state, depth, alpha, beta, player, context, ply = 0, preferredMove = null) {
     context.nodes += 1;
-    if (context.nodes >= context.nodeLimit) context.truncated = true;
-
-    if (state.gameOver) {
+    if ((context.nodes & 127) === 0 && (context.nodes >= context.nodeLimit || context.timeUp())) {
+        context.truncated = true;
+        context.hardTruncated = true;
         return { score: evaluateState(state, player), move: null };
     }
 
-    if (depth <= 0 || context.truncated) {
-        return { score: quiescence(state, alpha, beta, player, context, 0), move: null };
+    if (state.gameOver) return { score: evaluateState(state, player), move: null };
+    if (depth <= 0) return { score: quiescence(state, alpha, beta, player, context, 0), move: null };
+
+    const hash = hashState(state, player);
+    const cached = context.tt.get(hash);
+    if (cached && cached.depth >= depth) {
+        if (cached.flag === 'exact') return { score: cached.score, move: cached.move };
+        if (cached.flag === 'lower' && cached.score >= beta) return { score: cached.score, move: cached.move };
+        if (cached.flag === 'upper' && cached.score <= alpha) return { score: cached.score, move: cached.move };
     }
 
-    const hash = hashState(state, depth, player);
-    const cached = context.tt.get(hash);
-    if (cached && cached.depth >= depth) return { score: cached.score, move: cached.move };
+    let moves = getAllLegalMoves(state, player);
+    if (!moves.length) {
+        const score = isInCheck(state, player) ? -900000 + ply : evaluateState(state, player);
+        return { score, move: null };
+    }
+    moves = orderMoves(moves, state, player, context, ply, cached?.move || preferredMove);
+    const cap = NODE_CAP_BY_PLY[Math.min(depth, 4)] || 30;
+    if (moves.length > cap) moves = moves.slice(0, cap);
 
-    const moves = orderMoves(getAllLegalMoves(state, player), state, player);
-    if (moves.length === 0) return { score: evaluateState(state, player), move: null };
-
+    const originalAlpha = alpha;
     let bestScore = -INF;
     let bestMove = moves[0] || null;
 
     for (const move of moves) {
         const next = applyMoveToState(state, move);
-        const result = negamax(next, depth - 1, -beta, -alpha, opponentOf(player), context);
+        const result = negamax(next, depth - 1, -beta, -alpha, opponentOf(player), context, ply + 1, null);
         const score = -result.score;
 
         if (score > bestScore) {
             bestScore = score;
             bestMove = move;
         }
-
-        alpha = Math.max(alpha, score);
-        if (alpha >= beta || context.truncated) break;
+        if (score > alpha) alpha = score;
+        if (alpha >= beta) {
+            rememberCutoff(context, ply, move, depth);
+            break;
+        }
+        if (context.hardTruncated) break;
     }
 
-    context.tt.set(hash, { depth, score: bestScore, move: bestMove });
+    let flag = 'exact';
+    if (bestScore <= originalAlpha) flag = 'upper';
+    else if (bestScore >= beta) flag = 'lower';
+    context.tt.set(hash, { depth, score: bestScore, move: bestMove, flag });
     return { score: bestScore, move: bestMove };
 }
 
@@ -136,10 +212,11 @@ function quiescence(state, alpha, beta, player, context, ply) {
     const standPat = evaluateState(state, player);
     if (standPat >= beta) return beta;
     if (alpha < standPat) alpha = standPat;
-    if (ply >= 2 || context.nodes >= context.nodeLimit) return alpha;
+    if (ply >= 2 || context.nodes >= context.nodeLimit || context.timeUp()) return alpha;
 
-    const tactical = orderMoves(getAllLegalMoves(state, player), state, player)
-        .filter((move) => move.capture || move.promotion || givesCheck(state, move, player));
+    const tactical = orderMoves(getAllLegalMoves(state, player), state, player, context, ply, null)
+        .filter((move) => move.capture || move.promotion)
+        .slice(0, 14);
 
     for (const move of tactical) {
         const next = applyMoveToState(state, move);
@@ -150,25 +227,44 @@ function quiescence(state, alpha, beta, player, context, ply) {
     return alpha;
 }
 
-export function orderMoves(moves, state, player) {
-    return moves.slice().sort((a, b) => moveOrderingScore(b, state, player) - moveOrderingScore(a, state, player));
+export function orderMoves(moves, state, player, context = null, ply = 0, preferredMove = null) {
+    return moves.slice().sort((a, b) => moveOrderingScore(b, state, player, context, ply, preferredMove) - moveOrderingScore(a, state, player, context, ply, preferredMove));
 }
 
-function moveOrderingScore(move, state, player) {
+function moveOrderingScore(move, state, player, context = null, ply = 0, preferredMove = null) {
     let score = 0;
+    if (preferredMove && sameMove(move, preferredMove)) score += 1000000;
     if (move.capture && move.capturedPiece) {
-        score += 10000 + (PIECE_VALUES[move.capturedPiece.type] || 0) - 0.12 * (PIECE_VALUES[move.piece?.type] || 0);
+        score += 10000 + 10 * (PIECE_VALUES[move.capturedPiece.type] || 0) - (PIECE_VALUES[move.piece?.type] || 0);
     }
-    if (move.promotion) score += 9000;
+    if (move.promotion) score += 9000 + (PIECE_VALUES[move.promotion] || 0);
     if (move.castling) score += 500;
-    if (givesCheck(state, move, player)) score += 2500;
-    if (move.suicide) score += move.piece?.type === 'K' ? -100000 : -350;
+    if (move.suicide) score += move.piece?.type === 'K' ? -100000 : -450;
+    if (context) {
+        const key = moveKey(move);
+        score += context.history.get(key) || 0;
+        if ((context.killers[ply] || []).some((killer) => sameMove(killer, move))) score += 1800;
+    }
     return score;
 }
 
-function givesCheck(state, move, player) {
-    const next = applyMoveToState(state, move);
-    return isInCheck(next, opponentOf(player));
+function rememberCutoff(context, ply, move, depth) {
+    if (!context || move.capture) return;
+    const list = context.killers[ply] || (context.killers[ply] = []);
+    if (!list.some((item) => sameMove(item, move))) list.unshift(move);
+    if (list.length > 2) list.pop();
+    const key = moveKey(move);
+    context.history.set(key, (context.history.get(key) || 0) + depth * depth);
+}
+
+function onePlyFallback(state, player, legal) {
+    let best = { move: legal[0] || null, score: -INF };
+    for (const move of legal) {
+        const next = applyMoveToState(state, move);
+        const score = evaluateState(next, player);
+        if (score > best.score) best = { move, score };
+    }
+    return best;
 }
 
 function explainMove(before, after, move, player, score) {
@@ -201,13 +297,8 @@ function explainMove(before, after, move, player, score) {
     if (before.boundaryCondition === 'open' && move.suicide && move.piece?.type !== 'K') {
         reasons.push('may be useful only if the sacrifice improves king safety or tactic score');
     }
-    if (before.boundaryCondition === 'random') {
-        reasons.push('uses the actual 2D RBC legal-move graph rather than normal geometry');
-    }
-
-    if (reasons.length === 0) {
-        reasons.push(score >= 0 ? 'improves the searched position score' : 'looks worse after search');
-    }
+    if (before.boundaryCondition === 'random') reasons.push('uses the actual 2D RBC legal-move graph rather than normal geometry');
+    if (reasons.length === 0) reasons.push(score >= 0 ? 'improves the searched position score' : 'looks worse after search');
     return reasons;
 }
 
@@ -238,10 +329,27 @@ function pieceName(type) {
     return ({ K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight', P: 'pawn' })[type] || type;
 }
 
-function hashState(state, depth, player) {
+function hashState(state, player) {
     const cells = [];
     for (const row of state.board) {
         for (const piece of row) cells.push(piece ? `${piece.color[0]}${piece.type}${piece.hasMoved ? 1 : 0}` : '..');
     }
-    return `${cells.join('')}:${state.currentPlayer}:${player}:${state.boundaryCondition}:${state.enPassantTarget?.row ?? '-'}:${state.enPassantTarget?.col ?? '-'}:${depth}`;
+    return `${cells.join('')}:${state.currentPlayer}:${player}:${state.boundaryCondition}:${state.enPassantTarget?.row ?? '-'}:${state.enPassantTarget?.col ?? '-'}`;
+}
+
+function moveKey(move) {
+    return `${move.from?.r},${move.from?.c}->${move.to?.r},${move.to?.c}${move.promotion || ''}`;
+}
+
+function sameMove(a, b) {
+    if (!a || !b) return false;
+    return a.from?.r === b.from?.r && a.from?.c === b.from?.c && a.to?.r === b.to?.r && a.to?.c === b.to?.c && (a.promotion || '') === (b.promotion || '');
+}
+
+function now() {
+    return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function clampDepth(value) {
+    return Math.max(1, Math.min(4, Math.floor(Number(value) || 2)));
 }

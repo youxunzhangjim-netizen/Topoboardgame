@@ -398,3 +398,17 @@ Open directly with:
 ```text
 https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?mode=z2_gauge_loop_game
 ```
+
+## Local app launch
+
+This repository includes local launchers:
+
+- Windows: double-click `Start-Topoboardgame-Windows.bat`
+- macOS: double-click `Start-Topoboardgame-macOS.command`
+- Linux: run `./Start-Topoboardgame-Linux.sh`
+
+The first run installs npm dependencies. Local play and local robots run on `http://127.0.0.1:5172`. Online multiplayer still requires internet.
+
+## Local ML / trainable robots
+
+See `research/docs/ML_TRAINING_PIPELINE.md` for the self-play -> train -> evaluate -> external robot workflow. The first trainable robot is a local linear policy/value model trained from JSONL self-play data. It can run inside the headless research runner or as an external JSONL robot.

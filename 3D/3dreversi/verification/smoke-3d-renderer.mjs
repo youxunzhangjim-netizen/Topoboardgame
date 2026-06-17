@@ -37,7 +37,7 @@ function vectorDistance(a, b) {
 
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const { port } = server.address();
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || (process.platform === 'linux' ? '/usr/bin/chromium' : undefined), args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-web-security', '--disable-features=BlockInsecurePrivateNetworkRequests'] });
 const logs = [];
 
 try {

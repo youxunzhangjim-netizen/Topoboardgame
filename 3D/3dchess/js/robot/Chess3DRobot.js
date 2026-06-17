@@ -77,10 +77,20 @@ function waitForBrowser() {
 }
 
 async function maybeYield(stats) {
-  const now = globalThis.performance?.now?.() ?? Date.now();
-  if (now - stats.lastYield < 12) return;
+  const t = nowMs();
+  if (t - stats.lastYield < 12) return;
   await waitForBrowser();
-  stats.lastYield = globalThis.performance?.now?.() ?? Date.now();
+  stats.lastYield = nowMs();
+}
+function nowMs() { return globalThis.performance?.now?.() ?? Date.now(); }
+function makeStats(depth = 2, analysis = false) {
+  const time = (analysis ? 1.4 : 1) * ({ 1: 90, 2: 260, 3: 620, 4: 1100 }[Math.max(1, Math.min(4, Number(depth) || 2))] || 420);
+  return { nodes: 0, nodeLimit: analysis ? 90000 : 52000, deadline: nowMs() + time, lastYield: nowMs(), tt: new Map(), truncated: false };
+}
+function timeUp(stats) {
+  if (!stats) return false;
+  if (stats.nodes >= (stats.nodeLimit || Infinity) || nowMs() >= (stats.deadline || Infinity)) { stats.truncated = true; return true; }
+  return false;
 }
 
 function allPieces(game, state, color = null) {
@@ -219,12 +229,13 @@ function moveOrderingScore(move) {
 }
 function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
   stats.nodes += 1;
+  if (timeUp(stats)) return { score: evaluate(game, state, rootColor), move: null };
   if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
   if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
   let bestMove = moves[0];
   let bestScore = -Infinity;
-  for (const move of moves.slice(0, depth >= 3 ? 60 : 140)) {
+  for (const move of moves.slice(0, depth >= 3 ? 34 : 90)) {
     const next = simulateMove(game, state, move);
     const result = negamax(game, next, depth - 1, -beta, -alpha, other(color), rootColor, stats);
     const score = -result.score;
@@ -238,12 +249,13 @@ function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
 async function negamaxAsync(game, state, depth, alpha, beta, color, rootColor, stats) {
   stats.nodes += 1;
   if ((stats.nodes & 31) === 0) await maybeYield(stats);
+  if (timeUp(stats)) return { score: evaluate(game, state, rootColor), move: null };
   if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
   if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
   let bestMove = moves[0];
   let bestScore = -Infinity;
-  for (const move of moves.slice(0, depth >= 3 ? 60 : 140)) {
+  for (const move of moves.slice(0, depth >= 3 ? 34 : 90)) {
     const next = simulateMove(game, state, move);
     const result = await negamaxAsync(game, next, depth - 1, -beta, -alpha, other(color), rootColor, stats);
     const score = -result.score;
@@ -276,7 +288,7 @@ function analyze(game, depth = 2) {
   let nodes = 0;
   for (const move of moves) {
     const next = simulateMove(game, state, move);
-    const stats = { nodes: 0 };
+    const stats = makeStats(depth, true);
     const result = depth <= 1 ? { score: evaluate(game, next, player) } : negamax(game, next, depth - 1, -Infinity, Infinity, other(player), player, stats);
     nodes += stats.nodes;
     const score = -result.score;
@@ -287,18 +299,19 @@ function analyze(game, depth = 2) {
   return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
 }
 
-async function analyzeAsync(game, depth = 2) {
+export async function analyze3DChessPosition(game, depth = 2) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const scoreBefore = evaluate(game, state, player);
   const moves = legalMovesFor(game, state, player).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a)).slice(0, depth >= 3 ? 80 : 180);
   const rows = [];
   let nodes = 0;
-  const yieldStats = { nodes: 0, lastYield: globalThis.performance?.now?.() ?? Date.now() };
+  const yieldStats = makeStats(depth, true);
   for (const move of moves) {
     await maybeYield(yieldStats);
     const next = simulateMove(game, state, move);
-    const stats = { nodes: 0, lastYield: yieldStats.lastYield };
+    const stats = makeStats(depth, true);
+    stats.lastYield = yieldStats.lastYield;
     const result = depth <= 1 ? { score: evaluate(game, next, player) } : await negamaxAsync(game, next, depth - 1, -Infinity, Infinity, other(player), player, stats);
     yieldStats.lastYield = stats.lastYield;
     nodes += stats.nodes;
@@ -308,6 +321,38 @@ async function analyzeAsync(game, depth = 2) {
   rows.sort((a, b) => b.score - a.score);
   const pieces = allPieces(game, state, player).map((entry) => ({ label: `${entry.piece.type} ${formatCoord(entry)}`, value: pieceDynamicValue(game, state, entry) })).sort((a, b) => b.value - a.value).slice(0, 12);
   return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
+}
+
+
+export async function choose3DChessRobotMove(game, depth = 2) {
+  const state = cloneState(game);
+  const player = state.currentPlayer;
+  const stats = makeStats(depth, false);
+  const moves = legalMovesFor(game, state, player)
+    .sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a))
+    .slice(0, depth >= 3 ? 34 : 90);
+  if (!moves.length) return { move: null, score: evaluate(game, state, player), nodes: 0, truncated: false };
+  let best = { move: moves[0], score: -Infinity };
+  let completedDepth = 0;
+  for (let d = 1; d <= Math.max(1, Math.min(4, Number(depth) || 2)); d += 1) {
+    let iterationBest = null;
+    for (const move of moves) {
+      if (timeUp(stats)) break;
+      await maybeYield(stats);
+      const next = simulateMove(game, state, move);
+      const result = d <= 1 ? { score: evaluate(game, next, player) } : await negamaxAsync(game, next, d - 1, -Infinity, Infinity, other(player), player, stats);
+      const score = -result.score;
+      if (!iterationBest || score > iterationBest.score) iterationBest = { move, score };
+    }
+    if (iterationBest && !stats.truncated) { best = iterationBest; completedDepth = d; }
+    if (timeUp(stats)) break;
+  }
+  if (!Number.isFinite(best.score) || best.score === -Infinity) {
+    const move = moves[0];
+    const next = simulateMove(game, state, move);
+    best = { move, score: evaluate(game, next, player) };
+  }
+  return { ...best, nodes: stats.nodes, truncated: stats.truncated, completedDepth };
 }
 
 function liveLegalMoveFor(game, move) {
@@ -371,11 +416,11 @@ export function installChess3DRobot(shell) {
     thinking = true;
     await waitForBrowser();
     try {
-      const result = await analyzeAsync(game, depth);
-      renderAnalysis(analysisPanel, result);
-      const move = result.topMoves[0]?.move;
+      const result = await choose3DChessRobotMove(game, depth);
+      const move = result.move;
       const liveMove = liveLegalMoveFor(game, move);
       if (move && liveMove) {
+        analysisPanel.textContent = `Robot found ${moveLabel(move)} at score ${((result.score || 0) / 100).toFixed(2)}; nodes ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`;
         await game.applyMove({
           from: move.from,
           to: liveMove,
@@ -383,6 +428,8 @@ export function installChess3DRobot(shell) {
         }, { robot: true });
       } else if (move) {
         analysisPanel.textContent = 'Robot move was rejected by the current board rules.';
+      } else {
+        analysisPanel.textContent = 'Robot found no legal move.';
       }
     } finally {
       thinking = false;
@@ -396,7 +443,7 @@ export function installChess3DRobot(shell) {
     analysisPanel.textContent = 'Robot is analyzing...';
     await waitForBrowser();
     try {
-      renderAnalysis(analysisPanel, await analyzeAsync(game, Math.max(1, Number(depthSelect?.value) || 2)));
+      renderAnalysis(analysisPanel, await analyze3DChessPosition(game, Math.max(1, Number(depthSelect?.value) || 2)));
     } finally {
       thinking = false;
     }

@@ -41,7 +41,20 @@
     "verify:floquet": "node tools/verify-floquet-engine.mjs",
     "verify:defaults": "node tools/verify-default-board-sizes.mjs",
     "verify:braid-memory": "node tools/verify-braid-memory.mjs",
-    "verify:physical-problems": "node tools/verify-physical-problems.mjs"
+    "verify:physical-problems": "node tools/verify-physical-problems.mjs",
+    "verify:local-robots": "node tools/verify-local-robot-coverage.mjs",
+    "local:app": "node tools/local-app-launcher.mjs",
+    "desktop:dev": "node tools/desktop-dev.mjs",
+    "research:selfplay": "node research/selfplay.mjs",
+    "research:aggregate": "node research/aggregate-stats.mjs",
+    "research:smoke": "node research/selfplay-smoke.mjs",
+    "verify:research": "node research/selfplay-smoke.mjs",
+    "research:batch": "node research/selfplay-batch.mjs",
+    "ml:train-linear": "node research/ml/train-linear.mjs",
+    "ml:evaluate-linear": "node research/ml/evaluate-linear.mjs",
+    "ml:export-dataset": "node research/ml/export-dataset.mjs",
+    "verify:ml": "node research/ml/ml-smoke.mjs",
+    "ml:train-all": "node research/ml/train-all-linear.mjs"
   },
   "dependencies": {
     "firebase": "^12.14.0",

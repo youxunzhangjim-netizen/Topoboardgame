@@ -15,3 +15,10 @@ playwright-report/
 test-results/
 
 .local-git-backups/
+local-data/
+*.jsonl
+.DS_Store
+
+local-models/*.json
+local-models/**/*.json
+local-data/datasets/

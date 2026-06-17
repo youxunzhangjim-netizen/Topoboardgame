@@ -13,7 +13,7 @@ function boundaryTargets() {
     const targets = [];
     for (let r = 0; r < SIZE; r += 1) {
         for (let c = 0; c < SIZE; c += 1) {
-            if (c === 0 || c === SIZE - 1) targets.push([r, c]);
+            if (r === 0 || r === SIZE - 1 || c === 0 || c === SIZE - 1) targets.push([r, c]);
         }
     }
     return targets;
@@ -454,10 +454,9 @@ export class PieceMovement {
         if (this.game.boundaryCondition === 'random') {
             if (this.inBounds(row, col)) return { valid: true, r: row, c: col };
             if (!this.inBounds(fromRow, fromCol)) return { valid: false, r: row, c: col };
-            if (row < 0 || row >= SIZE || (col >= 0 && col < SIZE)) return { valid: false, r: row, c: col };
-
             const dr = direction?.[0] ?? row - fromRow;
             const dc = direction?.[1] ?? col - fromCol;
+            if (dc === 0) return { valid: false, r: row, c: col };
             const target = this.game.randomBoundaryMap?.get(randomChessExitKey(fromRow, fromCol, dr, dc));
             return target ? { valid: true, r: target[0], c: target[1], randomBoundary: true } : { valid: false, r: row, c: col };
         }
