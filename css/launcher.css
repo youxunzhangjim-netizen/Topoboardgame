@@ -284,6 +284,14 @@ h1 {
     box-shadow: none;
 }
 
+.mode-family-card {
+    min-height: 184px;
+    display: grid;
+    align-content: start;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+}
+
 .extra-mode-card:hover,
 .extra-mode-card:focus-visible {
     border-color: rgba(56, 189, 248, 0.58);
@@ -304,6 +312,57 @@ h1 {
 .extra-mode-copy small {
     color: var(--muted);
     font-size: 13px;
+}
+
+.mode-family-selector {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 8px;
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.mode-family-selector select {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 40px 0 12px;
+    border: 1px solid rgba(148, 163, 184, 0.46);
+    border-radius: 8px;
+    background: rgba(7, 12, 18, 0.88);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: none;
+}
+
+.mode-family-selector select:focus-visible {
+    border-color: rgba(56, 189, 248, 0.72);
+    outline: 2px solid rgba(56, 189, 248, 0.22);
+    outline-offset: 2px;
+}
+
+.mode-family-open {
+    grid-column: 1 / -1;
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(56, 189, 248, 0.46);
+    border-radius: 8px;
+    background: rgba(10, 18, 26, 0.92);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.mode-family-open:hover,
+.mode-family-open:focus-visible {
+    border-color: rgba(242, 196, 100, 0.72);
+    background: rgba(22, 32, 43, 0.96);
+    outline: none;
 }
 
 .dimension-card {
@@ -530,7 +589,7 @@ h1 {
         align-items: start;
     }
 
-    .extra-mode-card {
+    .extra-mode-card:not(.mode-family-card) {
         display: grid;
         align-items: start;
     }

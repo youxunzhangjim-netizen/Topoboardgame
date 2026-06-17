@@ -149,57 +149,57 @@
                         <strong id="algebraicGamesTitle" data-i18n="algebraic.title">Algebraic Games</strong>
                         <small data-i18n="algebraic.desc">Abstract algebraic rule sets. Pick a family, then tune topology and controls inside the app.</small>
                     </div>
-                    <div class="extra-mode-row" aria-label="Algebraic game modes" data-i18n-aria-label="algebraic.choose">
+                    <div class="extra-mode-row" aria-label="Algebraic game families" data-i18n-aria-label="algebraic.choose">
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">Clifford</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_reversi">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>Clifford Reversi</strong>
-                                    <small>Pauli-label interval flips</small>
+                                    <strong>Clifford</strong>
+                                    <small>Pauli and stabilizer-inspired algebraic games</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-clifford_reversi" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_go">
-                                <span class="extra-mode-copy">
-                                    <strong>Clifford Go</strong>
-                                    <small>Graph Go with Pauli-labelled stones</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-clifford_go" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=clifford_jump">
-                                <span class="extra-mode-copy">
-                                    <strong>Clifford Jump Chess</strong>
-                                    <small>Jump game with Clifford labels</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-clifford_jump" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-clifford_reversi game-clifford_go game-clifford_jump" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="algebraicCliffordOpen">
+                                        <option value="./algebraic/?layer=algebraic&mode=clifford_reversi">Clifford Reversi</option>
+                                        <option value="./algebraic/?layer=algebraic&mode=clifford_go">Clifford Go</option>
+                                        <option value="./algebraic/?layer=algebraic&mode=clifford_jump">Clifford Jump Chess</option>
+                                    </select>
+                                </label>
+                                <a id="algebraicCliffordOpen" class="mode-family-open" href="./algebraic/?layer=algebraic&mode=clifford_reversi">Open</a>
+                            </div>
                         </div>
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">Anyon</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=anyon_reversi">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>Anyon Reversi</strong>
-                                    <small>Interval fusion on Reversi rays</small>
+                                    <strong>Anyon</strong>
+                                    <small>Fusion, braiding, jump, and interval games</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-anyon_reversi" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=anyon_jump">
-                                <span class="extra-mode-copy">
-                                    <strong>Anyon Jump Chess</strong>
-                                    <small>Jump game with braiding and fusion</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-anyon_jump" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-anyon_reversi game-anyon_jump" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="algebraicAnyonOpen">
+                                        <option value="./algebraic/?layer=algebraic&mode=anyon_reversi">Anyon Reversi</option>
+                                        <option value="./algebraic/?layer=algebraic&mode=anyon_jump">Anyon Jump Chess</option>
+                                    </select>
+                                </label>
+                                <a id="algebraicAnyonOpen" class="mode-family-open" href="./algebraic/?layer=algebraic&mode=anyon_reversi">Open</a>
+                            </div>
                         </div>
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">Virasoro</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=algebraic&mode=virasoro_jump">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>Virasoro Jump Chess</strong>
-                                    <small>Jump game with CFT primary labels</small>
+                                    <strong>Virasoro</strong>
+                                    <small>CFT primary labels and Virasoro actions</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-virasoro_jump" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-virasoro_jump" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="algebraicVirasoroOpen">
+                                        <option value="./algebraic/?layer=algebraic&mode=virasoro_jump">Virasoro Jump Chess</option>
+                                    </select>
+                                </label>
+                                <a id="algebraicVirasoroOpen" class="mode-family-open" href="./algebraic/?layer=algebraic&mode=virasoro_jump">Open</a>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -209,106 +209,64 @@
                         <strong id="physicalLabTitle" data-i18n="physical.title">Physical Systems Lab</strong>
                         <small data-i18n="physical.desc">Physical observable games with initial conditions, local updates, per-move observables, history export, and final answers.</small>
                     </div>
-                    <div class="extra-mode-row physical-mode-row" aria-label="Physical systems lab modes" data-i18n-aria-label="physical.choose">
+                    <div class="extra-mode-row physical-mode-row" aria-label="Physical systems lab families" data-i18n-aria-label="physical.choose">
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">Spin / Phases</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=ising_domain_game">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>Ising Domain Game</strong>
-                                    <small>Spin domains, energy, walls, and phases</small>
+                                    <strong>Spin / Phases</strong>
+                                    <small>Domains, phases, clusters, and vertex models</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-ising_domain_game" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=two_phase_competition_game">
-                                <span class="extra-mode-copy">
-                                    <strong>Two-Phase Competition</strong>
-                                    <small>Phase nucleation, interfaces, and coarsening</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-two_phase_competition_game" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_cluster_go">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Cluster Go</strong>
-                                    <small>Species clusters, liberties, extinction, percolation</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_cluster_go" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=spin_ice_vertex_game">
-                                <span class="extra-mode-copy">
-                                    <strong>Spin Ice Vertex Game</strong>
-                                    <small>Edge arrows, ice-rule defects, and loops</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-spin_ice_vertex_game" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go game-spin_ice_vertex_game" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="physicalSpinOpen">
+                                        <option value="./algebraic/?layer=physical&mode=ising_domain_game">Ising Domain Game</option>
+                                        <option value="./algebraic/?layer=physical&mode=two_phase_competition_game">Two-Phase Competition</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_cluster_go">Physical Cluster Go</option>
+                                        <option value="./algebraic/?layer=physical&mode=spin_ice_vertex_game">Spin Ice Vertex Game</option>
+                                    </select>
+                                </label>
+                                <a id="physicalSpinOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=ising_domain_game">Open</a>
+                            </div>
                         </div>
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">Gauge / Anyon</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=z2_gauge_loop_game">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>Z2 Gauge Loop Game</strong>
-                                    <small>Edge variables, star checks, Wilson loops</small>
+                                    <strong>Gauge / Anyon</strong>
+                                    <small>Gauge loops, anyon memory, and interval fusion</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-z2_gauge_loop_game" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_anyon_jump">
-                                <span class="extra-mode-copy">
-                                    <strong>Toric-Code Anyon Jump Lab</strong>
-                                    <small>Worldlines, memory, unbraiding, recovery</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_anyon_jump" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_anyon_reversi">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Anyon Reversi</strong>
-                                    <small>Charge placement and interval fusion</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_anyon_reversi" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-z2_gauge_loop_game game-physical_anyon_jump game-physical_anyon_reversi" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="physicalGaugeOpen">
+                                        <option value="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Z2 Gauge Loop Game</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric-Code Anyon Jump Lab</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_anyon_reversi">Physical Anyon Reversi</option>
+                                    </select>
+                                </label>
+                                <a id="physicalGaugeOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=z2_gauge_loop_game">Open</a>
+                            </div>
                         </div>
                         <div class="extra-mode-column">
-                            <span class="extra-mode-column-title">CFT / Stabilizer</span>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_go">
+                            <div class="extra-mode-card mode-family-card">
                                 <span class="extra-mode-copy">
-                                    <strong>CFT Observable Go</strong>
-                                    <small>Primary insertions and correlator observables</small>
+                                    <strong>CFT / Stabilizer</strong>
+                                    <small>CFT observables, Virasoro actions, and Pauli frames</small>
                                 </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_go" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi">
-                                <span class="extra-mode-copy">
-                                    <strong>CFT Domain-Wall Reversi</strong>
-                                    <small>CFT intervals, OPE channels, and domain walls</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_reversi" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_virasoro_jump">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Virasoro Jump Chess</strong>
-                                    <small>CFT primary jumps and braid memory</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_virasoro_jump" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_reversi">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Clifford Reversi</strong>
-                                    <small>Stabilizer / Pauli-frame recovery</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_reversi" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_go">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Clifford Go</strong>
-                                    <small>Pauli-frame graph Go variant</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_go" aria-label="Online activity"></span>
-                            </a>
-                            <a class="extra-mode-card" href="./algebraic/?layer=physical&mode=physical_clifford_jump">
-                                <span class="extra-mode-copy">
-                                    <strong>Physical Clifford Jump Chess</strong>
-                                    <small>Clifford jump dynamics and labels</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-key="game-physical_clifford_jump" aria-label="Online activity"></span>
-                            </a>
+                                <span class="game-count-badge" data-popularity-group="game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump game-physical_clifford_reversi game-physical_clifford_go game-physical_clifford_jump" aria-label="Online activity"></span>
+                                <label class="mode-family-selector">
+                                    Game
+                                    <select data-mode-select data-open-target="physicalCftOpen">
+                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_go">CFT Observable Go</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_reversi">CFT Domain-Wall Reversi</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_virasoro_jump">Physical Virasoro Jump Chess</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_reversi">Physical Clifford Reversi</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_go">Physical Clifford Go</option>
+                                        <option value="./algebraic/?layer=physical&mode=physical_clifford_jump">Physical Clifford Jump Chess</option>
+                                    </select>
+                                </label>
+                                <a id="physicalCftOpen" class="mode-family-open" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Open</a>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -614,12 +572,37 @@
                 });
             }
 
+            function installModeFamilySelectors() {
+                document.querySelectorAll('[data-mode-select]').forEach((select) => {
+                    const open = document.getElementById(select.dataset.openTarget || '');
+                    const sync = () => {
+                        if (!open) return;
+                        const [path, query = ''] = String(select.value).split('?');
+                        const params = new URLSearchParams(query);
+                        params.set('lang', currentLanguage);
+                        open.href = `${path}?${params.toString()}`;
+                        open.dataset.baseHref = select.value;
+                    };
+                    select.addEventListener('change', sync);
+                    sync();
+                });
+            }
+
             function setBadgeState(state, counts = EMPTY_COUNTS) {
                 lastBadgeState = state;
                 lastBadgeCounts = counts;
                 document.querySelectorAll('[data-popularity-key]').forEach((badge) => {
                     const key = badge.dataset.popularityKey;
                     const count = counts[key] || 0;
+                    const active = state === 'available' && count > 0;
+                    badge.dataset.state = active ? 'active' : 'idle';
+                    badge.hidden = !active;
+                    badge.textContent = active ? '●' : '';
+                    badge.title = active ? 'Online activity now' : '';
+                });
+                document.querySelectorAll('[data-popularity-group]').forEach((badge) => {
+                    const keys = String(badge.dataset.popularityGroup || '').split(/\s+/).filter(Boolean);
+                    const count = keys.reduce((sum, key) => sum + (counts[key] || 0), 0);
                     const active = state === 'available' && count > 0;
                     badge.dataset.state = active ? 'active' : 'idle';
                     badge.hidden = !active;
@@ -653,6 +636,7 @@
 
             persistLanguage(currentLanguage);
             installLanguageControl();
+            installModeFamilySelectors();
             applyLauncherLanguage();
             setBadgeState('loading');
         })();
