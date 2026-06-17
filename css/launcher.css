@@ -223,21 +223,27 @@ body::before {
 }
 
 .launcher-spirit {
-    max-width: 780px;
-    margin: 0 0 4px;
-    color: rgba(245, 182, 71, 0.92);
-    font-size: clamp(13px, 1.25vw, 17px);
-    font-weight: 850;
-    line-height: 1.45;
+    max-width: 860px;
+    display: grid;
+    gap: 8px;
+    margin: 2px 0 4px;
+    color: rgba(226, 236, 238, 0.88);
+    font-size: clamp(13px, 1.18vw, 16px);
+    font-weight: 650;
+    line-height: 1.5;
     letter-spacing: 0;
 }
 
-.eyebrow {
+.launcher-spirit strong {
     margin: 0;
     color: var(--gold);
-    font-size: 13px;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-size: clamp(15px, 1.4vw, 20px);
+    font-weight: 900;
+}
+
+.launcher-spirit p {
+    max-width: 820px;
+    margin: 0;
 }
 
 h1 {
