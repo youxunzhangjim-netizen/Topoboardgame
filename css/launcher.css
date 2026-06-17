@@ -230,10 +230,13 @@ body::before {
 .brand-block::before {
     content: "";
     position: absolute;
-    inset: -28px -28px -84px;
+    top: -48px;
+    bottom: -132px;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
     z-index: -1;
     pointer-events: none;
-    border-radius: 14px;
     background: linear-gradient(
         180deg,
         rgba(4, 18, 42, 0.96) 0%,
@@ -347,16 +350,17 @@ h1 {
 
 .lab-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
 }
 
 .lab-card {
-    min-height: 250px;
+    min-height: 0;
     display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.6fr) minmax(92px, 0.35fr);
     align-items: start;
-    align-content: start;
-    gap: 12px;
+    align-content: center;
+    gap: 14px;
     padding: 14px;
 }
 
@@ -380,6 +384,7 @@ h1 {
 
 .lab-card:has(.lab-advanced[open]) .lab-facts {
     display: grid;
+    grid-column: 1 / -1;
 }
 
 .lab-facts div {
@@ -444,7 +449,7 @@ h1 {
     display: grid;
     gap: 10px;
     min-width: 0;
-    align-self: end;
+    align-self: start;
 }
 
 .lab-advanced summary {
@@ -509,7 +514,12 @@ h1 {
 }
 
 .extra-mode-card.lab-card {
-    min-height: 250px;
+    min-height: 112px;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.6fr) minmax(92px, 0.35fr);
+    align-items: start;
+    align-content: center;
+    gap: 14px;
 }
 
 .mode-family-card {
@@ -779,7 +789,11 @@ h1 {
     }
 
     .brand-block::before {
-        inset: -24px -18px -78px;
+        top: -34px;
+        right: auto;
+        bottom: -112px;
+        left: 50%;
+        width: 100vw;
     }
 
     .brand-title-row {
@@ -849,6 +863,10 @@ h1 {
     .lab-card-grid,
     .lab-facts,
     .lab-presets {
+        grid-template-columns: 1fr;
+    }
+
+    .extra-mode-card.lab-card {
         grid-template-columns: 1fr;
     }
 
