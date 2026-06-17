@@ -53,8 +53,8 @@ body::before {
     width: 100%;
     height: 100%;
     display: block;
-    opacity: 0.48;
-    filter: brightness(0.66) saturate(0.62) blur(0.45px) drop-shadow(0 34px 64px rgba(0, 0, 0, 0.68));
+    opacity: 0.68;
+    filter: brightness(1.04) saturate(0.9) blur(0.3px) drop-shadow(0 34px 64px rgba(0, 0, 0, 0.58));
 }
 
 .launcher-author {
@@ -80,6 +80,41 @@ body::before {
 
 .launcher-author a:hover {
     color: rgba(237, 244, 246, 0.9);
+}
+
+.launcher-feedback {
+    position: fixed;
+    left: 16px;
+    bottom: 14px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.launcher-feedback-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid rgba(56, 189, 248, 0.46);
+    border-radius: 8px;
+    background: rgba(11, 16, 22, 0.86);
+    color: rgba(237, 244, 246, 0.86);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-decoration: none;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+}
+
+.launcher-feedback-button:hover,
+.launcher-feedback-button:focus-visible {
+    border-color: rgba(245, 182, 71, 0.74);
+    color: #ffffff;
+    outline: none;
 }
 
 .launcher-language {
@@ -606,12 +641,26 @@ h1 {
         width: 145%;
         max-width: none;
         margin-left: -22.5%;
-        opacity: 0.42;
+        opacity: 0.58;
+    }
+
+    .launcher-feedback {
+        left: 10px;
+        bottom: 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .launcher-feedback-button {
+        min-height: 32px;
+        padding: 0 9px;
+        font-size: 11px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     #launcherTorusCanvas {
-        opacity: 0.44;
+        opacity: 0.62;
     }
 }

@@ -39,6 +39,10 @@
         <span>You-Xun Zhang</span>
         <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
     </div>
+    <div class="launcher-feedback" aria-label="Feedback">
+        <a class="launcher-feedback-button" data-feedback-link="report" data-i18n="feedback.report" href="mailto:youxunzhangjim@gmail.com?subject=TopologicalBoardGame%20error%20report">Report Error</a>
+        <a class="launcher-feedback-button" data-feedback-link="suggestion" data-i18n="feedback.suggestion" href="mailto:youxunzhangjim@gmail.com?subject=TopologicalBoardGame%20suggestion">Suggestion</a>
+    </div>
 
     <main class="launcher-shell">
         <section class="launcher-hero" aria-labelledby="launcherTitle">
@@ -329,6 +333,10 @@
                         desc: 'Physical observable games with initial conditions, local updates, per-move observables, history export, and final answers.',
                         choose: 'Physical systems lab modes'
                     },
+                    feedback: {
+                        report: 'Report Error',
+                        suggestion: 'Suggestion'
+                    },
                     badges: {
                         waiting: '{count} waiting',
                         checking: 'checking...',
@@ -381,6 +389,10 @@
                         title: '物理系統實驗室',
                         desc: '含初始條件、局部更新、每步觀測量、歷史匯出與最終答案的物理觀測遊戲。',
                         choose: '物理系統實驗室模式'
+                    },
+                    feedback: {
+                        report: '回報錯誤',
+                        suggestion: '提出建議'
                     },
                     badges: {
                         waiting: '{count} 等待中',
@@ -588,6 +600,45 @@
                 });
             }
 
+            function installFeedbackLinks() {
+                const email = 'youxunzhangjim@gmail.com';
+                const templates = {
+                    report: {
+                        subject: 'TopologicalBoardGame error report',
+                        body: [
+                            'Please describe the error:',
+                            '',
+                            'Steps to reproduce:',
+                            '1. ',
+                            '2. ',
+                            '',
+                            `Page: ${window.location.href}`,
+                            `Browser: ${navigator.userAgent}`
+                        ].join('\n')
+                    },
+                    suggestion: {
+                        subject: 'TopologicalBoardGame suggestion',
+                        body: [
+                            'Suggestion:',
+                            '',
+                            'Why it would help:',
+                            '',
+                            `Page: ${window.location.href}`,
+                            `Browser: ${navigator.userAgent}`
+                        ].join('\n')
+                    }
+                };
+                document.querySelectorAll('[data-feedback-link]').forEach((link) => {
+                    const template = templates[link.dataset.feedbackLink];
+                    if (!template) return;
+                    const params = new URLSearchParams({
+                        subject: template.subject,
+                        body: template.body
+                    });
+                    link.href = `mailto:${email}?${params.toString()}`;
+                });
+            }
+
             function setBadgeState(state, counts = EMPTY_COUNTS) {
                 lastBadgeState = state;
                 lastBadgeCounts = counts;
@@ -637,6 +688,7 @@
             persistLanguage(currentLanguage);
             installLanguageControl();
             installModeFamilySelectors();
+            installFeedbackLinks();
             applyLauncherLanguage();
             setBadgeState('loading');
         })();

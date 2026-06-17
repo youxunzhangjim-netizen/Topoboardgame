@@ -14,7 +14,7 @@ if (canvas) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.68;
+    renderer.toneMappingExposure = 0.86;
 
     const board = new THREE.Group();
     board.rotation.x = 0.42;
@@ -26,17 +26,17 @@ if (canvas) {
     const columns = 16;
     const rows = 12;
     const lightMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x71827b,
-        roughness: 0.5,
+        color: 0x9fb2aa,
+        roughness: 0.46,
         metalness: 0.04,
-        clearcoat: 0.22,
+        clearcoat: 0.3,
         side: THREE.DoubleSide
     });
     const darkMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0x19262d,
-        roughness: 0.52,
+        color: 0x31434c,
+        roughness: 0.5,
         metalness: 0.06,
-        clearcoat: 0.18,
+        clearcoat: 0.24,
         side: THREE.DoubleSide
     });
 
@@ -179,11 +179,11 @@ if (canvas) {
         placePiece(index * 2, 7, 'black', 'P');
     });
 
-    scene.add(new THREE.HemisphereLight(0xaebdc2, 0x080c11, 0.72));
-    const key = new THREE.DirectionalLight(0xdde8e8, 1.15);
+    scene.add(new THREE.HemisphereLight(0xd8eef0, 0x080c11, 0.94));
+    const key = new THREE.DirectionalLight(0xf4fbff, 1.42);
     key.position.set(5, 8, 7);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0x245568, 0.34);
+    const rim = new THREE.DirectionalLight(0x3b8ca3, 0.46);
     rim.position.set(-6, 2, -5);
     scene.add(rim);
 

@@ -119,7 +119,7 @@ function addParameterLine(points, u0, v0, u1, v1, lift, segments) {
     }
 }
 
-export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 10) {
+export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 24) {
     const start = kleinParametersForCoord(a, width, height);
     const end = kleinParametersForCoord(b, width, height);
     const points = [];

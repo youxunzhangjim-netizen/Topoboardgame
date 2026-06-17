@@ -32,7 +32,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
-    kleinBottleGraphEdgePoints,
+    kleinBottlePoint,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -484,16 +484,9 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x0d5f3b,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.78,
-            depthTest: false,
-            depthWrite: false
-        });
-        const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x064e3b,
-            transparent: true,
-            opacity: 0.95,
+            opacity: 0.9,
             depthTest: false,
             depthWrite: false
         });
@@ -502,19 +495,28 @@ class Go3DRenderer {
             line.renderOrder = 6;
             this.boardGroup.add(line);
         };
-        const logic = this.app.logic;
-        const drawn = new Set();
-        for (const coord of logic.playableCoords()) {
-            const fromKey = logic.coordKey(coord);
-            for (const neighbor of logic.neighborsFromCoord(coord)) {
-                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.055), seam ? seamMaterial : gridMaterial);
+
+        const meshLift = 0.055;
+        const rowSegments = Math.max(96, width * 8);
+        const columnSegments = Math.max(120, height * 8);
+        for (let y = 0; y < height; y += 1) {
+            const u = (y / Math.max(1, height)) * TWO_PI;
+            const points = [];
+            for (let step = 0; step <= rowSegments; step += 1) {
+                points.push(kleinBottlePoint(u, (step / rowSegments) * TWO_PI, meshLift));
             }
+            addLine(points);
+        }
+        for (let x = 0; x < width; x += 1) {
+            const v = ((x + 0.5) / Math.max(1, width)) * TWO_PI;
+            const points = [];
+            for (let step = 0; step <= columnSegments; step += 1) {
+                points.push(kleinBottlePoint((step / columnSegments) * TWO_PI, v, meshLift));
+            }
+            addLine(points);
         }
 
+        const logic = this.app.logic;
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
             const pose = kleinBottlePose(coord, width, height, 0.095);
@@ -523,7 +525,7 @@ class Go3DRenderer {
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
-            color: 0xf0fdf4,
+            color: 0x050505,
             opacity: 0.96,
             depthTest: false,
             renderOrder: 7
@@ -550,16 +552,16 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x24150c,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.78,
+            opacity: 0.9,
             depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0xfbbf24,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.92,
+            opacity: 0.95,
             depthTest: false,
             depthWrite: false
         });
@@ -580,7 +582,7 @@ class Go3DRenderer {
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
                 addLine(
-                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052),
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052, seam ? 34 : 22),
                     seam ? seamMaterial : gridMaterial
                 );
             }
@@ -594,7 +596,7 @@ class Go3DRenderer {
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
-            color: 0x24130b,
+            color: 0x050505,
             opacity: 0.96,
             depthTest: false,
             renderOrder: 7
@@ -607,20 +609,23 @@ class Go3DRenderer {
             || ((a?.[0] === 0 && b?.[0] === width - 1) || (b?.[0] === 0 && a?.[0] === width - 1));
     }
 
-    mobiusGraphEdgePoints(a, b, width, height, lift = 0.05) {
+    mobiusGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 22) {
         const points = [];
-        const segments = 8;
         const seam = this.isMobiusSeamEdge(a, b, width);
         if (seam) {
             const start = a[0] === width - 1 ? a : b;
             const end = a[0] === width - 1 ? b : a;
             const u0 = (start[0] / Math.max(1, width)) * TWO_PI;
             const t = this.mobiusTForY(start[1], height);
-            for (let step = 0; step < segments; step += 1) {
+            for (let step = 0; step <= segments; step += 1) {
                 const u = THREE.MathUtils.lerp(u0, TWO_PI, step / segments);
                 points.push(this.mobiusPoint(u, t, lift));
             }
-            points.push(this.mobiusPose(end, width, height, lift).position);
+            const endT = this.mobiusTForY(end[1], height);
+            for (let step = 1; step <= Math.max(2, Math.ceil(segments / 5)); step += 1) {
+                const tStep = THREE.MathUtils.lerp(-t, endT, step / Math.max(2, Math.ceil(segments / 5)));
+                points.push(this.mobiusPoint(0, tStep, lift));
+            }
             return points;
         }
 
