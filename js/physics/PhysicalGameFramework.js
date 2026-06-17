@@ -448,7 +448,14 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
         'flipString',
         'flipLoop',
         'moveMonopole',
-        'annihilateMonopoles'
+        'annihilateMonopoles',
+        'flipGaugeEdge',
+        'flipGaugeEdgeByKey',
+        'flipGaugePath',
+        'flipGaugeLoop',
+        'measureGaugeCheck',
+        'applyGaugeNoise',
+        'applyGaugeNoiseByKey'
     ];
 
     for (const name of methodNames) {

@@ -10,6 +10,7 @@ import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import { IsingDomainGame } from '../../js/localgames/IsingDomainGame.js';
 import { TwoPhaseCompetitionGame } from '../../js/localgames/TwoPhaseCompetitionGame.js';
 import { SpinIceVertexGame } from '../../js/localgames/SpinIceVertexGame.js';
+import { Z2GaugeLoopGame } from '../../js/localgames/Z2GaugeLoopGame.js';
 import {
     braidWordToText,
     nextRequiredUnbraidGenerator,
@@ -103,6 +104,18 @@ const els = {
     spinIceViolationEnergyInput: document.querySelector('#spinIceViolationEnergyInput'),
     spinIceStringLengthControl: document.querySelector('#spinIceStringLengthControl'),
     spinIceStringLengthInput: document.querySelector('#spinIceStringLengthInput'),
+    z2GaugeInitialStateControl: document.querySelector('#z2GaugeInitialStateControl'),
+    z2GaugeInitialStateSelect: document.querySelector('#z2GaugeInitialStateSelect'),
+    z2GaugeActionControl: document.querySelector('#z2GaugeActionControl'),
+    z2GaugeActionSelect: document.querySelector('#z2GaugeActionSelect'),
+    z2GaugePathLengthControl: document.querySelector('#z2GaugePathLengthControl'),
+    z2GaugePathLengthInput: document.querySelector('#z2GaugePathLengthInput'),
+    z2GaugeNoiseControl: document.querySelector('#z2GaugeNoiseControl'),
+    z2GaugeNoiseSelect: document.querySelector('#z2GaugeNoiseSelect'),
+    z2GaugeNoiseRateControl: document.querySelector('#z2GaugeNoiseRateControl'),
+    z2GaugeNoiseRateInput: document.querySelector('#z2GaugeNoiseRateInput'),
+    z2GaugeDecoderControl: document.querySelector('#z2GaugeDecoderControl'),
+    z2GaugeDecoderSelect: document.querySelector('#z2GaugeDecoderSelect'),
     topologySelect: document.querySelector('#topologySelect'),
     latticeControl: document.querySelector('#latticeControl'),
     latticeSelect: document.querySelector('#latticeSelect'),
@@ -331,7 +344,8 @@ const MODE_LABELS = {
     physical_anyon_jump: 'Physical Anyon Jump Chess',
     ising_domain_game: 'Ising Domain Game',
     two_phase_competition_game: 'Two-Phase Competition Game',
-    spin_ice_vertex_game: 'Spin Ice Vertex Game'
+    spin_ice_vertex_game: 'Spin Ice Vertex Game',
+    z2_gauge_loop_game: 'Z2 Gauge Loop Game'
 };
 const ANYON_SYMBOLS = {
     psi: '\u03c8',
@@ -364,6 +378,15 @@ const INITIAL_CLIFFORD_ALGEBRA_SET = params.get('algebraSet')
         : '');
 const INITIAL_TOPOLOGY = params.get('topology') || params.get('board') || '';
 const URL_PHYSICAL_PROBLEM_ID = params.get('physicalProblem') || params.get('problemId') || '';
+const MODE_SELECT_CATALOG = [...els.modeSelect.querySelectorAll('optgroup')].map((group) => ({
+    label: group.label,
+    options: [...group.querySelectorAll('option')].map((option) => ({
+        value: option.value,
+        text: option.textContent,
+        layer: option.dataset.layer || '',
+        disabled: option.disabled
+    }))
+}));
 
 let game = null;
 let selectedToken = '';
@@ -413,7 +436,8 @@ function modeLayerForMode(mode = '') {
     if (normalized.startsWith('physical_')
         || normalized === 'ising_domain_game'
         || normalized === 'two_phase_competition_game'
-        || normalized === 'spin_ice_vertex_game') {
+        || normalized === 'spin_ice_vertex_game'
+        || normalized === 'z2_gauge_loop_game') {
         return 'physical';
     }
     return 'algebraic';
@@ -430,23 +454,30 @@ function optionBelongsToLayer(option, layer) {
 function syncModeCatalogForLayer({ chooseFirst = false } = {}) {
     const layer = els.gameLayerSelect?.value || modeLayerForMode(els.modeSelect?.value || '');
     if (els.gameLayerSelect && els.gameLayerSelect.value !== layer) els.gameLayerSelect.value = layer;
-    let selectedVisible = false;
-    for (const group of els.modeSelect.querySelectorAll('optgroup')) {
-        let groupHasVisible = false;
-        for (const option of group.querySelectorAll('option')) {
-            const visible = optionBelongsToLayer(option, layer);
-            const placeholder = option.value.endsWith('_placeholder');
-            option.hidden = !visible;
-            option.disabled = !visible || placeholder;
-            groupHasVisible ||= visible;
-            if (option.selected && visible && !placeholder) selectedVisible = true;
+    const previous = normalizeMode(els.modeSelect.value) || els.modeSelect.value;
+    els.modeSelect.replaceChildren();
+    for (const groupData of MODE_SELECT_CATALOG) {
+        const options = groupData.options.filter((option) => (option.layer || modeLayerForMode(option.value)) === layer);
+        if (!options.length) continue;
+        const group = document.createElement('optgroup');
+        group.label = groupData.label;
+        for (const optionData of options) {
+            const option = document.createElement('option');
+            option.value = optionData.value;
+            option.textContent = optionData.text;
+            option.dataset.layer = optionData.layer || modeLayerForMode(optionData.value);
+            option.disabled = optionData.disabled;
+            group.append(option);
         }
-        group.hidden = !groupHasVisible;
-        group.disabled = !groupHasVisible;
+        els.modeSelect.append(group);
     }
-    if (chooseFirst || !selectedVisible) {
-        const first = [...els.modeSelect.options].find((option) =>
-            optionBelongsToLayer(option, layer) && !option.disabled && !option.value.endsWith('_placeholder'));
+    const visibleValues = new Set([...els.modeSelect.options]
+        .filter((option) => !option.disabled)
+        .map((option) => option.value));
+    if (!chooseFirst && visibleValues.has(previous)) {
+        els.modeSelect.value = previous;
+    } else {
+        const first = [...els.modeSelect.options].find((option) => !option.disabled);
         if (first) els.modeSelect.value = first.value;
     }
 }
@@ -469,6 +500,8 @@ function normalizeMode(value) {
     if (Object.hasOwn(MODE_LABELS, value)) return value;
     if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
     if (value === 'anyon_reversi_game') return 'anyon_reversi';
+    if (value === 'z2_gauge' || value === 'z2_gauge_loop' || value === 'toric_code_loop') return 'z2_gauge_loop_game';
+    if (value === 'spin_ice_vertex' || value === 'spin_ice') return 'spin_ice_vertex_game';
     if (value === 'clifford_jump_chess') return 'clifford_jump';
     if (value === 'virasoro_jump_chess' || value === 'cft_jump') return 'virasoro_jump';
     if (value === 'clifford' || value === 'reversi') return 'clifford_reversi';
@@ -496,6 +529,7 @@ function isSharedPhysicalMode(mode = selectedMode()) {
         || mode === 'ising_domain_game'
         || mode === 'two_phase_competition_game'
         || mode === 'spin_ice_vertex_game'
+        || mode === 'z2_gauge_loop_game'
         || (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical');
 }
 
@@ -511,6 +545,10 @@ function isSpinIceVertexMode(mode = game?.mode || selectedMode()) {
     return (normalizeMode(mode) || mode) === 'spin_ice_vertex_game';
 }
 
+function isZ2GaugeLoopMode(mode = game?.mode || selectedMode()) {
+    return (normalizeMode(mode) || mode) === 'z2_gauge_loop_game';
+}
+
 function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
     if (game && (game.algebraSet === 'physical' || game.physicalConfig)) return true;
     return baseMode(mode) === 'clifford_reversi'
@@ -518,7 +556,7 @@ function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    if (isIsingDomainMode(mode) || isTwoPhaseCompetitionMode(mode) || isSpinIceVertexMode(mode)) return false;
+    if (isIsingDomainMode(mode) || isTwoPhaseCompetitionMode(mode) || isSpinIceVertexMode(mode) || isZ2GaugeLoopMode(mode)) return false;
     const base = baseMode(mode);
     return base === 'clifford_reversi' || base === 'physical_virasoro_reversi' || isAnyonReversiMode(mode);
 }
@@ -781,6 +819,7 @@ function syncModeControls() {
     const isIsing = isIsingDomainMode(mode);
     const isTwoPhase = isTwoPhaseCompetitionMode(mode);
     const isSpinIce = isSpinIceVertexMode(mode);
+    const isZ2Gauge = isZ2GaugeLoopMode(mode);
     const isAnyon = base === 'anyon_jump';
     const isJump = isJumpMode(mode);
     const isAnyonReversi = isAnyonReversiMode(mode);
@@ -790,7 +829,7 @@ function syncModeControls() {
     const usesFreeAnyonModel = isAnyon || isAnyonReversi;
     const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
     const isCFTReversi = base === 'physical_virasoro_reversi';
-    const isClifford = !isIsing && !isTwoPhase && !isSpinIce && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
+    const isClifford = !isIsing && !isTwoPhase && !isSpinIce && !isZ2Gauge && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
     const isPhysicalClifford = base === 'clifford_reversi'
         && (els.cliffordAlgebraSetSelect.value === 'physical' || mode === 'physical_clifford_reversi');
     const isStandardClifford = isClifford && !isPhysicalClifford;
@@ -837,6 +876,16 @@ function syncModeControls() {
     ]) {
         if (control) control.hidden = !isSpinIce;
     }
+    for (const control of [
+        els.z2GaugeInitialStateControl,
+        els.z2GaugeActionControl,
+        els.z2GaugePathLengthControl,
+        els.z2GaugeNoiseControl,
+        els.z2GaugeNoiseRateControl,
+        els.z2GaugeDecoderControl
+    ]) {
+        if (control) control.hidden = !isZ2Gauge;
+    }
     if (isVirasoroGo || isCFTReversi || isVirasoroJump) {
         syncCFTInitialStateOptions(isVirasoroGo || isVirasoroJump);
         if (isCFTReversi) els.cftModelSelect.value = 'ising_CFT';
@@ -851,7 +900,7 @@ function syncModeControls() {
     if (els.physicalProblemSelect) {
         setAllowedSelectValues(
             els.physicalProblemSelect,
-            isIsing || isTwoPhase || isSpinIce ? [''] : isAnyon
+            isIsing || isTwoPhase || isSpinIce || isZ2Gauge ? [''] : isAnyon
                 ? ['', 'toric_code_memory_unbraid']
                 : isVirasoroGo
                     ? ['', 'cft_conformal_block_observables']
@@ -973,9 +1022,9 @@ function syncModeControls() {
     }
     els.passButton.hidden = isJump;
     els.countButton.hidden = !isGoMode(mode);
-    els.measureButton.hidden = isIsing || isTwoPhase || isSpinIce || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
+    els.measureButton.hidden = isIsing || isTwoPhase || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isJump;
-    els.dynamicsSection.hidden = isIsing || isTwoPhase || isSpinIce || isVirasoroGo || isCFTReversi;
+    els.dynamicsSection.hidden = isIsing || isTwoPhase || isSpinIce || isZ2Gauge || isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
         Number(els.virasoroMaxModeSelect.value) >= 2
@@ -997,7 +1046,7 @@ function syncModeControls() {
     if (els.blackBraidCard) els.blackBraidCard.hidden = !isJump && !isCFTReversi;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isJump && !isCFTReversi;
     if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
-    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing && !isTwoPhase && !isSpinIce;
+    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing && !isTwoPhase && !isSpinIce && !isZ2Gauge;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon && !isAnyonReversi;
     if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo && !isVirasoroJump;
@@ -1191,6 +1240,17 @@ function spinIceConfig() {
     };
 }
 
+function z2GaugeConfig() {
+    return {
+        pathLength: Number(els.z2GaugePathLengthInput?.value ?? 4),
+        noisyEdgeFlip: els.z2GaugeNoiseSelect?.value === 'on',
+        noiseRate: Number(els.z2GaugeNoiseRateInput?.value ?? 0.02),
+        decoderEnabled: els.z2GaugeDecoderSelect?.value === 'on',
+        initialState: els.z2GaugeInitialStateSelect?.value || 'gauge_vacuum',
+        seed: els.noiseSeedInput?.value || 'z2-gauge-loop-game'
+    };
+}
+
 function physicalProblemConfig(mode) {
     const base = baseMode(mode);
     const topology = topologyConfig();
@@ -1295,12 +1355,14 @@ function createGame() {
         time: timeConfig(),
         ising: isingConfig(),
         twoPhase: twoPhaseConfig(),
-        spinIce: spinIceConfig()
+        spinIce: spinIceConfig(),
+        z2Gauge: z2GaugeConfig()
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'ising_domain_game') game = new IsingDomainGame(options);
     else if (mode === 'two_phase_competition_game') game = new TwoPhaseCompetitionGame(options);
     else if (mode === 'spin_ice_vertex_game') game = new SpinIceVertexGame(options);
+    else if (mode === 'z2_gauge_loop_game') game = new Z2GaugeLoopGame(options);
     else if (base === 'anyon_jump') game = new AnyonJumpGame(options);
     else if (base === 'clifford_jump') game = new CliffordJumpGame(options);
     else if (base === 'virasoro_jump') game = new VirasoroJumpGame(options);
@@ -1336,6 +1398,14 @@ function createGame() {
                     initialStateOptions: ['ice_rule_vacuum', 'random_arrows', 'monopole_pair', 'loop_excitation', 'thermal_ice_sample'],
                     allowedActions: ['flip_arrow', 'flip_string', 'flip_loop', 'move_monopole', 'annihilate_monopole_pair', 'pass'],
                     localUpdateRules: 'Edge arrows define incoming and outgoing arrows at each graph vertex. The square-ice rule prefers two in and two out; violations are monopoles. Actions flip one arrow, strings, closed loops, or paths that move and annihilate monopoles.'
+                })
+            : mode === 'z2_gauge_loop_game'
+                ? createPhysicalModeDefinition(mode, {
+                    physicalSystemName: 'Z2 gauge loop graph system',
+                    blackWhiteMeaning: 'black edge = U_e=+1; white edge = U_e=-1; vertex charge is the product of adjacent edge variables and plaquette flux is the product around local faces/cycles',
+                    initialStateOptions: ['gauge_vacuum', 'random_edge_errors', 'paired_charge_defects', 'paired_flux_defects', 'logical_loop_error'],
+                    allowedActions: ['flip_edge', 'flip_path', 'flip_loop', 'measure_star', 'measure_plaquette', 'noisy_edge_flip', 'pass'],
+                    localUpdateRules: 'Open strings flip connected edge paths and create star-charge endpoints. Closed loops preserve local constraints. Noncontractible loops change Wilson-loop logical sectors when the selected topology supports cycles.'
                 })
             : createPhysicalModeDefinition(mode);
         attachPhysicalGameFramework(game, definition);
@@ -2030,6 +2100,9 @@ function renderFlatBoard() {
     const legalSpinIceTargets = isSpinIceVertexMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
+    const legalZ2GaugeTargets = isZ2GaugeLoopMode(game.mode)
+        ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
+        : new Set();
     for (const coord of visibleCells()) {
         const key = coordKey(coord);
         const cell = document.createElement('button');
@@ -2040,7 +2113,7 @@ function renderFlatBoard() {
         if (honeycombNodes || hexCells) {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
-        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalSpinIceTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key)) cell.classList.add('legal');
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
@@ -2105,6 +2178,7 @@ function renderFlatBoard() {
         if (isIsingDomainMode(game.mode)) renderIsingSpin(cell, coord);
         if (isTwoPhaseCompetitionMode(game.mode)) renderTwoPhaseSite(cell, coord);
         if (isSpinIceVertexMode(game.mode)) renderSpinIceVertex(cell, coord);
+        if (isZ2GaugeLoopMode(game.mode)) renderZ2GaugeVertex(cell, coord);
         else if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
         else if (isJumpMode(game.mode)) renderAnyonToken(cell, coord);
@@ -2123,6 +2197,8 @@ function renderFlatBoard() {
             badge.textContent = 'APPEND';
             cell.append(badge);
         }
+
+        if (isZ2GaugeLoopMode(game.mode)) renderZ2GaugeEdges(cell, coord);
 
         const coordNode = document.createElement('span');
         coordNode.className = 'coord';
@@ -2182,6 +2258,9 @@ function algebraic3DViewState() {
     const legalSpinIce = isSpinIceVertexMode(game.mode)
         ? game.legalMoves().map((move) => coordKey(move.coord))
         : [];
+    const legalZ2Gauge = isZ2GaugeLoopMode(game.mode)
+        ? game.legalMoves().map((move) => coordKey(move.coord))
+        : [];
     return {
         selectedToken,
         legalKeys: new Set([
@@ -2191,7 +2270,8 @@ function algebraic3DViewState() {
             ...legalGo,
             ...legalIsing,
             ...legalTwoPhase,
-            ...legalSpinIce
+            ...legalSpinIce,
+            ...legalZ2Gauge
         ]),
         previewKeys: new Set((preview?.flips || []).map((flip) => flip.key)),
         affectedKeys: new Set([
@@ -2263,13 +2343,16 @@ function updateBoardHighlights() {
     const legalSpinIceTargets = isSpinIceVertexMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
+    const legalZ2GaugeTargets = isZ2GaugeLoopMode(game.mode)
+        ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
+        : new Set();
 
     els.board.querySelectorAll('.cell[data-key]').forEach((cell) => {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalSpinIceTargets.has(key));
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
@@ -2399,6 +2482,41 @@ function renderSpinIceVertex(cell, coord) {
     cell.append(node);
 }
 
+function renderZ2GaugeVertex(cell, coord) {
+    const stone = game.getStone(coord);
+    if (!stone) return;
+    const node = document.createElement('span');
+    node.className = `stone ising-spin z2-gauge-vertex ${stone.color}`;
+    if (stone.violation) node.classList.add('violation');
+    node.textContent = stone.label;
+    node.title = `star ${stone.star > 0 ? '+1' : '-1'}; flux ${stone.flux > 0 ? '+1' : '-1'}`;
+    cell.append(node);
+}
+
+function renderZ2GaugeEdges(cell, coord) {
+    if (typeof game.incidentEdges !== 'function') return;
+    const sourceKey = coordKey(coord);
+    for (const edge of game.incidentEdges(coord)) {
+        const atA = coordKey(edge.a) === sourceKey;
+        const other = atA ? edge.b : edge.a;
+        if (coord.length > 2 && other.slice(2).some((value, axis) => value !== coord[axis + 2])) continue;
+        const dx = Number(other[0]) - Number(coord[0]);
+        const dy = Number(other[1]) - Number(coord[1]);
+        if ((dx === 0 && dy === 0) || Math.abs(dx) > 1 || Math.abs(dy) > 1) continue;
+        const value = game.value(edge);
+        const segment = document.createElement('span');
+        segment.className = `z2-gauge-edge ${value > 0 ? 'black' : 'white'}`;
+        segment.style.setProperty('--edge-angle', `${Math.atan2(-dy, dx) * 180 / Math.PI}deg`);
+        segment.title = `${edge.key}: Ue=${value > 0 ? '+1' : '-1'}`;
+        segment.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleZ2GaugeEdgeClick(edge.key, coord);
+        });
+        cell.append(segment);
+    }
+}
+
 function renderCFTStone(cell, coord) {
     const stone = game.getStone(coord);
     if (!stone) return;
@@ -2500,6 +2618,12 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         const info = game.getVertexState(coord);
         if (!info) return `${game.topology.displayCoord(coord)} spin-ice vertex`;
         return `${game.topology.displayCoord(coord)} ${info.incoming} in / ${info.outgoing} out; charge ${info.charge}; ${info.violation ? 'monopole violation' : 'ice rule satisfied'}`;
+    }
+    if (isZ2GaugeLoopMode(game.mode)) {
+        const state = game.getVertexState(coord);
+        if (!state) return `${game.topology.displayCoord(coord)} Z2 gauge vertex`;
+        const flux = state.plaquette ? game.plaquetteValue(state.plaquette) : 1;
+        return `${game.topology.displayCoord(coord)} star=${state.star > 0 ? '+1' : '-1'}; plaquette flux=${flux > 0 ? '+1' : '-1'}; incident edges ${state.incidentEdges.length}`;
     }
     if (isCFTReversiMode(game.mode)) {
         const stone = game.getStone(coord);
@@ -2787,6 +2911,50 @@ function handleSpinIceClick(coord) {
     render();
 }
 
+function handleZ2GaugeClick(coord) {
+    const action = els.z2GaugeActionSelect?.value || 'flip_edge';
+    let result = null;
+    if (action === 'flip_path') result = game.flipGaugePath(coord, game.currentPlayer);
+    else if (action === 'flip_loop') result = game.flipGaugeLoop(coord, game.currentPlayer);
+    else if (action === 'measure_star') result = game.measureGaugeCheck(coord, 'star', game.currentPlayer);
+    else if (action === 'measure_plaquette') result = game.measureGaugeCheck(coord, 'plaquette', game.currentPlayer);
+    else if (action === 'noisy_edge_flip') result = game.applyGaugeNoise(coord, game.currentPlayer);
+    else result = game.flipGaugeEdge(coord, game.currentPlayer);
+    if (result?.ok) {
+        hoverCoord = null;
+        render();
+        const observables = result.event.observables;
+        const update = result.event.physicalUpdate || {};
+        const measurement = update.measurement ? `; ${update.measurement.check}=${update.measurement.value > 0 ? '+1' : '-1'}` : '';
+        els.statusText.textContent = `${result.event.action.replaceAll('_', ' ')}; dE ${formatNumber(update.deltaEnergy || 0)}; syndrome ${observables.syndromeWeight}; sector ${observables.logicalSector}${measurement}.`;
+        statusHoldUntil = Date.now() + 1800;
+        return;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function handleZ2GaugeEdgeClick(edgeKey, fallbackCoord) {
+    const action = els.z2GaugeActionSelect?.value || 'flip_edge';
+    let result = null;
+    if (action === 'noisy_edge_flip') result = game.applyGaugeNoiseByKey(edgeKey, game.currentPlayer);
+    else if (action === 'flip_edge') result = game.flipGaugeEdgeByKey(edgeKey, game.currentPlayer);
+    else return handleZ2GaugeClick(fallbackCoord);
+    if (result?.ok) {
+        hoverCoord = null;
+        render();
+        const observables = result.event.observables;
+        const update = result.event.physicalUpdate || {};
+        els.statusText.textContent = `Edge ${edgeKey} ${result.event.action.replaceAll('_', ' ')}; dE ${formatNumber(update.deltaEnergy || 0)}; syndrome ${observables.syndromeWeight}; sector ${observables.logicalSector}.`;
+        statusHoldUntil = Date.now() + 1800;
+        return;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
 function executeCliffordGoPlacement(coord, pauliLabel = els.pauliSelect.value) {
     els.pauliSelect.value = pauliLabel;
     const result = game.tryPlay(coord, game.currentPlayer, { pauliLabel });
@@ -3054,6 +3222,10 @@ function handleCellClick(coord, event = null) {
     }
     if (isSpinIceVertexMode(game.mode)) {
         handleSpinIceClick(coord);
+        return;
+    }
+    if (isZ2GaugeLoopMode(game.mode)) {
+        handleZ2GaugeClick(coord);
         return;
     }
     if (isCFTReversiMode(game.mode)) {
@@ -3412,6 +3584,19 @@ function renderStats() {
         els.whiteBraid.textContent = `${observables.stringLength} / ${observables.closedLoopCount}`;
         return;
     }
+    if (isZ2GaugeLoopMode(game.mode)) {
+        const counts = game.counts();
+        const observables = game.computePhysicalObservables();
+        els.blackCountLabel.textContent = 'Ue = +1';
+        els.whiteCountLabel.textContent = 'Ue = -1';
+        els.blackBraidLabel.textContent = 'Star / Flux';
+        els.whiteBraidLabel.textContent = 'Syndrome / Sector';
+        els.blackCount.textContent = counts.black;
+        els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = `${observables.starViolations} / ${observables.plaquetteFluxViolations}`;
+        els.whiteBraid.textContent = `${observables.syndromeWeight} / ${observables.logicalSector}`;
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const counts = game.counts();
         if (isAnyonReversiMode(game.mode)) {
@@ -3499,6 +3684,12 @@ function updateStatus() {
         const answer = game.computePhysicalAnswer();
         const action = els.spinIceActionSelect?.value || 'flip_arrow';
         els.statusText.textContent = `${capitalize(game.currentPlayer)} ${action.replaceAll('_', ' ')}. E=${formatNumber(observables.energy)}, defects=${observables.iceRuleViolations}, monopoles=${observables.monopoleCount}, sector=${answer.topologicalLoopSector}.`;
+        return;
+    }
+    if (isZ2GaugeLoopMode(game.mode)) {
+        const observables = game.computePhysicalObservables();
+        const action = els.z2GaugeActionSelect?.value || 'flip_edge';
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} ${action.replaceAll('_', ' ')}. Syndrome=${observables.syndromeWeight}, star=${observables.starViolations}, flux=${observables.plaquetteFluxViolations}, sector=${observables.logicalSector}.`;
         return;
     }
     if (isPhysicalCliffordMode(game.mode)) {
@@ -3683,6 +3874,15 @@ function renderLegend() {
             'String and loop flips update connected edge arrows',
             'Observables track monopoles, string length, loop winding, energy, and defect density'
         ]
+        : isZ2GaugeLoopMode(game.mode)
+        ? [
+            'Variables live on graph edges: Ue = +1 or -1',
+            'Black edges are Ue=+1; white edges are Ue=-1',
+            'Star checks multiply adjacent edge variables at a vertex',
+            'Plaquette checks multiply edge variables around local faces/cycles',
+            'Open paths create charge endpoints; closed loops preserve local constraints',
+            'Noncontractible loops change the Wilson-loop logical sector'
+        ]
         : isReversiMode(game.mode)
         ? [
             phaseSignsEnabled() ? '+/- phase signs shown' : 'X,Y,Z Pauli labels',
@@ -3777,6 +3977,11 @@ function renderHistory() {
             const update = event.physicalUpdate || {};
             const observables = event.observables || {};
             item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; edges ${event.affectedEdges?.length || 0}; dE ${formatNumber(update.deltaEnergy)}; monopoles ${observables.monopoleCount ?? 0}; defects ${observables.iceRuleViolations ?? 0}.`;
+        } else if (isZ2GaugeLoopMode(game.mode)) {
+            const update = event.physicalUpdate || {};
+            const observables = event.observables || {};
+            const measurement = update.measurement ? `; measured ${update.measurement.check} ${update.measurement.value > 0 ? '+1' : '-1'}` : '';
+            item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; edges ${event.affectedEdges?.length || 0}; syndrome ${observables.syndromeWeight ?? 0}; sector ${observables.logicalSector || 'trivial'}${measurement}.`;
         } else if (event.type === 'measurement') {
             item.textContent = `measurement ${event.measurement.type}: ${event.measurement.reported}${event.measurement.error ? ' with error' : ''}.`;
         } else if (event.type === 'noise') {
@@ -4075,6 +4280,11 @@ for (const control of [
     els.spinIceInitialStateSelect,
     els.spinIceViolationEnergyInput,
     els.spinIceStringLengthInput,
+    els.z2GaugeInitialStateSelect,
+    els.z2GaugePathLengthInput,
+    els.z2GaugeNoiseSelect,
+    els.z2GaugeNoiseRateInput,
+    els.z2GaugeDecoderSelect,
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
@@ -4083,6 +4293,7 @@ for (const control of [
 els.isingActionSelect?.addEventListener('change', render);
 els.twoPhaseActionSelect?.addEventListener('change', render);
 els.spinIceActionSelect?.addEventListener('change', render);
+els.z2GaugeActionSelect?.addEventListener('change', render);
 els.noiseRateInput.addEventListener('change', createGame);
 els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
@@ -4214,7 +4425,7 @@ els.onlineChatInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') submitOnlineChat();
 });
 els.passButton.addEventListener('click', () => {
-    if (isIsingDomainMode(game?.mode) || isTwoPhaseCompetitionMode(game?.mode) || isSpinIceVertexMode(game?.mode)) {
+    if (isIsingDomainMode(game?.mode) || isTwoPhaseCompetitionMode(game?.mode) || isSpinIceVertexMode(game?.mode) || isZ2GaugeLoopMode(game?.mode)) {
         game.pass();
         render();
     } else if (isReversiMode(game?.mode)) {

@@ -209,3 +209,66 @@ Open directly with:
 ```text
 https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?mode=spin_ice_vertex_game
 ```
+
+## Z2 Gauge Loop Game
+
+Mode id: `z2_gauge_loop_game`
+
+Physical meaning:
+
+- Board variables live on graph edges.
+- Edge variable `U_e = +1` or `-1`.
+- Black edge = `U_e = +1`.
+- White edge = `U_e = -1`.
+- Vertex charge = product of adjacent edge variables.
+- Plaquette flux = product around a local face or graph cycle.
+
+Actions:
+
+- Flip one edge.
+- Flip a connected path of edges.
+- Flip a closed loop.
+- Measure a star check.
+- Measure a plaquette / flux check.
+- Optional noisy edge flip.
+
+In the 2D board, visible black/white edge strokes can be clicked directly for the one-edge and noisy-edge actions. Vertex labels report the local star and plaquette signs.
+
+Physics:
+
+- Open string flips create pairs of star-charge defects at endpoints.
+- Closed loop flips preserve local constraints when the loop is contractible.
+- Noncontractible loops change the logical Wilson-loop sector on cycle-supporting topologies.
+
+Initial states:
+
+- `gauge_vacuum`
+- `random_edge_errors`
+- `paired_charge_defects`
+- `paired_flux_defects`
+- `logical_loop_error`
+
+Observables:
+
+- number of star violations
+- number of plaquette / flux violations
+- syndrome weight
+- logical Wilson loops
+- logical sector
+- memory alive / logical error
+- loop length distribution
+- decoder success estimate when enabled
+
+Final physical answer:
+
+- whether the gauge vacuum recovered
+- final syndrome weight
+- whether a logical error occurred
+- memory lifetime
+- Wilson-loop sector
+
+Open directly with:
+
+```text
+https://youxunzhangjim-netizen.github.io/Topoboardgame/algebraic/?mode=z2_gauge_loop_game
+```

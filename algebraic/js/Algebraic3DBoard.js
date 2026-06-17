@@ -168,7 +168,10 @@ export class Algebraic3DBoard {
 
     buildBoard() {
         const topology = this.game.topology;
-        const signature = `${topology.name}:${topology.sizes.join('x')}:${topology.lattice || 'square'}`;
+        const edgeState = this.game.mode === 'z2_gauge_loop_game' && this.game.edgeVariables
+            ? [...this.game.edgeVariables.entries()].map(([key, value]) => `${key}:${value}`).join(';')
+            : '';
+        const signature = `${topology.name}:${topology.sizes.join('x')}:${topology.lattice || 'square'}:${this.game.mode}:${edgeState}`;
         if (signature === this.signature) return;
         this.signature = signature;
         clearGroup(this.boardGroup);
@@ -227,7 +230,9 @@ export class Algebraic3DBoard {
     addGraph() {
         const topology = this.game.topology;
         const linePositions = [];
+        const lineColors = [];
         const drawn = new Set();
+        const z2GaugeEdges = this.game.mode === 'z2_gauge_loop_game' && typeof this.game.value === 'function';
         for (const coord of topology.vertices()) {
             const point = this.positionForCoord(coord, 0.07);
             this.pointCoords.push(coord);
@@ -239,22 +244,33 @@ export class Algebraic3DBoard {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const path = this.edgePath(coord, step);
+                const color = z2GaugeEdges
+                    ? new THREE.Color(this.game.value(edgeKey) > 0 ? 0x07111b : 0xf8fbff)
+                    : null;
                 for (let index = 1; index < path.length; index++) {
                     linePositions.push(
                         path[index - 1].x, path[index - 1].y, path[index - 1].z,
                         path[index].x, path[index].y, path[index].z
                     );
+                    if (color) {
+                        lineColors.push(
+                            color.r, color.g, color.b,
+                            color.r, color.g, color.b
+                        );
+                    }
                 }
             }
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        if (z2GaugeEdges) geometry.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
             new THREE.LineBasicMaterial({
-                color: topology.name === 'r3' ? 0x6ec8ec : 0x24150c,
+                color: z2GaugeEdges ? 0xffffff : topology.name === 'r3' ? 0x6ec8ec : 0x24150c,
+                vertexColors: z2GaugeEdges,
                 transparent: true,
-                opacity: topology.name === 'r3' ? 0.34 : 0.82,
+                opacity: z2GaugeEdges ? 0.96 : topology.name === 'r3' ? 0.34 : 0.82,
                 depthWrite: false
             })
         ));
@@ -303,6 +319,7 @@ export class Algebraic3DBoard {
             if (this.game.mode === 'ising_domain_game') this.addIsingSpin(coord, stone);
             else if (this.game.mode === 'two_phase_competition_game') this.addTwoPhaseSite(coord, stone);
             else if (this.game.mode === 'spin_ice_vertex_game') this.addSpinIceVertex(coord, stone);
+            else if (this.game.mode === 'z2_gauge_loop_game') this.addZ2GaugeVertex(coord, stone);
             else if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
             else if (this.game.mode === 'physical_virasoro_reversi') this.addCFTStone(coord, stone);
             else this.addCliffordStone(coord, stone);
@@ -340,6 +357,17 @@ export class Algebraic3DBoard {
             background: stone.violation
                 ? (stone.color === 'black' ? 'rgba(76,12,18,.9)' : 'rgba(255,236,170,.94)')
                 : 'rgba(17,28,38,.82)'
+        });
+        sprite.position.y = this.entityRadius() * 1.8;
+        group.add(sprite);
+        this.entityGroup.add(group);
+    }
+
+    addZ2GaugeVertex(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, stone.violation ? 1 : 0.74);
+        const sprite = labelSprite(stone.label || 'S+', {
+            foreground: stone.violation ? '#ffe8a8' : '#8be1ff',
+            background: stone.violation ? 'rgba(76,12,18,.9)' : 'rgba(17,28,38,.82)'
         });
         sprite.position.y = this.entityRadius() * 1.8;
         group.add(sprite);

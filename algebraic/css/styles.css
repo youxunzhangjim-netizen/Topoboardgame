@@ -990,6 +990,48 @@ h2 {
     box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.65), 0 0 18px rgba(250, 204, 21, 0.28);
 }
 
+.stone.z2-gauge-vertex {
+    inset: 26% 15%;
+    border-radius: 7px;
+    font-size: clamp(9px, 1.2vw, 15px);
+    letter-spacing: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.stone.z2-gauge-vertex:not(.violation) {
+    opacity: 0.76;
+    background: rgba(11, 29, 43, 0.88);
+    color: #9be7ff;
+}
+
+.stone.z2-gauge-vertex.violation {
+    box-shadow: inset 0 0 0 2px rgba(248, 113, 113, 0.68), 0 0 18px rgba(248, 113, 113, 0.3);
+}
+
+.z2-gauge-edge {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 47%;
+    height: max(3px, 7%);
+    border-radius: 999px;
+    transform: translateY(-50%) rotate(var(--edge-angle, 0deg));
+    transform-origin: left center;
+    z-index: 3;
+    pointer-events: auto;
+}
+
+.z2-gauge-edge.black {
+    background: #02070c;
+    box-shadow: 0 0 0 1px rgba(72, 201, 255, 0.42), 0 0 8px rgba(72, 201, 255, 0.24);
+}
+
+.z2-gauge-edge.white {
+    background: #f8fbff;
+    box-shadow: 0 0 0 1px rgba(6, 10, 16, 0.82), 0 0 10px rgba(248, 251, 255, 0.42);
+}
+
 .stone.go-stone.unstable {
     outline: 2px solid rgba(255, 115, 115, 0.92);
     outline-offset: 2px;
