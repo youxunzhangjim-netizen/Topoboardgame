@@ -32,7 +32,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
-    kleinBottlePoint,
+    kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -484,6 +484,7 @@ class Go3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -499,27 +500,18 @@ class Go3DRenderer {
             this.boardGroup.add(line);
         };
 
-        const meshLift = 0.055;
-        const rowSegments = Math.max(96, width * 8);
-        const columnSegments = Math.max(120, height * 8);
-        for (let y = 0; y < height; y += 1) {
-            const u = (y / Math.max(1, height)) * TWO_PI;
-            const points = [];
-            for (let step = 0; step <= rowSegments; step += 1) {
-                points.push(kleinBottlePoint(u, (step / rowSegments) * TWO_PI, meshLift));
+        const logic = this.app.logic;
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.055, 28));
             }
-            addLine(points);
-        }
-        for (let x = 0; x < width; x += 1) {
-            const v = ((x + 0.5) / Math.max(1, width)) * TWO_PI;
-            const points = [];
-            for (let step = 0; step <= columnSegments; step += 1) {
-                points.push(kleinBottlePoint((step / columnSegments) * TWO_PI, v, meshLift));
-            }
-            addLine(points);
         }
 
-        const logic = this.app.logic;
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
             const pose = kleinBottlePose(coord, width, height, 0.095);

@@ -5,35 +5,54 @@ export const KLEIN_SURFACE_WIDTH_SCALE = 2.0;
 export const KLEIN_SURFACE_NECK_SCALE = 1.4;
 export const KLEIN_SURFACE_HEIGHT_SCALE = 2.8;
 const TWO_PI = Math.PI * 2;
+const KLEIN_U_MAX = TWO_PI;
+const KLEIN_V_MIN = -Math.PI / 2;
+const KLEIN_V_MAX = Math.PI * 1.5;
+const KLEIN_VISUAL_SCALE = 0.52;
 const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {
     return ((value % modulus) + modulus) % modulus;
 }
 
+function normalizeKleinU(u) {
+    if (Math.abs(u - KLEIN_U_MAX) < NORMAL_EPSILON * 2) return KLEIN_U_MAX;
+    return positiveModulo(u, KLEIN_U_MAX);
+}
+
 export function kleinParametersForCoord(coord, width, height) {
     const x = Number(coord?.[0]) || 0;
     const y = Number(coord?.[1]) || 0;
     return {
-        // The x coordinate is centered in each tube cell so the flipped
-        // y-seam maps x to width - 1 - x without collapsing edge vertices.
-        v: TWO_PI * (x + 0.5) / Math.max(1, width),
-        u: TWO_PI * y / Math.max(1, height)
+        // The v offset makes the graph flip x -> width - 1 - x coincide with
+        // the traditional Klein bottle seam v -> pi - v.
+        v: KLEIN_V_MIN + TWO_PI * (x + 0.5) / Math.max(1, width),
+        u: KLEIN_U_MAX * y / Math.max(1, height)
     };
 }
 
 export function kleinBottleBasePoint(u, v) {
-    const halfU = u / 2;
-    const tubeRadius = KLEIN_SURFACE_MAJOR_RADIUS
-        + KLEIN_SURFACE_WIDTH_SCALE * Math.cos(halfU) * Math.sin(v)
-        - KLEIN_SURFACE_NECK_SCALE * Math.sin(halfU) * Math.sin(2 * v);
+    const parameterU = normalizeKleinU(u);
+    const sinU = Math.sin(parameterU);
+    const cosU = Math.cos(parameterU);
+    const cosV = Math.cos(v);
+    const sinV = Math.sin(v);
+    let rawX;
+    let rawZ;
+    if (parameterU < Math.PI) {
+        const tube = 2 * (1 - cosU / 2);
+        rawX = 3 * cosU * (1 + sinU) + tube * cosU * cosV;
+        rawZ = -8 * sinU - tube * sinU * cosV;
+    } else {
+        const tube = 2 * (1 - cosU / 2);
+        rawX = 3 * cosU * (1 + sinU) + tube * Math.cos(v + Math.PI);
+        rawZ = -8 * sinU;
+    }
+    const rawY = -2 * (1 - cosU / 2) * sinV;
     return new THREE.Vector3(
-        tubeRadius * Math.cos(u),
-        KLEIN_SURFACE_HEIGHT_SCALE * (
-            Math.sin(halfU) * Math.sin(v)
-            + Math.cos(halfU) * Math.sin(2 * v)
-        ),
-        tubeRadius * Math.sin(u)
+        rawX * KLEIN_VISUAL_SCALE,
+        rawZ * KLEIN_VISUAL_SCALE,
+        rawY * KLEIN_VISUAL_SCALE
     );
 }
 
@@ -69,23 +88,29 @@ export function createKleinBottleSurfaceGeometry({
     vSegments = 80,
     lift = 0
 } = {}) {
+    const safeUSegments = Math.max(8, Math.floor(uSegments));
+    const safeVSegments = Math.max(8, Math.floor(vSegments / 2) * 2);
     const positions = [];
     const indices = [];
-    for (let iu = 0; iu <= uSegments; iu += 1) {
-        const u = (iu / uSegments) * TWO_PI;
-        for (let iv = 0; iv <= vSegments; iv += 1) {
-            const v = (iv / vSegments) * TWO_PI;
+    for (let iu = 0; iu < safeUSegments; iu += 1) {
+        const u = (iu / safeUSegments) * KLEIN_U_MAX;
+        for (let iv = 0; iv < safeVSegments; iv += 1) {
+            const v = KLEIN_V_MIN + (iv / safeVSegments) * TWO_PI;
             const point = kleinBottlePoint(u, v, lift);
             positions.push(point.x, point.y, point.z);
         }
     }
-    const row = vSegments + 1;
-    for (let iu = 0; iu < uSegments; iu += 1) {
-        for (let iv = 0; iv < vSegments; iv += 1) {
+    const row = safeVSegments;
+    const twistIndex = (iv) => positiveModulo((safeVSegments / 2) - iv, safeVSegments);
+    for (let iu = 0; iu < safeUSegments; iu += 1) {
+        const nextU = (iu + 1) % safeUSegments;
+        const wrapsU = nextU === 0;
+        for (let iv = 0; iv < safeVSegments; iv += 1) {
+            const nextV = (iv + 1) % safeVSegments;
             const a = iu * row + iv;
-            const b = (iu + 1) * row + iv;
-            const c = (iu + 1) * row + iv + 1;
-            const d = iu * row + iv + 1;
+            const b = wrapsU ? twistIndex(iv) : nextU * row + iv;
+            const c = wrapsU ? twistIndex(nextV) : nextU * row + nextV;
+            const d = iu * row + nextV;
             indices.push(a, b, d, b, c, d);
         }
     }
@@ -124,23 +149,23 @@ export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, seg
     const end = kleinParametersForCoord(b, width, height);
     const points = [];
 
-    if (isHorizontalWrapEdge(a, b, width)) {
-        const left = a[0] === width - 1 ? a : b;
-        const right = left === a ? b : a;
-        const leftParam = kleinParametersForCoord(left, width, height);
-        const rightParam = kleinParametersForCoord(right, width, height);
-        addParameterLine(points, leftParam.u, leftParam.v, leftParam.u, TWO_PI, lift, Math.max(2, Math.ceil(segments / 2)));
-        addParameterLine(points, rightParam.u, 0, rightParam.u, rightParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
-        return points;
-    }
-
     if (isVerticalFlipEdge(a, b, height)) {
         const lower = a[1] === height - 1 ? a : b;
         const upper = lower === a ? b : a;
         const lowerParam = kleinParametersForCoord(lower, width, height);
         const upperParam = kleinParametersForCoord(upper, width, height);
-        addParameterLine(points, lowerParam.u, lowerParam.v, TWO_PI, lowerParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
-        addParameterLine(points, 0, positiveModulo(-lowerParam.v, TWO_PI), upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        addParameterLine(points, lowerParam.u, lowerParam.v, KLEIN_U_MAX, lowerParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        addParameterLine(points, 0, Math.PI - lowerParam.v, upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        return points;
+    }
+
+    if (isHorizontalWrapEdge(a, b, width)) {
+        const left = a[0] === width - 1 ? a : b;
+        const right = left === a ? b : a;
+        const leftParam = kleinParametersForCoord(left, width, height);
+        const rightParam = kleinParametersForCoord(right, width, height);
+        addParameterLine(points, leftParam.u, leftParam.v, leftParam.u, KLEIN_V_MAX, lift, Math.max(2, Math.ceil(segments / 2)));
+        addParameterLine(points, rightParam.u, KLEIN_V_MIN, rightParam.u, rightParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
         return points;
     }
 

@@ -257,41 +257,40 @@ class Reversi3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x24150c,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.78,
+            opacity: 0.9,
             depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0xfbbf24,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.92,
+            opacity: 0.95,
             depthTest: true,
             depthWrite: false
         });
+        const topology = this.app.logic.topology;
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
-        for (let y = 0; y < height; y += 1) {
-            const points = [];
-            const segments = Math.max(128, width * 10);
-            const t = this.mobiusTForY(y, height);
-            for (let step = 0; step <= segments; step += 1) {
-                points.push(this.mobiusPoint((step / segments) * TWO_PI, t, 0.045));
+        const drawn = new Set();
+        for (const coord of topology.allCoords()) {
+            for (const direction of [[1, 0], [0, 1]]) {
+                const neighbor = topology.step(coord, direction);
+                if (!neighbor) continue;
+                const edgeKey = [topology.key(coord), topology.key(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const seam = this.isMobiusSeamEdge(coord, neighbor, width);
+                addLine(
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052, seam ? 34 : 22),
+                    seam ? seamMaterial : gridMaterial
+                );
             }
-            addLine(points, y === 0 || y === height - 1 ? seamMaterial : gridMaterial);
-        }
-        for (let x = 0; x < width; x += 1) {
-            const points = [];
-            const u = (x / Math.max(1, width)) * TWO_PI;
-            for (let step = 0; step <= 24; step += 1) {
-                points.push(this.mobiusPoint(u, this.mobiusTForY((step / 24) * Math.max(1, height - 1), height), 0.05));
-            }
-            addLine(points, x === 0 ? seamMaterial : gridMaterial);
         }
 
         const pointPositions = [];
@@ -312,6 +311,59 @@ class Reversi3DRenderer {
         });
     }
 
+    isMobiusSeamEdge(a, b, width) {
+        return Math.abs((a?.[0] ?? 0) - (b?.[0] ?? 0)) > 1
+            || ((a?.[0] === 0 && b?.[0] === width - 1) || (b?.[0] === 0 && a?.[0] === width - 1));
+    }
+
+    mobiusGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 22) {
+        const points = [];
+        const seam = this.isMobiusSeamEdge(a, b, width);
+        if (seam) {
+            const start = a[0] === width - 1 ? a : b;
+            const end = start === a ? b : a;
+            const u0 = (start[0] / Math.max(1, width)) * TWO_PI;
+            const t = this.mobiusTForY(start[1], height);
+            for (let step = 0; step <= segments; step += 1) {
+                points.push(this.mobiusPoint(THREE.MathUtils.lerp(u0, TWO_PI, step / segments), t, lift));
+            }
+            const endT = this.mobiusTForY(end[1], height);
+            const bridgeSegments = Math.max(2, Math.ceil(segments / 5));
+            for (let step = 1; step <= bridgeSegments; step += 1) {
+                points.push(this.mobiusPoint(0, THREE.MathUtils.lerp(-t, endT, step / bridgeSegments), lift));
+            }
+            return points;
+        }
+
+        if (a[1] === b[1]) {
+            const start = a[0] <= b[0] ? a : b;
+            const end = start === a ? b : a;
+            const u0 = (start[0] / Math.max(1, width)) * TWO_PI;
+            const u1 = (end[0] / Math.max(1, width)) * TWO_PI;
+            const t = this.mobiusTForY(start[1], height);
+            for (let step = 0; step <= segments; step += 1) {
+                points.push(this.mobiusPoint(THREE.MathUtils.lerp(u0, u1, step / segments), t, lift));
+            }
+            return points;
+        }
+
+        if (a[0] === b[0]) {
+            const start = a[1] <= b[1] ? a : b;
+            const end = start === a ? b : a;
+            const u = (start[0] / Math.max(1, width)) * TWO_PI;
+            const t0 = this.mobiusTForY(start[1], height);
+            const t1 = this.mobiusTForY(end[1], height);
+            for (let step = 0; step <= segments; step += 1) {
+                points.push(this.mobiusPoint(u, THREE.MathUtils.lerp(t0, t1, step / segments), lift));
+            }
+            return points;
+        }
+
+        points.push(this.mobiusPose(a, width, height, lift).position);
+        points.push(this.mobiusPose(b, width, height, lift).position);
+        return points;
+    }
+
     buildKlein(topology) {
         const { width, height } = topology;
         const surface = new THREE.Mesh(
@@ -330,17 +382,18 @@ class Reversi3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x0d5f3b,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.78,
+            opacity: 0.9,
             depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x064e3b,
+            color: 0x050505,
             transparent: true,
             opacity: 0.95,
             depthTest: true,
