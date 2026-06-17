@@ -138,7 +138,7 @@ button:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
 .online-controls, .room-info, .share-link-box { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
 .room-id-display { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.08em; }
 .share-link-input { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.move-history { height: 210px; max-height: 210px; overflow: auto; align-content: start; display: grid; gap: 6px; }
+.move-history { height: 210px; min-height: 178px; max-height: 210px; overflow: auto; align-content: start; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255,255,255,0.045); font-size: 13px; }
 .rules-text { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .score-panel[hidden] { display: none; }

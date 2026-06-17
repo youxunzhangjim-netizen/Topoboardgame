@@ -709,6 +709,7 @@ input:disabled {
 .move-history {
     display: grid;
     gap: 6px;
+    min-height: 178px;
     max-height: 230px;
     overflow-y: auto;
     font-family: "Cascadia Mono", "Consolas", monospace;

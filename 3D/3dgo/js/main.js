@@ -508,13 +508,13 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.055, 28));
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.065, 28));
             }
         }
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const pose = kleinBottlePose(coord, width, height, 0.095);
+            const pose = this.kleinOutsidePose(coord, width, height, 0.11);
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
@@ -522,25 +522,26 @@ class Go3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: true,
+            depthTest: false,
             renderOrder: 3
         });
     }
 
     buildMobius(width, height) {
+        const surfaceMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x8f6238,
+            roughness: 0.58,
+            metalness: 0.02,
+            transparent: false,
+            opacity: 1,
+            depthWrite: true,
+            clearcoat: 0.28,
+            clearcoatRoughness: 0.48,
+            side: THREE.DoubleSide
+        });
         const surface = new THREE.Mesh(
-            this.createMobiusSurfaceGeometry(220, 48, -0.018),
-            new THREE.MeshPhysicalMaterial({
-                color: 0x8f6238,
-                roughness: 0.58,
-                metalness: 0.02,
-                transparent: false,
-                opacity: 1,
-                depthWrite: true,
-                clearcoat: 0.28,
-                clearcoatRoughness: 0.48,
-                side: THREE.DoubleSide
-            })
+            this.createMobiusSolidGeometry(224, 50, 0.064),
+            surfaceMaterial
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
@@ -550,14 +551,14 @@ class Go3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: true,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.95,
-            depthTest: true,
+            depthTest: false,
             depthWrite: false
         });
         const logic = this.app.logic;
@@ -1134,9 +1135,9 @@ class Go3DRenderer {
         const pose = logic.topology === 't2'
             ? this.torusPosition(coord, logic.size, 0.055)
             : logic.topology === RP2_GO_TOPOLOGY
-                ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
-                : logic.topology === KLEIN_BOTTLE_TOPOLOGY
-                    ? kleinBottlePose(coord, logic.width, logic.height, 0.095)
+                    ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
+                    : logic.topology === KLEIN_BOTTLE_TOPOLOGY
+                    ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                     : this.mobiusPose(coord, logic.width, logic.height, 0.075);
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY && this.kleinSurfaceOccludes(hit, pose)) return false;
@@ -1222,7 +1223,7 @@ class Go3DRenderer {
             return this.rp2Position(coord, logic.width, logic.height, 0.18);
         }
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            return kleinBottlePose(coord, logic.width, logic.height, 0.18).position;
+            return this.kleinOutsidePose(coord, logic.width, logic.height, 0.18).position;
         }
         if (logic.topology === SPHERE_GO_TOPOLOGY) {
             if (this.view === '2d') {
@@ -1328,6 +1329,12 @@ class Go3DRenderer {
         return { position, normal };
     }
 
+    kleinOutsidePose(coord, width, height, lift = 0.1) {
+        const pose = kleinBottlePose(coord, width, height, -Math.abs(lift));
+        pose.normal.multiplyScalar(-1);
+        return pose;
+    }
+
     mobiusTForY(y, height) {
         if (height <= 1) return 0;
         return THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, Number(y) / (height - 1));
@@ -1369,26 +1376,51 @@ class Go3DRenderer {
         };
     }
 
-    createMobiusSurfaceGeometry(uSegments = 220, tSegments = 48, lift = 0) {
+    createMobiusSolidGeometry(uSegments = 220, tSegments = 48, thickness = 0.06) {
+        const safeUSegments = Math.max(12, Math.floor(uSegments));
+        const safeTSegments = Math.max(4, Math.floor(tSegments));
         const positions = [];
         const indices = [];
-        for (let iu = 0; iu <= uSegments; iu++) {
-            const u = (iu / uSegments) * TWO_PI;
-            for (let it = 0; it <= tSegments; it++) {
-                const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, it / tSegments);
-                const point = this.mobiusPoint(u, t, lift);
-                positions.push(point.x, point.y, point.z);
+        const halfThickness = Math.max(0.01, Math.abs(thickness) / 2);
+        for (const lift of [halfThickness, -halfThickness]) {
+            for (let iu = 0; iu < safeUSegments; iu += 1) {
+                const u = (iu / safeUSegments) * TWO_PI;
+                for (let it = 0; it <= safeTSegments; it += 1) {
+                    const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, it / safeTSegments);
+                    const point = this.mobiusPoint(u, t, lift);
+                    positions.push(point.x, point.y, point.z);
+                }
             }
         }
-        const row = tSegments + 1;
-        for (let iu = 0; iu < uSegments; iu++) {
-            for (let it = 0; it < tSegments; it++) {
-                const a = iu * row + it;
-                const b = (iu + 1) * row + it;
-                const c = (iu + 1) * row + it + 1;
-                const d = iu * row + it + 1;
+        const row = safeTSegments + 1;
+        const layerStride = safeUSegments * row;
+        const indexAt = (layer, iu, it) => layer * layerStride + iu * row + it;
+        const wrappedIt = (it, wraps) => wraps ? safeTSegments - it : it;
+        for (let iu = 0; iu < safeUSegments; iu += 1) {
+            const nextU = (iu + 1) % safeUSegments;
+            const wraps = nextU === 0;
+            for (let it = 0; it < safeTSegments; it += 1) {
+                const a = indexAt(0, iu, it);
+                const b = indexAt(0, nextU, wrappedIt(it, wraps));
+                const c = indexAt(0, nextU, wrappedIt(it + 1, wraps));
+                const d = indexAt(0, iu, it + 1);
                 indices.push(a, b, d, b, c, d);
+
+                const e = indexAt(1, iu, it);
+                const f = indexAt(1, nextU, wrappedIt(it, wraps));
+                const g = indexAt(1, nextU, wrappedIt(it + 1, wraps));
+                const h = indexAt(1, iu, it + 1);
+                indices.push(e, h, f, f, h, g);
             }
+
+            const lowerNext = wrappedIt(0, wraps);
+            const upperNext = wrappedIt(safeTSegments, wraps);
+            indices.push(
+                indexAt(0, iu, 0), indexAt(1, iu, 0), indexAt(0, nextU, lowerNext),
+                indexAt(1, iu, 0), indexAt(1, nextU, lowerNext), indexAt(0, nextU, lowerNext),
+                indexAt(0, nextU, upperNext), indexAt(1, iu, safeTSegments), indexAt(0, iu, safeTSegments),
+                indexAt(1, nextU, upperNext), indexAt(1, iu, safeTSegments), indexAt(0, nextU, upperNext)
+            );
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));

@@ -1366,6 +1366,7 @@ h2 {
 }
 
 .history-list {
+    min-height: 178px;
     max-height: 260px;
     margin: 0;
     padding-left: 22px;

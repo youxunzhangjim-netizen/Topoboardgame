@@ -39,37 +39,38 @@
                         Mode
                         <select id="modeSelect">
                             <optgroup label="Algebraic Games - Clifford">
-                                <option value="clifford_reversi" data-layer="algebraic">Clifford Reversi</option>
+                                <option value="clifford_reversi" data-layer="algebraic">Stabilizer Recovery</option>
                                 <option value="clifford_go" data-layer="algebraic">Clifford Go</option>
                                 <option value="clifford_jump" data-layer="algebraic">Clifford Jump Chess</option>
                             </optgroup>
                             <optgroup label="Algebraic Games - Anyon">
                                 <option value="anyon_reversi" data-layer="algebraic">Anyon Reversi</option>
-                                <option value="anyon_jump" data-layer="algebraic">Anyon Jump Chess</option>
+                                <option value="anyon_jump" data-layer="algebraic">Anyon Fusion &amp; Braiding</option>
                             </optgroup>
                             <optgroup label="Algebraic Games - Virasoro">
                                 <option value="virasoro_jump" data-layer="algebraic">Virasoro Jump Chess</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Spin / Ising systems">
-                                <option value="ising_domain_game" data-layer="physical">Ising Domain Game</option>
+                                <option value="ising_domain_game" data-layer="physical">Spin &amp; Phase Domain Game</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Two-phase competition">
                                 <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Game</option>
                                 <option value="physical_cluster_go" data-layer="physical">Physical Cluster Go</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Chiral systems">
-                                <option value="physical_virasoro_go" data-layer="physical">CFT Observable Go</option>
+                                <option value="physical_virasoro_go" data-layer="physical">CFT Field Insertion</option>
                                 <option value="physical_virasoro_reversi" data-layer="physical">CFT Domain-Wall Reversi</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Z2 gauge / toric-code systems">
                                 <option value="z2_gauge_loop_game" data-layer="physical">Z2 Gauge Loop Game</option>
-                                <option value="physical_anyon_jump" data-layer="physical">Toric-Code Anyon Jump Lab</option>
+                                <option value="physical_anyon_jump" data-layer="physical">Topological Memory</option>
+                                <option value="physical_jump_particles" data-layer="physical">Physical Jump Particles</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Spin ice / vertex models">
                                 <option value="spin_ice_vertex_game" data-layer="physical">Spin Ice Vertex Game</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Stabilizer / Pauli-frame systems">
-                                <option value="physical_clifford_reversi" data-layer="physical">Physical Clifford Reversi</option>
+                                <option value="physical_clifford_reversi" data-layer="physical">Pauli-Frame Recovery</option>
                                 <option value="physical_clifford_go" data-layer="physical">Physical Clifford Go</option>
                                 <option value="physical_clifford_jump" data-layer="physical">Physical Clifford Jump Chess</option>
                             </optgroup>
@@ -108,16 +109,16 @@
                         <select id="physicalProblemSelect">
                             <option value="" selected>None</option>
                             <optgroup label="Spin / Ising systems">
-                                <option value="ising_domain_wall_topology">Ising Domain Wall</option>
+                                <option value="ising_domain_wall_topology">Domain-Wall Reversi</option>
                             </optgroup>
                             <optgroup label="Z2 gauge / toric-code systems">
-                                <option value="toric_code_memory_unbraid">Toric Memory Unbraid</option>
+                                <option value="toric_code_memory_unbraid">Topological Memory</option>
                             </optgroup>
                             <optgroup label="Spin ice / vertex models">
                                 <option value="spin_ice_vertex_observables" disabled>Spin Ice Vertex Observables - built into Spin Ice Vertex Game</option>
                             </optgroup>
                             <optgroup label="Stabilizer / Pauli-frame systems">
-                                <option value="stabilizer_pauli_recovery">Stabilizer Pauli Recovery</option>
+                                <option value="stabilizer_pauli_recovery">Pauli Error Recovery</option>
                             </optgroup>
                             <optgroup label="CFT / Virasoro systems">
                                 <option value="cft_conformal_block_observables">CFT Conformal Block Observables</option>
@@ -384,6 +385,25 @@
                         <select id="z2GaugeDecoderSelect">
                             <option value="off" selected>Off</option>
                             <option value="on">On</option>
+                        </select>
+                    </label>
+                    <label id="jumpParticleModelControl" hidden>
+                        Particle Model
+                        <select id="jumpParticleModelSelect">
+                            <option value="charge_recombination" selected>Charge Recombination</option>
+                            <option value="spin_exchange">Spin Exchange</option>
+                            <option value="anyon_worldline">Anyon Worldline</option>
+                        </select>
+                    </label>
+                    <label id="jumpParticleActionControl" hidden>
+                        Particle Action
+                        <select id="jumpParticleActionSelect">
+                            <option value="auto" selected>Auto Hop / Jump / Recombine</option>
+                            <option value="hop">Hop Adjacent</option>
+                            <option value="jump">Jump Over Particle</option>
+                            <option value="chain_jump">Chain Jump</option>
+                            <option value="recombine">Recombine Opposite</option>
+                            <option value="measure_path_parity">Measure Path Parity</option>
                         </select>
                     </label>
                 </div>

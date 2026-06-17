@@ -613,6 +613,7 @@ button:active {
 
 .move-history {
     height: 220px;
+    min-height: 178px;
     max-height: 220px;
     overflow-y: auto;
     padding-right: 4px;

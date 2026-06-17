@@ -12,6 +12,7 @@ import { TwoPhaseCompetitionGame } from '../../js/localgames/TwoPhaseCompetition
 import { SpinIceVertexGame } from '../../js/localgames/SpinIceVertexGame.js';
 import { Z2GaugeLoopGame } from '../../js/localgames/Z2GaugeLoopGame.js';
 import { PhysicalClusterGoGame } from '../../js/localgames/PhysicalClusterGo.js';
+import { PhysicalJumpParticlesGame } from '../../js/localgames/PhysicalJumpParticlesGame.js';
 import {
     braidWordToText,
     nextRequiredUnbraidGenerator,
@@ -127,6 +128,10 @@ const els = {
     z2GaugeNoiseRateInput: document.querySelector('#z2GaugeNoiseRateInput'),
     z2GaugeDecoderControl: document.querySelector('#z2GaugeDecoderControl'),
     z2GaugeDecoderSelect: document.querySelector('#z2GaugeDecoderSelect'),
+    jumpParticleModelControl: document.querySelector('#jumpParticleModelControl'),
+    jumpParticleModelSelect: document.querySelector('#jumpParticleModelSelect'),
+    jumpParticleActionControl: document.querySelector('#jumpParticleActionControl'),
+    jumpParticleActionSelect: document.querySelector('#jumpParticleActionSelect'),
     topologySelect: document.querySelector('#topologySelect'),
     latticeControl: document.querySelector('#latticeControl'),
     latticeSelect: document.querySelector('#latticeSelect'),
@@ -339,23 +344,24 @@ const els = {
 };
 
 const MODE_LABELS = {
-    clifford_reversi: 'Clifford Reversi',
-    physical_clifford_reversi: 'Physical Clifford Reversi',
+    clifford_reversi: 'Stabilizer Recovery',
+    physical_clifford_reversi: 'Pauli-Frame Recovery',
     clifford_go: 'Clifford Go',
     physical_clifford_go: 'Physical Clifford Go',
     clifford_jump: 'Clifford Jump Chess',
     physical_clifford_jump: 'Physical Clifford Jump Chess',
     anyon_reversi: 'Anyon Reversi',
     physical_anyon_reversi: 'Physical Anyon Reversi',
-    physical_virasoro_go: 'CFT Observable Go',
+    physical_virasoro_go: 'CFT Field Insertion',
     physical_virasoro_reversi: 'CFT Domain-Wall Reversi',
     virasoro_jump: 'Virasoro Jump Chess',
     physical_virasoro_jump: 'Physical Virasoro Jump Chess',
-    anyon_jump: 'Anyon Jump Chess',
-    physical_anyon_jump: 'Physical Anyon Jump Chess',
-    ising_domain_game: 'Ising Domain Game',
+    anyon_jump: 'Anyon Fusion & Braiding',
+    physical_anyon_jump: 'Topological Memory',
+    ising_domain_game: 'Spin & Phase Domain Game',
     two_phase_competition_game: 'Two-Phase Competition Game',
     physical_cluster_go: 'Physical Cluster Go',
+    physical_jump_particles: 'Physical Jump Particles',
     spin_ice_vertex_game: 'Spin Ice Vertex Game',
     z2_gauge_loop_game: 'Z2 Gauge Loop Game'
 };
@@ -403,6 +409,7 @@ const MODE_SELECT_CATALOG = [...els.modeSelect.querySelectorAll('optgroup')].map
 let game = null;
 let selectedToken = '';
 let selectedPhysicalCoord = null;
+let selectedJumpParticleCoord = null;
 let selectedCFTCoords = [];
 let hoverCoord = null;
 let lastCancellation = null;
@@ -442,6 +449,23 @@ if (INITIAL_TOPOLOGY && [...els.topologySelect.options].some((option) => option.
 if (URL_PHYSICAL_PROBLEM_ID && els.physicalProblemSelect) {
     els.physicalProblemSelect.value = URL_PHYSICAL_PROBLEM_ID;
 }
+function applyURLSelectParam(select, ...names) {
+    if (!select) return;
+    const value = names.map((name) => params.get(name)).find(Boolean);
+    if (!value) return;
+    const option = [...select.options].find((entry) => entry.value === value);
+    if (option && !option.disabled) select.value = value;
+}
+applyURLSelectParam(els.physicalInitialStateSelect, 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.isingInitialStateSelect, 'isingInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.twoPhaseInitialStateSelect, 'twoPhaseInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.clusterInitialStateSelect, 'clusterInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.spinIceInitialStateSelect, 'spinIceInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.z2GaugeInitialStateSelect, 'z2GaugeInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.cftInitialStateSelect, 'cftInitialState', 'cftReversiInitialState', 'physicalInitialState', 'initialState');
+applyURLSelectParam(els.jumpParticleModelSelect, 'jumpParticleModel', 'model');
+applyURLSelectParam(els.jumpParticleActionSelect, 'jumpParticleAction', 'action');
+applyURLSelectParam(els.virasoroMaxModeSelect, 'virasoroN', 'virasoroMaxMode');
 
 function modeLayerForMode(mode = '') {
     const normalized = normalizeMode(mode) || mode;
@@ -449,6 +473,7 @@ function modeLayerForMode(mode = '') {
         || normalized === 'ising_domain_game'
         || normalized === 'two_phase_competition_game'
         || normalized === 'physical_cluster_go'
+        || normalized === 'physical_jump_particles'
         || normalized === 'spin_ice_vertex_game'
         || normalized === 'z2_gauge_loop_game') {
         return 'physical';
@@ -510,20 +535,28 @@ if (els.gameLayerSelect) {
 }
 
 function normalizeMode(value) {
-    if (Object.hasOwn(MODE_LABELS, value)) return value;
-    if (value === 'anyon' || value === 'anyon_jump_chess') return 'anyon_jump';
-    if (value === 'anyon_reversi_game') return 'anyon_reversi';
-    if (value === 'z2_gauge' || value === 'z2_gauge_loop' || value === 'toric_code_loop') return 'z2_gauge_loop_game';
-    if (value === 'spin_ice_vertex' || value === 'spin_ice') return 'spin_ice_vertex_game';
-    if (value === 'cluster_go' || value === 'physical_cluster' || value === 'physical_cluster_go_game') return 'physical_cluster_go';
-    if (value === 'clifford_jump_chess') return 'clifford_jump';
-    if (value === 'virasoro_jump_chess' || value === 'cft_jump') return 'virasoro_jump';
-    if (value === 'clifford' || value === 'reversi') return 'clifford_reversi';
-    if (value === 'physical_clifford_reversi' || value === 'physical_clifford' || value === 'physical_reversi') {
+    const mode = String(value || '').toLowerCase();
+    if (Object.hasOwn(MODE_LABELS, mode)) return mode;
+    if (mode === 'anyon' || mode === 'anyon_jump_chess' || mode === 'anyon_fusion_braiding') return 'anyon_jump';
+    if (mode === 'anyon_reversi_game') return 'anyon_reversi';
+    if (mode === 'z2_gauge' || mode === 'z2_gauge_loop' || mode === 'toric_code_loop') return 'z2_gauge_loop_game';
+    if (mode === 'spin_ice_vertex' || mode === 'spin_ice') return 'spin_ice_vertex_game';
+    if (mode === 'cluster_go' || mode === 'physical_cluster' || mode === 'physical_cluster_go_game') return 'physical_cluster_go';
+    if (mode === 'jump_particles' || mode === 'physical_jump_particles_game' || mode === 'particle_jump') return 'physical_jump_particles';
+    if (mode === 'domain_wall_reversi' || mode === 'thermal_spin_game' || mode === 'physical_reversi_domain_conversion' || mode === 'spin_phase_domain_game') return 'ising_domain_game';
+    if (mode === 'toric_memory_unbraid' || mode === 'topological_memory' || mode === 'braided_jump') return 'physical_anyon_jump';
+    if (mode === 'cft_field_insertion' || mode === 'cft_correlator_game') return 'physical_virasoro_go';
+    if (mode === 'cft_domain_wall_reversi') return 'physical_virasoro_reversi';
+    if (mode === 'pauli_frame_recovery') return 'physical_clifford_reversi';
+    if (mode === 'stabilizer_recovery') return 'clifford_reversi';
+    if (mode === 'clifford_jump_chess') return 'clifford_jump';
+    if (mode === 'virasoro_jump_chess' || mode === 'cft_jump') return 'virasoro_jump';
+    if (mode === 'clifford' || mode === 'reversi') return 'clifford_reversi';
+    if (mode === 'physical_clifford' || mode === 'physical_reversi') {
         return 'clifford_reversi';
     }
-    if (value === 'cft_reversi' || value === 'virasoro_reversi') return 'physical_virasoro_reversi';
-    if (['go', 'virasoro', 'virasoro_go', 'virasoro_go_game'].includes(value)) {
+    if (mode === 'cft_reversi' || mode === 'virasoro_reversi') return 'physical_virasoro_reversi';
+    if (['go', 'virasoro', 'virasoro_go', 'virasoro_go_game'].includes(mode)) {
         return 'physical_virasoro_go';
     }
     return '';
@@ -543,6 +576,7 @@ function isSharedPhysicalMode(mode = selectedMode()) {
         || mode === 'ising_domain_game'
         || mode === 'two_phase_competition_game'
         || mode === 'physical_cluster_go'
+        || mode === 'physical_jump_particles'
         || mode === 'spin_ice_vertex_game'
         || mode === 'z2_gauge_loop_game'
         || (mode === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical');
@@ -560,6 +594,10 @@ function isPhysicalClusterGoMode(mode = game?.mode || selectedMode()) {
     return (normalizeMode(mode) || mode) === 'physical_cluster_go';
 }
 
+function isPhysicalJumpParticlesMode(mode = game?.mode || selectedMode()) {
+    return (normalizeMode(mode) || mode) === 'physical_jump_particles';
+}
+
 function isSpinIceVertexMode(mode = game?.mode || selectedMode()) {
     return (normalizeMode(mode) || mode) === 'spin_ice_vertex_game';
 }
@@ -575,7 +613,7 @@ function isPhysicalCliffordMode(mode = game?.mode || selectedMode()) {
 }
 
 function isReversiMode(mode = game?.mode || selectedMode()) {
-    if (isIsingDomainMode(mode) || isTwoPhaseCompetitionMode(mode) || isPhysicalClusterGoMode(mode) || isSpinIceVertexMode(mode) || isZ2GaugeLoopMode(mode)) return false;
+    if (isIsingDomainMode(mode) || isTwoPhaseCompetitionMode(mode) || isPhysicalClusterGoMode(mode) || isPhysicalJumpParticlesMode(mode) || isSpinIceVertexMode(mode) || isZ2GaugeLoopMode(mode)) return false;
     const base = baseMode(mode);
     return base === 'clifford_reversi' || base === 'physical_virasoro_reversi' || isAnyonReversiMode(mode);
 }
@@ -839,6 +877,7 @@ function syncModeControls() {
     const isIsing = isIsingDomainMode(mode);
     const isTwoPhase = isTwoPhaseCompetitionMode(mode);
     const isCluster = isPhysicalClusterGoMode(mode);
+    const isJumpParticles = isPhysicalJumpParticlesMode(mode);
     const isSpinIce = isSpinIceVertexMode(mode);
     const isZ2Gauge = isZ2GaugeLoopMode(mode);
     const isAnyon = base === 'anyon_jump';
@@ -850,7 +889,7 @@ function syncModeControls() {
     const usesFreeAnyonModel = isAnyon || isAnyonReversi;
     const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
     const isCFTReversi = base === 'physical_virasoro_reversi';
-    const isClifford = !isIsing && !isTwoPhase && !isCluster && !isSpinIce && !isZ2Gauge && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
+    const isClifford = !isIsing && !isTwoPhase && !isCluster && !isJumpParticles && !isSpinIce && !isZ2Gauge && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
     const isPhysicalClifford = base === 'clifford_reversi'
         && (els.cliffordAlgebraSetSelect.value === 'physical' || mode === 'physical_clifford_reversi');
     const isStandardClifford = isClifford && !isPhysicalClifford;
@@ -899,6 +938,12 @@ function syncModeControls() {
         if (control) control.hidden = !isCluster;
     }
     for (const control of [
+        els.jumpParticleModelControl,
+        els.jumpParticleActionControl
+    ]) {
+        if (control) control.hidden = !isJumpParticles;
+    }
+    for (const control of [
         els.spinIceInitialStateControl,
         els.spinIceActionControl,
         els.spinIceViolationEnergyControl,
@@ -930,7 +975,7 @@ function syncModeControls() {
     if (els.physicalProblemSelect) {
         setAllowedSelectValues(
             els.physicalProblemSelect,
-            isIsing || isTwoPhase || isCluster || isSpinIce || isZ2Gauge ? [''] : isAnyon
+            isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge ? [''] : isAnyon
                 ? ['', 'toric_code_memory_unbraid']
                 : isVirasoroGo
                     ? ['', 'cft_conformal_block_observables']
@@ -1053,9 +1098,9 @@ function syncModeControls() {
     }
     els.passButton.hidden = isJump;
     els.countButton.hidden = !isGoMode(mode);
-    els.measureButton.hidden = isIsing || isTwoPhase || isCluster || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
+    els.measureButton.hidden = isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isJump;
-    els.dynamicsSection.hidden = isIsing || isTwoPhase || isCluster || isSpinIce || isZ2Gauge || isVirasoroGo || isCFTReversi;
+    els.dynamicsSection.hidden = isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
         Number(els.virasoroMaxModeSelect.value) >= 2
@@ -1074,10 +1119,11 @@ function syncModeControls() {
                 : ['1,0', '-1,0', '0,1', '0,-1'],
         '1,0'
     );
-    if (els.blackBraidCard) els.blackBraidCard.hidden = !isJump && !isCFTReversi;
-    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !isJump && !isCFTReversi;
+    const usesObservableCards = isJump || isCFTReversi || isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge;
+    if (els.blackBraidCard) els.blackBraidCard.hidden = !usesObservableCards;
+    if (els.whiteBraidCard) els.whiteBraidCard.hidden = !usesObservableCards;
     if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
-    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing && !isTwoPhase && !isSpinIce && !isZ2Gauge;
+    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing && !isTwoPhase && !isJumpParticles && !isSpinIce && !isZ2Gauge;
     if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
     if (els.anyonRules) els.anyonRules.hidden = !isAnyon && !isAnyonReversi;
     if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo && !isVirasoroJump;
@@ -1089,6 +1135,7 @@ function syncModeControls() {
             : isVirasoroJump ? 'Virasoro Jump Intro'
             : isCFTReversi ? 'CFT Domain-Wall Reversi Intro'
             : isCluster ? 'Cluster Go Intro'
+            : isJumpParticles ? 'Jump Particles Intro'
             : isAnyon || isAnyonReversi ? 'Anyon Intro'
             : isCliffordJump ? 'Clifford Jump Intro' : 'Clifford Intro';
         els.rulesIntroButton.textContent = introLabel;
@@ -1293,6 +1340,14 @@ function z2GaugeConfig() {
     };
 }
 
+function jumpParticlesConfig() {
+    return {
+        model: els.jumpParticleModelSelect?.value || 'charge_recombination',
+        action: els.jumpParticleActionSelect?.value || 'auto',
+        pathParityEnabled: true
+    };
+}
+
 function physicalProblemConfig(mode) {
     const base = baseMode(mode);
     const topology = topologyConfig();
@@ -1356,6 +1411,7 @@ function createGame() {
     const base = baseMode(mode);
     selectedToken = '';
     selectedPhysicalCoord = null;
+    selectedJumpParticleCoord = null;
     selectedCFTCoords = [];
     hoverCoord = null;
     lastCancellation = null;
@@ -1399,12 +1455,14 @@ function createGame() {
         twoPhase: twoPhaseConfig(),
         cluster: clusterConfig(),
         spinIce: spinIceConfig(),
-        z2Gauge: z2GaugeConfig()
+        z2Gauge: z2GaugeConfig(),
+        jumpParticles: jumpParticlesConfig()
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'ising_domain_game') game = new IsingDomainGame(options);
     else if (mode === 'two_phase_competition_game') game = new TwoPhaseCompetitionGame(options);
     else if (mode === 'physical_cluster_go') game = new PhysicalClusterGoGame(options);
+    else if (mode === 'physical_jump_particles') game = new PhysicalJumpParticlesGame(options);
     else if (mode === 'spin_ice_vertex_game') game = new SpinIceVertexGame(options);
     else if (mode === 'z2_gauge_loop_game') game = new Z2GaugeLoopGame(options);
     else if (base === 'anyon_jump') game = new AnyonJumpGame(options);
@@ -1442,6 +1500,14 @@ function createGame() {
                     initialStateOptions: ['sparse_seeds', 'random_density', 'two_cluster_competition', 'interface_seed', 'thermal_cluster_sample'],
                     allowedActions: ['place_species', 'grow_connected_cluster', 'capture_zero_liberty_cluster', 'diffusion_noise_step', 'pass'],
                     localUpdateRules: 'Topology-aware graph liberties define local resources. A species can place on empty vertices or grow from adjacent same-species clusters. Opponent clusters with zero liberties are captured as local extinction; optional diffusion/noise grows random local droplets after updates.'
+                })
+            : mode === 'physical_jump_particles'
+                ? createPhysicalModeDefinition(mode, {
+                    physicalSystemName: 'Jumping particle reaction/exchange graph system',
+                    blackWhiteMeaning: 'black/white = two particle species or charge signs; jump = hopping over a barrier, exchange, or scattering event; capture = annihilation, recombination, or conversion',
+                    initialStateOptions: ['paired_particles', 'charge_recombination_pair', 'spin_exchange_seed', 'anyon_worldline_seed'],
+                    allowedActions: ['hop_to_adjacent_empty_vertex', 'jump_over_occupied_vertex', 'chain_jump', 'recombine_opposite_charges', 'measure_path_parity'],
+                    localUpdateRules: 'Particles occupy graph vertices. A hop moves to an adjacent empty vertex, a jump crosses one occupied barrier particle, a chain jump follows consecutive jump landings, recombination removes adjacent opposite charges and recovers energy, and optional path-parity measurement records exchange or braid parity.'
                 })
             : mode === 'spin_ice_vertex_game'
                 ? createPhysicalModeDefinition(mode, {
@@ -1502,7 +1568,9 @@ function currentOnlineMatchKey() {
         base === 'anyon_jump' || base === 'anyon_reversi' ? els.anyonModelSelect.value : '',
         isJumpMode(mode) ? els.braidMemoryModeSelect.value : '',
         mode === 'physical_cluster_go' ? els.clusterInitialStateSelect.value : '',
-        mode === 'physical_cluster_go' ? els.clusterModelSelect.value : ''
+        mode === 'physical_cluster_go' ? els.clusterModelSelect.value : '',
+        mode === 'physical_jump_particles' ? els.jumpParticleModelSelect.value : '',
+        mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : ''
     ].join(':');
 }
 
@@ -1551,7 +1619,8 @@ function restoreGraphPhysicalState(state) {
     if (![
         'ising_domain_game',
         'two_phase_competition_game',
-        'physical_cluster_go'
+        'physical_cluster_go',
+        'physical_jump_particles'
     ].includes(mode)) return false;
     game.board.clear();
     for (const item of state.board) {
@@ -1559,7 +1628,8 @@ function restoreGraphPhysicalState(state) {
         if (!key) continue;
         if (mode === 'ising_domain_game') game.board.set(key, Number(item.spin) < 0 ? -1 : 1);
         else if (mode === 'two_phase_competition_game') game.board.set(key, item.phase === 'B' ? 'B' : 'A');
-        else game.board.set(key, item.species === 'B' ? 'B' : 'A');
+        else if (mode === 'physical_cluster_go') game.board.set(key, item.species === 'B' ? 'B' : 'A');
+        else game.board.set(key, cloneValue(item));
     }
     game.currentPlayer = state.currentPlayer || game.currentPlayer || 'black';
     game.moveNumber = Number(state.moveNumber) || 0;
@@ -1660,7 +1730,9 @@ function setOnlineConfigurationLocked(locked) {
         els.clusterInitialStateSelect,
         els.clusterModelSelect,
         els.clusterNoiseSelect,
-        els.clusterNoiseRateInput
+        els.clusterNoiseRateInput,
+        els.jumpParticleModelSelect,
+        els.jumpParticleActionSelect
     ]) {
         if (control) control.disabled = locked;
     }
@@ -2205,6 +2277,10 @@ function renderFlatBoard() {
     const legalClusterTargets = isPhysicalClusterGoMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
+    const legalJumpParticleTargets = isPhysicalJumpParticlesMode(game.mode)
+        ? new Set(game.legalMoves(selectedJumpParticleCoord, els.jumpParticleActionSelect?.value || 'auto')
+            .map((move) => coordKey(move.coord)))
+        : new Set();
     const legalSpinIceTargets = isSpinIceVertexMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
@@ -2221,7 +2297,7 @@ function renderFlatBoard() {
         if (honeycombNodes || hexCells) {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
-        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key)) cell.classList.add('legal');
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
@@ -2242,6 +2318,9 @@ function renderFlatBoard() {
         if (virasoroAffected.has(key)) cell.classList.add('stress-preview');
         if (cftAffected.has(key)) cell.classList.add('stress-preview');
         if (isCFTReversiMode(game.mode) && selectedCFTCoords.some((entry) => coordKey(entry) === key)) {
+            cell.classList.add('cft-selected-region');
+        }
+        if (isPhysicalJumpParticlesMode(game.mode) && selectedJumpParticleCoord && coordKey(selectedJumpParticleCoord) === key) {
             cell.classList.add('cft-selected-region');
         }
         if (isJumpMode(game.mode) && game.isFusionSite(coord)) cell.classList.add('fusion-site');
@@ -2286,6 +2365,7 @@ function renderFlatBoard() {
         if (isIsingDomainMode(game.mode)) renderIsingSpin(cell, coord);
         else if (isTwoPhaseCompetitionMode(game.mode)) renderTwoPhaseSite(cell, coord);
         else if (isPhysicalClusterGoMode(game.mode)) renderClusterSite(cell, coord);
+        else if (isPhysicalJumpParticlesMode(game.mode)) renderJumpParticleSite(cell, coord);
         else if (isSpinIceVertexMode(game.mode)) renderSpinIceVertex(cell, coord);
         else if (isZ2GaugeLoopMode(game.mode)) renderZ2GaugeVertex(cell, coord);
         else if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
@@ -2367,6 +2447,10 @@ function algebraic3DViewState() {
     const legalCluster = isPhysicalClusterGoMode(game.mode)
         ? game.legalMoves().map((move) => coordKey(move.coord))
         : [];
+    const legalJumpParticles = isPhysicalJumpParticlesMode(game.mode)
+        ? game.legalMoves(selectedJumpParticleCoord, els.jumpParticleActionSelect?.value || 'auto')
+            .map((move) => coordKey(move.coord))
+        : [];
     const legalSpinIce = isSpinIceVertexMode(game.mode)
         ? game.legalMoves().map((move) => coordKey(move.coord))
         : [];
@@ -2383,6 +2467,7 @@ function algebraic3DViewState() {
             ...legalIsing,
             ...legalTwoPhase,
             ...legalCluster,
+            ...legalJumpParticles,
             ...legalSpinIce,
             ...legalZ2Gauge
         ]),
@@ -2391,7 +2476,8 @@ function algebraic3DViewState() {
             ...(virasoroPreview?.affected || []).map((item) => item.key),
             ...(cftPreview?.affected || []).map((item) => item.key),
             ...selectedCFTCoords.map(coordKey),
-            ...(selectedPhysicalCoord ? [coordKey(selectedPhysicalCoord)] : [])
+            ...(selectedPhysicalCoord ? [coordKey(selectedPhysicalCoord)] : []),
+            ...(selectedJumpParticleCoord ? [coordKey(selectedJumpParticleCoord)] : [])
         ]),
         trailKeys: braidTrailCells(),
         physicsView: els.physicsViewSelect.value,
@@ -2456,6 +2542,10 @@ function updateBoardHighlights() {
     const legalClusterTargets = isPhysicalClusterGoMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
+    const legalJumpParticleTargets = isPhysicalJumpParticlesMode(game.mode)
+        ? new Set(game.legalMoves(selectedJumpParticleCoord, els.jumpParticleActionSelect?.value || 'auto')
+            .map((move) => coordKey(move.coord)))
+        : new Set();
     const legalSpinIceTargets = isSpinIceVertexMode(game.mode)
         ? new Set(game.legalMoves().map((move) => coordKey(move.coord)))
         : new Set();
@@ -2468,7 +2558,7 @@ function updateBoardHighlights() {
         const coord = JSON.parse(cell.dataset.coord);
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key));
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
@@ -2482,7 +2572,7 @@ function updateBoardHighlights() {
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('stress-preview', virasoroAffected.has(key));
         cell.classList.toggle('stress-preview', virasoroAffected.has(key) || cftAffected.has(key));
-        cell.classList.toggle('cft-selected-region', selectedCFTCoords.some((entry) => coordKey(entry) === key));
+        cell.classList.toggle('cft-selected-region', selectedCFTCoords.some((entry) => coordKey(entry) === key) || Boolean(selectedJumpParticleCoord && coordKey(selectedJumpParticleCoord) === key));
         cell.classList.toggle('fusion-site', isJumpMode(game.mode) && game.isFusionSite(coord));
         const stress = isCFTMode(game.mode) ? game.stressAt(coord) : null;
         cell.classList.toggle('stressed', Boolean(stress?.stress > 0));
@@ -2598,6 +2688,20 @@ function renderClusterSite(cell, coord) {
     badge.textContent = `L${stone.liberties ?? 0}`;
     node.append(badge);
     node.title = `${stone.label}; liberties ${stone.liberties ?? 0}`;
+    cell.append(node);
+}
+
+function renderJumpParticleSite(cell, coord) {
+    const stone = game.getStone(coord);
+    if (!stone) return;
+    const node = document.createElement('span');
+    node.className = `stone go-stone jump-particle-site ${stone.color}`;
+    node.textContent = stone.color === 'black' ? 'P+' : 'P-';
+    const badge = document.createElement('span');
+    badge.className = 'cft-badge';
+    badge.textContent = `π${stone.parity || 0}`;
+    node.append(badge);
+    node.title = `${stone.label}; path length ${stone.pathLength || 0}; parity ${stone.parity || 0}`;
     cell.append(node);
 }
 
@@ -3060,6 +3164,63 @@ function handleClusterClick(coord) {
     render();
 }
 
+function handleJumpParticlesClick(coord) {
+    const action = els.jumpParticleActionSelect?.value || 'auto';
+    const particle = game.getParticle(coord);
+    let result = null;
+
+    if (action === 'measure_path_parity') {
+        result = game.measurePathParity(coord, game.currentPlayer);
+    } else if (selectedJumpParticleCoord) {
+        const selectedKey = coordKey(selectedJumpParticleCoord);
+        const clickedKey = coordKey(coord);
+        if (selectedKey === clickedKey) {
+            selectedJumpParticleCoord = null;
+            els.statusText.textContent = 'Particle selection cleared.';
+            render();
+            return;
+        }
+        if (particle && particle.color !== game.currentPlayer) {
+            result = game.recombine(selectedJumpParticleCoord, coord);
+        } else if (!particle) {
+            result = game.moveParticle(selectedJumpParticleCoord, coord, { action });
+        } else if (particle.color === game.currentPlayer) {
+            selectedJumpParticleCoord = coord;
+            els.statusText.textContent = `Selected ${game.topology.displayCoord?.(coord) || coord.join(',')} for ${action.replaceAll('_', ' ')}.`;
+            render();
+            return;
+        }
+    } else if (particle?.color === game.currentPlayer) {
+        selectedJumpParticleCoord = coord;
+        els.statusText.textContent = `Selected ${particle.species}. Choose an empty landing, or an adjacent opposite particle to recombine.`;
+        render();
+        return;
+    } else if (particle) {
+        els.statusText.textContent = 'Select one of your own particles first.';
+        render();
+        return;
+    } else {
+        els.statusText.textContent = 'Select one of your particles, then choose a hop, jump, chain jump, or recombination target.';
+        render();
+        return;
+    }
+
+    if (result?.ok) {
+        hoverCoord = null;
+        selectedJumpParticleCoord = null;
+        render();
+        const observables = result.event.observables || game.computePhysicalObservables();
+        els.statusText.textContent = result.event.action === 'measure_path_parity'
+            ? `Path parity measured: ${result.measurement.reported}.`
+            : `${result.event.action.replaceAll('_', ' ')}; particles ${observables.particleCount}; recombinations ${observables.recombinationCount}; avg path ${formatNumber(observables.averagePathLength)}.`;
+        statusHoldUntil = Date.now() + 1800;
+        return;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
 function handleSpinIceClick(coord) {
     const action = els.spinIceActionSelect?.value || 'flip_arrow';
     let result = null;
@@ -3448,6 +3609,10 @@ function handleCellClick(coord, event = null) {
         handleClusterClick(coord);
         return;
     }
+    if (isPhysicalJumpParticlesMode(game.mode)) {
+        handleJumpParticlesClick(coord);
+        return;
+    }
     if (isSpinIceVertexMode(game.mode)) {
         handleSpinIceClick(coord);
         return;
@@ -3808,6 +3973,19 @@ function renderStats() {
         els.whiteBraid.textContent = `${observables.captureEvents} / ${formatNumber(observables.survivalProbability)}`;
         return;
     }
+    if (isPhysicalJumpParticlesMode(game.mode)) {
+        const counts = game.counts();
+        const observables = game.computePhysicalObservables();
+        els.blackCountLabel.textContent = 'P+ / Black';
+        els.whiteCountLabel.textContent = 'P- / White';
+        els.blackBraidLabel.textContent = 'Recombine / Energy';
+        els.whiteBraidLabel.textContent = 'Exchange / Parity';
+        els.blackCount.textContent = counts.black;
+        els.whiteCount.textContent = counts.white;
+        els.blackBraid.textContent = `${observables.recombinationCount} / ${formatNumber(observables.energyRecoveredFromRecombination)}`;
+        els.whiteBraid.textContent = `${observables.exchangeEvents} / ${observables.braidExchangeParity ?? 0}`;
+        return;
+    }
     if (isSpinIceVertexMode(game.mode)) {
         const counts = game.counts();
         const observables = game.computePhysicalObservables();
@@ -3921,6 +4099,16 @@ function updateStatus() {
         const answer = game.computePhysicalAnswer();
         const action = els.clusterActionSelect?.value || 'auto';
         els.statusText.textContent = `${capitalize(game.currentPlayer)} ${action.replaceAll('_', ' ')}. Largest=${observables.largestCluster}, percolation=${formatNumber(observables.percolationProbability)}, interface=${observables.interfaceLength}, answer=${answer.whichSpeciesPercolated}.`;
+        return;
+    }
+    if (isPhysicalJumpParticlesMode(game.mode)) {
+        const observables = game.computePhysicalObservables();
+        const answer = game.computePhysicalAnswer();
+        const action = els.jumpParticleActionSelect?.value || 'auto';
+        const selected = selectedJumpParticleCoord
+            ? ` Selected ${game.topology.displayCoord?.(selectedJumpParticleCoord) || selectedJumpParticleCoord.join(',')}.`
+            : '';
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} ${action.replaceAll('_', ' ')}. Particles=${observables.particleCount}, recomb=${observables.recombinationCount}, avg path=${formatNumber(observables.averagePathLength)}, final=${answer.finalState}.${selected}`;
         return;
     }
     if (isSpinIceVertexMode(game.mode)) {
@@ -4118,6 +4306,15 @@ function renderLegend() {
             'Optional diffusion/noise grows random local droplets after updates',
             'Observables track cluster distribution, largest cluster, percolation, survival, and wrapping clusters'
         ]
+        : isPhysicalJumpParticlesMode(game.mode)
+        ? [
+            'Black/white are two particle species or charge signs',
+            'Hop moves to an adjacent empty vertex',
+            'Jump crosses an occupied barrier particle into an empty landing',
+            'Chain jump follows consecutive jump landings',
+            'Adjacent opposite charges can recombine and recover energy',
+            'Path parity records exchange or braid-like worldline complexity'
+        ]
         : isSpinIceVertexMode(game.mode)
         ? [
             'Variables live on graph edges, not vertices',
@@ -4230,6 +4427,11 @@ function renderHistory() {
             const update = event.physicalUpdate || {};
             const observables = event.observables || {};
             item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; captured ${update.capturedCount || 0}; largest ${observables.largestCluster ?? 0}; wraps ${observables.topologyWrappingClusterCount ?? 0}; survival ${formatNumber(observables.survivalProbability ?? 0)}.`;
+        } else if (isPhysicalJumpParticlesMode(game.mode)) {
+            const update = event.physicalUpdate || {};
+            const observables = event.observables || {};
+            const measurement = event.measurement ? `; parity ${event.measurement.reported}` : '';
+            item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; particles ${observables.particleCount ?? 0}; recomb ${observables.recombinationCount ?? 0}; path ${formatNumber(update.pathLength || observables.averagePathLength || 0)}${measurement}.`;
         } else if (isSpinIceVertexMode(game.mode)) {
             const update = event.physicalUpdate || {};
             const observables = event.observables || {};
@@ -4558,6 +4760,7 @@ for (const control of [
     els.z2GaugeNoiseSelect,
     els.z2GaugeNoiseRateInput,
     els.z2GaugeDecoderSelect,
+    els.jumpParticleModelSelect,
     els.virasoroMaxModeSelect,
     els.unstableRuleSelect
 ]) {
@@ -4566,6 +4769,10 @@ for (const control of [
 els.isingActionSelect?.addEventListener('change', render);
 els.twoPhaseActionSelect?.addEventListener('change', render);
 els.clusterActionSelect?.addEventListener('change', render);
+els.jumpParticleActionSelect?.addEventListener('change', () => {
+    selectedJumpParticleCoord = null;
+    render();
+});
 els.spinIceActionSelect?.addEventListener('change', render);
 els.z2GaugeActionSelect?.addEventListener('change', render);
 els.noiseRateInput.addEventListener('change', createGame);

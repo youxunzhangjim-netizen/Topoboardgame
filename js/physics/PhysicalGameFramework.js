@@ -6,6 +6,7 @@ const PHYSICAL_MODE_BASE = Object.freeze({
     physical_clifford_jump: 'clifford_jump',
     physical_anyon_reversi: 'anyon_reversi',
     physical_anyon_jump: 'anyon_jump',
+    physical_jump_particles: 'physical_jump_particles',
     physical_virasoro_jump: 'virasoro_jump',
     physical_cluster_go: 'physical_cluster_go'
 });
@@ -217,7 +218,7 @@ function eventAction(result, fallback) {
     if (fallback === 'measureLineParity') return 'measure_interval_parity';
     if (fallback === 'measureRegionEntropy') return 'measure_region_entropy';
     if (fallback === 'measureStress') return 'measure_stress_tensor_proxy';
-    return event.kind || event.type || event.action || fallback;
+    return event.kind || event.action || event.type || fallback;
 }
 
 function extractPhysicalUpdate(result, before, after) {
@@ -262,6 +263,7 @@ export function isPhysicalVariantMode(mode = '') {
     return mode in PHYSICAL_MODE_BASE
         || mode === 'physical_virasoro_go'
         || mode === 'physical_virasoro_reversi'
+        || mode === 'physical_jump_particles'
         || mode === 'physical_cluster_go';
 }
 
@@ -271,7 +273,7 @@ export function baseModeForPhysicalVariant(mode = '') {
 
 export function createPhysicalModeDefinition(mode = '', options = {}) {
     const baseMode = baseModeForPhysicalVariant(mode);
-    const family = baseMode.includes('anyon') ? 'anyon'
+    const family = baseMode.includes('anyon') || baseMode.includes('jump_particles') ? 'anyon'
         : baseMode.includes('virasoro') || mode.includes('virasoro') ? 'virasoro'
         : 'clifford';
     const isGo = baseMode.includes('go');
@@ -486,7 +488,10 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
         'applyGaugeNoiseByKey',
         'placeSpecies',
         'growCluster',
-        'applyDiffusionNoise'
+        'applyDiffusionNoise',
+        'moveParticle',
+        'recombine',
+        'measurePathParity'
     ];
 
     for (const name of methodNames) {
