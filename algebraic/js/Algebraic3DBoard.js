@@ -301,6 +301,8 @@ export class Algebraic3DBoard {
             const stone = this.game.getStone(coord);
             if (!stone) continue;
             if (this.game.mode === 'ising_domain_game') this.addIsingSpin(coord, stone);
+            else if (this.game.mode === 'two_phase_competition_game') this.addTwoPhaseSite(coord, stone);
+            else if (this.game.mode === 'spin_ice_vertex_game') this.addSpinIceVertex(coord, stone);
             else if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
             else if (this.game.mode === 'physical_virasoro_reversi') this.addCFTStone(coord, stone);
             else this.addCliffordStone(coord, stone);
@@ -313,6 +315,31 @@ export class Algebraic3DBoard {
         const sprite = labelSprite(label, {
             foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
             background: stone.color === 'black' ? 'rgba(4,8,12,.88)' : 'rgba(246,248,251,.92)'
+        });
+        sprite.position.y = this.entityRadius() * 1.8;
+        group.add(sprite);
+        this.entityGroup.add(group);
+    }
+
+    addTwoPhaseSite(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, 0.95);
+        const sprite = labelSprite(stone.phase || (stone.color === 'black' ? 'A' : 'B'), {
+            foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
+            background: stone.color === 'black' ? 'rgba(4,8,12,.88)' : 'rgba(246,248,251,.92)'
+        });
+        sprite.position.y = this.entityRadius() * 1.8;
+        group.add(sprite);
+        this.entityGroup.add(group);
+    }
+
+    addSpinIceVertex(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, stone.violation ? 1 : 0.72);
+        const label = stone.violation ? `M${stone.charge > 0 ? '+' : '-'}${Math.abs(stone.charge)}` : 'ice';
+        const sprite = labelSprite(label, {
+            foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
+            background: stone.violation
+                ? (stone.color === 'black' ? 'rgba(76,12,18,.9)' : 'rgba(255,236,170,.94)')
+                : 'rgba(17,28,38,.82)'
         });
         sprite.position.y = this.entityRadius() * 1.8;
         group.add(sprite);

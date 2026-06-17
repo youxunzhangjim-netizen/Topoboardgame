@@ -128,6 +128,7 @@ function affectedEdgesFromEvent(event = {}) {
     const edges = [
         ...(event.seamTransports || []),
         ...(event.edges || []),
+        ...(event.affectedEdges || []),
         ...(event.transportEdges || []),
         ...(event.rays || []).flatMap((ray) => ray.edges || [])
     ];
@@ -328,6 +329,7 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
             this.physicsHistory.push(entry);
             this.observables.push(cloneValue(entry.observables));
             this.physicalAnswer = answerForGame(game, definition, this.physicsHistory);
+            game.physicalAnswer = cloneValue(this.physicalAnswer);
             return entry;
         },
         exportJSON() {
@@ -390,6 +392,7 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
     game.physicsHistory = Array.isArray(game.physicsHistory) ? game.physicsHistory : framework.physicsHistory;
     game.computeObservables = () => observablesForGame(game, definition);
     game.computePhysicalAnswer = (history = framework.physicsHistory) => answerForGame(game, definition, history);
+    game.exportPhysicalHistoryJSON = () => framework.exportJSON();
     game.exportPhysicalHistoryCSV = () => framework.exportCSV();
 
     framework.record({
@@ -437,7 +440,15 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
         'placeSpin',
         'flipSpin',
         'flipDomain',
-        'bracketFlip'
+        'bracketFlip',
+        'nucleate',
+        'growDomain',
+        'flipInterface',
+        'flipArrow',
+        'flipString',
+        'flipLoop',
+        'moveMonopole',
+        'annihilateMonopoles'
     ];
 
     for (const name of methodNames) {
