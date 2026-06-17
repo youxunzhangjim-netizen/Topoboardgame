@@ -474,9 +474,9 @@ class Go3DRenderer {
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: false,
-                opacity: 1,
-                depthWrite: true,
+                transparent: true,
+                opacity: 0.68,
+                depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -532,9 +532,9 @@ class Go3DRenderer {
             color: 0x8f6238,
             roughness: 0.58,
             metalness: 0.02,
-            transparent: false,
-            opacity: 1,
-            depthWrite: true,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false,
             clearcoat: 0.28,
             clearcoatRoughness: 0.48,
             side: THREE.DoubleSide
@@ -587,10 +587,12 @@ class Go3DRenderer {
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const pose = this.mobiusPose(coord, width, height, 0.075);
-            this.pointCoords.push(coord);
-            this.pointPositions.push(pose.position);
-            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+            for (const lift of [0.075, -0.075]) {
+                const pose = this.mobiusPose(coord, width, height, lift);
+                this.pointCoords.push(coord);
+                this.pointPositions.push(pose.position);
+                pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+            }
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
@@ -1059,9 +1061,9 @@ class Go3DRenderer {
             const value = logic.board[index];
             if (!value) continue;
             const coord = logic.coordFromIndex(index);
-            const p = this.positionForCoord(coord, logic);
-            if (value === COLORS.black) black.push(p);
-            else white.push(p);
+            const positions = this.positionsForCoord(coord, logic);
+            if (value === COLORS.black) black.push(...positions);
+            else white.push(...positions);
         }
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
@@ -1115,6 +1117,16 @@ class Go3DRenderer {
         );
         mesh.position.copy(p);
         this.hoverGroup.add(mesh);
+    }
+
+    positionsForCoord(coord, logic) {
+        if (logic.topology === MOBIUS_GO_TOPOLOGY) {
+            return [
+                this.mobiusPose(coord, logic.width, logic.height, 0.18).position,
+                this.mobiusPose(coord, logic.width, logic.height, -0.18).position
+            ];
+        }
+        return [this.positionForCoord(coord, logic)];
     }
 
     pickCoord(event) {

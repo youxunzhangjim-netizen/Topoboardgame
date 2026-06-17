@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 export const KLEIN_SURFACE_MAJOR_RADIUS = 3.4;
 export const KLEIN_SURFACE_WIDTH_SCALE = 2.0;
-export const KLEIN_SURFACE_NECK_SCALE = 1.4;
+export const KLEIN_SURFACE_NECK_SCALE = 1.72;
 export const KLEIN_SURFACE_HEIGHT_SCALE = 2.8;
 const TWO_PI = Math.PI * 2;
 const KLEIN_U_MAX = TWO_PI;
@@ -40,15 +40,15 @@ export function kleinBottleBasePoint(u, v) {
     let rawX;
     let rawZ;
     if (parameterU < Math.PI) {
-        const tube = 2 * (1 - cosU / 2);
+        const tube = 2 * (1 - cosU / 2) * KLEIN_SURFACE_NECK_SCALE / 1.4;
         rawX = 3 * cosU * (1 + sinU) + tube * cosU * cosV;
         rawZ = -8 * sinU - tube * sinU * cosV;
     } else {
-        const tube = 2 * (1 - cosU / 2);
+        const tube = 2 * (1 - cosU / 2) * KLEIN_SURFACE_NECK_SCALE / 1.4;
         rawX = 3 * cosU * (1 + sinU) + tube * Math.cos(v + Math.PI);
         rawZ = -8 * sinU;
     }
-    const rawY = -2 * (1 - cosU / 2) * sinV;
+    const rawY = -2 * (1 - cosU / 2) * (KLEIN_SURFACE_WIDTH_SCALE / 2.0) * sinV;
     return new THREE.Vector3(
         rawX * KLEIN_VISUAL_SCALE,
         rawZ * KLEIN_VISUAL_SCALE,

@@ -241,9 +241,9 @@ class Reversi3DRenderer {
             color: 0x8f6238,
             roughness: 0.58,
             metalness: 0.02,
-            transparent: false,
-            opacity: 1,
-            depthWrite: true,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false,
             clearcoat: 0.28,
             clearcoatRoughness: 0.48,
             side: THREE.DoubleSide
@@ -298,10 +298,12 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                const pose = this.mobiusPose(coord, width, height, 0.08);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(pose.position);
-                pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+                for (const lift of [0.08, -0.08]) {
+                    const pose = this.mobiusPose(coord, width, height, lift);
+                    this.pointCoords.push(coord);
+                    this.pointPositions.push(pose.position);
+                    pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+                }
             }
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
@@ -373,9 +375,9 @@ class Reversi3DRenderer {
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
-                transparent: false,
-                opacity: 1,
-                depthWrite: true,
+                transparent: true,
+                opacity: 0.68,
+                depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -585,9 +587,9 @@ class Reversi3DRenderer {
         const white = [];
         for (const [key, stone] of logic.board.entries()) {
             const coord = key.split(',').map(Number);
-            const p = this.positionForCoord(coord, logic, 0.18);
-            if (stone.color === 'black') black.push(p);
-            else white.push(p);
+            const positions = this.positionsForCoord(coord, logic, 0.18);
+            if (stone.color === 'black') black.push(...positions);
+            else white.push(...positions);
         }
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
@@ -595,7 +597,7 @@ class Reversi3DRenderer {
 
     renderLegalMoves(logic) {
         this.clearGroup(this.markerGroup);
-        const positions = logic.legalMoves().map((move) => this.positionForCoord(move.coord, logic, 0.22));
+        const positions = logic.legalMoves().flatMap((move) => this.positionsForCoord(move.coord, logic, 0.22));
         if (!positions.length) return;
         const radius = this.markerRadius(logic) * 0.58;
         const mesh = new THREE.InstancedMesh(
@@ -671,6 +673,17 @@ class Reversi3DRenderer {
         );
         mesh.position.copy(p);
         this.hoverGroup.add(mesh);
+    }
+
+    positionsForCoord(coord, logic, lift = 0) {
+        if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
+            const visibleLift = Math.abs(lift);
+            return [
+                this.mobiusPose(coord, logic.topology.width, logic.topology.height, visibleLift).position,
+                this.mobiusPose(coord, logic.topology.width, logic.topology.height, -visibleLift).position
+            ];
+        }
+        return [this.positionForCoord(coord, logic, lift)];
     }
 
     pickCoord(event) {
