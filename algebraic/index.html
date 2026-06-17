@@ -55,6 +55,7 @@
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Two-phase competition">
                                 <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Game</option>
+                                <option value="physical_cluster_go" data-layer="physical">Physical Cluster Go</option>
                             </optgroup>
                             <optgroup label="Physical Systems Lab - Chiral systems">
                                 <option value="physical_virasoro_go" data-layer="physical">CFT Observable Go</option>
@@ -273,6 +274,46 @@
                     <label id="twoPhaseNoiseRateControl" hidden>
                         Noise Rate
                         <input id="twoPhaseNoiseRateInput" type="number" min="0" max="1" step="0.01" value="0.02">
+                    </label>
+                    <label id="clusterInitialStateControl" hidden>
+                        Cluster Initial State
+                        <select id="clusterInitialStateSelect">
+                            <option value="sparse_seeds" selected>Sparse Seeds</option>
+                            <option value="random_density">Random Density</option>
+                            <option value="two_cluster_competition">Two-Cluster Competition</option>
+                            <option value="interface_seed">Interface Seed</option>
+                            <option value="thermal_cluster_sample">Thermal Cluster Sample</option>
+                        </select>
+                    </label>
+                    <label id="clusterActionControl" hidden>
+                        Cluster Action
+                        <select id="clusterActionSelect">
+                            <option value="auto" selected>Auto Place / Grow</option>
+                            <option value="place_species">Place Species</option>
+                            <option value="grow_connected_cluster">Grow Connected Cluster</option>
+                            <option value="diffusion_noise_step">Diffusion / Noise Step</option>
+                        </select>
+                    </label>
+                    <label id="clusterModelControl" hidden>
+                        Cluster Model
+                        <select id="clusterModelSelect">
+                            <option value="two_species_competition" selected>Two-Species Competition</option>
+                            <option value="percolation_clusters">Percolation Clusters</option>
+                            <option value="reaction_diffusion_domains">Reaction-Diffusion Domains</option>
+                            <option value="exciton_hole_recombination">Exciton / Hole Recombination</option>
+                            <option value="spin_domain_growth">Spin-Domain Growth</option>
+                        </select>
+                    </label>
+                    <label id="clusterNoiseControl" hidden>
+                        Diffusion / Noise
+                        <select id="clusterNoiseSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="on">On</option>
+                        </select>
+                    </label>
+                    <label id="clusterNoiseRateControl" hidden>
+                        Cluster Noise Rate
+                        <input id="clusterNoiseRateInput" type="number" min="0" max="1" step="0.01" value="0.02">
                     </label>
                     <label id="spinIceInitialStateControl" hidden>
                         Spin Ice Initial State
@@ -955,6 +996,17 @@
                         <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
                         <p><strong>Results:</strong> Stabilizer Pauli Recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
+                    </div>
+                    <div data-rules-mode="physical-cluster-go" hidden>
+                        <h2>Physical Cluster Go Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black is species A, phase A, or spin sector A. White is species B, phase B, or spin sector B. Empty vertices are local growth, oxygen, or resource sites on the selected topology graph.</p>
+                        <p><strong>Liberties:</strong> liberties are neighboring empty graph vertices that can feed growth. Capture means local extinction, annihilation, or confinement of a connected cluster whose liberties have reached zero.</p>
+                        <p><strong>Possible models:</strong> use the model selector to interpret the same rule set as percolation clusters, reaction-diffusion domains, two-species competition, exciton/hole recombination, or spin-domain growth.</p>
+                        <p><strong>Actions:</strong> place species on an empty site, grow a connected cluster into a neighboring resource site, automatically capture zero-liberty clusters, pass, or run an optional diffusion/noise step.</p>
+                        <p><strong>Initial states:</strong> sparse seeds, random density, two-cluster competition, interface seed, and thermal cluster sample all create playable nonempty states with immediate growth/capture opportunities.</p>
+                        <p><strong>Observables:</strong> every move records cluster size distribution, largest cluster, percolation probability, capture/extinction events, interface length, correlation length estimate, survival probability, and topology-wrapping cluster count.</p>
+                        <p><strong>Topology:</strong> all neighbors come from topology.neighbors(vertex), so torus, Klein, Mobius, RP2, sphere, random boundary, R3, and 4D graphs do not assume rectangular edges.</p>
+                        <p><strong>Answer:</strong> export summarizes which species percolated, survival/extinction time, cluster-size exponent estimate when enough cluster statistics exist, and topology-wrapping probability.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
                         <h2>CFT Domain-Wall Reversi Introduction and Observables</h2>

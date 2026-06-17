@@ -318,6 +318,7 @@ export class Algebraic3DBoard {
             if (!stone) continue;
             if (this.game.mode === 'ising_domain_game') this.addIsingSpin(coord, stone);
             else if (this.game.mode === 'two_phase_competition_game') this.addTwoPhaseSite(coord, stone);
+            else if (this.game.mode === 'physical_cluster_go') this.addClusterSite(coord, stone);
             else if (this.game.mode === 'spin_ice_vertex_game') this.addSpinIceVertex(coord, stone);
             else if (this.game.mode === 'z2_gauge_loop_game') this.addZ2GaugeVertex(coord, stone);
             else if (this.game.mode === 'physical_virasoro_go') this.addGoStone(coord, stone);
@@ -346,6 +347,24 @@ export class Algebraic3DBoard {
         });
         sprite.position.y = this.entityRadius() * 1.8;
         group.add(sprite);
+        this.entityGroup.add(group);
+    }
+
+    addClusterSite(coord, stone) {
+        const group = this.baseEntity(coord, stone.color, 0.92);
+        const sprite = labelSprite(`${stone.species || (stone.color === 'black' ? 'A' : 'B')}`, {
+            foreground: stone.color === 'black' ? '#8be1ff' : '#17212b',
+            background: stone.color === 'black' ? 'rgba(4,8,12,.88)' : 'rgba(246,248,251,.92)'
+        });
+        sprite.position.y = this.entityRadius() * 1.82;
+        group.add(sprite);
+        const liberties = labelSprite(`L${stone.liberties ?? 0}`, {
+            foreground: '#f2c464',
+            background: 'rgba(12,16,22,.78)',
+            scale: 0.3
+        });
+        liberties.position.y = -this.entityRadius() * 1.45;
+        group.add(liberties);
         this.entityGroup.add(group);
     }
 

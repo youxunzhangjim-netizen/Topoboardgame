@@ -118,6 +118,16 @@ function decodeBoardFromFirestore(value) {
     }
 }
 
+function boardStateFromRoom(room) {
+    if (!room?.board) return null;
+    const board = decodeBoardFromFirestore(room.board);
+    if (board && typeof board === 'object' && room.turn) {
+        board.currentPlayer = room.turn;
+        if (board.go && typeof board.go === 'object') board.go.currentPlayer = room.turn;
+    }
+    return board;
+}
+
 function normalizeRoomId(value) {
     const text = String(value || '').trim();
     try {
@@ -440,8 +450,9 @@ export async function joinPrivateRoom(rawRoomId) {
     playerColor = joined.color;
     lastLoadedMoveNumber = Number(joined.room.moveNumber) || 0;
     localStorage.setItem(reconnectStorageKey, roomId);
-    if (joined.room.board) {
-        hooks.loadBoardState?.(decodeBoardFromFirestore(joined.room.board));
+    const joinedBoard = boardStateFromRoom(joined.room);
+    if (joinedBoard) {
+        hooks.loadBoardState?.(joinedBoard);
         hooks.renderBoard?.();
     }
     status(playerColor
@@ -553,8 +564,9 @@ function enterPublicMatchResult(result) {
     playerColor = result.color || null;
     lastLoadedMoveNumber = Number(result.room?.moveNumber) || 0;
     localStorage.setItem(reconnectStorageKey, roomId);
-    if (result.room?.board && result.action === 'joined') {
-        hooks.loadBoardState?.(decodeBoardFromFirestore(result.room.board));
+    const matchedBoard = boardStateFromRoom(result.room);
+    if (matchedBoard && result.action === 'joined') {
+        hooks.loadBoardState?.(matchedBoard);
         hooks.renderBoard?.();
     }
     status(result.action === 'joined'
@@ -617,6 +629,7 @@ export function listenToRoom(id = roomId) {
             return;
         }
         const room = snapshot.data();
+        const previousRoom = latestRoom;
         latestRoom = room;
         const color = room.players?.white === user.uid
             ? 'white'
@@ -624,13 +637,15 @@ export function listenToRoom(id = roomId) {
         if (color) playerColor = color;
 
         const remoteMoveNumber = Number(room.moveNumber) || 0;
-        if (room.board && remoteMoveNumber > lastLoadedMoveNumber) {
+        const decodedBoard = boardStateFromRoom(room);
+        const statusBecamePlaying = previousRoom?.status !== 'playing' && room.status === 'playing';
+        if (decodedBoard && (remoteMoveNumber > lastLoadedMoveNumber || statusBecamePlaying)) {
             lastLoadedMoveNumber = remoteMoveNumber;
-            hooks.loadBoardState?.(decodeBoardFromFirestore(room.board));
+            hooks.loadBoardState?.(decodedBoard);
             hooks.renderBoard?.();
         }
-        const hookRoom = room.board
-            ? { ...room, board: decodeBoardFromFirestore(room.board) }
+        const hookRoom = decodedBoard
+            ? { ...room, board: decodedBoard }
             : room;
         hooks.onRoomChanged?.({
             roomId,
@@ -641,7 +656,7 @@ export function listenToRoom(id = roomId) {
         if (room.status === 'waiting') {
             status(`Room ${roomId}: waiting for an opponent.`);
         } else if (room.status === 'playing') {
-            status(`Connected as ${playerColor}. ${room.turn} to move.`);
+            status(`Connected as ${playerColor || 'spectator'}. ${room.turn} to move.`);
         } else {
             status(`Room ${roomId} finished.`);
         }
@@ -667,7 +682,7 @@ export async function sendMove(move) {
         // Client-side validation is acceptable for this prototype. A commercial
         // game needs server-authoritative validation (for example Cloud
         // Functions or a trusted game server) because clients can be modified.
-        const currentBoard = decodeBoardFromFirestore(room.board);
+        const currentBoard = boardStateFromRoom(room);
         const nextBoard = firestoreValue(await hooks.applyMove?.(currentBoard, move, playerColor));
         if (!nextBoard) throw new Error('Illegal move.');
         const { boardState: _clientSnapshot, ...lastMove } = move;

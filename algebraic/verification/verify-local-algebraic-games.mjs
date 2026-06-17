@@ -7,6 +7,7 @@ import {
 import { AnyonJumpGame } from '../../js/localgames/AnyonJump.js';
 import { VirasoroGoGame } from '../../js/localgames/VirasoroGo.js';
 import { PhysicalVirasoroReversiGame } from '../../js/localgames/PhysicalVirasoroReversi.js';
+import { PhysicalClusterGoGame } from '../../js/localgames/PhysicalClusterGo.js';
 import {
     CFT_REVERSI_INITIAL_STATES,
     estimateIsingBlockWeights,
@@ -238,6 +239,49 @@ assert.deepEqual(
     [2, 3, 4, 5],
     'Physical Clifford wall thickness matches the Virasoro Reversi arrangement control.'
 );
+
+for (const initialState of [
+    'sparse_seeds',
+    'random_density',
+    'two_cluster_competition',
+    'interface_seed',
+    'thermal_cluster_sample'
+]) {
+    const cluster = new PhysicalClusterGoGame({
+        topology: { topology: 'torus', width: 6, height: 6 },
+        cluster: { initialState, seed: `physical-cluster-${initialState}` }
+    });
+    assert.equal(cluster.mode, 'physical_cluster_go');
+    assert.ok(cluster.counts().black > 0, `${initialState} creates species A.`);
+    assert.ok(cluster.counts().white > 0, `${initialState} creates species B.`);
+    assert.ok(cluster.legalMoves('black').length > 0, `${initialState} gives black a legal growth/resource move.`);
+    assert.ok(cluster.legalMoves('white').length > 0, `${initialState} gives white a legal growth/resource move.`);
+    const move = cluster.legalMoves('black')[0];
+    const played = cluster.placeSpecies(move.coord, 'black');
+    assert.equal(played.ok, true, `${initialState} accepts a topology-aware cluster placement.`);
+    const observables = cluster.computePhysicalObservables();
+    assert.ok(observables.largestCluster >= 1, 'Cluster observables include largest cluster size.');
+    assert.equal(typeof observables.percolationProbability, 'number');
+    assert.equal(typeof observables.survivalProbability, 'number');
+    assert.equal(cluster.exportState().allowedActions.includes('capture_zero_liberty_cluster'), true);
+}
+
+const physicalClusterCapture = new PhysicalClusterGoGame({
+    topology: { topology: 'flat', width: 3, height: 3 },
+    cluster: { initialState: 'sparse_seeds', seed: 'cluster-capture-test' }
+});
+physicalClusterCapture.board.clear();
+physicalClusterCapture.positionSet.clear();
+physicalClusterCapture.setSpecies([1, 1], 'B');
+physicalClusterCapture.setSpecies([0, 1], 'A');
+physicalClusterCapture.setSpecies([1, 0], 'A');
+physicalClusterCapture.setSpecies([2, 1], 'A');
+physicalClusterCapture.recordPosition('manual-capture');
+const physicalClusterCaptured = physicalClusterCapture.placeSpecies([1, 2], 'black');
+assert.equal(physicalClusterCaptured.ok, true, 'Cluster Go permits a no-liberty-looking placement when it captures and lives.');
+assert.equal(physicalClusterCaptured.captured, 1, 'Zero-liberty opponent cluster is captured as local extinction.');
+assert.equal(physicalClusterCapture.getSpecies([1, 1]), null, 'Captured cluster is removed from the substrate.');
+assert.equal(physicalClusterCapture.computePhysicalAnswer().whichSpeciesPercolated.length > 0, true);
 
 const physicalFlip = new PhysicalCliffordReversiGame({
     topology: { topology: 'flat', width: 8, height: 8 },

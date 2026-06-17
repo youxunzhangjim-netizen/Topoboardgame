@@ -353,6 +353,57 @@ try {
         { mode: 'clifford_reversi', algebraSet: 'standard', boardSize: 4 },
         'Switching back to Standard restores the ordinary four-stone opening in the same game mode.'
     );
+
+    await page.goto(`http://127.0.0.1:${port}/?layer=physical&mode=physical_cluster_go`, { waitUntil: 'networkidle' });
+    const clusterInitialState = await page.evaluate(() => {
+        const state = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            title: document.querySelector('#modeTitle')?.textContent,
+            mode: state.mode,
+            layer: document.querySelector('#gameLayerSelect')?.value,
+            clusterControlsVisible: getComputedStyle(document.querySelector('#clusterInitialStateControl')).display !== 'none',
+            clusterRulesHidden: document.querySelector('[data-rules-mode="physical-cluster-go"]')?.hidden,
+            cells: document.querySelectorAll('#board .cell').length,
+            legalCells: document.querySelectorAll('#board .cell.legal').length,
+            blackLabel: document.querySelector('#blackCountLabel')?.textContent,
+            observables: state.observables,
+            answer: state.physicalAnswer
+        };
+    });
+    assert.equal(clusterInitialState.title, 'Physical Cluster Go');
+    assert.equal(clusterInitialState.mode, 'physical_cluster_go');
+    assert.equal(clusterInitialState.layer, 'physical');
+    assert.equal(clusterInitialState.clusterControlsVisible, true);
+    assert.equal(clusterInitialState.clusterRulesHidden, false);
+    assert.equal(clusterInitialState.cells, 64);
+    assert.ok(clusterInitialState.legalCells > 0, 'Physical Cluster Go should expose legal resource sites.');
+    assert.match(clusterInitialState.blackLabel, /Species A/);
+    assert.equal(typeof clusterInitialState.observables.largestCluster, 'number');
+    assert.equal(typeof clusterInitialState.answer.whichSpeciesPercolated, 'string');
+    await page.locator('#rulesIntroButton').click();
+    const clusterRules = await page.evaluate(() =>
+        document.querySelector('[data-rules-mode="physical-cluster-go"]')?.textContent || ''
+    );
+    assert.match(clusterRules, /percolation/i);
+    assert.match(clusterRules, /topology-wrapping/i);
+    await page.locator('#rulesIntroCloseButton').click();
+    await page.locator('#board .cell.legal').first().click();
+    const clusterMoveState = await page.evaluate(() => {
+        const state = JSON.parse(document.querySelector('#exportText').value);
+        return {
+            moveNumber: state.moveNumber,
+            historyAction: state.history?.[0]?.action,
+            physicsHistoryLength: state.physicsHistory?.length,
+            largestCluster: state.observables?.largestCluster,
+            survival: state.observables?.survivalProbability
+        };
+    });
+    assert.equal(clusterMoveState.moveNumber, 1, 'Cluster Go click should apply a physical update.');
+    assert.match(clusterMoveState.historyAction, /place_species|grow_connected_cluster/);
+    assert.ok(clusterMoveState.physicsHistoryLength >= 2, 'Cluster Go should export shared physics history.');
+    assert.equal(typeof clusterMoveState.largestCluster, 'number');
+    assert.equal(typeof clusterMoveState.survival, 'number');
+
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
     await page.selectOption('#modeSelect', 'anyon_jump');
     const anyonControlState = await page.evaluate(() => ({

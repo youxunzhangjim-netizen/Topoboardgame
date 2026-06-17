@@ -6,7 +6,8 @@ const PHYSICAL_MODE_BASE = Object.freeze({
     physical_clifford_jump: 'clifford_jump',
     physical_anyon_reversi: 'anyon_reversi',
     physical_anyon_jump: 'anyon_jump',
-    physical_virasoro_jump: 'virasoro_jump'
+    physical_virasoro_jump: 'virasoro_jump',
+    physical_cluster_go: 'physical_cluster_go'
 });
 
 const WRAPPED = Symbol('physicalGameFrameworkWrapped');
@@ -260,7 +261,8 @@ function csvEscape(value) {
 export function isPhysicalVariantMode(mode = '') {
     return mode in PHYSICAL_MODE_BASE
         || mode === 'physical_virasoro_go'
-        || mode === 'physical_virasoro_reversi';
+        || mode === 'physical_virasoro_reversi'
+        || mode === 'physical_cluster_go';
 }
 
 export function baseModeForPhysicalVariant(mode = '') {
@@ -481,7 +483,10 @@ export function attachPhysicalGameFramework(game, definitionInput = {}) {
         'flipGaugeLoop',
         'measureGaugeCheck',
         'applyGaugeNoise',
-        'applyGaugeNoiseByKey'
+        'applyGaugeNoiseByKey',
+        'placeSpecies',
+        'growCluster',
+        'applyDiffusionNoise'
     ];
 
     for (const name of methodNames) {
