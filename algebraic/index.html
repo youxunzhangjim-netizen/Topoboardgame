@@ -800,13 +800,11 @@
                         </select>
                     </label>
                     <label>
-                        Floquet
-                        <select id="floquetModeSelect">
+                        Time Evolution
+                        <select id="timeUpdateSelect">
                             <option value="off" selected>Off</option>
-                            <option value="basic">Basic</option>
-                            <option value="clifford">Clifford</option>
-                            <option value="virasoro">Virasoro</option>
-                            <option value="anyon">Anyon</option>
+                            <option value="after_move">After Move</option>
+                            <option value="after_full_round">After Round</option>
                         </select>
                     </label>
                 </div>
@@ -827,7 +825,7 @@
                             <select id="applyNoiseSelect">
                                 <option value="after_move" selected>After Move</option>
                                 <option value="after_full_round">After Round</option>
-                                <option value="after_floquet_cycle">Manual Cycle</option>
+                            <option value="manual">Manual Noise Tick</option>
                             </select>
                         </label>
                         <label>
@@ -855,15 +853,7 @@
                     <summary>Time settings</summary>
                     <div class="control-fields two-col">
                         <label>
-                            Time Update
-                            <select id="timeUpdateSelect">
-                                <option value="off" selected>Off</option>
-                                <option value="after_move">After Move</option>
-                                <option value="after_full_round">After Round</option>
-                            </select>
-                        </label>
-                        <label>
-                            Period M
+                            Clock Period M
                             <input id="timePeriodInput" type="number" min="1" max="16" step="1" value="4">
                         </label>
                     </div>
@@ -981,8 +971,8 @@
                         <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
                         <p><strong>Pauli math:</strong> I=(0,0), X=(1,0), Z=(0,1), Y=(1,1). The symplectic product is x1*z2 + z1*x2 mod 2. Labels anticommute when this value is 1.</p>
                         <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase Signs on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
-                        <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Basic Floquet ages pieces and diffuses fields. Clifford Floquet applies H/S at marked defect vertices. Virasoro Floquet evolves a stress field T(v): phase 1 diffuses stress, phase 2 applies L0 scaling near marked vertices, phase 3 focuses stress like L1, and optional anomaly phases add L2-style stress.</p>
-                        <p><strong>Results:</strong> the export records topology, lattice, board labels, move history, position history, probability/noise events, Floquet time state, and final counts. These results let you compare how the same Clifford rule behaves on flat, random-boundary, torus, Klein, Mobius, RP2, S2, R3, and 4D graphs.</p>
+                        <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Time evolution can age pieces on the selected clock after moves or full rounds, while noise can be applied separately from the same dynamics panel.</p>
+                        <p><strong>Results:</strong> the export records topology, lattice, board labels, move history, position history, probability/noise events, time-evolution state, and final counts. These results let you compare how the same Clifford rule behaves on flat, random-boundary, torus, Klein, Mobius, RP2, S2, R3, and 4D graphs.</p>
                     </div>
                     <div data-rules-mode="physical-clifford" hidden>
                         <h2>Stabilizer Introduction and Observables</h2>
@@ -1036,7 +1026,7 @@
                         <p><strong>Excitation Energy:</strong> both players start with 12 energy. The selector offers every non-vacuum type in the chosen model: e, m, &psi; for Toric Code; &sigma;, &psi; for Ising; &tau; for Fibonacci; and every &alpha;<sub>k</sub> grade for Z_n. Exciting one on an empty vertex consumes one turn and its model cost. Recombining/dropping an owned anyon by button, action, or double-click returns its gap energy after the configured loss rate; completing a vacuum fusion also returns energy.</p>
                         <p><strong>Non-Abelian fusion:</strong> Ising uses &sigma; x &sigma; = 1 + &psi;. The plus sign lists alternative channels, not simultaneous products: resolving to 1 removes both incoming &sigma; anyons as vacuum, while resolving to &psi; replaces the pair with one &psi; excitation. Also, &sigma; x &psi; = &sigma; and &psi; x &psi; = 1. Fibonacci similarly uses &tau; x &tau; = 1 + &tau;. Measurements can reveal hidden channels when measurement rules are enabled.</p>
                         <p><strong>Entanglement distance:</strong> Infinite keeps fusion-channel memory regardless of graph separation. Finite Distance measures shortest legal graph steps and decoheres that hidden pair channel when the anyons separate beyond the selected distance. Braid words remain recorded independently.</p>
-                        <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Anyon Floquet evaluates braid histories, activates fusion sites, moves twist defects, and can apply seam automorphisms such as e&lt;-&gt;m. Virasoro Floquet is available as a shared stress-field experiment on the underlying graph.</p>
+                        <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Time evolution ages particles on the selected clock; entanglement range, recombination, and measurement settings control the excitation dynamics.</p>
                         <p><strong>Observables and results:</strong> the QEC panel reports total fusion charge, logical sector, memory alive/lost, vacuum recovery, average and maximum braid word length, and successful or failed unbraids. Research export keeps worldlines, braid tokens, fusion outcomes, logical-sector history, energy history, memory lifetime, logical-error rate, unbraid success rate, and final physical answer.</p>
                     </div>
                     <div data-rules-mode="virasoro">
@@ -1132,8 +1122,8 @@
                 </section>
 
                 <section>
-                    <h2>Discrete Time / Floquet</h2>
-                    <p id="timeStatus" class="time-status">Time layer off.</p>
+                    <h2>Time Evolution</h2>
+                    <p id="timeStatus" class="time-status">Time evolution off.</p>
                     <div id="phaseTimeline" class="phase-timeline"></div>
                 </section>
 

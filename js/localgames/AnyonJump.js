@@ -316,6 +316,39 @@ export class AnyonJumpGame {
         return { ok: true, event };
     }
 
+    setTokenType(tokenId, type, player = this.currentPlayer, { consumeTurn = false } = {}) {
+        const token = this.tokens.get(tokenId);
+        if (!token) return { ok: false, error: 'Unknown token.' };
+        if (token.owner !== player) return { ok: false, error: 'Choose one of your own pieces.' };
+        const before = token.anyonType;
+        const after = this.normalizeConfiguredType(type);
+        if (after === '1') return { ok: false, error: 'Choose a non-vacuum algebra label.' };
+        token.anyonType = after;
+        token.energy = Math.max(Number(token.energy) || 0, this.excitationGap(after));
+        token.measurementHistory.push({
+            type: 'set_algebra_label',
+            before,
+            after,
+            player,
+            tick: this.moveNumber
+        });
+        if (consumeTurn) this.moveNumber++;
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player,
+            kind: 'set_algebra',
+            tokenId,
+            coord: cloneCoord(token.coord),
+            before,
+            after,
+            consumeTurn
+        };
+        this.history.unshift(event);
+        this.physicalProblem?.record?.(this, { type: 'set_algebra', event });
+        return { ok: true, event };
+    }
+
     tokenAt(coord, exceptId = '') {
         const key = coordKey(coord);
         return [...this.tokens.values()].find((token) => token.id !== exceptId && coordKey(token.coord) === key) || null;

@@ -253,6 +253,7 @@ class Reversi3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -640,7 +641,28 @@ class Reversi3DRenderer {
             : mode === REVERSI_TOPOLOGIES.KLEIN
                 ? kleinBottlePose(coord, logic.topology.width, logic.topology.height, 0.095)
             : this.mobiusPose(coord, logic.topology.width, logic.topology.height, 0.08);
-        return this.isPoseFacingCamera(pose.position, pose.normal);
+        if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
+        if (mode === REVERSI_TOPOLOGIES.KLEIN && this.kleinSurfaceOccludes(hit, pose)) return false;
+        return true;
+    }
+
+    kleinClickThroughWindow(pose) {
+        if (!pose) return false;
+        const uDistance = Math.min(
+            Math.abs(pose.u - Math.PI),
+            Math.abs(pose.u),
+            Math.abs(pose.u - TWO_PI)
+        );
+        return uDistance < 0.42 && Math.abs(pose.position.x) < 2.25 && pose.position.y < 0.85;
+    }
+
+    kleinSurfaceOccludes(hit, pose) {
+        const occluders = this.boardGroup.children.filter((child) => child.userData?.kleinPickOccluder);
+        if (!occluders.length) return false;
+        const surfaceHits = this.raycaster.intersectObjects(occluders, false);
+        const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
+        if (!nearest) return false;
+        return nearest.distance < hit.distance - 0.08 && !this.kleinClickThroughWindow(pose);
     }
 
     isPoseFacingCamera(position, normal, threshold = 0.04) {

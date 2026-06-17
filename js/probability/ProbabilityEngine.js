@@ -23,7 +23,7 @@ export const NOISE_MODES = Object.freeze([
 export const APPLY_NOISE_TIMES = Object.freeze([
     'after_move',
     'after_full_round',
-    'after_floquet_cycle'
+    'manual'
 ]);
 
 export const PAULI_NOISE_TYPES = Object.freeze([

@@ -229,7 +229,6 @@ const els = {
     measurementErrorInput: document.querySelector('#measurementErrorInput'),
     applyNoiseSelect: document.querySelector('#applyNoiseSelect'),
     noiseDetails: document.querySelector('#noiseDetails'),
-    floquetModeSelect: document.querySelector('#floquetModeSelect'),
     dynamicsSection: document.querySelector('#dynamicsSection'),
     timeDetails: document.querySelector('#timeDetails'),
     timeUpdateSelect: document.querySelector('#timeUpdateSelect'),
@@ -955,7 +954,7 @@ function syncModeControls() {
 
     if (isVirasoroGo || isCFTReversi) {
         els.noiseModeSelect.value = 'off';
-        els.floquetModeSelect.value = 'off';
+        els.timeUpdateSelect.value = 'off';
     } else {
         setAllowedSelectValues(
             els.noiseModeSelect,
@@ -963,12 +962,6 @@ function syncModeControls() {
                 ? ['off', 'anyon_pair_creation', 'measurement_error', 'field_noise', 'custom']
                 : isAnyonReversi ? ['off', 'measurement_error', 'field_noise']
                 : ['off', 'pauli', 'measurement_error', 'field_noise', 'custom']
-        );
-        setAllowedSelectValues(
-            els.floquetModeSelect,
-            isJump
-                ? ['off', 'basic', 'anyon', 'virasoro']
-                : ['off', 'basic', 'clifford', 'virasoro']
         );
     }
     if (!isJump) els.anyonFlipSelect.value = 'off';
@@ -1160,12 +1153,11 @@ function centerCoord(offsetX = 0, offsetY = 0) {
 }
 
 function timeConfig() {
-    const floquetMode = els.floquetModeSelect.value;
     const updateMode = els.timeUpdateSelect.value;
     const hDefect = centerCoord(0, 0);
     const sDefect = centerCoord(1, 0);
     return {
-        floquetMode,
+        floquetMode: updateMode === 'off' ? 'off' : 'basic',
         updateMode,
         period: Number(els.timePeriodInput.value) || 4,
         markedVertices: [hDefect],
@@ -1175,7 +1167,7 @@ function timeConfig() {
         rechargeRate: 0.1,
         decayRate: 0.92,
         diffusionRate: 0.15,
-        virasoro_CFT_N2: floquetMode === 'virasoro'
+        virasoro_CFT_N2: false
     };
 }
 
@@ -2020,7 +2012,7 @@ function render() {
     const is4D = els.topologySelect.value === 'flat_4d_grid';
     const isR3 = els.topologySelect.value === 'r3';
     const noiseEnabled = els.noiseModeSelect.value !== 'off';
-    const timeEnabled = els.floquetModeSelect.value !== 'off';
+    const timeEnabled = els.timeUpdateSelect.value !== 'off';
     els.geometryDetails.hidden = !is4D && !isR3;
     els.zSizeControl.hidden = !is4D && !isR3;
     els.wSizeControl.hidden = !is4D;
@@ -3315,7 +3307,7 @@ function executeAnyonMove(coord) {
         } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
             els.statusText.textContent = 'Jump recorded a nontrivial braid token.';
         } else {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`;
+            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
         }
     } else {
         els.statusText.textContent = result.error;
@@ -3335,6 +3327,59 @@ function anyonExcitationItems(coord, { availableOnly = false } = {}) {
     }));
 }
 
+function jumpSetTypeItems(token, { prefix = 'Set' } = {}) {
+    const source = game.excitationTypeOptions?.() || excitationCatalog().types.map((value) => ({
+        value,
+        label: jumpTypeDisplay(value),
+        detail: ''
+    }));
+    return source.map((option) => ({
+        label: `${prefix} ${jumpTypeDisplay(option.value)}`,
+        detail: option.detail || option.label || '',
+        disabled: option.disabled,
+        onChoose: () => {
+            const result = game.setTokenType(token.id, option.value, game.currentPlayer, { consumeTurn: false });
+            els.statusText.textContent = result.ok
+                ? `${token.id} algebra label set to ${jumpTypeDisplay(result.event.after)}.`
+                : result.error;
+            selectedToken = '';
+            hoverCoord = null;
+            render();
+        }
+    }));
+}
+
+function showOwnedJumpTokenPalette(token, coord, event, { excitationMode = false } = {}) {
+    const items = [
+        {
+            label: 'Select / Move',
+            detail: 'Use this piece for hop, jump, braid, or unbraid.',
+            onChoose: () => executeAnyonSelect(token)
+        },
+        ...jumpSetTypeItems(token)
+    ];
+    if (excitationMode) {
+        items.push({
+            label: 'Recombine / Recover',
+            detail: 'Remove this owned excitation and recover energy.',
+            onChoose: () => {
+                const result = game.dropAnyon(token.id, game.currentPlayer);
+                els.statusText.textContent = result.ok
+                    ? `${capitalize(result.event.player)} recombined ${result.event.tokenId}; recovered ${formatNumber(result.event.recovered)} energy.`
+                    : result.error;
+                selectedToken = '';
+                hoverCoord = null;
+                render();
+            }
+        });
+    }
+    showActionPalette(coord, event, {
+        title: `${token.id} ${jumpTypeDisplay(token.anyonType)}`,
+        status: 'Choose how to use or relabel this owned piece.',
+        items
+    });
+}
+
 function handleAnyonExcitationClick(coord, event) {
     const token = game.tokenAt(coord);
     if (token) {
@@ -3349,7 +3394,7 @@ function handleAnyonExcitationClick(coord, event) {
                 render();
                 return;
             }
-            executeAnyonSelect(token);
+            showOwnedJumpTokenPalette(token, coord, event, { excitationMode: true });
             return;
         }
         els.statusText.textContent = selectedToken
@@ -3441,7 +3486,7 @@ function handleCellClick(coord, event = null) {
             transform: els.transformSelect.value
         });
         els.statusText.textContent = result.ok
-            ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`
+            ? `Flipped ${result.event.flipped.length} stone${result.event.flipped.length === 1 ? '' : 's'}${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`
             : result.error;
         if (result.ok) hoverCoord = null;
         render();
@@ -3528,14 +3573,10 @@ function handleCellClick(coord, event = null) {
             return;
         }
         if (excitationMode && anyonTurnAction === 'excite') {
-            els.statusText.textContent = 'Excite creates a new anyon on an empty vertex. Choose Move / Braid to select existing anyons.';
+            showOwnedJumpTokenPalette(token, coord, event, { excitationMode: true });
             return;
         }
-        selectedToken = token.id;
-        els.statusText.textContent = excitationMode
-            ? `Selected ${token.id} (${token.anyonType}). Click a legal empty target to move, or choose Recombine / Recover to reclaim energy.`
-            : `Selected ${token.id} (${token.anyonType}).`;
-        render();
+        showOwnedJumpTokenPalette(token, coord, event, { excitationMode });
         return;
     }
     if (!token && excitationMode && anyonTurnAction === 'excite') {
@@ -3589,7 +3630,7 @@ function handleCellClick(coord, event = null) {
         } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
             els.statusText.textContent = 'Jump recorded a nontrivial braid token.';
         } else {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; Floquet phase ${result.event.time.phase} applied` : ''}.`;
+            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
         }
     } else {
         els.statusText.textContent = result.error;
@@ -3656,8 +3697,8 @@ function applyTimeNow() {
         game
     });
     els.statusText.textContent = result?.applied
-        ? `Time step applied phase ${result.phase}; tick is now ${result.after.tick}.`
-        : 'Time layer is off.';
+        ? `Time step applied clock ${result.phase}; tick is now ${result.after.tick}.`
+        : 'Time evolution is off.';
     if (result?.applied && isReversiMode(game.mode)) game.recordPosition('manual-time');
     render();
 }
@@ -3844,15 +3885,15 @@ function renderStats() {
 
 function renderTimePanel() {
     if (!game?.time) {
-        els.timeStatus.textContent = 'Time layer off.';
+        els.timeStatus.textContent = 'Time evolution off.';
         els.phaseTimeline.innerHTML = '';
         return;
     }
     const state = game.time.gameTime;
     const config = game.time.config;
-    els.timeStatus.textContent = config.floquetMode === 'off' || config.updateMode === 'off'
-        ? 'Time layer off.'
-        : `tick ${state.tick}, round ${state.round}, phase ${state.phase}/${state.period - 1}, ${config.floquetMode}, ${config.updateMode}`;
+    els.timeStatus.textContent = config.updateMode === 'off'
+        ? 'Time evolution off.'
+        : `tick ${state.tick}, round ${state.round}, clock ${state.phase}/${state.period - 1}, ${config.updateMode}`;
     els.phaseTimeline.innerHTML = game.time.phaseTimeline()
         .map((item) => `<span class="${item.active ? 'active' : ''}" title="${item.label}">${item.phase}</span>`)
         .join('');
@@ -4238,6 +4279,8 @@ function renderHistory() {
                 item.textContent = `#${event.number} ${event.player} excited ${jumpTypeDisplay(event.anyonType)} at ${event.coord.join(',')}; cost ${event.cost}.`;
             } else if (event.kind === 'drop') {
                 item.textContent = `#${event.number} ${event.player} dropped ${event.tokenId}; recovered ${formatNumber(event.recovered)}.`;
+            } else if (event.kind === 'set_algebra') {
+                item.textContent = `#${event.number} ${event.player} set ${event.tokenId} ${jumpTypeDisplay(event.before)} -> ${jumpTypeDisplay(event.after)} at ${event.coord.join(',')}.`;
             } else {
                 const braid = event.braid?.phase === -1 ? ' braid -1' : '';
                 const anyonPhase = event.braid?.anyonPhase?.after?.text
@@ -4461,7 +4504,6 @@ for (const control of [
     els.noiseModeSelect,
     els.pauliNoiseTypeSelect,
     els.applyNoiseSelect,
-    els.floquetModeSelect,
     els.timeUpdateSelect,
     els.anyonFlipSelect,
     els.braidMemoryModeSelect,

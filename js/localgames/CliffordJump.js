@@ -21,6 +21,12 @@ function normalizePauliType(type = 'X') {
     return Object.hasOwn(PAULI_TO_ANYON, value) ? value : 'X';
 }
 
+function normalizeCliffordJumpType(type = 'X') {
+    const raw = String(type || 'X').trim();
+    if (Object.hasOwn(ANYON_TO_PAULI, raw)) return raw;
+    return PAULI_TO_ANYON[normalizePauliType(raw)] || 'e';
+}
+
 export class CliffordJumpGame extends AnyonJumpGame {
     reset(options = {}) {
         super.reset({
@@ -36,8 +42,7 @@ export class CliffordJumpGame extends AnyonJumpGame {
     }
 
     normalizeConfiguredType(type) {
-        const pauli = normalizePauliType(type);
-        return PAULI_TO_ANYON[pauli] || super.normalizeConfiguredType(type);
+        return normalizeCliffordJumpType(type);
     }
 
     displayType(type) {
