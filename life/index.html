@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Life & Evolution Worlds — Topoboardgame</title>
+  <link rel="stylesheet" href="./life.css" />
+</head>
+<body>
+  <div class="life-bg" aria-hidden="true"></div>
+  <header class="life-header">
+    <nav class="life-topbar" aria-label="Life worlds navigation">
+      <a href="../" class="ghost-button" data-life-i18n="home">Home</a>
+      <a href="../2D/2dgo/" class="ghost-button">2D Go</a>
+      <a href="../3D/3dgo/" class="ghost-button">3D Go</a>
+      <a href="../algebraic/" class="ghost-button">Strategy Labs</a>
+    <span class="life-language-switch"><button class="ghost-button" type="button" data-life-lang="en">En</button><button class="ghost-button" type="button" data-life-lang="zh">中</button></span></nav>
+    <section class="life-hero">
+      <p class="eyebrow">Topoboardgame</p>
+      <h1>Life &amp; Evolution Worlds</h1>
+      <p class="subtitle" data-life-i18n="lifeSubtitle">Create life, start evolution, and see what survives across different spaces.</p>
+      <p class="description" data-life-i18n="lifeLong">Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.</p>
+    </section>
+  </header>
+
+  <main class="life-shell">
+    <section class="life-card-grid" aria-label="Life and evolution modes" id="lifeModeGrid"></section>
+  </main>
+
+  <dialog class="life-info-dialog" id="lifeInfoDialog">
+    <form method="dialog">
+      <button class="dialog-close" aria-label="Close">×</button>
+    </form>
+    <article>
+      <p class="eyebrow" id="dialogTags">Life world</p>
+      <h2 id="dialogTitle">Mode</h2>
+      <p id="dialogDescription"></p>
+      <dl class="dialog-facts">
+        <div><dt>Players</dt><dd id="dialogPlayers"></dd></div>
+        <div><dt>System</dt><dd id="dialogSystem"></dd></div>
+        <div><dt>Observables</dt><dd id="dialogObservables"></dd></div>
+      </dl>
+    </article>
+  </dialog>
+
+  <script type="module" src="./life-worlds.js"></script>
+</body>
+</html>

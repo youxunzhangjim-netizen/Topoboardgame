@@ -1,17 +1,21 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import { getApp, getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import {
-    browserSessionPersistence,
+    browserLocalPersistence,
     getAuth,
+    GoogleAuthProvider,
     initializeAuth,
+    linkWithPopup,
     onAuthStateChanged,
     setPersistence,
     signInAnonymously,
+    signInWithPopup,
     signOut
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import {
     addDoc,
     collection,
     doc,
+    getDoc,
     getDocs,
     initializeFirestore,
     limit,
@@ -27,6 +31,12 @@ import {
 import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
 
 const roomsPath = 'rooms';
+const usersPath = 'users';
+
+let firebaseApp = null;
+let authReadyPromise = null;
+let authObserverInstalled = false;
+const accountListeners = new Set();
 
 let auth = null;
 let db = null;
@@ -51,6 +61,182 @@ const duplicateIdentityWaitMs = 220;
 const tabInstanceId = globalThis.crypto?.randomUUID?.()
     || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 let identityChannel = null;
+
+function getFirebaseAppInstance() {
+    if (firebaseApp) return firebaseApp;
+    firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    return firebaseApp;
+}
+
+function notifyAccountListeners() {
+    const state = getAccountState();
+    for (const listener of accountListeners) {
+        try {
+            listener(state);
+        } catch {
+            // Account UI listeners should not break online gameplay.
+        }
+    }
+    try {
+        globalThis.dispatchEvent?.(new CustomEvent('topoboardgame:account-state', { detail: state }));
+    } catch {
+        // Ignore non-browser contexts.
+    }
+}
+
+async function waitForInitialAuthState() {
+    if (!auth) return null;
+    if (authReadyPromise) return authReadyPromise;
+    authReadyPromise = new Promise((resolve) => {
+        const stop = onAuthStateChanged(auth, (nextUser) => {
+            stop();
+            user = nextUser || null;
+            resolve(user);
+        }, () => resolve(auth.currentUser || null));
+    });
+    return authReadyPromise;
+}
+
+function installAccountObserver() {
+    if (!auth || authObserverInstalled) return;
+    authObserverInstalled = true;
+    onAuthStateChanged(auth, async (nextUser) => {
+        user = nextUser || null;
+        notifyAccountListeners();
+        if (nextUser && !nextUser.isAnonymous) {
+            await upsertGoogleUserProfile(nextUser, { source: 'auth-state' });
+        }
+    });
+}
+
+async function ensureFirebaseCore() {
+    if (!hasFirebaseConfig()) {
+        return { ok: false, configured: false, error: 'Firebase config needed: fill in firebaseConfig.js.' };
+    }
+    const app = getFirebaseAppInstance();
+    if (!auth) {
+        try {
+            auth = initializeAuth(app, {
+                persistence: browserLocalPersistence
+            });
+        } catch {
+            auth = getAuth(app);
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+            } catch {
+                // Fall back to Firebase's default persistence if local storage is blocked.
+            }
+        }
+        installAccountObserver();
+    }
+    if (!db) {
+        db = initializeFirestore(app, {
+            experimentalAutoDetectLongPolling: true
+        });
+    }
+    return { ok: true, configured: true, auth, db };
+}
+
+function publicUserProfile(currentUser) {
+    if (!currentUser) return null;
+    return {
+        uid: currentUser.uid,
+        displayName: currentUser.displayName || 'Player',
+        photoURL: currentUser.photoURL || null,
+        providerId: currentUser.providerData?.[0]?.providerId || (currentUser.isAnonymous ? 'anonymous' : 'firebase'),
+        isAnonymous: Boolean(currentUser.isAnonymous),
+        emailVerified: Boolean(currentUser.emailVerified)
+    };
+}
+
+async function upsertGoogleUserProfile(currentUser, { source = 'login' } = {}) {
+    if (!db || !currentUser || currentUser.isAnonymous) return null;
+    const ref = doc(db, usersPath, currentUser.uid);
+    let exists = false;
+    try {
+        exists = (await getDoc(ref)).exists();
+    } catch {
+        // If rules are not deployed yet, login should still succeed.
+        return null;
+    }
+    const profile = publicUserProfile(currentUser);
+    const data = {
+        ...profile,
+        accountKind: 'google',
+        source,
+        lastSeenAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    };
+    if (!exists) data.createdAt = serverTimestamp();
+    await setDoc(ref, data, { merge: true });
+    return data;
+}
+
+export function getAccountState() {
+    const currentUser = auth?.currentUser || user || null;
+    const signedIn = Boolean(currentUser && !currentUser.isAnonymous);
+    return {
+        configured: hasFirebaseConfig(),
+        ready: Boolean(auth),
+        uid: currentUser?.uid || null,
+        signedIn,
+        isGuest: !signedIn,
+        isAnonymous: Boolean(currentUser?.isAnonymous),
+        displayName: signedIn ? (currentUser.displayName || 'Player') : 'Guest',
+        photoURL: signedIn ? (currentUser.photoURL || null) : null,
+        emailVerified: signedIn ? Boolean(currentUser.emailVerified) : false
+    };
+}
+
+export function subscribeAccountState(listener) {
+    accountListeners.add(listener);
+    listener(getAccountState());
+    return () => accountListeners.delete(listener);
+}
+
+export async function initAccountSession() {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) {
+        notifyAccountListeners();
+        return getAccountState();
+    }
+    await waitForInitialAuthState();
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function signInWithGoogleAccount() {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Firebase is not configured.');
+    await waitForInitialAuthState();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    let result;
+    if (auth.currentUser?.isAnonymous) {
+        try {
+            result = await linkWithPopup(auth.currentUser, provider);
+        } catch (error) {
+            if (!/credential-already-in-use|provider-already-linked|email-already-in-use/i.test(error?.code || error?.message || '')) {
+                throw error;
+            }
+            result = await signInWithPopup(auth, provider);
+        }
+    } else {
+        result = await signInWithPopup(auth, provider);
+    }
+    user = result.user;
+    await upsertGoogleUserProfile(user, { source: 'google-login' });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function signOutToGuest() {
+    const ready = await ensureFirebaseCore();
+    if (ready.ok && auth?.currentUser) await signOut(auth);
+    user = null;
+    notifyAccountListeners();
+    return getAccountState();
+}
 
 function opposite(color) {
     return color === 'white' ? 'black' : 'white';
@@ -315,23 +501,13 @@ export async function initOnline(options = {}) {
     }
 
     initializationPromise = (async () => {
-    const app = initializeApp(firebaseConfig);
-    try {
-        auth = initializeAuth(app, {
-            persistence: browserSessionPersistence
-        });
-    } catch {
-        auth = getAuth(app);
-        try {
-            await setPersistence(auth, browserSessionPersistence);
-        } catch {
-            // Fall back to Firebase's default persistence if the browser blocks session storage.
-        }
+    const core = await ensureFirebaseCore();
+    if (!core.ok) {
+        status(core.error || 'Firebase config needed: fill in firebaseConfig.js.');
+        return { ok: false, configured: core.configured };
     }
-    db = initializeFirestore(app, {
-        experimentalAutoDetectLongPolling: true
-    });
-    status('Signing in anonymously...');
+    await waitForInitialAuthState();
+    status(auth.currentUser && !auth.currentUser.isAnonymous ? 'Using Google account for online play...' : 'Signing in as guest...');
     if (!auth.currentUser) await signInAnonymously(auth);
     user = auth.currentUser || await waitForAuth(auth);
     user = await ensureDistinctTabIdentity();

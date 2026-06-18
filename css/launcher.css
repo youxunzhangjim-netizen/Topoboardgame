@@ -907,3 +907,239 @@ h1 {
         opacity: 0.62;
     }
 }
+
+.launcher-account {
+    position: fixed;
+    right: 16px;
+    bottom: 118px;
+    z-index: 5;
+    display: grid;
+    justify-items: end;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.launcher-account-button {
+    min-width: 138px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px;
+    border: 1px solid rgba(56, 189, 248, 0.56);
+    border-radius: 999px;
+    background: rgba(11, 16, 22, 0.9);
+    color: var(--text);
+    cursor: pointer;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+
+.launcher-account-button:hover,
+.launcher-account-button:focus-visible {
+    border-color: rgba(245, 182, 71, 0.72);
+    outline: none;
+}
+
+.launcher-account-button span {
+    max-width: 86px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.launcher-account-button small {
+    color: rgba(245, 182, 71, 0.92);
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.launcher-account-menu {
+    width: min(280px, calc(100vw - 32px));
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgba(56, 189, 248, 0.46);
+    border-radius: 10px;
+    background: rgba(15, 20, 27, 0.97);
+    color: var(--text);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+}
+
+.launcher-account-menu[hidden] {
+    display: none;
+}
+
+.launcher-account-menu p {
+    margin: 0;
+    color: rgba(237, 244, 246, 0.86);
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 800;
+}
+
+.launcher-account-menu small {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+    font-weight: 800;
+}
+
+.launcher-account-menu-button {
+    min-height: 36px;
+    border: 1px solid rgba(168, 180, 188, 0.32);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.84);
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 950;
+}
+
+.launcher-account-menu-button.primary {
+    border-color: rgba(56, 189, 248, 0.62);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.launcher-account-menu-button:hover,
+.launcher-account-menu-button:focus-visible {
+    border-color: rgba(245, 182, 71, 0.72);
+    outline: none;
+}
+
+.launcher-account-menu-button[hidden] {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .launcher-account {
+        right: 12px;
+        bottom: 112px;
+    }
+
+    .launcher-account-button {
+        min-width: 116px;
+    }
+}
+
+
+/* Life & Evolution Worlds launcher section */
+.launcher-section-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0 clamp(16px, 2.6vw, 34px);
+}
+
+.launcher-section-nav a {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    border: 1px solid rgba(56, 189, 248, 0.34);
+    border-radius: 999px;
+    background: rgba(8, 13, 21, 0.58);
+    color: rgba(237, 244, 246, 0.92);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.launcher-section-nav a:hover,
+.launcher-section-nav a:focus-visible {
+    border-color: rgba(245, 182, 71, 0.74);
+    background: rgba(18, 28, 42, 0.88);
+    outline: none;
+}
+
+.life-mode-panel {
+    border-color: rgba(34, 197, 94, 0.36);
+    background:
+        radial-gradient(circle at top left, rgba(34, 197, 94, 0.13), transparent 34%),
+        rgba(9, 18, 24, 0.88);
+}
+
+.life-world-card {
+    min-height: 164px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(180px, 0.36fr);
+    align-items: center;
+    gap: 18px;
+}
+
+.life-world-visual {
+    width: 92px;
+    height: 92px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid rgba(34, 197, 94, 0.36);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(56, 189, 248, 0.1)),
+        rgba(6, 12, 18, 0.76);
+    box-shadow: inset 0 0 24px rgba(34, 197, 94, 0.1);
+}
+
+.life-world-visual span {
+    border-radius: 50%;
+    background: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+}
+
+.life-world-visual span:nth-child(2),
+.life-world-visual span:nth-child(5),
+.life-world-visual span:nth-child(6),
+.life-world-visual span:nth-child(10),
+.life-world-visual span:nth-child(11),
+.life-world-visual span:nth-child(15) {
+    background: rgba(34, 197, 94, 0.88);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.58);
+}
+
+.life-world-actions {
+    display: grid;
+    gap: 10px;
+}
+
+.life-world-info p {
+    margin: 0;
+    color: rgba(226, 236, 238, 0.82);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.life-world-mode-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.life-world-mode-strip span {
+    padding: 6px 9px;
+    border: 1px solid rgba(34, 197, 94, 0.24);
+    border-radius: 999px;
+    background: rgba(6, 12, 18, 0.5);
+    color: rgba(226, 236, 238, 0.82);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+@media (max-width: 880px) {
+    .life-world-card {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .life-world-visual {
+        width: 100%;
+        max-width: 140px;
+    }
+}

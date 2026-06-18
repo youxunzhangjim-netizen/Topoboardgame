@@ -58,6 +58,7 @@ copy(join(root, '3D', '3dreversi', 'dist'), join(output, '3D', '3dreversi'));
 copy(join(root, '4D', '4dgo', 'dist'), join(output, '4D', '4dgo'));
 copy(join(root, '4D', '4dreversi', 'dist'), join(output, '4D', '4dreversi'));
 copy(join(root, 'algebraic', 'dist'), join(output, 'algebraic'));
+copy(join(root, 'life'), join(output, 'life'));
 writeFileSync(join(output, '.nojekyll'), '');
 rmSync(launcherOutput, { recursive: true, force: true });
 

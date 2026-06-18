@@ -59,6 +59,13 @@ const triangularRandom = createGraphTopology({
     randomBoundarySeed: 'triangular-random-boundary'
 });
 assert.ok(triangularRandom.step([2, 0], [1, -1])?.coord, 'Triangular RBC maps exposed diagonal edges.');
+const s2 = createGraphTopology({ topology: 'sphere_latitude', width: 9, height: 7 });
+assert.equal(s2.vertices().length, 65, 'S2 latitude graph now includes latitude rings plus playable north/south poles.');
+assert.deepEqual(s2.normalize([4, -1]), [0, -1], 'S2 north pole normalizes to a single playable pole node.');
+assert.deepEqual(s2.normalize([3, 7]), [0, 7], 'S2 south pole normalizes to a single playable pole node.');
+assert.equal(s2.neighbors([0, -1]).length, 9, 'S2 north pole connects to the first latitude ring.');
+assert.ok(s2.neighbors([0, 0]).some((coord) => coord.join(',') === '0,-1'), 'S2 first latitude ring connects to the north pole.');
+
 const r3 = createGraphTopology({ topology: 'r3', width: 5, height: 6, depth: 7 });
 assert.equal(r3.dimensions, 3, 'R3 topology is a true three-dimensional graph.');
 assert.deepEqual(r3.sizes, [5, 6, 7]);

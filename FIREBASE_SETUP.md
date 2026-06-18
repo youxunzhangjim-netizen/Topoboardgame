@@ -27,3 +27,25 @@ The browser app uses Firebase Anonymous Authentication and Cloud Firestore.
 
 GitHub Pages hosts the static files; Firebase supplies rooms, matchmaking,
 state synchronization, waiting counts, and room chat.
+
+## Optional account login on the launcher
+
+The launcher now has an account button near the language control. The default state is **Guest**. Local games, local robots, and local research/training do not require login.
+
+To make the **Login** button work:
+
+1. Open Firebase Console → Authentication → Sign-in method.
+2. Enable **Google** provider and choose a support email.
+3. Keep **Anonymous** provider enabled for guest online rooms.
+4. Open Authentication → Settings → Authorized domains.
+5. Add these domains when needed:
+   - `youxunzhangjim-netizen.github.io`
+   - `localhost`
+   - `127.0.0.1`
+6. Deploy Firestore rules again:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+When a user signs in with Google, Topoboardgame writes/updates `users/{uid}` with a small profile record. Guest users stay the default and are not required for local play.

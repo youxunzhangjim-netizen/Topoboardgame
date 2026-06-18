@@ -99,6 +99,7 @@ export class Algebraic3DBoard {
         this.controls.enablePan = false;
         this.controls.minDistance = 7;
         this.controls.maxDistance = 16;
+        this.interactionLocked = false;
 
         this.raycaster = new THREE.Raycaster();
         this.raycaster.params.Points.threshold = 0.2;
@@ -239,12 +240,14 @@ export class Algebraic3DBoard {
             const point = this.positionForCoord(coord, 0.07);
             this.pointCoords.push(coord);
             this.pointPositions.push(point);
-            for (const direction of topology.directions()) {
-                const step = topology.step(coord, direction);
-                if (!step) continue;
-                const edgeKey = [keyOf(coord), keyOf(step.coord)].sort().join('|');
+            const neighborCoords = typeof topology.neighbors === 'function'
+                ? topology.neighbors(coord)
+                : topology.directions().map((direction) => topology.step(coord, direction)?.coord).filter(Boolean);
+            for (const neighbor of neighborCoords) {
+                const edgeKey = [keyOf(coord), keyOf(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
+                const step = topology.step(coord, neighbor.map((value, axis) => value - (coord[axis] || 0))) || { coord: neighbor };
                 const path = this.edgePath(coord, step);
                 const color = z2GaugeEdges
                     ? new THREE.Color(this.game.value(edgeKey) > 0 ? 0x07111b : 0xf8fbff)
@@ -615,6 +618,8 @@ export class Algebraic3DBoard {
     spherePosition(coord, lift = 0) {
         const [width, height] = this.game.topology.sizes;
         const radius = 3.5 + lift;
+        if (coord[0] === 0 && coord[1] === -1) return new THREE.Vector3(0, 0, radius);
+        if (coord[0] === 0 && coord[1] === height) return new THREE.Vector3(0, 0, -radius);
         const theta = Math.PI * (Number(coord[1]) + 1) / (height + 1);
         const phi = TWO_PI * Number(coord[0]) / width;
         return new THREE.Vector3(
@@ -635,6 +640,7 @@ export class Algebraic3DBoard {
     }
 
     pointerDown(event) {
+        if (this.interactionLocked) return;
         this.pointerGesture = {
             x: event.clientX,
             y: event.clientY,
@@ -646,6 +652,7 @@ export class Algebraic3DBoard {
     }
 
     pointerMove(event) {
+        if (this.interactionLocked) return;
         if (this.pointerGesture) {
             const distance = Math.hypot(event.clientX - this.pointerGesture.x, event.clientY - this.pointerGesture.y);
             this.pointerGesture.maxDistance = Math.max(this.pointerGesture.maxDistance, distance);
@@ -654,6 +661,10 @@ export class Algebraic3DBoard {
     }
 
     pointerUp(event) {
+        if (this.interactionLocked) {
+            this.pointerGesture = null;
+            return;
+        }
         const gesture = this.pointerGesture;
         this.pointerGesture = null;
         if (!gesture || gesture.maxDistance > 5) return;
@@ -673,6 +684,12 @@ export class Algebraic3DBoard {
         this.pointerGesture = null;
         const coord = this.pick(event);
         if (coord) this.onDoubleSelect?.(coord, event);
+    }
+
+    setInteractionLocked(locked) {
+        this.interactionLocked = Boolean(locked);
+        if (this.controls) this.controls.enabled = !this.interactionLocked;
+        if (this.interactionLocked) this.pointerGesture = null;
     }
 
     resetCamera() {

@@ -3,6 +3,10 @@ const path = require('node:path');
 
 const isDev = process.env.TOPOBOARDGAME_ELECTRON_DEV === '1';
 
+function resolveAppIcon() {
+  return path.join(__dirname, '../build-resources/icon.png');
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -10,6 +14,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 720,
     title: 'Topoboardgame',
+    icon: resolveAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

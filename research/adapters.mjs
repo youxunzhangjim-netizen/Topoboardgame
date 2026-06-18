@@ -9,6 +9,9 @@ import {
 import { chooseRobotMoveFromState, analyzePositionFromState } from '../2D/2dchess/js/robot/ChessSearch.js';
 import { evaluateState as evaluateChess2D } from '../2D/2dchess/js/robot/ChessEvaluator.js';
 
+import { createHeadless3DChessGame, normalize3DChessMode } from '../3D/3dchess/js/headless/Headless3DChess.js';
+import { choose3DChessRobotMove, analyze3DChessPosition } from '../3D/3dchess/js/robot/Chess3DRobot.js';
+
 import { GoGameLogic as Go2DLogic, otherColor as otherGo2DColor } from '../2D/2dgo/js/GoGame.js';
 import { chooseGoRobotMove, analyzeGoPosition } from '../2D/2dgo/js/robot/GoRobot.js';
 
@@ -21,6 +24,7 @@ import { chooseReversi3DRobotMove, analyzeReversi3DPosition } from '../3D/3dreve
 
 export const SUPPORTED_RESEARCH_GAMES = Object.freeze([
   '2dchess',
+  '3dchess',
   '2dgo',
   '2dreversi',
   '3dgo',
@@ -30,11 +34,12 @@ export const SUPPORTED_RESEARCH_GAMES = Object.freeze([
 export function createResearchAdapter(gameKey, options = {}) {
   const game = String(gameKey || '').toLowerCase();
   if (game === '2dchess') return create2DChessAdapter(options);
+  if (game === '3dchess') return create3DChessAdapter(options);
   if (game === '2dgo') return create2DGoAdapter(options);
   if (game === '2dreversi') return createReversiAdapter({ ...options, dimension: 2 });
   if (game === '3dgo') return create3DGoAdapter(options);
   if (game === '3dreversi') return createReversiAdapter({ ...options, dimension: 3 });
-  throw new Error(`Unsupported headless research game "${gameKey}". Supported: ${SUPPORTED_RESEARCH_GAMES.join(', ')}. 3dchess still needs core extraction because its current classes construct DOM/WebGL renderers.`);
+  throw new Error(`Unsupported headless research game "${gameKey}". Supported: ${SUPPORTED_RESEARCH_GAMES.join(', ')}.`);
 }
 
 function create2DChessAdapter(options = {}) {
@@ -78,6 +83,48 @@ function create2DChessAdapter(options = {}) {
     opponent: opponentOf
   };
 }
+
+function create3DChessAdapter(options = {}) {
+  const mode = normalize3DChessMode(options);
+  const logic = createHeadless3DChessGame({
+    boundary: options.boundary || options.topology || options.variant || 'r3',
+    topology: options.topology || options.boundary || options.variant || 'r3',
+    geometry: options.geometry || '',
+    lattice: options.lattice || 'chess3d',
+    seed: options.seed || ''
+  });
+  return {
+    kind: '3dchess',
+    options: {
+      variant: logic.variant,
+      topology: logic.variant,
+      boundary: logic.boundaryCondition,
+      lattice: options.lattice || 'chess3d',
+      dimension: logic.dimension,
+      size: logic.variant === 'cube' ? 8 : logic.boardWidth(),
+      randomBoundarySeed: logic.randomBoundarySeed || ''
+    },
+    currentPlayer: () => logic.currentPlayer,
+    isTerminal: () => Boolean(logic.gameOver),
+    winner: () => logic.draw ? 'draw' : (logic.winner || ''),
+    legalMoves: () => chess3DLegalMoves(logic, logic.currentPlayer),
+    serializeState: () => compactChess3DState(logic),
+    evaluate: (player = logic.currentPlayer) => evaluateChess3DMaterial(logic, player),
+    // Headless research uses a fast deterministic one-ply heuristic so thousands of self-play games finish on laptops.
+    // The UI can still use the deeper asynchronous 3D chess robot search.
+    chooseBuiltin: (depth = 2) => chooseFast3DChessMove(logic, depth),
+    analyze: (depth = 2) => analyze3DChessPosition(logic, depth),
+    applyMove(move) {
+      const legal = chess3DLegalMoves(logic, logic.currentPlayer);
+      const chosen = match3DChessMove(legal, move);
+      if (!chosen) return { ok: false, error: 'illegal-move' };
+      return logic.applyMove(chosen);
+    },
+    forceMove(move) { return logic.applyMove(move); },
+    opponent: opponentOf
+  };
+}
+
 
 function create2DGoAdapter(options = {}) {
   const logic = new Go2DLogic({
@@ -161,6 +208,119 @@ function createReversiAdapter(options = {}) {
     opponent: otherReversiColor
   };
 }
+
+const CHESS3D_VALUES = { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 };
+
+function chess3DLegalMoves(logic, color) {
+  const saved = logic.currentPlayer;
+  logic.currentPlayer = color;
+  try {
+    const moves = [];
+    for (const coord of logic.validCells()) {
+      const layer = coord.z ?? coord.sheet ?? 0;
+      const piece = logic.getPiece(coord.x, coord.y, layer);
+      if (!piece || piece.color !== color) continue;
+      for (const target of logic.getLegalMoves(coord.x, coord.y, layer)) {
+        const toLayer = target.z ?? target.sheet ?? 0;
+        const capturedPiece = logic.getPiece(target.x, target.y, toLayer);
+        const move = {
+          id: `${coord.x},${coord.y},${layer}->${target.x},${target.y},${toLayer}`,
+          label: `${piece.type} (${coord.x},${coord.y},${layer}) → (${target.x},${target.y},${toLayer})`,
+          from: { x: coord.x, y: coord.y, ...(coord.z !== undefined ? { z: layer } : { sheet: layer }) },
+          to: { x: target.x, y: target.y, ...(target.z !== undefined ? { z: toLayer } : { sheet: toLayer }) },
+          piece: { ...piece },
+          capturedPiece: capturedPiece ? { ...capturedPiece } : null,
+          promotion: piece.type === 'P' && logic.isPromotionSquare(piece.color, target.x, target.y, toLayer) ? 'Q' : null,
+          capture: Boolean(capturedPiece)
+        };
+        moves.push(move);
+      }
+    }
+    return moves;
+  } finally {
+    logic.currentPlayer = saved;
+  }
+}
+
+
+function chooseFast3DChessMove(logic, depth = 1) {
+  const player = logic.currentPlayer;
+  const legal = chess3DLegalMoves(logic, player);
+  let best = null;
+  let nodes = 0;
+  for (const move of legal) {
+    nodes += 1;
+    const score = score3DChessMoveFast(logic, move, player, depth);
+    if (!best || score > best.score) best = { move, score };
+  }
+  return { move: best?.move || legal[0] || null, score: best?.score || evaluateChess3DMaterial(logic, player), nodes, searched: nodes };
+}
+
+function score3DChessMoveFast(logic, move, player, depth = 1) {
+  const values = CHESS3D_VALUES;
+  let score = evaluateChess3DMaterial(logic, player) * 0.02;
+  if (move.capturedPiece) score += (values[move.capturedPiece.type] || 0) - 0.08 * (values[move.piece?.type] || 0);
+  if (move.promotion) score += 850;
+  const size = logic.variant === 'cube' ? 8 : logic.boardWidth();
+  const layerSize = logic.variant === 'cube' ? 8 : Math.max(1, logic.depth());
+  const tx = Number(move.to?.x) || 0;
+  const ty = Number(move.to?.y) || 0;
+  const tz = Number(move.to?.z ?? move.to?.sheet ?? 0) || 0;
+  const cx = (size - 1) / 2;
+  const cy = ((logic.variant === 'cube' ? 8 : logic.boardHeight()) - 1) / 2;
+  const cz = (layerSize - 1) / 2;
+  const centerDist = Math.abs(tx - cx) + Math.abs(ty - cy) + Math.abs(tz - cz);
+  score += Math.max(0, 80 - 8 * centerDist);
+  const piece = move.piece?.type || 'P';
+  if (logic.boundaryCondition.includes('periodic') || logic.variant === 'torus') {
+    if (piece === 'R' || piece === 'Q') score += 40;
+    if (piece === 'B') score += 22;
+  }
+  if (logic.boundaryCondition.includes('reflection')) {
+    if (piece === 'R') score -= 45;
+    if (piece === 'B' || piece === 'Q') score += 15;
+  }
+  if (['sphere', 'rp2', 'mobius', 'klein'].includes(logic.variant)) {
+    score += 4 * (logic.getLegalMoves(move.to.x, move.to.y, move.to.z ?? move.to.sheet ?? 0)?.length || 0);
+  }
+  // Tiny seeded-random tie-breaker supplied by research/selfplay via withSeededMathRandom.
+  score += Math.random() * 0.01;
+  return score;
+}
+
+function match3DChessMove(legal, move) {
+  if (!move) return null;
+  if (typeof move === 'string') return legal.find((candidate) => candidate.id === move || candidate.label === move) || null;
+  const id = move.id || move.moveId || (move.from && move.to ? `${move.from.x},${move.from.y},${move.from.z ?? move.from.sheet ?? 0}->${move.to.x},${move.to.y},${move.to.z ?? move.to.sheet ?? 0}` : '');
+  return legal.find((candidate) => candidate.id === id) || legal.find((candidate) => samePoint(candidate.from, move.from) && samePoint(candidate.to, move.to)) || null;
+}
+
+function evaluateChess3DMaterial(logic, player) {
+  let score = 0;
+  for (const coord of logic.validCells()) {
+    const piece = logic.getPiece(coord.x, coord.y, coord.z ?? coord.sheet ?? 0);
+    if (!piece) continue;
+    const value = CHESS3D_VALUES[piece.type] || 0;
+    score += piece.color === player ? value : -value;
+  }
+  return score;
+}
+
+function compactChess3DState(logic) {
+  return {
+    player: logic.currentPlayer,
+    variant: logic.variant,
+    topology: logic.variant,
+    boundary: logic.boundaryCondition,
+    dimension: logic.dimension,
+    size: logic.variant === 'cube' ? 8 : logic.boardWidth(),
+    gameOver: logic.gameOver,
+    winner: logic.winner,
+    draw: logic.draw,
+    board: logic.board.map((layer) => layer.map((row) => row.map((piece) => piece ? `${piece.color[0]}${piece.type}${piece.hasMoved ? 'm' : ''}` : '.')))
+  };
+}
+
 
 function normalizeChessBoundary(value) {
   const text = String(value || '').toLowerCase();

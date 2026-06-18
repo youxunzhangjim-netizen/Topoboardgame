@@ -2,6 +2,31 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    match /users/{uid} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      function validProfile() {
+        return request.resource.data.uid == request.auth.uid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() > 0
+          && request.resource.data.displayName.size() <= 120
+          && request.resource.data.accountKind == "google"
+          && request.resource.data.isAnonymous == false
+          && request.resource.data.emailVerified is bool;
+      }
+
+      allow read: if isOwner();
+      allow create, update: if isOwner() && validProfile();
+      allow delete: if false;
+
+      match /stats/{statId} {
+        allow read, write: if isOwner();
+      }
+    }
+
     match /rooms/{roomId} {
       function signedIn() {
         return request.auth != null;

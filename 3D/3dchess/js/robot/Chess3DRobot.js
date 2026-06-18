@@ -171,8 +171,9 @@ function boardCenter(game, state) {
   return { x: (cols - 1) / 2, y: (rows - 1) / 2, z: (layerCount - 1) / 2 };
 }
 function topologyName(game) {
-  const v = document.getElementById('boardGameSelect')?.value || game.boundaryCondition || game.defaultBoundaryCondition?.() || 'cube';
-  const b = document.getElementById('boundarySelect')?.value || game.boundaryCondition || '';
+  const doc = globalThis.document;
+  const v = doc?.getElementById?.('boardGameSelect')?.value || game.variant || game.boundaryCondition || game.defaultBoundaryCondition?.() || 'cube';
+  const b = doc?.getElementById?.('boundarySelect')?.value || game.boundaryCondition || game.variant || '';
   return `${v}:${b}`;
 }
 function pieceDynamicValue(game, state, entry) {

@@ -22,3 +22,14 @@ local-data/
 local-models/*.json
 local-models/**/*.json
 local-data/datasets/
+
+# Topoboardgame generated local/research outputs
+npm-debug.log*
+release/
+out/
+.env.local
+.env.*.local
+# Steamworks private generated/upload folders
+steamworks/sdk/
+steamworks/build-output/
+steamworks/content-builder/output/

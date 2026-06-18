@@ -1,0 +1,11 @@
+"DepotBuildConfig"
+{
+    "DepotID" "REPLACE_WITH_WINDOWS_DEPOT_ID"
+    "ContentRoot" "..\\release"
+    "FileMapping"
+    {
+        "LocalPath" "**"
+        "DepotPath" "."
+        "recursive" "1"
+    }
+}

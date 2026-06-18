@@ -54,7 +54,16 @@
     "ml:evaluate-linear": "node research/ml/evaluate-linear.mjs",
     "ml:export-dataset": "node research/ml/export-dataset.mjs",
     "verify:ml": "node research/ml/ml-smoke.mjs",
-    "ml:train-all": "node research/ml/train-all-linear.mjs"
+    "ml:train-all": "node research/ml/train-all-linear.mjs",
+    "desktop:dir": "npm run build && electron-builder --dir",
+    "desktop:package": "npm run build && electron-builder",
+    "desktop:win": "npm run build && electron-builder --win",
+    "desktop:mac": "npm run build && electron-builder --mac",
+    "desktop:linux": "npm run build && electron-builder --linux",
+    "preupload:files": "node scripts/preupload-check.mjs",
+    "models:promote": "powershell -ExecutionPolicy Bypass -File scripts/Promote-TrainedModels.ps1",
+    "preupload:check": "powershell -ExecutionPolicy Bypass -File scripts/Preupload-Check.ps1",
+    "verify:life": "node tools/verify-life-worlds.mjs"
   },
   "dependencies": {
     "firebase": "^12.14.0",
@@ -63,6 +72,65 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "vite": "^8.0.16"
-  }
+    "vite": "^8.0.16",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12"
+  },
+  "license": "SEE LICENSE IN LICENSE.md",
+  "main": "local-app/electron/main.cjs",
+  "buildConfigNote": "Electron-builder config is under the top-level build field.",
+  "build": {
+    "appId": "com.topoboardgame.app",
+    "productName": "Topoboardgame",
+    "copyright": "Copyright © 2026 Youxun Zhang / Topoboardgame",
+    "directories": {
+      "output": "release",
+      "buildResources": "local-app/build-resources"
+    },
+    "files": [
+      "dist/**/*",
+      "local-app/electron/**/*",
+      "local-app/build-resources/**/*",
+      "package.json",
+      "LICENSE.md",
+      "COMMERCIAL_LICENSE_REQUEST.md",
+      "THIRD_PARTY_NOTICES.md",
+      "STEAM_RELEASE_CHECKLIST.md"
+    ],
+    "extraMetadata": {
+      "main": "local-app/electron/main.cjs"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "local-app/build-resources/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games",
+      "icon": "local-app/build-resources/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Game",
+      "icon": "local-app/build-resources/icon.png"
+    },
+    "icon": "local-app/build-resources/icon.png"
+  },
+  "version": "0.1.0",
+  "productName": "Topoboardgame",
+  "description": "A playable topological board-game and life-simulation platform with local robots, research tools, and experimental strategy worlds.",
+  "author": {
+    "name": "You-Xun Zhang",
+    "email": "youxunzhangjim@gmail.com"
+  },
+  "homepage": "https://github.com/youxunzhangjim-netizen/Topoboardgame"
 }

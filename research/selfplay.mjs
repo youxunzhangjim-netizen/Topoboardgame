@@ -37,7 +37,6 @@ const progressEvery = numberArg(args, 'progressEvery', Math.max(1, Math.floor(ga
 
 if (!SUPPORTED_RESEARCH_GAMES.includes(game)) {
   console.error(`Unsupported --game ${game}. Supported: ${SUPPORTED_RESEARCH_GAMES.join(', ')}`);
-  console.error('3dchess is available in UI robot mode, but it is not headless-research-ready until the 3D chess rule core is separated from DOM/WebGL constructors.');
   process.exit(2);
 }
 
@@ -177,7 +176,7 @@ async function chooseMove(adapter, context) {
     return { move, moveId, score: Number(response.score) || 0, nodes: Number(response.nodes) || 0 };
   }
   return withSeededMathRandom(`${gameSeed}:${ply}:${player}`, async () => {
-    const result = adapter.chooseBuiltin(depth);
+    const result = await adapter.chooseBuiltin(depth);
     return { ...result, move: result.move || result.best?.move || null };
   });
 }
@@ -215,16 +214,19 @@ function defaultSize(game) {
   if (game === '2dgo') return 9;
   if (game === '3dgo') return 5;
   if (game === '3dreversi') return 6;
+  if (game === '3dchess') return 8;
   return 8;
 }
 function defaultBoundary(game) {
   if (game === '2dchess') return 'forbidden';
+  if (game === '3dchess') return 'r3';
   if (game === '2dgo' || game === '2dreversi') return 'open2d';
   if (game === '3dgo' || game === '3dreversi') return 'r3';
   return 'open2d';
 }
 function defaultLattice(game) {
   if (game === '3dgo') return 'sc';
+  if (game === '3dchess') return 'chess3d';
   return 'square';
 }
 function defaultOutput(game) {
@@ -232,5 +234,5 @@ function defaultOutput(game) {
   return `local-data/selfplay/${game}-${stamp}.jsonl`;
 }
 function printHelp() {
-  console.log(`Topoboardgame research self-play runner\n\nUsage:\n  npm run research:selfplay -- --game 2dchess --boundary random --games 1000 --out local-data/selfplay/chess-rbc.jsonl\n\nSupported games:\n  ${SUPPORTED_RESEARCH_GAMES.join(', ')}\n\nCommon options:\n  --game GAME              2dchess | 2dgo | 2dreversi | 3dgo | 3dreversi\n  --boundary MODE          boundary/topology mode\n  --lattice LATTICE        square/honeycomb/triangular/sc/bcc/fcc/hcp where supported\n  --size N                 board size\n  --games N                number of games\n  --maxPlies N             maximum plies per game\n  --depthA N --depthB N    robot strengths\n  --botA builtin|random|externalA\n  --botB builtin|random|externalB\n  --externalA \"cmd ...\"    persistent JSONL robot process\n  --externalB \"cmd ...\"\n  --record moves|games     moves writes one line per move plus game footer; games writes one line per game\n  --state true|false       include compact state snapshots\n  --seed TEXT              reproducible seed\n  --out FILE.jsonl         JSONL output\n`);
+  console.log(`Topoboardgame research self-play runner\n\nUsage:\n  npm run research:selfplay -- --game 2dchess --boundary random --games 1000 --out local-data/selfplay/chess-rbc.jsonl\n\nSupported games:\n  ${SUPPORTED_RESEARCH_GAMES.join(', ')}\n\nCommon options:\n  --game GAME              2dchess | 3dchess | 2dgo | 2dreversi | 3dgo | 3dreversi\n  --boundary MODE          boundary/topology mode\n  --lattice LATTICE        square/honeycomb/triangular/sc/bcc/fcc/hcp where supported\n  --size N                 board size\n  --games N                number of games\n  --maxPlies N             maximum plies per game\n  --depthA N --depthB N    robot strengths\n  --botA builtin|random|externalA\n  --botB builtin|random|externalB\n  --externalA \"cmd ...\"    persistent JSONL robot process\n  --externalB \"cmd ...\"\n  --record moves|games     moves writes one line per move plus game footer; games writes one line per game\n  --state true|false       include compact state snapshots\n  --seed TEXT              reproducible seed\n  --out FILE.jsonl         JSONL output\n`);
 }

@@ -6,7 +6,7 @@ import { parseArgs, stringArg, numberArg } from '../lib/cli.mjs';
 
 const args = parseArgs();
 if (args.help || args.h) {
-  console.log(`Train linear robots for Topoboardgame supported headless games.\n\nUsage:\n  npm run ml:train-all -- --preset quick\n  npm run ml:train-all -- --only 2dchess --preset normal\n\nPresets:\n  quick   tiny smoke run, minutes\n  normal  useful first dataset, hours\n  large   research scale, many hours/days\n\nOptions:\n  --only GAME        restrict to 2dchess | 2dgo | 2dreversi | 3dgo | 3dreversi\n  --preset NAME      quick | normal | large\n  --skipEval true    train only, no linear-vs-builtin tournaments\n`);
+  console.log(`Train linear robots for Topoboardgame supported headless games.\n\nUsage:\n  npm run ml:train-all -- --preset quick\n  npm run ml:train-all -- --only 2dchess --preset normal\n\nPresets:\n  quick   tiny smoke run, minutes\n  normal  useful first dataset, hours\n  large   research scale, many hours/days\n\nOptions:\n  --only GAME        restrict to 2dchess | 3dchess | 2dgo | 2dreversi | 3dgo | 3dreversi\n  --preset NAME      quick | normal | large\n  --skipEval true    train only, no linear-vs-builtin tournaments\n`);
   process.exit(0);
 }
 
@@ -17,9 +17,9 @@ const overwrite = ['1', 'true', 'yes'].includes(String(args.overwrite || '').toL
 const maxJobs = numberArg(args, 'maxJobs', Infinity, { min: 1, max: 100000 });
 
 const counts = {
-  quick: { chess: 4, go: 2, reversi: 4, g3go: 1, g3reversi: 2, eval: 2 },
-  normal: { chess: 10000, go: 10000, reversi: 20000, g3go: 5000, g3reversi: 10000, eval: 500 },
-  large: { chess: 50000, go: 50000, reversi: 80000, g3go: 25000, g3reversi: 50000, eval: 2000 }
+  quick: { chess: 4, g3chess: 2, go: 2, reversi: 4, g3go: 1, g3reversi: 2, eval: 2 },
+  normal: { chess: 10000, g3chess: 3000, go: 10000, reversi: 20000, g3go: 5000, g3reversi: 10000, eval: 500 },
+  large: { chess: 50000, g3chess: 15000, go: 50000, reversi: 80000, g3go: 25000, g3reversi: 50000, eval: 2000 }
 }[preset] || null;
 if (!counts) throw new Error(`Unknown --preset ${preset}`);
 
@@ -31,6 +31,11 @@ const jobs = [];
 for (const boundary of ['standard', 'open', 'periodic', 'reflection', 'random']) {
   jobs.push({ game: '2dchess', boundary, lattice: 'square', games: counts.chess, depthA: 2, depthB: 2, epochs: preset === 'quick' ? 4 : 15, lr: 0.04 });
 }
+
+for (const boundary of ['r3', 't3', 'reflection', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2']) {
+  jobs.push({ game: '3dchess', boundary, lattice: 'chess3d', size: 8, games: counts.g3chess, depthA: preset === 'quick' ? 1 : 2, depthB: preset === 'quick' ? 1 : 2, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
+}
+
 for (const boundary of ['open2d', 'polar', 'pbc', 'klein', 'random']) {
   for (const lattice of ['square', 'honeycomb', 'triangular']) {
     jobs.push({ game: '2dgo', boundary, lattice, size: 9, games: counts.go, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 4 : 12, lr: 0.05 });
@@ -59,7 +64,7 @@ for (const job of jobs) {
   await runJob(job);
   done += 1;
 }
-console.log(JSON.stringify({ ok: true, preset, jobsRun: done, note: '3dchess is UI-robot-ready but not included in headless ML training until the 3D chess core is separated from DOM/WebGL.' }, null, 2));
+console.log(JSON.stringify({ ok: true, preset, jobsRun: done }, null, 2));
 
 async function runJob(job) {
   const sizePart = job.size ? `-s${job.size}` : '';

@@ -101,20 +101,26 @@ function addChessStateFeatures(f, state, player) {
   let ownPieces = 0;
   let oppPieces = 0;
   const ownPrefix = String(player || '').toLowerCase().startsWith('w') ? 'w' : 'b';
-  for (const row of board) {
-    for (const token of row || []) {
-      if (!token || token === '.') continue;
-      const color = String(token)[0].toLowerCase();
-      const type = String(token)[1]?.toLowerCase() || 'p';
-      const value = PIECE_VALUES[type] || 1;
-      if (color === ownPrefix) { ownMaterial += value; ownPieces += 1; }
-      else { oppMaterial += value; oppPieces += 1; }
-      add(f, `chess_piece:${color}${type}`, 1 / 16);
-    }
+  for (const token of flattenChessTokens(board)) {
+    if (!token || token === '.') continue;
+    const color = String(token)[0].toLowerCase();
+    const type = String(token)[1]?.toLowerCase() || 'p';
+    const value = PIECE_VALUES[type] || 1;
+    if (color === ownPrefix) { ownMaterial += value; ownPieces += 1; }
+    else { oppMaterial += value; oppPieces += 1; }
+    add(f, `chess_piece:${color}${type}`, 1 / 16);
   }
   add(f, 'chess_material_balance', (ownMaterial - oppMaterial) / 39);
   add(f, 'chess_piece_count_balance', (ownPieces - oppPieces) / 16);
   add(f, 'chess_total_pieces', (ownPieces + oppPieces) / 32);
+}
+
+function* flattenChessTokens(value) {
+  if (!Array.isArray(value)) {
+    yield value;
+    return;
+  }
+  for (const item of value) yield* flattenChessTokens(item);
 }
 
 function addGoStateFeatures(f, state, player) {

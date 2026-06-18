@@ -1,0 +1,239 @@
+const LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
+
+export function normalizeLanguage(value) {
+  const language = String(value || '').toLowerCase();
+  return language === 'zh' || language === 'zh-hant' || language === 'zh_tw' ? 'zh' : 'en';
+}
+
+export function currentLifeLanguage() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('lang')) return normalizeLanguage(params.get('lang'));
+  try {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored) return normalizeLanguage(stored);
+  } catch {
+    // ignore blocked localStorage
+  }
+  return normalizeLanguage(navigator.language || 'en');
+}
+
+export function syncLifeLinks(language = currentLifeLanguage()) {
+  document.querySelectorAll('a[href^="./"], a[href^="../"]').forEach((link) => {
+    const href = link.dataset.baseHref || link.getAttribute('href');
+    link.dataset.baseHref = href;
+    const [withoutHash, hash = ''] = href.split('#');
+    const [path, query = ''] = withoutHash.split('?');
+    const params = new URLSearchParams(query);
+    params.set('lang', language);
+    link.href = `${path}?${params.toString()}${hash ? `#${hash}` : ''}`;
+  });
+}
+
+export const LIFE_TEXT = {
+  en: {
+    navBack: '← Life Worlds',
+    home: 'Home',
+    lifeSubtitle: 'Create life, start evolution, and see what survives across different spaces.',
+    lifeLong: 'Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.',
+    mode: 'Mode',
+    playMode: 'Usage mode',
+    zeroPlayer: 'Zero-player simulation',
+    onePlayer: 'One-player challenge',
+    twoPlayer: 'Two-player competition',
+    twoPlayerMode: 'Two-player mode',
+    seedWar: 'Seed War',
+    territoryLife: 'Territory Life',
+    extinctionBattle: 'Extinction Battle',
+    mutationDuel: 'Mutation Duel',
+    ecosystemBalance: 'Ecosystem Balance',
+    activePlayer: 'Active player',
+    topology: 'Topology',
+    dimension: 'Dimension',
+    boardSize: 'Board size',
+    rulePreset: 'Rule preset',
+    neighborhood: 'Neighborhood',
+    species: 'Species',
+    speed: 'Speed',
+    noise: 'Noise',
+    birthNoise: 'Birth noise',
+    deathNoise: 'Death noise',
+    mutation: 'Mutation',
+    environmentNoise: 'Environment noise',
+    ruleNoise: 'Rule noise',
+    topologyDefectNoise: 'Topology defect noise',
+    maxAge: 'Max age',
+    agingDeathRate: 'Aging death rate',
+    youngBirthBonus: 'Young birth bonus',
+    oldAgePenalty: 'Old age penalty',
+    maxGenerations: 'Max generations',
+    challengeGoal: 'Challenge goal',
+    drawTool: 'Draw',
+    eraseTool: 'Erase',
+    inspectTool: 'Inspect',
+    start: 'Start',
+    pause: 'Pause',
+    step: 'Step',
+    reset: 'Reset',
+    randomSeed: 'Random seed',
+    clear: 'Clear',
+    exportPattern: 'Export pattern JSON',
+    importPattern: 'Import pattern JSON',
+    copy: 'Copy',
+    load: 'Load',
+    advanced: 'Advanced / Research Settings',
+    research: 'Research Observables',
+    info: 'Info',
+    playerInfo: 'For players: This mode turns simple local rules into survival, invasion, collapse, and pattern-building challenges.',
+    researcherInfo: 'For researchers: This mode is a playable cellular-automaton model for studying how topology, locality, noise, age structure, and competition affect emergent dynamics.',
+    generation: 'Generation',
+    population: 'Population N(t)',
+    density: 'Density ρ(t)',
+    birthRate: 'Birth rate',
+    deathRate: 'Death rate',
+    speciesFractions: 'Species fractions',
+    meanAge: 'Mean age',
+    ageDistribution: 'Age distribution',
+    clusterCount: 'Cluster count',
+    largestCluster: 'Largest cluster',
+    entropy: 'Entropy',
+    correlation: 'Spatial correlation',
+    extinctionTime: 'Extinction time',
+    survivalTime: 'Survival time',
+    oscillation: 'Oscillation',
+    frontVelocity: 'Front velocity',
+    score: 'Score',
+    playerA: 'Player A / Blue',
+    playerB: 'Player B / Red',
+    status: 'Status',
+    canvasHelp: 'Click or drag on the board to draw, erase, or place species seeds.',
+    goalNone: 'Free play',
+    goalSurvive: 'Survive for N generations',
+    goalPopulationBand: 'Keep population in a target band',
+    goalOscillator: 'Create an oscillator',
+    goalGlider: 'Create a glider-like moving pattern',
+    goalNoiseSurvival: 'Prevent extinction under noise',
+    goalInvasiveControl: 'Control invasive growth',
+    goalEcosystem: 'Stabilize an ecosystem',
+    passed: 'passed',
+    failed: 'failed',
+    running: 'running',
+    notYet: 'not yet',
+    extinct: 'extinct',
+    detected: 'detected'
+  },
+  zh: {
+    navBack: '← 生命世界',
+    home: '首頁',
+    lifeSubtitle: '創造生命、啟動演化，看看在不同空間中什麼能存活。',
+    lifeLong: '播種細胞、生成圖樣、競爭存活，並觀察演化如何在不同拓撲空間中展開。加入老化、突變、噪聲與多物種，探索類生命系統如何隨空間形狀改變。',
+    mode: '模式',
+    playMode: '使用模式',
+    zeroPlayer: '零人模擬',
+    onePlayer: '單人挑戰',
+    twoPlayer: '雙人競爭',
+    twoPlayerMode: '雙人模式',
+    seedWar: 'Seed War 初始播種戰',
+    territoryLife: 'Territory Life 領地生命',
+    extinctionBattle: 'Extinction Battle 滅絕戰',
+    mutationDuel: 'Mutation Duel 突變對決',
+    ecosystemBalance: 'Ecosystem Balance 生態平衡',
+    activePlayer: '目前玩家',
+    topology: '拓撲 / 邊界',
+    dimension: '維度',
+    boardSize: '棋盤大小',
+    rulePreset: '規則預設',
+    neighborhood: '鄰域',
+    species: '物種',
+    speed: '速度',
+    noise: '噪聲',
+    birthNoise: '出生噪聲',
+    deathNoise: '死亡噪聲',
+    mutation: '突變',
+    environmentNoise: '環境噪聲',
+    ruleNoise: '規則噪聲',
+    topologyDefectNoise: '拓撲缺陷噪聲',
+    maxAge: '最大年齡',
+    agingDeathRate: '老化死亡率',
+    youngBirthBonus: '幼年出生加成',
+    oldAgePenalty: '老年懲罰',
+    maxGenerations: '最大世代',
+    challengeGoal: '挑戰目標',
+    drawTool: '畫細胞',
+    eraseTool: '擦除',
+    inspectTool: '檢視',
+    start: '開始',
+    pause: '暫停',
+    step: '單步',
+    reset: '重置',
+    randomSeed: '隨機播種',
+    clear: '清空',
+    exportPattern: '匯出圖樣 JSON',
+    importPattern: '匯入圖樣 JSON',
+    copy: '複製',
+    load: '載入',
+    advanced: '進階 / 研究設定',
+    research: '研究觀測量',
+    info: 'Info',
+    playerInfo: '給玩家：這個模式把簡單局部規則變成生存、入侵、崩潰與圖樣建造挑戰。',
+    researcherInfo: '給研究者：這是一個可玩的 cellular-automaton 模型，用來研究拓撲、局域性、噪聲、年齡結構與競爭如何影響湧現動力學。',
+    generation: '世代',
+    population: '族群 N(t)',
+    density: '密度 ρ(t)',
+    birthRate: '出生率',
+    deathRate: '死亡率',
+    speciesFractions: '物種比例',
+    meanAge: '平均年齡',
+    ageDistribution: '年齡分布',
+    clusterCount: '群聚數',
+    largestCluster: '最大群聚',
+    entropy: '熵',
+    correlation: '空間相關估計',
+    extinctionTime: '滅絕時間',
+    survivalTime: '存活時間',
+    oscillation: '振盪偵測',
+    frontVelocity: '前緣速度',
+    score: '分數',
+    playerA: '玩家 A / 藍',
+    playerB: '玩家 B / 紅',
+    status: '狀態',
+    canvasHelp: '在棋盤上點擊或拖曳來畫細胞、擦除或放置不同物種種子。',
+    goalNone: '自由遊玩',
+    goalSurvive: '存活 N 個世代',
+    goalPopulationBand: '把族群維持在目標範圍',
+    goalOscillator: '創造振盪器',
+    goalGlider: '創造類 glider 移動圖樣',
+    goalNoiseSurvival: '在噪聲下避免滅絕',
+    goalInvasiveControl: '控制入侵性成長',
+    goalEcosystem: '穩定生態系',
+    passed: '成功',
+    failed: '失敗',
+    running: '進行中',
+    notYet: '尚未',
+    extinct: '滅絕',
+    detected: '偵測到'
+  }
+};
+
+export function t(key, language = currentLifeLanguage()) {
+  return LIFE_TEXT[language]?.[key] ?? LIFE_TEXT.en[key] ?? key;
+}
+
+export function localizeStaticText(root = document, language = currentLifeLanguage()) {
+  root.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
+  root.querySelectorAll('[data-life-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.lifeI18n, language);
+  });
+  root.querySelectorAll('[data-life-i18n-label]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.lifeI18nLabel, language));
+  });
+  root.querySelectorAll('[data-life-lang]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.lifeLang === language));
+    button.addEventListener('click', () => {
+      const next = normalizeLanguage(button.dataset.lifeLang);
+      try { localStorage.setItem(LANGUAGE_STORAGE_KEY, next); } catch {}
+      const params = new URLSearchParams(location.search);
+      params.set('lang', next);
+      location.search = params.toString();
+    }, { once: true });
+  });
+}

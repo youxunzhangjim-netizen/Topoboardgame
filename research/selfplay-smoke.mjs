@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 const runs = [
   ['2dchess', ['--boundary', 'random', '--games', '1', '--maxPlies', '8', '--depth', '1']],
+  ['3dchess', ['--boundary', 'r3', '--lattice', 'chess3d', '--games', '1', '--maxPlies', '8', '--depth', '1']],
   ['2dgo', ['--boundary', 'open2d', '--lattice', 'square', '--size', '5', '--games', '1', '--maxPlies', '10', '--depth', '1']],
   ['2dreversi', ['--boundary', 'open2d', '--size', '6', '--games', '1', '--maxPlies', '20', '--depth', '1']],
   ['3dgo', ['--boundary', 'r3', '--lattice', 'sc', '--size', '3', '--games', '1', '--maxPlies', '8', '--depth', '1']],

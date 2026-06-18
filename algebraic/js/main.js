@@ -778,6 +778,7 @@ function closeActionPalette() {
     actionPalette?.remove();
     actionPalette = null;
     actionPaletteOpenedAt = 0;
+    algebraic3d?.setInteractionLocked?.(false);
 }
 
 function cancelAnyonClickTimer() {
@@ -863,6 +864,7 @@ function showActionPalette(coord, event, { title, items, status = '' }) {
     palette.style.top = `${top}px`;
     actionPalette = palette;
     actionPaletteOpenedAt = Date.now();
+    algebraic3d?.setInteractionLocked?.(true);
     if (status) els.statusText.textContent = status;
     return true;
 }
@@ -878,7 +880,27 @@ function optionItems(select, onChoose) {
 }
 
 document.addEventListener('pointerdown', (event) => {
-    if (actionPalette && !actionPalette.contains(event.target)) closeActionPalette();
+    const target = event.target;
+    const formControl = target?.closest?.('select, option, input, button, textarea, label, .control-panel, .site-action-palette');
+    if (formControl) algebraic3d?.setInteractionLocked?.(true);
+    if (actionPalette && !actionPalette.contains(target)) closeActionPalette();
+});
+
+document.addEventListener('pointerup', (event) => {
+    const target = event.target;
+    if (!actionPalette && target?.closest?.('select, option, input, button, textarea, label, .control-panel')) {
+        requestAnimationFrame(() => algebraic3d?.setInteractionLocked?.(false));
+    }
+});
+
+document.addEventListener('focusin', (event) => {
+    if (event.target?.closest?.('select, input, button, textarea, .site-action-palette')) {
+        algebraic3d?.setInteractionLocked?.(true);
+    }
+});
+
+document.addEventListener('focusout', () => {
+    if (!actionPalette) requestAnimationFrame(() => algebraic3d?.setInteractionLocked?.(false));
 });
 
 document.addEventListener('keydown', (event) => {

@@ -183,6 +183,59 @@ function createRandomBoundaryMap(width, height, directions, seed = randomSeed(),
     return entries;
 }
 
+
+function isSphereNorthPole(coord, height) {
+    return Array.isArray(coord) && coord.length === 2 && coord[0] === 0 && coord[1] === -1;
+}
+
+function isSphereSouthPole(coord, height) {
+    return Array.isArray(coord) && coord.length === 2 && coord[0] === 0 && coord[1] === height;
+}
+
+function sphereNorthPoleCoord() {
+    return [0, -1];
+}
+
+function sphereSouthPoleCoord(height) {
+    return [0, height];
+}
+
+function sphereContainsCoord(coord, width, height) {
+    return Array.isArray(coord)
+        && coord.length === 2
+        && Number.isInteger(coord[0])
+        && Number.isInteger(coord[1])
+        && (
+            (coord[0] >= 0 && coord[0] < width && coord[1] >= 0 && coord[1] < height)
+            || isSphereNorthPole(coord, height)
+            || isSphereSouthPole(coord, height)
+        );
+}
+
+function sphereVertices(width, height) {
+    return [
+        ...enumerateVertices([width, height]),
+        sphereNorthPoleCoord(),
+        sphereSouthPoleCoord(height)
+    ];
+}
+
+function sphereLatitudeRingNeighbors(coord, width, height) {
+    if (!sphereContainsCoord(coord, width, height)) return [];
+    if (isSphereNorthPole(coord, height)) return Array.from({ length: width }, (_, index) => [index, 0]);
+    if (isSphereSouthPole(coord, height)) return Array.from({ length: width }, (_, index) => [index, height - 1]);
+    const [x, y] = coord;
+    const neighbors = [
+        [mod(x - 1, width), y],
+        [mod(x + 1, width), y]
+    ];
+    if (y > 0) neighbors.push([x, y - 1]);
+    else neighbors.push(sphereNorthPoleCoord());
+    if (y < height - 1) neighbors.push([x, y + 1]);
+    else neighbors.push(sphereSouthPoleCoord(height));
+    return neighbors;
+}
+
 function makeEdge({ topology, from, rawTo, to, direction, wrap = {}, twisted = false }) {
     const transport = defaultSeamTransport({
         topology,
@@ -284,7 +337,10 @@ function create2DTopology(config) {
         const [x, y] = rawCoord;
         if (name === 'flat' || name === 'random_boundary') return inside([x, y], sizes) ? [x, y] : null;
         if (name === 'sphere_latitude') {
-            if (y < 0 || y >= height) return null;
+            if (isSphereNorthPole([x, y], height)) return sphereNorthPoleCoord();
+            if (isSphereSouthPole([x, y], height)) return sphereSouthPoleCoord(height);
+            if (y < 0) return sphereNorthPoleCoord();
+            if (y >= height) return sphereSouthPoleCoord(height);
             return [mod(x, width), y];
         }
         if (name === 'torus') return [mod(x, width), mod(y, height)];
@@ -301,6 +357,42 @@ function create2DTopology(config) {
             ? [0, (from[0] + from[1]) % 2 === 0 ? 1 : -1]
             : direction;
         const rawTo = addCoord(from, resolvedDirection);
+        if (name === 'sphere_latitude') {
+            if (isSphereNorthPole(from, height)) {
+                if ((resolvedDirection[1] || 0) <= 0) return null;
+                const longitude = mod(resolvedDirection[0] || 0, width);
+                const to = [longitude, 0];
+                return {
+                    coord: to,
+                    edge: makeEdge({
+                        topology: name,
+                        from,
+                        rawTo: to,
+                        to,
+                        direction: resolvedDirection,
+                        wrap: {},
+                        twisted: false
+                    })
+                };
+            }
+            if (isSphereSouthPole(from, height)) {
+                if ((resolvedDirection[1] || 0) >= 0) return null;
+                const longitude = mod(resolvedDirection[0] || 0, width);
+                const to = [longitude, height - 1];
+                return {
+                    coord: to,
+                    edge: makeEdge({
+                        topology: name,
+                        from,
+                        rawTo: to,
+                        to,
+                        direction: resolvedDirection,
+                        wrap: {},
+                        twisted: false
+                    })
+                };
+            }
+        }
         if (name === 'random_boundary' && !inside(rawTo, sizes)) {
             const target = randomBoundaryMap.get(randomExitKey(from, resolvedDirection));
             if (!target) return null;
@@ -348,14 +440,22 @@ function create2DTopology(config) {
         maxRaySteps: width * height + 4,
         normalize,
         contains(coord) {
+            if (name === 'sphere_latitude') return sphereContainsCoord(coord, width, height);
             return Boolean(normalize(coord));
         },
         key: keyOf,
         same: sameCoord,
         vertices() {
-            return enumerateVertices(sizes);
+            return name === 'sphere_latitude' ? sphereVertices(width, height) : enumerateVertices(sizes);
         },
         directions() {
+            if (name === 'sphere_latitude') {
+                return [
+                    ...CARDINAL_2D.map((direction) => [...direction]),
+                    ...Array.from({ length: width }, (_, longitude) => [longitude, 1]),
+                    ...Array.from({ length: width }, (_, longitude) => [longitude, -1])
+                ];
+            }
             return (
                 lattice === 'honeycomb'
                     ? HONEYCOMB_DIRECTIONS
@@ -363,6 +463,13 @@ function create2DTopology(config) {
             ).map((direction) => [...direction]);
         },
         rayDirections() {
+            if (name === 'sphere_latitude') {
+                return [
+                    ...RAYS_2D.map((direction) => [...direction]),
+                    ...Array.from({ length: width }, (_, longitude) => [longitude, 1]),
+                    ...Array.from({ length: width }, (_, longitude) => [longitude, -1])
+                ];
+            }
             return (
                 lattice === 'honeycomb'
                     ? HONEYCOMB_DIRECTIONS
@@ -371,6 +478,7 @@ function create2DTopology(config) {
         },
         step,
         neighbors(coord) {
+            if (name === 'sphere_latitude') return sphereLatitudeRingNeighbors(normalize(coord), width, height);
             return this.directions()
                 .map((direction) => step(coord, direction)?.coord)
                 .filter(Boolean)
@@ -419,7 +527,7 @@ function create2DTopology(config) {
                     : '';
             if (name === 'flat') return 'Standard boundary: rays stop at the edge.' + latticeText;
             if (name === 'random_boundary') return '2D RBC: each boundary exit maps to one fixed random boundary square for this game.' + latticeText;
-            if (name === 'sphere_latitude') return 'Sphere latitude graph: longitude wraps, top and bottom latitude rings stop.' + latticeText;
+            if (name === 'sphere_latitude') return 'S2 latitude-ring graph: longitude wraps and the first/last latitude rings connect to playable north/south pole nodes.' + latticeText;
             if (name === 'torus') return 'Torus: x and y wrap periodically.' + latticeText;
             if (name === 'klein_bottle') return 'Klein bottle: x wraps normally, y wraps with x flip and H/twist seam transport.' + latticeText;
             if (name === 'mobius') return 'Mobius strip: x wraps with y flip and H/twist seam transport; y is an open boundary.' + latticeText;

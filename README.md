@@ -412,3 +412,68 @@ The first run installs npm dependencies. Local play and local robots run on `htt
 ## Local ML / trainable robots
 
 See `research/docs/ML_TRAINING_PIPELINE.md` for the self-play -> train -> evaluate -> external robot workflow. The first trainable robot is a local linear policy/value model trained from JSONL self-play data. It can run inside the headless research runner or as an external JSONL robot.
+
+
+## Licensing
+
+Topoboardgame uses a dual-license model. The community/research version is available under AGPL-3.0-or-later, while closed-source commercial distribution, proprietary Steam builds, white-label deployments, and commercial use that cannot comply with AGPL require a separate written commercial license. See `LICENSE.md` and `COMMERCIAL_LICENSE_REQUEST.md`.
+
+Do not commit raw self-play datasets or local training logs. Promote only selected trained model JSON files to `public/models/` when they are ready for website or desktop-app use.
+
+## Pre-upload / Steam preparation
+
+Before pushing a public or Steam-preparation build, run:
+
+```powershell
+npm install
+npm run preupload:files
+npm run preupload:check
+```
+
+To promote trained local robot models into the website/local-app build:
+
+```powershell
+npm run models:promote
+```
+
+Do not commit raw self-play datasets from `local-data/selfplay/*.jsonl`. Commit only selected trained model JSON files under `public/models/` when you want website/app users to load them.
+
+### Life engine core
+
+The Life section now has a rendering-independent engine under:
+
+```text
+life/js/LifeEngine.js
+life/js/topologies.js
+life/js/rules.js
+life/js/presets.js
+life/js/observables.js
+life/js/LifeUI.js
+```
+
+The core supports 1D, 2D, 3D, and clean optional 4D abstract grids; open, torus, cylinder, Möbius, Klein, sphere-like, projective/RP2, reflective, cube, and periodic cube boundaries; Moore, von Neumann, and 1D nearest-neighbor neighborhoods; species, age, energy, health, mutation, noise, and multiple non-Life-like presets such as predator–prey, SIR, and forest-fire automata.
+
+The engine has no DOM/canvas/Firebase dependency and can be reused by future AI, research, and self-play tools.
+
+### Life playable modes
+
+The Life page supports:
+
+```text
+Zero-player simulation
+One-player challenge
+Two-player competition
+```
+
+It includes topology/dimension/rule/size/speed/noise/age/species controls, draw/erase/inspect tools, max-generation challenge limits, import/export pattern JSON, two-player scoring, and a real-time research observables panel. Both English and Traditional Chinese UI strings are included for the Life section.
+
+### 3D Chess headless research training
+
+`3dchess` is now supported by the headless research/self-play and linear-model training pipeline. It uses `3D/3dchess/js/headless/Headless3DChess.js`, so research games no longer need DOM/WebGL constructors. Supported modes include `r3`, `t3`, `reflection`, `r3_random`, `t2`, `sphere`, `klein`, `mobius`, and `rp2`.
+
+Run:
+
+```powershell
+npm run research:selfplay -- --game 3dchess --boundary r3 --games 1 --maxPlies 8 --depth 1
+npm run ml:train-all -- --only 3dchess --preset quick --skipEval true --overwrite true
+```

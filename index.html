@@ -35,6 +35,18 @@
             </div>
         </div>
     </div>
+    <div id="launcherAccount" class="launcher-account" aria-label="Account">
+        <button id="launcherAccountButton" class="launcher-account-button" type="button" aria-expanded="false" aria-controls="launcherAccountMenu">
+            <span id="launcherAccountName">Guest</span>
+            <small id="launcherAccountAction">Login</small>
+        </button>
+        <div id="launcherAccountMenu" class="launcher-account-menu" hidden>
+            <p id="launcherAccountStatus">Guest mode is active. Local play and local robots do not need an account.</p>
+            <button id="launcherGoogleLoginButton" class="launcher-account-menu-button primary" type="button">Sign in with Google</button>
+            <button id="launcherLogoutButton" class="launcher-account-menu-button" type="button" hidden>Return to Guest</button>
+            <small id="launcherAccountNote">Google login links future online rooms and saved statistics to your account.</small>
+        </div>
+    </div>
     <div class="launcher-author" aria-label="Author">
         <span>You-Xun Zhang</span>
         <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
@@ -59,7 +71,14 @@
                 </div>
             </div>
 
-            <div class="dimension-grid" aria-label="Choose board dimension" data-i18n-aria-label="dimension.choose">
+
+            <nav class="launcher-section-nav" aria-label="Main sections" data-i18n-aria-label="nav.main">
+                <a href="#board-worlds" data-i18n="nav.boardWorlds">Board Worlds</a>
+                <a href="./life/" data-i18n="nav.lifeWorlds">Life &amp; Evolution Worlds</a>
+                <a href="#strategy-systems-labs" data-i18n="nav.systemsLabs">Strategy &amp; Systems Labs</a>
+            </nav>
+
+            <div id="board-worlds" class="dimension-grid" aria-label="Choose board dimension" data-i18n-aria-label="dimension.choose">
                 <section class="dimension-card dimension-2d" aria-labelledby="dimension2dTitle">
                     <span class="popularity-badge" data-popularity-key="dimension-2d" aria-label="Online activity"></span>
                     <span class="dimension-visual board-plane" aria-hidden="true">
@@ -155,7 +174,48 @@
                 </section>
             </div>
 
-            <div class="launcher-mode-layers physics-algebra-labs" aria-label="Strategy and systems labs" data-i18n-aria-label="labs.choose">
+
+            <div id="life-evolution-worlds" class="launcher-mode-layers life-evolution-worlds" aria-label="Life and evolution worlds" data-i18n-aria-label="life.choose">
+                <section class="algebraic-mode-panel life-mode-panel" aria-labelledby="lifeEvolutionWorldsTitle">
+                    <div class="algebraic-mode-heading">
+                        <strong id="lifeEvolutionWorldsTitle" data-i18n="life.title">Life &amp; Evolution Worlds</strong>
+                        <small data-i18n="life.desc">Create life, start evolution, and see what survives across different spaces.</small>
+                    </div>
+                    <article class="extra-mode-card life-world-card">
+                        <span class="life-world-visual" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span>
+                        </span>
+                        <span class="extra-mode-copy">
+                            <strong data-i18n="life.title">Life &amp; Evolution Worlds</strong>
+                            <small data-i18n="life.longDesc">Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.</small>
+                        </span>
+                        <div class="life-world-actions">
+                            <a class="lab-preset beginner" href="./life/" data-i18n="life.open">Open Worlds</a>
+                            <details class="lab-advanced life-world-info">
+                                <summary data-i18n="life.info">Info</summary>
+                                <p data-i18n="life.infoText">Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.</p>
+                            </details>
+                        </div>
+                    </article>
+                    <div class="life-world-mode-strip" aria-label="Life mode preview">
+                        <span>Classic Life</span>
+                        <span>Torus</span>
+                        <span>Möbius</span>
+                        <span>Sphere</span>
+                        <span>3D Voxel</span>
+                        <span>Noisy</span>
+                        <span>Age</span>
+                        <span>Species</span>
+                        <span>Ecosystem</span>
+                        <span>Sandbox</span>
+                    </div>
+                </section>
+            </div>
+
+            <div id="strategy-systems-labs" class="launcher-mode-layers physics-algebra-labs" aria-label="Strategy and systems labs" data-i18n-aria-label="labs.choose">
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
                         <strong id="physicsAlgebraLabsTitle" data-i18n="labs.title">Strategy &amp; Systems Labs</strong>
@@ -300,6 +360,18 @@
                         choose: 'Choose language',
                         prompt: 'What language do you want?'
                     },
+                    account: {
+                        guest: 'Guest',
+                        login: 'Login',
+                        signedIn: 'Signed in',
+                        logout: 'Return to Guest',
+                        google: 'Sign in with Google',
+                        guestStatus: 'Guest mode is active. Local play and local robots do not need an account.',
+                        signedInStatus: 'Google account is active. Future online rooms and saved statistics can be linked to this user.',
+                        note: 'Google login links future online rooms and saved statistics to your account.',
+                        working: 'Connecting...',
+                        error: 'Login failed: {message}'
+                    },
                     brand: {
                         title: 'Topological Board Game',
                         spiritLead: 'Same Core Rules. Different Spaces. New Strategy.',
@@ -349,6 +421,21 @@
                         desc: 'Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.',
                         choose: 'Strategy and systems labs'
                     },
+                    nav: {
+                        main: 'Main sections',
+                        boardWorlds: 'Board Worlds',
+                        lifeWorlds: 'Life & Evolution Worlds',
+                        systemsLabs: 'Strategy & Systems Labs'
+                    },
+                    life: {
+                        title: 'Life & Evolution Worlds',
+                        desc: 'Create life, start evolution, and see what survives across different spaces.',
+                        longDesc: 'Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.',
+                        choose: 'Life and evolution worlds',
+                        open: 'Open Worlds',
+                        info: 'Info',
+                        infoText: 'Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.'
+                    },
                     feedback: {
                         report: 'Report Error',
                         suggestion: 'Suggestion'
@@ -365,6 +452,18 @@
                     language: {
                         choose: '選擇語言',
                         prompt: '你想使用哪一種語言？'
+                    },
+                    account: {
+                        guest: 'Guest',
+                        login: '登入',
+                        signedIn: '已登入',
+                        logout: '回到 Guest',
+                        google: '使用 Google 登入',
+                        guestStatus: '目前為 Guest 模式。本機遊玩與本機機器人不需要帳號。',
+                        signedInStatus: 'Google 帳號已啟用。未來線上房間與儲存統計可綁定到這個使用者。',
+                        note: 'Google 登入會把未來線上房間與儲存統計綁定到你的帳號。',
+                        working: '連線中...',
+                        error: '登入失敗：{message}'
                     },
                     brand: {
                         title: '拓撲棋盤遊戲',
@@ -414,6 +513,21 @@
                         title: '策略與系統實驗室',
                         desc: '選擇一個可玩的實驗世界，探索新規則、隱藏結構與策略模式。打開 Info 了解這個系統代表什麼、它如何改變遊戲，以及你能透過遊玩觀察什麼。',
                         choose: '策略與系統實驗室'
+                    },
+                    nav: {
+                        main: '主要區域',
+                        boardWorlds: '棋盤世界',
+                        lifeWorlds: '生命與演化世界',
+                        systemsLabs: '策略與系統實驗室'
+                    },
+                    life: {
+                        title: '生命與演化世界',
+                        desc: '創造生命、啟動演化，看看在不同空間中什麼能存活。',
+                        longDesc: '播種細胞、生成圖樣、競爭存活，並觀察演化如何在不同拓撲空間中展開。加入老化、突變、噪聲與多物種，探索類生命系統如何隨空間形狀改變。',
+                        choose: '生命與演化世界',
+                        open: '開啟世界',
+                        info: 'Info',
+                        infoText: '提供零人、一人、雙人與研究模式，用於 cellular automata、生態、拓撲、複雜系統與 AI 實驗。'
                     },
                     feedback: {
                         report: '回報錯誤',
@@ -720,6 +834,7 @@
             setBadgeState('loading');
         })();
     </script>
+    <script type="module" src="./js/launcher-auth.js"></script>
     <script type="module" src="./js/launcher-online-status.js"></script>
     <script type="module" src="./js/launcher-previews.js"></script>
     <script type="module" src="./js/launcher-torus.js"></script>

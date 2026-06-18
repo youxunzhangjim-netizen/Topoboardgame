@@ -1,0 +1,16 @@
+"AppBuild"
+{
+    "AppID" "REPLACE_WITH_STEAM_APP_ID"
+    "Desc" "Topoboardgame build"
+    "BuildOutput" "..\\steam_build_output"
+    "ContentRoot" "..\\release"
+    "SetLive" ""
+    "Preview" "0"
+    "Local" ""
+    "Depots"
+    {
+        "REPLACE_WITH_WINDOWS_DEPOT_ID" "steamworks/templates/depot_windows_template.vdf"
+        // "REPLACE_WITH_MAC_DEPOT_ID" "steamworks/templates/depot_macos_template.vdf"
+        // "REPLACE_WITH_LINUX_DEPOT_ID" "steamworks/templates/depot_linux_template.vdf"
+    }
+}
