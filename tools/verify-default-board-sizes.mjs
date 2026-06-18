@@ -10,29 +10,33 @@ const pages = [
         name: '2D Go',
         html: '2D/2dgo/index.html',
         js: '2D/2dgo/js/main.js',
-        selected: '19',
-        custom: '19'
+        selected: '9',
+        custom: '9',
+        expectation: 'the smallest standard scale'
     },
     {
         name: '3D Go',
         html: '3D/3dgo/index.html',
         js: '3D/3dgo/js/main.js',
-        selected: '19',
-        custom: '19'
+        selected: '9',
+        custom: '9',
+        expectation: 'the smallest standard scale'
     },
     {
         name: '2D Reversi',
         html: '2D/2dreversi/index.html',
         js: '2D/2dreversi/js/main.js',
-        selected: '12',
-        custom: '12'
+        selected: '8',
+        custom: '8',
+        expectation: 'the smallest standard scale'
     },
     {
         name: '3D Reversi',
         html: '3D/3dreversi/index.html',
         js: '3D/3dreversi/js/main.js',
-        selected: '12',
-        custom: '12'
+        selected: '8',
+        custom: '8',
+        expectation: 'the smallest standard scale'
     }
 ];
 
@@ -42,12 +46,12 @@ for (const page of pages) {
     assert.match(
         html,
         new RegExp(`<option value="${page.selected}" selected>`),
-        `${page.name} should select the largest standard scale by default.`
+        `${page.name} should select ${page.expectation} by default.`
     );
     assert.match(
         html,
         new RegExp(`id="customBoardSizeInput"[^>]+value="${page.custom}"`),
-        `${page.name} custom input should mirror the largest standard scale.`
+        `${page.name} custom input should mirror ${page.expectation}.`
     );
     assert.match(
         js,

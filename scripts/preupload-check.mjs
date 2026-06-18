@@ -15,7 +15,8 @@ const required = [
   'local-app/build-resources/icon.ico',
   'steamworks/assets/shortcut_icon_256.png',
   'steamworks/assets/shortcut_icon.ico',
-  'steamworks/assets/app_icon_184.jpg'
+  'steamworks/assets/app_icon_184.jpg',
+  'steamworks/steam_config.example.json'
 ];
 
 let ok = true;

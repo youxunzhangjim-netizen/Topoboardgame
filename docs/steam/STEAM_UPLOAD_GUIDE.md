@@ -77,3 +77,39 @@ GitHub Pages public test
 → Early Access
 → Full release
 ```
+
+## Steam account and upload metadata
+
+Do **not** commit Steam passwords, Steam Guard codes, or private SDK files.
+
+1. Copy the example config:
+
+```powershell
+Copy-Item steamworks/steam_config.example.json steamworks/steam_config.local.json
+```
+
+2. Edit `steamworks/steam_config.local.json` locally with:
+   - your Steamworks login name
+   - Steam App ID
+   - Windows depot ID
+   - optional macOS / Linux depot IDs
+
+3. Check the metadata:
+
+```powershell
+npm run steam:check-info
+```
+
+4. Generate local SteamPipe VDF files:
+
+```powershell
+npm run steam:prepare-vdf
+```
+
+Generated files are written under:
+
+```text
+steamworks/generated/
+```
+
+The generated VDF files and local config are ignored by Git. Enter the Steam password and Steam Guard code only in the official Steamworks SDK / SteamPipe login flow.

@@ -60,10 +60,12 @@
                 <h2 data-i18n="controls.title">Game Controls</h2>
                 <div class="sidebar-actions">
                     <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker" data-i18n="navigation.home">Home</a>
-                    <div class="language-switch" aria-label="Language" data-i18n-aria-label="language.label">
-                        <button type="button" class="lang-option active" data-lang-option="en" aria-pressed="true" title="English" data-i18n-title="language.english">En</button>
-                        <span class="lang-divider" aria-hidden="true">|</span>
-                        <button type="button" class="lang-option" data-lang-option="zh" aria-pressed="false" title="Chinese" data-i18n-title="language.chinese">&#20013;</button>
+                    <div class="language-switch compact-language" aria-label="Language" data-i18n-aria-label="language.label">
+                        <button type="button" class="language-icon-button" aria-haspopup="true" title="Language" data-i18n-title="language.label"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm6.93 9h-3.18a15.8 15.8 0 0 0-1.1-5.02A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.68.98 1.43 3.03 1.7 6.96h-3.4c.27-3.93 1.02-5.98 1.7-6.96ZM4.26 13h3.99c.12 2.02.43 3.78.87 5.08A8.04 8.04 0 0 1 4.26 13Zm3.99-2H4.26a8.04 8.04 0 0 1 4.86-5.08A21.9 21.9 0 0 0 8.25 11ZM12 19.96c-.68-.98-1.43-3.03-1.7-6.96h3.4c-.27 3.93-1.02 5.98-1.7 6.96Zm2.88-1.88c.44-1.3.75-3.06.87-5.08h3.99a8.04 8.04 0 0 1-4.86 5.08ZM15.75 11a21.9 21.9 0 0 0-.87-5.08A8.04 8.04 0 0 1 19.74 11h-3.99Z"/></svg></button>
+                        <div class="language-popover" role="menu">
+                            <button type="button" class="lang-option active" data-lang-option="en" aria-pressed="true" title="English" data-i18n-title="language.english">English</button>
+                            <button type="button" class="lang-option" data-lang-option="zh" aria-pressed="false" title="Chinese" data-i18n-title="language.chinese">繁體中文</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,8 +183,20 @@
                 <div class="boundary-info">Noise uses the age clock even when age decay is off.</div>
             </div>
 
+            <div class="control-group r3-filter-control" id="r3FilterControl">
+                <label>R3 coordinate view filter</label>
+                <div class="r3-filter-grid">
+                    <input id="r3FilterX" type="number" min="1" step="1" placeholder="x = all" aria-label="Show only X coordinate">
+                    <input id="r3FilterY" type="number" min="1" step="1" placeholder="y = all" aria-label="Show only Y coordinate">
+                    <input id="r3FilterZ" type="number" min="1" step="1" placeholder="z = all" aria-label="Show only Z coordinate">
+                </div>
+                <div class="boundary-info">Leave a field empty to show all coordinates on that axis. Reset Camera clears this filter.</div>
+            </div>
+
+
             <div class="control-grid">
                 <button id="cameraReset" type="button" data-i18n="controls.resetCamera">Reset Camera</button>
+                <button id="focusOwnPiecesBtn" type="button" data-i18n="controls.focusOwnPieces" aria-pressed="false">Focus My Pieces</button>
                 <button id="passBtn" type="button" data-i18n="controls.pass">Pass</button>
                 <button id="countBtn" type="button" data-i18n="controls.agreeCount">Agree Count</button>
                 <button id="newGameBtn" type="button" data-i18n="controls.newGame">New Game</button>

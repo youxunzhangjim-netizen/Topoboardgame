@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+import { boardThemeColors } from './BoardAppearance.js';
 
 export class CubeThreeJSRenderer {
     constructor(game) {
@@ -20,6 +21,7 @@ export class CubeThreeJSRenderer {
         this.offset = 3.5;
         this.maxPixelRatio = 1.35;
         this.pieceShapeCache = new Map();
+        this.sliceFilter = null;
     }
 
     init3D() {
@@ -65,6 +67,7 @@ export class CubeThreeJSRenderer {
         this.resize();
 
         window.addEventListener('resize', () => this.resize());
+        window.addEventListener('topoboardgame:3dchess-board-theme', () => this.updateBoardAppearance());
     }
 
     addLighting() {
@@ -83,14 +86,15 @@ export class CubeThreeJSRenderer {
         this.boardGroup.clear();
 
         const cubeGeometry = new THREE.BoxGeometry(this.cellSize, this.cellSize, this.cellSize);
+        const theme = boardThemeColors();
         const lightMaterial = new THREE.MeshLambertMaterial({
-            color: 0xd7e8df,
+            color: theme.light,
             transparent: true,
             opacity: 0.18,
             depthWrite: false
         });
         const darkMaterial = new THREE.MeshLambertMaterial({
-            color: 0x31434c,
+            color: theme.dark,
             transparent: true,
             opacity: 0.28,
             depthWrite: false
@@ -101,27 +105,68 @@ export class CubeThreeJSRenderer {
         for (let z = 0; z < 8; z++) {
             for (let y = 0; y < 8; y++) {
                 for (let x = 0; x < 8; x++) {
+                    if (!this.coordVisible(x, y, z)) continue;
                     const target = (x + y + z) % 2 === 0 ? lightCells : darkCells;
                     target.push({ x, y, z });
                 }
             }
         }
 
-        this.boardGroup.add(this.createCellBatch(cubeGeometry, lightMaterial, lightCells));
-        this.boardGroup.add(this.createCellBatch(cubeGeometry, darkMaterial, darkCells));
+        if (lightCells.length) this.boardGroup.add(this.createCellBatch(cubeGeometry, lightMaterial, lightCells));
+        if (darkCells.length) this.boardGroup.add(this.createCellBatch(cubeGeometry, darkMaterial, darkCells));
 
-        const frameGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(8, 8, 8));
-        const frameMaterial = new THREE.LineBasicMaterial({ color: 0xd7e8df, transparent: true, opacity: 0.7 });
-        const frame = new THREE.LineSegments(frameGeometry, frameMaterial);
-        this.boardGroup.add(frame);
+        if (!this.hasSliceFilter()) {
+            const frameGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(8, 8, 8));
+            const frameMaterial = new THREE.LineBasicMaterial({ color: theme.light, transparent: true, opacity: 0.7 });
+            const frame = new THREE.LineSegments(frameGeometry, frameMaterial);
+            this.boardGroup.add(frame);
 
-        const gridMaterial = new THREE.LineBasicMaterial({ color: 0x31434c, transparent: true, opacity: 0.36 });
-        for (let i = 0; i <= 8; i++) {
-            const p = i - 4;
-            this.boardGroup.add(this.makeGridLine([[-4, p, -4], [4, p, -4], [4, p, 4], [-4, p, 4], [-4, p, -4]], gridMaterial));
-            this.boardGroup.add(this.makeGridLine([[p, -4, -4], [p, 4, -4], [p, 4, 4], [p, -4, 4], [p, -4, -4]], gridMaterial));
-            this.boardGroup.add(this.makeGridLine([[-4, -4, p], [4, -4, p], [4, 4, p], [-4, 4, p], [-4, -4, p]], gridMaterial));
+            const gridMaterial = new THREE.LineBasicMaterial({ color: theme.dark, transparent: true, opacity: 0.36 });
+            for (let i = 0; i <= 8; i++) {
+                const p = i - 4;
+                this.boardGroup.add(this.makeGridLine([[-4, p, -4], [4, p, -4], [4, p, 4], [-4, p, 4], [-4, p, -4]], gridMaterial));
+                this.boardGroup.add(this.makeGridLine([[p, -4, -4], [p, 4, -4], [p, 4, 4], [p, -4, 4], [p, -4, -4]], gridMaterial));
+                this.boardGroup.add(this.makeGridLine([[-4, -4, p], [4, -4, p], [4, 4, p], [-4, 4, p], [-4, -4, p]], gridMaterial));
+            }
         }
+    }
+
+    setSliceFilter(filter = null) {
+        const clean = filter && typeof filter === 'object'
+            ? {
+                x: Number.isInteger(filter.x) ? filter.x : null,
+                y: Number.isInteger(filter.y) ? filter.y : null,
+                z: Number.isInteger(filter.z) ? filter.z : null
+            }
+            : null;
+        const next = clean && (clean.x !== null || clean.y !== null || clean.z !== null) ? clean : null;
+        const before = JSON.stringify(this.sliceFilter || null);
+        const after = JSON.stringify(next || null);
+        this.sliceFilter = next;
+        if (before === after) return;
+        this.createBoard3D();
+        this.renderPieces3D(this.game.board);
+        this.clearHighlights();
+        this.renderer?.render?.(this.scene, this.camera);
+    }
+
+    hasSliceFilter() {
+        return Boolean(this.sliceFilter && (this.sliceFilter.x !== null || this.sliceFilter.y !== null || this.sliceFilter.z !== null));
+    }
+
+    coordVisible(x, y, z) {
+        const filter = this.sliceFilter;
+        if (!filter) return true;
+        return (filter.x === null || x === filter.x)
+            && (filter.y === null || y === filter.y)
+            && (filter.z === null || z === filter.z);
+    }
+
+    updateBoardAppearance() {
+        if (!this.boardGroup) return;
+        this.createBoard3D();
+        this.renderPieces3D(this.game.board);
+        this.renderer?.render?.(this.scene, this.camera);
     }
 
     createCellBatch(geometry, material, cells) {
@@ -182,6 +227,7 @@ export class CubeThreeJSRenderer {
         for (let z = 0; z < 8; z++) {
             for (let y = 0; y < 8; y++) {
                 for (let x = 0; x < 8; x++) {
+                    if (!this.coordVisible(x, y, z)) continue;
                     const piece = board[z][y][x];
                     if (piece) this.addPiece3D(x, y, z, piece);
                 }
@@ -306,6 +352,7 @@ export class CubeThreeJSRenderer {
 
     showSelected(x, y, z) {
         this.removeHighlightsByType('selection');
+        if (!this.coordVisible(x, y, z)) return;
 
         const geometry = new THREE.BoxGeometry(1.08, 1.08, 1.08);
         const material = new THREE.MeshBasicMaterial({
@@ -329,6 +376,7 @@ export class CubeThreeJSRenderer {
 
         const geometry = new THREE.SphereGeometry(0.18, 24, 16);
         for (const move of moves) {
+            if (!this.coordVisible(move.x, move.y, move.z)) continue;
             const material = new THREE.MeshBasicMaterial({
                 color: move.capture ? 0xef4444 : 0x22c55e,
                 transparent: true,
@@ -369,6 +417,7 @@ export class CubeThreeJSRenderer {
 
     showChosenMove(x, y, z) {
         this.removeHighlightsByType('chosen-move');
+        if (!this.coordVisible(x, y, z)) return;
 
         const dot = new THREE.Mesh(
             new THREE.SphereGeometry(0.26, 24, 16),
@@ -429,6 +478,7 @@ export class CubeThreeJSRenderer {
         const hint = hintHits.find((hit) => hit.object.userData?.type === 'legal-move');
         if (hint) {
             const { x, y, z } = hint.object.userData;
+            if (!this.coordVisible(x, y, z)) return;
             await this.game.handleSquareClick(x, y, z);
             return;
         }
@@ -438,6 +488,7 @@ export class CubeThreeJSRenderer {
             let obj = pieceHits[0].object;
             while (obj && !obj.userData?.piece) obj = obj.parent;
             if (obj?.userData?.piece) {
+                if (!this.coordVisible(obj.userData.x, obj.userData.y, obj.userData.z)) return;
                 await this.game.handleSquareClick(obj.userData.x, obj.userData.y, obj.userData.z);
                 return;
             }
@@ -447,7 +498,7 @@ export class CubeThreeJSRenderer {
         const cell = cellHits.find((hit) => hit.object.userData?.type === 'cell-batch' && Number.isInteger(hit.instanceId));
         if (cell) {
             const coord = cell.object.userData.cells[cell.instanceId];
-            if (coord) await this.game.handleSquareClick(coord.x, coord.y, coord.z);
+            if (coord && this.coordVisible(coord.x, coord.y, coord.z)) await this.game.handleSquareClick(coord.x, coord.y, coord.z);
         }
     }
 

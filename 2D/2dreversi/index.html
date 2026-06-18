@@ -48,7 +48,7 @@
                     <option value="online">Online Multiplayer</option>
                     <option value="robot">Local Robot (Baby)</option>
                 </select>
-                <div class="boundary-info" id="onlineColorStatus">Local pass and play</div>
+                <div class="boundary-info online-color-status" id="onlineColorStatus" hidden></div>
             </div>
 
             <section class="online-controls" id="onlineControls" hidden>
@@ -72,12 +72,12 @@
             <div class="control-group">
                 <label for="boardSizeSelect">Board Size</label>
                 <select id="boardSizeSelect">
-                    <option value="8">8 x 8</option>
+                    <option value="8" selected>8 x 8</option>
                     <option value="10">10 x 10</option>
-                    <option value="12" selected>12 x 12</option>
+                    <option value="12">12 x 12</option>
                     <option value="custom">Custom</option>
                 </select>
-                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="30" step="1" value="12" hidden>
+                <input id="customBoardSizeInput" class="custom-size-input" type="number" min="4" max="30" step="1" value="8" hidden>
             </div>
 
             <div class="control-group">
@@ -99,6 +99,40 @@
                 </select>
             </div>
 
+            <section class="panel compact-panel dynamics-settings">
+                <h3>Time Evolution & Noise</h3>
+                <div class="control-grid dynamics-grid">
+                    <div class="control-group compact-control">
+                        <label for="timeEvolutionSelect">Age Rule</label>
+                        <select id="timeEvolutionSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="age">Track Age</option>
+                            <option value="decay">Remove Old Pieces</option>
+                        </select>
+                    </div>
+                    <div class="control-group compact-control">
+                        <label for="timeLifetimeInput">Age Limit</label>
+                        <input id="timeLifetimeInput" type="number" min="1" max="999" step="1" value="60">
+                    </div>
+                    <div class="control-group compact-control">
+                        <label for="noiseModeSelect">Noise</label>
+                        <select id="noiseModeSelect">
+                            <option value="off" selected>Off</option>
+                            <option value="random-death">Random Removal</option>
+                            <option value="random-birth">Random Birth</option>
+                        </select>
+                    </div>
+                    <div class="control-group compact-control">
+                        <label for="noiseRateInput">Noise Rate</label>
+                        <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="control-group compact-control">
+                        <label for="noisePeriodInput">Noise Period</label>
+                        <input id="noisePeriodInput" type="number" min="1" max="200" step="1" value="1">
+                    </div>
+                </div>
+            </section>
+
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
                 <button id="newGameBtn" type="button">New Game</button>
@@ -107,15 +141,6 @@
             <section class="panel">
                 <h3>Move History</h3>
                 <div class="move-history" id="moveHistoryList"></div>
-            </section>
-
-            <section class="panel chat-panel">
-                <h3>Online Chat</h3>
-                <div class="chat-messages" id="chatMessages"><div class="chat-empty">Connect online to chat.</div></div>
-                <div class="chat-input-row">
-                    <input id="chatInput" type="text" maxlength="240" placeholder="Message opponent">
-                    <button id="chatSendBtn" type="button">Send</button>
-                </div>
             </section>
 
             <section class="panel robot-panel" id="robotPanel">
@@ -146,6 +171,17 @@
                     <p class="robot-muted">Click Analyze Position to rank legal moves, estimate win rate, and show Reversi signals.</p>
                 </div>
             </section>
+
+            <section class="panel chat-panel">
+                <h3>Online Chat</h3>
+                <div class="chat-messages" id="chatMessages"><div class="chat-empty">Connect online to chat.</div></div>
+                <div class="chat-input-row">
+                    <input id="chatInput" type="text" maxlength="240" placeholder="Message opponent">
+                    <button id="chatSendBtn" type="button">Send</button>
+                </div>
+            </section>
+
+
         </aside>
     </main>
 

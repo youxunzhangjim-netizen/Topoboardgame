@@ -33,3 +33,6 @@ out/
 steamworks/sdk/
 steamworks/build-output/
 steamworks/content-builder/output/
+
+steamworks/steam_config.local.json
+steamworks/generated/

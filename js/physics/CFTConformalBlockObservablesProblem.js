@@ -1,5 +1,6 @@
 import { SeededRandom } from '../probability/SeededRandom.js';
 
+import { VirasoroGoGame } from '../localgames/VirasoroGo.js';
 export const CFT_CONFORMAL_BLOCK_OBSERVABLES_ID = 'cft_conformal_block_observables';
 export const CFT_CONFORMAL_BLOCK_COMPATIBLE_MODES = Object.freeze([
     'physical_virasoro_go'
@@ -239,7 +240,6 @@ export async function runCFTObservableExperiment({
     policy = 'random_legal',
     seed = DEFAULT_CONFIG.seed
 } = {}) {
-    const { VirasoroGoGame } = await import('../localgames/VirasoroGo.js');
     const trials = [];
     for (const topologySpec of topologyList) {
         const topology = typeof topologySpec === 'string'

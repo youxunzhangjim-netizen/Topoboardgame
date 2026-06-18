@@ -403,7 +403,9 @@ export function installChess3DRobot(shell) {
     <div class="robot-row"><label>Strength</label><select id="robotDepthSelect"><option value="1">Depth 1</option><option value="2" selected>Depth 2</option><option value="3">Depth 3</option><option value="4">Depth 4</option></select></div>
     <div class="control-grid robot-buttons"><button id="robotMoveBtn" type="button">Robot Move</button><button id="robotAnalyzeBtn" type="button">Analyze Position</button></div>
     <div class="robot-analysis" id="robotAnalysisPanel">Choose Local Robot, or click Analyze Position.</div>`;
-  sidebar?.appendChild(panel);
+  const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
+  if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
+  else sidebar?.appendChild(panel);
   const sideSelect = panel.querySelector('#robotSideSelect');
   const depthSelect = panel.querySelector('#robotDepthSelect');
   const analysisPanel = panel.querySelector('#robotAnalysisPanel');

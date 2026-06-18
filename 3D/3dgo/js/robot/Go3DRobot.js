@@ -187,7 +187,9 @@ export function installGo3DRobot(app) {
   const sidebar = document.querySelector('.sidebar');
   const panel = document.createElement('section'); panel.className = 'panel robot-panel';
   panel.innerHTML = `<h3>Local Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="goRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="goRobotLevelSelect"><option value="1" selected>Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div><div class="control-grid robot-buttons"><button id="goRobotMoveBtn" type="button">Robot Move</button><button id="goRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="goRobotAnalysisPanel">Choose Local Robot, or click Analyze Position.</div>`;
-  sidebar?.appendChild(panel);
+  const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
+  if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
+  else sidebar?.appendChild(panel);
   const side = panel.querySelector('#goRobotSideSelect'); const level = panel.querySelector('#goRobotLevelSelect'); const out = panel.querySelector('#goRobotAnalysisPanel');
   const isRobotMode = () => modeSelect?.value === 'robot';
   async function makeMove() {

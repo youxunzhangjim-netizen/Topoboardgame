@@ -30,20 +30,13 @@ for (const file of required) {
 
 const data = fs.readFileSync(path.join(root, 'life/life-data.js'), 'utf8');
 const expectedModes = [
-  'Classic Life',
-  'Life on a Torus',
-  'Life on a Möbius Strip',
-  'Life on a Sphere',
-  '3D Voxel Life',
-  'Noisy Life',
-  'Age-Structured Life',
-  'Species War',
-  'Ecosystem Balance',
-  'Research Sandbox'
+  'Moore Neighborhood Mode',
+  'Von Neumann Neighborhood Mode',
+  'Lattice Nearest-Neighbor Mode'
 ];
 
 for (const title of expectedModes) {
-  if (!data.includes(`title: "${title}"`)) {
+  if (!data.includes(`title: '${title}'`) && !data.includes(`title: "${title}"`)) {
     console.error(`[missing mode] ${title}`);
     ok = false;
   } else {
@@ -51,8 +44,20 @@ for (const title of expectedModes) {
   }
 }
 
+for (const marker of ['LIFE_MODIFIERS', 'LIFE_GEOMETRIES', 'LIFE_LATTICES', 'r2', 't2', 'mobius', 'klein', 'sphere', 'rp2', 'r3', 't3', 'sc', 'bcc', 'fcc', 'hcp']) {
+  if (!data.includes(marker)) {
+    console.error(`[life-data missing] ${marker}`);
+    ok = false;
+  } else {
+    console.log(`[life-data] ${marker}`);
+  }
+}
+
 const world = fs.readFileSync(path.join(root, 'life/world.html'), 'utf8');
 for (const marker of [
+  'boardGeometrySelect',
+  'latticeSelect',
+  'viewModeSelect',
   'usageModeSelect',
   'twoPlayerModeSelect',
   'challengeGoalSelect',
@@ -70,12 +75,26 @@ for (const marker of [
   }
 }
 
+const ui = fs.readFileSync(path.join(root, 'life/js/LifeUI.js'), 'utf8');
+for (const marker of ['isCameraInteraction', 'handleCanvasWheel', 'drawSurfaceBoundary', 'drawVolumeBoundary', 'projectPoint']) {
+  if (!ui.includes(marker)) {
+    console.error(`[LifeUI missing interactive marker] ${marker}`);
+    ok = false;
+  } else {
+    console.log(`[LifeUI interactive] ${marker}`);
+  }
+}
+
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 for (const marker of [
   'Life &amp; Evolution Worlds',
   './life/',
   'id="life-evolution-worlds"',
-  'data-i18n="life.longDesc"'
+  'data-i18n="life.longDesc"',
+  'life-neighborhood-options',
+  'mode=moore-life',
+  'mode=von-neumann-life',
+  'mode=lattice-nearest-life'
 ]) {
   if (!index.includes(marker)) {
     console.error(`[homepage missing] ${marker}`);
@@ -83,6 +102,20 @@ for (const marker of [
   } else {
     console.log(`[homepage] ${marker}`);
   }
+}
+
+if (index.indexOf('id="life-evolution-worlds"') > index.indexOf('</main>')) {
+  console.error('[homepage dom placement] Life section is outside <main>.');
+  ok = false;
+} else {
+  console.log('[homepage dom placement] Life section inside main');
+}
+
+if (index.indexOf('id="strategy-systems-labs"') > index.indexOf('id="life-evolution-worlds"')) {
+  console.error('[homepage order] Life appears before Labs; Life should be lower than Labs.');
+  ok = false;
+} else {
+  console.log('[homepage order] Labs before Life');
 }
 
 if (!ok) process.exit(1);
@@ -111,10 +144,27 @@ if (before.population !== 5 || after.generation !== 1) {
 }
 console.log('[engine smoke] Conway torus step passed');
 
+const triangularEngine = createLifeEngine({
+  dimension: 2,
+  size: [8, 8],
+  boundary: 'mobius',
+  lattice: 'triangular',
+  neighborhoodType: 'moore',
+  rule: getRulePreset('conway')
+});
+triangularEngine.randomSeed({ density: 0.15 });
+triangularEngine.step();
+if (triangularEngine.getObservables().generation !== 1) {
+  console.error('[engine smoke] triangular Mobius step failed');
+  process.exit(1);
+}
+console.log('[engine smoke] triangular Mobius step passed');
+
 const engine3d = createLifeEngine({
   dimension: 3,
   size: [5, 5, 5],
   boundary: 'torus',
+  lattice: 'bcc',
   neighborhoodType: 'von_neumann',
   rule: getRulePreset('life3dSoft')
 });

@@ -56,7 +56,7 @@
                     <option value="online">Online Multiplayer</option>
                     <option value="robot">Local Robot (Baby)</option>
                 </select>
-                <div class="boundary-info" id="onlineColorStatus">Local pass and play</div>
+                <div class="boundary-info online-color-status" id="onlineColorStatus" hidden></div>
             </div>
 
             <section class="online-controls" id="onlineControls" hidden>
@@ -144,9 +144,21 @@
                 <div class="boundary-info">Noise uses the age clock even when age decay is off.</div>
             </div>
 
+            <div class="control-group r3-filter-control" id="r3FilterControl">
+                <label>R3 coordinate view filter</label>
+                <div class="r3-filter-grid">
+                    <input id="r3FilterX" type="number" min="1" step="1" placeholder="x = all" aria-label="Show only X coordinate">
+                    <input id="r3FilterY" type="number" min="1" step="1" placeholder="y = all" aria-label="Show only Y coordinate">
+                    <input id="r3FilterZ" type="number" min="1" step="1" placeholder="z = all" aria-label="Show only Z coordinate">
+                </div>
+                <div class="boundary-info">Leave a field empty to show all coordinates on that axis. Reset Camera clears this filter.</div>
+            </div>
+
+
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
                 <button id="cameraResetBtn" type="button">Reset Camera</button>
+                <button id="focusOwnPiecesBtn" type="button" aria-pressed="false">Focus My Pieces</button>
                 <button id="newGameBtn" type="button">New Game</button>
             </div>
 

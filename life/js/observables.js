@@ -44,7 +44,7 @@ function computeClusters(engine) {
       const current = engine.getCell(position);
       size += 1;
 
-      for (const neighbor of engine.topology.getNeighbors(position, engine.dimension, 'von_neumann')) {
+      for (const neighbor of engine.topology.getNeighbors(position, engine.dimension, 'von_neumann', engine.lattice)) {
         const ni = engine.index(neighbor);
         if (visited.has(ni)) continue;
         const neighborCell = engine.cells[ni];
@@ -71,7 +71,7 @@ function computeSpatialCorrelation(engine) {
     const position = engine.positionFromIndex(i);
     const cell = engine.cells[i];
     const alive = isAlive(cell);
-    for (const neighbor of engine.topology.getNeighbors(position, engine.dimension, 'von_neumann')) {
+    for (const neighbor of engine.topology.getNeighbors(position, engine.dimension, 'von_neumann', engine.lattice)) {
       const ni = engine.index(neighbor);
       if (ni <= i) continue;
       const other = engine.cells[ni];

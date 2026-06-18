@@ -79,7 +79,7 @@ const I18N = {
         app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 Go with 9, 13, and 19 scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
-        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', resetCamera: 'Reset Camera', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
+        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus My Pieces', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
         online: { localStatus: 'Local pass and play', findMatch: 'Find Match', privateRoom: 'PRIVATE ROOM', createRoom: 'Create Room', or: 'OR', roomInput: '5-digit room code or shared link', joinRoom: 'Join Room', roomCode: 'Room Code', copy: 'Copy', copied: 'Copied', onlineAs: ({ color }) => 'Online as ' + color },
         chat: { title: 'Online Chat', empty: 'Connect online to chat.', placeholder: 'Message online opponent', send: 'Send', player: 'Player', connectFirst: 'Connect online before chatting.' },
         mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The north and south pole nodes are playable and connect to every point on the nearest latitude ring.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
@@ -95,7 +95,7 @@ const I18N = {
         app: { title: '3D 圍棋', tagline: 'R3 格點、T2 環面、S2 球面與克萊因瓶圍棋，支援 9、13、19 尺寸。' },
         colors: { black: '黑方', white: '白方' },
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
-        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', resetCamera: '重設視角', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
+        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', sliceView: 'R3 切片視圖', sliceHelp: '空白代表顯示全部。x = 5 只顯示第 5 層 yz 平面。', resetCamera: '重設視角', focusOwnPieces: '只突出己方棋子', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
         online: { localStatus: '本地輪流', findMatch: '尋找配對', privateRoom: '私人房間', createRoom: '建立房間', or: '或', roomInput: '5 位房間碼或分享連結', joinRoom: '加入房間', roomCode: '房間碼', copy: '複製', copied: '已複製', onlineAs: ({ color }) => '線上身分：' + color },
         mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。南北極點可落子，並連到最近緯度環上的每個節點。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
         timer: { none: '無計時', five: '5 分鐘', ten: '10 分鐘', thirty: '30 分鐘', hour: '1 小時', oneDay: '1 天' },
@@ -257,6 +257,7 @@ class Go3DRenderer {
         this.stoneGroup = new THREE.Group();
         this.hoverGroup = new THREE.Group();
         this.scene.add(this.boardGroup, this.stoneGroup, this.hoverGroup);
+        this.focusColor = null;
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
@@ -266,6 +267,7 @@ class Go3DRenderer {
         this.height = 0;
         this.view = '';
         this.lattice = '';
+        this.sliceSignature = '';
         this.pointerGesture = null;
         this.clock = new THREE.Clock();
         this.initLights();
@@ -276,16 +278,16 @@ class Go3DRenderer {
     }
 
     initLights() {
-        const ambient = new THREE.AmbientLight(0xeaf6ff, 0.42);
+        const ambient = new THREE.AmbientLight(0xf4fbff, 0.58);
         this.scene.add(ambient);
-        const hemi = new THREE.HemisphereLight(0xdff6ff, 0x15110d, 1.6);
+        const hemi = new THREE.HemisphereLight(0xf0fbff, 0x20180f, 1.95);
         this.scene.add(hemi);
-        const key = new THREE.DirectionalLight(0xffffff, 2.4);
+        const key = new THREE.DirectionalLight(0xffffff, 2.75);
         key.position.set(5, 9, 7);
         key.castShadow = true;
         key.shadow.mapSize.set(2048, 2048);
         this.scene.add(key);
-        const fill = new THREE.PointLight(0x38bdf8, 1.4, 28);
+        const fill = new THREE.PointLight(0x7dd3fc, 1.75, 32);
         fill.position.set(-6, 3, -5);
         this.scene.add(fill);
     }
@@ -319,18 +321,21 @@ class Go3DRenderer {
 
     buildBoard(logic) {
         const view = logic.topology === SPHERE_GO_TOPOLOGY ? this.app.sphereView() : '';
+        const sliceSignature = this.app?.r3SliceSignature?.() || '';
         if (this.mode === logic.topology
             && this.size === logic.size
             && this.width === logic.width
             && this.height === logic.height
             && this.lattice === logic.lattice
-            && this.view === view) return;
+            && this.view === view
+            && this.sliceSignature === sliceSignature) return;
         this.mode = logic.topology;
         this.size = logic.size;
         this.width = logic.width;
         this.height = logic.height;
         this.lattice = logic.lattice;
         this.view = view;
+        this.sliceSignature = sliceSignature;
         this.controls.enableRotate = !(logic.topology === SPHERE_GO_TOPOLOGY && view === '2d');
         this.clearGroup(this.boardGroup);
         this.clearGroup(this.hoverGroup);
@@ -353,7 +358,7 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             new THREE.SphereGeometry(radius - 0.045, 96, 48),
             new THREE.MeshPhysicalMaterial({
-                color: 0x604a2b,
+                color: 0x8a6a3d,
                 roughness: 0.6,
                 metalness: 0.02,
                 transparent: true,
@@ -667,7 +672,7 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             new THREE.BoxGeometry(spanX + RP2_CELL_SIZE * 0.9, 0.065, spanZ + RP2_CELL_SIZE * 0.9),
             new THREE.MeshPhysicalMaterial({
-                color: 0x664525,
+                color: 0x835b33,
                 roughness: 0.62,
                 metalness: 0.02,
                 clearcoat: 0.18,
@@ -679,13 +684,13 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const cellMaterialA = new THREE.MeshPhysicalMaterial({
-            color: 0xb88246,
+            color: 0xd39a5d,
             roughness: 0.5,
             metalness: 0.02,
             clearcoat: 0.2
         });
         const cellMaterialB = new THREE.MeshPhysicalMaterial({
-            color: 0x805936,
+            color: 0x9f7148,
             roughness: 0.55,
             metalness: 0.02,
             clearcoat: 0.18
@@ -722,7 +727,7 @@ class Go3DRenderer {
         gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             gridGeometry,
-            new THREE.LineBasicMaterial({ color: 0x24150c, transparent: true, opacity: 0.76, depthWrite: false })
+            new THREE.LineBasicMaterial({ color: 0x4b2f1b, transparent: true, opacity: 0.76, depthWrite: false })
         ));
         this.addNodePoints(pointPositions, width <= 9 ? 0.062 : width <= 13 ? 0.048 : 0.037, {
             color: 0x23140d,
@@ -823,14 +828,20 @@ class Go3DRenderer {
         return cone;
     }
 
+    coordVisible(coord) {
+        return this.app?.coordVisibleInSlice?.(coord) !== false;
+    }
+
     buildR3(logic) {
         const size = logic.size;
         const linePositions = [];
         const material = new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.26 });
         const drawn = new Set();
         for (const coord of logic.playableCoords()) {
+            if (!this.coordVisible(coord)) continue;
             const fromKey = logic.coordKey(coord);
             for (const neighbor of logic.neighborsFromCoord(coord)) {
+                if (!this.coordVisible(neighbor)) continue;
                 if (neighbor.some((value, axis) => Math.abs(value - coord[axis]) > 1)) continue;
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
@@ -846,6 +857,7 @@ class Go3DRenderer {
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
+            if (!this.coordVisible(coord)) continue;
             const p = this.r3Position(coord, size, logic.lattice);
             this.pointCoords.push(coord);
             this.pointPositions.push(p);
@@ -928,7 +940,7 @@ class Go3DRenderer {
         this.addNodePoints(
             pointPositions,
             size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
-            { color: 0x24130b, opacity: 0.96 }
+            { color: 0x4b2f1b, opacity: 0.96 }
         );
         if (logic.lattice === SQUARE_LATTICE) this.addTorusStarPoints(size);
     }
@@ -950,7 +962,7 @@ class Go3DRenderer {
         const mesh = new THREE.InstancedMesh(
             new THREE.SphereGeometry(radius, 16, 10),
             new THREE.MeshStandardMaterial({
-                color: 0x190d08,
+                color: 0x332018,
                 roughness: 0.7,
                 metalness: 0.02
             }),
@@ -978,7 +990,7 @@ class Go3DRenderer {
         if (!unique.length) return;
         const mesh = new THREE.InstancedMesh(
             new THREE.SphereGeometry(width <= 9 ? 0.074 : width <= 13 ? 0.06 : 0.045, 16, 10),
-            new THREE.MeshStandardMaterial({ color: 0x190d08, roughness: 0.7, metalness: 0.02, depthTest: false }),
+            new THREE.MeshStandardMaterial({ color: 0x332018, roughness: 0.7, metalness: 0.02, depthTest: false }),
             unique.length
         );
         const matrix = new THREE.Matrix4();
@@ -1004,7 +1016,7 @@ class Go3DRenderer {
         if (!unique.length) return;
         const mesh = new THREE.InstancedMesh(
             new THREE.SphereGeometry(width <= 9 ? 0.072 : width <= 13 ? 0.056 : 0.043, 16, 10),
-            new THREE.MeshStandardMaterial({ color: 0x120b07, roughness: 0.68, metalness: 0.02 }),
+            new THREE.MeshStandardMaterial({ color: 0x2b1a13, roughness: 0.68, metalness: 0.02 }),
             unique.length
         );
         const matrix = new THREE.Matrix4();
@@ -1057,16 +1069,22 @@ class Go3DRenderer {
         this.clearGroup(this.stoneGroup);
         const black = [];
         const white = [];
+        const ageRings = [];
         for (let index = 0; index < logic.board.length; index++) {
             const value = logic.board[index];
             if (!value) continue;
             const coord = logic.coordFromIndex(index);
+            if (!this.coordVisible(coord)) continue;
             const positions = this.positionsForCoord(coord, logic);
             if (value === COLORS.black) black.push(...positions);
             else white.push(...positions);
+            if (this.app?.shouldShowAgeRings?.()) {
+                for (const position of positions) ageRings.push({ position, age: this.app.pieceAges?.[index] || 0 });
+            }
         }
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
+        this.addAgeRings(ageRings, logic);
     }
 
     addStoneInstances(positions, color, logic) {
@@ -1087,8 +1105,12 @@ class Go3DRenderer {
         const dotMaterial = new THREE.MeshStandardMaterial({
             color: color === 'black' ? 0x38bdf8 : 0xfacc15,
             emissive: color === 'black' ? 0x38bdf8 : 0xfacc15,
-            emissiveIntensity: 1.6
+            emissiveIntensity: 1.6,
+            transparent: true,
+            opacity: 1
         });
+        stoneMaterial.userData.baseOpacity = stoneMaterial.opacity;
+        dotMaterial.userData.baseOpacity = dotMaterial.opacity;
         const stoneMesh = new THREE.InstancedMesh(stoneGeometry, stoneMaterial, positions.length);
         const dotMesh = new THREE.InstancedMesh(dotGeometry, dotMaterial, positions.length);
         const matrix = new THREE.Matrix4();
@@ -1099,12 +1121,63 @@ class Go3DRenderer {
         });
         stoneMesh.castShadow = true;
         dotMesh.castShadow = true;
+        stoneMesh.userData.pieceColor = color;
+        dotMesh.userData.pieceColor = color;
+        this.applyPieceFocusToObject(stoneMesh);
+        this.applyPieceFocusToObject(dotMesh);
         this.stoneGroup.add(stoneMesh, dotMesh);
+    }
+
+    addAgeRings(items, logic) {
+        if (!items.length) return;
+        const config = this.app?.pieceTimeConfig?.();
+        if (!config?.enabled) return;
+        const lifetime = Math.max(1, Number(config.lifespan || config.lifetime) || 1);
+        const radius = isR3LikeTopology(logic.topology)
+            ? (logic.size <= 9 ? 0.18 : logic.size <= 13 ? 0.13 : 0.095)
+            : (logic.size <= 9 ? 0.16 : logic.size <= 13 ? 0.13 : 0.105);
+        const ringGeometry = new THREE.TorusGeometry(radius * 1.45, Math.max(0.008, radius * 0.055), 8, 48);
+        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.82, depthWrite: false });
+        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.92, depthWrite: false });
+        normalMaterial.userData.baseOpacity = normalMaterial.opacity;
+        warnMaterial.userData.baseOpacity = warnMaterial.opacity;
+        for (const item of items) {
+            const age = Number(item.age || 0);
+            if (!Number.isFinite(age) || age <= 0) continue;
+            const progress = Math.max(0.05, Math.min(1, age / lifetime));
+            const material = config.decay && progress >= 0.96 ? warnMaterial : normalMaterial;
+            const ring = new THREE.Mesh(ringGeometry, material);
+            ring.position.copy(item.position);
+            ring.userData.ageRing = true;
+            ring.userData.ageProgress = progress;
+            ring.scale.setScalar(progress);
+            ring.renderOrder = 12;
+            this.stoneGroup.add(ring);
+        }
+    }
+
+    setPieceFocus(color = null) {
+        this.focusColor = color === 'black' || color === 'white' ? color : null;
+        this.applyPieceFocus();
+    }
+
+    applyPieceFocus() {
+        this.stoneGroup.children.forEach((object) => this.applyPieceFocusToObject(object));
+    }
+
+    applyPieceFocusToObject(object) {
+        const material = object?.material;
+        if (!material) return;
+        const baseOpacity = material.userData?.baseOpacity ?? material.opacity ?? 1;
+        const dim = Boolean(this.focusColor && object.userData?.pieceColor && object.userData.pieceColor !== this.focusColor);
+        material.transparent = baseOpacity < 1 || dim;
+        material.opacity = dim ? 0.5 : baseOpacity;
+        material.needsUpdate = true;
     }
 
     setHover(coord, logic = this.app.logic) {
         this.clearGroup(this.hoverGroup);
-        if (!coord || logic.gameOver || logic.scoringPending) return;
+        if (!coord || logic.gameOver || logic.scoringPending || !this.coordVisible(coord)) return;
         const index = logic.indexFromCoord(coord);
         if (index < 0 || logic.board[index] !== COLORS.empty) return;
         const p = this.positionForCoord(coord, logic);
@@ -1260,7 +1333,7 @@ class Go3DRenderer {
         if (distance > 5) return;
         this.settleClickCamera(gesture);
         const coord = this.pickCoord(event);
-        if (coord) this.app.playAt(coord);
+        if (coord && this.coordVisible(coord)) this.app.playAt(coord);
     }
 
     positionForCoord(coord, logic) {
@@ -1506,6 +1579,7 @@ class Go3DRenderer {
         const elapsed = this.clock.getElapsedTime();
         this.stoneGroup.children.forEach((child) => {
             if (child.material?.emissive) child.material.emissiveIntensity = 1.25 + Math.sin(elapsed * 2.2) * 0.22;
+            if (child.userData?.ageRing) child.lookAt(this.camera.position);
         });
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
@@ -1546,6 +1620,14 @@ class Go3DApp {
         this.countBtn = document.getElementById('countBtn');
         this.newGameBtn = document.getElementById('newGameBtn');
         this.surrenderBtn = document.getElementById('surrenderBtn');
+        this.focusOwnPiecesBtn = document.getElementById('focusOwnPiecesBtn');
+        this.sliceFilterEl = document.getElementById('r3FilterControl') || document.getElementById('r3SliceFilter');
+        this.sliceInputs = {
+            x: document.getElementById('r3FilterX') || document.getElementById('sliceXInput'),
+            y: document.getElementById('r3FilterY') || document.getElementById('sliceYInput'),
+            z: document.getElementById('r3FilterZ') || document.getElementById('sliceZInput')
+        };
+        this.focusOwnPieces = false;
         this.roomIdInput = document.getElementById('roomIdInput');
         this.copyLinkBtn = document.getElementById('copyLinkBtn');
         this.shareLinkInput = document.getElementById('shareLinkInput');
@@ -1592,7 +1674,7 @@ class Go3DApp {
     }
 
     syncLatticeOptions(mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY)) {
-        const allowed = mode === R3_STANDARD_TOPOLOGY
+        const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
             : mode === 't2'
                 ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
@@ -1672,7 +1754,7 @@ class Go3DApp {
 
     normalizedBoardSize(value) {
         const parsed = Math.floor(Number(value));
-        if (!Number.isFinite(parsed)) return 9;
+        if (!Number.isFinite(parsed)) return 19;
         return Math.min(39, Math.max(2, parsed));
     }
 
@@ -1724,7 +1806,16 @@ class Go3DApp {
             this.updateUI();
         });
         this.gameModeSelect.addEventListener('change', () => this.updateOnlineControls());
-        document.getElementById('cameraReset').addEventListener('click', () => this.renderer.resetCamera());
+        document.getElementById('cameraReset').addEventListener('click', () => {
+            this.clearR3SliceFilters(false);
+            this.renderer.resetCamera();
+            this.updateUI();
+        });
+        for (const input of Object.values(this.sliceInputs || {})) {
+            input?.addEventListener('input', () => this.refreshR3SliceFilter());
+            input?.addEventListener('change', () => this.refreshR3SliceFilter());
+        }
+        this.focusOwnPiecesBtn?.addEventListener('click', () => this.togglePieceFocus());
         this.passBtn.addEventListener('click', () => this.passTurn());
         this.countBtn.addEventListener('click', () => this.agreeCount());
         this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
@@ -1760,6 +1851,59 @@ class Go3DApp {
             }
             if (!this.network?.isConnected) this.setOnlineColor(null);
         });
+    }
+
+    sliceInputValue(input) {
+        if (!input || String(input.value || '').trim() === '') return null;
+        const parsed = Math.floor(Number(input.value));
+        if (!Number.isFinite(parsed)) return null;
+        return Math.max(0, parsed - 1);
+    }
+
+    r3SliceSettings() {
+        return {
+            x: this.sliceInputValue(this.sliceInputs?.x),
+            y: this.sliceInputValue(this.sliceInputs?.y),
+            z: this.sliceInputValue(this.sliceInputs?.z)
+        };
+    }
+
+    r3SliceSignature() {
+        if (!isR3LikeTopology(this.logic?.topology)) return '';
+        const { x, y, z } = this.r3SliceSettings();
+        return ['slice', x ?? '*', y ?? '*', z ?? '*'].join(':');
+    }
+
+    coordVisibleInSlice(coord) {
+        if (!isR3LikeTopology(this.logic?.topology)) return true;
+        const { x, y, z } = this.r3SliceSettings();
+        return (x === null || coord[0] === x)
+            && (y === null || coord[1] === y)
+            && (z === null || coord[2] === z);
+    }
+
+    clearR3SliceFilters(update = true) {
+        for (const input of Object.values(this.sliceInputs || {})) {
+            if (input) input.value = '';
+        }
+        this.renderer.sliceSignature = '';
+        this.hoverCoord = null;
+        if (update) this.updateUI();
+    }
+
+    refreshR3SliceFilter() {
+        this.renderer.sliceSignature = '';
+        this.hoverCoord = null;
+        this.updateUI();
+    }
+
+    updateR3SliceFilterVisibility() {
+        if (!this.sliceFilterEl) return;
+        this.sliceFilterEl.hidden = !isR3LikeTopology(this.logic?.topology);
+    }
+
+    shouldShowAgeRings() {
+        return this.pieceTimeConfig().enabled;
     }
 
     pieceTimeConfig() {
@@ -2051,6 +2195,7 @@ class Go3DApp {
 
     updateUI() {
         this.updateSettingsLockState();
+        this.updateR3SliceFilterVisibility();
         const isR3Like = isR3LikeTopology(this.logic.topology);
         const isSphere = this.logic.topology === SPHERE_GO_TOPOLOGY;
         const isKlein = this.logic.topology === KLEIN_BOTTLE_TOPOLOGY;
@@ -2078,9 +2223,25 @@ class Go3DApp {
         this.renderScore();
         this.renderChatMessages();
         this.renderer.renderStones(this.logic);
+        this.syncPieceFocus();
         if (!this.network?.isConnected && this.gameModeSelect.value !== 'online') {
             this.onlineColorEl.textContent = tr('online.localStatus');
         }
+    }
+
+    focusColor() {
+        return this.gameModeSelect.value === 'online' && this.myColor ? this.myColor : this.logic.currentPlayer;
+    }
+
+    togglePieceFocus() {
+        this.focusOwnPieces = !this.focusOwnPieces;
+        this.syncPieceFocus();
+    }
+
+    syncPieceFocus() {
+        const color = this.focusOwnPieces ? this.focusColor() : null;
+        this.renderer.setPieceFocus(color);
+        this.focusOwnPiecesBtn?.setAttribute('aria-pressed', String(this.focusOwnPieces));
     }
 
     updateTimerDisplay() {

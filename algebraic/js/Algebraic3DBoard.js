@@ -201,11 +201,15 @@ export class Algebraic3DBoard {
         const mesh = new THREE.Mesh(
             new THREE.TorusGeometry(3.35, 1.22, 56, 168),
             new THREE.MeshPhysicalMaterial({
-                color: 0x805936,
-                roughness: 0.56,
-                metalness: 0.02,
-                clearcoat: 0.3,
-                clearcoatRoughness: 0.48
+                color: 0xb5793f,
+                roughness: 0.5,
+                metalness: 0.03,
+                transparent: true,
+                opacity: 0.74,
+                depthWrite: false,
+                clearcoat: 0.34,
+                clearcoatRoughness: 0.44,
+                side: THREE.DoubleSide
             })
         );
         mesh.castShadow = true;
@@ -217,12 +221,14 @@ export class Algebraic3DBoard {
         const mesh = new THREE.Mesh(
             new THREE.SphereGeometry(3.46, 88, 48),
             new THREE.MeshPhysicalMaterial({
-                color: 0x5d4b30,
-                roughness: 0.63,
+                color: 0x8a6a3d,
+                roughness: 0.6,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.78,
-                clearcoat: 0.2
+                opacity: 0.7,
+                depthWrite: false,
+                clearcoat: 0.22,
+                side: THREE.DoubleSide
             })
         );
         mesh.castShadow = true;
@@ -240,14 +246,15 @@ export class Algebraic3DBoard {
             const point = this.positionForCoord(coord, 0.07);
             this.pointCoords.push(coord);
             this.pointPositions.push(point);
-            const neighborCoords = typeof topology.neighbors === 'function'
-                ? topology.neighbors(coord)
-                : topology.directions().map((direction) => topology.step(coord, direction)?.coord).filter(Boolean);
-            for (const neighbor of neighborCoords) {
+            const steps = typeof topology.directions === 'function' && typeof topology.step === 'function'
+                ? topology.directions().map((direction) => topology.step(coord, direction)).filter(Boolean)
+                : (typeof topology.neighbors === 'function' ? topology.neighbors(coord) : [])
+                    .map((neighbor) => ({ coord: neighbor, edge: { rawTo: neighbor } }));
+            for (const step of steps) {
+                const neighbor = step.coord;
                 const edgeKey = [keyOf(coord), keyOf(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                const step = topology.step(coord, neighbor.map((value, axis) => value - (coord[axis] || 0))) || { coord: neighbor };
                 const path = this.edgePath(coord, step);
                 const color = z2GaugeEdges
                     ? new THREE.Color(this.game.value(edgeKey) > 0 ? 0x07111b : 0xf8fbff)
@@ -272,10 +279,10 @@ export class Algebraic3DBoard {
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
             new THREE.LineBasicMaterial({
-                color: z2GaugeEdges ? 0xffffff : topology.name === 'r3' ? 0x6ec8ec : 0x24150c,
+                color: z2GaugeEdges ? 0xffffff : topology.name === 'r3' ? 0x6ec8ec : 0x7dd3fc,
                 vertexColors: z2GaugeEdges,
                 transparent: true,
-                opacity: z2GaugeEdges ? 0.96 : topology.name === 'r3' ? 0.34 : 0.82,
+                opacity: z2GaugeEdges ? 0.96 : topology.name === 'r3' ? 0.38 : 0.68,
                 depthWrite: false
             })
         ));
@@ -288,23 +295,45 @@ export class Algebraic3DBoard {
         this.nodePoints = new THREE.Points(
             nodeGeometry,
             new THREE.PointsMaterial({
-                color: topology.name === 'r3' ? 0xe4f8ff : 0x24130b,
+                color: topology.name === 'r3' ? 0xe4f8ff : 0xf8fbff,
                 size: this.nodeSize(),
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.92,
+                opacity: 0.96,
                 depthWrite: false
             })
         );
         this.boardGroup.add(this.nodePoints);
     }
 
+    stepBetween(from, neighbor) {
+        const topology = this.game.topology;
+        if (!topology || typeof topology.step !== 'function') return null;
+        for (const direction of topology.directions()) {
+            const step = topology.step(from, direction);
+            if (step && keyOf(step.coord) === keyOf(neighbor)) return step;
+        }
+        return null;
+    }
+
     edgePath(from, step) {
-        if (this.game.topology.name === 'r3') {
+        const topology = this.game.topology;
+        if (topology.name === 'r3') {
             return [this.positionForCoord(from, 0), this.positionForCoord(step.coord, 0)];
         }
+        if (topology.name === 'sphere_latitude') {
+            const a = this.positionForCoord(from, 0.06);
+            const b = this.positionForCoord(step.coord, 0.06);
+            const samples = 8;
+            return Array.from({ length: samples }, (_, index) => {
+                const t = index / (samples - 1);
+                const point = a.clone().lerp(b, t);
+                if (point.lengthSq() > 1e-6) point.normalize().multiplyScalar(3.52);
+                return point;
+            });
+        }
         const rawTo = step.edge?.rawTo || step.coord;
-        const samples = 5;
+        const samples = topology.name === 'torus' || topology.name === 'sphere_latitude' ? 12 : 5;
         return Array.from({ length: samples }, (_, index) => {
             const t = index / (samples - 1);
             const coord = from.map((value, axis) => value + ((rawTo[axis] ?? step.coord[axis]) - value) * t);
@@ -522,8 +551,32 @@ export class Algebraic3DBoard {
         );
         mesh.castShadow = true;
         group.add(mesh);
+        const entity = this.game?.mode === 'anyon_jump'
+            ? this.game.tokenAt?.(coord)
+            : this.game?.getStone?.(coord);
+        this.addAgeRing(group, entity, radius);
         this.entityGroup.add(group);
         return group;
+    }
+
+    addAgeRing(group, entity, radius) {
+        if (!this.game?.time?.isEnabled?.() || !entity || typeof entity !== 'object') return;
+        const age = Number(entity.age || 0);
+        if (!Number.isFinite(age) || age <= 0) return;
+        const period = Math.max(1, Number(this.game.time?.config?.period || 4));
+        const progress = Math.max(0.04, Math.min(1, age / period));
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(radius * 1.6, radius * 0.055, 8, Math.max(8, Math.ceil(48 * progress)), TWO_PI * progress),
+            new THREE.MeshBasicMaterial({
+                color: progress >= 0.95 ? 0xffd166 : 0x7dd3fc,
+                transparent: true,
+                opacity: progress >= 0.95 ? 0.98 : 0.72,
+                depthWrite: false
+            })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.userData.ageRing = true;
+        group.add(ring);
     }
 
     renderMarkers() {

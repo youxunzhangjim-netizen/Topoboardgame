@@ -37,7 +37,8 @@ for (const boundary of ['r3', 't3', 'reflection', 'r3_random', 't2', 'sphere', '
 }
 
 for (const boundary of ['open2d', 'polar', 'pbc', 'klein', 'random']) {
-  for (const lattice of ['square', 'honeycomb', 'triangular']) {
+  const lattices = boundary === 'polar' ? ['square'] : ['square', 'honeycomb', 'triangular'];
+  for (const lattice of lattices) {
     jobs.push({ game: '2dgo', boundary, lattice, size: 9, games: counts.go, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 4 : 12, lr: 0.05 });
   }
 }

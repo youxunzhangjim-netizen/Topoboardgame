@@ -65,7 +65,7 @@ export class FirebaseStateNetworkManager {
         this.myColor = null;
         this.peer = { id: '' };
 
-        this.ready = this.init();
+        this.ready = null;
     }
 
     hooks() {
@@ -112,6 +112,8 @@ export class FirebaseStateNetworkManager {
                         id: message.id,
                         sender: message.uid === getOnlineState().uid ? 'me' : 'opponent',
                         player: message.player,
+                        author: message.displayName || message.player,
+                        displayName: message.displayName || '',
                         text: message.text
                     }));
                 }

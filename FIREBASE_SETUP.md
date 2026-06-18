@@ -49,3 +49,24 @@ firebase deploy --only firestore:rules
 ```
 
 When a user signs in with Google, Topoboardgame writes/updates `users/{uid}` with a small profile record. Guest users stay the default and are not required for local play.
+
+## Google login / visitor profile checklist
+
+Google login fails most often for one of these Firebase-side reasons:
+
+1. **Google provider is disabled**: Firebase Console → Authentication → Sign-in method → enable Google.
+2. **Anonymous provider is disabled**: enable Anonymous too, because visitor login and online rooms use temporary visitor profiles.
+3. **Authorized domain missing**: Firebase Console → Authentication → Settings → Authorized domains. Add:
+   - `youxunzhangjim-netizen.github.io`
+   - `localhost`
+   - `127.0.0.1`
+   - any custom domain used by the Steam web build or hosted test page
+4. **Cloud Firestore database missing**: create the default Firestore database.
+5. **Rules not deployed**: run `firebase deploy --only firestore:rules`.
+
+Profile behavior:
+
+- Offline Guest: no Firebase account is required for local play.
+- Visitor: signs in with Firebase Anonymous Auth and writes `users/{uid}` with `accountKind: "visitor"`.
+- Google: signs in or upgrades from visitor and writes `users/{uid}` with `accountKind: "google"`.
+- Profile write failures do not block login; this avoids locking users out while rules are being deployed.

@@ -109,3 +109,22 @@ The scoring formula is:
 score = living cells + territory bonus + stability bonus + diversity bonus
         - overcrowding penalty - extinction penalty
 ```
+
+## Geometry and lattice alignment with board games
+
+Life & Evolution Worlds now uses the same short geometry vocabulary as the 2D/3D Go and Reversi pages:
+
+```text
+R2, T2, Mobius, Klein, S2, RP2, R3, T3, 3D RBC, Reflective
+```
+
+Age, noise, mutation, species count, and topology defects are modifiers that can be applied to every Life board rather than separate top-level worlds. The Life UI therefore asks for board geometry and lattice first, then lets players or researchers add modifiers.
+
+Supported lattice families:
+
+```text
+2D: square, triangular, honeycomb
+3D: sc, bcc, fcc, hcp
+```
+
+The engine keeps the rule evolution intrinsic to the board graph. The canvas renderer can display the same graph as a cut-open 2D board, projected 3D surface, or layered 3D volume.

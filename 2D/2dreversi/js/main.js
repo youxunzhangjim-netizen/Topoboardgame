@@ -10,6 +10,11 @@ class Reversi2DApp {
         this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.boundarySelect = document.getElementById('boundarySelect');
         this.latticeSelect = document.getElementById('latticeSelect');
+        this.timeEvolutionSelect = document.getElementById('timeEvolutionSelect');
+        this.timeLifetimeInput = document.getElementById('timeLifetimeInput');
+        this.noiseModeSelect = document.getElementById('noiseModeSelect');
+        this.noiseRateInput = document.getElementById('noiseRateInput');
+        this.noisePeriodInput = document.getElementById('noisePeriodInput');
         this.statusEl = document.getElementById('gameStatus');
         this.summaryEl = document.getElementById('moveSummary');
         this.turnEl = document.getElementById('playerTurn');
@@ -33,6 +38,8 @@ class Reversi2DApp {
         this.lastRect = null;
         this.myColor = null;
         this.chatMessages = [];
+        this.pieceAges = {};
+        this.noiseTick = 0;
 
         this.applyUrlSettings();
         this.logic = this.createLogic();
@@ -54,7 +61,7 @@ class Reversi2DApp {
     }
 
     setSizeSelection(value) {
-        const size = normalizeReversiSize(value, { fallback: 12, max: 30 });
+        const size = normalizeReversiSize(value, { fallback: 8, max: 30 });
         const option = [...this.sizeSelect.options].find((item) => item.value === String(size));
         this.sizeSelect.value = option ? String(size) : 'custom';
         this.customSizeInput.value = String(size);
@@ -63,7 +70,7 @@ class Reversi2DApp {
 
     boardSize() {
         const source = this.sizeSelect.value === 'custom' ? this.customSizeInput.value : this.sizeSelect.value;
-        return normalizeReversiSize(source, { fallback: 12, max: 30 });
+        return normalizeReversiSize(source, { fallback: 8, max: 30 });
     }
 
     createLogic() {
@@ -73,6 +80,69 @@ class Reversi2DApp {
             size: this.boardSize(),
             maxSize: 30
         });
+    }
+
+    dynamicControls() {
+        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+    }
+
+    dynamicsSettings() {
+        return {
+            timeEvolution: this.timeEvolutionSelect?.value || 'off',
+            lifetime: Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60))),
+            noiseMode: this.noiseModeSelect?.value || 'off',
+            noiseRate: Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0)),
+            noisePeriod: Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)))
+        };
+    }
+
+    setDynamicsSettings(settings = {}) {
+        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
+        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
+        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
+        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
+        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    }
+
+    syncPieceAges() {
+        const next = {};
+        for (const coord of this.logic.topology.allCoords()) {
+            const stone = this.logic.get(coord);
+            if (!stone) continue;
+            const key = this.logic.key(coord);
+            next[key] = Math.max(1, Number(this.pieceAges?.[key]) || 1);
+        }
+        this.pieceAges = next;
+    }
+
+    applyTimeEvolutionAndNoise() {
+        const settings = this.dynamicsSettings();
+        this.syncPieceAges();
+        if (settings.timeEvolution !== 'off') {
+            for (const key of Object.keys(this.pieceAges)) this.pieceAges[key] = Number(this.pieceAges[key] || 0) + 1;
+            if (settings.timeEvolution === 'decay') {
+                for (const coord of this.logic.topology.allCoords()) {
+                    const stone = this.logic.get(coord);
+                    if (!stone) continue;
+                    const key = this.logic.key(coord);
+                    if ((this.pieceAges[key] || 1) > settings.lifetime) this.logic.delete(coord);
+                }
+            }
+        }
+        if (settings.noiseMode !== 'off' && settings.noiseRate > 0) {
+            this.noiseTick += 1;
+            if (this.noiseTick % settings.noisePeriod === 0) {
+                for (const coord of this.logic.topology.allCoords()) {
+                    const stone = this.logic.get(coord);
+                    if (settings.noiseMode === 'random-death' && stone && Math.random() < settings.noiseRate) {
+                        this.logic.delete(coord);
+                    } else if (settings.noiseMode === 'random-birth' && !stone && Math.random() < settings.noiseRate * 0.04) {
+                        this.logic.set(coord, { color: this.logic.currentPlayer });
+                    }
+                }
+            }
+        }
+        this.syncPieceAges();
     }
 
     bindEvents() {
@@ -93,6 +163,7 @@ class Reversi2DApp {
         });
         this.boundarySelect.addEventListener('change', () => this.resetGame());
         this.latticeSelect.addEventListener('change', () => this.resetGame());
+        this.dynamicControls().forEach((control) => control.addEventListener('change', () => this.resetGame()));
         this.passBtn.addEventListener('click', () => this.passTurn());
         this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
         this.gameModeSelect?.addEventListener('change', () => {
@@ -125,6 +196,8 @@ class Reversi2DApp {
 
     resetGame({ broadcast = false } = {}) {
         this.logic = this.createLogic();
+        this.pieceAges = {};
+        this.noiseTick = 0;
         this.setStatus('New Reversi game started.');
         this.robot?.clearAnalysis();
         this.updateUI();
@@ -188,6 +261,7 @@ class Reversi2DApp {
     }
 
     afterLocalAction(message) {
+        this.applyTimeEvolutionAndNoise();
         this.setStatus(message);
         this.updateUI();
         this.broadcastState();
@@ -458,6 +532,32 @@ class Reversi2DApp {
         this.ctx.strokeStyle = color === 'black' ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.34)';
         this.ctx.lineWidth = Math.max(1, rect.step * 0.025);
         this.ctx.stroke();
+        this.drawAgeRing(cx, cy, radius * 1.22, this.pieceAges?.[this.logic.key(coord)], this.dynamicsSettings());
+    }
+
+    drawAgeRing(x, y, radius, age, settings = this.dynamicsSettings()) {
+        const mode = settings?.timeEvolution || 'off';
+        const numericAge = Number(age || 0);
+        if (mode === 'off' || !Number.isFinite(numericAge) || numericAge <= 0) return;
+        const lifetime = Math.max(1, Number(settings?.lifetime) || 1);
+        const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.lineWidth = Math.max(2, radius * 0.09);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(248, 113, 113, 0.96)' : 'rgba(56, 189, 248, 0.9)';
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = progress >= 0.96 ? 10 : 4;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+        ctx.stroke();
+        if (mode === 'decay' && progress >= 0.96) {
+            ctx.setLineDash([Math.max(3, radius * 0.28), Math.max(3, radius * 0.18)]);
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 1.08, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 
     drawLegalDot(coord, rect) {
@@ -523,7 +623,8 @@ class Reversi2DApp {
         if (this.logic.gameOver) this.setStatus(this.resultText());
         this.renderHistory();
         this.render();
-        this.robot?.updatePanelState();
+        if (this.logic.gameOver) this.robot?.renderFinalWinRateFlow?.();
+        else this.robot?.updatePanelState();
     }
 
     renderHistory() {
@@ -552,6 +653,12 @@ class Reversi2DApp {
         return this.gameModeSelect?.value !== 'online' || (this.network?.isConnected && this.myColor === color);
     }
 
+    updateOnlineStatusLine(text = '', visible = false) {
+        if (!this.onlineColorEl) return;
+        this.onlineColorEl.textContent = text;
+        this.onlineColorEl.hidden = !visible;
+    }
+
     updateOnlineControls() {
         const mode = this.gameModeSelect?.value || 'local';
         const online = mode === 'online';
@@ -559,20 +666,16 @@ class Reversi2DApp {
         if (!online) {
             this.myColor = null;
             this.network?.close?.({ silent: true });
-            this.setOnlineColor(null);
-            if (this.onlineColorEl) {
-                this.onlineColorEl.textContent = mode === 'robot'
-                    ? `Local robot opponent (${this.robot?.side || 'white'})`
-                    : 'Local pass and play';
-            }
+            if (mode === 'robot') this.updateOnlineStatusLine(`Local robot opponent (${this.robot?.side || 'white'})`, true);
+            else this.updateOnlineStatusLine('', false);
+        } else if (!this.myColor) {
+            this.updateOnlineStatusLine('Online mode selected.', true);
         }
     }
 
     setOnlineColor(color, roomId = this.network?.roomId) {
         this.myColor = color;
-        if (this.onlineColorEl) {
-            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : 'Local pass and play';
-        }
+        this.updateOnlineStatusLine(color ? `Online as ${this.capitalize(color)}` : '', Boolean(color));
         if (this.shareLinkInput && roomId) {
             const url = new URL(window.location.href);
             url.searchParams.set('room', roomId);
@@ -594,7 +697,8 @@ class Reversi2DApp {
     }
 
     onlineMatchKey() {
-        return ['2dreversi', this.boundarySelect.value, this.latticeSelect.value, this.boardSize()].join(':');
+        const d = this.dynamicsSettings();
+        return ['2dreversi', this.boundarySelect.value, this.latticeSelect.value, this.boardSize(), d.timeEvolution, d.lifetime, d.noiseMode, d.noiseRate, d.noisePeriod].join(':');
     }
 
     exportNetworkState() {
@@ -602,7 +706,10 @@ class Reversi2DApp {
             logic: this.logic.exportState(),
             size: this.boardSize(),
             topology: this.boundarySelect.value,
-            lattice: this.latticeSelect.value
+            lattice: this.latticeSelect.value,
+            dynamics: this.dynamicsSettings(),
+            pieceAges: { ...this.pieceAges },
+            noiseTick: this.noiseTick
         };
     }
 
@@ -611,6 +718,9 @@ class Reversi2DApp {
         this.logic.importState(state.logic);
         this.boundarySelect.value = state.topology || this.logic.topology.topology || this.boundarySelect.value;
         this.latticeSelect.value = state.lattice || this.logic.topology.lattice || this.latticeSelect.value;
+        this.setDynamicsSettings(state.dynamics || {});
+        this.pieceAges = { ...(state.pieceAges || {}) };
+        this.noiseTick = Number(state.noiseTick) || 0;
         this.setSizeSelection(state.size || this.logic.topology.width);
         this.setStatus('Synced online game.');
         this.updateUI();
@@ -637,7 +747,7 @@ class Reversi2DApp {
             this.chatMessagesEl.innerHTML = '<div class="chat-empty">Connect online to chat.</div>';
             return;
         }
-        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.capitalize(message.player || 'player')}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
+        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.escapeHTML(message.displayName || this.capitalize(message.player || 'player'))}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
         this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
     }
 

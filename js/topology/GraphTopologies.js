@@ -311,7 +311,8 @@ function normalizeRP2Coord(rawCoord, sizes) {
 function create2DTopology(config) {
     const name = config.topology;
     const latticeValue = String(config.lattice || 'square').toLowerCase();
-    const lattice = ['honeycomb', 'hex_cells', 'triangular'].includes(latticeValue) ? latticeValue : 'square';
+    let lattice = ['honeycomb', 'hex_cells', 'triangular'].includes(latticeValue) ? latticeValue : 'square';
+    if (name === 'sphere_latitude' && lattice === 'honeycomb') lattice = 'square';
     const width = integer(config.width, 8, 2, 32);
     const height = integer(config.height, 8, 2, 32);
     const sizes = [width, height];

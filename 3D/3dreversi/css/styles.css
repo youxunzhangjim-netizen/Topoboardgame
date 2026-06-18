@@ -226,3 +226,28 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
     background: rgba(72,199,244,0.12);
     border: 1px solid rgba(72,199,244,0.2);
 }
+
+/* R3 coordinate plane filter */
+.r3-filter-control { border-color: rgba(125, 211, 252, 0.24); background: rgba(8, 13, 20, 0.58); }
+.r3-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.r3-filter-grid input { min-width: 0; text-align: center; }
+
+/* R3 slice controls: x/y/z empty means full board; values are 1-based layers. */
+.r3-slice-filter {
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(8, 13, 20, 0.72);
+}
+.r3-slice-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+.r3-slice-row input {
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+    font-weight: 800;
+}

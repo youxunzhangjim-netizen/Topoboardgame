@@ -588,7 +588,7 @@ h2 {
 
 .game-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(310px, 380px);
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
 }
 
@@ -635,7 +635,7 @@ h2 {
 
 .board {
     width: 100%;
-    max-width: min(78vh, 840px);
+    max-width: min(86vh, 980px);
     margin: 0 auto;
     display: grid;
     gap: 3px;
@@ -696,6 +696,62 @@ h2 {
         transparent 53%
     );
 }
+
+.board.go-node-board {
+    gap: 0;
+    padding: clamp(8px, 1.8vw, 18px);
+    border: 1px solid rgba(137, 166, 179, 0.28);
+    border-radius: 8px;
+    background: radial-gradient(circle at center, rgba(34, 48, 64, 0.74), rgba(11, 17, 23, 0.94));
+}
+
+.board.go-node-board .cell,
+.board.go-node-board .cell:nth-child(odd) {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+}
+
+.board.go-node-board .cell::before,
+.board.go-node-board .cell::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    background: rgba(137, 166, 179, 0.38);
+}
+
+.board.go-node-board .cell::before {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-0.5px);
+}
+
+.board.go-node-board .cell::after {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transform: translateY(-0.5px);
+}
+
+.board.go-node-board .cell.legal {
+    box-shadow: inset 0 0 0 999px rgba(66, 198, 255, 0.08);
+}
+
+.board.go-node-board .cell.preview-flip {
+    box-shadow: inset 0 0 0 999px rgba(242, 196, 100, 0.12);
+}
+
+.board.go-node-board .stone.go-stone,
+.board.go-node-board .stone.cluster-site {
+    inset: 19%;
+    z-index: 2;
+}
+
 
 .board.lattice-honeycomb-nodes,
 .board.lattice-hex-cells {
@@ -1133,7 +1189,7 @@ h2 {
 
 .qec-observable-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 7px;
 }
 
@@ -1291,25 +1347,36 @@ h2 {
 .side-panel {
     padding: 14px;
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     align-content: start;
+    align-items: start;
     gap: 14px;
 }
 
 .side-panel section {
+    min-width: 0;
     display: grid;
     gap: 8px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(218, 232, 224, 0.13);
+    padding: 12px;
+    border: 1px solid rgba(218, 232, 224, 0.13);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.32);
 }
 
 .side-panel section:last-child {
-    border-bottom: 0;
-    padding-bottom: 0;
+    border-bottom: 1px solid rgba(218, 232, 224, 0.13);
+    padding-bottom: 12px;
+}
+
+.cft-observable-panel,
+.qec-observable-panel,
+.final-answer-panel {
+    grid-column: 1 / -1;
 }
 
 .stat-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
 }
 
@@ -1484,4 +1551,62 @@ textarea {
     .board {
         gap: 2px;
     }
+}
+
+/* Temporal age indicator: a full circle means the piece is due for the current age/noise cycle. */
+.cell .age-ring {
+    position: absolute;
+    inset: 11%;
+    border-radius: 999px;
+    pointer-events: none;
+    background: conic-gradient(rgba(245, 182, 71, 0.96) 0 var(--age-angle), rgba(245, 182, 71, 0.08) var(--age-angle) 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    opacity: 0.88;
+    z-index: 7;
+}
+.cell .age-ring.age-ring-due { filter: drop-shadow(0 0 8px rgba(245, 182, 71, 0.86)); opacity: 1; }
+
+/* More balanced Spin / Phase lab controls. */
+body[data-mode="ising_domain_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="two_phase_competition_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="spin_ice_vertex_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="z2_gauge_loop_game"] .section-algebra > .algebra-mode-fields {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: end;
+}
+body[data-mode="ising_domain_game"] .section-dynamics .control-fields,
+body[data-mode="two_phase_competition_game"] .section-dynamics .control-fields,
+body[data-mode="spin_ice_vertex_game"] .section-dynamics .control-fields,
+body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+/* Temporal age indicator: a full circle means the piece is due for the current age/noise cycle. */
+.cell .age-ring {
+    position: absolute;
+    inset: 11%;
+    border-radius: 999px;
+    pointer-events: none;
+    background: conic-gradient(rgba(245, 182, 71, 0.96) 0 var(--age-angle), rgba(245, 182, 71, 0.08) var(--age-angle) 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    opacity: 0.88;
+    z-index: 7;
+}
+.cell .age-ring.age-ring-due { filter: drop-shadow(0 0 8px rgba(245, 182, 71, 0.86)); opacity: 1; }
+
+/* More balanced Spin / Phase lab controls. */
+body[data-mode="ising_domain_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="two_phase_competition_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="spin_ice_vertex_game"] .section-algebra > .algebra-mode-fields,
+body[data-mode="z2_gauge_loop_game"] .section-algebra > .algebra-mode-fields {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: end;
+}
+body[data-mode="ising_domain_game"] .section-dynamics .control-fields,
+body[data-mode="two_phase_competition_game"] .section-dynamics .control-fields,
+body[data-mode="spin_ice_vertex_game"] .section-dynamics .control-fields,
+body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }

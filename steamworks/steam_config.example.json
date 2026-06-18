@@ -1,0 +1,30 @@
+{
+  "steamAccountName": "REPLACE_WITH_STEAMWORKS_LOGIN_NAME",
+  "appId": "REPLACE_WITH_STEAM_APP_ID",
+  "description": "Topoboardgame Windows build",
+  "setLiveBranch": "",
+  "contentRoot": "../release",
+  "buildOutput": "../steamworks/build-output",
+  "depots": {
+    "windows": {
+      "depotId": "REPLACE_WITH_WINDOWS_DEPOT_ID",
+      "contentRoot": "../release",
+      "enabled": true
+    },
+    "macos": {
+      "depotId": "REPLACE_WITH_MAC_DEPOT_ID",
+      "contentRoot": "../release",
+      "enabled": false
+    },
+    "linux": {
+      "depotId": "REPLACE_WITH_LINUX_DEPOT_ID",
+      "contentRoot": "../release",
+      "enabled": false
+    }
+  },
+  "notes": [
+    "Do not put Steam password or Steam Guard code in this file.",
+    "Copy this file to steamworks/steam_config.local.json and fill IDs locally.",
+    "Keep steam_config.local.json out of Git."
+  ]
+}

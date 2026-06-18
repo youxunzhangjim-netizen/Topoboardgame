@@ -13,6 +13,7 @@ export class GoRobotController {
         this.depth = 2;
         this.thinking = false;
         this.pendingTimer = null;
+        this.finalFlowKey = '';
     }
 
     attach() {
@@ -43,7 +44,12 @@ export class GoRobotController {
         if (!this.isRobotTurn()) return;
         this.pendingTimer = window.setTimeout(() => this.forceMove(), 180);
     }
-    afterLocalAction() { this.clearAnalysis(); this.scheduleIfNeeded(); }
+    afterLocalAction() {
+        if (this.app.logic.gameOver) { this.renderFinalWinRateFlow(); return; }
+        this.finalFlowKey = '';
+        this.clearAnalysis();
+        this.scheduleIfNeeded();
+    }
 
     async forceMove() {
         if (this.thinking || this.app.logic.gameOver || this.app.logic.scoringPending) return;
@@ -68,7 +74,7 @@ export class GoRobotController {
             }
             const label = result.move.type === 'pass' ? 'Pass' : coordLabel(result.move.coord);
             this.app.afterLocalAction(`Robot played ${label}. ${this.app.capitalize(this.app.logic.currentPlayer)} to play.`);
-            this.setMessage(`Robot played ${label}. Score ${formatScore(result.score)}. Sims ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`);
+            if (!this.app.logic.gameOver) this.setMessage(`Robot played ${label}. Score ${formatScore(result.score)}. Sims ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`);
         } catch (error) {
             console.error(error);
             this.setMessage(`Robot error: ${error.message}`);
@@ -111,6 +117,19 @@ export class GoRobotController {
         `;
     }
 
+
+    renderFinalWinRateFlow() {
+        if (!this.output || !this.app.logic?.gameOver) return;
+        const key = `${this.app.logic.moveNumber}:${this.app.logic.winner}:${this.app.logic.positionHistory?.length || 0}`;
+        if (this.finalFlowKey === key) return;
+        this.finalFlowKey = key;
+        const flow = buildGoWinRateFlow(this.app.logic);
+        this.output.innerHTML = renderWinRateFlowChart(flow, {
+            title: 'Final win-rate flow',
+            note: 'Robot heuristic from saved board history; it is an evaluation curve, not a solved-game proof.'
+        });
+    }
+
     updatePanelState() {
         if (this.sideSelect) this.sideSelect.value = this.side;
         if (this.depthSelect) this.depthSelect.value = String(this.depth);
@@ -119,6 +138,13 @@ export class GoRobotController {
     }
     clearAnalysis() { if (this.output) this.output.innerHTML = '<p class="robot-muted">Click Analyze Position to rank legal plays, estimate win rate, and show group values.</p>'; }
     setMessage(message) { if (this.output) this.output.innerHTML = `<p class="robot-muted">${escapeHtml(message)}</p>`; }
+}
+
+
+export function estimateGoWinRates(logic) {
+    const blackScore = evaluateGo(logic, 'black');
+    const blackWinRate = scoreToWinRate(blackScore);
+    return { blackWinRate, whiteWinRate: 1 - blackWinRate, score: blackScore };
 }
 
 export function chooseGoRobotMove(logic, depth = 2) {
@@ -391,6 +417,78 @@ function explainGoMove(before, after, move, player, score) {
     if (score < -15) reasons.push('bad because opponent replies reduce the searched value');
     if (!reasons.length) reasons.push('keeps the searched position stable');
     return reasons;
+}
+
+
+function buildGoWinRateFlow(logic) {
+    const snapshots = Array.isArray(logic.positionHistory) && logic.positionHistory.length
+        ? logic.positionHistory
+        : [logic.serializeBoard(logic.board)];
+    const maxPoints = 72;
+    const stride = Math.max(1, Math.ceil(snapshots.length / maxPoints));
+    const baseState = logic.exportState();
+    const series = [];
+    for (let i = 0; i < snapshots.length; i += stride) {
+        const serialized = String(snapshots[i] || '');
+        const clone = cloneGoLogic(logic);
+        clone.importState({
+            ...baseState,
+            board: Array.from(serialized, (char) => Number(char) || 0),
+            currentPlayer: i % 2 === 0 ? 'black' : 'white',
+            gameOver: false,
+            winner: '',
+            moveHistory: [],
+            positionHistory: [serialized]
+        });
+        const estimate = estimateGoWinRates(clone);
+        series.push({ move: i, black: estimate.blackWinRate, white: estimate.whiteWinRate });
+    }
+    const finalEstimate = estimateGoWinRates(logic);
+    let black = finalEstimate.blackWinRate;
+    let white = finalEstimate.whiteWinRate;
+    if (logic.gameOver && logic.winner === 'black') { black = 0.999; white = 0.001; }
+    else if (logic.gameOver && logic.winner === 'white') { black = 0.001; white = 0.999; }
+    else if (logic.gameOver && logic.winner === 'draw') { black = 0.5; white = 0.5; }
+    const finalMove = Math.max(logic.moveNumber || snapshots.length - 1, series.at(-1)?.move || 0);
+    if (!series.length || series.at(-1).move !== finalMove) series.push({ move: finalMove, black, white });
+    else Object.assign(series[series.length - 1], { black, white });
+    return series;
+}
+
+function renderWinRateFlowChart(series, { title, note }) {
+    const safe = Array.isArray(series) && series.length ? series : [{ move: 0, black: 0.5, white: 0.5 }];
+    const width = 680;
+    const height = 210;
+    const left = 42;
+    const right = 18;
+    const top = 18;
+    const bottom = 34;
+    const maxMove = Math.max(1, ...safe.map((item) => Number(item.move) || 0));
+    const x = (move) => left + ((Number(move) || 0) / maxMove) * (width - left - right);
+    const y = (rate) => top + (1 - Math.max(0.001, Math.min(0.999, Number(rate) || 0))) * (height - top - bottom);
+    const toPoints = (key) => safe.map((item) => `${x(item.move).toFixed(1)},${y(item[key]).toFixed(1)}`).join(' ');
+    const last = safe.at(-1);
+    return `
+        <section class="robot-final-flow">
+            <h4>${escapeHtml(title)}</h4>
+            <svg class="robot-flow-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Final win-rate flow chart for both players">
+                <line class="robot-flow-axis" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"></line>
+                <line class="robot-flow-axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line>
+                <line class="robot-flow-axis" x1="${left}" y1="${y(0.5).toFixed(1)}" x2="${width - right}" y2="${y(0.5).toFixed(1)}"></line>
+                <polyline class="robot-flow-black" points="${toPoints('black')}"></polyline>
+                <polyline class="robot-flow-white" points="${toPoints('white')}"></polyline>
+                <text class="robot-flow-label" x="6" y="${y(1).toFixed(1) + 4}">100%</text>
+                <text class="robot-flow-label" x="12" y="${y(0.5).toFixed(1) + 4}">50%</text>
+                <text class="robot-flow-label" x="16" y="${y(0).toFixed(1)}">0%</text>
+                <text class="robot-flow-label" x="${left}" y="${height - 8}">start</text>
+                <text class="robot-flow-label" x="${width - 106}" y="${height - 8}">move ${Math.round(maxMove)}</text>
+            </svg>
+            <div class="robot-flow-legend">
+                <span style="color:#e5e7eb"><i class="robot-flow-swatch"></i>Black ${(100 * last.black).toFixed(1)}%</span>
+                <span style="color:#f2c464"><i class="robot-flow-swatch"></i>White ${(100 * last.white).toFixed(1)}%</span>
+            </div>
+            <p class="robot-muted">${escapeHtml(note)}</p>
+        </section>`;
 }
 
 function cloneGoLogic(logic) {

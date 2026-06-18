@@ -1,15 +1,18 @@
 import { getApp, getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
 import {
-    browserLocalPersistence,
+    browserSessionPersistence,
+    browserPopupRedirectResolver,
     getAuth,
+    getRedirectResult,
     GoogleAuthProvider,
     initializeAuth,
-    linkWithPopup,
     onAuthStateChanged,
     setPersistence,
     signInAnonymously,
     signInWithPopup,
-    signOut
+    signInWithRedirect,
+    signOut,
+    updateProfile
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import {
     addDoc,
@@ -32,6 +35,56 @@ import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
 
 const roomsPath = 'rooms';
 const usersPath = 'users';
+const authLogPrefix = '[Topoboardgame Firebase/Auth]';
+
+function authLog(step, payload = undefined) {
+    try {
+        if (payload === undefined) console.log(authLogPrefix, step);
+        else console.log(authLogPrefix, step, payload);
+    } catch {
+        // Ignore console failures in embedded browsers.
+    }
+}
+
+function authWarn(step, payload = undefined) {
+    try {
+        if (payload === undefined) console.warn(authLogPrefix, step);
+        else console.warn(authLogPrefix, step, payload);
+    } catch {
+        // Ignore console failures in embedded browsers.
+    }
+}
+
+function authError(step, payload = undefined) {
+    try {
+        if (payload === undefined) console.error(authLogPrefix, step);
+        else console.error(authLogPrefix, step, payload);
+    } catch {
+        // Ignore console failures in embedded browsers.
+    }
+}
+
+function authErrorSummary(error) {
+    return {
+        code: error?.code || '',
+        name: error?.name || '',
+        message: String(error?.message || error || ''),
+        stack: String(error?.stack || '')
+    };
+}
+
+function authUserSummary(currentUser) {
+    if (!currentUser) return null;
+    return {
+        uid: currentUser.uid || '',
+        isAnonymous: Boolean(currentUser.isAnonymous),
+        providerIds: Array.isArray(currentUser.providerData)
+            ? currentUser.providerData.map((provider) => provider?.providerId).filter(Boolean)
+            : [],
+        emailVerified: Boolean(currentUser.emailVerified),
+        displayName: currentUser.displayName || ''
+    };
+}
 
 let firebaseApp = null;
 let authReadyPromise = null;
@@ -52,6 +105,7 @@ let latestRoom = null;
 let lastLoadedMoveNumber = -1;
 let firestoreReady = false;
 let firestoreInitError = '';
+let lastProfileWrite = { ok: false, path: '', error: '' };
 const reconnectStorageKey = 'topoboardgame:firebase-room';
 const operationTimeoutMs = 10000;
 const matchmakingBucketMs = 60000;
@@ -61,6 +115,96 @@ const duplicateIdentityWaitMs = 220;
 const tabInstanceId = globalThis.crypto?.randomUUID?.()
     || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 let identityChannel = null;
+
+const guestProfileStorageKey = 'topoboardgame:guest-profile';
+const displayNameStorageKey = 'topoboardgame:display-name';
+
+function safeLocalStorageGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function safeLocalStorageSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch {
+        // Ignore blocked local storage.
+    }
+}
+function safeLocalStorageRemove(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch {
+        // Ignore blocked local storage.
+    }
+}
+
+function sanitizeDisplayName(value) {
+    const cleaned = String(value || '')
+        .replace(/[\u0000-\u001f\u007f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 24);
+    return cleaned || 'Player';
+}
+
+function userDisplayNameStorageKey(currentUser) {
+    return currentUser?.uid ? `${displayNameStorageKey}:${currentUser.uid}` : displayNameStorageKey;
+}
+
+function localDisplayName(currentUser) {
+    return safeLocalStorageGet(userDisplayNameStorageKey(currentUser));
+}
+
+function setLocalDisplayName(currentUser, value) {
+    const name = sanitizeDisplayName(value);
+    safeLocalStorageSet(userDisplayNameStorageKey(currentUser), name);
+    return name;
+}
+
+function displayNameForUser(currentUser) {
+    if (!currentUser) return 'Offline Guest';
+    if (currentUser.isAnonymous) return guestDisplayName(currentUser);
+    return sanitizeDisplayName(localDisplayName(currentUser) || currentUser.displayName || currentUser.email?.split('@')?.[0] || 'Player');
+}
+
+
+function shortUid(uid = '') {
+    return String(uid).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || Math.random().toString(36).slice(2, 10);
+}
+
+function guestDisplayName(currentUser) {
+    const uid = currentUser?.uid || 'guest';
+    const existing = safeLocalStorageGet(`${guestProfileStorageKey}:${uid}:name`);
+    if (existing) return existing;
+    const generated = 'Visitor';
+    safeLocalStorageSet(`${guestProfileStorageKey}:${uid}:name`, generated);
+    return generated;
+}
+
+function isGoogleUser(currentUser) {
+    return Boolean(currentUser && !currentUser.isAnonymous);
+}
+
+function accountKindForUser(currentUser) {
+    if (!currentUser) return 'offline-guest';
+    return currentUser.isAnonymous ? 'visitor' : 'google';
+}
+
+function profilePathForUser(currentUser) {
+    return currentUser?.uid ? `${usersPath}/${currentUser.uid}` : '';
+}
+
+function profileWriteStateForUser(currentUser) {
+    const path = profilePathForUser(currentUser);
+    if (!path) return { ok: false, path: '', error: '' };
+    return lastProfileWrite.path === path
+        ? { ...lastProfileWrite }
+        : { ok: false, path, error: '' };
+}
 
 function getFirebaseAppInstance() {
     if (firebaseApp) return firebaseApp;
@@ -102,27 +246,34 @@ function installAccountObserver() {
     authObserverInstalled = true;
     onAuthStateChanged(auth, async (nextUser) => {
         user = nextUser || null;
+        if (!nextUser) {
+            lastProfileWrite = { ok: false, path: '', error: '' };
+        }
         notifyAccountListeners();
-        if (nextUser && !nextUser.isAnonymous) {
-            await upsertGoogleUserProfile(nextUser, { source: 'auth-state' });
+        if (nextUser) {
+            await upsertUserProfile(nextUser, { source: nextUser.isAnonymous ? 'visitor-auth-state' : 'auth-state' });
+            notifyAccountListeners();
         }
     });
 }
 
 async function ensureFirebaseCore() {
+    authLog('ensureFirebaseCore: entered', { hasConfig: hasFirebaseConfig(), hasAuth: Boolean(auth), hasDb: Boolean(db) });
     if (!hasFirebaseConfig()) {
-        return { ok: false, configured: false, error: 'Firebase config needed: fill in firebaseConfig.js.' };
+        authWarn('ensureFirebaseCore: missing firebaseConfig.js values');
+        return { ok: false, configured: false, error: 'Online service is not configured in this build.' };
     }
     const app = getFirebaseAppInstance();
     if (!auth) {
         try {
             auth = initializeAuth(app, {
-                persistence: browserLocalPersistence
+                persistence: browserSessionPersistence,
+                popupRedirectResolver: browserPopupRedirectResolver
             });
         } catch {
             auth = getAuth(app);
             try {
-                await setPersistence(auth, browserLocalPersistence);
+                await setPersistence(auth, browserSessionPersistence);
             } catch {
                 // Fall back to Firebase's default persistence if local storage is blocked.
             }
@@ -134,57 +285,116 @@ async function ensureFirebaseCore() {
             experimentalAutoDetectLongPolling: true
         });
     }
+    authLog('ensureFirebaseCore: ready', { hasAuth: Boolean(auth), hasDb: Boolean(db), currentUser: authUserSummary(auth?.currentUser || null) });
     return { ok: true, configured: true, auth, db };
 }
 
 function publicUserProfile(currentUser) {
     if (!currentUser) return null;
+    const kind = accountKindForUser(currentUser);
+    const displayName = displayNameForUser(currentUser);
     return {
         uid: currentUser.uid,
-        displayName: currentUser.displayName || 'Player',
+        displayName,
         photoURL: currentUser.photoURL || null,
         providerId: currentUser.providerData?.[0]?.providerId || (currentUser.isAnonymous ? 'anonymous' : 'firebase'),
+        accountKind: kind,
         isAnonymous: Boolean(currentUser.isAnonymous),
         emailVerified: Boolean(currentUser.emailVerified)
     };
 }
 
-async function upsertGoogleUserProfile(currentUser, { source = 'login' } = {}) {
-    if (!db || !currentUser || currentUser.isAnonymous) return null;
+async function upsertUserProfile(currentUser, { source = 'session' } = {}) {
+    if (!db || !currentUser) return null;
+    const path = profilePathForUser(currentUser);
     const ref = doc(db, usersPath, currentUser.uid);
+    lastProfileWrite = { ok: false, path, error: '' };
     let exists = false;
     try {
         exists = (await getDoc(ref)).exists();
-    } catch {
-        // If rules are not deployed yet, login should still succeed.
+    } catch (error) {
+        // If rules are not deployed yet, login/visitor mode should still succeed,
+        // but the account menu should reveal why users/{uid} is not visible.
+        lastProfileWrite = { ok: false, path, error: String(error?.message || error || 'Profile read failed.') };
         return null;
     }
     const profile = publicUserProfile(currentUser);
     const data = {
         ...profile,
-        accountKind: 'google',
         source,
         lastSeenAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     };
-    if (!exists) data.createdAt = serverTimestamp();
-    await setDoc(ref, data, { merge: true });
-    return data;
+    if (!exists) {
+        data.createdAt = serverTimestamp();
+        data.stats = {
+            gamesStarted: 0,
+            roomsCreated: 0,
+            lastGameKey: '',
+            lastMatchKey: ''
+        };
+    }
+    try {
+        await setDoc(ref, data, { merge: true });
+        lastProfileWrite = { ok: true, path, error: '' };
+        return data;
+    } catch (error) {
+        // Profile writes are useful but should not block auth.
+        lastProfileWrite = { ok: false, path, error: String(error?.message || error || 'Profile write failed.') };
+        return null;
+    }
+}
+
+async function upsertGoogleUserProfile(currentUser, { source = 'login' } = {}) {
+    if (!db || !isGoogleUser(currentUser)) return null;
+    return upsertUserProfile(currentUser, { source });
+}
+
+async function upsertVisitorUserProfile(currentUser, { source = 'visitor-login' } = {}) {
+    if (!db || !currentUser || !currentUser.isAnonymous) return null;
+    return upsertUserProfile(currentUser, { source });
+}
+
+async function completePendingGoogleRedirect() {
+    if (!auth) return null;
+    try {
+        const result = await getRedirectResult(auth, browserPopupRedirectResolver);
+        if (result?.user) {
+            user = result.user;
+            await upsertGoogleUserProfile(user, { source: 'google-redirect' });
+            notifyAccountListeners();
+            return result;
+        }
+    } catch (error) {
+        authWarn('completePendingGoogleRedirect: redirect result failed', authErrorSummary(error));
+        // Redirect result errors are shown only when the user explicitly tries login again.
+    }
+    return null;
 }
 
 export function getAccountState() {
     const currentUser = auth?.currentUser || user || null;
-    const signedIn = Boolean(currentUser && !currentUser.isAnonymous);
+    const signedIn = isGoogleUser(currentUser);
+    const isVisitor = Boolean(currentUser?.isAnonymous);
+    const profileWrite = profileWriteStateForUser(currentUser);
     return {
         configured: hasFirebaseConfig(),
         ready: Boolean(auth),
         uid: currentUser?.uid || null,
+        accountKind: accountKindForUser(currentUser),
         signedIn,
-        isGuest: !signedIn,
+        isGoogle: signedIn,
+        isVisitor,
+        isGuest: !currentUser,
+        isOfflineGuest: !currentUser,
         isAnonymous: Boolean(currentUser?.isAnonymous),
-        displayName: signedIn ? (currentUser.displayName || 'Player') : 'Guest',
+        displayName: displayNameForUser(currentUser),
+        canEditDisplayName: Boolean(currentUser && !currentUser.isAnonymous),
         photoURL: signedIn ? (currentUser.photoURL || null) : null,
-        emailVerified: signedIn ? Boolean(currentUser.emailVerified) : false
+        emailVerified: signedIn ? Boolean(currentUser.emailVerified) : false,
+        profilePath: profileWrite.path,
+        profileSynced: profileWrite.ok,
+        profileError: profileWrite.error
     };
 }
 
@@ -194,46 +404,158 @@ export function subscribeAccountState(listener) {
     return () => accountListeners.delete(listener);
 }
 
-export async function initAccountSession() {
+export async function initAccountSession({ autoVisitor = false } = {}) {
     const ready = await ensureFirebaseCore();
     if (!ready.ok) {
         notifyAccountListeners();
         return getAccountState();
     }
     await waitForInitialAuthState();
+    await completePendingGoogleRedirect();
+    if (autoVisitor && !auth.currentUser) {
+        const result = await signInAnonymously(auth);
+        user = result.user || auth.currentUser || await waitForAuth(auth);
+    } else {
+        user = auth.currentUser || null;
+    }
+    if (user?.isAnonymous) {
+        await upsertVisitorUserProfile(user, { source: autoVisitor ? 'visitor-session' : 'account-session' });
+    } else if (user) {
+        await upsertGoogleUserProfile(user, { source: 'account-session' });
+    }
     notifyAccountListeners();
     return getAccountState();
 }
 
-export async function signInWithGoogleAccount() {
+export async function signInAsVisitor() {
+    authLog('signInAsVisitor: FIRST LINE', { currentUser: authUserSummary(auth?.currentUser || user || null) });
     const ready = await ensureFirebaseCore();
-    if (!ready.ok) throw new Error(ready.error || 'Firebase is not configured.');
+    if (!ready.ok) throw new Error(ready.error || 'Online sign-in is not configured.');
     await waitForInitialAuthState();
+    if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+        if (auth.currentUser && !auth.currentUser.isAnonymous) await signOut(auth);
+        const result = await signInAnonymously(auth);
+        user = result.user || auth.currentUser || await waitForAuth(auth);
+    } else {
+        user = auth.currentUser || await waitForAuth(auth);
+    }
+    authLog('signInAsVisitor: signed in anonymously', { user: authUserSummary(user), path: profilePathForUser(user) });
+    await upsertVisitorUserProfile(user, { source: 'visitor-button' });
+    authLog('signInAsVisitor: online profile write finished', { lastProfileWrite });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function signInWithGoogleAccount({ source = 'google-login' } = {}) {
+    authLog('signInWithGoogleAccount: FIRST LINE', {
+        source,
+        href: globalThis.location?.href || '',
+        hasAuth: Boolean(auth),
+        hasDb: Boolean(db),
+        currentUserBeforeCore: authUserSummary(auth?.currentUser || user || null)
+    });
+
+    const ready = await ensureFirebaseCore();
+    authLog('signInWithGoogleAccount: after ensureFirebaseCore', {
+        ok: Boolean(ready.ok),
+        configured: Boolean(ready.configured),
+        hasAuth: Boolean(auth),
+        hasDb: Boolean(db),
+        currentUser: authUserSummary(auth?.currentUser || user || null)
+    });
+    if (!ready.ok) throw new Error(ready.error || 'Online sign-in is not configured.');
+
+    // Do not sign out the anonymous Visitor before opening the Google popup.
+    // Signing out first makes the UI briefly become Offline Guest and can also
+    // consume the browser's trusted click activation before the popup opens.
+    // signInWithPopup(auth, provider) is the user-gesture action; when it
+    // succeeds, Firebase Auth replaces the current session with the Google user.
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+    authLog('signInWithGoogleAccount: provider created; calling signInWithPopup next', {
+        source,
+        previousAccountKind: accountKindForUser(auth?.currentUser || user || null),
+        previousUser: authUserSummary(auth?.currentUser || user || null)
+    });
+
     let result;
-    if (auth.currentUser?.isAnonymous) {
-        try {
-            result = await linkWithPopup(auth.currentUser, provider);
-        } catch (error) {
-            if (!/credential-already-in-use|provider-already-linked|email-already-in-use/i.test(error?.code || error?.message || '')) {
-                throw error;
-            }
-            result = await signInWithPopup(auth, provider);
+    try {
+        result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+        authLog('signInWithGoogleAccount: signInWithPopup resolved', {
+            user: authUserSummary(result?.user || null),
+            providerId: result?.providerId || '',
+            operationType: result?.operationType || ''
+        });
+    } catch (error) {
+        authWarn('signInWithGoogleAccount: signInWithPopup threw', authErrorSummary(error));
+        const codeOrMessage = String(error?.code || error?.message || '');
+        if (/popup-blocked|popup-closed-by-user|cancelled-popup-request|operation-not-supported-in-this-environment/i.test(codeOrMessage)) {
+            authWarn('signInWithGoogleAccount: attempting redirect fallback after popup failure', authErrorSummary(error));
+            await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+            authLog('signInWithGoogleAccount: signInWithRedirect returned without immediate navigation', {
+                currentUser: authUserSummary(auth?.currentUser || user || null)
+            });
+            return getAccountState();
         }
-    } else {
-        result = await signInWithPopup(auth, provider);
+        throw error;
     }
-    user = result.user;
-    await upsertGoogleUserProfile(user, { source: 'google-login' });
+
+    user = result?.user || auth.currentUser || null;
+    if (!user) {
+        authError('signInWithGoogleAccount: popup resolved without a user');
+        throw new Error('Google sign-in finished without returning an account.');
+    }
+    if (user.isAnonymous) {
+        authError('signInWithGoogleAccount: popup returned an anonymous user, not a Google user', {
+            user: authUserSummary(user)
+        });
+        throw new Error('Google sign-in did not return a Google account. Please try again.');
+    }
+
+    authLog('signInWithGoogleAccount: writing online profile', {
+        path: profilePathForUser(user),
+        accountKind: accountKindForUser(user),
+        user: authUserSummary(user)
+    });
+    await upsertGoogleUserProfile(user, { source });
+    authLog('signInWithGoogleAccount: online profile write finished', {
+        lastProfileWrite,
+        accountState: getAccountState()
+    });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function updateUserDisplayName(name) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online sign-in is not configured.');
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!currentUser) throw new Error('Sign in before setting a visible name.');
+    if (currentUser.isAnonymous) throw new Error('Visible names are available after Google sign-in.');
+    const displayName = setLocalDisplayName(currentUser, name);
+    try {
+        await updateProfile(currentUser, { displayName });
+    } catch (error) {
+        authWarn('updateUserDisplayName: updateProfile failed; saving Firestore/local name only', authErrorSummary(error));
+    }
+    await upsertGoogleUserProfile(currentUser, { source: 'display-name' });
     notifyAccountListeners();
     return getAccountState();
 }
 
 export async function signOutToGuest() {
     const ready = await ensureFirebaseCore();
-    if (ready.ok && auth?.currentUser) await signOut(auth);
+    if (ready.ok && auth?.currentUser) {
+        try {
+            if (initialized && roomId) await leaveRoom({ updateRemote: true, forget: true });
+        } catch {
+            // The account switch should still complete if the room cleanup fails.
+        }
+        await signOut(auth);
+    }
     user = null;
+    lastProfileWrite = { ok: false, path: '', error: '' };
     notifyAccountListeners();
     return getAccountState();
 }
@@ -259,6 +581,37 @@ function waitingPlayerUid(room) {
     const assigned = [players.white, players.black].filter(Boolean);
     if (assigned.length === 1 && room?.status === 'waiting') return assigned[0];
     return room?.hostUid || null;
+}
+
+function playerProfileForRoom(currentUser = user) {
+    const profile = publicUserProfile(currentUser);
+    if (!profile) return null;
+    return {
+        uid: profile.uid,
+        displayName: profile.displayName,
+        accountKind: profile.accountKind,
+        photoURL: profile.photoURL || null
+    };
+}
+
+function roomPlayerInfoForColor(color, currentUser = user) {
+    return color ? { [color]: playerProfileForRoom(currentUser) } : {};
+}
+
+function waitingPlayerProfile(room) {
+    const info = room?.playerInfo || {};
+    return info.waiting || info.white || info.black || null;
+}
+
+function randomizeMatchedPlayerInfo(room, joiningProfile) {
+    const waitingProfile = waitingPlayerProfile(room);
+    if (!waitingProfile || !joiningProfile || waitingProfile.uid === joiningProfile.uid) return room?.playerInfo || {};
+    const waitingColor = randomPlayerColor();
+    return {
+        white: waitingColor === 'white' ? waitingProfile : joiningProfile,
+        black: waitingColor === 'black' ? waitingProfile : joiningProfile,
+        waiting: null
+    };
 }
 
 function randomizeMatchedPlayers(room, joiningUid) {
@@ -359,17 +712,17 @@ function requireReady() {
         throw new Error(firestoreInitError);
     }
     if (!initialized || !db || !user || !firestoreReady) {
-        throw new Error('Firebase online multiplayer is not initialized.');
+        throw new Error('Online multiplayer is not initialized.');
     }
 }
 
-function withTimeout(promise, label = 'Firebase operation') {
+function withTimeout(promise, label = 'Online operation') {
     let timer = null;
     return Promise.race([
         promise,
         new Promise((_, reject) => {
             timer = window.setTimeout(() => {
-                reject(new Error(`${label} timed out. Check that Cloud Firestore exists and the deployed rules allow this request.`));
+                reject(new Error(`${label} timed out. Check that the online room service is available and permissions allow this request.`));
             }, operationTimeoutMs);
         })
     ]).finally(() => window.clearTimeout(timer));
@@ -461,15 +814,15 @@ async function verifyFirestoreService() {
     if (response.ok) return true;
     const text = await response.text();
     if (/SERVICE_DISABLED|firestore.googleapis.com|disabled/i.test(text)) {
-        throw new Error('Firebase rooms are unavailable because Cloud Firestore is disabled for this project. Enable Cloud Firestore / Firestore API in Firebase Console, then deploy firestore.rules. The older 3D Chess WebRTC rooms can still work because they do not use Firestore.');
+        throw new Error('Online rooms are unavailable because the online room database is not enabled for this project.');
     }
     if (/NOT_FOUND|database.*not.*found|Database does not exist/i.test(text)) {
-        throw new Error('Firebase rooms are unavailable because the default Cloud Firestore database does not exist yet. Create the default Firestore database in Firebase Console, then deploy firestore.rules. The older 3D Chess WebRTC rooms can still work because they do not use Firestore.');
+        throw new Error('Online rooms are unavailable because the online room database has not been created yet.');
     }
     if (/PERMISSION_DENIED|Missing or insufficient permissions/i.test(text)) {
-        throw new Error('Firebase rooms are unavailable because Cloud Firestore rules are blocking online rooms. Deploy the repository firestore.rules to the Topoboardgame Firebase project.');
+        throw new Error('Online rooms are unavailable because online room permissions are blocking this request.');
     }
-    throw new Error(`Cloud Firestore check failed (${response.status}).`);
+    throw new Error(`Online room service check failed (${response.status}).`);
 }
 
 export async function initOnline(options = {}) {
@@ -488,44 +841,66 @@ export async function initOnline(options = {}) {
     };
 
     if (!hasFirebaseConfig()) {
-        status('Firebase config needed: fill in firebaseConfig.js.');
-        return { ok: false, configured: false };
+        status('Online service is not configured in this build.');
+        return { ok: false, configured: false, error: 'Online service is not configured in this build.' };
     }
     if (initializationPromise) return initializationPromise;
     if (initialized) {
-        if (firestoreInitError) {
+        if (!user && auth?.currentUser) user = auth.currentUser;
+        if (!user) {
+            initialized = false;
+            firestoreReady = false;
+            firestoreInitError = '';
+        } else if (firestoreInitError) {
             status(firestoreInitError);
             return { ok: false, configured: true, error: firestoreInitError };
+        } else {
+            return { ok: true, user, roomId, playerColor };
         }
-        return { ok: true, user, roomId, playerColor };
     }
 
     initializationPromise = (async () => {
-    const core = await ensureFirebaseCore();
-    if (!core.ok) {
-        status(core.error || 'Firebase config needed: fill in firebaseConfig.js.');
-        return { ok: false, configured: core.configured };
-    }
-    await waitForInitialAuthState();
-    status(auth.currentUser && !auth.currentUser.isAnonymous ? 'Using Google account for online play...' : 'Signing in as guest...');
-    if (!auth.currentUser) await signInAnonymously(auth);
-    user = auth.currentUser || await waitForAuth(auth);
-    user = await ensureDistinctTabIdentity();
-    initialized = true;
-    try {
-        await verifyFirestoreService();
-        firestoreReady = true;
-        firestoreInitError = '';
-    } catch (error) {
-        firestoreReady = false;
-        firestoreInitError = error.message;
-        status(firestoreInitError);
-        return { ok: false, configured: true, error: firestoreInitError };
-    }
-    status('Online ready.');
-    return { ok: true, user, roomId, playerColor };
+        const core = await ensureFirebaseCore();
+        if (!core.ok) {
+            const error = core.error || 'Online service is not configured in this build.';
+            status(error);
+            return { ok: false, configured: core.configured, error };
+        }
+        await waitForInitialAuthState();
+        await completePendingGoogleRedirect();
+        status(auth.currentUser && !auth.currentUser.isAnonymous ? 'Using your Google account for online play...' : 'Preparing visitor mode for online play...');
+        if (!auth.currentUser) {
+            const result = await signInAnonymously(auth);
+            user = result.user || auth.currentUser || await waitForAuth(auth);
+        } else {
+            user = auth.currentUser;
+        }
+        user = await ensureDistinctTabIdentity();
+        if (user?.isAnonymous) {
+            await upsertVisitorUserProfile(user, { source: 'online-init' });
+        } else if (user) {
+            await upsertGoogleUserProfile(user, { source: 'online-init' });
+        }
+        notifyAccountListeners();
+        initialized = true;
+        try {
+            await verifyFirestoreService();
+            firestoreReady = true;
+            firestoreInitError = '';
+        } catch (error) {
+            firestoreReady = false;
+            firestoreInitError = error.message;
+            status(firestoreInitError);
+            return { ok: false, configured: true, error: firestoreInitError };
+        }
+        status('Online ready.');
+        return { ok: true, user, roomId, playerColor };
     })();
-    return initializationPromise;
+    try {
+        return await initializationPromise;
+    } finally {
+        initializationPromise = null;
+    }
 }
 
 export async function createPrivateRoom(initialBoard) {
@@ -541,6 +916,11 @@ export async function createPrivateRoom(initialBoard) {
         players: {
             white: initialTurn === 'white' ? user.uid : null,
             black: initialTurn === 'black' ? user.uid : null
+        },
+        playerInfo: {
+            ...roomPlayerInfoForColor(initialTurn, user),
+            [opposite(initialTurn)]: null,
+            waiting: null
         },
         turn: initialTurn,
         gameKey: hooks.gameKey,
@@ -587,14 +967,17 @@ export async function joinPrivateRoom(rawRoomId) {
         if (room.public && room.status === 'waiting') {
             const assignment = randomizeMatchedPlayers(room, user.uid);
             if (!assignment) throw new Error('Room is full or already finished.');
+            const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user));
             const nextRoom = {
                 ...room,
                 status: 'playing',
                 players: assignment.players,
+                playerInfo: nextPlayerInfo,
                 turn: room.turn || 'white'
             };
             transaction.update(ref, {
                 players: assignment.players,
+                playerInfo: nextPlayerInfo,
                 status: 'playing',
                 turn: nextRoom.turn,
                 updatedAt: serverTimestamp()
@@ -609,6 +992,7 @@ export async function joinPrivateRoom(rawRoomId) {
         }
         transaction.update(ref, {
             [`players.${openColor}`]: user.uid,
+            [`playerInfo.${openColor}`]: playerProfileForRoom(user),
             status: 'playing',
             updatedAt: serverTimestamp()
         });
@@ -616,7 +1000,8 @@ export async function joinPrivateRoom(rawRoomId) {
             room: {
                 ...room,
                 status: 'playing',
-                players: { ...room.players, [openColor]: user.uid }
+                players: { ...room.players, [openColor]: user.uid },
+                playerInfo: { ...(room.playerInfo || {}), [openColor]: playerProfileForRoom(user) }
             },
             color: openColor
         };
@@ -682,6 +1067,11 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
                     white: null,
                     black: null
                 },
+                playerInfo: {
+                    waiting: playerProfileForRoom(user),
+                    white: null,
+                    black: null
+                },
                 hostUid: user.uid,
                 turn: initialTurn,
                 gameKey: hooks.gameKey,
@@ -713,14 +1103,17 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
         if (!roomMatchesCurrentBucket(room)) return null;
         const assignment = randomizeMatchedPlayers(room, user.uid);
         if (!assignment) return null;
+        const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user));
         const nextRoom = {
             ...room,
             status: 'playing',
             players: assignment.players,
+            playerInfo: nextPlayerInfo,
             turn: room.turn || initialTurn
         };
         transaction.update(ref, {
             players: assignment.players,
+            playerInfo: nextPlayerInfo,
             status: 'playing',
             turn: nextRoom.turn,
             updatedAt: serverTimestamp()
@@ -832,7 +1225,8 @@ export function listenToRoom(id = roomId) {
         if (room.status === 'waiting') {
             status(`Room ${roomId}: waiting for an opponent.`);
         } else if (room.status === 'playing') {
-            status(`Connected as ${playerColor || 'spectator'}. ${room.turn} to move.`);
+            const visibleName = playerColor && room.playerInfo?.[playerColor]?.displayName ? ` (${room.playerInfo[playerColor].displayName})` : '';
+            status(`Connected as ${playerColor || 'spectator'}${visibleName}. ${room.turn} to move.`);
         } else {
             status(`Room ${roomId} finished.`);
         }
@@ -910,6 +1304,7 @@ export async function sendChatMessage(text) {
         text: message,
         uid: user.uid,
         player: playerColor,
+        displayName: displayNameForUser(user),
         createdAt: serverTimestamp()
     }), 'Send chat');
     return true;
@@ -951,8 +1346,14 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
                     status: 'finished',
                     updatedAt: serverTimestamp()
                 };
-                if (color) updates[`players.${color}`] = null;
-                if (waiting) updates['players.waiting'] = null;
+                if (color) {
+                    updates[`players.${color}`] = null;
+                    updates[`playerInfo.${color}`] = null;
+                }
+                if (waiting) {
+                    updates['players.waiting'] = null;
+                    updates['playerInfo.waiting'] = null;
+                }
                 transaction.update(ref, updates);
             });
         } catch {
@@ -1002,7 +1403,7 @@ export class FirebaseOnlineAdapter {
         this.isConnected = false;
         this.roomId = '';
         this.myColor = null;
-        this.ready = initOnline(this.onlineOptions());
+        this.ready = null;
     }
 
     onlineOptions() {
@@ -1033,13 +1434,17 @@ export class FirebaseOnlineAdapter {
 
     async ensureReady() {
         this.ready = initOnline(this.onlineOptions());
-        return this.ready;
+        const ready = await this.ready;
+        if (ready && !ready.ok) {
+            this.game.showOnlineStatus(ready.error || 'Online rooms are not available yet.');
+        }
+        return ready;
     }
 
     async createRoom() {
         try {
             const ready = await this.ensureReady();
-            if (!ready.ok) return;
+            if (!ready?.ok) return;
             const result = await createPrivateRoom(this.game.getCurrentBoardState());
             this.roomId = result.roomId;
             this.myColor = result.playerColor;
@@ -1053,7 +1458,7 @@ export class FirebaseOnlineAdapter {
     async resumeOrJoinRoom(id) {
         try {
             const ready = await this.ensureReady();
-            if (!ready.ok) return;
+            if (!ready?.ok) return;
             const result = await joinPrivateRoom(id);
             this.roomId = result.roomId;
             this.myColor = result.playerColor;
@@ -1066,7 +1471,7 @@ export class FirebaseOnlineAdapter {
     async findMatch() {
         try {
             const ready = await this.ensureReady();
-            if (!ready.ok) return;
+            if (!ready?.ok) return;
             const result = await findMatch(this.game.getCurrentBoardState());
             this.roomId = result.roomId;
             this.myColor = result.playerColor;
@@ -1104,8 +1509,16 @@ export class FirebaseOnlineAdapter {
 
     async reconnect() {
         try {
+            const urlRoom = new URLSearchParams(window.location.search).get('room');
+            let rememberedRoom = '';
+            try {
+                rememberedRoom = localStorage.getItem(reconnectStorageKey) || '';
+            } catch {
+                rememberedRoom = '';
+            }
+            if (!urlRoom && !rememberedRoom) return false;
             const ready = await this.ensureReady();
-            if (!ready.ok) return false;
+            if (!ready?.ok) return false;
             const result = await reconnectRoom();
             return Boolean(result.ok);
         } catch (error) {
@@ -1118,7 +1531,7 @@ export class FirebaseOnlineAdapter {
 
     refreshStatus() {
         const state = getOnlineState();
-        if (!state.configured) this.game.showOnlineStatus('Firebase config needed: fill in firebaseConfig.js.');
+        if (!state.configured) this.game.showOnlineStatus('Online service is not configured in this build.');
     }
 
     setStatus(_state, text) {
@@ -1127,7 +1540,7 @@ export class FirebaseOnlineAdapter {
 
     sendMessage(data) {
         if (data?.type === 'newGame') {
-            this.game.showOnlineStatus('Start a new Firebase room for a rematch.');
+            this.game.showOnlineStatus('Start a new online room for a rematch.');
         }
     }
 }

@@ -5,10 +5,11 @@ import {
     BOARD_WIDTH,
     PAWN_DIR
 } from './BoardSetup.js';
+import { boardThemeColors } from './BoardAppearance.js';
 
 const TWO_PI = Math.PI * 2;
-const BOARD_LIGHT_COLOR = 0xd7e8df;
-const BOARD_DARK_COLOR = 0x31434c;
+const DEFAULT_BOARD_LIGHT_COLOR = 0xd7e8df;
+const DEFAULT_BOARD_DARK_COLOR = 0x31434c;
 
 export class TorusThreeJSRenderer {
     constructor(game) {
@@ -89,6 +90,7 @@ export class TorusThreeJSRenderer {
         this.resize();
 
         window.addEventListener('resize', () => this.resize());
+        window.addEventListener('topoboardgame:3dchess-board-theme', () => this.updateBoardAppearance());
     }
 
     createMaterials() {
@@ -103,15 +105,15 @@ export class TorusThreeJSRenderer {
 
         return {
             base: physical({
-                color: BOARD_DARK_COLOR,
+                color: boardThemeColors().dark,
                 roughness: 0.34,
                 clearcoat: 0.7
             }),
             light: physical({
-                color: BOARD_LIGHT_COLOR
+                color: boardThemeColors().light
             }),
             dark: physical({
-                color: BOARD_DARK_COLOR
+                color: boardThemeColors().dark
             })
         };
     }
@@ -147,6 +149,15 @@ export class TorusThreeJSRenderer {
         floor.position.y = -2.25;
         floor.receiveShadow = true;
         this.decorGroup.add(floor);
+    }
+
+    updateBoardAppearance() {
+        const theme = boardThemeColors();
+        this.materials?.base?.color?.setHex(theme.dark ?? DEFAULT_BOARD_DARK_COLOR);
+        this.materials?.light?.color?.setHex(theme.light ?? DEFAULT_BOARD_LIGHT_COLOR);
+        this.materials?.dark?.color?.setHex(theme.dark ?? DEFAULT_BOARD_DARK_COLOR);
+        this.createBoard3D();
+        this.renderer?.render?.(this.scene, this.camera);
     }
 
     createBoard3D() {
@@ -207,13 +218,13 @@ export class TorusThreeJSRenderer {
 
     addGridLines() {
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: BOARD_LIGHT_COLOR,
+            color: boardThemeColors().light,
             transparent: true,
             opacity: 0.28,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: BOARD_LIGHT_COLOR,
+            color: boardThemeColors().light,
             transparent: true,
             opacity: 0.48,
             depthWrite: false

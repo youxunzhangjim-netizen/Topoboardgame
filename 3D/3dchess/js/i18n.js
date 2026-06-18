@@ -71,6 +71,7 @@ const DICTIONARY = {
             topology: 'Topology',
             timer: 'Timer per Player',
             resetCamera: 'Reset Camera',
+            focusOwnPieces: 'Focus My Pieces',
             newGame: 'New Game',
             offerDraw: 'Offer Draw',
             surrender: 'Surrender'
@@ -306,6 +307,7 @@ const DICTIONARY = {
             topology: '拓撲',
             timer: '每方時間',
             resetCamera: '重設視角',
+            focusOwnPieces: '只突出己方棋子',
             newGame: '新遊戲',
             offerDraw: '提和',
             surrender: '認輸'

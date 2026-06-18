@@ -2,7 +2,7 @@ export const BOARD_THEMES = [
     { light: '#f1f5f9', dark: '#334155' },
     { light: '#e9d8d0', dark: '#5b4b43' },
     { light: '#dde7e3', dark: '#35524a' },
-    { light: '#d9e2ec', dark: '#334155' }
+    { light: '#d9e2ec', dark: '#1e3a8a' }
 ];
 
 export const PIECE_TYPES = ['K', 'Q', 'R', 'B', 'N', 'P'];

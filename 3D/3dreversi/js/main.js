@@ -55,10 +55,12 @@ class Reversi3DRenderer {
         this.markerGroup = new THREE.Group();
         this.hoverGroup = new THREE.Group();
         this.scene.add(this.boardGroup, this.stoneGroup, this.markerGroup, this.hoverGroup);
+        this.focusColor = null;
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
         this.signature = '';
+        this.sliceSignature = '';
         this.clock = new THREE.Clock();
         this.initLights();
         this.bind();
@@ -68,14 +70,14 @@ class Reversi3DRenderer {
     }
 
     initLights() {
-        this.scene.add(new THREE.AmbientLight(0xeaf6ff, 0.42));
-        this.scene.add(new THREE.HemisphereLight(0xe0f7ff, 0x17110d, 1.65));
-        const key = new THREE.DirectionalLight(0xffffff, 2.35);
+        this.scene.add(new THREE.AmbientLight(0xf4fbff, 0.58));
+        this.scene.add(new THREE.HemisphereLight(0xf0fbff, 0x20180f, 1.95));
+        const key = new THREE.DirectionalLight(0xffffff, 2.7);
         key.position.set(6, 9, 7);
         key.castShadow = true;
         key.shadow.mapSize.set(2048, 2048);
         this.scene.add(key);
-        const fill = new THREE.PointLight(0x48c7f4, 1.45, 34);
+        const fill = new THREE.PointLight(0x7dd3fc, 1.75, 36);
         fill.position.set(-6, 3, -5);
         this.scene.add(fill);
     }
@@ -119,7 +121,8 @@ class Reversi3DRenderer {
             topology.lattice,
             topology.width,
             topology.height,
-            topology.depth
+            topology.depth,
+            this.app?.r3SliceSignature?.() || ''
         ].join(':');
         if (signature === this.signature) return;
         this.signature = signature;
@@ -142,36 +145,31 @@ class Reversi3DRenderer {
         this.resetCamera();
     }
 
+    coordVisible(coord) {
+        return this.app?.coordVisibleInSlice?.(coord) !== false;
+    }
+
     buildR3(topology) {
-        const { width, height, depth, lattice } = topology;
+        const { width, height, depth } = topology;
         const linePositions = [];
         const addSegment = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
-        if (lattice === 'hcp') {
-            const drawn = new Set();
-            for (const coord of topology.allCoords()) {
-                for (const direction of topology.directionsFor(coord)) {
-                    const next = topology.step(coord, direction);
-                    if (!next) continue;
-                    const edgeKey = [coord.join(','), next.join(',')].sort().join('|');
-                    if (drawn.has(edgeKey)) continue;
-                    drawn.add(edgeKey);
-                    addSegment(this.r3Position(coord, topology), this.r3Position(next, topology));
-                }
-            }
-        } else {
-            for (let z = 0; z < depth; z += 1) {
-                for (let y = 0; y < height; y += 1) addSegment(this.r3Position([0, y, z], topology), this.r3Position([width - 1, y, z], topology));
-                for (let x = 0; x < width; x += 1) addSegment(this.r3Position([x, 0, z], topology), this.r3Position([x, height - 1, z], topology));
-            }
-            for (let x = 0; x < width; x += 1) {
-                for (let y = 0; y < height; y += 1) addSegment(this.r3Position([x, y, 0], topology), this.r3Position([x, y, depth - 1], topology));
+        const drawn = new Set();
+        for (const coord of topology.allCoords()) {
+            if (!this.coordVisible(coord)) continue;
+            for (const direction of topology.directionsFor(coord)) {
+                const next = topology.step(coord, direction);
+                if (!next || !this.coordVisible(next)) continue;
+                const edgeKey = [coord.join(','), next.join(',')].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                addSegment(this.r3Position(coord, topology), this.r3Position(next, topology));
             }
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
-            new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.24 })
+            new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.3, depthWrite: false })
         ));
 
         const pointPositions = [];
@@ -179,6 +177,7 @@ class Reversi3DRenderer {
             for (let y = 0; y < height; y += 1) {
                 for (let x = 0; x < width; x += 1) {
                     const coord = [x, y, z];
+                    if (!this.coordVisible(coord)) continue;
                     const p = this.r3Position(coord, topology);
                     this.pointCoords.push(coord);
                     this.pointPositions.push(p);
@@ -188,7 +187,7 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.068 : width <= 13 ? 0.052 : 0.038, {
             color: 0xdff8ff,
-            opacity: 0.82
+            opacity: 0.88
         });
         const axes = new THREE.AxesHelper(this.r3Scale(topology) * Math.max(width, height, depth) * 0.62);
         axes.material.depthTest = false;
@@ -200,7 +199,7 @@ class Reversi3DRenderer {
         const torus = new THREE.Mesh(
             new THREE.TorusGeometry(3.35, 1.22, 64, 192),
             new THREE.MeshPhysicalMaterial({
-                color: 0x9b6838,
+                color: 0xb67b45,
                 roughness: 0.52,
                 metalness: 0.03,
                 clearcoat: 0.32,
@@ -212,7 +211,7 @@ class Reversi3DRenderer {
         this.boardGroup.add(torus);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x1e120b,
+            color: 0x3d2718,
             transparent: true,
             opacity: 0.84,
             depthWrite: false
@@ -507,7 +506,7 @@ class Reversi3DRenderer {
         const surface = new THREE.Mesh(
             new THREE.SphereGeometry(radius - 0.045, 96, 48),
             new THREE.MeshPhysicalMaterial({
-                color: 0x604a2b,
+                color: 0x8a6a3d,
                 roughness: 0.62,
                 metalness: 0.02,
                 transparent: true,
@@ -585,19 +584,27 @@ class Reversi3DRenderer {
         this.clearGroup(this.stoneGroup);
         const black = [];
         const white = [];
+        const ageRings = [];
         for (const [key, stone] of logic.board.entries()) {
             const coord = key.split(',').map(Number);
+            if (!this.coordVisible(coord)) continue;
             const positions = this.positionsForCoord(coord, logic, 0.18);
             if (stone.color === 'black') black.push(...positions);
             else white.push(...positions);
+            if (this.app?.shouldShowAgeRings?.()) {
+                for (const position of positions) ageRings.push({ position, age: stone.age || 0 });
+            }
         }
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
+        this.addAgeRings(ageRings, logic);
     }
 
     renderLegalMoves(logic) {
         this.clearGroup(this.markerGroup);
-        const positions = logic.legalMoves().flatMap((move) => this.positionsForCoord(move.coord, logic, 0.22));
+        const positions = logic.legalMoves()
+            .filter((move) => this.coordVisible(move.coord))
+            .flatMap((move) => this.positionsForCoord(move.coord, logic, 0.22));
         if (!positions.length) return;
         const radius = this.markerRadius(logic) * 0.58;
         const mesh = new THREE.InstancedMesh(
@@ -630,13 +637,19 @@ class Reversi3DRenderer {
             color: color === 'black' ? 0x05070a : 0xf5f7fb,
             roughness: color === 'black' ? 0.34 : 0.2,
             metalness: 0.04,
-            clearcoat: 0.18
+            clearcoat: 0.18,
+            transparent: true,
+            opacity: 1
         });
         const dotMaterial = new THREE.MeshStandardMaterial({
             color: color === 'black' ? 0x48c7f4 : 0xf2c464,
             emissive: color === 'black' ? 0x48c7f4 : 0xf2c464,
-            emissiveIntensity: 1.35
+            emissiveIntensity: 1.35,
+            transparent: true,
+            opacity: 1
         });
+        stoneMaterial.userData.baseOpacity = stoneMaterial.opacity;
+        dotMaterial.userData.baseOpacity = dotMaterial.opacity;
         const stoneMesh = new THREE.InstancedMesh(stoneGeometry, stoneMaterial, positions.length);
         const dotMesh = new THREE.InstancedMesh(dotGeometry, dotMaterial, positions.length);
         const matrix = new THREE.Matrix4();
@@ -647,7 +660,56 @@ class Reversi3DRenderer {
         });
         stoneMesh.castShadow = true;
         dotMesh.castShadow = true;
+        stoneMesh.userData.pieceColor = color;
+        dotMesh.userData.pieceColor = color;
+        this.applyPieceFocusToObject(stoneMesh);
+        this.applyPieceFocusToObject(dotMesh);
         this.stoneGroup.add(stoneMesh, dotMesh);
+    }
+
+    addAgeRings(items, logic) {
+        if (!items.length) return;
+        const config = this.app?.pieceTimeConfig?.();
+        if (!config?.enabled) return;
+        const lifetime = Math.max(1, Number(config.lifespan || config.lifetime) || 1);
+        const radius = this.markerRadius(logic);
+        const ringGeometry = new THREE.TorusGeometry(radius * 1.45, Math.max(0.008, radius * 0.055), 8, 48);
+        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.82, depthWrite: false });
+        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.92, depthWrite: false });
+        normalMaterial.userData.baseOpacity = normalMaterial.opacity;
+        warnMaterial.userData.baseOpacity = warnMaterial.opacity;
+        for (const item of items) {
+            const age = Number(item.age || 0);
+            if (!Number.isFinite(age) || age <= 0) continue;
+            const progress = Math.max(0.05, Math.min(1, age / lifetime));
+            const material = config.decay && progress >= 0.96 ? warnMaterial : normalMaterial;
+            const ring = new THREE.Mesh(ringGeometry, material);
+            ring.position.copy(item.position);
+            ring.userData.ageRing = true;
+            ring.userData.ageProgress = progress;
+            ring.scale.setScalar(progress);
+            ring.renderOrder = 12;
+            this.stoneGroup.add(ring);
+        }
+    }
+
+    setPieceFocus(color = null) {
+        this.focusColor = color === 'black' || color === 'white' ? color : null;
+        this.applyPieceFocus();
+    }
+
+    applyPieceFocus() {
+        this.stoneGroup.children.forEach((object) => this.applyPieceFocusToObject(object));
+    }
+
+    applyPieceFocusToObject(object) {
+        const material = object?.material;
+        if (!material) return;
+        const baseOpacity = material.userData?.baseOpacity ?? material.opacity ?? 1;
+        const dim = Boolean(this.focusColor && object.userData?.pieceColor && object.userData.pieceColor !== this.focusColor);
+        material.transparent = baseOpacity < 1 || dim;
+        material.opacity = dim ? 0.5 : baseOpacity;
+        material.needsUpdate = true;
     }
 
     markerRadius(logic) {
@@ -658,7 +720,7 @@ class Reversi3DRenderer {
 
     setHover(coord, logic = this.app.logic) {
         this.clearGroup(this.hoverGroup);
-        if (!coord || !logic || logic.gameOver) return;
+        if (!coord || !logic || logic.gameOver || !this.coordVisible(coord)) return;
         const legal = logic.previewMove(coord).length > 0;
         if (!legal) return;
         const p = this.positionForCoord(coord, logic, 0.27);
@@ -786,7 +848,7 @@ class Reversi3DRenderer {
 
     handleClick(event) {
         const coord = this.pickCoord(event);
-        if (coord) this.app.playAt(coord);
+        if (coord && this.coordVisible(coord)) this.app.playAt(coord);
     }
 
     positionForCoord(coord, logic, lift = 0) {
@@ -975,6 +1037,9 @@ class Reversi3DRenderer {
         this.markerGroup.children.forEach((child) => {
             if (child.material?.emissive) child.material.emissiveIntensity = 1.45 + Math.sin(elapsed * 2.2) * 0.28;
         });
+        this.stoneGroup.children.forEach((child) => {
+            if (child.userData?.ageRing) child.lookAt(this.camera.position);
+        });
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
@@ -1004,6 +1069,14 @@ class Reversi3DApp {
         this.passBtn = document.getElementById('passBtn');
         this.newGameBtn = document.getElementById('newGameBtn');
         this.cameraResetBtn = document.getElementById('cameraResetBtn');
+        this.sliceFilterEl = document.getElementById('r3FilterControl') || document.getElementById('r3SliceFilter');
+        this.sliceInputs = {
+            x: document.getElementById('r3FilterX') || document.getElementById('sliceXInput'),
+            y: document.getElementById('r3FilterY') || document.getElementById('sliceYInput'),
+            z: document.getElementById('r3FilterZ') || document.getElementById('sliceZInput')
+        };
+        this.focusOwnPiecesBtn = document.getElementById('focusOwnPiecesBtn');
+        this.focusOwnPieces = false;
         this.historyEl = document.getElementById('moveHistoryList');
         this.gameModeSelect = document.getElementById('gameModeSelect');
         this.onlineControls = document.getElementById('onlineControls');
@@ -1077,7 +1150,16 @@ class Reversi3DApp {
         this.noisePeriodInput?.addEventListener('change', () => this.updateUI());
         this.passBtn.addEventListener('click', () => this.passTurn());
         this.newGameBtn.addEventListener('click', () => this.resetGame({ broadcast: true }));
-        this.cameraResetBtn?.addEventListener('click', () => this.renderer.resetCamera());
+        this.cameraResetBtn?.addEventListener('click', () => {
+            this.clearR3SliceFilters(false);
+            this.renderer.resetCamera();
+            this.updateUI();
+        });
+        for (const input of Object.values(this.sliceInputs || {})) {
+            input?.addEventListener('input', () => this.refreshR3SliceFilter());
+            input?.addEventListener('change', () => this.refreshR3SliceFilter());
+        }
+        this.focusOwnPiecesBtn?.addEventListener('click', () => this.togglePieceFocus());
         this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
         document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
         document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
@@ -1105,12 +1187,65 @@ class Reversi3DApp {
         this.layerInfo.textContent = 'Full 3D board';
         this.layerSelect.value = '0';
         const mode = this.modeSelect.value;
-        this.latticeGroup.hidden = mode !== 'r3';
-        if (mode !== 'r3') this.latticeSelect.value = 'square';
+        this.latticeGroup.hidden = !['r3', 't3', 'r3_random'].includes(mode);
+        if (!['r3', 't3', 'r3_random'].includes(mode)) this.latticeSelect.value = 'square';
     }
 
     currentLattice() {
-        return this.modeSelect.value === 'r3' && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
+        return ['r3', 't3', 'r3_random'].includes(this.modeSelect.value) && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
+    }
+
+    sliceInputValue(input) {
+        if (!input || String(input.value || '').trim() === '') return null;
+        const parsed = Math.floor(Number(input.value));
+        if (!Number.isFinite(parsed)) return null;
+        return Math.max(0, parsed - 1);
+    }
+
+    r3SliceSettings() {
+        return {
+            x: this.sliceInputValue(this.sliceInputs?.x),
+            y: this.sliceInputValue(this.sliceInputs?.y),
+            z: this.sliceInputValue(this.sliceInputs?.z)
+        };
+    }
+
+    r3SliceSignature() {
+        if (!isR3LikeTopology(this.logic?.topology?.topology)) return '';
+        const { x, y, z } = this.r3SliceSettings();
+        return ['slice', x ?? '*', y ?? '*', z ?? '*'].join(':');
+    }
+
+    coordVisibleInSlice(coord) {
+        if (!isR3LikeTopology(this.logic?.topology?.topology)) return true;
+        const { x, y, z } = this.r3SliceSettings();
+        return (x === null || coord[0] === x)
+            && (y === null || coord[1] === y)
+            && (z === null || coord[2] === z);
+    }
+
+    clearR3SliceFilters(update = true) {
+        for (const input of Object.values(this.sliceInputs || {})) {
+            if (input) input.value = '';
+        }
+        this.renderer.signature = '';
+        this.hoverCoord = null;
+        if (update) this.updateUI();
+    }
+
+    refreshR3SliceFilter() {
+        this.renderer.signature = '';
+        this.hoverCoord = null;
+        this.updateUI();
+    }
+
+    updateR3SliceFilterVisibility() {
+        if (!this.sliceFilterEl) return;
+        this.sliceFilterEl.hidden = !isR3LikeTopology(this.logic?.topology?.topology);
+    }
+
+    shouldShowAgeRings() {
+        return this.pieceTimeConfig().enabled;
     }
 
     pieceTimeConfig() {
@@ -1285,6 +1420,22 @@ class Reversi3DApp {
         if (this.logic.gameOver) this.setStatus(this.resultText());
         this.renderHistory();
         this.renderer.renderGame(this.logic);
+        this.syncPieceFocus();
+    }
+
+    focusColor() {
+        return this.gameModeSelect?.value === 'online' && this.myColor ? this.myColor : this.logic.currentPlayer;
+    }
+
+    togglePieceFocus() {
+        this.focusOwnPieces = !this.focusOwnPieces;
+        this.syncPieceFocus();
+    }
+
+    syncPieceFocus() {
+        const color = this.focusOwnPieces ? this.focusColor() : null;
+        this.renderer.setPieceFocus(color);
+        this.focusOwnPiecesBtn?.setAttribute('aria-pressed', String(this.focusOwnPieces));
     }
 
     renderHistory() {
@@ -1326,7 +1477,9 @@ class Reversi3DApp {
     setOnlineColor(color, roomId = this.network?.roomId) {
         this.myColor = color;
         if (this.onlineColorEl) {
-            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : 'Local pass and play';
+            
+            this.onlineColorEl.hidden = !color;
+            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : '';
         }
         if (this.shareLinkInput && roomId) {
             const url = new URL(window.location.href);
@@ -1412,7 +1565,7 @@ class Reversi3DApp {
             this.chatMessagesEl.innerHTML = '<div class="chat-empty">Connect online to chat.</div>';
             return;
         }
-        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.capitalize(message.player || 'player')}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
+        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.escapeHTML(message.displayName || this.capitalize(message.player || 'player'))}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
         this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
     }
 

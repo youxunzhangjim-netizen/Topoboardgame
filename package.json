@@ -63,7 +63,9 @@
     "preupload:files": "node scripts/preupload-check.mjs",
     "models:promote": "powershell -ExecutionPolicy Bypass -File scripts/Promote-TrainedModels.ps1",
     "preupload:check": "powershell -ExecutionPolicy Bypass -File scripts/Preupload-Check.ps1",
-    "verify:life": "node tools/verify-life-worlds.mjs"
+    "verify:life": "node tools/verify-life-worlds.mjs",
+    "steam:check-info": "node scripts/check-steam-upload-info.mjs",
+    "steam:prepare-vdf": "node scripts/prepare-steam-vdf.mjs"
   },
   "dependencies": {
     "firebase": "^12.14.0",

@@ -16,7 +16,7 @@ const dialogObservables = document.getElementById('dialogObservables');
 
 const TEXT = {
   en: {
-    playOpen: 'Play / Open',
+    playOpen: 'Play Mode',
     info: 'Info',
     playersZero: 'Zero-player simulation with one-player seeding and editing.',
     playersTwo: 'Zero-player or two-player seed-and-watch competition.',
@@ -25,7 +25,7 @@ const TEXT = {
     observables: 'population, births, deaths, age distribution, pattern survival, cycle behavior'
   },
   zh: {
-    playOpen: '遊玩 / 開啟',
+    playOpen: '遊玩模式',
     info: 'Info',
     playersZero: '零人模擬，可由單人播種與編輯。',
     playersTwo: '零人或雙人播種後觀察競爭。',

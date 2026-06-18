@@ -28,9 +28,16 @@ class Reversi4DApp {
         this.chatMessagesEl = document.getElementById('chatMessages');
         this.chatInput = document.getElementById('chatInput');
         this.chatSendBtn = document.getElementById('chatSendBtn');
+        this.timeEvolutionSelect = document.getElementById('timeEvolutionSelect');
+        this.timeLifetimeInput = document.getElementById('timeLifetimeInput');
+        this.noiseModeSelect = document.getElementById('noiseModeSelect');
+        this.noiseRateInput = document.getElementById('noiseRateInput');
+        this.noisePeriodInput = document.getElementById('noisePeriodInput');
         this.myColor = null;
         this.selectedKey = '';
         this.hoverKey = '';
+        this.pieceAges = {};
+        this.noiseTick = 0;
         this.logic = this.createLogic();
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.bindEvents();
@@ -62,10 +69,72 @@ class Reversi4DApp {
         });
     }
 
+    dynamicControls() {
+        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+    }
+
+    dynamicsSettings() {
+        return {
+            timeEvolution: this.timeEvolutionSelect?.value || 'off',
+            lifetime: Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60))),
+            noiseMode: this.noiseModeSelect?.value || 'off',
+            noiseRate: Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0)),
+            noisePeriod: Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)))
+        };
+    }
+
+    setDynamicsSettings(settings = {}) {
+        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
+        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
+        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
+        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
+        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    }
+
+    syncPieceAges() {
+        const next = {};
+        for (const coord of this.logic.topology.allCoords()) {
+            const stone = this.logic.get(coord);
+            if (!stone) continue;
+            const key = this.logic.key(coord);
+            next[key] = Math.max(1, Number(this.pieceAges?.[key]) || 1);
+        }
+        this.pieceAges = next;
+    }
+
+    applyTimeEvolutionAndNoise() {
+        const settings = this.dynamicsSettings();
+        this.syncPieceAges();
+        if (settings.timeEvolution !== 'off') {
+            for (const key of Object.keys(this.pieceAges)) this.pieceAges[key] = Number(this.pieceAges[key] || 0) + 1;
+            if (settings.timeEvolution === 'decay') {
+                for (const coord of this.logic.topology.allCoords()) {
+                    const stone = this.logic.get(coord);
+                    if (stone && (this.pieceAges[this.logic.key(coord)] || 1) > settings.lifetime) this.logic.delete(coord);
+                }
+            }
+        }
+        if (settings.noiseMode !== 'off' && settings.noiseRate > 0) {
+            this.noiseTick += 1;
+            if (this.noiseTick % settings.noisePeriod === 0) {
+                for (const coord of this.logic.topology.allCoords()) {
+                    const stone = this.logic.get(coord);
+                    if (settings.noiseMode === 'random-death' && stone && Math.random() < settings.noiseRate) {
+                        this.logic.delete(coord);
+                    } else if (settings.noiseMode === 'random-birth' && !stone && Math.random() < settings.noiseRate * 0.02) {
+                        this.logic.set(coord, { color: this.logic.currentPlayer });
+                    }
+                }
+            }
+        }
+        this.syncPieceAges();
+    }
+
     bindEvents() {
         Object.values(this.inputs).forEach((input) => {
             input.addEventListener('change', () => this.resetGame());
         });
+        this.dynamicControls().forEach((control) => control.addEventListener('change', () => this.resetGame()));
         this.zoomSelect.addEventListener('change', () => this.render());
         document.getElementById('passBtn').addEventListener('click', () => this.passTurn());
         document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
@@ -102,6 +171,8 @@ class Reversi4DApp {
         this.logic = this.createLogic();
         this.selectedKey = '';
         this.hoverKey = '';
+        this.pieceAges = {};
+        this.noiseTick = 0;
         this.updateZoomOptions();
         this.setStatus('New 4D Reversi game started.');
         this.updateUI();
@@ -123,6 +194,7 @@ class Reversi4DApp {
         }
         this.selectedKey = this.logic.key(result.coord);
         this.hoverKey = '';
+        this.applyTimeEvolutionAndNoise();
         this.setStatus(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
         this.updateUI();
         this.broadcastState();
@@ -289,7 +361,9 @@ class Reversi4DApp {
     setOnlineColor(color, roomId = this.network?.roomId) {
         this.myColor = color;
         if (this.onlineColorEl) {
-            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : 'Local pass and play';
+            
+            this.onlineColorEl.hidden = !color;
+            this.onlineColorEl.textContent = color ? `Online as ${this.capitalize(color)}` : '';
         }
         if (this.shareLinkInput && roomId) {
             const url = new URL(window.location.href);
@@ -313,11 +387,12 @@ class Reversi4DApp {
 
     onlineMatchKey() {
         const { nx, ny, nz, nw } = this.sizes();
-        return ['4dreversi', nx, ny, nz, nw].join(':');
+        const d = this.dynamicsSettings();
+        return ['4dreversi', nx, ny, nz, nw, d.timeEvolution, d.lifetime, d.noiseMode, d.noiseRate, d.noisePeriod].join(':');
     }
 
     exportNetworkState() {
-        return { logic: this.logic.exportState(), sizes: this.sizes() };
+        return { logic: this.logic.exportState(), sizes: this.sizes(), dynamics: this.dynamicsSettings(), pieceAges: { ...this.pieceAges }, noiseTick: this.noiseTick };
     }
 
     importNetworkState(state) {
@@ -333,6 +408,9 @@ class Reversi4DApp {
             if (input && sizes[key]) input.value = String(sizes[key]);
         }
         this.logic.importState(state.logic);
+        this.setDynamicsSettings(state.dynamics || {});
+        this.pieceAges = { ...(state.pieceAges || {}) };
+        this.noiseTick = Number(state.noiseTick) || 0;
         this.updateZoomOptions();
         this.setStatus('Synced online game.');
         this.updateUI();
@@ -359,7 +437,7 @@ class Reversi4DApp {
             this.chatMessagesEl.innerHTML = '<div class="chat-empty">Connect online to chat.</div>';
             return;
         }
-        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.capitalize(message.player || 'player')}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
+        this.chatMessagesEl.innerHTML = messages.map((message) => `<div class="chat-message"><div class="chat-meta">${this.escapeHTML(message.displayName || this.capitalize(message.player || 'player'))}</div><div class="chat-text">${this.escapeHTML(message.text || '')}</div></div>`).join('');
         this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
     }
 

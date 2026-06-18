@@ -15,6 +15,11 @@ class Go2DApp {
         this.boundarySelect = document.getElementById('boundarySelect');
         this.latticeSelect = document.getElementById('latticeSelect');
         this.timerSelect = document.getElementById('timerSelect');
+        this.timeEvolutionSelect = document.getElementById('timeEvolutionSelect');
+        this.timeLifetimeInput = document.getElementById('timeLifetimeInput');
+        this.noiseModeSelect = document.getElementById('noiseModeSelect');
+        this.noiseRateInput = document.getElementById('noiseRateInput');
+        this.noisePeriodInput = document.getElementById('noisePeriodInput');
         this.gameModeSelect = document.getElementById('gameModeSelect');
         this.onlineControls = document.getElementById('onlineControls');
         this.statusEl = document.getElementById('gameStatus');
@@ -43,7 +48,8 @@ class Go2DApp {
         this.chatSendBtn = document.getElementById('chatSendBtn');
 
         this.applyUrlSettings();
-        this.logic = new GoGameLogic({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.latticeSelect.value, dimension: 2, komi: KOMI });
+        this.updateLatticeAvailability();
+        this.logic = new GoGameLogic({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.effectiveLattice(), dimension: 2, komi: KOMI });
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.robot = new GoRobotController(this);
         this.myColor = null;
@@ -55,6 +61,8 @@ class Go2DApp {
         this.hoverCoord = null;
         this.lastBoardRect = null;
         this.chatMessages = [];
+        this.stoneAges = {};
+        this.noiseTick = 0;
 
         this.bindEvents();
         this.resize();
@@ -100,7 +108,7 @@ class Go2DApp {
 
     normalizedBoardSize(value) {
         const parsed = Math.floor(Number(value));
-        if (!Number.isFinite(parsed)) return 19;
+        if (!Number.isFinite(parsed)) return 9;
         return Math.min(39, Math.max(2, parsed));
     }
 
@@ -116,6 +124,93 @@ class Go2DApp {
         if (this.customSizeInput) this.customSizeInput.hidden = this.sizeSelect.value !== 'custom';
     }
 
+    effectiveLattice() {
+        return normalizeTopology(this.boundarySelect.value) === 'polar' ? 'square' : (this.latticeSelect.value || 'square');
+    }
+
+    updateLatticeAvailability() {
+        const polar = normalizeTopology(this.boundarySelect.value) === 'polar';
+        if (polar && this.latticeSelect.value !== 'square') this.latticeSelect.value = 'square';
+        [...this.latticeSelect.options].forEach((option) => {
+            const unavailable = polar && option.value !== 'square';
+            option.disabled = unavailable;
+            option.hidden = unavailable;
+        });
+        this.latticeSelect.title = polar
+            ? 'Polar Go uses the cleaned radial square-intersection graph. Honeycomb and triangular lattice options are disabled in polar mode.'
+            : '';
+    }
+
+    dynamicControls() {
+        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+    }
+
+    dynamicsSettings() {
+        const lifetime = Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60)));
+        const rate = Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0));
+        const period = Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)));
+        return {
+            timeEvolution: this.timeEvolutionSelect?.value || 'off',
+            lifetime,
+            noiseMode: this.noiseModeSelect?.value || 'off',
+            noiseRate: rate,
+            noisePeriod: period
+        };
+    }
+
+    setDynamicsSettings(settings = {}) {
+        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
+        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
+        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
+        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
+        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    }
+
+    coordKeyFromIndex(index) {
+        return this.logic.coordFromIndex(index).join(',');
+    }
+
+    syncStoneAges() {
+        const next = {};
+        for (let index = 0; index < this.logic.board.length; index += 1) {
+            if (this.logic.board[index] === COLORS.empty) continue;
+            const key = this.coordKeyFromIndex(index);
+            next[key] = Math.max(1, Number(this.stoneAges?.[key]) || 1);
+        }
+        this.stoneAges = next;
+    }
+
+    applyTimeEvolutionAndNoise() {
+        const settings = this.dynamicsSettings();
+        this.syncStoneAges();
+        if (settings.timeEvolution !== 'off') {
+            const aged = {};
+            for (const [key, age] of Object.entries(this.stoneAges)) aged[key] = Number(age || 0) + 1;
+            this.stoneAges = aged;
+            if (settings.timeEvolution === 'decay') {
+                for (let index = 0; index < this.logic.board.length; index += 1) {
+                    if (this.logic.board[index] === COLORS.empty) continue;
+                    const key = this.coordKeyFromIndex(index);
+                    if ((this.stoneAges[key] || 1) > settings.lifetime) this.logic.board[index] = COLORS.empty;
+                }
+            }
+        }
+        if (settings.noiseMode !== 'off' && settings.noiseRate > 0) {
+            this.noiseTick += 1;
+            if (this.noiseTick % settings.noisePeriod === 0) {
+                for (let index = 0; index < this.logic.board.length; index += 1) {
+                    const value = this.logic.board[index];
+                    if (settings.noiseMode === 'random-death' && value !== COLORS.empty && Math.random() < settings.noiseRate) {
+                        this.logic.board[index] = COLORS.empty;
+                    } else if (settings.noiseMode === 'random-birth' && value === COLORS.empty && Math.random() < settings.noiseRate * 0.04) {
+                        this.logic.board[index] = this.logic.currentPlayer === 'black' ? COLORS.black : COLORS.white;
+                    }
+                }
+            }
+        }
+        this.syncStoneAges();
+    }
+
     bindEvents() {
         window.addEventListener('resize', () => this.resize());
         this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
@@ -129,9 +224,13 @@ class Go2DApp {
             this.setSizeSelection(this.customSizeInput.value);
             this.resetGame();
         });
-        this.boundarySelect.addEventListener('change', () => this.resetGame());
+        this.boundarySelect.addEventListener('change', () => {
+            this.updateLatticeAvailability();
+            this.resetGame();
+        });
         this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.timerSelect.addEventListener('change', () => this.resetGame());
+        this.dynamicControls().forEach((control) => control.addEventListener('change', () => this.resetGame()));
         this.gameModeSelect.addEventListener('change', () => {
             this.updateOnlineControls();
             this.robot?.updatePanelState();
@@ -354,6 +453,7 @@ class Go2DApp {
         this.gameStarted = true;
         this.lockSettings();
         this.startTimer();
+        this.applyTimeEvolutionAndNoise();
         this.setStatus(message);
         this.broadcastState();
         this.updateUI();
@@ -362,7 +462,10 @@ class Go2DApp {
 
     resetGame({ broadcast = false } = {}) {
         if (!broadcast && !this.canChangeSettings()) return;
-        this.logic.reset({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.latticeSelect.value, dimension: 2, komi: KOMI });
+        this.updateLatticeAvailability();
+        this.logic.reset({ size: this.boardSize(), topology: this.boundarySelect.value, lattice: this.effectiveLattice(), dimension: 2, komi: KOMI });
+        this.stoneAges = {};
+        this.noiseTick = 0;
         this.gameStarted = false;
         this.settingsLocked = this.network.isConnected;
         this.timeLimit = Number(this.timerSelect.value) || 0;
@@ -489,8 +592,11 @@ class Go2DApp {
             const value = this.logic.board[index];
             if (!value) continue;
             const color = valueToColor(value);
-            const p = this.coordToPixel(this.logic.coordFromIndex(index));
-            this.drawStone(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42), color);
+            const coord = this.logic.coordFromIndex(index);
+            const p = this.coordToPixel(coord);
+            const radius = rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
+            this.drawStone(p.x, p.y, radius, color);
+            this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings());
         }
     }
 
@@ -699,6 +805,31 @@ class Go2DApp {
         ctx.stroke();
     }
 
+    drawAgeRing(x, y, radius, age, settings = this.dynamicsSettings()) {
+        const mode = settings?.timeEvolution || 'off';
+        const numericAge = Number(age || 0);
+        if (mode === 'off' || !Number.isFinite(numericAge) || numericAge <= 0) return;
+        const lifetime = Math.max(1, Number(settings?.lifetime) || 1);
+        const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.lineWidth = Math.max(2, radius * 0.09);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(248, 113, 113, 0.96)' : 'rgba(56, 189, 248, 0.9)';
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = progress >= 0.96 ? 10 : 4;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+        ctx.stroke();
+        if (mode === 'decay' && progress >= 0.96) {
+            ctx.setLineDash([Math.max(3, radius * 0.28), Math.max(3, radius * 0.18)]);
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 1.08, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     starPoints(size) {
         if (size === 9) return [2, 4, 6].flatMap((x) => [2, 4, 6].map((y) => [x, y]));
         if (size === 13) return [3, 6, 9].flatMap((x) => [3, 6, 9].map((y) => [x, y]));
@@ -738,6 +869,7 @@ class Go2DApp {
         this.boundarySelect.disabled = true;
         this.latticeSelect.disabled = true;
         this.timerSelect.disabled = true;
+        this.dynamicControls().forEach((control) => { control.disabled = true; });
     }
 
     unlockSettingsIfLocal() {
@@ -746,8 +878,9 @@ class Go2DApp {
         this.sizeSelect.disabled = false;
         if (this.customSizeInput) this.customSizeInput.disabled = false;
         this.boundarySelect.disabled = false;
-        this.latticeSelect.disabled = false;
+        this.latticeSelect.disabled = normalizeTopology(this.boundarySelect.value) === 'polar';
         this.timerSelect.disabled = false;
+        this.dynamicControls().forEach((control) => { control.disabled = false; });
     }
 
     updateSettingsLockState() {
@@ -756,8 +889,9 @@ class Go2DApp {
         this.sizeSelect.disabled = locked;
         if (this.customSizeInput) this.customSizeInput.disabled = locked;
         this.boundarySelect.disabled = locked;
-        this.latticeSelect.disabled = locked;
+        this.latticeSelect.disabled = locked || normalizeTopology(this.boundarySelect.value) === 'polar';
         this.timerSelect.disabled = locked;
+        this.dynamicControls().forEach((control) => { control.disabled = locked; });
     }
 
     updateOnlineControls() {
@@ -777,6 +911,7 @@ class Go2DApp {
     }
 
     updateUI() {
+        this.updateLatticeAvailability();
         this.updateSettingsLockState();
         const topology = normalizeTopology(this.logic.topology);
         const periodic = topology === 'pbc';
@@ -810,7 +945,8 @@ class Go2DApp {
         this.renderScore();
         this.renderChatMessages();
         this.render();
-        this.robot?.updatePanelState();
+        if (this.logic.gameOver) this.robot?.renderFinalWinRateFlow?.();
+        else this.robot?.updatePanelState?.();
     }
 
     updateTimerDisplay() {
@@ -930,9 +1066,10 @@ class Go2DApp {
         return {
             variant: '2dgo',
             mode: normalizeTopology(this.boundarySelect.value),
-            lattice: this.latticeSelect.value,
+            lattice: this.effectiveLattice(),
             size: this.boardSize(),
-            timer: Number(this.timerSelect.value) || 0
+            timer: Number(this.timerSelect.value) || 0,
+            dynamics: this.dynamicsSettings()
         };
     }
 
@@ -947,7 +1084,12 @@ class Go2DApp {
             settings.mode,
             settings.lattice,
             settings.size,
-            settings.timer
+            settings.timer,
+            settings.dynamics.timeEvolution,
+            settings.dynamics.lifetime,
+            settings.dynamics.noiseMode,
+            settings.dynamics.noiseRate,
+            settings.dynamics.noisePeriod
         ].join(':');
     }
 
@@ -957,7 +1099,10 @@ class Go2DApp {
             gameStarted: this.gameStarted,
             timeLimit: this.timeLimit,
             timeRemaining: { ...this.timeRemaining },
-            timerValue: Number(this.timerSelect.value) || 0
+            timerValue: Number(this.timerSelect.value) || 0,
+            dynamics: this.dynamicsSettings(),
+            stoneAges: { ...this.stoneAges },
+            noiseTick: this.noiseTick
         };
     }
 
@@ -968,7 +1113,11 @@ class Go2DApp {
         this.setSizeSelection(this.logic.size);
         this.boundarySelect.value = normalizeTopology(this.logic.topology);
         this.latticeSelect.value = this.logic.lattice || 'square';
+        this.updateLatticeAvailability();
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
+        this.setDynamicsSettings(state.dynamics || {});
+        this.stoneAges = { ...(state.stoneAges || {}) };
+        this.noiseTick = Number(state.noiseTick) || 0;
         this.timeLimit = Number(state.timeLimit) || 0;
         this.timeRemaining = {
             black: Number(state.timeRemaining?.black) || this.timeLimit,

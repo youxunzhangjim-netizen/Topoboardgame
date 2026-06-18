@@ -916,6 +916,7 @@ window.addEventListener('scroll', () => {
 function syncModeControls() {
     syncModeCatalogForLayer();
     const mode = selectedMode();
+    document.body.dataset.mode = mode;
     syncLayerFromSelectedMode();
     const base = baseMode(mode);
     const isIsing = isIsingDomainMode(mode);
@@ -1016,6 +1017,13 @@ function syncModeControls() {
         isVirasoroGo || isVirasoroJump ? ['square', 'honeycomb', 'triangular'] : ['square', 'honeycomb'],
         'square'
     );
+    const selectedTopologyForLattice = els.topologySelect?.value || 'r2';
+    if (selectedTopologyForLattice === 'sphere_latitude') {
+        // S2 / S2_NS polar graphs are latitude-longitude substrates; honeycomb cannot be continuous at the poles.
+        setAllowedSelectValues(els.latticeSelect, ['square', 'triangular'], 'square');
+    } else if (selectedTopologyForLattice === 'flat_4d_grid' || selectedTopologyForLattice === 'r3') {
+        setAllowedSelectValues(els.latticeSelect, ['square'], 'square');
+    }
     if (els.physicalProblemSelect) {
         setAllowedSelectValues(
             els.physicalProblemSelect,
@@ -1107,10 +1115,11 @@ function syncModeControls() {
     }
     if (els.anyonSetupControl) els.anyonSetupControl.hidden = !isJump;
     const excitationMode = isJump && els.anyonSetupSelect?.value === 'excitation';
-    if (els.anyonActionControl) els.anyonActionControl.hidden = true;
+    if (els.anyonActionControl) els.anyonActionControl.hidden = !excitationMode;
     if (!excitationMode) els.anyonActionSelect.value = 'move';
     if (els.anyonExcitationTypeControl) {
-        els.anyonExcitationTypeControl.hidden = true;
+        els.anyonExcitationTypeControl.hidden = !excitationMode;
+        if (excitationMode) syncAnyonExcitationTypeOptions();
     }
     if (els.anyonDropLossControl) els.anyonDropLossControl.hidden = !excitationMode;
     if (els.dropAnyonButton) els.dropAnyonButton.hidden = !excitationMode;
@@ -1192,11 +1201,15 @@ function syncModeControls() {
 function topologyConfig() {
     const topology = els.topologySelect.value;
     const selectedLattice = els.latticeSelect?.value || 'square';
+    const safeSelectedLattice = topology === 'sphere_latitude' && selectedLattice === 'honeycomb'
+        ? 'square'
+        : selectedLattice;
+    if (els.latticeSelect && safeSelectedLattice !== selectedLattice) els.latticeSelect.value = safeSelectedLattice;
     const lattice = topology === 'flat_4d_grid' || topology === 'r3'
         ? 'square'
-        : isReversiMode(selectedMode()) && selectedLattice === 'honeycomb'
+        : isReversiMode(selectedMode()) && safeSelectedLattice === 'honeycomb'
             ? 'hex_cells'
-            : selectedLattice;
+            : safeSelectedLattice;
     if (els.latticeControl) els.latticeControl.hidden = topology === 'flat_4d_grid' || topology === 'r3';
     return {
         topology,
@@ -1614,7 +1627,13 @@ function currentOnlineMatchKey() {
         mode === 'physical_cluster_go' ? els.clusterInitialStateSelect.value : '',
         mode === 'physical_cluster_go' ? els.clusterModelSelect.value : '',
         mode === 'physical_jump_particles' ? els.jumpParticleModelSelect.value : '',
-        mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : ''
+        mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : '',
+        els.timeUpdateSelect?.value || 'off',
+        els.noiseModeSelect?.value || 'off',
+        els.applyNoiseSelect?.value || '',
+        els.noiseProbabilityInput?.value || '',
+        els.noiseSeedInput?.value || '',
+        els.timeParameterInput?.value || ''
     ].join(':');
 }
 
@@ -1881,7 +1900,7 @@ function renderOnlineChat(messages = []) {
     }
     els.onlineChatMessages.innerHTML = messages.map((message) => {
         const mine = message.uid === online.uid;
-        return `<div class="online-chat-message${mine ? ' mine' : ''}"><span>${escapeHTML(capitalize(message.player || 'player'))}</span><p>${escapeHTML(message.text)}</p></div>`;
+        return `<div class="online-chat-message${mine ? ' mine' : ''}"><span>${escapeHTML(message.displayName || capitalize(message.player || 'player'))}</span><p>${escapeHTML(message.text)}</p></div>`;
     }).join('');
     els.onlineChatMessages.scrollTop = els.onlineChatMessages.scrollHeight;
 }
@@ -2274,11 +2293,15 @@ function renderFlatBoard() {
     const [width, height] = game.topology.sizes;
     const honeycombNodes = game.topology.lattice === 'honeycomb';
     const hexCells = game.topology.lattice === 'hex_cells';
+    const goNodeBoard = (isGoMode(game.mode) || isPhysicalClusterGoMode(game.mode)) && !honeycombNodes && !hexCells;
     els.board.style.gridTemplateColumns = `repeat(${width}, minmax(0, 1fr))`;
+    els.board.style.setProperty('--board-cols', String(width));
+    els.board.style.setProperty('--board-rows', String(height));
     els.board.classList.toggle('lattice-square', game.topology.lattice === 'square');
     els.board.classList.toggle('lattice-triangular', game.topology.lattice === 'triangular');
     els.board.classList.toggle('lattice-honeycomb-nodes', honeycombNodes);
     els.board.classList.toggle('lattice-hex-cells', hexCells);
+    els.board.classList.toggle('go-node-board', goNodeBoard);
     els.board.innerHTML = '';
     if (honeycombNodes) appendHoneycombEdges(width, height);
 
@@ -2417,6 +2440,8 @@ function renderFlatBoard() {
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
         else if (isJumpMode(game.mode)) renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
+
+        appendAgeRing(cell, token || goStone || game.getStone?.(coord));
 
         if (isCFTMode(game.mode)) renderStress(cell, coord);
 
@@ -3586,7 +3611,7 @@ function showOwnedJumpTokenPalette(token, coord, event, { excitationMode = false
     });
 }
 
-function handleAnyonExcitationClick(coord) {
+function handleAnyonExcitationClick(coord, event = null) {
     const token = game.tokenAt(coord);
     if (token) {
         if (selectedToken && token.id !== selectedToken) {
@@ -3594,13 +3619,7 @@ function handleAnyonExcitationClick(coord) {
             return;
         }
         if (token.owner === game.currentPlayer) {
-            if (token.id === selectedToken) {
-                selectedToken = '';
-                els.statusText.textContent = 'Selection cleared.';
-                render();
-                return;
-            }
-            executeAnyonSelect(token);
+            showOwnedJumpTokenPalette(token, coord, event, { excitationMode: true });
             return;
         }
         els.statusText.textContent = selectedToken
@@ -3618,8 +3637,11 @@ function handleAnyonExcitationClick(coord) {
         els.statusText.textContent = `${capitalize(game.currentPlayer)} has no affordable excitation for this empty site.`;
         return;
     }
-    const preferred = items.find((item) => !item.disabled && item.onChoose);
-    preferred?.onChoose?.();
+    showActionPalette(coord, event, {
+        title: `Empty site ${game.topology.displayCoord(coord)}`,
+        status: 'Choose an available excitation particle for this site.',
+        items
+    });
 }
 
 function handleCellPointerActivation(coord, event = null) {
@@ -3716,7 +3738,7 @@ function handleCellClick(coord, event = null) {
     const token = game.tokenAt(coord);
     const excitationMode = game.config?.setupMode === 'excitation';
     if (excitationMode) {
-        handleAnyonExcitationClick(coord);
+        handleAnyonExcitationClick(coord, event);
         return;
     }
     const anyonTurnAction = excitationMode ? els.anyonActionSelect.value : 'move';
@@ -4710,6 +4732,26 @@ function formatNumber(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '0';
     return Number(number.toFixed(2)).toString();
+}
+
+function temporalAgeProgress(entity = null) {
+    if (!game?.time?.isEnabled?.() || !entity || typeof entity !== 'object') return null;
+    const age = Number(entity.age ?? 0);
+    if (!Number.isFinite(age) || age <= 0) return null;
+    const period = Math.max(1, Number(els.timePeriodInput?.value || game.time?.config?.period || 4));
+    const progress = Math.max(0.04, Math.min(1, age / period));
+    return { age, progress, period };
+}
+
+function appendAgeRing(cell, entity = null) {
+    const temporal = temporalAgeProgress(entity);
+    if (!temporal) return;
+    const ring = document.createElement('span');
+    ring.className = 'age-ring';
+    ring.style.setProperty('--age-angle', `${Math.round(temporal.progress * 360)}deg`);
+    ring.title = `age ${temporal.age}/${temporal.period}`;
+    if (temporal.progress >= 0.95) ring.classList.add('age-ring-due');
+    cell.append(ring);
 }
 
 function anyonPhaseDisplay(token) {

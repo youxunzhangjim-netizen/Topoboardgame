@@ -12,9 +12,12 @@
     <nav class="life-topbar" aria-label="Life player navigation">
       <a href="./" class="ghost-button" data-life-i18n="navBack">← Life Worlds</a>
       <a href="../" class="ghost-button" data-life-i18n="home">Home</a>
-      <span class="life-language-switch" aria-label="Language">
-        <button class="ghost-button" type="button" data-life-lang="en">En</button>
-        <button class="ghost-button" type="button" data-life-lang="zh">中</button>
+      <span class="life-language-switch compact-language" aria-label="Language">
+        <button class="ghost-button language-icon-button" type="button" aria-haspopup="true" title="Language"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm6.93 9h-3.18a15.8 15.8 0 0 0-1.1-5.02A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.68.98 1.43 3.03 1.7 6.96h-3.4c.27-3.93 1.02-5.98 1.7-6.96ZM4.26 13h3.99c.12 2.02.43 3.78.87 5.08A8.04 8.04 0 0 1 4.26 13Zm3.99-2H4.26a8.04 8.04 0 0 1 4.86-5.08A21.9 21.9 0 0 0 8.25 11ZM12 19.96c-.68-.98-1.43-3.03-1.7-6.96h3.4c-.27 3.93-1.02 5.98-1.7 6.96Zm2.88-1.88c.44-1.3.75-3.06.87-5.08h3.99a8.04 8.04 0 0 1-4.86 5.08ZM15.75 11a21.9 21.9 0 0 0-.87-5.08A8.04 8.04 0 0 1 19.74 11h-3.99Z"/></svg></button>
+        <span class="language-popover" role="menu">
+          <button class="ghost-button" type="button" data-life-lang="en">English</button>
+          <button class="ghost-button" type="button" data-life-lang="zh">繁體中文</button>
+        </span>
       </span>
     </nav>
 
@@ -109,11 +112,70 @@
               <option value="3">3 species</option>
             </select>
           </div>
+
+          <section class="life-online-controls" aria-label="Online Life room controls">
+            <div class="control-row">
+              <label for="lifePlayModeSelect">Connection</label>
+              <select id="lifePlayModeSelect">
+                <option value="local">Local only</option>
+                <option value="online">Online room</option>
+              </select>
+            </div>
+            <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
+            <div class="life-button-row">
+              <button class="life-button" id="lifeFindMatchBtn" type="button">Find Match</button>
+              <button class="life-button" id="lifeCreateRoomBtn" type="button">Create Room</button>
+            </div>
+            <div class="life-room-row">
+              <input id="roomIdInput" type="text" autocomplete="off" placeholder="Room code or shared link" />
+              <button class="life-button" id="lifeJoinRoomBtn" type="button">Join</button>
+            </div>
+            <div class="room-info" id="roomInfo" hidden>
+              <span>Room code</span>
+              <strong id="roomIdDisplay"></strong>
+              <div class="share-link-box">
+                <input id="shareLinkInput" type="text" readonly aria-label="Shareable Life room link" />
+                <button class="life-button" id="copyLinkBtn" type="button">Copy Link</button>
+              </div>
+            </div>
+            <p class="modifier-note life-online-note" id="lifeOnlineStatus">Local board only. Switch to Online room to use matchmaking, room codes, or shared links.</p>
+          </section>
         </section>
 
         <details class="settings-panel" open>
           <summary data-life-i18n="advanced">Advanced / Research Settings</summary>
           <div class="settings-grid">
+            <div class="control-row">
+              <label for="boardGeometrySelect" data-life-i18n="boardGeometry">Board geometry</label>
+              <select id="boardGeometrySelect">
+                <option value="r2">R2 Standard Life</option>
+                <option value="t2">T2 Torus Life</option>
+                <option value="mobius">Möbius Strip Life</option>
+                <option value="klein">Klein Bottle Life</option>
+                <option value="sphere">S2 Sphere Life</option>
+                <option value="rp2">RP2 Projective Life</option>
+                <option value="r3">R3 Voxel Life</option>
+                <option value="t3">T3 Periodic Voxel Life</option>
+                <option value="r3_random">3D RBC Life</option>
+                <option value="reflective">Reflective 3D Life</option>
+              </select>
+            </div>
+            <div class="control-row">
+              <label for="latticeSelect" data-life-i18n="lattice">Lattice</label>
+              <select id="latticeSelect">
+                <option value="square">Square</option>
+                <option value="triangular">Triangular</option>
+                <option value="honeycomb">Honeycomb</option>
+              </select>
+            </div>
+            <div class="control-row">
+              <label for="viewModeSelect" data-life-i18n="viewMode">View mode</label>
+              <select id="viewModeSelect">
+                <option value="flat">2D cut-open board</option>
+                <option value="surface3d">Projected 3D surface</option>
+                <option value="volume">Layered 3D volume</option>
+              </select>
+            </div>
             <div class="control-row">
               <label for="dimensionSelect" data-life-i18n="dimension">Dimension</label>
               <select id="dimensionSelect">
@@ -133,16 +195,16 @@
                 <option value="128">128</option>
               </select>
             </div>
-            <div class="control-row">
+            <div class="control-row legacy-topology-control" aria-hidden="true">
               <label for="topologySelect" data-life-i18n="topology">Topology</label>
-              <select id="topologySelect">
-                <option value="open">Plane / open</option>
-                <option value="torus">Torus / periodic</option>
-                <option value="cylinder">Cylinder</option>
-                <option value="mobius">Möbius strip</option>
-                <option value="klein">Klein bottle</option>
-                <option value="sphere">Sphere-like grid</option>
-                <option value="projective">RP2 / projective</option>
+              <select id="topologySelect" tabindex="-1">
+                <option value="open">R2/R3 open</option>
+                <option value="torus">T2/T3 periodic</option>
+                <option value="mobius">Mobius</option>
+                <option value="klein">Klein</option>
+                <option value="sphere">S2 sphere</option>
+                <option value="projective">RP2 projective</option>
+                <option value="random">RBC random</option>
                 <option value="reflective">Reflective</option>
               </select>
             </div>
@@ -162,6 +224,7 @@
               <label for="speedRange" data-life-i18n="speed">Speed</label>
               <input id="speedRange" type="range" min="30" max="600" step="10" value="130" />
             </div>
+            <p class="modifier-note" data-life-i18n="modifiers">Modifiers available on every Life board</p>
             <div class="control-row">
               <label for="birthNoiseRange" data-life-i18n="birthNoise">Birth noise</label>
               <input id="birthNoiseRange" type="range" min="0" max="0.08" step="0.005" value="0" />

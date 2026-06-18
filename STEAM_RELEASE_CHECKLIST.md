@@ -38,3 +38,14 @@ If you use Steamworks SDK features, review open-source license compatibility car
 
 These are functional placeholder/production-draft icons. They can be replaced later by an artist if the filenames are kept or the paths in `package.json` and Steamworks settings are updated.
 
+
+## Current upload helper files
+
+This patched build includes a SteamPipe config template and a generated-VDF workflow:
+
+```bash
+npm run steam:check-info
+npm run steam:prepare-vdf
+```
+
+See `docs/STEAM_UPLOAD_STEPS.md` for the full upload sequence.

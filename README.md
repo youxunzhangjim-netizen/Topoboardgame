@@ -477,3 +477,47 @@ Run:
 npm run research:selfplay -- --game 3dchess --boundary r3 --games 1 --maxPlies 8 --depth 1
 npm run ml:train-all -- --only 3dchess --preset quick --skipEval true --overwrite true
 ```
+
+### Life geometry/lattice UI alignment
+
+Life & Evolution Worlds now sits below Strategy & Systems Labs on the launcher. Its board selector follows the same naming style as the 2D/3D Go and Reversi modes: R2, T2, Mobius, Klein, S2, RP2, R3, T3, 3D RBC, and Reflective. Noise, age, mutation, species, and topology-defect behavior are available as modifiers on every Life board instead of being separate top-level worlds. The Life engine supports 2D square/triangular/honeycomb lattices and 3D SC/BCC/FCC/HCP lattices.
+
+### Account profiles and Steam upload metadata
+
+The launcher supports three account states:
+
+```text
+Offline Guest        local play only, no Firebase account needed
+Visitor              Firebase Anonymous Auth profile, can use online rooms
+Google Account       Google Auth profile, can link future rooms and saved stats
+```
+
+Visitor and Google profiles are written to `users/{uid}` when Firestore is available. Profile write failures do not block login, so users are not locked out while Firebase rules are being deployed.
+
+For Steam upload metadata, copy:
+
+```powershell
+Copy-Item steamworks/steam_config.example.json steamworks/steam_config.local.json
+npm run steam:check-info
+npm run steam:prepare-vdf
+```
+
+Never commit Steam password, Steam Guard code, or `steamworks/steam_config.local.json`.
+
+### Life unified geometry mode
+
+Life & Evolution Worlds now uses one unified Life mode. The local Life rule is selected once, and the board space is chosen separately through the geometry selector: R2, T2, Möbius, Klein, S2, RP2, R3, T3, 3D RBC, or reflective 3D. Noise, age, mutation, species count, and challenge settings are modifiers that can be applied to the same Life game rather than separate top-level worlds.
+
+In 3D surface or volume view, the Life board is interactive: use Inspect mode, Shift-drag, right-drag, or the mouse wheel to rotate and zoom the board. Boundaries and seams are drawn with stronger outlines so the selected geometry is easier to understand.
+
+### Life neighborhood mode list
+
+The launcher now shows Life & Evolution Worlds as three neighborhood-rule choices rather than a list of board geometries:
+
+```text
+Moore Neighborhood Life
+Von Neumann Neighborhood Life
+Lattice-Nearest Life
+```
+
+Geometry is selected inside the Life interface, so the same neighborhood rule can be compared across R2, T2, Möbius, Klein, S2, RP2, R3, T3, RBC, and reflective boards. The launcher preview uses fixed aspect-ratio cells to avoid stretched/deformed graphics.

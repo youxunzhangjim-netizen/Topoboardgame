@@ -5,6 +5,7 @@ import { RP2ChessGame } from './RP2ChessGame.js';
 import { SphereChessGame } from './SphereChessGame.js';
 import { TorusChessGame } from './TorusChessGame.js';
 import { I18N, setLanguage } from './i18n.js';
+import { selectedBoardThemeIndex, setBoardThemeIndex } from './BoardAppearance.js';
 
 const VARIANTS = {
     torus: {
@@ -122,12 +123,16 @@ export class ChessGame {
     constructor() {
         this.variant = this.resolveVariant();
         this.activeGame = null;
+        this.focusOwnPieces = false;
 
         this.prepareVariantControls();
         this.installLanguageSwitch();
         this.activeGame = new VARIANTS[this.variant].controller();
         this.applyVariantText();
         this.installBoardGameSwitch();
+        this.installBoardAppearanceControl();
+        this.installPieceFocusControl();
+        this.installR3SliceControl();
         this.syncVariantLock();
         this.variantLockTimer = window.setInterval(() => this.syncVariantLock(), 400);
     }
@@ -201,13 +206,119 @@ export class ChessGame {
         });
     }
 
+    installBoardAppearanceControl() {
+        const select = document.getElementById('boardAppearanceSelect');
+        if (!select) return;
+        select.value = String(selectedBoardThemeIndex());
+        select.addEventListener('change', () => {
+            setBoardThemeIndex(select.value);
+            this.activeGame?.renderer?.updateBoardAppearance?.();
+            this.activeGame?.renderer?.render?.();
+        });
+    }
+
     syncVariantLock() {
+        if (this.focusOwnPieces) this.applyPieceFocus();
+        this.updateR3SliceControlVisibility?.();
         const locked = Boolean(this.activeGame?.gameStarted && !this.activeGame?.gameOver);
         const boardGameSelect = document.getElementById('boardGameSelect');
         if (boardGameSelect) {
             boardGameSelect.value = this.variant;
             boardGameSelect.disabled = locked;
         }
+    }
+
+    installPieceFocusControl() {
+        const button = document.getElementById('focusOwnPiecesBtn');
+        if (!button) return;
+        this.focusOwnPiecesButton = button;
+        button.addEventListener('click', () => {
+            this.focusOwnPieces = !this.focusOwnPieces;
+            button.setAttribute('aria-pressed', String(this.focusOwnPieces));
+            this.applyPieceFocus();
+        });
+    }
+
+
+    installR3SliceControl() {
+        this.r3FilterControl = document.getElementById('r3FilterControl');
+        this.r3FilterInputs = {
+            x: document.getElementById('r3FilterX'),
+            y: document.getElementById('r3FilterY'),
+            z: document.getElementById('r3FilterZ')
+        };
+        if (!this.r3FilterControl) return;
+        const apply = () => this.applyR3SliceFilter();
+        for (const input of Object.values(this.r3FilterInputs)) {
+            input?.addEventListener('input', apply);
+            input?.addEventListener('change', apply);
+        }
+        document.getElementById('cameraReset')?.addEventListener('click', () => this.clearR3SliceFilter(false));
+        this.updateR3SliceControlVisibility();
+        this.applyR3SliceFilter();
+    }
+
+    updateR3SliceControlVisibility() {
+        if (!this.r3FilterControl) return;
+        const visible = this.variant === 'cube';
+        this.r3FilterControl.hidden = !visible;
+        if (!visible) this.clearR3SliceFilter(false);
+    }
+
+    readR3SliceFilter() {
+        const filter = {};
+        for (const axis of ['x', 'y', 'z']) {
+            const input = this.r3FilterInputs?.[axis];
+            const text = String(input?.value || '').trim();
+            if (text === '') {
+                filter[axis] = null;
+                continue;
+            }
+            const parsed = Math.floor(Number(text));
+            filter[axis] = Number.isFinite(parsed) ? Math.max(0, Math.min(7, parsed)) : null;
+            if (input && filter[axis] !== null && String(filter[axis]) !== text) input.value = String(filter[axis]);
+        }
+        return filter;
+    }
+
+    applyR3SliceFilter() {
+        if (this.variant !== 'cube') return;
+        this.activeGame?.renderer?.setSliceFilter?.(this.readR3SliceFilter());
+    }
+
+    clearR3SliceFilter(apply = true) {
+        for (const input of Object.values(this.r3FilterInputs || {})) {
+            if (input) input.value = '';
+        }
+        if (apply && this.variant === 'cube') this.activeGame?.renderer?.setSliceFilter?.(null);
+    }
+
+    currentFocusColor() {
+        const game = this.activeGame;
+        if (!game) return 'white';
+        return game.gameMode === 'online' && game.myColor ? game.myColor : (game.currentPlayer || 'white');
+    }
+
+    applyPieceFocus() {
+        const group = this.activeGame?.renderer?.piecesGroup;
+        const focusColor = this.focusOwnPieces ? this.currentFocusColor() : null;
+        this.focusOwnPiecesButton?.setAttribute('aria-pressed', String(this.focusOwnPieces));
+        if (!group) return;
+        group.traverse((object) => {
+            const pieceColor = object.userData?.piece?.color || object.parent?.userData?.piece?.color || null;
+            if (!pieceColor || !object.material) return;
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            for (const material of materials) {
+                if (!material) continue;
+                if (material.userData.baseOpacity == null) material.userData.baseOpacity = material.opacity ?? 1;
+                const baseOpacity = material.userData.baseOpacity;
+                const dim = Boolean(focusColor && pieceColor !== focusColor);
+                material.transparent = baseOpacity < 1 || dim;
+                material.opacity = dim ? 0.5 : baseOpacity;
+                material.needsUpdate = true;
+            }
+        });
+        this.activeGame?.renderer?.renderer?.render?.(this.activeGame.renderer.scene, this.activeGame.renderer.camera);
     }
 
     variantText(variant, key) {

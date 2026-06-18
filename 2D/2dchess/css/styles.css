@@ -979,3 +979,40 @@ body > .language-switch .lang-divider {
 .robot-bad-list strong {
     color: #fecaca;
 }
+
+/* Compact language icon menu */
+body > .language-switch.compact-language {
+    width: auto;
+    gap: 0;
+    padding: 6px;
+    overflow: visible;
+}
+.language-switch.compact-language { position: relative; display: inline-flex; align-items: center; }
+.language-switch.compact-language .language-icon-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    border: 1px solid rgba(125, 211, 252, 0.36);
+    background: rgba(8, 13, 20, 0.92);
+    color: #dff8ff;
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+}
+.language-switch.compact-language .language-popover {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 70;
+    min-width: 132px;
+    padding: 8px;
+    border: 1px solid rgba(125, 211, 252, 0.34);
+    border-radius: 14px;
+    background: rgba(6, 11, 18, 0.98);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.38);
+}
+.language-switch.compact-language:hover .language-popover,
+.language-switch.compact-language:focus-within .language-popover { display: grid; gap: 6px; }
+.language-switch.compact-language .lang-option { width: 100%; justify-content: center; }
+.language-switch.compact-language .lang-divider { display: none; }

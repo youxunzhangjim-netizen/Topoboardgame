@@ -1,8 +1,18 @@
-import { initOnline, subscribeWaitingRooms } from '../online.js';
+import {
+    getAccountState,
+    initAccountSession,
+    initOnline,
+    subscribeAccountState,
+    subscribeWaitingRooms
+} from '../online.js';
 
 const ACTIVE_ROOM_TTL_MS = 5 * 60 * 1000;
 let lastRooms = [];
 let lastError = null;
+let unsubscribeWaitingRooms = null;
+let startPromise = null;
+let watchdogTimer = 0;
+let watchGeneration = 0;
 
 function timestampToMillis(value) {
     if (!value) return 0;
@@ -28,27 +38,65 @@ function publishFreshRooms() {
     publish(lastRooms.filter(isFreshRoom), lastError);
 }
 
-try {
-    const fallback = window.setTimeout(() => {
-        publish([], new Error('Cloud Firestore did not answer.'));
+function clearWatchdog() {
+    if (watchdogTimer) window.clearTimeout(watchdogTimer);
+    watchdogTimer = 0;
+}
+
+function stopWatching(error = null) {
+    watchGeneration += 1;
+    clearWatchdog();
+    unsubscribeWaitingRooms?.();
+    unsubscribeWaitingRooms = null;
+    lastRooms = [];
+    lastError = error;
+    publishFreshRooms();
+}
+
+async function startWatching() {
+    if (unsubscribeWaitingRooms || startPromise) return startPromise;
+    const generation = watchGeneration;
+    clearWatchdog();
+    watchdogTimer = window.setTimeout(() => {
+        publish([], new Error('Online room service did not answer.'));
     }, 10000);
-    const ready = await initOnline({
-        gameKey: 'launcher',
-        matchKey: 'launcher',
-        showOnlineStatus: () => {}
-    });
-    if (!ready.ok) {
-        window.clearTimeout(fallback);
-        publish([], new Error('Firebase is not configured.'));
-    } else {
-        subscribeWaitingRooms((rooms, error) => {
-            window.clearTimeout(fallback);
+
+    startPromise = (async () => {
+        const ready = await initOnline({
+            gameKey: 'launcher',
+            matchKey: 'launcher',
+            showOnlineStatus: () => {}
+        });
+        clearWatchdog();
+        if (generation !== watchGeneration || !getAccountState().uid) return;
+        if (!ready.ok) {
+            stopWatching(new Error(ready.error || 'Online service is not configured.'));
+            return;
+        }
+        unsubscribeWaitingRooms = subscribeWaitingRooms((rooms, error) => {
             lastRooms = rooms || [];
             lastError = error || null;
             publishFreshRooms();
         });
-        window.setInterval(publishFreshRooms, 30000);
+        publishFreshRooms();
+    })();
+
+    try {
+        await startPromise;
+    } catch (error) {
+        stopWatching(error);
+    } finally {
+        startPromise = null;
     }
-} catch (error) {
-    publish([], error);
 }
+
+subscribeAccountState((state) => {
+    if (state?.uid) {
+        startWatching();
+    } else {
+        stopWatching(new Error('Sign in as Visitor or Google to check online rooms.'));
+    }
+});
+
+initAccountSession().catch((error) => stopWatching(error));
+window.setInterval(publishFreshRooms, 30000);

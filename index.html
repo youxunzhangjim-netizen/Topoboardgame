@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -37,14 +37,23 @@
     </div>
     <div id="launcherAccount" class="launcher-account" aria-label="Account">
         <button id="launcherAccountButton" class="launcher-account-button" type="button" aria-expanded="false" aria-controls="launcherAccountMenu">
-            <span id="launcherAccountName">Guest</span>
             <small id="launcherAccountAction">Login</small>
+            <span id="launcherAccountName">Offline Guest</span>
         </button>
         <div id="launcherAccountMenu" class="launcher-account-menu" hidden>
-            <p id="launcherAccountStatus">Guest mode is active. Local play and local robots do not need an account.</p>
+            <p id="launcherAccountStatus">Offline Guest is active. Local play and local robots do not need an account.</p>
+            <div id="launcherDisplayNameEditor" class="launcher-display-name-editor" hidden>
+                <label for="launcherDisplayNameInput" id="launcherDisplayNameLabel">Visible name</label>
+                <div class="launcher-display-name-row">
+                    <input id="launcherDisplayNameInput" type="text" maxlength="24" autocomplete="nickname" placeholder="Name shown to opponents">
+                    <button id="launcherDisplayNameSave" class="launcher-account-menu-button" type="button">Save</button>
+                </div>
+                <small id="launcherDisplayNameStatus"></small>
+            </div>
             <button id="launcherGoogleLoginButton" class="launcher-account-menu-button primary" type="button">Sign in with Google</button>
-            <button id="launcherLogoutButton" class="launcher-account-menu-button" type="button" hidden>Return to Guest</button>
-            <small id="launcherAccountNote">Google login links future online rooms and saved statistics to your account.</small>
+            <button id="launcherVisitorLoginButton" class="launcher-account-menu-button" type="button">Continue as Visitor</button>
+            <button id="launcherLogoutButton" class="launcher-account-menu-button" type="button" hidden>Logout</button>
+            <small id="launcherAccountNote">Google login connects online rooms and saved statistics to your account. Visitor mode is temporary.</small>
         </div>
     </div>
     <div class="launcher-author" aria-label="Author">
@@ -52,8 +61,7 @@
         <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
     </div>
     <div class="launcher-feedback" aria-label="Feedback">
-        <a class="launcher-feedback-button" data-feedback-link="report" data-i18n="feedback.report" href="mailto:youxunzhangjim@gmail.com?subject=TopologicalBoardGame%20error%20report">Report Error</a>
-        <a class="launcher-feedback-button" data-feedback-link="suggestion" data-i18n="feedback.suggestion" href="mailto:youxunzhangjim@gmail.com?subject=TopologicalBoardGame%20suggestion">Suggestion</a>
+        <a class="launcher-feedback-button" data-feedback-link="contact" data-i18n="feedback.contact" href="mailto:youxunzhangjim@gmail.com?subject=TopologicalBoardGame%20report%20or%20suggestion">Report / Suggestion</a>
     </div>
 
     <main class="launcher-shell">
@@ -71,12 +79,6 @@
                 </div>
             </div>
 
-
-            <nav class="launcher-section-nav" aria-label="Main sections" data-i18n-aria-label="nav.main">
-                <a href="#board-worlds" data-i18n="nav.boardWorlds">Board Worlds</a>
-                <a href="./life/" data-i18n="nav.lifeWorlds">Life &amp; Evolution Worlds</a>
-                <a href="#strategy-systems-labs" data-i18n="nav.systemsLabs">Strategy &amp; Systems Labs</a>
-            </nav>
 
             <div id="board-worlds" class="dimension-grid" aria-label="Choose board dimension" data-i18n-aria-label="dimension.choose">
                 <section class="dimension-card dimension-2d" aria-labelledby="dimension2dTitle">
@@ -175,46 +177,6 @@
             </div>
 
 
-            <div id="life-evolution-worlds" class="launcher-mode-layers life-evolution-worlds" aria-label="Life and evolution worlds" data-i18n-aria-label="life.choose">
-                <section class="algebraic-mode-panel life-mode-panel" aria-labelledby="lifeEvolutionWorldsTitle">
-                    <div class="algebraic-mode-heading">
-                        <strong id="lifeEvolutionWorldsTitle" data-i18n="life.title">Life &amp; Evolution Worlds</strong>
-                        <small data-i18n="life.desc">Create life, start evolution, and see what survives across different spaces.</small>
-                    </div>
-                    <article class="extra-mode-card life-world-card">
-                        <span class="life-world-visual" aria-hidden="true">
-                            <span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span>
-                            <span></span><span></span><span></span><span></span>
-                        </span>
-                        <span class="extra-mode-copy">
-                            <strong data-i18n="life.title">Life &amp; Evolution Worlds</strong>
-                            <small data-i18n="life.longDesc">Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.</small>
-                        </span>
-                        <div class="life-world-actions">
-                            <a class="lab-preset beginner" href="./life/" data-i18n="life.open">Open Worlds</a>
-                            <details class="lab-advanced life-world-info">
-                                <summary data-i18n="life.info">Info</summary>
-                                <p data-i18n="life.infoText">Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.</p>
-                            </details>
-                        </div>
-                    </article>
-                    <div class="life-world-mode-strip" aria-label="Life mode preview">
-                        <span>Classic Life</span>
-                        <span>Torus</span>
-                        <span>Möbius</span>
-                        <span>Sphere</span>
-                        <span>3D Voxel</span>
-                        <span>Noisy</span>
-                        <span>Age</span>
-                        <span>Species</span>
-                        <span>Ecosystem</span>
-                        <span>Sandbox</span>
-                    </div>
-                </section>
-            </div>
-
             <div id="strategy-systems-labs" class="launcher-mode-layers physics-algebra-labs" aria-label="Strategy and systems labs" data-i18n-aria-label="labs.choose">
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
@@ -225,120 +187,151 @@
                         <article class="extra-mode-card lab-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
-                                    <strong>Spin &amp; Phase Lab</strong>
+                                    <strong data-i18n="labs.cards.spinPhase.title">Spin &amp; Phase Lab</strong>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go" aria-label="Online activity"></span>
                             </div>
                             <dl class="lab-facts">
-                                <div><dt>Black / white</dt><dd>Spin up/down or phase A/B.</dd></div>
-                                <div><dt>Objects</dt><dd>Local spins, domains, droplets, and interfaces.</dd></div>
-                                <div><dt>Goal</dt><dd>Order, coarsen, stabilize, or compare topology-driven domain walls.</dd></div>
-                                <div><dt>Observables</dt><dd>Energy, magnetization, wall length, domain count, area fractions.</dd></div>
-                                <div><dt>Recommended users</dt><dd>Players learning phase competition and researchers testing topology effects.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.spinPhase.blackWhite">Spin up/down or phase A/B.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.spinPhase.objects">Local spins, domains, droplets, and interfaces.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.spinPhase.goal">Order, coarsen, stabilize, or compare topology-driven domain walls.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.spinPhase.observables">Energy, magnetization, wall length, domain count, area fractions.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.spinPhase.recommendedUsers">Players learning phase competition and researchers testing topology effects.</dd></div>
                             </dl>
-                            <div class="lab-presets" aria-label="Spin and phase presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed">Domain Wall</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=thermal_sample">Thermal Spin</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology">Topology Compare</a>
-                            </div>
                             <details class="lab-advanced">
-                                <summary>Info</summary>
+                                <summary data-i18n="labs.info">Info</summary>
                             </details>
+                            <div class="lab-presets" aria-label="Spin and phase presets">
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed" data-i18n="labs.presets.domainWall">Domain Wall</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=thermal_sample" data-i18n="labs.presets.thermalSpin">Thermal Spin</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology" data-i18n="labs.presets.topologyCompare">Topology Compare</a>
+                            </div>
                         </article>
 
                         <article class="extra-mode-card lab-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
-                                    <strong>Quantum Information Lab</strong>
+                                    <strong data-i18n="labs.cards.quantumInfo.title">Quantum Information Lab</strong>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_clifford_reversi game-clifford_reversi game-physical_clifford_go game-physical_clifford_jump" aria-label="Online activity"></span>
                             </div>
                             <dl class="lab-facts">
-                                <div><dt>Black / white</dt><dd>Positive/negative stabilizer or Pauli-frame signs.</dd></div>
-                                <div><dt>Objects</dt><dd>Pauli labels, ancilla sites, stabilizer checks, and logical sectors.</dd></div>
-                                <div><dt>Goal</dt><dd>Recover errors or benchmark Clifford/Pauli dynamics.</dd></div>
-                                <div><dt>Observables</dt><dd>Syndrome weight, logical sector, measurement errors, recovery status.</dd></div>
-                                <div><dt>Recommended users</dt><dd>Quantum information learners, QEC toy-model users, and stabilizer researchers.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.quantumInfo.blackWhite">Positive/negative stabilizer or Pauli-frame signs.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.quantumInfo.objects">Pauli labels, ancilla sites, stabilizer checks, and logical sectors.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.quantumInfo.goal">Recover errors or benchmark Clifford/Pauli dynamics.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.quantumInfo.observables">Syndrome weight, logical sector, measurement errors, recovery status.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.quantumInfo.recommendedUsers">Quantum information learners, QEC toy-model users, and stabilizer researchers.</dd></div>
                             </dl>
-                            <div class="lab-presets" aria-label="Quantum information presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery">Pauli Recovery</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli">Stabilizer Check</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=clifford">Clifford Toy</a>
-                            </div>
                             <details class="lab-advanced">
-                                <summary>Info</summary>
+                                <summary data-i18n="labs.info">Info</summary>
                             </details>
+                            <div class="lab-presets" aria-label="Quantum information presets">
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery" data-i18n="labs.presets.pauliRecovery">Pauli Recovery</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli" data-i18n="labs.presets.stabilizerCheck">Stabilizer Check</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=clifford" data-i18n="labs.presets.cliffordToy">Clifford Toy</a>
+                            </div>
                         </article>
 
                         <article class="extra-mode-card lab-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
-                                    <strong>Anyon &amp; Topological Memory Lab</strong>
+                                    <strong data-i18n="labs.cards.anyonMemory.title">Anyon &amp; Topological Memory Lab</strong>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-anyon_jump game-physical_anyon_jump game-physical_anyon_reversi game-z2_gauge_loop_game game-physical_jump_particles" aria-label="Online activity"></span>
                             </div>
                             <dl class="lab-facts">
-                                <div><dt>Black / white</dt><dd>Particle owners, charge signs, or competing anyon sectors.</dd></div>
-                                <div><dt>Objects</dt><dd>Anyons, worldlines, fusion channels, gauge loops, and memory strings.</dd></div>
-                                <div><dt>Goal</dt><dd>Create, braid, fuse, unbraid, or preserve topological memory.</dd></div>
-                                <div><dt>Observables</dt><dd>Fusion result, braid parity, charge, Wilson sector, memory alive.</dd></div>
-                                <div><dt>Recommended users</dt><dd>Players exploring particle strategy and researchers testing topological memory.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.anyonMemory.blackWhite">Particle owners, charge signs, or competing anyon sectors.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.anyonMemory.objects">Anyons, worldlines, fusion channels, gauge loops, and memory strings.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.anyonMemory.goal">Create, braid, fuse, unbraid, or preserve topological memory.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.anyonMemory.observables">Fusion result, braid parity, charge, Wilson sector, memory alive.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.anyonMemory.recommendedUsers">Players exploring particle strategy and researchers testing topological memory.</dd></div>
                             </dl>
-                            <div class="lab-presets" aria-label="Anyon and topological memory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump">Toric Anyons</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid">Braid Memory</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=anyon_jump&excitationEnergy=1">Energy Excite</a>
-                            </div>
                             <details class="lab-advanced">
-                                <summary>Info</summary>
+                                <summary data-i18n="labs.info">Info</summary>
                             </details>
+                            <div class="lab-presets" aria-label="Anyon and topological memory presets">
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump" data-i18n="labs.presets.toricAnyons">Toric Anyons</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid" data-i18n="labs.presets.braidMemory">Braid Memory</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=anyon_jump&excitationEnergy=1" data-i18n="labs.presets.energyExcite">Energy Excite</a>
+                            </div>
                         </article>
 
                         <article class="extra-mode-card lab-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
-                                    <strong>CFT / Field Theory Lab</strong>
+                                    <strong data-i18n="labs.cards.cftField.title">CFT / Field Theory Lab</strong>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump game-virasoro_jump" aria-label="Online activity"></span>
                             </div>
                             <dl class="lab-facts">
-                                <div><dt>Black / white</dt><dd>Source sign, domain sign, or player control of insertions.</dd></div>
-                                <div><dt>Objects</dt><dd>Primary fields, OPE intervals, conformal blocks, and Virasoro actions.</dd></div>
-                                <div><dt>Goal</dt><dd>Measure correlations, select OPE channels, and test anomaly/stress response.</dd></div>
-                                <div><dt>Observables</dt><dd>Primary counts, cross-ratio, block weights, entropy, anomaly events.</dd></div>
-                                <div><dt>Recommended users</dt><dd>CFT learners, mathematical-physics players, and field-theory researchers.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.cftField.blackWhite">Source sign, domain sign, or player control of insertions.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.cftField.objects">Primary fields, OPE intervals, conformal blocks, and Virasoro actions.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.cftField.goal">Measure correlations, select OPE channels, and test anomaly/stress response.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.cftField.observables">Primary counts, cross-ratio, block weights, entropy, anomaly events.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.cftField.recommendedUsers">CFT learners, mathematical-physics players, and field-theory researchers.</dd></div>
                             </dl>
-                            <div class="lab-presets" aria-label="CFT and field theory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables">Four-Sigma</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_virasoro_go">Correlator</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi&virasoroN=2">Virasoro Toy</a>
-                            </div>
                             <details class="lab-advanced">
-                                <summary>Info</summary>
+                                <summary data-i18n="labs.info">Info</summary>
                             </details>
+                            <div class="lab-presets" aria-label="CFT and field theory presets">
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables" data-i18n="labs.presets.fourSigma">Four-Sigma</a>
+                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_virasoro_go" data-i18n="labs.presets.correlator">Correlator</a>
+                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi&virasoroN=2" data-i18n="labs.presets.virasoroToy">Virasoro Toy</a>
+                            </div>
                         </article>
 
                         <article class="extra-mode-card lab-card advanced-sandbox-card">
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
-                                    <strong>Advanced Algebra Sandbox</strong>
+                                    <strong data-i18n="labs.cards.sandbox.title">Advanced Algebra Sandbox</strong>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-clifford_reversi game-clifford_go game-clifford_jump game-anyon_reversi game-anyon_jump game-virasoro_jump game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go game-physical_jump_particles game-spin_ice_vertex_game game-z2_gauge_loop_game game-physical_anyon_jump game-physical_anyon_reversi game-physical_clifford_reversi game-physical_clifford_go game-physical_clifford_jump game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump" aria-label="Online activity"></span>
                             </div>
                             <dl class="lab-facts">
-                                <div><dt>Black / white</dt><dd>Defined by the selected engine and physical problem.</dd></div>
-                                <div><dt>Objects</dt><dd>Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.</dd></div>
-                                <div><dt>Goal</dt><dd>Expose the full research workbench without hiding internal controls.</dd></div>
-                                <div><dt>Observables</dt><dd>Every engine export, history trace, physical answer, and raw diagnostic.</dd></div>
-                                <div><dt>Recommended users</dt><dd>Advanced users who want direct access to the full engine and option set.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.sandbox.blackWhite">Defined by the selected engine and physical problem.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.sandbox.objects">Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.sandbox.goal">Expose the full research workbench without hiding internal controls.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.sandbox.observables">Every engine export, history trace, physical answer, and raw diagnostic.</dd></div>
+                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.sandbox.recommendedUsers">Advanced users who want direct access to the full engine and option set.</dd></div>
                             </dl>
-                            <div class="lab-presets single-preset" aria-label="Advanced algebra sandbox">
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi">Open Sandbox</a>
-                            </div>
                             <details class="lab-advanced">
-                                <summary>Info</summary>
+                                <summary data-i18n="labs.info">Info</summary>
                             </details>
+                            <div class="lab-presets single-preset" aria-label="Advanced algebra sandbox">
+                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi" data-i18n="labs.presets.openSandbox">Open Sandbox</a>
+                            </div>
                         </article>
+                    </div>
+                </section>
+            </div>
+            <div id="life-evolution-worlds" class="launcher-mode-layers life-evolution-worlds" aria-label="Life and evolution worlds" data-i18n-aria-label="life.choose">
+                <section class="algebraic-mode-panel life-mode-panel" aria-labelledby="lifeEvolutionWorldsTitle">
+                    <div class="algebraic-mode-heading">
+                        <strong id="lifeEvolutionWorldsTitle" data-i18n="life.title">Life &amp; Evolution Worlds</strong>
+                        <small data-i18n="life.desc">Choose the neighborhood rule first; choose geometry inside the Life page.</small>
+                    </div>
+                    <article class="extra-mode-card life-world-card">
+                        <a class="life-world-main-link" href="./life/world.html" aria-label="Life interface">
+                            <span class="life-world-visual" aria-hidden="true">
+                                <span></span><span></span><span></span><span></span>
+                                <span></span><span></span><span></span><span></span>
+                                <span></span><span></span><span></span><span></span>
+                                <span></span><span></span><span></span><span></span>
+                            </span>
+                            <span class="extra-mode-copy life-world-copy">
+                                <strong data-i18n="life.title">Life &amp; Evolution Worlds</strong>
+                                <small data-i18n="life.longDesc">Pick one of three Life rule families below, then choose the board space, lattice, noise, age, species, and challenge settings inside the Life interface.</small>
+                            </span>
+                            <span class="life-world-info-panel">
+                                <strong data-i18n="life.info">Info</strong>
+                                <span data-i18n="life.infoText">Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.</span>
+                            </span>
+                        </a>
+                    </article>
+                    <div class="life-world-mode-strip life-neighborhood-options" aria-label="Life neighborhood rule choices">
+                        <a class="lab-preset beginner" href="./life/world.html?mode=moore-life" data-i18n="life.moore">Moore Neighborhood Mode</a>
+                        <a class="lab-preset intermediate" href="./life/world.html?mode=von-neumann-life" data-i18n="life.vonNeumann">Von Neumann Neighborhood Mode</a>
+                        <a class="lab-preset advanced" href="./life/world.html?mode=lattice-nearest-life" data-i18n="life.latticeNearest">Lattice Nearest-Neighbor Mode</a>
                     </div>
                 </section>
             </div>
@@ -361,14 +354,18 @@
                         prompt: 'What language do you want?'
                     },
                     account: {
-                        guest: 'Guest',
+                        guest: 'Offline Guest',
+                        visitor: 'Visitor',
                         login: 'Login',
                         signedIn: 'Signed in',
-                        logout: 'Return to Guest',
+                        logout: 'Logout',
+                        returnOffline: 'Return to Offline Guest',
                         google: 'Sign in with Google',
-                        guestStatus: 'Guest mode is active. Local play and local robots do not need an account.',
-                        signedInStatus: 'Google account is active. Future online rooms and saved statistics can be linked to this user.',
-                        note: 'Google login links future online rooms and saved statistics to your account.',
+                        visitorButton: 'Continue as Visitor',
+                        guestStatus: 'Offline Guest is active. Local play and local robots do not need an account.',
+                        visitorStatus: 'Visitor mode is active. You can play online as a temporary visitor.',
+                        signedInStatus: 'Google sign-in is active. Online play is ready.',
+                        note: 'Google login connects online rooms and saved statistics to your account. Visitor mode is temporary.',
                         working: 'Connecting...',
                         error: 'Login failed: {message}'
                     },
@@ -419,7 +416,72 @@
                     labs: {
                         title: 'Strategy & Systems Labs',
                         desc: 'Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.',
-                        choose: 'Strategy and systems labs'
+                        choose: 'Strategy and systems labs',
+                        info: 'Info',
+                        factLabels: {
+                            blackWhite: 'Black / white',
+                            objects: 'Objects',
+                            goal: 'Goal',
+                            observables: 'Observables',
+                            recommendedUsers: 'Recommended users'
+                        },
+                        presets: {
+                            domainWall: 'Domain Wall',
+                            thermalSpin: 'Thermal Spin',
+                            topologyCompare: 'Topology Compare',
+                            pauliRecovery: 'Pauli Recovery',
+                            stabilizerCheck: 'Stabilizer Check',
+                            cliffordToy: 'Clifford Toy',
+                            toricAnyons: 'Toric Anyons',
+                            braidMemory: 'Braid Memory',
+                            energyExcite: 'Energy Excite',
+                            fourSigma: 'Four-Sigma',
+                            correlator: 'Correlator',
+                            virasoroToy: 'Virasoro Toy',
+                            openSandbox: 'Open Sandbox'
+                        },
+                        cards: {
+                            spinPhase: {
+                                title: 'Spin & Phase Lab',
+                                blackWhite: 'Spin up/down or phase A/B.',
+                                objects: 'Local spins, domains, droplets, and interfaces.',
+                                goal: 'Order, coarsen, stabilize, or compare topology-driven domain walls.',
+                                observables: 'Energy, magnetization, wall length, domain count, area fractions.',
+                                recommendedUsers: 'Players learning phase competition and researchers testing topology effects.'
+                            },
+                            quantumInfo: {
+                                title: 'Quantum Information Lab',
+                                blackWhite: 'Positive/negative stabilizer or Pauli-frame signs.',
+                                objects: 'Pauli labels, ancilla sites, stabilizer checks, and logical sectors.',
+                                goal: 'Recover errors or benchmark Clifford/Pauli dynamics.',
+                                observables: 'Syndrome weight, logical sector, measurement errors, recovery status.',
+                                recommendedUsers: 'Quantum information learners, QEC toy-model users, and stabilizer researchers.'
+                            },
+                            anyonMemory: {
+                                title: 'Anyon & Topological Memory Lab',
+                                blackWhite: 'Particle owners, charge signs, or competing anyon sectors.',
+                                objects: 'Anyons, worldlines, fusion channels, gauge loops, and memory strings.',
+                                goal: 'Create, braid, fuse, unbraid, or preserve topological memory.',
+                                observables: 'Fusion result, braid parity, charge, Wilson sector, memory alive.',
+                                recommendedUsers: 'Players exploring particle strategy and researchers testing topological memory.'
+                            },
+                            cftField: {
+                                title: 'CFT / Field Theory Lab',
+                                blackWhite: 'Source sign, domain sign, or player control of insertions.',
+                                objects: 'Primary fields, OPE intervals, conformal blocks, and Virasoro actions.',
+                                goal: 'Measure correlations, select OPE channels, and test anomaly/stress response.',
+                                observables: 'Primary counts, cross-ratio, block weights, entropy, anomaly events.',
+                                recommendedUsers: 'CFT learners, mathematical-physics players, and field-theory researchers.'
+                            },
+                            sandbox: {
+                                title: 'Advanced Algebra Sandbox',
+                                blackWhite: 'Defined by the selected engine and physical problem.',
+                                objects: 'Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.',
+                                goal: 'Expose the full research workbench without hiding internal controls.',
+                                observables: 'Every engine export, history trace, physical answer, and raw diagnostic.',
+                                recommendedUsers: 'Advanced users who want direct access to the full engine and option set.'
+                            }
+                        }
                     },
                     nav: {
                         main: 'Main sections',
@@ -429,16 +491,19 @@
                     },
                     life: {
                         title: 'Life & Evolution Worlds',
-                        desc: 'Create life, start evolution, and see what survives across different spaces.',
-                        longDesc: 'Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.',
+                        desc: 'Choose the neighborhood rule first; choose geometry inside the Life page.',
+                        longDesc: 'Pick one of three Life rule families below, then choose the board space, lattice, noise, age, species, and challenge settings inside the Life interface.',
                         choose: 'Life and evolution worlds',
-                        open: 'Open Worlds',
+                        moore: 'Moore Neighborhood Mode',
+                        vonNeumann: 'Von Neumann Neighborhood Mode',
+                        latticeNearest: 'Lattice Nearest-Neighbor Mode',
                         info: 'Info',
                         infoText: 'Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.'
                     },
                     feedback: {
                         report: 'Report Error',
-                        suggestion: 'Suggestion'
+                        suggestion: 'Suggestion',
+                        contact: 'Report / Suggestion'
                     },
                     badges: {
                         waiting: '{count} waiting',
@@ -454,14 +519,18 @@
                         prompt: '你想使用哪一種語言？'
                     },
                     account: {
-                        guest: 'Guest',
+                        guest: '離線 Guest',
+                        visitor: '訪客',
                         login: '登入',
                         signedIn: '已登入',
-                        logout: '回到 Guest',
+                        logout: '登出',
+                        returnOffline: '回到離線 Guest',
                         google: '使用 Google 登入',
-                        guestStatus: '目前為 Guest 模式。本機遊玩與本機機器人不需要帳號。',
-                        signedInStatus: 'Google 帳號已啟用。未來線上房間與儲存統計可綁定到這個使用者。',
-                        note: 'Google 登入會把未來線上房間與儲存統計綁定到你的帳號。',
+                        visitorButton: '以訪客繼續',
+                        guestStatus: '目前為離線 Guest 模式。本機遊玩與本機機器人不需要帳號。',
+                        visitorStatus: '訪客模式已啟用。你可以用臨時訪客身分進行線上遊玩。',
+                        signedInStatus: 'Google 登入已啟用。線上遊玩已準備完成。',
+                        note: 'Google 登入會把線上房間與儲存統計連到你的帳號。訪客模式是臨時身分。',
                         working: '連線中...',
                         error: '登入失敗：{message}'
                     },
@@ -511,8 +580,73 @@
                     },
                     labs: {
                         title: '策略與系統實驗室',
-                        desc: '選擇一個可玩的實驗世界，探索新規則、隱藏結構與策略模式。打開 Info 了解這個系統代表什麼、它如何改變遊戲，以及你能透過遊玩觀察什麼。',
-                        choose: '策略與系統實驗室'
+                        desc: '選擇一個可玩的實驗世界，探索新規則、隱藏結構與策略模式。打開資訊了解這個系統代表什麼、它如何改變遊戲，以及你能透過遊玩觀察什麼。',
+                        choose: '策略與系統實驗室',
+                        info: '資訊',
+                        factLabels: {
+                            blackWhite: '黑 / 白',
+                            objects: '物件',
+                            goal: '目標',
+                            observables: '觀測量',
+                            recommendedUsers: '適合玩家'
+                        },
+                        presets: {
+                            domainWall: '域牆',
+                            thermalSpin: '熱自旋',
+                            topologyCompare: '拓撲比較',
+                            pauliRecovery: 'Pauli 復原',
+                            stabilizerCheck: '穩定子檢查',
+                            cliffordToy: 'Clifford 玩具模型',
+                            toricAnyons: '環面碼任意子',
+                            braidMemory: '編織記憶',
+                            energyExcite: '能量激發',
+                            fourSigma: '四 σ',
+                            correlator: '關聯函數',
+                            virasoroToy: 'Virasoro 玩具模型',
+                            openSandbox: '開啟沙盒'
+                        },
+                        cards: {
+                            spinPhase: {
+                                title: '自旋與相位實驗室',
+                                blackWhite: '自旋上 / 下，或相位 A / B。',
+                                objects: '局部自旋、疇、液滴與介面。',
+                                goal: '排序、粗化、穩定，或比較由拓撲驅動的域牆。',
+                                observables: '能量、磁化、牆長、疇數與面積比例。',
+                                recommendedUsers: '學習相位競爭的玩家，以及測試拓撲效應的研究者。'
+                            },
+                            quantumInfo: {
+                                title: '量子資訊實驗室',
+                                blackWhite: '正 / 負穩定子，或 Pauli frame 符號。',
+                                objects: 'Pauli 標記、輔助位點、穩定子檢查與邏輯扇區。',
+                                goal: '復原錯誤，或基準測試 Clifford / Pauli 動力學。',
+                                observables: '症候權重、邏輯扇區、量測錯誤與復原狀態。',
+                                recommendedUsers: '量子資訊學習者、QEC 玩具模型使用者與穩定子研究者。'
+                            },
+                            anyonMemory: {
+                                title: '任意子與拓撲記憶實驗室',
+                                blackWhite: '粒子所有者、電荷符號，或競爭中的任意子扇區。',
+                                objects: '任意子、世界線、融合通道、規範迴圈與記憶弦。',
+                                goal: '產生、編織、融合、解編織，或保存拓撲記憶。',
+                                observables: '融合結果、編織奇偶性、電荷、Wilson 扇區與記憶存活。',
+                                recommendedUsers: '探索粒子策略的玩家，以及測試拓撲記憶的研究者。'
+                            },
+                            cftField: {
+                                title: 'CFT / 場論實驗室',
+                                blackWhite: '源符號、疇符號，或玩家控制插入點。',
+                                objects: '主場、OPE 區間、共形區塊與 Virasoro 作用。',
+                                goal: '量測關聯、選擇 OPE 通道，並測試反常 / 應力反應。',
+                                observables: '主場計數、交比、區塊權重、熵與反常事件。',
+                                recommendedUsers: 'CFT 學習者、數理物理玩家與場論研究者。'
+                            },
+                            sandbox: {
+                                title: '高階代數沙盒',
+                                blackWhite: '由所選引擎與物理問題定義。',
+                                objects: '棋子、粒子、Pauli frame、主場、規範邊、自旋或疇。',
+                                goal: '開放完整研究工作台，不隱藏內部控制。',
+                                observables: '所有引擎匯出、歷史軌跡、物理答案與原始診斷。',
+                                recommendedUsers: '想直接使用完整引擎與選項集的進階使用者。'
+                            }
+                        }
                     },
                     nav: {
                         main: '主要區域',
@@ -522,16 +656,19 @@
                     },
                     life: {
                         title: '生命與演化世界',
-                        desc: '創造生命、啟動演化，看看在不同空間中什麼能存活。',
-                        longDesc: '播種細胞、生成圖樣、競爭存活，並觀察演化如何在不同拓撲空間中展開。加入老化、突變、噪聲與多物種，探索類生命系統如何隨空間形狀改變。',
+                        desc: '先選生命鄰域規則；進入生命頁面後再選幾何。',
+                        longDesc: '先選下方三種生命規則家族之一，再進入生命介面選棋盤空間、格點、噪聲、年齡、物種與挑戰設定。',
                         choose: '生命與演化世界',
-                        open: '開啟世界',
+                        moore: 'Moore 鄰域模式',
+                        vonNeumann: 'Von Neumann 鄰域模式',
+                        latticeNearest: '格點最近鄰模式',
                         info: 'Info',
                         infoText: '提供零人、一人、雙人與研究模式，用於 cellular automata、生態、拓撲、複雜系統與 AI 實驗。'
                     },
                     feedback: {
                         report: '回報錯誤',
-                        suggestion: '提出建議'
+                        suggestion: '提出建議',
+                        contact: '回報 / 建議'
                     },
                     badges: {
                         waiting: '{count} 等待中',
@@ -763,6 +900,17 @@
                             'Suggestion:',
                             '',
                             'Why it would help:',
+                            '',
+                            `Page: ${window.location.href}`,
+                            `Browser: ${navigator.userAgent}`
+                        ].join('\n')
+                    },
+                    contact: {
+                        subject: 'TopologicalBoardGame report or suggestion',
+                        body: [
+                            'Report or suggestion:',
+                            '',
+                            'What happened / what you want to improve:',
                             '',
                             `Page: ${window.location.href}`,
                             `Browser: ${navigator.userAgent}`

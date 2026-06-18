@@ -971,7 +971,7 @@ export class TorusChessGame {
 
         messages.innerHTML = this.chatMessages.map((message) => {
             const mine = message.senderId && this.network?.peer?.id && message.senderId === this.network.peer.id;
-            const author = this.chatAuthorName(message.author);
+            const author = message.displayName || this.chatAuthorName(message.author);
             const time = message.time ? new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             return `
                 <div class="chat-message${mine ? ' mine' : ''}">
@@ -1025,7 +1025,8 @@ export class TorusChessGame {
         if (!message || typeof message.text !== 'string') return;
         const cleaned = {
             id: message.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-            author: message.author || 'player',
+            author: message.displayName || message.author || 'player',
+            displayName: message.displayName || '',
             senderId: message.senderId || '',
             text: message.text.slice(0, 240),
             time: message.time || Date.now()
