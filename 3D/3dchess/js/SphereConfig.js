@@ -24,7 +24,7 @@ export function mirrorSphere(x, y, width = SPHERE_BOARD_WIDTH, height = SPHERE_B
 export function sphereCentralStartX(width = SPHERE_BOARD_WIDTH) {
     const start = Math.floor((width - SPHERE_KING_ROW_TYPES.length) / 2);
     if (start < 1) {
-        throw new Error(`Sphere board width ${width} is too small for central pieces plus support pawns`);
+        throw new Error(`Cylinder board width ${width} is too small for central pieces plus support pawns`);
     }
     return start;
 }
@@ -49,30 +49,14 @@ export function sphereIsPlayable(x, y, width = SPHERE_BOARD_WIDTH, height = SPHE
 }
 
 export function sphereResolveTarget(x, y, width = SPHERE_BOARD_WIDTH, height = SPHERE_BOARD_HEIGHT) {
-    let nx = x;
-    let ny = y;
-    let poleCrossings = 0;
-    const minY = SPHERE_PLAYABLE_MIN_Y;
-    const maxY = height - 2;
-
-    while (ny < minY || ny > maxY) {
-        if (ny < minY) {
-            ny = minY - ny;
-        } else {
-            ny = maxY * 2 + 1 - ny;
-        }
-        nx += width / 2;
-        poleCrossings++;
-    }
-
-    nx = sphereWrapX(nx, width);
+    const nx = sphereWrapX(x, width);
     return {
         x: nx,
-        y: ny,
+        y,
         sheet: 0,
-        poleCrossings,
-        crossedPole: poleCrossings > 0,
-        valid: sphereIsPlayable(nx, ny, width, height)
+        poleCrossings: 0,
+        crossedPole: false,
+        valid: sphereIsPlayable(nx, y, width, height)
     };
 }
 

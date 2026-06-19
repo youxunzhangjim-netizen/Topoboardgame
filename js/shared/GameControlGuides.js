@@ -7,13 +7,13 @@ const GUIDES = Object.freeze({
         items: [
             'Choose Local, Online, or Robot before starting a game. Online shows room and matchmaking controls.',
             'Click one of your pieces, then click a highlighted destination to move. Captures, check, promotion, and special topology rules are judged by the board.',
-            'On 3D or 4D views, drag to rotate, use the wheel or zoom slider to zoom, and use layer/focus controls to inspect hidden pieces.',
+            'On 3D or 4D views, drag or one-finger drag to rotate, pinch or use the wheel/zoom slider to zoom, and use layer/focus controls to inspect hidden pieces.',
             'When Time schedule is enabled, click the piece and target, then choose the acting time for that scheduled move.'
         ],
         zhItems: [
             '開局前先選 Local、Online 或 Robot。選 Online 時會顯示房間與配對控制。',
             '點自己的棋子，再點亮起的目標格移動。吃子、將軍、升變與拓撲規則都由棋盤判定。',
-            '在 3D 或 4D 視圖中可拖曳旋轉，用滾輪或縮放控制放大縮小，並用層/聚焦控制查看被遮住的棋子。',
+            '在 3D 或 4D 視圖中可拖曳或單指拖曳旋轉，雙指縮放或用滾輪/縮放控制放大縮小，並用層/聚焦控制查看被遮住的棋子。',
             '啟用 Time schedule 時，先點棋子與目標，再選這步實際作用的時間。'
         ]
     },
@@ -24,13 +24,13 @@ const GUIDES = Object.freeze({
             'Choose Local, Online, or Robot first. Online room controls appear only for online play.',
             'Click an empty legal site to place a stone. Use Pass when you do not want to play.',
             'After both players pass, use Agree Count to finish scoring when both sides accept the count.',
-            'On 3D or 4D boards, drag to rotate, zoom with the wheel or slider, and use layer/focus filters to inspect coordinates.'
+            'On 3D or 4D boards, drag or one-finger drag to rotate, pinch or use the wheel/slider to zoom, and use layer/focus filters to inspect coordinates.'
         ],
         zhItems: [
             '先選 Local、Online 或 Robot。只有 Online 對局會顯示連線房間控制。',
             '點合法的空點落子。不想落子時用 Pass。',
             '雙方都 Pass 後，雙方同意時按 Agree Count 完成數目。',
-            '在 3D 或 4D 棋盤中可拖曳旋轉、用滾輪或滑桿縮放，並用層/聚焦篩選查看座標。'
+            '在 3D 或 4D 棋盤中可拖曳或單指拖曳旋轉、雙指縮放或用滾輪/滑桿縮放，並用層/聚焦篩選查看座標。'
         ]
     },
     reversi: {
@@ -40,13 +40,13 @@ const GUIDES = Object.freeze({
             'Choose Local, Online, or Robot before the new game. Online controls appear only when Online is selected.',
             'Click a highlighted legal empty site to place a disc. Bracketed opponent chains flip immediately.',
             'Use New Game to rebuild the board after changing topology, lattice, size, or variant settings.',
-            'On 3D or 4D boards, drag to rotate, zoom with the wheel or slider, and use layer controls to inspect slices.'
+            'On 3D or 4D boards, drag or one-finger drag to rotate, pinch or use the wheel/slider to zoom, and use layer controls to inspect slices.'
         ],
         zhItems: [
             '新局前先選 Local、Online 或 Robot。只有選 Online 時會顯示連線控制。',
             '點亮起的合法空位落子，被夾住的對手棋鏈會立即翻轉。',
             '改變拓撲、晶格、尺寸或變體設定後，用 New Game 重建棋盤。',
-            '在 3D 或 4D 棋盤中可拖曳旋轉、用滾輪或滑桿縮放，並用層控制查看切片。'
+            '在 3D 或 4D 棋盤中可拖曳或單指拖曳旋轉、雙指縮放或用滾輪/滑桿縮放，並用層控制查看切片。'
         ]
     },
     jump: {
@@ -56,14 +56,14 @@ const GUIDES = Object.freeze({
             'Choose Local, Online, or Robot before starting. Online room controls appear only for online Jump.',
             'Click one of your pieces, then click a highlighted step or jump target. After a jump chain starts, click the same piece or Stop Jump to end the turn there.',
             'Focus Own lists your movable pieces and their coordinates. Selecting one highlights its available moves.',
-            'For 3D and 4D Jump, drag to rotate, wheel or slider to zoom, and use layer/coordinate filters to inspect the board.',
+            'For 3D and 4D Jump, drag or one-finger drag to rotate, pinch or use the wheel/slider to zoom, and use layer/coordinate filters to inspect the board.',
             'When Time schedule is enabled, choose the piece or site, select a legal action, and set the acting time from instant to the configured maximum.'
         ],
         zhItems: [
             '開始前先選 Local、Online 或 Robot。只有 Online 跳棋會顯示房間連線控制。',
             '點自己的棋子，再點亮起的步行或跳躍目標。連跳開始後，可再點同一枚棋子或 Stop Jump 在該處停下並結束回合。',
             'Focus Own 會列出可動己方棋子與座標；選一枚會顯示可走位置。',
-            '3D 與 4D 跳棋可拖曳旋轉、用滾輪或滑桿縮放，並用層/座標篩選查看棋盤。',
+            '3D 與 4D 跳棋可拖曳或單指拖曳旋轉、雙指縮放或用滾輪/滑桿縮放，並用層/座標篩選查看棋盤。',
             '啟用 Time schedule 時，點棋子或位置，選合法動作，再把作用時間設為 instant 到最大時間之間。'
         ]
     },
@@ -91,14 +91,14 @@ const GUIDES = Object.freeze({
             'Click board sites or 3D vertices to place, move, measure, braid, flip, or edit the selected excitation/operator. When a site palette appears, choose the local action there.',
             'Use the action selectors for Clifford, Anyon, CFT, spin, gauge, cluster, and time-evolution controls. Logs and move history are below the game controls.',
             'For custom Pauli recovery, choose Custom Setup, click sites to set I/X/Y/Z and sign, then press Start to begin recovery from that designed board.',
-            'On 3D boards, drag to rotate, wheel to zoom, and use coordinate/layer filters to avoid clicking through dense boards.'
+            'On 3D boards, drag or one-finger drag to rotate, pinch or wheel to zoom, and use coordinate/layer filters to avoid clicking through dense boards.'
         ],
         zhItems: [
             '先選 Lab、拓撲、晶格、尺寸與物理問題；改變結構設定後按 New Game。',
             '點棋盤位置或 3D 頂點來放置、移動、測量、編織、翻轉或編輯選定的激發/算符。出現位置選單時，就在該處選局部動作。',
             '用各 action selector 控制 Clifford、Anyon、CFT、自旋、規範、團簇與時間演化。Logs 與 Move History 位在 Game Controls 下方。',
             '自訂 Pauli recovery 時，選 Custom Setup，點位置設定 I/X/Y/Z 與正負號，再按 Start 從設計好的初態開始 recovery。',
-            '3D 棋盤可拖曳旋轉、滾輪縮放，並用座標/層篩選避免在密集棋盤中點穿。'
+            '3D 棋盤可拖曳或單指拖曳旋轉、雙指縮放或滾輪縮放，並用座標/層篩選避免在密集棋盤中點穿。'
         ]
     }
 });

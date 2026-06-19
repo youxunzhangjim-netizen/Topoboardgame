@@ -101,12 +101,13 @@
                 <select id="boundarySelect">
                     <option value="open2d" selected>Standard</option>
                     <option value="polar">Polar Center Node</option>
+                    <option value="cylinder">Cylinder x-wrap</option>
                     <option value="pbc">PBC All Sides</option>
                     <option value="klein">Klein Bottle</option>
                     <option value="random">2D RBC</option>
                 </select>
             </div>
-            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. Polar adds one center node with radial rings. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
+            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. Polar adds one center node with radial rings. Cylinder wraps left-right only. PBC connects both left-right and top-bottom sides. Klein connects left-right normally and top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
 
             <div class="control-group">
                 <label for="latticeSelect">Lattice</label>

@@ -126,6 +126,7 @@ async function runSelfPlayGame({ game, spec, index }) {
         turnCount: turn,
         topologyFeatures: {
             topology: spec.topology,
+            lattice: spec.lattice,
             variant: spec.variant,
             dimension: spec.dimension,
             boardSize: spec.boardSize,
@@ -141,13 +142,14 @@ function selfPlaySpec(game, { randomVariants, args, rng, index }) {
         ? rng.pick(sizePool(game))
         : numberArg(args, 'size', defaultSize(game), { min: 3, max: 30 });
     const lattice = randomVariants
-        ? rng.pick(latticePool(game))
+        ? rng.pick(latticePool(game, topology))
         : stringArg(args, 'lattice', defaultLattice(game));
     const rulePreset = randomVariants
         ? rng.pick(['default', 'balanced', 'research'])
         : stringArg(args, 'rulePreset', 'default');
     return {
         topology,
+        lattice,
         variant: variantFromTopology(game, topology),
         dimension: Number(game[0]) || (game.includes('3d') ? 3 : 2),
         boardSize,
@@ -191,6 +193,8 @@ function variantFromTopology(game, topology) {
     if (/cube/i.test(topology)) return 'cube';
     if (/klein/i.test(topology)) return 'klein';
     if (/mobius/i.test(topology)) return 'mobius';
+    if (/cylinder|pbcx|pbc-x/i.test(topology)) return 'cylinder';
+    if (/polar|radial/i.test(topology)) return 'polar';
     if (/rp2|projective/i.test(topology)) return 'rp2';
     if (/sphere/i.test(topology)) return 'sphere';
     if (/torus|periodic/i.test(topology)) return 'torus';
@@ -200,10 +204,11 @@ function variantFromTopology(game, topology) {
 function topologyPool(game) {
     if (game === '2dchess') return ['forbidden', 'periodic', 'reflection', 'random'];
     if (game === '3dchess') return ['r3', 'torus', 'cube', 'sphere', 'rp2', 'mobius', 'klein'];
-    if (game.includes('go') || game.includes('reversi')) return ['open2d', 'torus', 'mobius', 'klein', 'sphere', 'projective', 'r3'];
+    if (game.includes('go') || game.includes('reversi')) return ['open2d', 'cylinder', 'torus', 'mobius', 'klein', 'sphere', 'projective', 'r3'];
     if (game === '4djump') return ['hypercube'];
-    if (game === '3djump') return ['cube', 'torus'];
-    return ['plane', 'torus', 'mobius', 'klein'];
+    if (game === '3djump') return ['cube', 'cylinder', 'torus'];
+    if (game === '2djump') return ['plane', 'polar', 'cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere'];
+    return ['plane', 'cylinder', 'torus', 'mobius', 'klein'];
 }
 
 function sizePool(game) {
@@ -213,9 +218,10 @@ function sizePool(game) {
     return [6, 8, 10, 12];
 }
 
-function latticePool(game) {
+function latticePool(game, topology = '') {
     if (game === '3dgo') return ['sc', 'bcc', 'fcc'];
     if (game.includes('go') || game.includes('reversi')) return ['square', 'honeycomb', 'triangular'];
+    if (game === '2djump') return String(topology).toLowerCase() === 'polar' ? ['square'] : ['square', 'triangular'];
     return ['square'];
 }
 

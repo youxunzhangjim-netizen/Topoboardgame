@@ -20,6 +20,9 @@ export const BASE_ROBOT_IDS = Object.freeze({
 
 export const SUPPORTED_TOPOLOGY_VARIANTS = Object.freeze([
     'normal',
+    'polar',
+    'triangular',
+    'cylinder',
     'torus',
     'mobius',
     'klein',

@@ -42,6 +42,7 @@ class Reversi3DRenderer {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.canvas.style.touchAction = 'none';
         this.controls = new OrbitControls(this.camera, this.canvas);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.08;
@@ -135,6 +136,7 @@ class Reversi3DRenderer {
 
         if (isR3LikeTopology(topology.topology)) this.buildR3(topology);
         else if (topology.topology === REVERSI_TOPOLOGIES.T2) this.buildTorus(topology.width, topology.height);
+        else if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) this.buildCylinder(topology.width, topology.height);
         else if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) this.buildMobius(topology.width, topology.height);
         else if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) this.buildKlein(topology);
         else if (topology.topology === REVERSI_TOPOLOGIES.RP2) {
@@ -234,6 +236,60 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.062 : width <= 13 ? 0.05 : 0.038, {
             color: 0x24130b,
+            opacity: 0.96
+        });
+    }
+
+    buildCylinder(width, height) {
+        const surface = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.16, 3.16, 5.8, 128, 1, true),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x6f8e56,
+                roughness: 0.58,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.74,
+                depthWrite: false,
+                clearcoat: 0.24,
+                clearcoatRoughness: 0.5,
+                side: THREE.DoubleSide
+            })
+        );
+        surface.castShadow = true;
+        surface.receiveShadow = true;
+        this.boardGroup.add(surface);
+
+        const gridMaterial = new THREE.LineBasicMaterial({
+            color: 0xdde8a7,
+            transparent: true,
+            opacity: 0.76,
+            depthWrite: false
+        });
+        const linePositions = [];
+        const addEdge = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const current = this.cylinderPosition([x, y], width, height, 0.045);
+                addEdge(current, this.cylinderPosition([(x + 1) % width, y], width, height, 0.045));
+                if (y < height - 1) addEdge(current, this.cylinderPosition([x, y + 1], width, height, 0.045));
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
+
+        const pointPositions = [];
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const coord = [x, y];
+                const point = this.cylinderPosition(coord, width, height, 0.08);
+                this.pointCoords.push(coord);
+                this.pointPositions.push(point);
+                pointPositions.push(point.x, point.y, point.z);
+            }
+        }
+        this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.056 : 0.042, {
+            color: 0xf4f6c8,
             opacity: 0.96
         });
     }
@@ -768,6 +824,7 @@ class Reversi3DRenderer {
         const mode = this.app.logic?.topology?.topology;
         const isSurfaceGraph = [
             REVERSI_TOPOLOGIES.T2,
+            REVERSI_TOPOLOGIES.CYLINDER,
             REVERSI_TOPOLOGIES.KLEIN,
             REVERSI_TOPOLOGIES.MOBIUS,
             REVERSI_TOPOLOGIES.RP2,
@@ -780,6 +837,15 @@ class Reversi3DRenderer {
         const projected = new THREE.Vector3();
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
+            const coord = this.pointCoords[index];
+            if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) {
+                const pose = mode === REVERSI_TOPOLOGIES.T2
+                    ? this.torusPosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.07)
+                    : mode === REVERSI_TOPOLOGIES.CYLINDER
+                        ? this.cylinderPose(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.08)
+                        : { position: this.spherePosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.08), normal: this.spherePosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0).normalize() };
+                if (!this.isPoseFacingCamera(pose.position, pose.normal)) continue;
+            }
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
             const x = (projected.x * 0.5 + 0.5) * rect.width;
@@ -799,11 +865,13 @@ class Reversi3DRenderer {
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
         const mode = logic?.topology?.topology;
-        if (!hit || ![REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.KLEIN, REVERSI_TOPOLOGIES.MOBIUS].includes(mode)) return Boolean(hit);
+        if (!hit || ![REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.KLEIN, REVERSI_TOPOLOGIES.MOBIUS].includes(mode)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = mode === REVERSI_TOPOLOGIES.T2
             ? this.torusPosition(coord, logic.topology.width, logic.topology.height, 0.07)
+            : mode === REVERSI_TOPOLOGIES.CYLINDER
+                ? this.cylinderPose(coord, logic.topology.width, logic.topology.height, 0.08)
             : mode === REVERSI_TOPOLOGIES.KLEIN
                 ? this.kleinOutsidePose(coord, logic.topology.width, logic.topology.height, 0.11)
             : this.mobiusPose(coord, logic.topology.width, logic.topology.height, 0.08);
@@ -857,6 +925,7 @@ class Reversi3DRenderer {
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(coord, topology.width, topology.height, lift).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(coord, topology.width, topology.height, lift);
         if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(coord, topology.width, topology.height, lift).position;
         if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return this.kleinOutsidePose(coord, topology.width, topology.height, lift).position;
         if (topology.topology === REVERSI_TOPOLOGIES.RP2) return this.flatPosition(coord, topology.width, topology.height, lift);
@@ -900,6 +969,19 @@ class Reversi3DRenderer {
             Math.sin(v)
         ).normalize();
         return { position, normal };
+    }
+
+    cylinderPose(coord, width, height, lift = 0) {
+        const radius = 3.16 + lift;
+        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
+        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
+        const position = new THREE.Vector3(radius * Math.cos(u), y, radius * Math.sin(u));
+        const normal = new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize();
+        return { position, normal };
+    }
+
+    cylinderPosition(coord, width, height, lift = 0) {
+        return this.cylinderPose(coord, width, height, lift).position;
     }
 
     kleinOutsidePose(coord, width, height, lift = 0.1) {
@@ -1025,6 +1107,7 @@ class Reversi3DRenderer {
     resetCamera() {
         const mode = this.app?.logic?.topology?.topology || 'r3';
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
+        else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 4.8, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(6.4, 4.8, 7.4);
         else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(9.4, 6.2, 12.4);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);
@@ -1107,7 +1190,7 @@ class Reversi3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || 'r3');
-        this.modeSelect.value = ['r3', 't3', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2'].includes(mode) ? mode : 'r3';
+        this.modeSelect.value = ['r3', 't3', 'r3_random', 't2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(mode) ? mode : 'r3';
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
         const lattice = String(params.get('lattice') || '').toLowerCase();
@@ -1391,6 +1474,7 @@ class Reversi3DApp {
             t3: 'T3 PBC',
             r3_random: '3D RBC',
             t2: 'T2',
+            cylinder: 'Cylinder',
             sphere: 'S2',
             klein: 'Klein Bottle',
             mobius: 'Mobius Strip',
@@ -1403,6 +1487,7 @@ class Reversi3DApp {
             t3: 'T3 PBC wraps x, y, and z, so every cubic axis is periodic.',
             r3_random: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             t2: 'T2 is rendered as a solid rotatable torus. Both board directions wrap on the surface.',
+            cylinder: 'Cylinder Reversi wraps left-right around the circumference while top and bottom remain open.',
             sphere: 'S2 is rendered as a rotatable latitude-ring sphere. Horizontal rays wrap by longitude and vertical rays stop at the caps.',
             klein: 'Klein bottle uses normal left-right wrap and flipped top-bottom wrap on the board graph.',
             mobius: 'Mobius strip is rendered as a solid twisted band. Horizontal seam crossings flip the transverse coordinate.',

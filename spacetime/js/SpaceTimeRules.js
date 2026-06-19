@@ -141,6 +141,13 @@ export class SpaceTimeRules {
     if (boundary === 'torus' || boundary === 'torus3' || boundary === 'klein') {
       return { position: p.map((value, axis) => wrap(value, this.size[axis])), direction };
     }
+    if (boundary === 'cylinder') {
+      p[0] = wrap(p[0], this.size[0]);
+      for (let axis = 1; axis < this.dimension; axis += 1) {
+        if (p[axis] < 0 || p[axis] >= this.size[axis]) return null;
+      }
+      return { position: p, direction };
+    }
     if (boundary === 'reflective' || boundary === 'sphere-shell') {
       const next = [];
       let outDirection = direction ? [...direction] : null;

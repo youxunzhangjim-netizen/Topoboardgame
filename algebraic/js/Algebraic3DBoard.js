@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const TWO_PI = Math.PI * 2;
-const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'torus', 'sphere_latitude']);
+const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'cylinder', 'torus', 'sphere_latitude']);
 
 function keyOf(coord) {
     return coord.join(',');
@@ -95,6 +95,7 @@ export class Algebraic3DBoard {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFShadowMap;
+        this.canvas.style.touchAction = 'none';
 
         this.controls = new OrbitControls(this.camera, canvas);
         this.controls.enableDamping = true;
@@ -190,6 +191,7 @@ export class Algebraic3DBoard {
         this.nodePoints = null;
         this.surfaceMeshes = [];
 
+        if (topology.name === 'cylinder') this.addCylinderSurface();
         if (topology.name === 'torus') this.addTorusSurface();
         if (topology.name === 'sphere_latitude') this.addSphereSurface();
         this.addGraph();
@@ -215,6 +217,28 @@ export class Algebraic3DBoard {
                 depthWrite: false,
                 clearcoat: 0.34,
                 clearcoatRoughness: 0.44,
+                side: THREE.DoubleSide
+            })
+        );
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.pickSurface = true;
+        this.surfaceMeshes.push(mesh);
+        this.boardGroup.add(mesh);
+    }
+
+    addCylinderSurface() {
+        const mesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.18, 3.18, 5.8, 128, 1, true),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x7a8f5a,
+                roughness: 0.58,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.7,
+                depthWrite: false,
+                clearcoat: 0.24,
+                clearcoatRoughness: 0.5,
                 side: THREE.DoubleSide
             })
         );
@@ -361,7 +385,7 @@ export class Algebraic3DBoard {
             });
         }
         const rawTo = step.edge?.rawTo || step.coord;
-        const samples = topology.name === 'torus' || topology.name === 'sphere_latitude' ? 12 : 5;
+        const samples = topology.name === 'cylinder' || topology.name === 'torus' || topology.name === 'sphere_latitude' ? 12 : 5;
         return Array.from({ length: samples }, (_, index) => {
             const t = index / (samples - 1);
             const coord = from.map((value, axis) => value + ((rawTo[axis] ?? step.coord[axis]) - value) * t);
@@ -667,6 +691,7 @@ export class Algebraic3DBoard {
 
     positionForCoord(coord, lift = 0) {
         const topology = this.game.topology;
+        if (topology.name === 'cylinder') return this.cylinderPosition(coord, lift);
         if (topology.name === 'torus') return this.torusPosition(coord, lift);
         if (topology.name === 'sphere_latitude') return this.spherePosition(coord, lift);
         return this.r3Position(coord);
@@ -693,6 +718,18 @@ export class Algebraic3DBoard {
             ring * Math.cos(u),
             ring * Math.sin(u),
             minor * Math.sin(v)
+        );
+    }
+
+    cylinderPosition(coord, lift = 0) {
+        const [width, height] = this.game.topology.sizes;
+        const u = TWO_PI * Number(coord[0]) / Math.max(1, width);
+        const radius = 3.18 + lift;
+        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
+        return new THREE.Vector3(
+            radius * Math.cos(u),
+            y,
+            radius * Math.sin(u)
         );
     }
 
@@ -788,6 +825,7 @@ export class Algebraic3DBoard {
 
     homeCameraPosition() {
         const topology = this.game?.topology?.name;
+        if (topology === 'cylinder') return new THREE.Vector3(0, 4.8, 9.2);
         if (topology === 'torus') return new THREE.Vector3(0, 5.7, 9.9);
         if (topology === 'sphere_latitude') return new THREE.Vector3(0, 2.2, 9.6);
         return new THREE.Vector3(8.2, 7.6, 8.6);

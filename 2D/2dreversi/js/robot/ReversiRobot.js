@@ -259,7 +259,7 @@ function controlledAnchors(logic, player) { return anchorCoords(logic).filter((c
 function anchorBonus(logic, coord) { return anchorCoords(logic).some((anchor) => logic.key(anchor) === logic.key(coord)) ? 40 : 0; }
 function anchorCoords(logic) {
     const w = logic.topology.width; const h = logic.topology.height;
-    if (logic.topology.topology === 'open2d' || logic.topology.topology === 'klein' || logic.topology.topology === 'random') return [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
+    if (logic.topology.topology === 'open2d' || logic.topology.topology === 'cylinder' || logic.topology.topology === 'klein' || logic.topology.topology === 'random') return [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
     const midX = Math.floor(w / 2); const midY = Math.floor(h / 2);
     return [[0, midY], [w - 1, midY], [midX, 0], [midX, h - 1]];
 }
@@ -299,6 +299,7 @@ function topologyControl(logic, player) {
         const [x, y] = key.split(',').map(Number);
         if (x === 0 || y === 0 || x === logic.topology.width - 1 || y === logic.topology.height - 1) {
             if (logic.topology.topology === 'pbc') score += 7;
+            else if (logic.topology.topology === 'cylinder') score += (x === 0 || x === logic.topology.width - 1) ? 6 : 2;
             else if (logic.topology.topology === 'klein') score += 5;
             else if (logic.topology.topology === 'random') score += 4;
             else score += 2;
@@ -318,6 +319,7 @@ function positionSignals(logic, player) {
 }
 function topologyText(logic) {
     if (logic.topology.topology === 'pbc') return 'periodic board: no ordinary corners; mobility/frontier and wrap-control anchors matter more';
+    if (logic.topology.topology === 'cylinder') return 'cylinder board: left-right wrap matters, while top and bottom still have ordinary edge pressure';
     if (logic.topology.topology === 'klein') return 'Klein bottle: top/bottom crossing flips x, so stable lines are orientation-dependent';
     if (logic.topology.topology === 'random') return '2D RBC: search uses the fixed random boundary map through the rule engine';
     return 'standard board: corners, X-square danger, stable edges, and mobility dominate';
@@ -332,6 +334,7 @@ function explainReversiMove(before, after, move, player, score) {
     if (afterMob > beforeMob) reasons.push('increases future mobility');
     if (afterMob < beforeMob) reasons.push('reduces future mobility');
     if (before.topology.topology === 'pbc') reasons.push('evaluated with periodic wrap control instead of ordinary corners');
+    if (before.topology.topology === 'cylinder') reasons.push('evaluated with cylinder wrap control and open top/bottom edges');
     if (before.topology.topology === 'klein') reasons.push('evaluated with Klein-boundary orientation reversal');
     if (before.topology.topology === 'random') reasons.push('evaluated through the 2D RBC legal graph');
     if (score < -15) reasons.push('bad after opponent replies in search');

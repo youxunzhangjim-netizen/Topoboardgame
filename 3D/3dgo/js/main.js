@@ -3,6 +3,7 @@ import { installGo3DRobot } from './robot/Go3DRobot.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
     BCC_LATTICE,
+    CYLINDER_GO_TOPOLOGY,
     COLORS,
     FCC_LATTICE,
     GoGameLogic,
@@ -65,6 +66,7 @@ function normalizeGoMode(value) {
     if (['s2', 'sphere'].includes(mode)) return 'sphere';
     if (['t3', 't3go', 'pbc3d', '3d_pbc'].includes(mode)) return T3_PBC_TOPOLOGY;
     if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d'].includes(mode)) return R3_RANDOM_TOPOLOGY;
+    if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(mode)) return CYLINDER_GO_TOPOLOGY;
     if (['t2', 't2go', 'torus'].includes(mode)) return 't2';
     if (['klein', 'klein_bottle'].includes(mode)) return 'klein';
     if (['mobius', 'moebius', 'mobius_strip'].includes(mode)) return 'mobius';
@@ -170,10 +172,19 @@ Object.assign(I18N.zh.mode, {
 Object.assign(I18N.en.mode, {
     mobiusOption: 'Mobius Strip Go',
     rp2Option: 'RP2 Go',
+    cylinderOption: 'Cylinder Go',
     mobiusDisplay: ({ width, height }) => width + ' x ' + height + ' Mobius Strip Go',
     rp2Display: ({ width, height }) => width + ' x ' + height + ' RP2 Go',
+    cylinderDisplay: ({ size }) => size + ' x ' + size + ' Cylinder Go',
     mobiusInfo: 'Mobius strip uses one twisted horizontal wrap with open vertical edges.',
-    rp2Info: 'RP2 uses a raised projective board with antipodal glue arcs; crossing any cut edge flips the transverse coordinate.'
+    rp2Info: 'RP2 uses a raised projective board with antipodal glue arcs; crossing any cut edge flips the transverse coordinate.',
+    cylinderInfo: 'Cylinder Go wraps left-right around the circumference while top and bottom remain open.'
+});
+
+Object.assign(I18N.zh.mode, {
+    cylinderOption: '圓柱圍棋',
+    cylinderDisplay: ({ size }) => size + ' x ' + size + ' 圓柱圍棋',
+    cylinderInfo: '圓柱只在左右方向週期包回，上下邊界保持開放。'
 });
 
 function normalizeLanguage(value) {
@@ -245,6 +256,7 @@ class Go3DRenderer {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.canvas.style.touchAction = 'none';
         this.controls = new OrbitControls(this.camera, this.canvas);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.08;
@@ -344,6 +356,7 @@ class Go3DRenderer {
         this.nodePoints = null;
         if (isR3LikeTopology(logic.topology)) this.buildR3(logic);
         else if (logic.topology === 't2') this.buildTorus(logic);
+        else if (logic.topology === CYLINDER_GO_TOPOLOGY) this.buildCylinder(logic);
         else if (logic.topology === MOBIUS_GO_TOPOLOGY) this.buildMobius(logic.width, logic.height);
         else if (logic.topology === RP2_GO_TOPOLOGY) this.buildRP2(logic.width, logic.height);
         else if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) this.buildKlein(logic.width, logic.height);
@@ -945,6 +958,71 @@ class Go3DRenderer {
         if (logic.lattice === SQUARE_LATTICE) this.addTorusStarPoints(size);
     }
 
+    buildCylinder(logic) {
+        const width = logic.width;
+        const height = logic.height;
+        const surface = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.16, 3.16, 5.8, 128, 1, true),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x6f8e56,
+                roughness: 0.58,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.74,
+                depthWrite: false,
+                clearcoat: 0.24,
+                clearcoatRoughness: 0.5,
+                side: THREE.DoubleSide
+            })
+        );
+        surface.castShadow = true;
+        surface.receiveShadow = true;
+        this.boardGroup.add(surface);
+
+        const gridMaterial = new THREE.LineBasicMaterial({
+            color: 0xe6efad,
+            transparent: true,
+            opacity: 0.78,
+            depthWrite: false
+        });
+        const linePositions = [];
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                let dx = neighbor[0] - coord[0];
+                const dy = neighbor[1] - coord[1];
+                if (dx > width / 2) dx -= width;
+                if (dx < -width / 2) dx += width;
+                let previous = this.cylinderPosition(coord, width, height, 0.04).position;
+                for (let step = 1; step <= 4; step += 1) {
+                    const t = step / 4;
+                    const current = this.cylinderPosition([coord[0] + dx * t, coord[1] + dy * t], width, height, 0.04).position;
+                    linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
+                    previous = current;
+                }
+            }
+        }
+        const gridGeometry = new THREE.BufferGeometry();
+        gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        this.boardGroup.add(new THREE.LineSegments(gridGeometry, gridMaterial));
+
+        const pointPositions = [];
+        for (const coord of logic.playableCoords()) {
+            const p = this.cylinderPosition(coord, width, height, 0.06).position;
+            this.pointCoords.push(coord);
+            this.pointPositions.push(p);
+            pointPositions.push(p.x, p.y, p.z);
+        }
+        this.addNodePoints(pointPositions, width <= 9 ? 0.062 : width <= 13 ? 0.048 : 0.036, {
+            color: 0xf4f6c8,
+            opacity: 0.96
+        });
+    }
+
     torusLine(size, varyingAxis, fixedValue, material) {
         const points = [];
         const segments = Math.max(96, size * 8);
@@ -1218,7 +1296,7 @@ class Go3DRenderer {
     pickCoordByScreenDistance(event, rect) {
         if (!this.pointPositions.length) return null;
         const logic = this.app.logic;
-        const isSurfaceGraph = ['t2', KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic?.topology);
+        const isSurfaceGraph = ['t2', CYLINDER_GO_TOPOLOGY, KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic?.topology);
         if (!isSurfaceGraph) return null;
         const targetX = event.clientX - rect.left;
         const targetY = event.clientY - rect.top;
@@ -1226,6 +1304,15 @@ class Go3DRenderer {
         const projected = new THREE.Vector3();
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
+            const coord = this.pointCoords[index];
+            if (['t2', CYLINDER_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic.topology)) {
+                const pose = logic.topology === 't2'
+                    ? this.torusPosition(coord, logic.size, 0.055)
+                    : logic.topology === CYLINDER_GO_TOPOLOGY
+                        ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
+                        : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
+                if (!this.isPoseFacingCamera(pose.position, pose.normal)) continue;
+            }
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
             const x = (projected.x * 0.5 + 0.5) * rect.width;
@@ -1244,11 +1331,13 @@ class Go3DRenderer {
 
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
-        if (!hit || !logic || !['t2', KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
+        if (!hit || !logic || !['t2', CYLINDER_GO_TOPOLOGY, KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
             ? this.torusPosition(coord, logic.size, 0.055)
+            : logic.topology === CYLINDER_GO_TOPOLOGY
+                ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
             : logic.topology === RP2_GO_TOPOLOGY
                     ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
                     : logic.topology === KLEIN_BOTTLE_TOPOLOGY
@@ -1339,6 +1428,7 @@ class Go3DRenderer {
 
     positionForCoord(coord, logic) {
         if (logic.topology === 't2') return this.torusPosition(coord, logic.size, 0.18).position;
+        if (logic.topology === CYLINDER_GO_TOPOLOGY) return this.cylinderPosition(coord, logic.width, logic.height, 0.18).position;
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
             return this.mobiusPose(coord, logic.width, logic.height, 0.18).position;
         }
@@ -1452,6 +1542,15 @@ class Go3DRenderer {
         return { position, normal };
     }
 
+    cylinderPosition(coord, width, height, lift = 0) {
+        const radius = 3.16 + lift;
+        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
+        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
+        const position = new THREE.Vector3(radius * Math.cos(u), y, radius * Math.sin(u));
+        const normal = new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize();
+        return { position, normal };
+    }
+
     kleinOutsidePose(coord, width, height, lift = 0.1) {
         const pose = kleinBottlePose(coord, width, height, -Math.abs(lift));
         pose.normal.multiplyScalar(-1);
@@ -1555,6 +1654,9 @@ class Go3DRenderer {
     resetCamera() {
         if (this.app?.logic?.topology === 't2') {
             this.camera.position.set(0, 5.6, 9.8);
+            this.controls.target.set(0, 0, 0);
+        } else if (this.app?.logic?.topology === CYLINDER_GO_TOPOLOGY) {
+            this.camera.position.set(0, 4.8, 9.2);
             this.controls.target.set(0, 0, 0);
         } else if (this.app?.logic?.topology === MOBIUS_GO_TOPOLOGY) {
             this.camera.position.set(6.4, 4.8, 7.4);
@@ -1677,7 +1779,7 @@ class Go3DApp {
     syncLatticeOptions(mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY)) {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
-            : mode === 't2'
+            : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
                 ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
                 : [];
         this.latticeGroup.hidden = allowed.length === 0;
@@ -1734,6 +1836,7 @@ class Go3DApp {
             ? mode
             : mode === 'sphere'
                 ? SPHERE_GO_TOPOLOGY
+                : mode === CYLINDER_GO_TOPOLOGY ? CYLINDER_GO_TOPOLOGY
                 : mode === 'klein' ? KLEIN_BOTTLE_TOPOLOGY
                     : mode === 'mobius' ? MOBIUS_GO_TOPOLOGY
                         : mode === 'rp2' ? RP2_GO_TOPOLOGY : 't2';
@@ -2191,12 +2294,13 @@ class Go3DApp {
         this.updateR3SliceFilterVisibility();
         const isR3Like = isR3LikeTopology(this.logic.topology);
         const isSphere = this.logic.topology === SPHERE_GO_TOPOLOGY;
+        const isCylinder = this.logic.topology === CYLINDER_GO_TOPOLOGY;
         const isKlein = this.logic.topology === KLEIN_BOTTLE_TOPOLOGY;
         const isMobius = this.logic.topology === MOBIUS_GO_TOPOLOGY;
         const isRP2 = this.logic.topology === RP2_GO_TOPOLOGY;
         const modeKey = isR3Like
             ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : 'r3')
-            : isSphere ? 'sphere' : isKlein ? 'klein' : isMobius ? 'mobius' : isRP2 ? 'rp2' : 't2';
+            : isSphere ? 'sphere' : isCylinder ? 'cylinder' : isKlein ? 'klein' : isMobius ? 'mobius' : isRP2 ? 'rp2' : 't2';
         this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
             size: this.logic.size,
             width: this.logic.width,
@@ -2402,6 +2506,8 @@ class Go3DApp {
         this.logic.importState(state.logic);
         this.modeSelect.value = this.logic.topology === 't2'
             ? 't2'
+            : this.logic.topology === CYLINDER_GO_TOPOLOGY
+                ? CYLINDER_GO_TOPOLOGY
             : this.logic.topology === SPHERE_GO_TOPOLOGY
                 ? 'sphere'
                 : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY

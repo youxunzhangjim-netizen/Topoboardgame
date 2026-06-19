@@ -45,6 +45,7 @@ export class CubeThreeJSRenderer {
         });
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.maxPixelRatio));
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.domElement.style.touchAction = 'none';
 
         this.controls = new TrackballControls(this.camera, this.renderer.domElement);
         this.controls.rotateSpeed = 4.2;

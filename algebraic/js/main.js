@@ -299,6 +299,7 @@ const els = {
     whiteBraidLabel: document.querySelector('#whiteBraidLabel'),
     blackBraidCard: document.querySelector('#blackBraid')?.closest('div'),
     whiteBraidCard: document.querySelector('#whiteBraid')?.closest('div'),
+    timeEvolutionPanel: document.querySelector('#timeEvolutionPanel'),
     timeStatus: document.querySelector('#timeStatus'),
     phaseTimeline: document.querySelector('#phaseTimeline'),
     statusText: document.querySelector('#statusText'),
@@ -407,6 +408,10 @@ function normalizeTopologyAlias(value = '') {
         t2: 'torus',
         torus2d: 'torus',
         '2-torus': 'torus',
+        cyl: 'cylinder',
+        pbcx: 'cylinder',
+        'pbc-x': 'cylinder',
+        'x-periodic': 'cylinder',
         s2: 'sphere_latitude',
         sphere: 'sphere_latitude',
         sphere_lat: 'sphere_latitude',
@@ -3184,7 +3189,7 @@ function handlePhysicalCliffordClick(coord, event = null) {
 
 function startCustomStabilizerRecovery() {
     if (!customStabilizerSetupSelected(game?.mode || selectedMode())) {
-        els.statusText.textContent = 'Choose Pauli Error Recovery with Custom Setup first.';
+        els.statusText.textContent = 'Choose Pauli Error Correction / Recovery with Custom Setup first.';
         return;
     }
     const result = game?.startPhysicalProblemNow?.();
@@ -4337,13 +4342,15 @@ function renderStats() {
 }
 
 function renderTimePanel() {
-    if (!game?.time) {
+    const config = game?.time?.config || null;
+    const enabled = Boolean(game?.time?.isEnabled?.()) && config?.updateMode !== 'off';
+    if (els.timeEvolutionPanel) els.timeEvolutionPanel.hidden = !enabled;
+    if (!game?.time || !enabled) {
         els.timeStatus.textContent = 'Time evolution off.';
         els.phaseTimeline.innerHTML = '';
         return;
     }
     const state = game.time.gameTime;
-    const config = game.time.config;
     const attached = [];
     if (config.hamiltonianMode && config.hamiltonianMode !== 'off') {
         attached.push(`H=${config.hamiltonianMode}:${formatNumber(config.hamiltonianStrength)}`);
@@ -4354,7 +4361,7 @@ function renderTimePanel() {
         ? 'Time evolution off.'
         : `tick ${state.tick}, round ${state.round}, clock ${state.phase}/${state.period - 1}, ${config.updateMode}${attached.length ? `, ${attached.join(', ')}` : ''}`;
     els.phaseTimeline.innerHTML = game.time.phaseTimeline()
-        .map((item) => `<span class="${item.active ? 'active' : ''}" title="${item.label}">${item.phase}</span>`)
+        .map((item) => `<span class="${item.active ? 'active' : ''}" title="${item.label}"><i>${item.phase}</i></span>`)
         .join('');
 }
 
@@ -4409,7 +4416,7 @@ function updateStatus() {
         const action = els.physicalActionSelect.value;
         const observables = game.computePhysicalObservables();
         if (customStabilizerSetupPending()) {
-            els.statusText.textContent = `Custom Pauli recovery setup: click a site to choose I/X/Y/Z and sign. Current custom sites ${game.board.size}; press Start when ready.`;
+            els.statusText.textContent = `Custom Pauli correction setup: click a site to choose I/X/Y/Z and sign. Current custom sites ${game.board.size}; press Start when ready.`;
         } else if (action === 'entangle_ancilla' && selectedPhysicalCoord) {
             els.statusText.textContent = `Control ${game.topology.displayCoord(selectedPhysicalCoord)} selected. Choose an occupied target for ${els.entangleGateSelect.value}.`;
         } else if (action === 'reversi') {
@@ -4912,8 +4919,10 @@ function temporalAgeProgress(entity = null) {
     const age = Number(entity.age ?? 0);
     if (!Number.isFinite(age) || age <= 0) return null;
     const period = Math.max(1, Number(els.timePeriodInput?.value || game.time?.config?.period || 4));
-    const progress = Math.max(0.04, Math.min(1, age / period));
-    return { age, progress, period };
+    const cycleAge = ((age % period) + period) % period;
+    if (cycleAge <= 0) return null;
+    const progress = Math.max(0.04, Math.min(1, cycleAge / period));
+    return { age: cycleAge, totalAge: age, progress, period };
 }
 
 function appendAgeRing(cell, entity = null) {

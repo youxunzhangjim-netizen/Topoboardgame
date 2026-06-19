@@ -77,20 +77,21 @@ const VARIANTS = {
         }
     },
     sphere: {
-        label: 'S2',
-        title: 'Sphere Chess',
-        tagline: '2D chess on a latitude-longitude sphere with periodic longitude and antipodal pole crossing.',
-        canvasLabel: '3D sphere chess board',
-        rulesTitle: 'Sphere Rules',
-        rulesText: 'Sphere chess uses 16 longitudes and 16 latitude rows. Longitude wraps periodically. Polar cap rows remain empty, but legal movement can cross a pole and emerge on the antipodal longitude. Each army has four extra corner-support pawns. Pawns promote only by entering the opponent\'s original 8-piece king-row block.',
+        label: 'Cyl',
+        title: 'Cylinder Chess',
+        tagline: '2D chess on a cylinder: files wrap around the circumference while the top and bottom stay open.',
+        canvasLabel: '3D cylinder chess board',
+        rulesTitle: 'Cylinder Rules',
+        rulesText: 'Cylinder chess uses 16 files around the circumference and 14 playable ranks along the open height. Moving left or right wraps around the cylinder; moving past the top or bottom edge is illegal. Each army has four extra side-support pawns. Pawns promote only by entering the opponent\'s original 8-piece king-row block.',
         boundaryValue: 'sphere',
         controller: SphereChessGame,
+        urlValue: 'cylinder',
         zh: {
-            title: '球面棋',
-            tagline: '在經緯度球面上進行二維國際象棋，經度方向週期連接，並可從兩極穿越到對蹠經度。',
-            canvasLabel: '三維球面棋盤',
-            rulesTitle: '球面規則',
-            rulesText: '球面棋使用 16 條經度與 16 列緯度。經度方向週期連接；兩極帽列保持空白，但合法走法可穿越極點並從對蹠經度出現。每方增加四枚角落支援兵。兵只有進入對手原始八枚主棋所在列時才能升變。'
+            title: '圓柱棋',
+            tagline: '在圓柱面上進行二維西洋棋：左右沿圓周週期連接，上下邊界保持開放。',
+            canvasLabel: '三維圓柱棋盤',
+            rulesTitle: '圓柱規則',
+            rulesText: '圓柱棋使用 16 個沿圓周排列的檔與 14 個可走的高度列。左右移動會繞回圓柱另一側；超出上方或下方邊界的走法不合法。每方增加四枚側翼支援兵，兵只有進入對手原始八枚主棋所在列時才能升變。'
         }
     },
     klein: {
@@ -116,7 +117,7 @@ const DEFAULT_VARIANT = 'cube';
 const STORAGE_KEY = '3dchess:selectedVariant';
 
 function normalizeVariant(value) {
-    return value === 's2' ? 'sphere' : value;
+    return value === 's2' || value === 'cylinder' ? 'sphere' : value;
 }
 
 export class ChessGame {
@@ -361,7 +362,7 @@ export class ChessGame {
 
         window.localStorage.setItem(STORAGE_KEY, nextVariant);
         const url = new URL(window.location.href);
-        url.searchParams.set('variant', nextVariant);
+        url.searchParams.set('variant', VARIANTS[nextVariant].urlValue || nextVariant);
         url.searchParams.delete('game');
         url.searchParams.delete('room');
         window.location.href = url.toString();

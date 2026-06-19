@@ -74,7 +74,7 @@ function topologyFeaturesFromInfo(info = {}) {
         dimension: Number(info.dimension || info.dimensions || 2),
         sizes: clone(info.sizes || []),
         lattice: info.lattice || '',
-        periodic: /torus|periodic|klein|mobius/i.test(`${info.topology || info.name || ''}`)
+        periodic: /torus|periodic|cylinder|klein|mobius/i.test(`${info.topology || info.name || ''}`)
     };
 }
 

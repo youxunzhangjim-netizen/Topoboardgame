@@ -360,6 +360,22 @@ h1 {
     font-size: 13px;
 }
 
+.developing-label {
+    display: inline-block;
+    width: max-content;
+    margin-top: -2px;
+    padding: 2px 7px;
+    border: 1px solid rgba(245, 182, 71, 0.28);
+    border-radius: 999px;
+    color: rgba(245, 182, 71, 0.9);
+    background: rgba(245, 182, 71, 0.08);
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
 .extra-mode-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -400,6 +416,10 @@ h1 {
     grid-template-columns: 1fr auto;
     gap: 12px;
     align-items: start;
+}
+
+.lab-card-head .developing-label {
+    margin-top: 5px;
 }
 
 .lab-facts {
@@ -734,7 +754,9 @@ h1 {
 }
 
 .chess-cube-preview canvas,
-.hyper-plane canvas {
+.hyper-plane canvas,
+.static-cube-stack canvas,
+.time-volume-preview canvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -746,6 +768,13 @@ h1 {
         linear-gradient(90deg, rgba(56, 189, 248, 0.12) 1px, transparent 1px) 0 0 / 24px 24px,
         linear-gradient(rgba(245, 182, 71, 0.12) 1px, transparent 1px) 0 0 / 24px 24px,
         rgba(15, 23, 42, 0.7);
+}
+
+.static-cube-stack {
+    border: 1px solid rgba(215, 232, 223, 0.14);
+    background:
+        radial-gradient(circle at 48% 44%, rgba(125, 211, 252, 0.18), transparent 56%),
+        linear-gradient(140deg, rgba(8, 13, 22, 0.94), rgba(17, 24, 39, 0.86));
 }
 
 .dimension-copy {
@@ -1095,6 +1124,7 @@ h1 {
 }
 .launcher-display-name-row input,
 .launcher-display-name-editor > input,
+.launcher-display-name-editor select,
 .launcher-profile-grid input,
 .launcher-display-name-editor textarea {
     min-width: 0;
@@ -1159,8 +1189,114 @@ h1 {
     color: rgba(237, 244, 246, 0.92);
     font-size: 12px;
 }
+.launcher-recent-games {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 10px;
+    background: rgba(2, 6, 12, 0.34);
+}
+.launcher-recent-games-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.launcher-recent-games-head strong {
+    color: rgba(245, 182, 71, 0.94);
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.launcher-mini-button {
+    min-height: 28px;
+    padding: 0 9px;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 7px;
+    background: rgba(8, 12, 18, 0.84);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 900;
+}
+.launcher-recent-games-list {
+    display: grid;
+    gap: 8px;
+}
+.launcher-recent-game {
+    display: grid;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.62);
+}
+.launcher-recent-game-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.launcher-recent-game-main strong,
+.launcher-profile-link {
+    color: rgba(237, 244, 246, 0.94);
+    font-size: 12px;
+    font-weight: 950;
+}
+.launcher-profile-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: rgba(56, 189, 248, 0.5);
+}
+.launcher-recent-game-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.launcher-recent-game-meta span {
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    color: rgba(237, 244, 246, 0.82);
+    font-size: 10px;
+    font-weight: 850;
+}
+.launcher-recent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.launcher-recent-actions a,
+.launcher-recent-actions button {
+    min-height: 28px;
+    padding: 5px 8px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 7px;
+    background: rgba(2, 6, 12, 0.7);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+}
+.launcher-recent-profile {
+    padding: 8px;
+    border: 1px solid rgba(245, 182, 71, 0.22);
+    border-radius: 8px;
+    background: rgba(245, 182, 71, 0.08);
+    color: rgba(237, 244, 246, 0.88);
+    font-size: 11px;
+    line-height: 1.45;
+}
 .launcher-display-name-row input:focus-visible,
 .launcher-display-name-editor > input:focus-visible,
+.launcher-display-name-editor select:focus-visible,
 .launcher-profile-grid input:focus-visible,
 .launcher-display-name-editor textarea:focus-visible {
     border-color: rgba(56, 189, 248, 0.72);
@@ -1551,27 +1687,109 @@ h1 {
         radial-gradient(circle at center, rgba(56, 189, 248, 0.18), transparent 58%),
         rgba(7, 13, 24, 0.88);
 }
-.time-plane-preview span,
+.time-plane-preview {
+    isolation: isolate;
+    perspective: 760px;
+}
+.time-plane-preview::before {
+    content: "";
+    position: absolute;
+    width: 82%;
+    height: 52%;
+    border: 1px solid rgba(125, 211, 252, 0.22);
+    border-radius: 50%;
+    background:
+        repeating-linear-gradient(90deg, rgba(125, 211, 252, 0.2) 0 1px, transparent 1px 20px),
+        repeating-linear-gradient(0deg, rgba(248, 199, 93, 0.14) 0 1px, transparent 1px 20px);
+    transform: rotateX(64deg) rotateZ(-12deg);
+    box-shadow: 0 28px 42px rgba(0, 0, 0, 0.32);
+    opacity: 0.82;
+    animation: planarWaveSheet 6.4s ease-in-out infinite;
+}
+.time-plane-preview span {
+    position: absolute;
+    width: 70%;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.08), rgba(125, 211, 252, 0.9), rgba(248, 199, 93, 0.76), transparent);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.18);
+    transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
+    animation: planarWaveBand 4.8s ease-in-out infinite;
+    animation-delay: var(--wave-delay, 0s);
+    z-index: 1;
+}
+.time-plane-preview span:nth-child(1) { --wave-y: -54px; --wave-y-tight: -42px; --wave-lift: 5px; --wave-skew: -8deg; --wave-skew-alt: 8deg; --wave-delay: .84s; width: 62%; }
+.time-plane-preview span:nth-child(2) { --wave-y: -18px; --wave-y-tight: -14px; --wave-lift: 14px; --wave-skew: 9deg; --wave-skew-alt: -9deg; --wave-delay: .28s; width: 72%; }
+.time-plane-preview span:nth-child(3) { --wave-y: 18px; --wave-y-tight: 14px; --wave-lift: 8px; --wave-skew: -5deg; --wave-skew-alt: 5deg; --wave-delay: -.28s; width: 68%; }
+.time-plane-preview span:nth-child(4) { --wave-y: 54px; --wave-y-tight: 42px; --wave-lift: 16px; --wave-skew: 12deg; --wave-skew-alt: -12deg; --wave-delay: -.84s; width: 58%; }
+.time-volume-preview {
+    isolation: isolate;
+    perspective: 900px;
+    transform-style: preserve-3d;
+}
+.time-volume-preview canvas,
+.static-cube-stack canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+.time-volume-preview::before {
+    content: "";
+    position: absolute;
+    width: 72%;
+    aspect-ratio: 1;
+    border: 1px solid rgba(248, 199, 93, 0.2);
+    border-radius: 8px;
+    background: radial-gradient(circle at 50% 48%, rgba(125, 211, 252, 0.18), transparent 62%);
+    transform: rotateX(58deg) rotateZ(-35deg) translateY(12px);
+    filter: blur(0.2px);
+    opacity: 0.72;
+    z-index: 0;
+}
 .time-volume-preview span {
     position: absolute;
     width: 58%;
     aspect-ratio: 1;
     border: 1px solid rgba(125, 211, 252, 0.42);
-    border-radius: 50%;
-    transform: rotateX(60deg) rotateZ(calc(var(--r, 0) * 1deg));
-    box-shadow: 0 0 22px rgba(56, 189, 248, 0.12);
+    border-radius: 6px;
+    background:
+        repeating-linear-gradient(90deg, rgba(125, 211, 252, 0.38) 0 1px, transparent 1px 18px),
+        repeating-linear-gradient(0deg, rgba(248, 199, 93, 0.28) 0 1px, transparent 1px 18px),
+        rgba(7, 13, 24, 0.18);
+    box-shadow: 0 0 22px rgba(56, 189, 248, 0.13);
+    transform: rotateX(58deg) rotateZ(-35deg) translateY(var(--grid-y, 0px)) translateZ(var(--grid-z, 0px)) scale(var(--grid-scale, 1));
+    animation: cubicGridBreath 9.2s ease-in-out infinite;
+    animation-delay: var(--grid-delay, 0s);
 }
-.time-plane-preview span:nth-child(1) { --r: 0; }
-.time-plane-preview span:nth-child(2) { --r: 45; width: 48%; }
-.time-plane-preview span:nth-child(3) { --r: 90; width: 38%; }
-.time-plane-preview span:nth-child(4) { --r: 135; width: 28%; }
-.time-volume-preview span {
-    border-radius: 8px;
-    transform: perspective(800px) rotateX(58deg) rotateZ(-28deg) translateY(calc(var(--layer, 0) * -18px));
+.time-volume-preview span:nth-child(1) { --grid-y: 24px; --grid-z: -28px; --grid-scale: 1.02; --grid-delay: -.6s; width: 66%; }
+.time-volume-preview span:nth-child(2) { --grid-y: 0px; --grid-z: 0px; --grid-scale: .94; --grid-delay: -1.7s; width: 56%; }
+.time-volume-preview span:nth-child(3) { --grid-y: -24px; --grid-z: 28px; --grid-scale: .84; --grid-delay: -2.8s; width: 47%; }
+@keyframes planarWaveSheet {
+    0%, 100% { transform: rotateX(64deg) rotateZ(-12deg) scaleX(1); }
+    50% { transform: rotateX(58deg) rotateZ(-20deg) scaleX(0.94); }
 }
-.time-volume-preview span:nth-child(1) { --layer: 0; width: 62%; }
-.time-volume-preview span:nth-child(2) { --layer: 1; width: 54%; }
-.time-volume-preview span:nth-child(3) { --layer: 2; width: 46%; }
+@keyframes planarWaveBand {
+    0%, 100% {
+        transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
+    }
+    50% {
+        transform: rotateX(58deg) rotateZ(-22deg) translateY(var(--wave-y-tight, 0px)) translateZ(calc(var(--wave-lift, 0px) + 18px)) skewX(var(--wave-skew-alt, 0deg));
+    }
+}
+@keyframes cubicGridBreath {
+    0%, 100% {
+        transform: rotateX(58deg) rotateZ(-35deg) translate3d(0, var(--grid-y, 0px), var(--grid-z, 0px)) scale(var(--grid-scale, 1));
+    }
+    30% {
+        transform: rotateX(64deg) rotateZ(-28deg) translate3d(3px, calc(var(--grid-y, 0px) - 4px), calc(var(--grid-z, 0px) + 14px)) scale(1.06);
+    }
+    52% {
+        transform: rotateX(56deg) rotateZ(-42deg) translate3d(-3px, calc(var(--grid-y, 0px) + 3px), calc(var(--grid-z, 0px) - 8px)) scale(0.95);
+    }
+    72% {
+        transform: rotateX(61deg) rotateZ(-31deg) translate3d(2px, calc(var(--grid-y, 0px) - 2px), calc(var(--grid-z, 0px) + 6px)) scale(1.02);
+    }
+}
 @media (min-width: 1180px) {
     .dimension-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

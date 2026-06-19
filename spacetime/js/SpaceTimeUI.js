@@ -26,7 +26,7 @@ function clampInt(value, min, max, fallback) {
 
 function formatTopology(name = '') {
   return String(name)
-    .replace('plane', '2D Plane')
+    .replace('plane', 'Standard 2D')
     .replace('r3', 'R3 Standard')
     .replace('torus3', '3D Torus')
     .replace('sphere-shell', '3D Sphere / Shell')

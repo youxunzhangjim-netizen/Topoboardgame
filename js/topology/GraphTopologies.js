@@ -4,6 +4,7 @@ import { SeededRandom } from '../probability/SeededRandom.js';
 const TOPOLOGY_NAMES = Object.freeze([
     'flat',
     'random_boundary',
+    'cylinder',
     'torus',
     'klein_bottle',
     'mobius',
@@ -316,7 +317,7 @@ function create2DTopology(config) {
     const width = integer(config.width, 8, 2, 32);
     const height = integer(config.height, 8, 2, 32);
     const sizes = [width, height];
-    const finiteVertical = name === 'flat' || name === 'sphere_latitude' || name === 'mobius';
+    const finiteVertical = name === 'flat' || name === 'sphere_latitude' || name === 'mobius' || name === 'cylinder';
     const finiteHorizontal = name === 'flat';
     const nonorientable = name === 'klein_bottle' || name === 'rp2' || name === 'mobius';
     const randomBoundarySeed = name === 'random_boundary' ? (config.randomBoundarySeed || randomSeed()) : '';
@@ -337,6 +338,10 @@ function create2DTopology(config) {
     function normalize(rawCoord) {
         const [x, y] = rawCoord;
         if (name === 'flat' || name === 'random_boundary') return inside([x, y], sizes) ? [x, y] : null;
+        if (name === 'cylinder') {
+            if (y < 0 || y >= height) return null;
+            return [mod(x, width), y];
+        }
         if (name === 'sphere_latitude') {
             if (isSphereNorthPole([x, y], height)) return sphereNorthPoleCoord();
             if (isSphereSouthPole([x, y], height)) return sphereSouthPoleCoord(height);
@@ -528,6 +533,7 @@ function create2DTopology(config) {
                     : '';
             if (name === 'flat') return 'Standard boundary: rays stop at the edge.' + latticeText;
             if (name === 'random_boundary') return '2D RBC: each boundary exit maps to one fixed random boundary square for this game.' + latticeText;
+            if (name === 'cylinder') return 'Cylinder: x wraps periodically while y remains open.' + latticeText;
             if (name === 'sphere_latitude') return 'S2 latitude-ring graph: longitude wraps and the first/last latitude rings connect to playable north/south pole nodes.' + latticeText;
             if (name === 'torus') return 'Torus: x and y wrap periodically.' + latticeText;
             if (name === 'klein_bottle') return 'Klein bottle: x wraps normally, y wraps with x flip and H/twist seam transport.' + latticeText;
@@ -707,6 +713,8 @@ export function createGraphTopology(options = {}) {
     }
     const normalized = ['random', 'random-boundary', 'randomboundary'].includes(topology)
         ? 'random_boundary'
+        : ['cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(topology)
+            ? 'cylinder'
         : TOPOLOGY_NAMES.includes(topology) ? topology : 'torus';
     return create2DTopology({ ...options, topology: normalized });
 }

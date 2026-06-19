@@ -9,6 +9,7 @@ export const REVERSI_COLORS = {
 export const REVERSI_TOPOLOGIES = {
     OPEN_2D: 'open2d',
     PBC: 'pbc',
+    CYLINDER: 'cylinder',
     KLEIN: 'klein',
     RANDOM: 'random',
     POLAR: 'polar',
@@ -358,6 +359,10 @@ export function createReversiTopology(options = {}) {
             if (topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2) {
                 return [mod(x, width), mod(y, height)];
             }
+            if (topology === REVERSI_TOPOLOGIES.CYLINDER) {
+                if (y < 0 || y >= height) return null;
+                return [mod(x, width), y];
+            }
             if (topology === REVERSI_TOPOLOGIES.T3) {
                 return [mod(x, width), mod(y, height), mod(z, depth)];
             }
@@ -456,6 +461,7 @@ export function createReversiTopology(options = {}) {
 
 export function normalizeReversiTopology(value) {
     const text = String(value || '').toLowerCase();
+    if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(text)) return REVERSI_TOPOLOGIES.CYLINDER;
     if (['pbc', 'periodic', 'periodic2d'].includes(text)) return REVERSI_TOPOLOGIES.PBC;
     if (['klein', 'klein_bottle', 'klein-bottle'].includes(text)) return REVERSI_TOPOLOGIES.KLEIN;
     if (['random', 'random_boundary', 'random-boundary', 'randomboundary'].includes(text)) return REVERSI_TOPOLOGIES.RANDOM;

@@ -1,10 +1,10 @@
 import { TorusNetworkManager } from './TorusNetworkManager.js';
 
-const ROOM_STORAGE_PREFIX = '3dchess:sphere:room:';
+const ROOM_STORAGE_PREFIX = '3dchess:cylinder:room:';
 
 export class SphereNetworkManager extends TorusNetworkManager {
     variantKey() {
-        return 'sphere';
+        return 'cylinder';
     }
 
     storageKey(roomId = this.roomId) {

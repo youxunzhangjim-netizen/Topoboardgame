@@ -625,7 +625,8 @@ h2 {
     gap: 14px;
 }
 
-.lab-history-panels section {
+.lab-history-panels section,
+.lab-export-panel {
     min-width: 0;
     display: grid;
     gap: 8px;
@@ -636,7 +637,8 @@ h2 {
     box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
 }
 
-.lab-history-panels h2 {
+.lab-history-panels h2,
+.lab-export-panel h2 {
     margin: 0;
     font-size: 16px;
 }
@@ -1437,26 +1439,74 @@ h2 {
 
 .phase-timeline {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
 .phase-timeline span {
-    width: 28px;
-    height: 28px;
+    --phase-fill: rgba(66, 198, 255, 0.16);
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
-    border: 1px solid var(--line);
-    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 999px;
+    background:
+        radial-gradient(circle, rgba(7, 10, 14, 0.92) 0 54%, transparent 56%),
+        conic-gradient(var(--phase-fill) 0 72deg, rgba(148, 163, 184, 0.1) 72deg 360deg);
     color: var(--muted);
     font-size: 12px;
     font-weight: 900;
 }
 
+.phase-timeline span i {
+    font-style: normal;
+    line-height: 1;
+}
+
 .phase-timeline span.active {
     border-color: rgba(66, 198, 255, 0.85);
     color: var(--text);
-    background: rgba(66, 198, 255, 0.18);
+    --phase-fill: rgba(245, 182, 71, 0.86);
+    box-shadow: 0 0 18px rgba(66, 198, 255, 0.26);
+}
+
+.rules-mini-diagram {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+    margin: 2px 0 4px;
+}
+
+.rules-mini-diagram span {
+    position: relative;
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    padding: 8px;
+    border: 1px solid rgba(125, 211, 252, 0.24);
+    border-radius: 8px;
+    background: rgba(8, 13, 22, 0.72);
+    color: rgba(237, 244, 246, 0.9);
+    font-size: 12px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.rules-mini-diagram span:not(:last-child)::after {
+    content: ">";
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(245, 182, 71, 0.92);
+    font-size: 13px;
+}
+
+.lab-export-panel {
+    display: grid;
+    gap: 8px;
 }
 
 .legend {
@@ -1655,6 +1705,11 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     }
 
     .layer-panel {
+        grid-column: 1 / -1;
+    }
+
+    .lab-history-panels,
+    .lab-export-panel {
         grid-column: 1 / -1;
     }
 

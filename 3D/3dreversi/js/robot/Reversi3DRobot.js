@@ -37,7 +37,7 @@ function evaluate(logic, player = logic.currentPlayer) {
   const discWeight = counts.empty < Math.max(16, logic.topology.totalVertices * 0.15) ? 6.5 : counts.empty < logic.topology.totalVertices * 0.45 ? 2.2 : 0.9;
   return discWeight * ((counts[player] || 0) - (counts[opponent] || 0)) + 12 * (moves - oppMoves) + 56 * (anchors - oppAnchors) - 5 * (frontier - oppFrontier) + 30 * (stable - oppStable) + 4 * (topo - oppTopo);
 }
-function topological(logic) { return ['t3','r3_random','t2','sphere','klein','mobius','rp2'].includes(logic.topology.topology); }
+function topological(logic) { return ['t3','r3_random','t2','cylinder','sphere','klein','mobius','rp2'].includes(logic.topology.topology); }
 function stableFromAnchor(logic, coord, player) {
   if (!isBoundaryCoord(logic, coord)) return false;
   let hits = 0;

@@ -26,7 +26,7 @@ const DIMENSION_TEXT = {
     title: '2+1D',
     dimension: 2,
     size: [9, 9],
-    topologies: ['plane', 'torus', 'mobius', 'klein', 'rp2', 'sphere'],
+    topologies: ['plane', 'cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere'],
     lattices: ['square', 'triangular', 'honeycomb'],
     description: '2D board plus discrete turn-time.'
   },
@@ -34,7 +34,7 @@ const DIMENSION_TEXT = {
     title: '3+1D',
     dimension: 3,
     size: [6, 6, 4],
-    topologies: ['r3', 'torus3', 'reflective', 'sphere-shell'],
+    topologies: ['r3', 'cylinder', 'torus3', 'reflective', 'sphere-shell'],
     lattices: ['cubic', 'bcc', 'fcc'],
     description: '3D board plus discrete turn-time.'
   }

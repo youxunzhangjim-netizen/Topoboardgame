@@ -33,7 +33,8 @@ export function valueToColor(value) {
 
 export function normalizeTopology(topology) {
     const value = String(topology || '').toLowerCase();
-    if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(value)) return 'pbc';
+    if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(value)) return 'cylinder';
+    if (['pbc', 't2', 'torus', 'periodic', 'periodic2d'].includes(value)) return 'pbc';
     if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(value)) return 'klein';
     if (['random', 'random_boundary', 'random-boundary', 'randomboundary'].includes(value)) return 'random';
     if (['polar', 'polar_center', 'polar-center', 'radial', 'radial_center'].includes(value)) return 'polar';
@@ -235,7 +236,9 @@ export class GoGameLogic {
     }
 
     isWrapAxis(axis) {
-        return this.topology === 'pbc' && (axis === 0 || axis === 1);
+        if (this.topology === 'pbc') return axis === 0 || axis === 1;
+        if (this.topology === 'cylinder') return axis === 0;
+        return false;
     }
 
     stepCoord(coord, axis, delta) {

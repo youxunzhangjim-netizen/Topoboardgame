@@ -1,5 +1,6 @@
 const preview3d = document.getElementById('dimension3dCanvas');
 const preview4d = document.getElementById('dimension4dCanvas');
+const preview3p1 = document.getElementById('dimension3p1Canvas');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function fitCanvas(canvas) {
@@ -162,15 +163,80 @@ function drawTesseract(canvas, time) {
     });
 }
 
+function drawStaticCubeStack(canvas) {
+    if (!canvas) return;
+    const { width, height, ratio } = fitCanvas(canvas);
+    const context = canvas.getContext('2d');
+    const centerX = width * 0.52;
+    const centerY = height * 0.58;
+    const base = Math.min(width, height) * 0.2;
+    const layers = 10;
+    context.clearRect(0, 0, width, height);
+    context.lineJoin = 'round';
+    context.lineCap = 'round';
+
+    function project(x, y, z, layer) {
+        const layerShift = (layer - (layers - 1) / 2) * base * 0.13;
+        return {
+            x: centerX + (x - y) * base * 0.58 + layerShift,
+            y: centerY + (x + y) * base * 0.26 - z * base * 0.72 - layerShift * 0.38
+        };
+    }
+
+    for (let layer = 0; layer < layers; layer++) {
+        const opacity = 0.18 + layer / (layers - 1) * 0.46;
+        const zOffset = (layer - (layers - 1) / 2) * 0.05;
+        const corners = [
+            project(-1, -1, -1 + zOffset, layer),
+            project(1, -1, -1 + zOffset, layer),
+            project(1, 1, -1 + zOffset, layer),
+            project(-1, 1, -1 + zOffset, layer),
+            project(-1, -1, 1 + zOffset, layer),
+            project(1, -1, 1 + zOffset, layer),
+            project(1, 1, 1 + zOffset, layer),
+            project(-1, 1, 1 + zOffset, layer)
+        ];
+        const edges = [
+            [0, 1], [1, 2], [2, 3], [3, 0],
+            [4, 5], [5, 6], [6, 7], [7, 4],
+            [0, 4], [1, 5], [2, 6], [3, 7]
+        ];
+        context.strokeStyle = `rgba(125, 211, 252, ${opacity})`;
+        context.lineWidth = (0.8 + layer * 0.05) * ratio;
+        for (const [from, to] of edges) {
+            context.beginPath();
+            context.moveTo(corners[from].x, corners[from].y);
+            context.lineTo(corners[to].x, corners[to].y);
+            context.stroke();
+        }
+        for (let grid = -0.5; grid <= 0.51; grid += 0.5) {
+            const a = project(-1, grid, 1 + zOffset, layer);
+            const b = project(1, grid, 1 + zOffset, layer);
+            const c = project(grid, -1, 1 + zOffset, layer);
+            const d = project(grid, 1, 1 + zOffset, layer);
+            context.strokeStyle = `rgba(245, 182, 71, ${opacity * 0.5})`;
+            context.lineWidth = 0.55 * ratio;
+            context.beginPath();
+            context.moveTo(a.x, a.y);
+            context.lineTo(b.x, b.y);
+            context.moveTo(c.x, c.y);
+            context.lineTo(d.x, d.y);
+            context.stroke();
+        }
+    }
+}
+
 function render(time = 0) {
     draw3dBoard(preview3d, time);
-    drawTesseract(preview4d, time);
+    drawTesseract(preview3p1, time);
+    drawStaticCubeStack(preview4d);
     if (!reduceMotion) requestAnimationFrame(render);
 }
 
 window.addEventListener('resize', () => {
     draw3dBoard(preview3d, performance.now());
-    drawTesseract(preview4d, performance.now());
+    drawTesseract(preview3p1, performance.now());
+    drawStaticCubeStack(preview4d);
 });
 
 requestAnimationFrame(render);

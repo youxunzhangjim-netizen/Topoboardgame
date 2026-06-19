@@ -1,11 +1,136 @@
 import { FirebaseStateNetworkManager } from '../FirebaseStateNetworkManager.js';
-import { JumpGameState, chooseJumpRobotMove, coordKey, otherPlayer } from './JumpRules.js';
+import { installProjectedBoardTouchControls } from './ProjectedBoardTouchControls.js';
+import { JumpGameState, chooseJumpRobotMove, coordKey, normalizeJumpLattice, otherPlayer } from './JumpRules.js';
 
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
-  plane: 'Flat', torus: 'Torus', mobius: 'Möbius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
+  plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Möbius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
   cube: '3D', reflective: 'Reflective', shell: 'Sphere / Shell', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
 };
+const TOPOLOGY_ZH_LABELS = {
+  plane: '標準',
+  polar: '極座標',
+  cylinder: '圓柱',
+  torus: '環面',
+  mobius: '莫比烏斯',
+  klein: 'Klein 瓶',
+  rp2: 'RP2',
+  sphere: '球面',
+  cube: '3D',
+  reflective: '反射',
+  shell: '球殼',
+  hypercube: '4D',
+  projection: '投影',
+  '4d-torus': '4D 環面'
+};
+const LATTICE_LABELS = { square: 'Square', triangular: 'Triangular' };
+const JUMP_ZH_TEXT = new Map(Object.entries({
+  '2D Jump': '2D 跳棋',
+  'Standard Jump': '標準跳棋',
+  '3D Jump': '3D 跳棋',
+  '4D Jump': '4D 跳棋',
+  jump: '跳棋',
+  chain: '連跳',
+  target: '目標',
+  topology: '拓撲',
+  'Game Controls': '遊戲控制',
+  Home: '首頁',
+  Play: '對局',
+  Mode: '模式',
+  Topology: '拓撲',
+  Lattice: '晶格',
+  'Board size': '棋盤大小',
+  'Target axis': '目標軸',
+  'Target Mode': '目標模式',
+  'Opponent Home Zone': '對方本區',
+  'Antipodal Zone': '對跖目標區',
+  'Same Charge Sector': '同電荷扇區',
+  'Fusion Target': '融合目標',
+  'Braid Target': '編織目標',
+  'Custom Marked Target': '自訂標記目標',
+  'Advanced / Research Settings': '進階 / 研究設定',
+  'Board View': '棋盤視角',
+  'Rotate X': '旋轉 X',
+  'Rotate Y': '旋轉 Y',
+  'Rotate Z': '旋轉 Z',
+  Zoom: '縮放',
+  'R3 coordinate view filter': 'R3 座標視圖篩選',
+  'Leave a field empty to show all coordinates on that axis. Reset Camera clears this filter.': '欄位留空會顯示該軸全部座標。重設相機會清除篩選。',
+  'Reset Camera': '重設相機',
+  'Reset View': '重設視角',
+  'Focus Own': '聚焦己方',
+  'Drag rotates 3D boards. Mouse wheel or trackpad zooms.': '拖曳可旋轉 3D 棋盤，滑鼠滾輪或觸控板可縮放。',
+  'New Game': '新局',
+  'Stop Jump Chain': '停止連跳',
+  Online: 'Online',
+  Disconnected: '未連線',
+  'Find Match': '尋找對手',
+  'Create Room': '建立房間',
+  'Room code': '房間碼',
+  Join: '加入',
+  'Room:': '房間：',
+  'Copy Share Link': '複製分享連結',
+  'Leave Room': '離開房間',
+  Zones: '區域',
+  'Player A home / B target': '玩家 A 本區 / B 目標',
+  'Player B home / A target': '玩家 B 本區 / A 目標',
+  'Legal step': '合法一步',
+  'Legal jump': '合法跳躍',
+  Info: '說明',
+  'Move History + Analysis': '移動歷史 + 分析',
+  'Analyze / Suggest': '分析 / 建議',
+  Ready: '準備',
+  'Movable Pieces': '可移動棋子',
+  'Current player pieces': '當前玩家棋子',
+  'Available Moves': '可用走法',
+  'Select a piece': '選擇棋子',
+  'Jump move picker': '跳棋走法選擇',
+  Winner: '勝者',
+  Turn: '回合',
+  'Waiting for Player': '等待玩家',
+  'No active selection': '尚未選取',
+  'Destinations appear on your turn.': '輪到你時會顯示目的地。',
+  Player: '玩家',
+  movable: '可移動',
+  'No movable pieces.': '沒有可移動棋子。',
+  'Select a movable piece to list destinations.': '選擇可移動棋子以列出目的地。',
+  destination: '目的地',
+  destinations: '目的地',
+  'This piece has no legal destinations.': '這枚棋子沒有合法目的地。',
+  over: '越過',
+  stepMove: '一步',
+  jumpMove: '跳躍',
+  none: '無',
+  'Current player': '當前玩家',
+  'Legal moves': '合法走法',
+  'Suggested move': '建議走法',
+  progress: '進度',
+  'Score estimate for A': '玩家 A 分數估計',
+  'Polar Jump': '極座標跳棋',
+  'Cylinder Jump': '圓柱跳棋',
+  'Torus Jump': '環面跳棋',
+  'Möbius Jump': '莫比烏斯跳棋',
+  'MÃ¶bius Jump': '莫比烏斯跳棋',
+  'Klein Jump': 'Klein 瓶跳棋',
+  'RP2 Jump': 'RP2 跳棋',
+  'Sphere Jump': '球面跳棋',
+  '3D Cylinder Jump': '3D 圓柱跳棋',
+  '3D Torus Jump': '3D 環面跳棋',
+  '3D Reflective Jump': '3D 反射跳棋',
+  '3D Sphere / Shell Jump': '3D 球殼跳棋',
+  '4D Cylinder Jump': '4D 圓柱跳棋',
+  '4D Torus Jump': '4D 環面跳棋',
+  '4D Hypercube Jump': '4D 超立方跳棋',
+  '4D Projection Jump': '4D 投影跳棋',
+  Square: '方格',
+  Triangular: '三角格',
+  'Slice z': '切片 z',
+  'Slice w': '切片 w',
+  all: '全部',
+  'x = all': 'x = 全部',
+  'y = all': 'y = 全部',
+  'z = all': 'z = 全部'
+}));
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || min)); }
 function parseCoordKey(key) { return key.split(',').map(Number); }
@@ -16,6 +141,7 @@ function withQuery(defaults = {}) {
     ...defaults,
     dimension: Number(value('dimension', defaults.dimension || 2)),
     topology: value('topology', defaults.topology || defaults.boundary || 'plane'),
+    lattice: value('lattice', defaults.lattice || 'square'),
     labMode: value('lab', defaults.labMode || ''),
     size: Number(value('size', defaults.size || (defaults.dimension === 4 ? 5 : defaults.dimension === 3 ? 6 : 8)))
   };
@@ -52,6 +178,7 @@ function normalizeJumpNetworkState(state = {}) {
 export class JumpGameApp {
   constructor(config = {}) {
     this.config = withQuery(config);
+    this.language = jumpLanguage();
     this.dimension = clamp(this.config.dimension, 2, 4);
     this.canvas = document.getElementById('jumpCanvas');
     this.ctx = this.canvas.getContext('2d');
@@ -61,6 +188,7 @@ export class JumpGameApp {
     this.historyEl = document.getElementById('moveHistory');
     this.modeSelect = document.getElementById('gameModeSelect');
     this.topologySelect = document.getElementById('topologySelect');
+    this.latticeSelect = document.getElementById('latticeSelect');
     this.sizeSelect = document.getElementById('boardSizeSelect');
     this.axisSelect = document.getElementById('targetAxisSelect');
     this.targetModeSelect = document.getElementById('targetModeSelect');
@@ -89,7 +217,9 @@ export class JumpGameApp {
     };
     this.sliceFilterEl = document.getElementById('r3FilterControl');
     this.focusOwnPieces = false;
+    this.applyInitialSelectValues();
     this.movePicker = this.ensureMovePicker();
+    this.translateStaticUI();
     this.suppressCanvasClickUntil = 0;
     this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
     this.game = this.createGame();
@@ -100,6 +230,8 @@ export class JumpGameApp {
 
   createGame() {
     const topology = this.topologySelect?.value || this.config.topology || 'plane';
+    this.syncLatticeAvailability(topology);
+    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, topology);
     const size = Number(this.sizeSelect?.value || this.config.size || (this.dimension === 4 ? 5 : this.dimension === 3 ? 6 : 8));
     const targetAxis = this.axisSelect?.value || this.config.targetAxis || 'x';
     const labTargetMode = this.targetModeSelect?.value || 'opponentHome';
@@ -107,23 +239,90 @@ export class JumpGameApp {
       dimension: this.dimension,
       size,
       topology,
+      lattice,
       targetAxis,
       labMode: this.config.labMode || '',
       labTargetMode,
-      zoneMode: ['torus', 'mobius', 'klein', 'rp2', 'projection', '4d-torus'].includes(topology) ? 'marked' : 'auto'
+      zoneMode: ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'projection', '4d-torus'].includes(topology) ? 'marked' : 'auto'
     });
+  }
+
+  applyInitialSelectValues() {
+    const setIfPresent = (select, value) => {
+      if (!select || value == null) return;
+      const normalized = String(value);
+      if ([...select.options].some((option) => option.value === normalized)) select.value = normalized;
+    };
+    setIfPresent(this.topologySelect, this.config.topology);
+    setIfPresent(this.sizeSelect, this.config.size);
+    setIfPresent(this.axisSelect, this.config.targetAxis);
+    setIfPresent(this.targetModeSelect, this.config.labTargetMode);
+    setIfPresent(this.latticeSelect, this.config.lattice);
+    this.syncLatticeAvailability();
+  }
+
+  syncLatticeAvailability(topology = this.topologySelect?.value || this.config.topology || 'plane') {
+    if (!this.latticeSelect) return;
+    const top = String(topology || '').toLowerCase();
+    const allowTriangular = this.dimension === 2 && top !== 'polar';
+    for (const option of this.latticeSelect.options) {
+      option.disabled = option.value === 'triangular' && !allowTriangular;
+      option.textContent = this.language === 'zh'
+        ? (option.value === 'triangular' ? '三角格' : '方格')
+        : (LATTICE_LABELS[option.value] || option.textContent);
+    }
+    if (!allowTriangular || this.latticeSelect.value !== 'triangular') {
+      this.latticeSelect.value = normalizeJumpLattice(this.latticeSelect.value || this.config.lattice || 'square', this.dimension, top);
+    }
+    this.latticeSelect.disabled = this.dimension !== 2 || top === 'polar';
+    this.latticeSelect.title = top === 'polar'
+      ? (this.language === 'zh' ? '極座標跳棋固定使用方格徑向/角向連線。' : 'Polar Jump uses square radial/angular links only.')
+      : '';
+  }
+
+  t(key, fallback = key) {
+    if (this.language !== 'zh') return fallback;
+    return JUMP_ZH_TEXT.get(key) || fallback;
+  }
+
+  translateStaticUI() {
+    if (this.language !== 'zh') return;
+    document.documentElement.lang = 'zh-Hant';
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const tag = node.parentElement?.tagName;
+        return tag === 'SCRIPT' || tag === 'STYLE' ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const trimmed = node.nodeValue.trim();
+      if (!trimmed || !JUMP_ZH_TEXT.has(trimmed)) continue;
+      node.nodeValue = node.nodeValue.replace(trimmed, JUMP_ZH_TEXT.get(trimmed));
+    }
+    document.querySelectorAll('input[placeholder]').forEach((node) => {
+      const text = node.getAttribute('placeholder');
+      if (JUMP_ZH_TEXT.has(text)) node.setAttribute('placeholder', JUMP_ZH_TEXT.get(text));
+    });
+    document.querySelectorAll('[aria-label]').forEach((node) => {
+      const text = node.getAttribute('aria-label');
+      if (JUMP_ZH_TEXT.has(text)) node.setAttribute('aria-label', JUMP_ZH_TEXT.get(text));
+    });
+    this.syncLatticeAvailability();
   }
 
   install() {
     addEventListener('resize', () => this.render());
     this.canvas.addEventListener('click', (event) => this.onCanvasClick(event));
     this.installViewControls();
-    for (const el of [this.modeSelect, this.topologySelect, this.sizeSelect, this.axisSelect, this.targetModeSelect]) {
+    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.sizeSelect, this.axisSelect, this.targetModeSelect]) {
       el?.addEventListener('change', () => {
         if (el === this.modeSelect && this.modeSelect?.value !== 'online') {
           this.network.close({ silent: true });
           this.myColor = null;
         }
+        if (el === this.topologySelect) this.syncLatticeAvailability();
         this.resetGame();
       });
     }
@@ -159,7 +358,7 @@ export class JumpGameApp {
       control?.addEventListener('input', sync);
     }
     this.viewControls.reset?.addEventListener('click', () => {
-      this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+      Object.assign(this.view, { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null });
       this.clearR3SliceFilters(false);
       if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
       if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
@@ -183,39 +382,18 @@ export class JumpGameApp {
       if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom.toFixed(2));
       this.render();
     }, { passive: false });
-    this.canvas.addEventListener('pointerdown', (event) => {
-      if (!this.usesEmbeddedView()) return;
-      if (![0, 1, 2].includes(event.button)) return;
-      this.view.drag = {
-        x: event.clientX,
-        y: event.clientY,
-        rotX: this.view.rotX,
-        rotY: this.view.rotY,
-        active: event.shiftKey || event.button !== 0
-      };
-      this.canvas.setPointerCapture?.(event.pointerId);
+    installProjectedBoardTouchControls({
+      element: this.canvas,
+      view: this.view,
+      isEnabled: () => this.usesEmbeddedView(),
+      syncControls: () => {
+        if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
+        if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
+        if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom.toFixed(2));
+      },
+      render: () => this.render(),
+      suppressClick: () => { this.suppressCanvasClickUntil = performance.now() + 220; }
     });
-    this.canvas.addEventListener('pointermove', (event) => {
-      if (!this.view.drag) return;
-      const dx = event.clientX - this.view.drag.x;
-      const dy = event.clientY - this.view.drag.y;
-      if (!this.view.drag.active && Math.hypot(dx, dy) < 4) return;
-      this.view.drag.active = true;
-      event.preventDefault();
-      this.view.rotY = this.view.drag.rotY + dx * 0.45;
-      this.view.rotX = this.view.drag.rotX - dy * 0.45;
-      if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
-      if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
-      this.render();
-    });
-    const stopDrag = (event) => {
-      if (!this.view.drag) return;
-      if (this.view.drag.active) this.suppressCanvasClickUntil = performance.now() + 220;
-      this.view.drag = null;
-      try { this.canvas.releasePointerCapture?.(event.pointerId); } catch {}
-    };
-    this.canvas.addEventListener('pointerup', stopDrag);
-    this.canvas.addEventListener('pointercancel', stopDrag);
     this.canvas.addEventListener('contextmenu', (event) => { if (this.usesEmbeddedView()) event.preventDefault(); });
     this.updateR3SliceFilterVisibility();
     this.syncPieceFocusButton();
@@ -224,23 +402,29 @@ export class JumpGameApp {
   updateLabels() {
     const title = document.getElementById('gameTitle');
     const lab = this.config.labMode;
-    if (title) title.textContent = lab ? labTitle(lab) : `${TOPOLOGY_LABELS[this.config.topology] || DIM_LABELS[this.dimension]} ${jumpWord()}`;
+    const topology = this.topologySelect?.value || this.config.topology || this.game?.topologyName || 'plane';
+    const topologyLabel = this.language === 'zh'
+      ? (TOPOLOGY_ZH_LABELS[topology] || DIM_LABELS[this.dimension])
+      : (TOPOLOGY_LABELS[topology] || DIM_LABELS[this.dimension]);
+    if (title) title.textContent = lab ? labTitle(lab) : `${topologyLabel} ${jumpWord()}`;
     const desc = document.getElementById('gameDescription');
     if (desc) desc.textContent = lab ? labDescription(lab) : dimensionDescription(this.dimension);
     if (this.infoEl) {
       this.infoEl.textContent = jumpLanguage() === 'zh'
-        ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。一般棋盤的目標像對面，但在環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤上，目標會直接標出，因為空間改變時「對面」的意思也會改變。'
-        : 'Jump modes use step moves and chain jumps. Your goal is to move your pieces from your home zone into the target zone. On ordinary boards the target may look like the opposite side, but on torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because the meaning of opposite changes with the space.';
+        ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。方格棋盤使用上下左右連線，三角格棋盤增加兩條斜向連線；極座標棋盤固定使用方格徑向/角向連線。環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤會直接標出目標區，因為空間改變時「對面」的意思也會改變。'
+        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
     }
   }
 
   resetGame() {
+    this.syncLatticeAvailability();
     this.game = this.createGame();
     this.selected = null;
     this.legal = [];
     this.history = [];
     this.network.gameKey = this.onlineGameKey();
     this.network.matchKey = this.onlineMatchKey();
+    this.updateLabels();
     this.render();
   }
 
@@ -285,13 +469,13 @@ export class JumpGameApp {
     if (!existing) {
       panel.innerHTML = `
         <div class="jump-move-picker-head">
-          <span>Movable Pieces</span>
-          <span class="jump-picker-summary" id="jumpPieceSummary">Current player pieces</span>
+          <span>${escapeHtml(this.t('Movable Pieces', 'Movable Pieces'))}</span>
+          <span class="jump-picker-summary" id="jumpPieceSummary">${escapeHtml(this.t('Current player pieces', 'Current player pieces'))}</span>
         </div>
         <div class="jump-piece-strip" id="jumpMovablePiecesList"></div>
         <div class="jump-move-picker-head jump-move-options-head">
-          <span>Available Moves</span>
-          <span class="jump-picker-summary" id="jumpMoveSummary">Select a piece</span>
+          <span>${escapeHtml(this.t('Available Moves', 'Available Moves'))}</span>
+          <span class="jump-picker-summary" id="jumpMoveSummary">${escapeHtml(this.t('Select a piece', 'Select a piece'))}</span>
         </div>
         <div class="jump-move-options" id="jumpMoveOptionsList"></div>
       `;
@@ -393,15 +577,17 @@ export class JumpGameApp {
     const selectedKey = this.selected ? coordKey(this.selected) : '';
 
     if (!canMove) {
-      const text = this.game.winner ? `Winner: ${this.game.winner}` : `Waiting for Player ${player}`;
+      const text = this.game.winner
+        ? `${this.t('Winner', 'Winner')}: ${this.game.winner}`
+        : `${this.t('Waiting for Player', 'Waiting for Player')} ${player}`;
       if (this.movePicker.pieceSummary) this.movePicker.pieceSummary.textContent = text;
       if (this.movePicker.pieces) this.movePicker.pieces.innerHTML = `<span class="jump-empty-row">${escapeHtml(text)}</span>`;
-      if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = 'No active selection';
-      if (this.movePicker.moves) this.movePicker.moves.innerHTML = '<span class="jump-empty-row">Destinations appear on your turn.</span>';
+      if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = this.t('No active selection', 'No active selection');
+      if (this.movePicker.moves) this.movePicker.moves.innerHTML = `<span class="jump-empty-row">${escapeHtml(this.t('Destinations appear on your turn.', 'Destinations appear on your turn.'))}</span>`;
       return;
     }
 
-    if (this.movePicker.pieceSummary) this.movePicker.pieceSummary.textContent = `Player ${player}: ${movablePieces.length} movable`;
+    if (this.movePicker.pieceSummary) this.movePicker.pieceSummary.textContent = `${this.t('Player', 'Player')} ${player}: ${movablePieces.length} ${this.t('movable', 'movable')}`;
     if (this.movePicker.pieces) {
       this.movePicker.pieces.innerHTML = movablePieces.length
         ? movablePieces.map(({ key, coord, moves }) => `
@@ -411,16 +597,16 @@ export class JumpGameApp {
             <span class="jump-piece-count">${moves.length}</span>
           </button>
         `).join('')
-        : '<span class="jump-empty-row">No movable pieces.</span>';
+        : `<span class="jump-empty-row">${escapeHtml(this.t('No movable pieces.', 'No movable pieces.'))}</span>`;
     }
 
     if (!this.selected) {
-      if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = 'Select a piece';
-      if (this.movePicker.moves) this.movePicker.moves.innerHTML = '<span class="jump-empty-row">Select a movable piece to list destinations.</span>';
+      if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = this.t('Select a piece', 'Select a piece');
+      if (this.movePicker.moves) this.movePicker.moves.innerHTML = `<span class="jump-empty-row">${escapeHtml(this.t('Select a movable piece to list destinations.', 'Select a movable piece to list destinations.'))}</span>`;
       return;
     }
 
-    if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = `${this.formatCoord(this.selected)} -> ${this.legal.length} destination${this.legal.length === 1 ? '' : 's'}`;
+    if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = `${this.formatCoord(this.selected)} -> ${this.legal.length} ${this.t('destination', this.legal.length === 1 ? 'destination' : 'destinations')}`;
     if (this.movePicker.moves) {
       this.movePicker.moves.innerHTML = this.legal.length
         ? this.legal.map((move) => `
@@ -428,14 +614,19 @@ export class JumpGameApp {
             ${escapeHtml(this.formatMoveLabel(move))}
           </button>
         `).join('')
-        : '<span class="jump-empty-row">This piece has no legal destinations.</span>';
+        : `<span class="jump-empty-row">${escapeHtml(this.t('This piece has no legal destinations.', 'This piece has no legal destinations.'))}</span>`;
     }
   }
 
   formatCoord(coord) { return `(${coord.join(',')})`; }
+  moveTypeLabel(type) {
+    if (type === 'jump') return this.t('jumpMove', 'jump');
+    if (type === 'step') return this.t('stepMove', 'step');
+    return this.t(type, type);
+  }
   formatMoveLabel(move) {
-    const over = move.over ? ` over ${this.formatCoord(move.over)}` : '';
-    return `${move.type} -> ${this.formatCoord(move.to)}${over}`;
+    const over = move.over ? ` ${this.t('over', 'over')} ${this.formatCoord(move.over)}` : '';
+    return `${this.moveTypeLabel(move.type)} -> ${this.formatCoord(move.to)}${over}`;
   }
 
   afterMove(label) {
@@ -534,11 +725,26 @@ export class JumpGameApp {
     this.viewControls.focusOwn?.setAttribute('aria-pressed', String(this.focusOwnPieces));
   }
 
+  isPolarBoard() {
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    return this.dimension === 2 && topology === 'polar';
+  }
+
+  polarLayout(width = this.canvas.clientWidth || 720, height = this.canvas.clientHeight || 520) {
+    const radius = Math.min(width, height) * 0.39;
+    return {
+      cx: width / 2,
+      cy: height * 0.5,
+      radius,
+      step: radius / Math.max(1, (this.game?.size || 2) - 1)
+    };
+  }
+
   cellRadius() { return Math.max(8, Math.min(this.canvas.clientWidth || 720, this.canvas.clientHeight || 520) / (this.game.size * 2.8)); }
 
   usesEmbeddedView() {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
-    return this.dimension >= 3 || ['torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell', 'projection', '4d-torus', 'hypercube'].includes(topology);
+    return this.dimension >= 3 || ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell', 'projection', '4d-torus', 'hypercube'].includes(topology);
   }
 
   embeddedPoint(coord) {
@@ -550,6 +756,11 @@ export class JumpGameApp {
       const R = 1.45;
       const r = 0.48;
       return [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v) + (coord[2] || 0) / Math.max(1, n) - 0.5];
+    }
+    if (topology === 'cylinder') {
+      const radial = 1.18 + ((coord[2] || 0) / Math.max(1, n)) * 0.72;
+      const vertical = (coord[1] / Math.max(1, n) - 0.5) * 2.2 + ((coord[3] || 0) / Math.max(1, n) - 0.5) * 0.38;
+      return [radial * Math.cos(u), vertical, radial * Math.sin(u)];
     }
     if (topology === 'mobius') {
       const t = (coord[1] / Math.max(1, n) - 0.5) * 0.9;
@@ -586,6 +797,13 @@ export class JumpGameApp {
     const n = this.game.size;
     const width = this.canvas.clientWidth || 720;
     const height = this.canvas.clientHeight || 520;
+    if (this.isPolarBoard()) {
+      const layout = this.polarLayout(width, height);
+      if ((coord[0] || 0) === 0) return { x: layout.cx, y: layout.cy, depth: 0 };
+      const angle = -Math.PI / 2 + ((coord[1] || 0) / Math.max(1, n)) * Math.PI * 2;
+      const r = (coord[0] || 0) * layout.step;
+      return { x: layout.cx + Math.cos(angle) * r, y: layout.cy + Math.sin(angle) * r, depth: 0 };
+    }
     if (this.usesEmbeddedView()) {
       const [x, y, z] = this.rotatePoint3D(this.embeddedPoint(coord));
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
@@ -629,12 +847,17 @@ export class JumpGameApp {
     ctx.fillStyle = '#07111e';
     ctx.fillRect(0, 0, width, height);
     const coords = this.game.topology.allCoords().filter((c) => this.visibleCoord(c));
+    if (this.isPolarBoard()) this.drawPolarFrame(width, height);
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(95, 174, 255, 0.26)';
+    const edgeKeys = new Set();
     for (const coord of coords) {
-      for (const dir of this.game.directions.filter((d) => d.filter(Boolean).length === 1)) {
+      for (const dir of (this.game.directionsFor?.(coord) || this.game.directions)) {
         const next = this.game.topology.step(coord, dir)?.position;
         if (!next || !this.visibleCoord(next)) continue;
+        const edgeKey = [coordKey(coord), coordKey(next)].sort().join('|');
+        if (edgeKeys.has(edgeKey)) continue;
+        edgeKeys.add(edgeKey);
         const a = this.project(coord);
         const b = this.project(next);
         if (!this.usesEmbeddedView() && Math.hypot(a.x - b.x, a.y - b.y) > Math.min(width, height) / 2) continue;
@@ -653,11 +876,46 @@ export class JumpGameApp {
     for (const move of this.legal) this.drawLegal(move);
   }
 
+  drawPolarFrame(width, height) {
+    const ctx = this.ctx;
+    const layout = this.polarLayout(width, height);
+    const n = this.game.size;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(95, 174, 255, 0.18)';
+    ctx.lineWidth = 1.2;
+    for (let ring = 1; ring < n; ring += 1) {
+      ctx.beginPath();
+      ctx.arc(layout.cx, layout.cy, ring * layout.step, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (let sector = 0; sector < n; sector += 1) {
+      const angle = -Math.PI / 2 + (sector / Math.max(1, n)) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(layout.cx, layout.cy);
+      ctx.lineTo(layout.cx + Math.cos(angle) * layout.radius, layout.cy + Math.sin(angle) * layout.radius);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   drawZone(coord) {
     const key = coordKey(coord);
     const p = this.project(coord);
     const r = this.cellRadius() * 1.25;
     const ctx = this.ctx;
+    if (this.isPolarBoard()) {
+      const drawDisc = (fill, stroke, scale = 1) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * scale, 0, Math.PI * 2);
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+      };
+      if (this.game.zones.aHome.has(key)) drawDisc('rgba(84, 164, 255, 0.22)', null, 1);
+      if (this.game.zones.aTarget.has(key)) drawDisc(null, 'rgba(84, 164, 255, 0.85)', 1);
+      if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.22)', null, 1);
+      if (this.game.zones.bTarget.has(key)) drawDisc(null, 'rgba(255, 190, 76, 0.85)', 0.82);
+      return;
+    }
     if (this.game.zones.aHome.has(key)) { ctx.fillStyle = 'rgba(84, 164, 255, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
     if (this.game.zones.aTarget.has(key)) { ctx.strokeStyle = 'rgba(84, 164, 255, 0.85)'; ctx.strokeRect(p.x - r, p.y - r, r * 2, r * 2); }
     if (this.game.zones.bHome.has(key)) { ctx.fillStyle = 'rgba(255, 190, 76, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
@@ -713,8 +971,12 @@ export class JumpGameApp {
   updateStatus() {
     const a = this.game.targetProgress('A');
     const b = this.game.targetProgress('B');
-    if (this.statusEl) this.statusEl.textContent = this.game.winner ? `Winner: ${this.game.winner}` : `Turn ${this.game.turnNumber}: Player ${this.game.currentPlayer}`;
-    if (this.progressEl) this.progressEl.innerHTML = `<span>Player A target: ${a.percentage}% (${a.filled}/${a.total})</span><span>Player B target: ${b.percentage}% (${b.filled}/${b.total})</span>`;
+    if (this.statusEl) this.statusEl.textContent = this.game.winner
+      ? `${this.t('Winner', 'Winner')}: ${this.game.winner}`
+      : `${this.t('Turn', 'Turn')} ${this.game.turnNumber}: ${this.t('Player', 'Player')} ${this.game.currentPlayer}`;
+    if (this.progressEl) {
+      this.progressEl.innerHTML = `<span>${escapeHtml(this.t('Player', 'Player'))} A ${escapeHtml(this.t('target', 'target'))}: ${a.percentage}% (${a.filled}/${a.total})</span><span>${escapeHtml(this.t('Player', 'Player'))} B ${escapeHtml(this.t('target', 'target'))}: ${b.percentage}% (${b.filled}/${b.total})</span>`;
+    }
     if (this.endJumpButton) this.endJumpButton.disabled = !this.game.chainFrom;
     if (this.historyEl) this.historyEl.innerHTML = this.history.slice(-10).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
     this.syncPieceFocusButton();
@@ -725,23 +987,41 @@ export class JumpGameApp {
     const a = this.game.targetProgress('A');
     const b = this.game.targetProgress('B');
     const best = chooseJumpRobotMove(this.game, this.game.currentPlayer);
-    if (this.analysisEl) this.analysisEl.textContent = `Current player: ${this.game.currentPlayer}\nLegal moves: ${this.game.allLegalMoves().length}\nSuggested move: ${best ? `${best.type} ${best.from.join(',')} → ${best.to.join(',')}` : 'none'}\nPlayer A progress: ${a.percentage}%\nPlayer B progress: ${b.percentage}%\nScore estimate for A: ${this.game.score('A')}`;
+    if (this.analysisEl) {
+      const suggested = best
+        ? `${this.moveTypeLabel(best.type)} ${best.from.join(',')} -> ${best.to.join(',')}`
+        : this.t('none', 'none');
+      this.analysisEl.textContent = `${this.t('Current player', 'Current player')}: ${this.game.currentPlayer}\n${this.t('Legal moves', 'Legal moves')}: ${this.game.allLegalMoves().length}\n${this.t('Suggested move', 'Suggested move')}: ${suggested}\n${this.t('Player', 'Player')} A ${this.t('progress', 'progress')}: ${a.percentage}%\n${this.t('Player', 'Player')} B ${this.t('progress', 'progress')}: ${b.percentage}%\n${this.t('Score estimate for A', 'Score estimate for A')}: ${this.game.score('A')}`;
+    }
   }
 
   setStatus(text) { if (this.statusEl && text) this.statusEl.textContent = text; }
   updateUI() { this.render(); }
   exportState() { return this.game.serialize(); }
   exportNetworkState() { return this.exportState(); }
-  importState(state) { this.game.import(normalizeJumpNetworkState(state)); this.selected = null; this.legal = []; this.render(); }
+  importState(state) {
+    const normalized = normalizeJumpNetworkState(state);
+    if (normalized.topology && this.topologySelect && [...this.topologySelect.options].some((option) => option.value === normalized.topology)) {
+      this.topologySelect.value = normalized.topology;
+    }
+    if (normalized.lattice && this.latticeSelect) this.latticeSelect.value = normalizeJumpLattice(normalized.lattice, this.dimension, normalized.topology || this.topologySelect?.value);
+    this.syncLatticeAvailability(normalized.topology || this.topologySelect?.value);
+    this.game.import(normalized);
+    this.selected = null;
+    this.legal = [];
+    this.updateLabels();
+    this.render();
+  }
   importNetworkState(state) { this.importState(state); }
   enterOnlineMode() { if (this.modeSelect) this.modeSelect.value = 'online'; }
   onlineGameKey() { return `jump-${this.dimension}d-${this.config.labMode || 'game'}`; }
   onlineMatchKey() {
     const t = this.topologySelect?.value || this.config.topology || 'plane';
+    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, t);
     const s = this.sizeSelect?.value || this.config.size;
     const axis = this.axisSelect?.value || 'x';
     const target = this.targetModeSelect?.value || 'opponentHome';
-    return `jump:${this.dimension}d:${t}:size${s}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
+    return `jump:${this.dimension}d:${t}:lattice${lattice}:size${s}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
   }
   updateOnlineRoomUI(roomId, color) { if (roomId) this.enterOnlineMode(); this.setOnlineColor(color); }
   setOnlineColor(color) { this.myColor = playerFromOnlineColor(color); }
@@ -757,7 +1037,7 @@ function dimensionDescription(d) {
   }
   if (d === 3) return 'Jump through volumes, layers, and wrapped spaces. Plan chain paths where distance, enclosure, and targets depend on 3D topology.';
   if (d === 4) return 'Race through projected higher-dimensional boards. Use jumps and target zones to explore strategy in 4D spaces.';
-  return 'Leap and chain across flat and topological boards. Move pieces from your home zone into the opponent’s target zone.';
+  return 'Leap and chain across standard and topological boards. Move pieces from your home zone into the opponent’s target zone.';
 }
 function labTitle(lab) {
   if (jumpLanguage() === 'zh') {

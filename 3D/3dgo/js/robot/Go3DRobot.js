@@ -1,6 +1,6 @@
 import { GoGameLogic, COLORS, otherColor, valueToColor } from '../GoGame.js';
 
-const TOPOLOGY_INFLUENCE = new Set(['t3', 'r3_random', 't2', 'sphere_latitude_ring', 'klein_bottle', 'mobius_strip', 'rp2']);
+const TOPOLOGY_INFLUENCE = new Set(['t3', 'r3_random', 't2', 'cylinder', 'sphere_latitude_ring', 'klein_bottle', 'mobius_strip', 'rp2']);
 const BUDGET = { 1: 80, 2: 200, 3: 420, 4: 760 };
 const TIME_MS = { 1: 160, 2: 380, 3: 760, 4: 1250 };
 const CANDIDATE_CAP = { 1: 14, 2: 22, 3: 32, 4: 44 };

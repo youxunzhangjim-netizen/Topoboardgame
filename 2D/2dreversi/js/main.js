@@ -54,7 +54,7 @@ class Reversi2DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
-        this.boundarySelect.value = ['open2d', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
+        this.boundarySelect.value = ['open2d', 'cylinder', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
         if (String(params.get('lattice') || '').toLowerCase() === 'honeycomb') this.latticeSelect.value = 'honeycomb';
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
@@ -465,6 +465,13 @@ class Reversi2DApp {
             ctx.beginPath();
             ctx.arc(rect.centerX, rect.centerY, rect.radius + rect.step * 0.32, 0, Math.PI * 2);
             ctx.stroke();
+        } else if (this.boundarySelect.value === 'cylinder') {
+            ctx.beginPath();
+            ctx.moveTo(rect.left - 5, rect.top - 5);
+            ctx.lineTo(rect.left - 5, bottom + 5);
+            ctx.moveTo(right + 5, rect.top - 5);
+            ctx.lineTo(right + 5, bottom + 5);
+            ctx.stroke();
         } else if (this.boundarySelect.value === 'pbc') {
             ctx.strokeRect(rect.left - 5, rect.top - 5, right - rect.left + 10, bottom - rect.top + 10);
         } else if (this.boundarySelect.value === 'klein') {
@@ -595,7 +602,7 @@ class Reversi2DApp {
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const topology = this.boundarySelect.value;
-        this.boundaryEl.textContent = topology === 'polar' ? 'Polar Center' : topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
+        this.boundaryEl.textContent = topology === 'polar' ? 'Polar Center' : topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'cylinder' ? 'Cylinder x-wrap' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.topology.lattice === 'honeycomb'
             ? ' Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.'
             : topology === 'polar'
@@ -607,6 +614,8 @@ class Reversi2DApp {
             ? '2D RBC uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.'
             : topology === 'klein'
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped.'
+            : topology === 'cylinder'
+            ? 'Cylinder identifies only left-right edges, while top and bottom remain ordinary open Reversi edges.'
             : topology === 'pbc'
                 ? 'PBC identifies both left-right and top-bottom edges.'
                 : 'Standard uses ordinary open board edges.') + latticeText;

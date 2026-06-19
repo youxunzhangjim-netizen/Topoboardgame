@@ -84,12 +84,13 @@
                 <label for="boundarySelect">Boundary Condition</label>
                 <select id="boundarySelect">
                     <option value="open2d" selected>Standard</option>
+                    <option value="cylinder">Cylinder x-wrap</option>
                     <option value="pbc">PBC All Sides</option>
                     <option value="klein">Klein Bottle</option>
                     <option value="random">2D RBC</option>
                 </select>
             </div>
-            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. PBC connects both directions. Klein connects top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
+            <div class="boundary-info" id="boundaryInfo">Standard uses ordinary board edges. Cylinder wraps left-right only. PBC connects both directions. Klein connects top-bottom with an x-flip. 2D RBC creates one fixed random boundary map for this game.</div>
 
             <div class="control-group">
                 <label for="latticeSelect">Lattice</label>

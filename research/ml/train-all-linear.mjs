@@ -36,35 +36,38 @@ for (const boundary of ['r3', 't3', 'reflection', 'r3_random', 't2', 'sphere', '
   jobs.push({ game: '3dchess', boundary, lattice: 'chess3d', size: 8, games: counts.g3chess, depthA: preset === 'quick' ? 1 : 2, depthB: preset === 'quick' ? 1 : 2, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
 }
 
-for (const boundary of ['open2d', 'polar', 'pbc', 'klein', 'random']) {
+for (const boundary of ['open2d', 'polar', 'cylinder', 'pbc', 'klein', 'random']) {
   const lattices = boundary === 'polar' ? ['square'] : ['square', 'honeycomb', 'triangular'];
   for (const lattice of lattices) {
     jobs.push({ game: '2dgo', boundary, lattice, size: 9, games: counts.go, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 4 : 12, lr: 0.05 });
   }
 }
-for (const boundary of ['open2d', 'pbc', 'klein', 'random']) {
+for (const boundary of ['open2d', 'cylinder', 'pbc', 'klein', 'random']) {
   for (const lattice of ['square', 'honeycomb']) {
     jobs.push({ game: '2dreversi', boundary, lattice, games: counts.reversi, depthA: 3, depthB: 3, epochs: preset === 'quick' ? 4 : 15, lr: 0.04 });
   }
 }
-for (const boundary of ['r3', 't3', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2']) {
+for (const boundary of ['r3', 't3', 'r3_random', 't2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2']) {
   for (const lattice of ['sc', 'bcc', 'fcc', 'hcp', 'square', 'honeycomb', 'triangular']) {
     jobs.push({ game: '3dgo', boundary, lattice, size: 5, games: counts.g3go, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.05 });
   }
 }
-for (const boundary of ['r3', 't3', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2']) {
+for (const boundary of ['r3', 't3', 'r3_random', 't2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2']) {
   for (const lattice of ['square', 'hcp']) {
     jobs.push({ game: '3dreversi', boundary, lattice, size: 6, games: counts.g3reversi, depthA: 2, depthB: 2, epochs: preset === 'quick' ? 3 : 12, lr: 0.04 });
   }
 }
 
-for (const boundary of ['plane', 'torus', 'mobius', 'klein', 'rp2', 'sphere']) {
-  jobs.push({ game: '2djump', boundary, lattice: 'jump', size: 8, games: counts.jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
+for (const boundary of ['plane', 'polar', 'cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere']) {
+  const lattices = boundary === 'polar' ? ['square'] : ['square', 'triangular'];
+  for (const lattice of lattices) {
+    jobs.push({ game: '2djump', boundary, lattice, size: 8, games: counts.jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
+  }
 }
-for (const boundary of ['cube', 'torus', 'reflective', 'sphere']) {
+for (const boundary of ['cube', 'cylinder', 'torus', 'reflective', 'sphere']) {
   jobs.push({ game: '3djump', boundary, lattice: 'jump3d', size: 6, games: counts.g3jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
 }
-for (const boundary of ['hypercube', '4d-torus', 'cube', 'projection']) {
+for (const boundary of ['hypercube', 'cylinder', '4d-torus', 'cube', 'projection']) {
   jobs.push({ game: '4djump', boundary, lattice: 'jump4d', size: 4, games: counts.g4jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
 }
 

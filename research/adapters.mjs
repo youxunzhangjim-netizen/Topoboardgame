@@ -145,10 +145,13 @@ function create2DGoAdapter(options = {}) {
 }
 
 function create3DGoAdapter(options = {}) {
+  const topology = options.boundary || options.topology || 'r3';
+  const isVolume = ['r3', 't3', 'r3_random'].includes(String(topology).toLowerCase());
   const logic = new Go3DLogic({
     size: clamp(Number(options.size) || 5, 3, 9),
-    topology: options.boundary || options.topology || 'r3',
-    lattice: options.lattice || 'sc',
+    topology,
+    dimension: isVolume ? 3 : 2,
+    lattice: options.lattice || (isVolume ? 'sc' : 'square'),
     komi: Number.isFinite(Number(options.komi)) ? Number(options.komi) : 7.5,
     randomBoundarySeed: options.seed || ''
   });
@@ -222,13 +225,14 @@ function createJumpAdapter(options = {}) {
     dimension,
     size: clamp(Number(options.size) || (dimension === 4 ? 4 : dimension === 3 ? 6 : 8), 4, dimension === 2 ? 16 : 8),
     topology: options.boundary || options.topology || (dimension === 4 ? 'hypercube' : dimension === 3 ? 'cube' : 'plane'),
+    lattice: options.lattice || 'square',
     targetAxis: options.targetAxis || 'x',
     labMode: options.labMode || '',
     labTargetMode: options.labTargetMode || 'opponentHome'
   });
   return {
     kind: `${dimension}djump`,
-    options: { topology: logic.topologyName, size: logic.size, dimension: logic.dimension, targetAxis: logic.targetAxis, labMode: logic.labMode },
+    options: { topology: logic.topologyName, lattice: logic.lattice, size: logic.size, dimension: logic.dimension, targetAxis: logic.targetAxis, labMode: logic.labMode },
     currentPlayer: () => logic.currentPlayer,
     isTerminal: () => Boolean(logic.winner),
     winner: () => logic.winner || '',

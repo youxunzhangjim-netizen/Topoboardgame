@@ -31,6 +31,7 @@ import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
 export const R3_RANDOM_TOPOLOGY = 'r3_random';
+export const CYLINDER_GO_TOPOLOGY = 'cylinder';
 export const SQUARE_LATTICE = 'square';
 export const HONEYCOMB_LATTICE = 'honeycomb';
 export const TRIANGULAR_LATTICE = 'triangular';
@@ -292,7 +293,7 @@ export class GoGameLogic {
     isWrapAxis(axis) {
         if (this.topology === 't2') return axis === 0 || axis === 1;
         if (this.topology === T3_PBC_TOPOLOGY) return axis === 0 || axis === 1 || axis === 2;
-        if (this.topology === 'pbc-x') return axis === 0;
+        if (this.topology === CYLINDER_GO_TOPOLOGY || this.topology === 'pbc-x') return axis === 0;
         return false;
     }
 

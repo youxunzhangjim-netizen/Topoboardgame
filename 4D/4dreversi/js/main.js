@@ -1,5 +1,6 @@
 import { ReversiGame, normalizeReversiSize, otherReversiColor } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { installProjectedBoardTouchControls } from '../../../js/shared/ProjectedBoardTouchControls.js';
 
 class Reversi4DApp {
     constructor() {
@@ -179,7 +180,7 @@ class Reversi4DApp {
             control?.addEventListener('input', syncView);
         }
         this.viewControls.reset?.addEventListener('click', () => {
-            this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+            Object.assign(this.view, { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null });
             if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
             if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
             if (this.viewControls.rotZ) this.viewControls.rotZ.value = String(this.view.rotZ);
@@ -193,30 +194,17 @@ class Reversi4DApp {
             if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom.toFixed(2));
             this.render();
         }, { passive: false });
-        this.gridEl.addEventListener('pointerdown', (event) => {
-            this.view.drag = { x: event.clientX, y: event.clientY, rotX: this.view.rotX, rotY: this.view.rotY, active: false };
-            this.gridEl.setPointerCapture?.(event.pointerId);
+        installProjectedBoardTouchControls({
+            element: this.gridEl,
+            view: this.view,
+            syncControls: () => {
+                if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
+                if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
+                if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom.toFixed(2));
+            },
+            render: () => this.render(),
+            suppressClick: () => { this.suppressClickUntil = performance.now() + 220; }
         });
-        this.gridEl.addEventListener('pointermove', (event) => {
-            if (!this.view.drag) return;
-            const dx = event.clientX - this.view.drag.x;
-            const dy = event.clientY - this.view.drag.y;
-            if (!this.view.drag.active && Math.hypot(dx, dy) < 4) return;
-            this.view.drag.active = true;
-            this.view.rotY = this.view.drag.rotY + dx * 0.45;
-            this.view.rotX = this.view.drag.rotX - dy * 0.45;
-            if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
-            if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
-            this.render();
-        });
-        const stopDrag = (event) => {
-            if (!this.view.drag) return;
-            if (this.view.drag.active) this.suppressClickUntil = performance.now() + 220;
-            this.view.drag = null;
-            try { this.gridEl.releasePointerCapture?.(event.pointerId); } catch {}
-        };
-        this.gridEl.addEventListener('pointerup', stopDrag);
-        this.gridEl.addEventListener('pointercancel', stopDrag);
     }
 
     resetGame({ broadcast = false } = {}) {

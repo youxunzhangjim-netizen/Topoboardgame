@@ -13,7 +13,11 @@ export const TRAINING_METHODS = Object.freeze({
 export const VARIANT_FINE_TUNE_EXAMPLES = Object.freeze([
     { from: 'BaseChessRobot', to: 'CubeChessRobot', gameType: 'chess', variant: 'cube', topology: 'cube' },
     { from: 'BaseChessRobot', to: 'TorusChessRobot', gameType: 'chess', variant: 'torus', topology: 'torus' },
+    { from: 'BaseGoRobot', to: 'CylinderGoRobot', gameType: 'go', variant: 'cylinder', topology: 'cylinder' },
+    { from: 'BaseReversiRobot', to: 'CylinderReversiRobot', gameType: 'reversi', variant: 'cylinder', topology: 'cylinder' },
     { from: 'BaseReversiRobot', to: 'KleinReversiRobot', gameType: 'reversi', variant: 'klein', topology: 'klein' },
+    { from: 'BaseJumpRobot', to: 'PolarJumpRobot', gameType: 'jump', variant: 'polar', topology: 'polar' },
+    { from: 'BaseJumpRobot', to: 'TriangularJumpRobot', gameType: 'jump', variant: 'triangular', topology: 'plane' },
     { from: 'BaseJumpRobot', to: 'Jump4DRobot', gameType: 'jump', variant: '4d', topology: '4d' },
     { from: 'BaseAnyonRobot', to: 'FusionTargetAnyonRobot', gameType: 'anyon', variant: 'fusion', topology: 'fusion' }
 ]);

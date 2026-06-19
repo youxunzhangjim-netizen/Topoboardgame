@@ -134,6 +134,122 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
   padding: 16px;
   min-height: 0;
 }
+.dimension-visual {
+  position: relative;
+  min-height: 170px;
+  border: 1px solid rgba(125,211,252,.18);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.time-plane-preview {
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  perspective: 760px;
+  background:
+    linear-gradient(90deg, rgba(125,211,252,.16) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(rgba(248,199,93,.12) 1px, transparent 1px) 0 0 / 28px 28px,
+    radial-gradient(circle at center, rgba(56,189,248,.18), transparent 58%),
+    rgba(7,13,24,.88);
+}
+.time-plane-preview::before {
+  content: "";
+  position: absolute;
+  width: 82%;
+  height: 52%;
+  border: 1px solid rgba(125,211,252,.22);
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(90deg, rgba(125,211,252,.2) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(0deg, rgba(248,199,93,.14) 0 1px, transparent 1px 20px);
+  transform: rotateX(64deg) rotateZ(-12deg);
+  box-shadow: 0 28px 42px rgba(0,0,0,.32);
+  opacity: .82;
+  animation: planarWaveSheet 6.4s ease-in-out infinite;
+}
+.time-plane-preview span {
+  position: absolute;
+  width: 70%;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(125,211,252,.08), rgba(125,211,252,.9), rgba(248,199,93,.76), transparent);
+  box-shadow: 0 0 20px rgba(56,189,248,.18);
+  transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
+  animation: planarWaveBand 4.8s ease-in-out infinite;
+  animation-delay: var(--wave-delay, 0s);
+  z-index: 1;
+}
+.time-plane-preview span:nth-child(1) { --wave-y: -54px; --wave-y-tight: -42px; --wave-lift: 5px; --wave-skew: -8deg; --wave-skew-alt: 8deg; --wave-delay: .84s; width: 62%; }
+.time-plane-preview span:nth-child(2) { --wave-y: -18px; --wave-y-tight: -14px; --wave-lift: 14px; --wave-skew: 9deg; --wave-skew-alt: -9deg; --wave-delay: .28s; width: 72%; }
+.time-plane-preview span:nth-child(3) { --wave-y: 18px; --wave-y-tight: 14px; --wave-lift: 8px; --wave-skew: -5deg; --wave-skew-alt: 5deg; --wave-delay: -.28s; width: 68%; }
+.time-plane-preview span:nth-child(4) { --wave-y: 54px; --wave-y-tight: 42px; --wave-lift: 16px; --wave-skew: 12deg; --wave-skew-alt: -12deg; --wave-delay: -.84s; width: 58%; }
+.time-volume-preview {
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  perspective: 900px;
+  transform-style: preserve-3d;
+  background:
+    linear-gradient(90deg, rgba(125,211,252,.16) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(rgba(248,199,93,.12) 1px, transparent 1px) 0 0 / 28px 28px,
+    radial-gradient(circle at center, rgba(56,189,248,.18), transparent 58%),
+    rgba(7,13,24,.88);
+}
+.time-volume-preview::before {
+  content: "";
+  position: absolute;
+  width: 72%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(248,199,93,.2);
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 48%, rgba(125,211,252,.18), transparent 62%);
+  transform: rotateX(58deg) rotateZ(-35deg) translateY(12px);
+  opacity: .72;
+}
+.time-volume-preview span {
+  position: absolute;
+  width: 58%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(125,211,252,.42);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(125,211,252,.38) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(0deg, rgba(248,199,93,.28) 0 1px, transparent 1px 18px),
+    rgba(7,13,24,.18);
+  box-shadow: 0 0 22px rgba(56,189,248,.13);
+  transform: rotateX(58deg) rotateZ(-35deg) translateY(var(--grid-y, 0px)) translateZ(var(--grid-z, 0px)) scale(var(--grid-scale, 1));
+  animation: cubicGridBreath 9.2s ease-in-out infinite;
+  animation-delay: var(--grid-delay, 0s);
+}
+.time-volume-preview span:nth-child(1) { --grid-y: 24px; --grid-z: -28px; --grid-scale: 1.02; --grid-delay: -.6s; width: 66%; }
+.time-volume-preview span:nth-child(2) { --grid-y: 0px; --grid-z: 0px; --grid-scale: .94; --grid-delay: -1.7s; width: 56%; }
+.time-volume-preview span:nth-child(3) { --grid-y: -24px; --grid-z: 28px; --grid-scale: .84; --grid-delay: -2.8s; width: 47%; }
+@keyframes planarWaveSheet {
+  0%, 100% { transform: rotateX(64deg) rotateZ(-12deg) scaleX(1); }
+  50% { transform: rotateX(58deg) rotateZ(-20deg) scaleX(.94); }
+}
+@keyframes planarWaveBand {
+  0%, 100% {
+    transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
+  }
+  50% {
+    transform: rotateX(58deg) rotateZ(-22deg) translateY(var(--wave-y-tight, 0px)) translateZ(calc(var(--wave-lift, 0px) + 18px)) skewX(var(--wave-skew-alt, 0deg));
+  }
+}
+@keyframes cubicGridBreath {
+  0%, 100% {
+    transform: rotateX(58deg) rotateZ(-35deg) translate3d(0, var(--grid-y, 0px), var(--grid-z, 0px)) scale(var(--grid-scale, 1));
+  }
+  30% {
+    transform: rotateX(64deg) rotateZ(-28deg) translate3d(3px, calc(var(--grid-y, 0px) - 4px), calc(var(--grid-z, 0px) + 14px)) scale(1.06);
+  }
+  52% {
+    transform: rotateX(56deg) rotateZ(-42deg) translate3d(-3px, calc(var(--grid-y, 0px) + 3px), calc(var(--grid-z, 0px) - 8px)) scale(.95);
+  }
+  72% {
+    transform: rotateX(61deg) rotateZ(-31deg) translate3d(2px, calc(var(--grid-y, 0px) - 2px), calc(var(--grid-z, 0px) + 6px)) scale(1.02);
+  }
+}
 .dimension-copy {
   display: grid;
   gap: 5px;

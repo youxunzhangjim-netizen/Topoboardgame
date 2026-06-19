@@ -17,6 +17,7 @@ import {
 import {
     addDoc,
     collection,
+    deleteDoc,
     doc,
     getDoc,
     getDocs,
@@ -119,8 +120,12 @@ let identityChannel = null;
 const guestProfileStorageKey = 'topoboardgame:guest-profile';
 const displayNameStorageKey = 'topoboardgame:display-name';
 const profileInfoStorageKey = 'topoboardgame:profile-info';
+const recentGamesStorageKey = 'topoboardgame:recent-games';
+const friendListStorageKey = 'topoboardgame:friends';
 const displayNameMemory = new Map();
 const profileInfoMemory = new Map();
+const recentGamesMemory = new Map();
+const friendsMemory = new Map();
 
 function safeLocalStorageGet(key) {
     try {
@@ -184,6 +189,11 @@ function sanitizeEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) ? text : '';
 }
 
+function sanitizeLanguage(value) {
+    const text = String(value || '').trim().toLowerCase();
+    return ['zh', 'zh-hant', 'zh_tw', 'zh-tw'].includes(text) ? 'zh' : 'en';
+}
+
 function dateStringFromValue(value) {
     if (!value) return '';
     const date = value instanceof Date ? value : new Date(value);
@@ -229,6 +239,7 @@ function sanitizeProfileInfo(value = {}, currentUser = null) {
         bio: sanitizeProfileText(value.bio, 140),
         location: sanitizeProfileText(value.location, 40),
         favoriteGame: sanitizeProfileText(value.favoriteGame, 40),
+        defaultLanguage: sanitizeLanguage(value.defaultLanguage || safeLocalStorageGet('topoboardgame.lang') || 'en'),
         showEmail,
         publicEmail
     };
@@ -397,6 +408,7 @@ function publicUserProfile(currentUser) {
         bio: profileInfo.bio,
         location: profileInfo.location,
         favoriteGame: profileInfo.favoriteGame,
+        defaultLanguage: profileInfo.defaultLanguage || 'en',
         showEmail: Boolean(profileInfo.showEmail),
         publicEmail: profileInfo.showEmail ? profileInfo.publicEmail : ''
     };
@@ -425,7 +437,7 @@ async function upsertUserProfile(currentUser, { source = 'session' } = {}) {
         }
         const localInfo = localProfileInfo(currentUser);
         const mergedInfo = {};
-        for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'showEmail', 'publicEmail']) {
+        for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail']) {
             if (!localInfo[key] && existingData[key]) mergedInfo[key] = existingData[key];
         }
         if (Object.keys(mergedInfo).length) setLocalProfileInfo(currentUser, mergedInfo);
@@ -490,7 +502,7 @@ export function getAccountState() {
     const isVisitor = Boolean(currentUser?.isAnonymous);
     const providerIds = providerIdsForUser(currentUser);
     const profileWrite = profileWriteStateForUser(currentUser);
-    const profileInfo = currentUser ? profileInfoForUser(currentUser) : { joinedDate: '', bio: '', location: '', favoriteGame: '', showEmail: false, publicEmail: '' };
+    const profileInfo = currentUser ? profileInfoForUser(currentUser) : { joinedDate: '', bio: '', location: '', favoriteGame: '', defaultLanguage: 'en', showEmail: false, publicEmail: '' };
     return {
         configured: hasFirebaseConfig(),
         ready: Boolean(auth),
@@ -510,6 +522,7 @@ export function getAccountState() {
         bio: profileInfo.bio,
         location: profileInfo.location,
         favoriteGame: profileInfo.favoriteGame,
+        defaultLanguage: profileInfo.defaultLanguage || 'en',
         showEmail: Boolean(profileInfo.showEmail),
         publicEmail: profileInfo.publicEmail || '',
         accountEmail: signedIn ? (currentUser.email || '') : '',
@@ -659,7 +672,7 @@ export async function updateUserProfileInfo(info = {}) {
     const hasDisplayName = Object.prototype.hasOwnProperty.call(info, 'displayName');
     const displayName = hasDisplayName ? setLocalDisplayName(currentUser, info.displayName) : displayNameForUser(currentUser);
     const profileUpdate = {};
-    for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'showEmail', 'publicEmail']) {
+    for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail']) {
         if (Object.prototype.hasOwnProperty.call(info, key)) profileUpdate[key] = info[key];
     }
     setLocalProfileInfo(currentUser, profileUpdate);
@@ -733,6 +746,7 @@ function playerProfileForRoom(currentUser = user) {
         bio: profile.bio || '',
         location: profile.location || '',
         favoriteGame: profile.favoriteGame || '',
+        defaultLanguage: profile.defaultLanguage || 'en',
         showEmail: Boolean(profile.showEmail),
         publicEmail: profile.showEmail ? (profile.publicEmail || '') : ''
     };
@@ -746,6 +760,296 @@ function playerProfileSummary(profile = {}) {
     if (profile.showEmail && profile.publicEmail) parts.push(`email ${profile.publicEmail}`);
     if (profile.bio) parts.push(profile.bio);
     return parts.join('; ');
+}
+
+function userRecentGamesStorageKey(currentUser) {
+    return currentUser?.uid ? `${recentGamesStorageKey}:${currentUser.uid}` : recentGamesStorageKey;
+}
+
+function localRecentGames(currentUser = user) {
+    const key = userRecentGamesStorageKey(currentUser);
+    const cached = recentGamesMemory.get(key);
+    if (cached) return cached.map((entry) => ({ ...entry }));
+    try {
+        const stored = JSON.parse(safeLocalStorageGet(key) || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch {
+        return [];
+    }
+}
+
+function setLocalRecentGames(currentUser = user, games = []) {
+    const key = userRecentGamesStorageKey(currentUser);
+    const cleaned = games.slice(0, 30).map((entry) => ({ ...entry }));
+    recentGamesMemory.set(key, cleaned);
+    safeLocalStorageSet(key, JSON.stringify(cleaned));
+    return cleaned;
+}
+
+function userFriendListStorageKey(currentUser) {
+    return currentUser?.uid ? `${friendListStorageKey}:${currentUser.uid}` : friendListStorageKey;
+}
+
+function localFriends(currentUser = user) {
+    const key = userFriendListStorageKey(currentUser);
+    const cached = friendsMemory.get(key);
+    if (cached) return cached.map((entry) => ({ ...entry }));
+    try {
+        const stored = JSON.parse(safeLocalStorageGet(key) || '[]');
+        return Array.isArray(stored) ? stored : [];
+    } catch {
+        return [];
+    }
+}
+
+function setLocalFriends(currentUser = user, friends = []) {
+    const key = userFriendListStorageKey(currentUser);
+    const seen = new Set();
+    const cleaned = [];
+    for (const entry of friends) {
+        const id = String(entry?.id || entry?.uid || '').trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        cleaned.push({ ...entry, id, uid: String(entry.uid || id) });
+        if (cleaned.length >= 80) break;
+    }
+    friendsMemory.set(key, cleaned);
+    safeLocalStorageSet(key, JSON.stringify(cleaned));
+    return cleaned;
+}
+
+function friendEntryFromProfile(profile = {}, { gameId = '', roomId = '' } = {}) {
+    const uid = sanitizeProfileText(profile.uid || profile.id, 120);
+    if (!uid) return null;
+    const showEmail = Boolean(profile.showEmail && profile.publicEmail);
+    return {
+        id: uid,
+        uid,
+        displayName: sanitizeDisplayName(profile.displayName || profile.name || 'Player'),
+        accountKind: sanitizeProfileText(profile.accountKind || profile.providerId || '', 40),
+        photoURL: sanitizeProfileText(profile.photoURL || '', 300),
+        joinedDate: sanitizeJoinedDate(profile.joinedDate) || '',
+        bio: sanitizeProfileText(profile.bio || '', 140),
+        location: sanitizeProfileText(profile.location || '', 40),
+        favoriteGame: sanitizeProfileText(profile.favoriteGame || '', 40),
+        showEmail,
+        publicEmail: showEmail ? sanitizeEmail(profile.publicEmail) : '',
+        sourceGameId: sanitizeProfileText(gameId, 120),
+        sourceRoomId: sanitizeProfileText(roomId, 120),
+        savedAt: new Date().toISOString()
+    };
+}
+
+function timestampMs(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.toDate === 'function') return value.toDate().getTime();
+    if (value.seconds != null) return Number(value.seconds) * 1000 + Math.round(Number(value.nanoseconds || 0) / 1e6);
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function boardWinner(board = {}) {
+    return board?.winner
+        || board?.result?.winner
+        || board?.logic?.winner
+        || board?.go?.winner
+        || board?.game?.winner
+        || '';
+}
+
+function colorMatchesWinner(color, winner) {
+    const value = String(winner || '').toLowerCase();
+    if (!value || ['draw', 'tie', 'none'].includes(value)) return value;
+    if (value === String(color || '').toLowerCase()) return 'win';
+    if (value === 'a') return color === 'black' ? 'win' : 'loss';
+    if (value === 'b') return color === 'white' ? 'win' : 'loss';
+    if (value === 'black') return color === 'black' ? 'win' : 'loss';
+    if (value === 'white') return color === 'white' ? 'win' : 'loss';
+    return value;
+}
+
+function topologyFromBoard(board = {}, room = {}) {
+    return String(
+        board.topology
+        || board.topologyName
+        || board.boundary
+        || board.options?.topology
+        || board.options?.boundary
+        || room.matchKey
+        || room.gameKey
+        || 'standard'
+    ).slice(0, 80);
+}
+
+function variantFromRoom(room = {}, board = {}) {
+    const key = String(room.gameKey || '').replace(/^game-/, '');
+    return String(board.variant || board.mode || key || 'online').slice(0, 80);
+}
+
+function replayUrlForRoom(id) {
+    try {
+        const url = new URL(globalThis.location?.href || './', globalThis.location?.origin || 'http://localhost');
+        url.searchParams.set('room', id);
+        return url.href;
+    } catch {
+        return `?room=${encodeURIComponent(id)}`;
+    }
+}
+
+function recentGameFromRoom(room = {}, id = roomId, color = playerColor, { reason = 'finished' } = {}) {
+    const board = boardStateFromRoom(room) || {};
+    const opponentColor = color ? opposite(color) : '';
+    const opponentProfile = opponentColor ? room.playerInfo?.[opponentColor] : null;
+    const moveCount = Number(room.moveNumber) || 0;
+    const startedMs = timestampMs(room.createdAt);
+    const endedMs = timestampMs(room.updatedAt) || Date.now();
+    const winner = boardWinner(board);
+    const resolved = colorMatchesWinner(color, winner);
+    const result = resolved === 'win' || resolved === 'loss' || resolved === 'draw' || resolved === 'tie'
+        ? (resolved === 'tie' ? 'draw' : resolved)
+        : (reason === 'left' ? 'left' : (winner ? String(winner) : 'finished'));
+    return {
+        id: String(id || roomId || '').slice(0, 120),
+        roomId: String(id || roomId || ''),
+        gameKey: String(room.gameKey || hooks.gameKey || 'topoboardgame'),
+        matchKey: String(room.matchKey || hooks.matchKey || ''),
+        opponentType: 'Human',
+        opponent: opponentProfile?.displayName || 'Opponent',
+        opponentUid: opponentProfile?.uid || '',
+        opponentProfile: opponentProfile ? { ...opponentProfile } : null,
+        result,
+        durationSec: startedMs && endedMs ? Math.max(0, Math.round((endedMs - startedMs) / 1000)) : 0,
+        variant: variantFromRoom(room, board),
+        topology: topologyFromBoard(board, room),
+        moveCount,
+        replayUrl: replayUrlForRoom(id || roomId),
+        playedAt: new Date(endedMs || Date.now()).toISOString()
+    };
+}
+
+async function saveRecentGameForCurrentUser(room = latestRoom, id = roomId, options = {}) {
+    const currentUser = auth?.currentUser || user || null;
+    if (!db || !isSignedInAccount(currentUser) || !room || !id) return null;
+    if ((Number(room.moveNumber) || 0) <= 0) return null;
+    const entry = recentGameFromRoom(room, id, playerColorInRoom(room, currentUser.uid) || playerColor, options);
+    if (!entry.id) return null;
+    const existing = localRecentGames(currentUser).filter((game) => game.id !== entry.id);
+    setLocalRecentGames(currentUser, [entry, ...existing]);
+    try {
+        await withTimeout(setDoc(doc(db, usersPath, currentUser.uid, 'recentGames', entry.id), {
+            ...entry,
+            updatedAt: serverTimestamp()
+        }, { merge: true }), 'Save recent game');
+    } catch (error) {
+        authWarn('saveRecentGameForCurrentUser: Firestore write failed', authErrorSummary(error));
+    }
+    notifyAccountListeners();
+    return entry;
+}
+
+export async function listRecentGames({ max = 12 } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) return [];
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!isSignedInAccount(currentUser)) return [];
+    const fallback = localRecentGames(currentUser).slice(0, max);
+    try {
+        const gamesQuery = query(
+            collection(db, usersPath, currentUser.uid, 'recentGames'),
+            orderBy('playedAt', 'desc'),
+            limit(max)
+        );
+        const snapshot = await withTimeout(getDocs(gamesQuery), 'Load recent games');
+        const games = snapshot.docs.map((gameDoc) => ({ id: gameDoc.id, ...gameDoc.data() }));
+        setLocalRecentGames(currentUser, games);
+        return games;
+    } catch (error) {
+        authWarn('listRecentGames: using local recent-game cache', authErrorSummary(error));
+        return fallback;
+    }
+}
+
+export async function deleteRecentGame(gameId) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) return false;
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!isSignedInAccount(currentUser)) return false;
+    const id = String(gameId || '').trim();
+    if (!id) return false;
+    setLocalRecentGames(currentUser, localRecentGames(currentUser).filter((entry) => entry.id !== id));
+    try {
+        await withTimeout(deleteDoc(doc(db, usersPath, currentUser.uid, 'recentGames', id)), 'Delete recent game');
+    } catch (error) {
+        authWarn('deleteRecentGame: Firestore delete failed', authErrorSummary(error));
+    }
+    notifyAccountListeners();
+    return true;
+}
+
+export async function saveFriendFromProfile(profile = {}, options = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) return null;
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!isSignedInAccount(currentUser)) return null;
+    const entry = friendEntryFromProfile(profile, options);
+    if (!entry || entry.uid === currentUser.uid) return null;
+    const existing = localFriends(currentUser).filter((friend) => friend.id !== entry.id);
+    setLocalFriends(currentUser, [entry, ...existing]);
+    try {
+        await withTimeout(setDoc(doc(db, usersPath, currentUser.uid, 'friends', entry.id), {
+            ...entry,
+            updatedAt: serverTimestamp()
+        }, { merge: true }), 'Save friend');
+    } catch (error) {
+        authWarn('saveFriendFromProfile: Firestore write failed', authErrorSummary(error));
+    }
+    notifyAccountListeners();
+    return entry;
+}
+
+export async function listFriends({ max = 40 } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) return [];
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!isSignedInAccount(currentUser)) return [];
+    const fallback = localFriends(currentUser).slice(0, max);
+    try {
+        const friendsQuery = query(
+            collection(db, usersPath, currentUser.uid, 'friends'),
+            orderBy('savedAt', 'desc'),
+            limit(max)
+        );
+        const snapshot = await withTimeout(getDocs(friendsQuery), 'Load friends');
+        const friends = snapshot.docs.map((friendDoc) => ({ id: friendDoc.id, ...friendDoc.data() }));
+        setLocalFriends(currentUser, friends);
+        return friends;
+    } catch (error) {
+        authWarn('listFriends: using local friend cache', authErrorSummary(error));
+        return fallback;
+    }
+}
+
+export async function deleteFriend(friendId) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) return false;
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!isSignedInAccount(currentUser)) return false;
+    const id = sanitizeProfileText(friendId, 120);
+    if (!id) return false;
+    setLocalFriends(currentUser, localFriends(currentUser).filter((entry) => entry.id !== id));
+    try {
+        await withTimeout(deleteDoc(doc(db, usersPath, currentUser.uid, 'friends', id)), 'Delete friend');
+    } catch (error) {
+        authWarn('deleteFriend: Firestore delete failed', authErrorSummary(error));
+    }
+    notifyAccountListeners();
+    return true;
 }
 
 function roomPlayerInfoForColor(color, currentUser = user) {
@@ -1405,6 +1709,9 @@ export function listenToRoom(id = roomId) {
             playerColor,
             room: hookRoom
         });
+        if (room.status === 'finished' && previousRoom?.status !== 'finished') {
+            void saveRecentGameForCurrentUser(room, roomId, { reason: 'finished' });
+        }
 
         if (room.status === 'waiting') {
             status(`Room ${roomId}: waiting for an opponent.`);
@@ -1521,6 +1828,8 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
     unsubscribeRoom = null;
     unsubscribeChat?.();
     unsubscribeChat = null;
+    let roomForRecent = null;
+    const roomIdForRecent = roomId;
 
     if (updateRemote && initialized && roomId && user) {
         const ref = roomReference();
@@ -1534,6 +1843,13 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
                     : room.players?.black === user.uid ? 'black' : null;
                 const waiting = room.players?.waiting === user.uid;
                 if (!color && !waiting) return;
+                if (color && (Number(room.moveNumber) || 0) > 0) {
+                    roomForRecent = {
+                        ...room,
+                        status: 'finished',
+                        updatedAt: new Date().toISOString()
+                    };
+                }
                 const updates = {
                     status: 'finished',
                     updatedAt: serverTimestamp()
@@ -1552,6 +1868,7 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
             // Leaving should still clean up local state if the network is gone.
         }
     }
+    if (roomForRecent) await saveRecentGameForCurrentUser(roomForRecent, roomIdForRecent, { reason: 'left' });
 
     roomId = '';
     playerColor = null;

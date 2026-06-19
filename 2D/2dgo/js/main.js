@@ -81,7 +81,8 @@ class Go2DApp {
         }
 
         const mode = String(params.get('mode') || params.get('boundary') || '').toLowerCase();
-        if (['pbc', 'pbcx', 'pbc-x', 't2'].includes(mode)) this.boundarySelect.value = 'pbc';
+        if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(mode)) this.boundarySelect.value = 'cylinder';
+        if (['pbc', 't2', 'torus', 'periodic', 'periodic2d'].includes(mode)) this.boundarySelect.value = 'pbc';
         if (['klein', 'kleingo', 'klein_bottle', 'klein-bottle'].includes(mode)) this.boundarySelect.value = 'klein';
         if (['random', 'random_boundary', 'random-boundary'].includes(mode)) this.boundarySelect.value = 'random';
         if (['polar', 'polar_center', 'polar-center', 'radial'].includes(mode)) this.boundarySelect.value = 'polar';
@@ -557,6 +558,7 @@ class Go2DApp {
             }
         }
 
+        if (this.logic.topology === 'cylinder') this.drawCylinderBoundary(rect);
         if (this.logic.topology === 'pbc') this.drawPeriodicBoundary(rect);
         if (this.logic.topology === 'klein') this.drawKleinBoundary(rect);
         if (this.logic.topology === 'random') this.drawRandomBoundary(rect);
@@ -698,6 +700,39 @@ class Go2DApp {
         ctx.lineTo((left + right) / 2 - marker * 0.6, bottom);
         ctx.moveTo((left + right) / 2, bottom + marker);
         ctx.lineTo((left + right) / 2 + marker * 0.6, bottom);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    drawCylinderBoundary(rect) {
+        const ctx = this.ctx;
+        const offset = rect.step * 0.34;
+        const left = rect.x - offset;
+        const top = rect.y - offset;
+        const right = rect.x + (rect.spanX || rect.span) + offset;
+        const bottom = rect.y + (rect.spanY || rect.span) + offset;
+        const marker = Math.max(6, rect.step * 0.18);
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
+        ctx.lineWidth = Math.max(2, rect.step * 0.07);
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, bottom);
+        ctx.moveTo(right, top);
+        ctx.lineTo(right, bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(left - marker, (top + bottom) / 2);
+        ctx.lineTo(left, (top + bottom) / 2 - marker * 0.6);
+        ctx.moveTo(left - marker, (top + bottom) / 2);
+        ctx.lineTo(left, (top + bottom) / 2 + marker * 0.6);
+        ctx.moveTo(right + marker, (top + bottom) / 2);
+        ctx.lineTo(right, (top + bottom) / 2 - marker * 0.6);
+        ctx.moveTo(right + marker, (top + bottom) / 2);
+        ctx.lineTo(right, (top + bottom) / 2 + marker * 0.6);
         ctx.stroke();
         ctx.restore();
     }
@@ -906,10 +941,11 @@ class Go2DApp {
         this.updateSettingsLockState();
         const topology = normalizeTopology(this.logic.topology);
         const periodic = topology === 'pbc';
+        const cylinder = topology === 'cylinder';
         const klein = topology === 'klein';
         const random = topology === 'random';
         const polar = topology === 'polar';
-        this.boundaryEl.textContent = polar ? 'Polar Center' : random ? '2D RBC' : klein ? 'Klein' : periodic ? 'PBC x/y' : 'Standard';
+        this.boundaryEl.textContent = polar ? 'Polar Center' : random ? '2D RBC' : klein ? 'Klein' : cylinder ? 'Cylinder x-wrap' : periodic ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.lattice === 'honeycomb'
             ? ' Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links.'
             : this.logic.lattice === 'triangular'
@@ -921,6 +957,8 @@ class Go2DApp {
             ? '2D RBC uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.'
             : klein
             ? 'Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x.'
+            : cylinder
+            ? 'Cylinder identifies only the left-right edges. Top and bottom stay open, so liberties can vanish at the caps.'
             : periodic
                 ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'
                 : 'Standard uses ordinary open board edges.') + latticeText;

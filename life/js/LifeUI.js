@@ -203,6 +203,8 @@ export class LifeUI {
       lastX: 0,
       lastY: 0
     };
+    this.touchPointers = new Map();
+    this.touchCameraGesture = null;
     this.history = [];
     this.stateHashes = new Map();
     this.extinctionTime = null;
@@ -255,10 +257,21 @@ export class LifeUI {
     this.installOnlineControls();
 
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+    this.canvas.style.touchAction = 'none';
     this.canvas.addEventListener('wheel', (event) => this.handleCanvasWheel(event), { passive: false });
     this.canvas.addEventListener('pointerdown', (event) => {
       event.preventDefault();
       this.canvas.setPointerCapture?.(event.pointerId);
+      if (event.pointerType === 'touch') {
+        this.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.touchPointers.size >= 2) {
+          this.drawing = false;
+          this.lastDrawPosition = null;
+          this.camera.dragging = false;
+          this.startTouchCameraGesture();
+          return;
+        }
+      }
       if (this.isCameraInteraction(event)) {
         this.startCameraDrag(event);
       } else {
@@ -268,14 +281,28 @@ export class LifeUI {
       }
     });
     this.canvas.addEventListener('pointermove', (event) => {
+      if (event.pointerType === 'touch' && this.touchPointers.has(event.pointerId)) {
+        this.touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.touchCameraGesture && this.touchPointers.size >= 2) {
+          this.updateTouchCameraGesture(event);
+          return;
+        }
+      }
       if (this.camera.dragging) this.updateCameraDrag(event);
       else if (this.drawing) { event.preventDefault(); this.handleCanvasPointer(event); }
     });
-    window.addEventListener('pointerup', () => {
+    const finishPointer = (event) => {
+      if (event.pointerType === 'touch') {
+        this.touchPointers.delete(event.pointerId);
+        if (this.touchPointers.size < 2) this.touchCameraGesture = null;
+      }
+      try { this.canvas.releasePointerCapture?.(event.pointerId); } catch {}
       this.drawing = false;
       this.lastDrawPosition = null;
       this.camera.dragging = false;
-    });
+    };
+    window.addEventListener('pointerup', finishPointer);
+    window.addEventListener('pointercancel', finishPointer);
     window.addEventListener('resize', () => this.draw());
 
     this.applyMode(this.mode);
@@ -755,6 +782,45 @@ export class LifeUI {
     this.draw();
   }
 
+  startTouchCameraGesture() {
+    const [a, b] = Array.from(this.touchPointers.values()).slice(0, 2);
+    if (!a || !b) return;
+    this.touchCameraGesture = {
+      distance: Math.max(12, Math.hypot(a.x - b.x, a.y - b.y)),
+      centerX: (a.x + b.x) / 2,
+      centerY: (a.y + b.y) / 2,
+      rotX: this.camera.rotX,
+      rotY: this.camera.rotY,
+      zoom: this.camera.zoom,
+      panX: this.camera.panX,
+      panY: this.camera.panY
+    };
+  }
+
+  updateTouchCameraGesture(event) {
+    const [a, b] = Array.from(this.touchPointers.values()).slice(0, 2);
+    if (!a || !b || !this.touchCameraGesture) return;
+    event.preventDefault();
+    const centerX = (a.x + b.x) / 2;
+    const centerY = (a.y + b.y) / 2;
+    const dx = centerX - this.touchCameraGesture.centerX;
+    const dy = centerY - this.touchCameraGesture.centerY;
+    const factor = Math.max(0.2, Math.min(5, Math.hypot(a.x - b.x, a.y - b.y) / this.touchCameraGesture.distance));
+
+    if (this.is3DView()) {
+      this.camera.rotY = this.touchCameraGesture.rotY + dx * 0.012;
+      this.camera.rotX = Math.max(-1.35, Math.min(1.35, this.touchCameraGesture.rotX + dy * 0.012));
+      this.camera.zoom = Math.max(0.45, Math.min(8, this.touchCameraGesture.zoom * factor));
+    } else {
+      const pixelRatio = window.devicePixelRatio || 1;
+      this.camera.zoom = Math.max(1, Math.min(48, this.touchCameraGesture.zoom * factor));
+      this.camera.panX = this.touchCameraGesture.panX + dx * pixelRatio;
+      this.camera.panY = this.touchCameraGesture.panY + dy * pixelRatio;
+      this.clampFlatPan();
+    }
+    this.draw();
+  }
+
   handleCanvasWheel(event) {
     event.preventDefault();
     const factor = event.deltaY > 0 ? 0.92 : 1.08;
@@ -1168,6 +1234,14 @@ export class LifeUI {
         x: r * Math.cos(u),
         y: band * Math.sin(u / 2),
         z: r * Math.sin(u)
+      };
+    }
+
+    if (geom === 'cylinder') {
+      return {
+        x: Math.cos(u),
+        y: (vv - 0.5) * 1.75,
+        z: Math.sin(u)
       };
     }
 

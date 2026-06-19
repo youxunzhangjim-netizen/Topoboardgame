@@ -392,6 +392,7 @@ function topologyScore(logic, player) {
     }
     let score = 0;
     if (logic.topology === 'pbc') score += 10 * edgeHits.size + (edgeHits.has('left') && edgeHits.has('right') ? 18 : 0) + (edgeHits.has('top') && edgeHits.has('bottom') ? 18 : 0);
+    if (logic.topology === 'cylinder') score += 9 * (edgeHits.has('left') ? 1 : 0) + 9 * (edgeHits.has('right') ? 1 : 0) + (edgeHits.has('left') && edgeHits.has('right') ? 18 : 0);
     if (logic.topology === 'klein') score += 6 * edgeHits.size + (edgeHits.has('top') && edgeHits.has('bottom') ? 18 : 0);
     if (logic.topology === 'random') score += 5 * edgeHits.size;
     if (logic.topology === 'polar') score += 4 * stones.filter(([r]) => r <= 1).length;
@@ -403,6 +404,7 @@ function topologyScore(logic, player) {
 function topologyMoveBonus(logic, coord) {
     const [x, y] = coord; const n = logic.size; let bonus = 0;
     if (logic.topology === 'pbc' && (x === 0 || x === n - 1 || y === 0 || y === n - 1)) bonus += 10;
+    if (logic.topology === 'cylinder' && (x === 0 || x === n - 1)) bonus += 9;
     if (logic.topology === 'klein' && (y === 0 || y === n - 1)) bonus += 12;
     if (logic.topology === 'random' && (x === 0 || x === n - 1 || y === 0 || y === n - 1)) bonus += 7;
     if (logic.topology === 'polar' && x <= 1) bonus += 6;
@@ -443,6 +445,7 @@ function explainGoMove(before, after, move, player, score) {
     if (afterEval > beforeEval + 10) reasons.push('improves area/group evaluation');
     if (afterEval < beforeEval - 10) reasons.push('looks worse after evaluation/search');
     if (before.topology === 'pbc' && topologyMoveBonus(after, move.coord) > 0) reasons.push('contests a periodic wrapping edge/cycle');
+    if (before.topology === 'cylinder' && topologyMoveBonus(after, move.coord) > 0) reasons.push('contests the cylinder circumference seam');
     if (before.topology === 'klein' && topologyMoveBonus(after, move.coord) > 0) reasons.push('uses a Klein-boundary strategic edge');
     if (before.topology === 'random') reasons.push('uses legal neighborhoods from the fixed 2D RBC map');
     if (before.lattice === 'honeycomb') reasons.push('honeycomb groups need extra liberty safety');

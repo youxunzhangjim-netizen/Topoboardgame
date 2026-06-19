@@ -69,6 +69,27 @@
                     <span id="launcherProfileShowEmailLabel">Show my email</span>
                 </label>
                 <input id="launcherProfilePublicEmailInput" type="email" maxlength="120" autocomplete="email" placeholder="Email shown only when enabled">
+                <label for="launcherProfileLanguageSelect" id="launcherProfileLanguageLabel">Default language</label>
+                <select id="launcherProfileLanguageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+                <section class="launcher-recent-games" id="launcherRecentGames">
+                    <div class="launcher-recent-games-head">
+                        <strong id="launcherRecentGamesLabel">Recent games</strong>
+                        <button id="launcherRecentGamesRefresh" class="launcher-mini-button" type="button">Refresh</button>
+                    </div>
+                    <div id="launcherRecentGamesList" class="launcher-recent-games-list"></div>
+                    <div id="launcherRecentGameProfile" class="launcher-recent-profile" hidden></div>
+                </section>
+                <section class="launcher-recent-games" id="launcherFriends">
+                    <div class="launcher-recent-games-head">
+                        <strong id="launcherFriendsLabel">Friend list</strong>
+                        <button id="launcherFriendsRefresh" class="launcher-mini-button" type="button">Refresh</button>
+                    </div>
+                    <div id="launcherFriendsList" class="launcher-recent-games-list"></div>
+                    <div id="launcherFriendProfile" class="launcher-recent-profile" hidden></div>
+                </section>
                 <small id="launcherDisplayNameStatus"></small>
             </div>
             <button id="launcherGoogleLoginButton" class="launcher-account-menu-button primary" type="button">Sign in with Google</button>
@@ -140,7 +161,7 @@
                     <a class="game-option" href="./2D/jump/">
                         <span class="game-option-copy">
                             <strong data-i18n="games.2djump.title">2D Jump</strong>
-                            <small data-i18n="games.2djump.desc">Step moves and chain jumps on flat/topological boards</small>
+                            <small data-i18n="games.2djump.desc">Step moves and chain jumps on standard/topological boards</small>
                         </span>
                         <span class="game-count-badge" data-popularity-key="game-2djump" aria-label="Online activity"></span>
                     </a>
@@ -187,7 +208,7 @@
 
                 <section class="dimension-card dimension-4d" aria-labelledby="dimension4dTitle">
                     <span class="popularity-badge" data-popularity-key="dimension-4d" aria-label="Online activity"></span>
-                    <span class="dimension-visual hyper-plane" aria-hidden="true">
+                    <span class="dimension-visual static-cube-stack" aria-hidden="true">
                         <canvas id="dimension4dCanvas"></canvas>
                     </span>
                     <span class="dimension-copy">
@@ -222,7 +243,7 @@
                     <span class="dimension-visual time-plane-preview" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
                     <span class="dimension-copy">
                         <strong id="dimension2p1Title">2+1D</strong>
-                        <small data-i18n="dimension.2p1">2D board games with a playable time layer</small>
+                        <small data-i18n="dimension.2p1">Games embedded in 2+1D spacetime</small>
                     </span>
                     <a class="game-option" href="./2D/2dchess/?spacetime=2p1&family=chess"><span class="game-option-copy"><strong data-i18n="games.2p1chess.title">2+1D Chess</strong><small data-i18n="games.2p1chess.desc">Chess-like movement with Time schedule and optional Age</small></span><span class="game-count-badge" data-popularity-key="game-2p1chess" aria-label="Online activity"></span></a>
                     <a class="game-option" href="./2D/2dgo/?spacetime=2p1&family=go&timeMode=delay&delay=2&actionDelay=0"><span class="game-option-copy"><strong data-i18n="games.2p1go.title">2+1D Go</strong><small data-i18n="games.2p1go.desc">Place stones with Time schedule, Go-only Time period, optional Age, and optional noise</small></span><span class="game-count-badge" data-popularity-key="game-2p1go" aria-label="Online activity"></span></a>
@@ -232,14 +253,14 @@
 
                 <section class="dimension-card dimension-3p1 space-time-dimension" aria-labelledby="dimension3p1Title">
                     <span class="popularity-badge" data-popularity-key="dimension-3p1" aria-label="Online activity"></span>
-                    <span class="dimension-visual time-volume-preview" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="dimension-visual time-volume-preview" aria-hidden="true"><canvas id="dimension3p1Canvas"></canvas></span>
                     <span class="dimension-copy">
                         <strong id="dimension3p1Title">3+1D</strong>
-                        <small data-i18n="dimension.3p1">3D board games with a playable time layer</small>
+                        <small data-i18n="dimension.3p1">Games embedded in 3+1D spacetime</small>
                     </span>
-                    <a class="game-option" href="./3D/3dchess/?spacetime=3p1&family=chess&variant=cube"><span class="game-option-copy"><strong data-i18n="games.3p1chess.title">3+1D Chess</strong><small data-i18n="games.3p1chess.desc">Volume chess timing with delay, phase, age, and cooldown</small></span><span class="game-count-badge" data-popularity-key="game-3p1chess" aria-label="Online activity"></span></a>
-                    <a class="game-option" href="./3D/3dgo/?spacetime=3p1&family=go&timeMode=delay&delay=2&actionDelay=0"><span class="game-option-copy"><strong data-i18n="games.3p1go.title">3+1D Go</strong><small data-i18n="games.3p1go.desc">Place stones through layers with age and optional noise</small></span><span class="game-count-badge" data-popularity-key="game-3p1go" aria-label="Online activity"></span></a>
-                    <a class="game-option" href="./3D/3dreversi/?spacetime=3p1&family=reversi&timeMode=delay&delay=2&actionDelay=0"><span class="game-option-copy"><strong data-i18n="games.3p1reversi.title">3+1D Reversi</strong><small data-i18n="games.3p1reversi.desc">3D line flipping with time-phase rules</small></span><span class="game-count-badge" data-popularity-key="game-3p1reversi" aria-label="Online activity"></span></a>
+                    <a class="game-option" href="./3D/3dchess/?spacetime=3p1&family=chess&variant=cube"><span class="game-option-copy"><strong data-i18n="games.3p1chess.title">3+1D Chess</strong><small data-i18n="games.3p1chess.desc">Volume chess timing with Time schedule and optional Age</small></span><span class="game-count-badge" data-popularity-key="game-3p1chess" aria-label="Online activity"></span></a>
+                    <a class="game-option" href="./3D/3dgo/?spacetime=3p1&family=go&timeMode=delay&delay=2&actionDelay=0"><span class="game-option-copy"><strong data-i18n="games.3p1go.title">3+1D Go</strong><small data-i18n="games.3p1go.desc">Place stones through layers with Time schedule, Go-only Time period, optional Age, and optional noise</small></span><span class="game-count-badge" data-popularity-key="game-3p1go" aria-label="Online activity"></span></a>
+                    <a class="game-option" href="./3D/3dreversi/?spacetime=3p1&family=reversi&timeMode=delay&delay=2&actionDelay=0"><span class="game-option-copy"><strong data-i18n="games.3p1reversi.title">3+1D Reversi</strong><small data-i18n="games.3p1reversi.desc">3D line flipping with Time schedule and optional Age</small></span><span class="game-count-badge" data-popularity-key="game-3p1reversi" aria-label="Online activity"></span></a>
                     <a class="game-option" href="./3D/jump/?spacetime=3p1&family=jump"><span class="game-option-copy"><strong data-i18n="games.3p1jump.title">3+1D Jump</strong><small data-i18n="games.3p1jump.desc">Volume jumps with Time schedule and explicit target zones</small></span><span class="game-count-badge" data-popularity-key="game-3p1jump" aria-label="Online activity"></span></a>
                 </section>
             </div>
@@ -248,6 +269,7 @@
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
                         <strong id="physicsAlgebraLabsTitle" data-i18n="labs.title">Strategy &amp; Systems Labs</strong>
+                        <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                         <small data-i18n="labs.desc">Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.</small>
                     </div>
                     <div class="lab-card-grid">
@@ -255,6 +277,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong data-i18n="labs.cards.spinPhase.title">Spin &amp; Phase Lab</strong>
+                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go" aria-label="Online activity"></span>
                             </div>
@@ -279,6 +302,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong data-i18n="labs.cards.quantumInfo.title">Quantum Information Lab</strong>
+                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_clifford_reversi game-clifford_reversi game-physical_clifford_go game-physical_clifford_jump" aria-label="Online activity"></span>
                             </div>
@@ -293,7 +317,7 @@
                                 <summary data-i18n="labs.info">Info</summary>
                             </details>
                             <div class="lab-presets" aria-label="Quantum information presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery" data-i18n="labs.presets.pauliRecovery">Pauli Recovery</a>
+                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery" data-i18n="labs.presets.pauliRecovery">Pauli Correction</a>
                                 <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli" data-i18n="labs.presets.stabilizerCheck">Stabilizer Check</a>
                                 <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=clifford" data-i18n="labs.presets.cliffordToy">Clifford Toy</a>
                             </div>
@@ -303,6 +327,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong data-i18n="labs.cards.anyonMemory.title">Anyon &amp; Topological Memory Lab</strong>
+                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-anyon_jump game-physical_anyon_jump game-physical_anyon_reversi game-z2_gauge_loop_game game-physical_jump_particles" aria-label="Online activity"></span>
                             </div>
@@ -327,6 +352,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong data-i18n="labs.cards.cftField.title">CFT / Field Theory Lab</strong>
+                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump game-virasoro_jump" aria-label="Online activity"></span>
                             </div>
@@ -351,6 +377,7 @@
                             <div class="lab-card-head">
                                 <span class="extra-mode-copy">
                                     <strong data-i18n="labs.cards.sandbox.title">Advanced Algebra Sandbox</strong>
+                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                                 </span>
                                 <span class="game-count-badge" data-popularity-group="game-clifford_reversi game-clifford_go game-clifford_jump game-anyon_reversi game-anyon_jump game-virasoro_jump game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go game-physical_jump_particles game-spin_ice_vertex_game game-z2_gauge_loop_game game-physical_anyon_jump game-physical_anyon_reversi game-physical_clifford_reversi game-physical_clifford_go game-physical_clifford_jump game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump" aria-label="Online activity"></span>
                             </div>
@@ -449,8 +476,8 @@
                         '2d': 'Games embedded in 2D space',
                         '3d': 'Games embedded in 3D space',
                         '4d': 'Games embedded in 4D space',
-                        '2p1': '2D board games with a playable time layer',
-                        '3p1': '3D board games with a playable time layer'
+                        '2p1': 'Games embedded in 2+1D spacetime',
+                        '3p1': 'Games embedded in 3+1D spacetime'
                     },
                     games: {
                         '2dchess': { title: '2D Chess', desc: 'Chess with selectable boundaries' },
@@ -461,7 +488,7 @@
                         '3dreversi': { title: '3D Reversi', desc: 'Reversi on rotatable lattice boards' },
                         '4dgo': { title: '4D Go', desc: 'Go on 4D slice boards' },
                         '4dreversi': { title: '4D Reversi', desc: 'Reversi on 4D slice boards' },
-                        '2djump': { title: '2D Jump', desc: 'Step moves and chain jumps on flat/topological boards' },
+                        '2djump': { title: '2D Jump', desc: 'Step moves and chain jumps on standard/topological boards' },
                         '3djump': { title: '3D Jump', desc: 'Chain jumps through volumes, shells, and wrapped spaces' },
                         '4djump': { title: '4D Jump', desc: 'Projected higher-dimensional chain-jump races' },
                         '2p1chess': { title: '2+1D Chess', desc: 'Chess-like movement with Time schedule and optional Age' },
@@ -501,6 +528,7 @@
                     },
                     labs: {
                         title: 'Strategy & Systems Labs',
+                        developing: '(Developing)',
                         desc: 'Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.',
                         choose: 'Strategy and systems labs',
                         info: 'Info',
@@ -516,7 +544,7 @@
                             thermalSpin: 'Thermal Spin',
                             topologyCompare: 'Topology Compare',
                             momentumLab: 'Momentum Lab',
-                            pauliRecovery: 'Pauli Recovery',
+                            pauliRecovery: 'Pauli Correction',
                             stabilizerCheck: 'Stabilizer Check',
                             cliffordToy: 'Clifford Toy',
                             hamiltonianWalk: 'Hamiltonian Walk',
@@ -635,8 +663,8 @@
                         '2d': '嵌入於 2D 空間的遊戲',
                         '3d': '嵌入於 3D 空間的遊戲',
                         '4d': '嵌入於 4D 空間的遊戲',
-                        '2p1': '2D 棋盤加上一層可玩的時間規則',
-                        '3p1': '3D 棋盤加上一層可玩的時間規則'
+                        '2p1': '嵌入 2+1D 時空的遊戲',
+                        '3p1': '嵌入 3+1D 時空的遊戲'
                     },
                     games: {
                         '2dchess': { title: '2D 西洋棋', desc: '可切換邊界的西洋棋' },
@@ -647,7 +675,7 @@
                         '3dreversi': { title: '3D 黑白棋', desc: '可旋轉晶格棋盤黑白棋' },
                         '4dgo': { title: '4D 圍棋', desc: '4D 切片棋盤圍棋' },
                         '4dreversi': { title: '4D 黑白棋', desc: '4D 切片棋盤黑白棋' },
-                        '2djump': { title: '2D 跳棋', desc: '在平面與拓撲棋盤上做一步移動與連跳' },
+                        '2djump': { title: '2D 跳棋', desc: '在標準與拓撲棋盤上做一步移動與連跳' },
                         '3djump': { title: '3D 跳棋', desc: '穿過體積、殼層與包裹空間的連跳' },
                         '4djump': { title: '4D 跳棋', desc: '投影高維棋盤上的連跳競速' },
                         '2p1chess': { title: '2+1D 西洋棋', desc: '帶時間排程與可選年齡的西洋棋式移動' },
@@ -687,6 +715,7 @@
                     },
                     labs: {
                         title: '策略與系統實驗室',
+                        developing: '（開發中）',
                         desc: '選擇一個可玩的實驗世界，探索新規則、隱藏結構與策略模式。打開資訊了解這個系統代表什麼、它如何改變遊戲，以及你能透過遊玩觀察什麼。',
                         choose: '策略與系統實驗室',
                         info: '資訊',
@@ -702,7 +731,7 @@
                             thermalSpin: '熱自旋',
                             topologyCompare: '拓撲比較',
                             momentumLab: '動量實驗室',
-                            pauliRecovery: 'Pauli 復原',
+                            pauliRecovery: 'Pauli 校正',
                             stabilizerCheck: '穩定子檢查',
                             cliffordToy: 'Clifford 玩具模型',
                             hamiltonianWalk: 'Hamiltonian Walk',
@@ -947,6 +976,7 @@
                 persistLanguage(currentLanguage);
                 applyLauncherLanguage();
             }
+            window.setTopoboardgameLanguage = setLauncherLanguage;
 
             function installLanguageControl() {
                 const button = document.getElementById('launcherLanguageButton');

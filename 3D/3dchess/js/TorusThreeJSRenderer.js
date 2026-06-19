@@ -67,6 +67,7 @@ export class TorusThreeJSRenderer {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.shadowMap.autoUpdate = false;
         this.renderer.shadowMap.needsUpdate = true;
+        this.renderer.domElement.style.touchAction = 'none';
 
         this.controls = new TrackballControls(this.camera, this.renderer.domElement);
         this.controls.rotateSpeed = 3.6;

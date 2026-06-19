@@ -1,5 +1,10 @@
 import {
     initAccountSession,
+    deleteFriend,
+    deleteRecentGame,
+    listFriends,
+    listRecentGames,
+    saveFriendFromProfile,
     signInAsVisitor,
     signInWithGoogleAccount,
     signOutToGuest,
@@ -36,6 +41,26 @@ const TEXT = {
         about: 'About',
         location: 'Location',
         favoriteGame: 'Favorite game',
+        defaultLanguage: 'Default language',
+        recentGames: 'Recent games',
+        friends: 'Friend list',
+        refreshRecentGames: 'Refresh',
+        refreshFriends: 'Refresh',
+        noRecentGames: 'No recent online games yet.',
+        noFriends: 'No saved friends yet.',
+        replay: 'Replay',
+        removeHistory: 'Cancel history',
+        saveFriend: 'Save friend',
+        removeFriend: 'Remove friend',
+        savedFriend: 'Friend saved.',
+        viewProfile: 'Profile',
+        opponentProfile: 'Opponent profile',
+        friendProfile: 'Friend profile',
+        robotHuman: 'Opponent type',
+        result: 'Result',
+        duration: 'Duration',
+        variant: 'Variant',
+        topology: 'Topology',
         showEmail: 'Show my email',
         namePlaceholder: 'Name shown to opponents',
         bioPlaceholder: 'Short public profile',
@@ -73,6 +98,26 @@ const TEXT = {
         about: '簡介',
         location: '位置',
         favoriteGame: '喜歡的遊戲',
+        defaultLanguage: '預設語言',
+        recentGames: '最近遊戲',
+        friends: '好友列表',
+        refreshRecentGames: '重新整理',
+        refreshFriends: '重新整理',
+        noRecentGames: '還沒有最近的線上遊戲。',
+        noFriends: '還沒有儲存的好友。',
+        replay: '重播',
+        removeHistory: '取消此歷史',
+        saveFriend: '儲存好友',
+        removeFriend: '移除好友',
+        savedFriend: '已儲存好友。',
+        viewProfile: '資料',
+        opponentProfile: '對手資料',
+        friendProfile: '好友資料',
+        robotHuman: '對手類型',
+        result: '結果',
+        duration: '時間',
+        variant: '變體',
+        topology: '拓撲',
         showEmail: '顯示我的 email',
         namePlaceholder: '對手會看到的名稱',
         bioPlaceholder: '簡短的公開簡介',
@@ -182,6 +227,7 @@ function summarizeState(state) {
         bio: state?.bio || '',
         location: state?.location || '',
         favoriteGame: state?.favoriteGame || '',
+        defaultLanguage: state?.defaultLanguage || 'en',
         showEmail: Boolean(state?.showEmail),
         publicEmail: state?.publicEmail || '',
         accountEmail: state?.accountEmail || ''
@@ -203,6 +249,29 @@ function cleanProfileText(value, maxLength) {
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, maxLength);
+}
+
+function normalizeProfileLanguage(value) {
+    return String(value || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function escapeHtml(text) {
+    return String(text ?? '').replace(/[&<>"']/g, (match) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[match]));
+}
+
+function formatDuration(seconds = 0) {
+    const total = Math.max(0, Math.round(Number(seconds) || 0));
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${secs}s`;
+    return `${secs}s`;
 }
 
 function elementSummary(element) {
@@ -264,6 +333,18 @@ function installLauncherAuth() {
     const locationInput = document.getElementById('launcherProfileLocationInput');
     const favoriteLabel = document.getElementById('launcherProfileFavoriteLabel');
     const favoriteInput = document.getElementById('launcherProfileFavoriteInput');
+    const languageLabel = document.getElementById('launcherProfileLanguageLabel');
+    const languageSelect = document.getElementById('launcherProfileLanguageSelect');
+    const recentGames = document.getElementById('launcherRecentGames');
+    const recentGamesLabel = document.getElementById('launcherRecentGamesLabel');
+    const recentGamesRefresh = document.getElementById('launcherRecentGamesRefresh');
+    const recentGamesList = document.getElementById('launcherRecentGamesList');
+    const recentGameProfile = document.getElementById('launcherRecentGameProfile');
+    const friends = document.getElementById('launcherFriends');
+    const friendsLabel = document.getElementById('launcherFriendsLabel');
+    const friendsRefresh = document.getElementById('launcherFriendsRefresh');
+    const friendsList = document.getElementById('launcherFriendsList');
+    const friendProfile = document.getElementById('launcherFriendProfile');
     const showEmailLabel = document.getElementById('launcherProfileShowEmailLabel');
     const showEmailInput = document.getElementById('launcherProfileShowEmailInput');
     const publicEmailInput = document.getElementById('launcherProfilePublicEmailInput');
@@ -292,6 +373,18 @@ function installLauncherAuth() {
         locationInput: !locationInput,
         favoriteLabel: !favoriteLabel,
         favoriteInput: !favoriteInput,
+        languageLabel: !languageLabel,
+        languageSelect: !languageSelect,
+        recentGames: !recentGames,
+        recentGamesLabel: !recentGamesLabel,
+        recentGamesRefresh: !recentGamesRefresh,
+        recentGamesList: !recentGamesList,
+        recentGameProfile: !recentGameProfile,
+        friends: !friends,
+        friendsLabel: !friendsLabel,
+        friendsRefresh: !friendsRefresh,
+        friendsList: !friendsList,
+        friendProfile: !friendProfile,
         showEmailLabel: !showEmailLabel,
         showEmailInput: !showEmailInput,
         publicEmailInput: !publicEmailInput
@@ -314,6 +407,148 @@ function installLauncherAuth() {
     let nameBusy = false;
     let lastInlineError = '';
     let lastNameMessage = '';
+    let recentBusy = false;
+    let recentGameItems = [];
+    let friendBusy = false;
+    let friendItems = [];
+    let lastRecentUid = '';
+    let lastFriendsUid = '';
+    let appliedLanguageUid = '';
+
+    const renderOpponentProfile = (profile = {}) => {
+        if (!recentGameProfile) return;
+        if (!profile || !Object.keys(profile).length) {
+            recentGameProfile.hidden = true;
+            recentGameProfile.textContent = '';
+            return;
+        }
+        const lines = [
+            `<strong>${escapeHtml(t('opponentProfile'))}: ${escapeHtml(profile.displayName || 'Player')}</strong>`,
+            profile.joinedDate ? `${escapeHtml(t('joinedDate'))}: ${escapeHtml(profile.joinedDate)}` : '',
+            profile.location ? `${escapeHtml(t('location'))}: ${escapeHtml(profile.location)}` : '',
+            profile.favoriteGame ? `${escapeHtml(t('favoriteGame'))}: ${escapeHtml(profile.favoriteGame)}` : '',
+            profile.showEmail && profile.publicEmail ? `${escapeHtml(t('showEmail'))}: ${escapeHtml(profile.publicEmail)}` : '',
+            profile.bio ? escapeHtml(profile.bio) : ''
+        ].filter(Boolean);
+        recentGameProfile.innerHTML = lines.join('<br>');
+        recentGameProfile.hidden = false;
+    };
+
+    const renderFriendProfile = (profile = {}) => {
+        if (!friendProfile) return;
+        if (!profile || !Object.keys(profile).length) {
+            friendProfile.hidden = true;
+            friendProfile.textContent = '';
+            return;
+        }
+        const lines = [
+            `<strong>${escapeHtml(t('friendProfile'))}: ${escapeHtml(profile.displayName || 'Player')}</strong>`,
+            profile.joinedDate ? `${escapeHtml(t('joinedDate'))}: ${escapeHtml(profile.joinedDate)}` : '',
+            profile.location ? `${escapeHtml(t('location'))}: ${escapeHtml(profile.location)}` : '',
+            profile.favoriteGame ? `${escapeHtml(t('favoriteGame'))}: ${escapeHtml(profile.favoriteGame)}` : '',
+            profile.showEmail && profile.publicEmail ? `${escapeHtml(t('showEmail'))}: ${escapeHtml(profile.publicEmail)}` : '',
+            profile.bio ? escapeHtml(profile.bio) : ''
+        ].filter(Boolean);
+        friendProfile.innerHTML = lines.join('<br>');
+        friendProfile.hidden = false;
+    };
+
+    const renderRecentGames = () => {
+        if (!recentGamesList) return;
+        recentGamesLabel.textContent = t('recentGames');
+        recentGamesRefresh.textContent = recentBusy ? t('working') : t('refreshRecentGames');
+        recentGamesRefresh.disabled = recentBusy || busy;
+        if (!latestState?.signedIn) {
+            recentGames.hidden = true;
+            return;
+        }
+        recentGames.hidden = false;
+        if (!recentGameItems.length) {
+            recentGamesList.innerHTML = `<p>${escapeHtml(t('noRecentGames'))}</p>`;
+            return;
+        }
+        recentGamesList.innerHTML = recentGameItems.map((game) => `
+            <article class="launcher-recent-game" data-game-id="${escapeHtml(game.id)}">
+                <div class="launcher-recent-game-main">
+                    <button class="launcher-profile-link" type="button" data-profile-id="${escapeHtml(game.id)}">${escapeHtml(game.opponent || 'Opponent')}</button>
+                    <strong>${escapeHtml(game.result || '')}</strong>
+                </div>
+                <div class="launcher-recent-game-meta">
+                    <span>${escapeHtml(t('robotHuman'))}: ${escapeHtml(game.opponentType || 'Human')}</span>
+                    <span>${escapeHtml(t('duration'))}: ${escapeHtml(formatDuration(game.durationSec))}</span>
+                    <span>${escapeHtml(t('variant'))}: ${escapeHtml(game.variant || '')}</span>
+                    <span>${escapeHtml(t('topology'))}: ${escapeHtml(game.topology || '')}</span>
+                </div>
+                <div class="launcher-recent-actions">
+                    <a href="${escapeHtml(game.replayUrl || '#')}">${escapeHtml(t('replay'))}</a>
+                    ${game.opponentUid ? `<button type="button" data-friend-game-id="${escapeHtml(game.id)}">${escapeHtml(t('saveFriend'))}</button>` : ''}
+                    <button type="button" data-delete-id="${escapeHtml(game.id)}">${escapeHtml(t('removeHistory'))}</button>
+                </div>
+            </article>
+        `).join('');
+    };
+
+    const refreshRecentGames = async () => {
+        if (!latestState?.signedIn || recentBusy) return;
+        recentBusy = true;
+        renderRecentGames();
+        try {
+            recentGameItems = await listRecentGames({ max: 12 });
+        } catch (error) {
+            warnAuth('listRecentGames() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            recentBusy = false;
+            renderRecentGames();
+        }
+    };
+
+    const renderFriends = () => {
+        if (!friendsList) return;
+        friendsLabel.textContent = t('friends');
+        friendsRefresh.textContent = friendBusy ? t('working') : t('refreshFriends');
+        friendsRefresh.disabled = friendBusy || busy;
+        if (!latestState?.signedIn) {
+            friends.hidden = true;
+            return;
+        }
+        friends.hidden = false;
+        if (!friendItems.length) {
+            friendsList.innerHTML = `<p>${escapeHtml(t('noFriends'))}</p>`;
+            return;
+        }
+        friendsList.innerHTML = friendItems.map((friend) => `
+            <article class="launcher-recent-game" data-friend-id="${escapeHtml(friend.id)}">
+                <div class="launcher-recent-game-main">
+                    <button class="launcher-profile-link" type="button" data-friend-profile-id="${escapeHtml(friend.id)}">${escapeHtml(friend.displayName || 'Player')}</button>
+                    <strong>${escapeHtml(friend.favoriteGame || friend.location || '')}</strong>
+                </div>
+                <div class="launcher-recent-game-meta">
+                    ${friend.joinedDate ? `<span>${escapeHtml(t('joinedDate'))}: ${escapeHtml(friend.joinedDate)}</span>` : ''}
+                    ${friend.location ? `<span>${escapeHtml(t('location'))}: ${escapeHtml(friend.location)}</span>` : ''}
+                    ${friend.favoriteGame ? `<span>${escapeHtml(t('favoriteGame'))}: ${escapeHtml(friend.favoriteGame)}</span>` : ''}
+                    ${friend.showEmail && friend.publicEmail ? `<span>${escapeHtml(t('showEmail'))}: ${escapeHtml(friend.publicEmail)}</span>` : ''}
+                </div>
+                <div class="launcher-recent-actions">
+                    <button type="button" data-friend-profile-id="${escapeHtml(friend.id)}">${escapeHtml(t('viewProfile'))}</button>
+                    <button type="button" data-remove-friend-id="${escapeHtml(friend.id)}">${escapeHtml(t('removeFriend'))}</button>
+                </div>
+            </article>
+        `).join('');
+    };
+
+    const refreshFriends = async () => {
+        if (!latestState?.signedIn || friendBusy) return;
+        friendBusy = true;
+        renderFriends();
+        try {
+            friendItems = await listFriends({ max: 40 });
+        } catch (error) {
+            warnAuth('listFriends() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            friendBusy = false;
+            renderFriends();
+        }
+    };
 
     const refreshDisplayNameEditor = () => {
         const canEdit = Boolean(latestState?.canEditDisplayName);
@@ -323,6 +558,7 @@ function installLauncherAuth() {
         bioLabel.textContent = t('about');
         locationLabel.textContent = t('location');
         favoriteLabel.textContent = t('favoriteGame');
+        languageLabel.textContent = t('defaultLanguage');
         showEmailLabel.textContent = t('showEmail');
         displayNameInput.placeholder = t('namePlaceholder');
         bioInput.placeholder = t('bioPlaceholder');
@@ -331,7 +567,7 @@ function installLauncherAuth() {
         publicEmailInput.placeholder = t('emailPlaceholder');
         displayNameSave.textContent = nameBusy ? t('savingName') : t('saveName');
         displayNameSave.disabled = busy || nameBusy || !canEdit;
-        [displayNameInput, bioInput, locationInput, favoriteInput, showEmailInput].forEach((input) => {
+        [displayNameInput, bioInput, locationInput, favoriteInput, languageSelect, showEmailInput].forEach((input) => {
             input.disabled = busy || nameBusy || !canEdit;
         });
         publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
@@ -341,6 +577,7 @@ function installLauncherAuth() {
         if (canEdit && document.activeElement !== bioInput) bioInput.value = latestState?.bio || '';
         if (canEdit && document.activeElement !== locationInput) locationInput.value = latestState?.location || '';
         if (canEdit && document.activeElement !== favoriteInput) favoriteInput.value = latestState?.favoriteGame || '';
+        if (canEdit && document.activeElement !== languageSelect) languageSelect.value = normalizeProfileLanguage(latestState?.defaultLanguage || 'en');
         if (canEdit && document.activeElement !== showEmailInput) showEmailInput.checked = Boolean(latestState?.showEmail);
         if (canEdit && document.activeElement !== publicEmailInput) publicEmailInput.value = latestState?.publicEmail || latestState?.accountEmail || '';
         publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
@@ -372,6 +609,28 @@ function installLauncherAuth() {
         logoutButton.disabled = busy;
         root.dataset.account = latestState.accountKind || (signedIn ? 'google' : (visitor ? 'visitor' : 'offline-guest'));
         root.dataset.profile = latestState.profileError ? 'error' : (latestState.profileSynced ? 'synced' : 'idle');
+        renderRecentGames();
+        renderFriends();
+        if (signedIn && latestState.uid && appliedLanguageUid !== latestState.uid && latestState.defaultLanguage) {
+            appliedLanguageUid = latestState.uid;
+            globalThis.setTopoboardgameLanguage?.(latestState.defaultLanguage, { source: 'account-default' });
+        }
+        if (signedIn && latestState.uid && lastRecentUid !== latestState.uid) {
+            lastRecentUid = latestState.uid;
+            refreshRecentGames();
+        }
+        if (signedIn && latestState.uid && lastFriendsUid !== latestState.uid) {
+            lastFriendsUid = latestState.uid;
+            refreshFriends();
+        }
+        if (!signedIn) {
+            lastRecentUid = '';
+            lastFriendsUid = '';
+            recentGameItems = [];
+            friendItems = [];
+            renderOpponentProfile(null);
+            renderFriendProfile(null);
+        }
     };
 
     const setError = (error) => {
@@ -462,6 +721,7 @@ function installLauncherAuth() {
             bio: cleanProfileText(bioInput.value, 140),
             location: cleanProfileText(locationInput.value, 40),
             favoriteGame: cleanProfileText(favoriteInput.value, 40),
+            defaultLanguage: normalizeProfileLanguage(languageSelect.value),
             showEmail: Boolean(showEmailInput.checked),
             publicEmail: showEmailInput.checked ? cleanProfileText(publicEmailInput.value || latestState?.accountEmail || '', 120) : ''
         };
@@ -470,6 +730,7 @@ function installLauncherAuth() {
         try {
             const nextState = await updateUserProfileInfo(requestedProfile);
             latestState = { ...nextState, displayName: nextState?.displayName || requestedName };
+            globalThis.setTopoboardgameLanguage?.(requestedProfile.defaultLanguage, { source: 'account-save' });
             lastNameMessage = t('nameSaved');
             logAuth('updateUserProfileInfo() resolved', summarizeState(nextState));
         } catch (error) {
@@ -498,6 +759,68 @@ function installLauncherAuth() {
     showEmailInput.addEventListener('change', () => {
         publicEmailInput.disabled = busy || nameBusy || !latestState?.canEditDisplayName || !showEmailInput.checked;
         if (showEmailInput.checked && !publicEmailInput.value) publicEmailInput.value = latestState?.accountEmail || '';
+    });
+    languageSelect.addEventListener('change', () => {
+        globalThis.setTopoboardgameLanguage?.(languageSelect.value, { source: 'account-select-preview' });
+    });
+    recentGamesRefresh.addEventListener('click', (event) => {
+        event.preventDefault();
+        refreshRecentGames();
+    });
+    friendsRefresh.addEventListener('click', (event) => {
+        event.preventDefault();
+        refreshFriends();
+    });
+    recentGamesList.addEventListener('click', async (event) => {
+        const profileButton = event.target.closest('button[data-profile-id]');
+        if (profileButton) {
+            const item = recentGameItems.find((game) => game.id === profileButton.dataset.profileId);
+            renderOpponentProfile(item?.opponentProfile || {});
+            return;
+        }
+        const friendButton = event.target.closest('button[data-friend-game-id]');
+        if (friendButton) {
+            const item = recentGameItems.find((game) => game.id === friendButton.dataset.friendGameId);
+            if (!item?.opponentProfile) return;
+            friendButton.disabled = true;
+            const saved = await saveFriendFromProfile(item.opponentProfile, {
+                gameId: item.id,
+                roomId: item.roomId
+            });
+            if (saved) {
+                lastNameMessage = t('savedFriend');
+                friendItems = [saved, ...friendItems.filter((friend) => friend.id !== saved.id)];
+                renderFriendProfile(saved);
+                renderFriends();
+            }
+            friendButton.disabled = false;
+            render();
+            return;
+        }
+        const deleteButton = event.target.closest('button[data-delete-id]');
+        if (!deleteButton) return;
+        const id = deleteButton.dataset.deleteId;
+        deleteButton.disabled = true;
+        await deleteRecentGame(id);
+        recentGameItems = recentGameItems.filter((game) => game.id !== id);
+        renderOpponentProfile(null);
+        renderRecentGames();
+    });
+    friendsList.addEventListener('click', async (event) => {
+        const profileButton = event.target.closest('button[data-friend-profile-id]');
+        if (profileButton) {
+            const item = friendItems.find((friend) => friend.id === profileButton.dataset.friendProfileId);
+            renderFriendProfile(item || {});
+            return;
+        }
+        const deleteButton = event.target.closest('button[data-remove-friend-id]');
+        if (!deleteButton) return;
+        const id = deleteButton.dataset.removeFriendId;
+        deleteButton.disabled = true;
+        await deleteFriend(id);
+        friendItems = friendItems.filter((friend) => friend.id !== id);
+        renderFriendProfile(null);
+        renderFriends();
     });
 
     googleButton.addEventListener('click', (event) => {

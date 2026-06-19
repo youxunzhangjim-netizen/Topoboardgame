@@ -87,6 +87,7 @@
                         <select id="topologySelect">
                             <option value="flat" selected>2D Standard</option>
                             <option value="r3">R3 Standard</option>
+                            <option value="cylinder">Cylinder</option>
                             <option value="torus">T2 Torus</option>
                             <option value="klein_bottle">Klein Bottle</option>
                             <option value="mobius">Mobius Strip</option>
@@ -118,7 +119,7 @@
                                 <option value="spin_ice_vertex_observables" disabled>Spin Ice Vertex Observables - built into Spin Ice Vertex Game</option>
                             </optgroup>
                             <optgroup label="Stabilizer / Pauli-frame systems">
-                                <option value="stabilizer_pauli_recovery">Pauli Error Recovery</option>
+                                <option value="stabilizer_pauli_recovery">Pauli Error Correction / Recovery</option>
                             </optgroup>
                             <optgroup label="CFT / Virasoro systems">
                                 <option value="cft_conformal_block_observables">CFT Conformal Block Observables</option>
@@ -972,23 +973,6 @@
             </div>
         </section>
 
-        <section class="lab-history-panels" aria-label="Lab move history and logs">
-            <section>
-                <h2>Move History</h2>
-                <ol id="historyList" class="history-list"></ol>
-            </section>
-
-            <section>
-                <h2>Braid Event Log</h2>
-                <ol id="braidEventList" class="history-list"></ol>
-            </section>
-
-            <section>
-                <h2>Stochastic Event Log</h2>
-                <ol id="stochasticList" class="history-list"></ol>
-            </section>
-        </section>
-
         <section class="layer-panel" id="layerPanel" hidden>
             <label>
                 z layer
@@ -1031,6 +1015,13 @@
                     <div data-rules-mode="clifford">
                         <h2>Clifford Introduction and Observables</h2>
                         <p><strong>Algebra set:</strong> Clifford Reversi is one game with configurable algebra and opening rules. Standard Pauli keeps the ordinary four-stone Reversi opening. Choose Stabilizer Algebra to use qubit sites, alternate initial rules, measurements, phases, and ancillas.</p>
+                        <p><strong>Lab goal:</strong> compare how the same Pauli/Clifford flipping rule changes when topology, seams, lattice, noise, and time settings alter the rays that carry local information.</p>
+                        <div class="rules-mini-diagram" aria-label="Clifford lab flow">
+                            <span>Pauli placement</span>
+                            <span>Topology ray</span>
+                            <span>Clifford flip</span>
+                            <span>Observable export</span>
+                        </div>
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
                         <p><strong>Local operator choice:</strong> Clifford Go opens a small operator palette at the clicked site, so X/Y/Z are chosen where the insertion happens. The side Pauli selector remains a default for exports and keyboard-style operation.</p>
@@ -1048,14 +1039,27 @@
                         <p><strong>Reversi action:</strong> placement still requires a normal topology-aware bracket. Each flipped site changes owner and sign, then receives the selected H or S transform plus any seam transport. Pauli phase is tracked modulo four.</p>
                         <p><strong>Ancillas:</strong> prepare Z0, Z1, X+, X-, or magic ancillas on empty sites. Entangle an occupied control and target with CNOT or CZ when at least one endpoint is an ancilla. Ancillas may be measured in X/Z or discarded.</p>
                         <p><strong>Phase actions:</strong> S, S dagger, and Z are Clifford actions. Phase Kick accepts a numeric angle and marks non-quarter-turn use as a non-stabilizer approximation.</p>
-                        <p><strong>Stabilizer Recovery problem:</strong> this optional physical problem treats local Clifford/Reversi actions as Pauli-frame recovery. It adds graph-neighborhood X/Z syndromes, topology-cycle logical checks, recovery time, seeded measurement errors, and a dedicated QEC export without changing ordinary Reversi.</p>
+                        <p><strong>Pauli error-correction goal:</strong> recovery means using local Pauli-frame actions to reduce measured X/Z syndrome defects and return the board toward the stabilizer vacuum or intended logical sector. It adds graph-neighborhood X/Z syndromes, topology-cycle logical checks, recovery time, seeded measurement errors, and a dedicated QEC export without changing ordinary Reversi.</p>
+                        <div class="rules-mini-diagram" aria-label="Pauli error correction flow">
+                            <span>Error X/Z</span>
+                            <span>Syndrome checks</span>
+                            <span>Recovery actions</span>
+                            <span>Vacuum / logical sector</span>
+                        </div>
                         <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
-                        <p><strong>Results:</strong> Stabilizer Pauli Recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
+                        <p><strong>Results:</strong> Stabilizer Pauli correction/recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
                     </div>
                     <div data-rules-mode="physical-cluster-go" hidden>
                         <h2>Physical Cluster Go Introduction and Observables</h2>
                         <p><strong>Physical meaning:</strong> black is species A, phase A, or spin sector A. White is species B, phase B, or spin sector B. Empty vertices are local growth, oxygen, or resource sites on the selected topology graph.</p>
+                        <p><strong>Physical problem / goal:</strong> test whether competing local growth rules create survival, extinction, percolation, or topology-wrapping clusters on different spaces.</p>
+                        <div class="rules-mini-diagram" aria-label="Physical cluster flow">
+                            <span>Seed species</span>
+                            <span>Grow / capture</span>
+                            <span>Wrap topology</span>
+                            <span>Percolation answer</span>
+                        </div>
                         <p><strong>Liberties:</strong> liberties are neighboring empty graph vertices that can feed growth. Capture means local extinction, annihilation, or confinement of a connected cluster whose liberties have reached zero.</p>
                         <p><strong>Possible models:</strong> use the model selector to interpret the same rule set as percolation clusters, reaction-diffusion domains, two-species competition, exciton/hole recombination, or spin-domain growth.</p>
                         <p><strong>Actions:</strong> place species on an empty site, grow a connected cluster into a neighboring resource site, automatically capture zero-liberty clusters, pass, or run an optional diffusion/noise step.</p>
@@ -1067,6 +1071,13 @@
                     <div data-rules-mode="cft-reversi" hidden>
                         <h2>CFT Domain-Wall Reversi Introduction and Observables</h2>
                         <p><strong>Physical meaning:</strong> black is the + source/domain sign and white is the - source/domain sign. A stone is a primary field or spin/domain insertion. A bracketed Reversi line is a discrete CFT interval, and flipping is an OPE channel/domain transformation.</p>
+                        <p><strong>Physical problem / goal:</strong> use Reversi brackets as discrete intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph.</p>
+                        <div class="rules-mini-diagram" aria-label="CFT Reversi flow">
+                            <span>Primary / domain</span>
+                            <span>Bracket interval</span>
+                            <span>OPE update</span>
+                            <span>CFT sector answer</span>
+                        </div>
                         <p><strong>Default CFT:</strong> Ising CFT uses c=1/2 with sigma, epsilon, and identity fields. OPE rules are sigma x sigma -> identity + epsilon, sigma x epsilon -> sigma, and epsilon x epsilon -> identity.</p>
                         <p><strong>Initial states:</strong> choose domain wall seed, four sigma block, boundary condition change, thermal CFT sample, or two-phase interval seed. Vacuum is not a selectable Virasoro Reversi initial option.</p>
                         <p><strong>Actions:</strong> place a primary/domain stone, flip a bracketed interval, update OPE channels along the interval, measure interval parity, measure OPE channel, measure region entropy, or apply an L_n deformation.</p>
@@ -1077,6 +1088,13 @@
                     </div>
                     <div data-rules-mode="anyon">
                         <h2>Anyon Introduction and Observables</h2>
+                        <p><strong>Physical problem / goal:</strong> create mobile topological charges, braid or unbraid their worldlines, then test whether fusion and logical memory return to the intended vacuum or sector.</p>
+                        <div class="rules-mini-diagram" aria-label="Anyon memory flow">
+                            <span>Create anyons</span>
+                            <span>Braid / unbraid</span>
+                            <span>Fuse / recombine</span>
+                            <span>Memory answer</span>
+                        </div>
                         <p><strong>3D boards:</strong> R3, T2, and S2 use rotatable graph embeddings. Legal hops, jumps, braid paths, fusion sites, labels, and braid-state shadows are drawn directly on the 3D board.</p>
                         <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
                         <p><strong>2D RBC:</strong> when selected, each boundary exit is linked to one fixed random boundary square for the current game. Anyon hops and jumps use those links through the same graph-neighbor system as the other topologies.</p>
@@ -1098,6 +1116,13 @@
                     <div data-rules-mode="virasoro">
                         <h2>CFT Observable Go Introduction and Observables</h2>
                         <p><strong>Physical system:</strong> the board is a discretized Riemann surface / graph manifold. Empty vertices are identity operators, stones are primary-field insertions, black and white are source sign or player control, and primaryType stores the physical field.</p>
+                        <p><strong>Physical problem / goal:</strong> place primary fields and use Go captures as graph operations, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates.</p>
+                        <div class="rules-mini-diagram" aria-label="CFT Go flow">
+                            <span>Primary insertion</span>
+                            <span>Go capture graph</span>
+                            <span>Virasoro action</span>
+                            <span>Block / entropy answer</span>
+                        </div>
                         <p><strong>Default CFT:</strong> Ising CFT is the default with c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2. Free Boson remains available as an alternate estimator.</p>
                         <p><strong>Go rule:</strong> legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency. Captures remove and fuse the captured primary cluster after the graph-liberty calculation.</p>
                         <p><strong>Initial states:</strong> choose two-point insertions, four-point block, boundary CFT insertions, thermal sparse insertions, or an identity background seeded with sigma/epsilon defects. The empty vacuum is avoided as the default so the observable game starts with physics to measure.</p>
@@ -1184,10 +1209,10 @@
                         <div><span>Measurement Errors</span><strong id="stabilizerMeasurementErrors">0</strong></div>
                         <div><span>Vacuum</span><strong id="stabilizerVacuumState">Not recovered</strong></div>
                     </div>
-                    <p id="stabilizerObservableSummary">Select the stabilizer recovery physical problem to begin.</p>
+                    <p id="stabilizerObservableSummary">Select the Pauli error-correction / recovery physical problem to begin.</p>
                 </section>
 
-                <section>
+                <section id="timeEvolutionPanel" hidden>
                     <h2>Time Evolution</h2>
                     <p id="timeStatus" class="time-status">Time evolution off.</p>
                     <div id="phaseTimeline" class="phase-timeline"></div>
@@ -1199,11 +1224,29 @@
                     <div id="legend" class="legend"></div>
                 </section>
 
-                <section>
-                    <h2>Research Export</h2>
-                    <textarea id="exportText" readonly spellcheck="false"></textarea>
-                </section>
             </aside>
+        </section>
+
+        <section class="lab-history-panels" aria-label="Lab move history and logs">
+            <section>
+                <h2>Move History</h2>
+                <ol id="historyList" class="history-list"></ol>
+            </section>
+
+            <section>
+                <h2>Braid Event Log</h2>
+                <ol id="braidEventList" class="history-list"></ol>
+            </section>
+
+            <section>
+                <h2>Stochastic Event Log</h2>
+                <ol id="stochasticList" class="history-list"></ol>
+            </section>
+        </section>
+
+        <section class="lab-export-panel">
+            <h2>Research Export</h2>
+            <textarea id="exportText" readonly spellcheck="false"></textarea>
         </section>
     </main>
     <script type="module" src="../js/shared/GameControlGuides.js"></script>
