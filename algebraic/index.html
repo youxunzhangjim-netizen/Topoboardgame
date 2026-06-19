@@ -473,15 +473,24 @@
                     <label>
                         Initial Rule
                         <select id="physicalInitialStateSelect">
-                            <option value="sparse_pauli_errors" selected>Low-Density Pauli Field</option>
+                            <option value="stabilizer_vacuum" selected>Stabilizer Vacuum</option>
                             <option value="paired_defects">Paired Defects</option>
                             <option value="domain_wall_seed">Domain Wall Seed</option>
                             <option value="prepared_clifford_circuit">Prepared Clifford Circuit</option>
+                            <option value="custom_setup">Custom Setup</option>
                         </select>
                     </label>
+                    <button id="startCustomRecoveryButton" class="mini-start-button" type="button" hidden>Start</button>
                     <label id="physicalDomainWallThicknessControl" hidden>
                         Wall Thickness
                         <input id="physicalDomainWallThicknessInput" type="number" min="1" max="6" step="1" value="1">
+                    </label>
+                    <label id="customInitialSignControl" hidden>
+                        Initial Sign
+                        <select id="customInitialSignSelect">
+                            <option value="1" selected>Positive</option>
+                            <option value="-1">Negative</option>
+                        </select>
                     </label>
                     <label>
                         View
@@ -998,7 +1007,7 @@
                         <h2>Stabilizer Introduction and Observables</h2>
                         <p><strong>Algebra set:</strong> this is the Stabilizer Algebra configuration of the same Clifford Reversi game. Switch Algebra Set back to Standard Pauli Reversi to restore the ordinary opening and controls.</p>
                         <p><strong>Qubit sites:</strong> empty vertices are identity I with no active excitation. Occupied vertices store owner, Pauli I/X/Y/Z, sign, phase modulo four, and optional ancilla data. Black is the positive sector and white is the negative sector.</p>
-                        <p><strong>Initial states:</strong> Stabilizer Vacuum is empty with positive checks. Low-density Pauli field seeds sparse X/Y/Z faults. Paired Defects creates nearby opposite-sign pairs. Domain Wall Seed separates positive and negative domains. Prepared Circuit applies ancilla preparations, H, S, CNOT, CZ, and measurement to a vacuum start.</p>
+                        <p><strong>Initial states:</strong> Stabilizer Vacuum is empty with positive checks. Paired Defects creates nearby opposite-sign pairs. Domain Wall Seed separates positive and negative domains. Prepared Circuit applies ancilla preparations, H, S, CNOT, CZ, and measurement to a vacuum start. Custom Setup lets you place or clear X/Y/Z/I sites first, then start recovery from that designed board.</p>
                         <p><strong>Reversi action:</strong> placement still requires a normal topology-aware bracket. Each flipped site changes owner and sign, then receives the selected H or S transform plus any seam transport. Pauli phase is tracked modulo four.</p>
                         <p><strong>Ancillas:</strong> prepare Z0, Z1, X+, X-, or magic ancillas on empty sites. Entangle an occupied control and target with CNOT or CZ when at least one endpoint is an ancilla. Ancillas may be measured in X/Z or discarded.</p>
                         <p><strong>Phase actions:</strong> S, S dagger, and Z are Clifford actions. Phase Kick accepts a numeric angle and marks non-quarter-turn use as a non-stabilizer approximation.</p>

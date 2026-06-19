@@ -118,7 +118,9 @@ let identityChannel = null;
 
 const guestProfileStorageKey = 'topoboardgame:guest-profile';
 const displayNameStorageKey = 'topoboardgame:display-name';
+const profileInfoStorageKey = 'topoboardgame:profile-info';
 const displayNameMemory = new Map();
+const profileInfoMemory = new Map();
 
 function safeLocalStorageGet(key) {
     try {
@@ -167,6 +169,81 @@ function setLocalDisplayName(currentUser, value) {
     displayNameMemory.set(key, name);
     safeLocalStorageSet(key, name);
     return name;
+}
+
+function sanitizeProfileText(value, maxLength) {
+    return String(value || '')
+        .replace(/[\u0000-\u001f\u007f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, maxLength);
+}
+
+function sanitizeEmail(value) {
+    const text = sanitizeProfileText(value, 120);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) ? text : '';
+}
+
+function dateStringFromValue(value) {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
+}
+
+function sanitizeJoinedDate(value) {
+    const text = sanitizeProfileText(value, 20);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    return dateStringFromValue(text);
+}
+
+function userProfileInfoStorageKey(currentUser) {
+    return currentUser?.uid ? `${profileInfoStorageKey}:${currentUser.uid}` : profileInfoStorageKey;
+}
+
+function localProfileInfo(currentUser) {
+    const key = userProfileInfoStorageKey(currentUser);
+    const cached = profileInfoMemory.get(key);
+    if (cached) return { ...cached };
+    try {
+        const stored = JSON.parse(safeLocalStorageGet(key) || '{}');
+        if (stored && typeof stored === 'object') return stored;
+    } catch {
+        // Ignore malformed local profile info.
+    }
+    return {};
+}
+
+function defaultJoinedDate(currentUser) {
+    return dateStringFromValue(currentUser?.metadata?.creationTime)
+        || dateStringFromValue(currentUser?.metadata?.createdAt)
+        || dateStringFromValue(Date.now());
+}
+
+function sanitizeProfileInfo(value = {}, currentUser = null) {
+    const joinedDate = sanitizeJoinedDate(value.joinedDate) || defaultJoinedDate(currentUser);
+    const showEmail = value.showEmail === true || value.showEmail === 'true';
+    const publicEmail = showEmail ? (sanitizeEmail(value.publicEmail) || sanitizeEmail(currentUser?.email)) : '';
+    return {
+        joinedDate,
+        bio: sanitizeProfileText(value.bio, 140),
+        location: sanitizeProfileText(value.location, 40),
+        favoriteGame: sanitizeProfileText(value.favoriteGame, 40),
+        showEmail,
+        publicEmail
+    };
+}
+
+function profileInfoForUser(currentUser) {
+    return sanitizeProfileInfo(localProfileInfo(currentUser), currentUser);
+}
+
+function setLocalProfileInfo(currentUser, value = {}) {
+    const key = userProfileInfoStorageKey(currentUser);
+    const info = sanitizeProfileInfo({ ...localProfileInfo(currentUser), ...value }, currentUser);
+    profileInfoMemory.set(key, info);
+    safeLocalStorageSet(key, JSON.stringify(info));
+    return info;
 }
 
 function displayNameForUser(currentUser) {
@@ -307,6 +384,7 @@ function publicUserProfile(currentUser) {
     if (!currentUser) return null;
     const kind = accountKindForUser(currentUser);
     const displayName = displayNameForUser(currentUser);
+    const profileInfo = profileInfoForUser(currentUser);
     return {
         uid: currentUser.uid,
         displayName,
@@ -314,7 +392,13 @@ function publicUserProfile(currentUser) {
         providerId: currentUser.providerData?.[0]?.providerId || (currentUser.isAnonymous ? 'anonymous' : 'firebase'),
         accountKind: kind,
         isAnonymous: Boolean(currentUser.isAnonymous),
-        emailVerified: Boolean(currentUser.emailVerified)
+        emailVerified: Boolean(currentUser.emailVerified),
+        joinedDate: profileInfo.joinedDate,
+        bio: profileInfo.bio,
+        location: profileInfo.location,
+        favoriteGame: profileInfo.favoriteGame,
+        showEmail: Boolean(profileInfo.showEmail),
+        publicEmail: profileInfo.showEmail ? profileInfo.publicEmail : ''
     };
 }
 
@@ -324,13 +408,27 @@ async function upsertUserProfile(currentUser, { source = 'session' } = {}) {
     const ref = doc(db, usersPath, currentUser.uid);
     lastProfileWrite = { ok: false, path, error: '' };
     let exists = false;
+    let existingData = null;
     try {
-        exists = (await getDoc(ref)).exists();
+        const snapshot = await getDoc(ref);
+        exists = snapshot.exists();
+        existingData = exists ? snapshot.data() : null;
     } catch (error) {
         // If rules are not deployed yet, login/visitor mode should still succeed,
         // but the account menu should reveal why users/{uid} is not visible.
         lastProfileWrite = { ok: false, path, error: String(error?.message || error || 'Profile read failed.') };
         return null;
+    }
+    if (existingData && !currentUser.isAnonymous) {
+        if (!localDisplayName(currentUser) && existingData.displayName) {
+            setLocalDisplayName(currentUser, existingData.displayName);
+        }
+        const localInfo = localProfileInfo(currentUser);
+        const mergedInfo = {};
+        for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'showEmail', 'publicEmail']) {
+            if (!localInfo[key] && existingData[key]) mergedInfo[key] = existingData[key];
+        }
+        if (Object.keys(mergedInfo).length) setLocalProfileInfo(currentUser, mergedInfo);
     }
     const profile = publicUserProfile(currentUser);
     const data = {
@@ -392,6 +490,7 @@ export function getAccountState() {
     const isVisitor = Boolean(currentUser?.isAnonymous);
     const providerIds = providerIdsForUser(currentUser);
     const profileWrite = profileWriteStateForUser(currentUser);
+    const profileInfo = currentUser ? profileInfoForUser(currentUser) : { joinedDate: '', bio: '', location: '', favoriteGame: '', showEmail: false, publicEmail: '' };
     return {
         configured: hasFirebaseConfig(),
         ready: Boolean(auth),
@@ -406,6 +505,14 @@ export function getAccountState() {
         isAnonymous: Boolean(currentUser?.isAnonymous),
         displayName: displayNameForUser(currentUser),
         canEditDisplayName: Boolean(currentUser && !currentUser.isAnonymous),
+        canEditProfile: Boolean(currentUser && !currentUser.isAnonymous),
+        joinedDate: profileInfo.joinedDate,
+        bio: profileInfo.bio,
+        location: profileInfo.location,
+        favoriteGame: profileInfo.favoriteGame,
+        showEmail: Boolean(profileInfo.showEmail),
+        publicEmail: profileInfo.publicEmail || '',
+        accountEmail: signedIn ? (currentUser.email || '') : '',
         photoURL: signedIn ? (currentUser.photoURL || null) : null,
         emailVerified: signedIn ? Boolean(currentUser.emailVerified) : false,
         profilePath: profileWrite.path,
@@ -542,25 +649,37 @@ export async function signInWithGoogleAccount({ source = 'google-login' } = {}) 
     return getAccountState();
 }
 
-export async function updateUserDisplayName(name) {
+export async function updateUserProfileInfo(info = {}) {
     const ready = await ensureFirebaseCore();
     if (!ready.ok) throw new Error(ready.error || 'Online sign-in is not configured.');
     await waitForInitialAuthState();
     const currentUser = auth?.currentUser || user || null;
-    if (!currentUser) throw new Error('Sign in before setting a visible name.');
-    if (currentUser.isAnonymous) throw new Error('Visible names are available after sign-in.');
-    const displayName = setLocalDisplayName(currentUser, name);
-    try {
-        await updateProfile(currentUser, { displayName });
-        user = auth?.currentUser || currentUser;
-    } catch (error) {
-        authWarn('updateUserDisplayName: updateProfile failed; saving Firestore/local name only', authErrorSummary(error));
+    if (!currentUser) throw new Error('Sign in before editing your profile.');
+    if (currentUser.isAnonymous) throw new Error('Profile editing is available after sign-in.');
+    const hasDisplayName = Object.prototype.hasOwnProperty.call(info, 'displayName');
+    const displayName = hasDisplayName ? setLocalDisplayName(currentUser, info.displayName) : displayNameForUser(currentUser);
+    const profileUpdate = {};
+    for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'showEmail', 'publicEmail']) {
+        if (Object.prototype.hasOwnProperty.call(info, key)) profileUpdate[key] = info[key];
+    }
+    setLocalProfileInfo(currentUser, profileUpdate);
+    if (hasDisplayName) {
+        try {
+            await updateProfile(currentUser, { displayName });
+            user = auth?.currentUser || currentUser;
+        } catch (error) {
+            authWarn('updateUserProfileInfo: updateProfile failed; saving Firestore/local profile only', authErrorSummary(error));
+        }
     }
     const refreshedUser = auth?.currentUser || user || currentUser;
-    await upsertSignedInUserProfile(refreshedUser, { source: 'display-name' });
+    await upsertSignedInUserProfile(refreshedUser, { source: 'profile-info' });
     await refreshCurrentRoomPlayerProfile(refreshedUser);
     notifyAccountListeners();
     return getAccountState();
+}
+
+export async function updateUserDisplayName(name) {
+    return updateUserProfileInfo({ displayName: name });
 }
 
 export async function signOutToGuest() {
@@ -609,8 +728,24 @@ function playerProfileForRoom(currentUser = user) {
         uid: profile.uid,
         displayName: profile.displayName,
         accountKind: profile.accountKind,
-        photoURL: profile.photoURL || null
+        photoURL: profile.photoURL || null,
+        joinedDate: profile.joinedDate || '',
+        bio: profile.bio || '',
+        location: profile.location || '',
+        favoriteGame: profile.favoriteGame || '',
+        showEmail: Boolean(profile.showEmail),
+        publicEmail: profile.showEmail ? (profile.publicEmail || '') : ''
     };
+}
+
+function playerProfileSummary(profile = {}) {
+    const parts = [];
+    if (profile.joinedDate) parts.push(`joined ${profile.joinedDate}`);
+    if (profile.location) parts.push(profile.location);
+    if (profile.favoriteGame) parts.push(`likes ${profile.favoriteGame}`);
+    if (profile.showEmail && profile.publicEmail) parts.push(`email ${profile.publicEmail}`);
+    if (profile.bio) parts.push(profile.bio);
+    return parts.join('; ');
 }
 
 function roomPlayerInfoForColor(color, currentUser = user) {
@@ -1274,8 +1409,16 @@ export function listenToRoom(id = roomId) {
         if (room.status === 'waiting') {
             status(`Room ${roomId}: waiting for an opponent.`);
         } else if (room.status === 'playing') {
-            const visibleName = playerColor && room.playerInfo?.[playerColor]?.displayName ? ` (${room.playerInfo[playerColor].displayName})` : '';
-            status(`Connected as ${playerColor || 'spectator'}${visibleName}. ${room.turn} to move.`);
+            const myProfile = playerColor ? room.playerInfo?.[playerColor] : null;
+            const opponentColor = playerColor ? opposite(playerColor) : null;
+            const opponentProfile = opponentColor ? room.playerInfo?.[opponentColor] : null;
+            const visibleName = myProfile?.displayName ? ` (${myProfile.displayName})` : '';
+            const mySummary = playerProfileSummary(myProfile);
+            const opponentSummary = playerProfileSummary(opponentProfile);
+            const opponentText = opponentProfile?.displayName
+                ? ` Opponent ${opponentProfile.displayName}${opponentSummary ? `: ${opponentSummary}` : ''}.`
+                : '';
+            status(`Connected as ${playerColor || 'spectator'}${visibleName}${mySummary ? `, ${mySummary}` : ''}.${opponentText} ${room.turn} to move.`);
         } else {
             status(`Room ${roomId} finished.`);
         }

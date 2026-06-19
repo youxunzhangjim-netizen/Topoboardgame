@@ -62,6 +62,7 @@ const els = {
     stabilizerPhaseKickSelect: document.querySelector('#stabilizerPhaseKickSelect'),
     stabilizerMaxTurnsControl: document.querySelector('#stabilizerMaxTurnsControl'),
     stabilizerMaxTurnsInput: document.querySelector('#stabilizerMaxTurnsInput'),
+    startCustomRecoveryButton: document.querySelector('#startCustomRecoveryButton'),
     isingInitialStateControl: document.querySelector('#isingInitialStateControl'),
     isingInitialStateSelect: document.querySelector('#isingInitialStateSelect'),
     isingActionControl: document.querySelector('#isingActionControl'),
@@ -179,6 +180,8 @@ const els = {
     physicalPauliSelect: document.querySelector('#physicalPauliSelect'),
     physicalPhaseControl: document.querySelector('#physicalPhaseControl'),
     physicalPhaseSelect: document.querySelector('#physicalPhaseSelect'),
+    customInitialSignControl: document.querySelector('#customInitialSignControl'),
+    customInitialSignSelect: document.querySelector('#customInitialSignSelect'),
     ancillaBasisControl: document.querySelector('#ancillaBasisControl'),
     ancillaBasisSelect: document.querySelector('#ancillaBasisSelect'),
     entangleGateControl: document.querySelector('#entangleGateControl'),
@@ -732,6 +735,17 @@ function selectedPhysicalProblemId() {
     return String(els.physicalProblemSelect?.value || '').trim();
 }
 
+function customStabilizerSetupSelected(mode = selectedMode()) {
+    return isPhysicalCliffordMode(mode)
+        && selectedPhysicalProblemId() === 'stabilizer_pauli_recovery'
+        && els.physicalInitialStateSelect?.value === 'custom_setup';
+}
+
+function customStabilizerSetupPending() {
+    return customStabilizerSetupSelected(game?.mode || selectedMode())
+        && Boolean(game?.physicalProblemPendingStart);
+}
+
 function setAllowedSelectValues(select, allowedValues, fallback = 'off') {
     const allowed = new Set(allowedValues);
     for (const option of select.options) {
@@ -1069,11 +1083,20 @@ function syncModeControls() {
     els.qecPairSeparationControl.hidden = !qecProblem;
     const stabilizerProblem = isPhysicalClifford
         && selectedPhysicalProblemId() === 'stabilizer_pauli_recovery';
-    els.stabilizerErrorDensityControl.hidden = !stabilizerProblem;
+    const customStabilizerSetup = stabilizerProblem && els.physicalInitialStateSelect.value === 'custom_setup';
+    els.stabilizerErrorDensityControl.hidden = !stabilizerProblem
+        || els.physicalInitialStateSelect.value !== 'sparse_pauli_errors';
     els.stabilizerLogicalChecksControl.hidden = !stabilizerProblem;
     els.stabilizerAncillaControl.hidden = !stabilizerProblem;
     els.stabilizerPhaseKickControl.hidden = !stabilizerProblem;
     els.stabilizerMaxTurnsControl.hidden = !stabilizerProblem;
+    if (els.startCustomRecoveryButton) {
+        els.startCustomRecoveryButton.hidden = !customStabilizerSetup;
+        els.startCustomRecoveryButton.disabled = customStabilizerSetup && game
+            ? !game.physicalProblemPendingStart
+            : false;
+    }
+    if (els.customInitialSignControl) els.customInitialSignControl.hidden = !customStabilizerSetup;
 
     if (isVirasoroGo || isCFTReversi) {
         els.noiseModeSelect.value = 'off';
@@ -1530,6 +1553,8 @@ function createGame() {
         maxMode: Number(els.cftMaxModeSelect.value),
         temperature: Number(els.cftTemperatureInput.value),
         domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(domainWallThicknessInput?.value) || 1))),
+        deferPhysicalProblemStart: physicalProblem?.id === 'stabilizer_pauli_recovery'
+            && els.physicalInitialStateSelect.value === 'custom_setup',
         config,
         virasoro: virasoroConfig(),
         probability: probabilityConfig(),
@@ -2194,9 +2219,14 @@ function render() {
         els.unbraidHintButton,
         els.manualNoiseButton,
         els.manualTimeButton,
-        els.dropAnyonButton
+        els.dropAnyonButton,
+        els.startCustomRecoveryButton
     ]) {
-        if (button) button.disabled = onlineLocked || (button === els.newGameButton && Boolean(online.roomId));
+        if (button) {
+            button.disabled = onlineLocked
+                || (button === els.newGameButton && Boolean(online.roomId))
+                || (button === els.startCustomRecoveryButton && !game?.physicalProblemPendingStart);
+        }
     }
 
     renderBoard();
@@ -2234,6 +2264,23 @@ function renderQECObservablePanel() {
 
 function renderStabilizerObservablePanel() {
     if (!els.stabilizerObservablePanel) return;
+    if (game?.physicalProblem?.id === 'stabilizer_pauli_recovery' && game.physicalProblemPendingStart) {
+        const observables = game.computePhysicalObservables();
+        els.stabilizerObservablePanel.hidden = false;
+        els.stabilizerSyndromeWeight.textContent = String(observables.syndromeWeight);
+        els.stabilizerViolationCount.textContent =
+            `${observables.stabilizerViolations} (X ${observables.localXCheckViolations}, Z ${observables.localZCheckViolations})`;
+        els.stabilizerLogicalSector.textContent =
+            `X${observables.logicalSector.x} Z${observables.logicalSector.z}`;
+        els.stabilizerGlobalParity.textContent =
+            `${observables.globalPauliParity.sign > 0 ? '+' : '-'}${observables.globalPauliParity.label}`;
+        els.stabilizerConflictCount.textContent = String(observables.commutationConflictCount);
+        els.stabilizerAncillaCount.textContent = String(observables.numberOfAncillas);
+        els.stabilizerMeasurementErrors.textContent = String(observables.measurementErrors);
+        els.stabilizerVacuumState.textContent = 'Setup';
+        els.stabilizerObservableSummary.textContent = 'Custom initial board is editable. Press Start to begin recovery from this state.';
+        return;
+    }
     const exported = game?.physicalProblem?.id === 'stabilizer_pauli_recovery'
         ? game.physicalProblem.export(game)
         : null;
@@ -3003,7 +3050,13 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
 function handlePhysicalCliffordClick(coord) {
     const action = els.physicalActionSelect.value;
     let result = null;
-    if (action === 'reversi') {
+    if (action === 'reversi' && customStabilizerSetupPending()) {
+        result = game.setCustomInitialSite(coord, {
+            pauliLabel: els.physicalPauliSelect.value,
+            pauliSign: Number(els.customInitialSignSelect?.value || 1),
+            phase: Number(els.physicalPhaseSelect.value)
+        });
+    } else if (action === 'reversi') {
         result = game.place(coord, {
             pauliLabel: els.physicalPauliSelect.value,
             phase: Number(els.physicalPhaseSelect.value),
@@ -3050,9 +3103,25 @@ function handlePhysicalCliffordClick(coord) {
         selectedPhysicalCoord = null;
         const affected = result.event.affectedVertices?.length
             ?? (result.event.flipped?.length ? result.event.flipped.length + 1 : 1);
-        els.statusText.textContent = `${capitalize(result.event.type || result.event.action)} completed on ${affected} site${affected === 1 ? '' : 's'}.`;
+        els.statusText.textContent = result.event.type === 'custom_initial_site'
+            ? `Custom setup updated ${game.topology.displayCoord(coord)}. Press Start when the initial board is ready.`
+            : `${capitalize(result.event.type || result.event.action)} completed on ${affected} site${affected === 1 ? '' : 's'}.`;
     } else {
         els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function startCustomStabilizerRecovery() {
+    if (!customStabilizerSetupSelected(game?.mode || selectedMode())) {
+        els.statusText.textContent = 'Choose Pauli Error Recovery with Custom Setup first.';
+        return;
+    }
+    const result = game?.startPhysicalProblemNow?.();
+    if (result?.ok) {
+        els.statusText.textContent = `Recovery started from ${result.event.customSiteCount} custom site${result.event.customSiteCount === 1 ? '' : 's'}.`;
+    } else {
+        els.statusText.textContent = result?.error || 'Could not start custom recovery.';
     }
     render();
 }
@@ -4955,6 +5024,7 @@ for (const control of [
     els.physicsViewSelect,
     els.physicalPauliSelect,
     els.physicalPhaseSelect,
+    els.customInitialSignSelect,
     els.ancillaBasisSelect,
     els.entangleGateSelect,
     els.physicalMeasurementSelect,
@@ -4992,6 +5062,7 @@ els.pauliSelect.addEventListener('change', render);
 els.zLayerInput.addEventListener('input', render);
 els.wLayerInput.addEventListener('input', render);
 els.newGameButton.addEventListener('click', createGame);
+els.startCustomRecoveryButton?.addEventListener('click', startCustomStabilizerRecovery);
 els.measureButton.addEventListener('click', measureTarget);
 els.countButton.addEventListener('click', handleCount);
 els.unbraidHintButton.addEventListener('click', showUnbraidHint);

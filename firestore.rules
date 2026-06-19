@@ -8,11 +8,30 @@ service cloud.firestore {
         return request.auth != null && request.auth.uid == uid;
       }
 
+      function validOptionalProfileString(field, maxLength) {
+        return !request.resource.data.keys().hasAny([field])
+          || (
+            request.resource.data[field] is string
+            && request.resource.data[field].size() <= maxLength
+          );
+      }
+
+      function validOptionalProfileBool(field) {
+        return !request.resource.data.keys().hasAny([field])
+          || request.resource.data[field] is bool;
+      }
+
       function validProfile() {
         return request.resource.data.uid == request.auth.uid
           && request.resource.data.displayName is string
           && request.resource.data.displayName.size() > 0
           && request.resource.data.displayName.size() <= 120
+          && validOptionalProfileString("joinedDate", 20)
+          && validOptionalProfileString("bio", 140)
+          && validOptionalProfileString("location", 40)
+          && validOptionalProfileString("favoriteGame", 40)
+          && validOptionalProfileBool("showEmail")
+          && validOptionalProfileString("publicEmail", 120)
           && request.resource.data.emailVerified is bool
           && (
             (
@@ -44,14 +63,33 @@ service cloud.firestore {
         return request.auth != null;
       }
 
+      function validOptionalRoomProfileString(profile, field, maxLength) {
+        return !profile.keys().hasAny([field])
+          || (
+            profile[field] is string
+            && profile[field].size() <= maxLength
+          );
+      }
+
+      function validOptionalRoomProfileBool(profile, field) {
+        return !profile.keys().hasAny([field])
+          || profile[field] is bool;
+      }
+
       function validRoomPlayerProfile(profile, uid) {
         return profile is map
           && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
-          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL"])
+          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "showEmail", "publicEmail"])
           && profile.uid == uid
           && profile.displayName is string
           && profile.displayName.size() > 0
           && profile.displayName.size() <= 120
+          && validOptionalRoomProfileString(profile, "joinedDate", 20)
+          && validOptionalRoomProfileString(profile, "bio", 140)
+          && validOptionalRoomProfileString(profile, "location", 40)
+          && validOptionalRoomProfileString(profile, "favoriteGame", 40)
+          && validOptionalRoomProfileBool(profile, "showEmail")
+          && validOptionalRoomProfileString(profile, "publicEmail", 120)
           && (
             profile.accountKind == "google"
             || profile.accountKind == "email"

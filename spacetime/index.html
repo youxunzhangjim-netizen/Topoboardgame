@@ -14,12 +14,12 @@
         <p class="eyebrow">Topoboardgame</p>
         <h1>2+1D / 3+1D Space-Time Games</h1>
         <p class="subtitle">Original Chess, Go, Reversi, and Jump boards with a time layer attached.</p>
-        <p>These are not separate simplified prototypes. Each Play button opens the existing 2D or 3D game page, keeping its original board renderer, pieces, topology, boundaries, lattice controls, local / online / robot modes, and rules. The +1D controls add age, lifetime, delay, rhythm, cooldown, and optional noise where the game allows it.</p>
+        <p>These are not separate simplified prototypes. Each Play button opens the existing 2D or 3D game page, keeping its original board renderer, pieces, topology, boundaries, lattice controls, Local / Online / Robot modes, and rules. The +1D controls add Time schedule, optional Age, Go-only Time period, and optional noise where the game allows it.</p>
       </div>
     </header>
 
     <section class="info-strip card">
-      <p><strong>For players:</strong> Time becomes a strategic resource. Pieces can charge, wait, age, decay, vanish, reappear, or act only on a rhythm.</p>
+      <p><strong>For players:</strong> Time becomes a strategic resource. Pieces can schedule actions, optionally age, or in Go-only Time period mode appear and disappear on a fixed period.</p>
       <p><strong>For researchers:</strong> Spin, phase, parity, momentum, and Hamiltonian-style observables are kept in Strategy &amp; Systems Labs, not in ordinary 2+1D / 3+1D games.</p>
     </section>
 
@@ -29,9 +29,8 @@
         <div class="control-grid compact">
           <label>Time mode
             <select id="timeModeSelect">
-              <option value="delay" selected>Delayed action / charge</option>
-              <option value="decay">Age / decay</option>
-              <option value="periodic">Periodic activity</option>
+              <option value="delay" selected>Time schedule</option>
+              <option value="periodic">Time period (Go +1D only)</option>
             </select>
           </label>
           <label>Time lattice dt
@@ -43,13 +42,22 @@
           <label>Action delay
             <input id="actionDelayInput" type="number" min="0" max="2" value="0">
           </label>
-          <label>Frequency / period
-            <input id="periodInput" type="number" min="1" max="32" value="4">
+          <label data-period-control>Appear turns
+            <input id="periodOnInput" type="number" min="1" max="32" value="2">
           </label>
-          <label>Lifetime
+          <label data-period-control>Disappear turns
+            <input id="periodOffInput" type="number" min="1" max="32" value="2">
+          </label>
+          <label>Age rules
+            <select id="ageModeSelect">
+              <option value="off" selected>Off</option>
+              <option value="lifetime">Age lifetime</option>
+            </select>
+          </label>
+          <label data-age-control>Lifetime
             <input id="lifetimeInput" type="number" min="1" max="512" value="50">
           </label>
-          <label>Old age warning
+          <label data-age-control>Old age warning
             <input id="oldAgeInput" type="number" min="1" max="512" value="40">
           </label>
         </div>
@@ -82,17 +90,17 @@
     <section class="dimension-launch-grid" aria-label="Space-time game choices">
       <article class="dimension-card card">
         <span class="dimension-copy"><strong>2+1D</strong><small>2D boards with discrete turn time</small></span>
-        <a class="game-option st-launch" data-layer="2p1" data-family="chess" href="../2D/2dchess/?spacetime=2p1&family=chess"><span class="game-option-copy"><strong>2+1D Chess</strong><small>Original 2D Chess with age, delay, and cooldown. Period mode is not used for Chess.</small></span></a>
-        <a class="game-option st-launch" data-layer="2p1" data-family="go" href="../2D/2dgo/?spacetime=2p1&family=go"><span class="game-option-copy"><strong>2+1D Go</strong><small>Original 2D Go with age, lifetime, periodic stones, and optional noise.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="chess" href="../2D/2dchess/?spacetime=2p1&family=chess"><span class="game-option-copy"><strong>2+1D Chess</strong><small>Original 2D Chess with Time schedule and optional Age. Time period is not used for Chess.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="go" href="../2D/2dgo/?spacetime=2p1&family=go"><span class="game-option-copy"><strong>2+1D Go</strong><small>Original 2D Go with Time schedule, Go-only Time period, optional Age, and optional noise.</small></span></a>
         <a class="game-option st-launch" data-layer="2p1" data-family="reversi" href="../2D/2dreversi/?spacetime=2p1&family=reversi"><span class="game-option-copy"><strong>2+1D Reversi</strong><small>Original 2D Reversi flipping with time and optional noise.</small></span></a>
-        <a class="game-option st-launch" data-layer="2p1" data-family="jump" href="../2D/jump/?spacetime=2p1&family=jump"><span class="game-option-copy"><strong>2+1D Jump</strong><small>Original Jump race with timed target and age rules.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="jump" href="../2D/jump/?spacetime=2p1&family=jump"><span class="game-option-copy"><strong>2+1D Jump</strong><small>Original Jump race with Time schedule and optional Age.</small></span></a>
       </article>
       <article class="dimension-card card">
         <span class="dimension-copy"><strong>3+1D</strong><small>3D volume boards with discrete turn time</small></span>
-        <a class="game-option st-launch" data-layer="3p1" data-family="chess" href="../3D/3dchess/?spacetime=3p1&family=chess&variant=cube"><span class="game-option-copy"><strong>3+1D Chess</strong><small>Original 3D Chess boards with age and delay. Period mode is not used for Chess.</small></span></a>
-        <a class="game-option st-launch" data-layer="3p1" data-family="go" href="../3D/3dgo/?spacetime=3p1&family=go"><span class="game-option-copy"><strong>3+1D Go</strong><small>Original 3D Go with age rings, lifetime, and optional noise.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="chess" href="../3D/3dchess/?spacetime=3p1&family=chess&variant=cube"><span class="game-option-copy"><strong>3+1D Chess</strong><small>Original 3D Chess boards with Time schedule and optional Age. Time period is not used for Chess.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="go" href="../3D/3dgo/?spacetime=3p1&family=go"><span class="game-option-copy"><strong>3+1D Go</strong><small>Original 3D Go with Time schedule, Go-only Time period, optional Age, and optional noise.</small></span></a>
         <a class="game-option st-launch" data-layer="3p1" data-family="reversi" href="../3D/3dreversi/?spacetime=3p1&family=reversi"><span class="game-option-copy"><strong>3+1D Reversi</strong><small>Original 3D Reversi line rules with time settings.</small></span></a>
-        <a class="game-option st-launch" data-layer="3p1" data-family="jump" href="../3D/jump/?spacetime=3p1&family=jump"><span class="game-option-copy"><strong>3+1D Jump</strong><small>Original 3D Jump volumes with timed pieces and target progress.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="jump" href="../3D/jump/?spacetime=3p1&family=jump"><span class="game-option-copy"><strong>3+1D Jump</strong><small>Original 3D Jump volumes with Time schedule and optional Age.</small></span></a>
       </article>
       <article class="dimension-card card lab-note-card">
         <span class="dimension-copy"><strong>Physics Labs</strong><small>Internal-state and Hamiltonian-style systems</small></span>
@@ -109,27 +117,55 @@
         dt: document.getElementById('dtInput'),
         delay: document.getElementById('delayInput'),
         actionDelay: document.getElementById('actionDelayInput'),
-        period: document.getElementById('periodInput'),
+        periodOn: document.getElementById('periodOnInput'),
+        periodOff: document.getElementById('periodOffInput'),
+        ageMode: document.getElementById('ageModeSelect'),
         lifetime: document.getElementById('lifetimeInput'),
         oldAge: document.getElementById('oldAgeInput'),
         noiseMode: document.getElementById('noiseModeSelect'),
         noiseRate: document.getElementById('noiseRateInput'),
         noisePeriod: document.getElementById('noisePeriodInput')
       };
+      function syncControlVisibility() {
+        const periodic = controls.timeMode.value === 'periodic';
+        const ageOn = controls.ageMode.value === 'lifetime';
+        document.querySelectorAll('[data-period-control]').forEach((control) => { control.hidden = !periodic; });
+        document.querySelectorAll('[data-age-control]').forEach((control) => { control.hidden = !ageOn; });
+      }
       function updateLinks() {
+        syncControlVisibility();
         document.querySelectorAll('.st-launch').forEach((link) => {
           const url = new URL(link.getAttribute('href'), location.href);
           const family = link.dataset.family;
           url.searchParams.set('spacetime', link.dataset.layer);
           url.searchParams.set('family', family);
-          const selectedTimeMode = family === 'chess' && controls.timeMode.value === 'periodic' ? 'decay' : controls.timeMode.value;
+          const selectedTimeMode = family === 'go' && controls.timeMode.value === 'periodic' ? 'periodic' : 'delay';
           url.searchParams.set('timeMode', selectedTimeMode);
           url.searchParams.set('dt', controls.dt.value);
-          url.searchParams.set('delay', controls.delay.value);
-          url.searchParams.set('actionDelay', controls.actionDelay.value);
-          url.searchParams.set('period', controls.period.value);
-          url.searchParams.set('lifetime', controls.lifetime.value);
-          url.searchParams.set('oldAge', controls.oldAge.value);
+          if (selectedTimeMode === 'periodic') {
+            const periodOn = Math.max(1, Number(controls.periodOn.value) || 1);
+            const periodOff = Math.max(1, Number(controls.periodOff.value) || 1);
+            url.searchParams.set('periodOn', String(periodOn));
+            url.searchParams.set('periodOff', String(periodOff));
+            url.searchParams.set('period', String(periodOn + periodOff));
+            url.searchParams.delete('delay');
+            url.searchParams.delete('actionDelay');
+          } else {
+            url.searchParams.set('delay', controls.delay.value);
+            url.searchParams.set('actionDelay', controls.actionDelay.value);
+            url.searchParams.delete('period');
+            url.searchParams.delete('periodOn');
+            url.searchParams.delete('periodOff');
+          }
+          if (controls.ageMode.value === 'lifetime') {
+            url.searchParams.set('ageMode', 'lifetime');
+            url.searchParams.set('lifetime', controls.lifetime.value);
+            url.searchParams.set('oldAge', controls.oldAge.value);
+          } else {
+            url.searchParams.set('ageMode', 'off');
+            url.searchParams.delete('lifetime');
+            url.searchParams.delete('oldAge');
+          }
           if (family === 'go' || family === 'reversi') {
             url.searchParams.set('noiseMode', controls.noiseMode.value);
             url.searchParams.set('noiseRate', controls.noiseRate.value);

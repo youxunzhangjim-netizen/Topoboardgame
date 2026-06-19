@@ -89,17 +89,45 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
   .board-card { min-height: auto; grid-template-rows: auto minmax(380px, 1fr) auto; }
   #spaceTimeCanvas { min-height: 380px; }
 }
+.selector-shell {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
+  align-items: start;
+}
+.selector-shell .space-time-hero,
+.selector-shell .info-strip {
+  grid-column: 1 / -1;
+}
 .selector-shell .setup-panel.selector-settings {
-  grid-template-columns: minmax(320px, 1.1fr) minmax(300px, .95fr) minmax(280px, .9fr);
-  order: 3;
+  grid-column: 2;
+  grid-row: 3;
+  grid-template-columns: 1fr;
+  order: 2;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.selector-shell .setup-panel.selector-settings .setup-section {
+  border-right: 0;
+  border-bottom: 1px solid rgba(125,211,252,.16);
+  padding-right: 0;
+  padding-bottom: 12px;
+}
+.selector-shell .setup-panel.selector-settings .setup-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 .dimension-launch-grid {
+  grid-column: 1;
+  grid-row: 3;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
-  order: 2;
+  order: 1;
 }
+.dimension-launch-grid .lab-note-card { grid-column: 1 / -1; }
 .dimension-launch-grid .dimension-card {
   display: grid;
   gap: 12px;
@@ -136,6 +164,17 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
 .game-option-copy small { color: #a8b7c7; line-height: 1.35; }
 .lab-note-card p { margin: 0; }
 @media (max-width: 1180px) {
+  .selector-shell { grid-template-columns: 1fr; }
+  .selector-shell .setup-panel.selector-settings,
+  .dimension-launch-grid {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .selector-shell .setup-panel.selector-settings {
+    position: static;
+    max-height: none;
+  }
   .dimension-launch-grid { grid-template-columns: 1fr; }
   .selector-shell .setup-panel.selector-settings { grid-template-columns: 1fr; }
+  .dimension-launch-grid .lab-note-card { grid-column: auto; }
 }

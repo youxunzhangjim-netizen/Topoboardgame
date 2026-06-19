@@ -21,6 +21,20 @@ function withQuery(defaults = {}) {
   };
 }
 
+function jumpLanguage() {
+  const params = new URLSearchParams(location.search);
+  const raw = params.get('lang')
+    || localStorage.getItem('topoboardgame.lang')
+    || document.documentElement.lang
+    || navigator.language
+    || 'en';
+  return String(raw).toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function jumpWord() {
+  return jumpLanguage() === 'zh' ? '跳棋' : 'Jump';
+}
+
 export class JumpGameApp {
   constructor(config = {}) {
     this.config = withQuery(config);
@@ -187,10 +201,14 @@ export class JumpGameApp {
   updateLabels() {
     const title = document.getElementById('gameTitle');
     const lab = this.config.labMode;
-    if (title) title.textContent = lab ? labTitle(lab) : `${TOPOLOGY_LABELS[this.config.topology] || DIM_LABELS[this.dimension]} Jump`;
+    if (title) title.textContent = lab ? labTitle(lab) : `${TOPOLOGY_LABELS[this.config.topology] || DIM_LABELS[this.dimension]} ${jumpWord()}`;
     const desc = document.getElementById('gameDescription');
     if (desc) desc.textContent = lab ? labDescription(lab) : dimensionDescription(this.dimension);
-    if (this.infoEl) this.infoEl.textContent = 'Jump modes use step moves and chain jumps. Your goal is to move your pieces from your home zone into the target zone. On ordinary boards the target may look like the opposite side, but on torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because the meaning of opposite changes with the space.';
+    if (this.infoEl) {
+      this.infoEl.textContent = jumpLanguage() === 'zh'
+        ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。一般棋盤的目標像對面，但在環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤上，目標會直接標出，因為空間改變時「對面」的意思也會改變。'
+        : 'Jump modes use step moves and chain jumps. Your goal is to move your pieces from your home zone into the target zone. On ordinary boards the target may look like the opposite side, but on torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because the meaning of opposite changes with the space.';
+    }
   }
 
   resetGame() {
@@ -688,11 +706,22 @@ export class JumpGameApp {
 function samePoint(a, b) { return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]); }
 function escapeHtml(text) { return String(text).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
 function dimensionDescription(d) {
+  if (jumpLanguage() === 'zh') {
+    if (d === 3) return '在體積、層與包裹空間中進行跳棋連跳，3D 拓撲會改變距離、包圍與目標區。';
+    if (d === 4) return '在投影的高維棋盤上競速，用連跳與目標區探索 4D 空間策略。';
+    return '在平面與拓撲棋盤上一步移動和連跳，把棋子從本方區域移到對方目標區。';
+  }
   if (d === 3) return 'Jump through volumes, layers, and wrapped spaces. Plan chain paths where distance, enclosure, and targets depend on 3D topology.';
   if (d === 4) return 'Race through projected higher-dimensional boards. Use jumps and target zones to explore strategy in 4D spaces.';
   return 'Leap and chain across flat and topological boards. Move pieces from your home zone into the opponent’s target zone.';
 }
 function labTitle(lab) {
+  if (jumpLanguage() === 'zh') {
+    if (lab === 'anyon') return 'Anyon 跳棋 Lab';
+    if (lab === 'spin-parity') return 'Spin-Parity 跳棋 Lab';
+    if (lab === 'momentum') return 'Momentum 跳棋 Lab';
+    return '跳棋 Lab';
+  }
   if (lab === 'anyon') return 'Anyon Jump Lab';
   if (lab === 'spin-parity') return 'Spin-Parity Jump Lab';
   if (lab === 'momentum') return 'Momentum Jump Lab';

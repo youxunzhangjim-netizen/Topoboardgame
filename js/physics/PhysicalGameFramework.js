@@ -290,7 +290,7 @@ export function createPhysicalModeDefinition(mode = '', options = {}) {
         anyon: 'Black and White are two anyon-control/worldline owners; labels are topological charge types and braid/fusion memory states.'
     };
     const initialOptions = {
-        clifford: ['stabilizer_vacuum', 'sparse_errors', 'paired_defects', 'domain_wall_seed', 'prepared_circuit'],
+        clifford: ['stabilizer_vacuum', 'paired_defects', 'domain_wall_seed', 'prepared_circuit', 'custom_setup'],
         virasoro: ['vacuum', 'two_point_insertions', 'four_point_block', 'domain_wall_seed', 'thermal_sparse'],
         anyon: ['vacuum_pairs', 'excitation_energy', 'braided_pair_seed', 'fusion_site_seed']
     };

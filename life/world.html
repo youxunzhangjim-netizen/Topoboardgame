@@ -21,23 +21,6 @@
       </span>
     </nav>
 
-    <section class="life-play-invite">
-      <p class="eyebrow">Life & Evolution Worlds</p>
-      <h1 id="lifeModeTitle">Life World</h1>
-      <p class="subtitle" id="lifeModeTags">simulation</p>
-      <p class="description" id="lifeModeDescription">Seed cells and start evolution.</p>
-      <div class="life-info-cards">
-        <article>
-          <strong data-life-i18n="info">Info</strong>
-          <p data-life-i18n="playerInfo">For players: This mode turns simple local rules into survival, invasion, collapse, and pattern-building challenges.</p>
-        </article>
-        <article>
-          <strong>Research</strong>
-          <p data-life-i18n="researcherInfo">For researchers: This mode is a playable cellular-automaton model for studying how topology, locality, noise, age structure, and competition affect emergent dynamics.</p>
-        </article>
-      </div>
-    </section>
-
     <section class="life-player-layout">
       <article class="life-board-panel">
         <div class="life-board-toolbar">
@@ -120,6 +103,7 @@
               <select id="lifePlayModeSelect">
                 <option value="local" data-life-i18n="local">Local</option>
                 <option value="online" data-life-i18n="online">Online</option>
+                <option value="robot" data-life-i18n="robots">Robots</option>
               </select>
             </div>
             <div class="connection-status disconnected life-online-details" id="connectionStatus" data-life-i18n="disconnected">Disconnected</div>
@@ -284,6 +268,23 @@
           </div>
         </details>
       </aside>
+    </section>
+
+    <section class="life-play-invite">
+      <p class="eyebrow">Life & Evolution Worlds</p>
+      <h1 id="lifeModeTitle">Life World</h1>
+      <p class="subtitle" id="lifeModeTags">simulation</p>
+      <p class="description" id="lifeModeDescription">Seed cells and start evolution.</p>
+      <div class="life-info-cards">
+        <article>
+          <strong data-life-i18n="info">Info</strong>
+          <p data-life-i18n="playerInfo">For players: This mode turns simple local rules into survival, invasion, collapse, and pattern-building challenges.</p>
+        </article>
+        <article>
+          <strong>Research</strong>
+          <p data-life-i18n="researcherInfo">For researchers: This mode is a playable cellular-automaton model for studying how topology, locality, noise, age structure, and competition affect emergent dynamics.</p>
+        </article>
+      </div>
     </section>
 
     <section class="research-panel" aria-labelledby="researchPanelTitle">

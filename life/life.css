@@ -807,8 +807,10 @@ body[data-life-usage] #lifeCanvas:active {
 .life-language-switch.compact-language .language-popover .ghost-button { width: 100%; min-width: 0; justify-content: center; }
 
 /* Tighter Life play layout and numeric modifier readouts */
-.life-player-shell { padding-top: 12px; }
-.life-play-invite { margin: 6px 0 12px; padding: 14px 16px; }
+.life-player-shell { padding-top: 8px; }
+.life-topbar { padding-top: 10px; padding-bottom: 8px; }
+.life-play-invite { width: 100%; margin: 14px 0 12px; padding: 12px 0; }
+.life-play-invite h1 { font-size: clamp(28px, 4vw, 54px); }
 .life-play-invite .subtitle, .life-play-invite .description { margin-block: 6px; }
 .life-info-cards { margin-top: 10px; gap: 10px; }
 .life-player-layout { gap: 12px; align-items: start; }

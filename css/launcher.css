@@ -1012,6 +1012,8 @@ h1 {
     bottom: calc(100% + 8px);
     z-index: 1001;
     width: min(340px, calc(100vw - 32px));
+    max-height: min(680px, calc(100vh - 170px));
+    overflow: auto;
     display: grid;
     gap: 10px;
     padding: 12px;
@@ -1078,7 +1080,8 @@ h1 {
 .launcher-display-name-editor[hidden] {
     display: none;
 }
-.launcher-display-name-editor label {
+.launcher-display-name-editor label,
+.launcher-profile-grid span {
     color: rgba(245, 182, 71, 0.94);
     font-size: 11px;
     font-weight: 950;
@@ -1090,7 +1093,10 @@ h1 {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
 }
-.launcher-display-name-row input {
+.launcher-display-name-row input,
+.launcher-display-name-editor > input,
+.launcher-profile-grid input,
+.launcher-display-name-editor textarea {
     min-width: 0;
     min-height: 36px;
     padding: 0 10px;
@@ -1100,7 +1106,63 @@ h1 {
     color: var(--text);
     font: inherit;
 }
-.launcher-display-name-row input:focus-visible {
+.launcher-display-name-editor textarea {
+    min-height: 78px;
+    padding: 9px 10px;
+    resize: vertical;
+}
+.launcher-profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.launcher-profile-grid label {
+    display: grid;
+    gap: 6px;
+}
+.launcher-profile-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.launcher-profile-check input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+.launcher-profile-check span {
+    min-width: 0;
+    color: rgba(237, 244, 246, 0.86);
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.launcher-profile-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.62);
+}
+.launcher-profile-meta span {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.launcher-profile-meta strong {
+    color: rgba(237, 244, 246, 0.92);
+    font-size: 12px;
+}
+.launcher-display-name-row input:focus-visible,
+.launcher-display-name-editor > input:focus-visible,
+.launcher-profile-grid input:focus-visible,
+.launcher-display-name-editor textarea:focus-visible {
     border-color: rgba(56, 189, 248, 0.72);
     outline: none;
 }
@@ -1115,6 +1177,14 @@ h1 {
         width: 70px;
         min-width: 70px;
         min-height: 64px;
+    }
+
+    .launcher-account-menu {
+        max-height: min(620px, calc(100vh - 150px));
+    }
+
+    .launcher-profile-grid {
+        grid-template-columns: 1fr;
     }
 }
 

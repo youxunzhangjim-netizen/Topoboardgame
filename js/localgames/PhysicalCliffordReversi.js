@@ -16,7 +16,8 @@ export const PHYSICAL_INITIAL_STATES = Object.freeze([
     'sparse_pauli_errors',
     'paired_defects',
     'domain_wall_seed',
-    'prepared_clifford_circuit'
+    'prepared_clifford_circuit',
+    'custom_setup'
 ]);
 
 export const ANCILLA_BASES = Object.freeze(['Z0', 'Z1', 'Xplus', 'Xminus', 'magic']);
@@ -183,7 +184,12 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
             metadata: { physicalInitialState: this.physicalConfig.physicalInitialState }
         });
         this.physicalProblem = createPhysicalProblem(physicalProblemSource, physicalProblemConfig);
-        this.physicalProblem?.start?.(this);
+        this.physicalProblemPendingStart = Boolean(
+            this.physicalProblem
+            && options.deferPhysicalProblemStart
+            && this.physicalConfig.physicalInitialState === 'custom_setup'
+        );
+        if (!this.physicalProblemPendingStart) this.physicalProblem?.start?.(this);
     }
 
     setStone(coord, stone) {
@@ -213,6 +219,74 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
         if (initialState === 'paired_defects') this.setupPairedDefects();
         if (initialState === 'domain_wall_seed') this.setupDomainWallSeed();
         if (initialState === 'prepared_clifford_circuit') this.setupPreparedCircuit();
+    }
+
+    setCustomInitialSite(vertex, options = {}) {
+        if (this.physicalConfig.physicalInitialState !== 'custom_setup' || !this.physicalProblemPendingStart) {
+            return { ok: false, error: 'Custom setup is only available before recovery starts.' };
+        }
+        const normalized = this.topology.normalize(vertex);
+        const key = normalized ? coordKey(normalized) : '';
+        if (!key) return { ok: false, error: 'Choose a valid board vertex.' };
+        const before = this.board.get(key) ? cloneValue(this.board.get(key)) : null;
+        const pauliLabel = normalizePauliLabel(options.pauliLabel, 'I');
+        const pauliSign = normalizePauliSign(options.pauliSign);
+        const phase = normalizePhase(options.phase);
+        if (pauliLabel === 'I') {
+            this.board.delete(key);
+        } else {
+            this.setStone(normalized, {
+                color: pauliSign > 0 ? 'black' : 'white',
+                pauliLabel,
+                pauliSign,
+                phase,
+                lastUpdate: { action: 'custom_initial_site', tick: this.moveNumber }
+            });
+        }
+        const after = this.board.get(key) ? cloneValue(this.board.get(key)) : null;
+        return this.finishPhysicalAction({
+            player: 'system',
+            action: 'custom_initial_site',
+            affectedVertices: [normalized],
+            phaseChanges: before || after ? [{
+                coord: normalized,
+                before: before?.phase ?? null,
+                after: after?.phase ?? null
+            }] : [],
+            metadata: {
+                before: before ? physicalLabel(before) : 'I',
+                after: after ? physicalLabel(after) : 'I'
+            },
+            consumeTurn: false
+        });
+    }
+
+    startPhysicalProblemNow() {
+        if (!this.physicalProblem) return { ok: false, error: 'No physical recovery problem is selected.' };
+        if (!this.physicalProblemPendingStart) {
+            return { ok: false, error: 'Recovery has already started.' };
+        }
+        this.physicalProblem.start?.(this);
+        this.physicalProblemPendingStart = false;
+        const affectedVertices = [...this.board.keys()].map((key) => key.split(',').map(Number));
+        this.appendPhysicsHistory({
+            player: 'system',
+            action: 'custom_recovery_start',
+            affectedVertices,
+            metadata: {
+                physicalInitialState: this.physicalConfig.physicalInitialState,
+                customSiteCount: affectedVertices.length
+            }
+        });
+        this.recordPosition('custom_recovery_start');
+        return {
+            ok: true,
+            event: {
+                type: 'custom_recovery_start',
+                affectedVertices,
+                customSiteCount: affectedVertices.length
+            }
+        };
     }
 
     activeSliceVertices() {

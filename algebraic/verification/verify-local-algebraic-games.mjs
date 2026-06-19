@@ -317,6 +317,24 @@ for (const initialState of [
     assert.equal(seeded.exportState().physicalConfig.physicalInitialState, initialState);
 }
 
+const customRecovery = new PhysicalCliffordReversiGame({
+    topology: { topology: 'flat', width: 8, height: 8 },
+    physicalInitialState: 'custom_setup',
+    deferPhysicalProblemStart: true,
+    physicalProblem: { id: 'stabilizer_pauli_recovery' },
+    probability: { seed: 'physical-custom-recovery', measurementErrorRate: 0 }
+});
+assert.equal(customRecovery.physicalProblemPendingStart, true, 'Custom Pauli recovery waits for explicit start.');
+assert.equal(
+    customRecovery.setCustomInitialSite([2, 2], { pauliLabel: 'Z', pauliSign: -1, phase: 2 }).ok,
+    true,
+    'Custom Pauli recovery setup can place a designed initial site.'
+);
+assert.equal(customRecovery.getStone([2, 2]).pauliLabel, 'Z');
+assert.equal(customRecovery.getStone([2, 2]).pauliSign, -1);
+assert.equal(customRecovery.startPhysicalProblemNow().ok, true, 'Custom Pauli recovery starts from the designed board.');
+assert.equal(customRecovery.physicalProblemPendingStart, false);
+
 const jump = new AnyonJumpGame({ topology: { topology: 'torus', width: 4, height: 4 } });
 jump.tokens.clear();
 jump.worldlines.clear();

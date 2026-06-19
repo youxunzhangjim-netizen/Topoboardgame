@@ -18,6 +18,8 @@ function lifeLike(id, label, rule, options = {}) {
 
 export const LIFE_RULE_PRESETS = {
   conway: lifeLike('conway', 'Classic Conway Life', 'B3/S23'),
+  triangularLife: lifeLike('triangularLife', 'Triangular Lattice Life', 'B3/S34', { neighborhoodType: 'nearest' }),
+  honeycombLife: lifeLike('honeycombLife', 'Honeycomb Lattice Life', 'B2/S23', { neighborhoodType: 'nearest' }),
   highlife: lifeLike('highlife', 'HighLife', 'B36/S23'),
   seeds: lifeLike('seeds', 'Seeds', 'B2/S'),
   dayNight: lifeLike('dayNight', 'Day & Night', 'B3678/S34678'),

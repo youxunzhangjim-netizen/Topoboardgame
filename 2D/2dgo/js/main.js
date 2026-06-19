@@ -580,6 +580,7 @@ class Go2DApp {
             if (!value) continue;
             const color = valueToColor(value);
             const coord = this.logic.coordFromIndex(index);
+            if (this.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
             const p = this.coordToPixel(coord);
             const radius = rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
             this.drawStone(p.x, p.y, radius, color);

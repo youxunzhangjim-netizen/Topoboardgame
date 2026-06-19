@@ -4,7 +4,7 @@ import {
     signInWithGoogleAccount,
     signOutToGuest,
     subscribeAccountState,
-    updateUserDisplayName
+    updateUserProfileInfo
 } from '../online.js';
 
 const LOG_PREFIX = '[Topoboardgame Auth]';
@@ -32,11 +32,20 @@ const TEXT = {
         working: 'Connecting...',
         error: 'Login failed: {message}',
         visibleName: 'Visible name',
+        joinedDate: 'Joined',
+        about: 'About',
+        location: 'Location',
+        favoriteGame: 'Favorite game',
+        showEmail: 'Show my email for research contact',
         namePlaceholder: 'Name shown to opponents',
+        bioPlaceholder: 'Short public profile',
+        locationPlaceholder: 'City or region',
+        favoritePlaceholder: 'Go, Jump, Chess...',
+        emailPlaceholder: 'Email shown only when enabled',
         saveName: 'Save',
         savingName: 'Saving...',
-        nameSaved: 'Visible name saved.',
-        nameOnlySignedIn: 'Sign in before setting a visible name.'
+        nameSaved: 'Profile saved.',
+        nameOnlySignedIn: 'Sign in before editing your profile.'
     },
     zh: {
         guest: '離線 Guest',
@@ -60,11 +69,20 @@ const TEXT = {
         working: '連線中...',
         error: '登入失敗：{message}',
         visibleName: '顯示名稱',
+        joinedDate: '加入日期',
+        about: '簡介',
+        location: '位置',
+        favoriteGame: '喜歡的遊戲',
+        showEmail: '顯示我的 email 供研究聯絡',
         namePlaceholder: '對手會看到的名稱',
+        bioPlaceholder: '簡短的公開簡介',
+        locationPlaceholder: '城市或地區',
+        favoritePlaceholder: '圍棋、跳棋、象棋...',
+        emailPlaceholder: '只有啟用時才顯示的 email',
         saveName: '儲存',
         savingName: '儲存中...',
-        nameSaved: '顯示名稱已儲存。',
-        nameOnlySignedIn: '請先登入再設定顯示名稱。'
+        nameSaved: '個人資料已儲存。',
+        nameOnlySignedIn: '請先登入再編輯個人資料。'
     }
 };
 
@@ -159,7 +177,14 @@ function summarizeState(state) {
         profileSynced: Boolean(state?.profileSynced),
         profileError: state?.profileError || '',
         displayName: state?.displayName || '',
-        canEditDisplayName: Boolean(state?.canEditDisplayName)
+        canEditDisplayName: Boolean(state?.canEditDisplayName),
+        joinedDate: state?.joinedDate || '',
+        bio: state?.bio || '',
+        location: state?.location || '',
+        favoriteGame: state?.favoriteGame || '',
+        showEmail: Boolean(state?.showEmail),
+        publicEmail: state?.publicEmail || '',
+        accountEmail: state?.accountEmail || ''
     };
 }
 
@@ -170,6 +195,14 @@ function cleanDisplayName(value) {
         .trim()
         .slice(0, 24);
     return cleaned || 'Player';
+}
+
+function cleanProfileText(value, maxLength) {
+    return String(value || '')
+        .replace(/[\u0000-\u001f\u007f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, maxLength);
 }
 
 function elementSummary(element) {
@@ -223,6 +256,17 @@ function installLauncherAuth() {
     const displayNameInput = document.getElementById('launcherDisplayNameInput');
     const displayNameSave = document.getElementById('launcherDisplayNameSave');
     const displayNameStatus = document.getElementById('launcherDisplayNameStatus');
+    const joinedDateLabel = document.getElementById('launcherJoinedDateLabel');
+    const joinedDateValue = document.getElementById('launcherJoinedDateValue');
+    const bioLabel = document.getElementById('launcherProfileBioLabel');
+    const bioInput = document.getElementById('launcherProfileBioInput');
+    const locationLabel = document.getElementById('launcherProfileLocationLabel');
+    const locationInput = document.getElementById('launcherProfileLocationInput');
+    const favoriteLabel = document.getElementById('launcherProfileFavoriteLabel');
+    const favoriteInput = document.getElementById('launcherProfileFavoriteInput');
+    const showEmailLabel = document.getElementById('launcherProfileShowEmailLabel');
+    const showEmailInput = document.getElementById('launcherProfileShowEmailInput');
+    const publicEmailInput = document.getElementById('launcherProfilePublicEmailInput');
 
     const missing = {
         root: !root,
@@ -239,7 +283,18 @@ function installLauncherAuth() {
         displayNameLabel: !displayNameLabel,
         displayNameInput: !displayNameInput,
         displayNameSave: !displayNameSave,
-        displayNameStatus: !displayNameStatus
+        displayNameStatus: !displayNameStatus,
+        joinedDateLabel: !joinedDateLabel,
+        joinedDateValue: !joinedDateValue,
+        bioLabel: !bioLabel,
+        bioInput: !bioInput,
+        locationLabel: !locationLabel,
+        locationInput: !locationInput,
+        favoriteLabel: !favoriteLabel,
+        favoriteInput: !favoriteInput,
+        showEmailLabel: !showEmailLabel,
+        showEmailInput: !showEmailInput,
+        publicEmailInput: !publicEmailInput
     };
     if (Object.values(missing).some(Boolean)) {
         warnAuth('account UI install stopped because one or more elements are missing', missing);
@@ -264,13 +319,32 @@ function installLauncherAuth() {
         const canEdit = Boolean(latestState?.canEditDisplayName);
         displayNameEditor.hidden = !canEdit;
         displayNameLabel.textContent = t('visibleName');
+        joinedDateLabel.textContent = t('joinedDate');
+        bioLabel.textContent = t('about');
+        locationLabel.textContent = t('location');
+        favoriteLabel.textContent = t('favoriteGame');
+        showEmailLabel.textContent = t('showEmail');
         displayNameInput.placeholder = t('namePlaceholder');
+        bioInput.placeholder = t('bioPlaceholder');
+        locationInput.placeholder = t('locationPlaceholder');
+        favoriteInput.placeholder = t('favoritePlaceholder');
+        publicEmailInput.placeholder = t('emailPlaceholder');
         displayNameSave.textContent = nameBusy ? t('savingName') : t('saveName');
         displayNameSave.disabled = busy || nameBusy || !canEdit;
-        displayNameInput.disabled = busy || nameBusy || !canEdit;
+        [displayNameInput, bioInput, locationInput, favoriteInput, showEmailInput].forEach((input) => {
+            input.disabled = busy || nameBusy || !canEdit;
+        });
+        publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
         if (canEdit && document.activeElement !== displayNameInput) {
             displayNameInput.value = latestState?.displayName || '';
         }
+        if (canEdit && document.activeElement !== bioInput) bioInput.value = latestState?.bio || '';
+        if (canEdit && document.activeElement !== locationInput) locationInput.value = latestState?.location || '';
+        if (canEdit && document.activeElement !== favoriteInput) favoriteInput.value = latestState?.favoriteGame || '';
+        if (canEdit && document.activeElement !== showEmailInput) showEmailInput.checked = Boolean(latestState?.showEmail);
+        if (canEdit && document.activeElement !== publicEmailInput) publicEmailInput.value = latestState?.publicEmail || latestState?.accountEmail || '';
+        publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
+        joinedDateValue.textContent = latestState?.joinedDate || '-';
         displayNameStatus.textContent = lastNameMessage;
     };
 
@@ -383,16 +457,24 @@ function installLauncherAuth() {
         nameBusy = true;
         lastNameMessage = '';
         const requestedName = cleanDisplayName(displayNameInput.value);
-        latestState = { ...latestState, displayName: requestedName };
+        const requestedProfile = {
+            displayName: requestedName,
+            bio: cleanProfileText(bioInput.value, 140),
+            location: cleanProfileText(locationInput.value, 40),
+            favoriteGame: cleanProfileText(favoriteInput.value, 40),
+            showEmail: Boolean(showEmailInput.checked),
+            publicEmail: showEmailInput.checked ? cleanProfileText(publicEmailInput.value || latestState?.accountEmail || '', 120) : ''
+        };
+        latestState = { ...latestState, ...requestedProfile };
         render();
         try {
-            const nextState = await updateUserDisplayName(requestedName);
+            const nextState = await updateUserProfileInfo(requestedProfile);
             latestState = { ...nextState, displayName: nextState?.displayName || requestedName };
             lastNameMessage = t('nameSaved');
-            logAuth('updateUserDisplayName() resolved', summarizeState(nextState));
+            logAuth('updateUserProfileInfo() resolved', summarizeState(nextState));
         } catch (error) {
             lastNameMessage = cleanFirebaseError(error);
-            warnAuth('updateUserDisplayName() threw', String(error?.stack || error?.message || error || ''));
+            warnAuth('updateUserProfileInfo() threw', String(error?.stack || error?.message || error || ''));
         } finally {
             nameBusy = false;
             render();
@@ -404,6 +486,18 @@ function installLauncherAuth() {
             event.preventDefault();
             displayNameSave.click();
         }
+    });
+    [locationInput, favoriteInput].forEach((input) => {
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                displayNameSave.click();
+            }
+        });
+    });
+    showEmailInput.addEventListener('change', () => {
+        publicEmailInput.disabled = busy || nameBusy || !latestState?.canEditDisplayName || !showEmailInput.checked;
+        if (showEmailInput.checked && !publicEmailInput.value) publicEmailInput.value = latestState?.accountEmail || '';
     });
 
     googleButton.addEventListener('click', (event) => {

@@ -23,17 +23,19 @@
   const allowsNoise = family === 'go' || family === 'reversi';
   const isJump = family === 'jump';
   const isChess = family === 'chess';
-  const isSchedulingDefaultFamily = family === 'go' || family === 'reversi';
   const explicitTimeMode = params.get('timeMode') || params.get('time') || '';
-  const settingsVersion = 3;
+  const settingsVersion = 4;
 
   const defaultMaxDelay = readNumber(params.get('delay'), 2, 1, 32);
   const DEFAULTS = {
     settingsVersion,
-    timeMode: explicitTimeMode || (isSchedulingDefaultFamily ? 'delay' : 'decay'),
+    timeMode: normalizeTimeMode(explicitTimeMode || 'delay'),
+    ageMode: params.get('ageMode') === 'lifetime' || explicitTimeMode === 'decay' ? 'lifetime' : 'off',
     delay: defaultMaxDelay,
     actionDelay: readNumber(params.get('actionDelay'), 0, 0, defaultMaxDelay),
     period: readNumber(params.get('period') || params.get('frequency'), 4, 1, 32),
+    periodOn: readNumber(params.get('periodOn'), 2, 1, 32),
+    periodOff: readNumber(params.get('periodOff'), 2, 1, 32),
     lifetime: readNumber(params.get('lifetime'), 50, 1, 512),
     oldAge: readNumber(params.get('oldAge'), 40, 1, 512),
     dt: readNumber(params.get('dt'), 1, 1, 16),
@@ -55,11 +57,13 @@
     jumpAges: new Map(),
     chessAges: new Map(),
     pendingDelayAction: null,
-    schedulePopover: null
+    schedulePopover: null,
+    goPeriodPhases: new Map()
   };
 
   const panel = installPanel();
   installStyle();
+  refreshPanel();
   waitForGameApp().then((app) => {
     state.app = app;
     applyNoTimerDefault(app);
@@ -77,18 +81,27 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function normalizeTimeMode(value) {
+    const mode = String(value || '').toLowerCase();
+    if (mode === 'periodic' || mode === 'period') return family === 'go' ? 'periodic' : 'delay';
+    return 'delay';
+  }
+
+  function normalizeAgeMode(value) {
+    return String(value || '').toLowerCase() === 'lifetime' ? 'lifetime' : 'off';
+  }
+
   function loadSettings() {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
       const merged = { ...DEFAULTS, ...stored, noiseMode: allowsNoise ? (stored.noiseMode || DEFAULTS.noiseMode) : 'off' };
-      if (isSchedulingDefaultFamily && !explicitTimeMode && stored.settingsVersion !== settingsVersion) {
-        merged.timeMode = 'delay';
-        merged.delay = DEFAULTS.delay;
-        merged.actionDelay = 0;
-      }
+      merged.timeMode = normalizeTimeMode(merged.timeMode);
+      merged.ageMode = normalizeAgeMode(merged.ageMode || (stored.timeMode === 'decay' ? 'lifetime' : DEFAULTS.ageMode));
       if (stored.settingsVersion !== settingsVersion) {
         if (!params.has('lifetime')) merged.lifetime = DEFAULTS.lifetime;
         if (!params.has('oldAge')) merged.oldAge = DEFAULTS.oldAge;
+        if (!params.has('periodOn')) merged.periodOn = DEFAULTS.periodOn;
+        if (!params.has('periodOff')) merged.periodOff = DEFAULTS.periodOff;
       }
       applyURLSettingOverrides(merged);
       merged.settingsVersion = settingsVersion;
@@ -101,10 +114,16 @@
   }
 
   function applyURLSettingOverrides(target) {
-    if (explicitTimeMode) target.timeMode = explicitTimeMode;
+    if (explicitTimeMode) {
+      target.timeMode = normalizeTimeMode(explicitTimeMode);
+      if (explicitTimeMode === 'decay') target.ageMode = 'lifetime';
+    }
+    if (params.has('ageMode')) target.ageMode = normalizeAgeMode(params.get('ageMode'));
     if (params.has('delay')) target.delay = readNumber(params.get('delay'), target.delay, 1, 32);
     if (params.has('actionDelay')) target.actionDelay = readNumber(params.get('actionDelay'), target.actionDelay, 0, target.delay);
     if (params.has('period') || params.has('frequency')) target.period = readNumber(params.get('period') || params.get('frequency'), target.period, 1, 32);
+    if (params.has('periodOn')) target.periodOn = readNumber(params.get('periodOn'), target.periodOn, 1, 32);
+    if (params.has('periodOff')) target.periodOff = readNumber(params.get('periodOff'), target.periodOff, 1, 32);
     if (params.has('lifetime')) target.lifetime = readNumber(params.get('lifetime'), target.lifetime, 1, 512);
     if (params.has('oldAge')) target.oldAge = readNumber(params.get('oldAge'), target.oldAge, 1, 512);
     if (params.has('dt')) target.dt = readNumber(params.get('dt'), target.dt, 1, 16);
@@ -112,6 +131,8 @@
     if (allowsNoise && params.has('noiseRate')) target.noiseRate = readNumber(params.get('noiseRate'), target.noiseRate, 0, 1);
     if (allowsNoise && params.has('noisePeriod')) target.noisePeriod = readNumber(params.get('noisePeriod'), target.noisePeriod, 1, 256);
     if (!allowsNoise) target.noiseMode = 'off';
+    target.timeMode = normalizeTimeMode(target.timeMode);
+    target.ageMode = normalizeAgeMode(target.ageMode);
     target.actionDelay = readNumber(target.actionDelay, 0, 0, target.delay);
   }
 
@@ -156,39 +177,44 @@
     style.id = 'spaceTimeEnhancerStyle';
     style.textContent = `
       .space-time-enhancer-panel{border:1px solid rgba(125,211,252,.38);border-radius:14px;background:linear-gradient(180deg,rgba(8,18,31,.94),rgba(7,13,22,.9));box-shadow:0 14px 36px rgba(0,0,0,.28);padding:0;margin:14px 0;color:#eaf6ff;display:block}
-      .space-time-enhancer-panel>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;list-style:none;padding:12px 14px}.space-time-enhancer-panel>summary::-webkit-details-marker{display:none}.space-time-enhancer-panel>summary:after{content:'Open';border:1px solid rgba(125,211,252,.36);border-radius:999px;padding:4px 9px;color:#dbeafe;font-size:.72rem;font-weight:900}.space-time-enhancer-panel[open]>summary:after{content:'Close'}.space-time-enhancer-title{display:grid;gap:3px;min-width:0}.space-time-enhancer-title strong{color:#f8c75d;font-size:.95rem;text-transform:uppercase}.space-time-enhancer-title small{color:#cbd5e1;overflow-wrap:anywhere}.space-time-enhancer-body{display:grid;gap:12px;padding:0 14px 14px}.space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-delay-quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.space-time-delay-quick button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#dbeafe;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-delay-quick button.active{border-color:rgba(248,199,93,.9);background:rgba(248,199,93,.16);color:#fde68a}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover,.space-time-delay-quick button:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.space-time-schedule-popover{position:fixed;z-index:9999;display:grid;gap:8px;min-width:min(280px,calc(100vw - 24px));max-width:min(360px,calc(100vw - 24px));padding:10px;border:1px solid rgba(248,199,93,.68);border-radius:10px;background:rgba(7,13,22,.98);box-shadow:0 18px 48px rgba(0,0,0,.44);color:#eaf6ff}.space-time-schedule-popover[hidden]{display:none}.space-time-schedule-popover strong{color:#fde68a;font-size:.82rem;text-transform:uppercase}.space-time-schedule-popover small{color:#cbd5e1;line-height:1.35;overflow-wrap:anywhere}.space-time-schedule-popover .space-time-schedule-choices{display:flex;flex-wrap:wrap;gap:6px}.space-time-schedule-popover button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#f8fbff;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-schedule-popover button:hover{border-color:rgba(248,199,93,.85)}.space-time-schedule-popover button[data-st-popup-cancel]{margin-left:auto;color:#fecaca;border-color:rgba(248,113,113,.42)}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
+      .space-time-enhancer-head{display:grid;gap:10px;align-items:center;padding:12px 14px}.space-time-enhancer-title{display:grid;gap:3px;min-width:0}.space-time-enhancer-title strong{color:#f8c75d;font-size:.95rem;text-transform:uppercase}.space-time-enhancer-title small{color:#cbd5e1;overflow-wrap:anywhere}.space-time-enhancer-body{display:grid;gap:12px;padding:0 14px 14px}.space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-delay-quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.space-time-delay-quick button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#dbeafe;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-delay-quick button.active{border-color:rgba(248,199,93,.9);background:rgba(248,199,93,.16);color:#fde68a}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover,.space-time-delay-quick button:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.space-time-schedule-popover{position:fixed;z-index:9999;display:grid;gap:8px;min-width:min(280px,calc(100vw - 24px));max-width:min(360px,calc(100vw - 24px));padding:10px;border:1px solid rgba(248,199,93,.68);border-radius:10px;background:rgba(7,13,22,.98);box-shadow:0 18px 48px rgba(0,0,0,.44);color:#eaf6ff}.space-time-schedule-popover[hidden]{display:none}.space-time-schedule-popover strong{color:#fde68a;font-size:.82rem;text-transform:uppercase}.space-time-schedule-popover small{color:#cbd5e1;line-height:1.35;overflow-wrap:anywhere}.space-time-schedule-popover .space-time-schedule-choices{display:flex;flex-wrap:wrap;gap:6px}.space-time-schedule-popover button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#f8fbff;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-schedule-popover button:hover{border-color:rgba(248,199,93,.85)}.space-time-schedule-popover button[data-st-popup-cancel]{margin-left:auto;color:#fecaca;border-color:rgba(248,113,113,.42)}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function installPanel() {
-    const card = document.createElement('details');
+    const card = document.createElement('section');
     card.className = 'space-time-enhancer-panel';
-    card.open = params.get('timeSettings') === 'open' || params.get('stOpen') === '1';
     card.innerHTML = `
-      <summary>
+      <div class="space-time-enhancer-head">
         <span class="space-time-enhancer-title">
           <strong>${dimensionLabel} Time Layer</strong>
-          <small data-st-summary>${titleCase(settings.timeMode)} scheduling, +${settings.actionDelay} action delay</small>
+          <small data-st-summary>${modeLabel(settings.timeMode)} scheduling, +${settings.actionDelay} action delay</small>
         </span>
-      </summary>
+      </div>
       <div class="space-time-enhancer-body">
         <p class="space-time-enhancer-muted">This mode uses the original ${dimensionLabel === '3+1D' ? '3D' : '2D'} ${titleCase(family)} board, pieces, topology, online room, and legal rules. The controls below attach time properties to the existing game pieces.</p>
         <div class="space-time-enhancer-grid">
           <label>Time mode
             <select data-st-control="timeMode">
-              <option value="delay">Delayed action / charge</option>
-              <option value="periodic">Periodic activity</option>
-              <option value="decay">Age / decay</option>
+              <option value="delay">Time schedule</option>
+              <option value="periodic">Time period (Go +1D only)</option>
             </select>
           </label>
           <label>Time lattice dt<input data-st-control="dt" type="number" min="1" max="16" step="1"></label>
-          <label>Max schedule delay<input data-st-control="delay" type="number" min="1" max="32" step="1"></label>
-          <label>Action delay<input data-st-control="actionDelay" type="number" min="0" max="${settings.delay}" step="1"></label>
+          <label data-st-schedule-control>Max schedule delay<input data-st-control="delay" type="number" min="1" max="32" step="1"></label>
+          <label data-st-schedule-control>Action delay<input data-st-control="actionDelay" type="number" min="0" max="${settings.delay}" step="1"></label>
           <div class="space-time-delay-quick" data-st-delay-buttons></div>
-          <label>Frequency / period<input data-st-control="period" type="number" min="1" max="32" step="1"></label>
-          <label>Lifetime<input data-st-control="lifetime" type="number" min="1" max="512" step="1"></label>
-          <label>Old age warning<input data-st-control="oldAge" type="number" min="1" max="512" step="1"></label>
+          <label data-st-period-control>Appear turns<input data-st-control="periodOn" type="number" min="1" max="32" step="1"></label>
+          <label data-st-period-control>Disappear turns<input data-st-control="periodOff" type="number" min="1" max="32" step="1"></label>
+          <label>Age rules
+            <select data-st-control="ageMode">
+              <option value="off">Off</option>
+              <option value="lifetime">Age lifetime</option>
+            </select>
+          </label>
+          <label data-st-age-control>Lifetime<input data-st-control="lifetime" type="number" min="1" max="512" step="1"></label>
+          <label data-st-age-control>Old age warning<input data-st-control="oldAge" type="number" min="1" max="512" step="1"></label>
           <label data-st-noise>Noise
             <select data-st-control="noiseMode">
               <option value="off">Off</option>
@@ -199,7 +225,7 @@
           <label data-st-noise>Noise rate<input data-st-control="noiseRate" type="number" min="0" max="1" step="0.01"></label>
           <label data-st-noise>Noise period<input data-st-control="noisePeriod" type="number" min="1" max="256" step="1"></label>
         </div>
-        <p class="space-time-delay-help" data-st-delay-help hidden>Delay mode: choose an Action delay from Instant to the Max schedule delay, then click a legal empty action site or piece destination. Instant resolves immediately after this designed action; later delays resolve on their future turn if the source and target are still valid.</p>
+        <p class="space-time-delay-help" data-st-delay-help hidden>Time schedule: choose an Action delay from Instant to the Max schedule delay, then click a legal empty action site or piece destination. Instant resolves immediately after this designed action; later delays resolve on their future turn if the source and target are still valid.</p>
         <div class="space-time-enhancer-actions">
           <button type="button" data-st-apply>Apply Time Settings</button>
           <a href="${relativeRoot()}spacetime/">2+1D / 3+1D selector</a>
@@ -213,10 +239,10 @@
     if (controlsHost.parentElement) controlsHost.parentElement.insertBefore(card, controlsHost.nextSibling);
     else document.body.prepend(card);
     card.querySelectorAll('[data-st-noise]').forEach((el) => { el.hidden = !allowsNoise; });
-    if (isChess) {
+    if (family !== 'go') {
       const periodic = card.querySelector('[data-st-control="timeMode"] option[value="periodic"]');
       periodic?.remove();
-      if (settings.timeMode === 'periodic') settings.timeMode = 'decay';
+      if (settings.timeMode === 'periodic') settings.timeMode = 'delay';
     }
     for (const [key, value] of Object.entries(settings)) {
       const control = card.querySelector(`[data-st-control="${key}"]`);
@@ -256,15 +282,17 @@
 
   function readSettingsFromControls() {
     const mode = panel.querySelector('[data-st-control="timeMode"]')?.value || settings.timeMode;
-    settings.timeMode = ['delay', 'periodic', 'decay'].includes(mode) ? mode : 'decay';
-    if (isChess && settings.timeMode === 'periodic') settings.timeMode = 'decay';
+    settings.timeMode = normalizeTimeMode(mode);
+    settings.ageMode = normalizeAgeMode(panel.querySelector('[data-st-control="ageMode"]')?.value || settings.ageMode);
     settings.dt = readNumber(panel.querySelector('[data-st-control="dt"]')?.value, settings.dt, 1, 16);
     settings.delay = readNumber(panel.querySelector('[data-st-control="delay"]')?.value, settings.delay, 1, 32);
     const actionDelayControl = panel.querySelector('[data-st-control="actionDelay"]');
     if (actionDelayControl) actionDelayControl.max = String(settings.delay);
     settings.actionDelay = readNumber(actionDelayControl?.value, Math.min(settings.actionDelay ?? settings.delay, settings.delay), 0, settings.delay);
     if (actionDelayControl) actionDelayControl.value = String(settings.actionDelay);
-    settings.period = readNumber(panel.querySelector('[data-st-control="period"]')?.value, settings.period, 1, 32);
+    settings.periodOn = readNumber(panel.querySelector('[data-st-control="periodOn"]')?.value, settings.periodOn, 1, 32);
+    settings.periodOff = readNumber(panel.querySelector('[data-st-control="periodOff"]')?.value, settings.periodOff, 1, 32);
+    settings.period = settings.periodOn + settings.periodOff;
     settings.lifetime = readNumber(panel.querySelector('[data-st-control="lifetime"]')?.value, settings.lifetime, 1, 512);
     settings.oldAge = readNumber(panel.querySelector('[data-st-control="oldAge"]')?.value, settings.oldAge, 1, 512);
     settings.noiseMode = allowsNoise ? (panel.querySelector('[data-st-control="noiseMode"]')?.value || 'off') : 'off';
@@ -277,11 +305,29 @@
     url.searchParams.set('spacetime', layer);
     url.searchParams.set('family', family);
     url.searchParams.set('timeMode', settings.timeMode);
-    url.searchParams.set('lifetime', String(settings.lifetime));
-    url.searchParams.set('period', String(settings.period));
-    url.searchParams.set('delay', String(settings.delay));
-    url.searchParams.set('actionDelay', String(settings.actionDelay));
     url.searchParams.set('dt', String(settings.dt));
+    if (settings.timeMode === 'delay') {
+      url.searchParams.set('delay', String(settings.delay));
+      url.searchParams.set('actionDelay', String(settings.actionDelay));
+      url.searchParams.delete('period');
+      url.searchParams.delete('periodOn');
+      url.searchParams.delete('periodOff');
+    } else {
+      url.searchParams.set('period', String(settings.periodOn + settings.periodOff));
+      url.searchParams.set('periodOn', String(settings.periodOn));
+      url.searchParams.set('periodOff', String(settings.periodOff));
+      url.searchParams.delete('delay');
+      url.searchParams.delete('actionDelay');
+    }
+    if (settings.ageMode === 'lifetime') {
+      url.searchParams.set('ageMode', 'lifetime');
+      url.searchParams.set('lifetime', String(settings.lifetime));
+      url.searchParams.set('oldAge', String(settings.oldAge));
+    } else {
+      url.searchParams.delete('ageMode');
+      url.searchParams.delete('lifetime');
+      url.searchParams.delete('oldAge');
+    }
     if (allowsNoise) {
       url.searchParams.set('noiseMode', settings.noiseMode);
       url.searchParams.set('noisePeriod', String(settings.noisePeriod));
@@ -373,15 +419,15 @@
     }
     if (layer === '2p1') {
       app.dynamicsSettings = () => ({
-        timeEvolution: settings.timeMode === 'decay' ? 'decay' : 'age',
-        lifetime: settings.lifetime,
+        timeEvolution: settings.ageMode === 'lifetime' ? 'decay' : (settings.timeMode === 'periodic' ? 'periodic' : 'off'),
+        lifetime: settings.ageMode === 'lifetime' ? settings.lifetime : Math.max(1, settings.periodOn + settings.periodOff),
         oldAge: settings.oldAge,
         noiseMode: map2DNoise(settings.noiseMode),
         noiseRate: allowsNoise ? settings.noiseRate : 0,
         noisePeriod: settings.noisePeriod
       });
       app.setDynamicsSettings = (incoming = {}) => {
-        if (incoming.timeEvolution) settings.timeMode = incoming.timeEvolution === 'decay' ? 'decay' : settings.timeMode;
+        if (incoming.timeEvolution) settings.ageMode = incoming.timeEvolution === 'decay' ? 'lifetime' : settings.ageMode;
         if (incoming.lifetime) settings.lifetime = incoming.lifetime;
         if (incoming.noiseMode) settings.noiseMode = reverseNoise(incoming.noiseMode);
         if (incoming.noiseRate) settings.noiseRate = incoming.noiseRate;
@@ -389,19 +435,63 @@
         saveSettings();
       };
     } else {
-      app.shouldShowAgeRings = () => settings.timeMode === 'decay' || settings.timeMode === 'periodic' || settings.timeMode === 'delay';
+      app.shouldShowAgeRings = () => settings.ageMode === 'lifetime' || settings.timeMode === 'periodic';
       app.pieceTimeConfig = () => ({
-        enabled: true,
-        mode: settings.timeMode === 'decay' ? 'decay' : 'count',
-        decay: settings.timeMode === 'decay',
-        lifespan: settings.lifetime
+        enabled: settings.ageMode === 'lifetime' || settings.timeMode === 'periodic',
+        mode: settings.ageMode === 'lifetime' ? 'decay' : 'count',
+        decay: settings.ageMode === 'lifetime',
+        lifespan: settings.ageMode === 'lifetime' ? settings.lifetime : Math.max(1, settings.periodOn + settings.periodOff)
       });
       app.noiseConfig = () => ({
         mode: allowsNoise ? map3DNoise(settings.noiseMode) : 'off',
         period: settings.noisePeriod
       });
     }
-    state.patchName = `${dimensionLabel} ${titleCase(family)} uses original ${layer === '3p1' ? '3D' : '2D'} rules with piece age/time settings.`;
+    if (family === 'go') installGoPeriodVisibility(app);
+    state.patchName = `${dimensionLabel} ${titleCase(family)} uses original ${layer === '3p1' ? '3D' : '2D'} rules with ${modeLabel(settings.timeMode)} settings.`;
+  }
+
+  function installGoPeriodVisibility(app) {
+    if (!app || app.__spaceTimePeriodVisibilityInstalled) return;
+    app.__spaceTimePeriodVisibilityInstalled = true;
+    app.isSpaceTimeIndexVisible = (index, coord = null) => isGoPeriodVisible(app, index, coord);
+  }
+
+  function goPeriodCycle() {
+    return Math.max(1, readNumber(settings.periodOn, 2, 1, 32) + readNumber(settings.periodOff, 2, 1, 32));
+  }
+
+  function goPeriodKey(app, index, coord = null) {
+    if (Array.isArray(coord)) return coord.join(',');
+    try {
+      if (app?.logic?.coordFromIndex) return app.logic.coordFromIndex(index).join(',');
+    } catch {}
+    return String(index);
+  }
+
+  function stablePhaseForKey(key, cycle) {
+    let hash = 2166136261;
+    for (let i = 0; i < key.length; i += 1) {
+      hash ^= key.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) % Math.max(1, cycle);
+  }
+
+  function goAgeForIndex(app, index, coord = null) {
+    if (Array.isArray(app?.pieceAges)) return Number(app.pieceAges[index] || 0);
+    const key = goPeriodKey(app, index, coord);
+    return Number(app?.stoneAges?.[key] || 0);
+  }
+
+  function isGoPeriodVisible(app, index, coord = null) {
+    if (settings.timeMode !== 'periodic' || family !== 'go') return true;
+    const key = goPeriodKey(app, index, coord);
+    const cycle = goPeriodCycle();
+    if (!state.goPeriodPhases.has(key)) state.goPeriodPhases.set(key, stablePhaseForKey(key, cycle));
+    const phase = state.goPeriodPhases.get(key) % cycle;
+    const age = goAgeForIndex(app, index, coord);
+    return ((age + phase) % cycle) < Math.max(1, settings.periodOn);
   }
 
 
@@ -413,7 +503,7 @@
     if (originalLegalMovesFrom) {
       game.legalMovesFrom = (coord, jumpsOnly = false) => {
         const key = game.key ? game.key(coord) : coord.join(',');
-        if (settings.timeMode === 'periodic') {
+        if (settings.timeMode === 'periodic' && family === 'go') {
           const age = state.jumpAges.get(key) || 0;
           const phase = Math.abs(key.split(',').reduce((sum, value) => sum + Number(value || 0), 0)) % Math.max(1, settings.period);
           if ((age + phase) % Math.max(1, settings.period) !== (game.turnNumber || 0) % Math.max(1, settings.period)) return [];
@@ -488,7 +578,7 @@
         const key = chessKeyFromArgs(coords);
         const age = state.chessAges.get(key) || 0;
         const phaseSeed = coords.reduce((sum, value) => sum + Number(value || 0), 0);
-        if (settings.timeMode === 'periodic' && !isPeriodicActive(age, phaseSeed)) {
+        if (settings.timeMode === 'periodic' && family === 'go' && !isPeriodicActive(age, phaseSeed)) {
           target.setStatus?.('This piece is waiting for its active time phase.');
           return;
         }
@@ -520,7 +610,7 @@
       };
     }
     syncChessAges(target, { fresh: true });
-    state.patchName = `${dimensionLabel} Chess uses the original Chess pieces and legal moves. Time age and activity markers are drawn on the same board.`;
+    state.patchName = `${dimensionLabel} Chess uses the original Chess pieces and legal moves with Time schedule.`;
   }
 
   function patchNetworkKeys(app) {
@@ -539,10 +629,13 @@
           layer,
           family,
           timeMode: settings.timeMode,
+          ageMode: settings.ageMode,
           dt: settings.dt,
           delay: settings.delay,
           actionDelay: settings.actionDelay,
           period: settings.period,
+          periodOn: settings.periodOn,
+          periodOff: settings.periodOff,
           lifetime: settings.lifetime,
           oldAge: settings.oldAge,
           noiseMode: allowsNoise ? settings.noiseMode : 'off',
@@ -555,6 +648,11 @@
       app.importNetworkState = (payload = {}) => {
         if (payload.spaceTime && payload.spaceTime.layer === layer && payload.spaceTime.family === family) {
           Object.assign(settings, payload.spaceTime);
+          settings.timeMode = normalizeTimeMode(settings.timeMode);
+          settings.ageMode = normalizeAgeMode(settings.ageMode);
+          settings.periodOn = readNumber(settings.periodOn, DEFAULTS.periodOn, 1, 32);
+          settings.periodOff = readNumber(settings.periodOff, DEFAULTS.periodOff, 1, 32);
+          settings.period = settings.periodOn + settings.periodOff;
           saveSettings();
           for (const [key, value] of Object.entries(settings)) {
             const control = panel.querySelector(`[data-st-control=\"${key}\"]`);
@@ -1151,13 +1249,17 @@
   function ageJumpPieces(app) {
     const pieces = app?.game?.pieces;
     if (!(pieces instanceof Map)) return;
+    if (settings.ageMode !== 'lifetime') {
+      syncJumpAges(app);
+      return;
+    }
     const next = new Map();
     for (const [key, owner] of pieces.entries()) {
       const age = (state.jumpAges.get(key) ?? 0) + settings.dt;
       next.set(key, age);
     }
     state.jumpAges = next;
-    if (settings.timeMode === 'decay') {
+    if (settings.ageMode === 'lifetime') {
       for (const [key, age] of [...state.jumpAges.entries()]) {
         if (age >= settings.lifetime) {
           pieces.delete(key);
@@ -1172,7 +1274,7 @@
 
   function drawJumpAgeOverlay(app) {
     if (!app?.canvas || !app?.ctx || !app?.game?.pieces) return;
-    if (!['decay', 'periodic', 'delay'].includes(settings.timeMode)) return;
+    if (settings.ageMode !== 'lifetime') return;
     const ctx = app.ctx;
     const r = app.cellRadius?.() || 12;
     ctx.save();
@@ -1183,7 +1285,7 @@
       if (age <= 0) continue;
       const p = app.project(coord);
       const progress = Math.max(0.05, Math.min(1, age / settings.lifetime));
-      ctx.strokeStyle = progress >= 0.96 && settings.timeMode === 'decay' ? 'rgba(255,64,64,1)' : 'rgba(125,255,255,1)';
+      ctx.strokeStyle = progress >= 0.96 ? 'rgba(255,64,64,1)' : 'rgba(125,255,255,1)';
       ctx.shadowColor = ctx.strokeStyle;
       ctx.shadowBlur = 14;
       ctx.lineWidth = Math.max(3, r * 0.16);
@@ -1233,12 +1335,16 @@
   }
 
   function ageChessPieces(game, freshTo = null) {
+    if (settings.ageMode !== 'lifetime') {
+      syncChessAges(game);
+      return;
+    }
     const freshKey = chessKeyFromMoveTarget(freshTo);
     const pieces = collectChessPieces(game);
     const next = new Map();
     for (const item of pieces) next.set(item.key, item.key === freshKey ? 0 : (state.chessAges.get(item.key) ?? 0) + settings.dt);
     state.chessAges = next;
-    if (settings.timeMode === 'decay') {
+    if (settings.ageMode === 'lifetime') {
       for (const item of pieces) {
         const age = state.chessAges.get(item.key) || 0;
         if (age >= settings.lifetime) {
@@ -1253,6 +1359,7 @@
 
   function renderChessAgeRings(game) {
     const boardEl = document.getElementById('chessboard');
+    if (settings.ageMode !== 'lifetime') return;
     if (!boardEl || !state.chessAges.size) return;
     const squares = [...boardEl.querySelectorAll('.square')];
     for (const [key, age] of state.chessAges.entries()) {
@@ -1264,13 +1371,12 @@
       square.style.position = square.style.position || 'relative';
       const progress = Math.max(0.05, Math.min(1, age / settings.lifetime));
       const ring = document.createElement('span');
-      ring.className = `st-piece-age-ring${settings.timeMode === 'decay' && progress >= 0.96 ? ' near-death' : ''}`;
+      ring.className = `st-piece-age-ring${progress >= 0.96 ? ' near-death' : ''}`;
       square.appendChild(ring);
       const label = document.createElement('span');
       label.className = 'st-piece-age-label';
       label.textContent = String(age);
       square.appendChild(label);
-      if (settings.timeMode === 'periodic' && !isPeriodicActive(age, r + c)) square.classList.add('st-inactive');
     }
   }
 
@@ -1352,9 +1458,12 @@
     const summary = panel.querySelector('[data-st-summary]');
     if (summary) {
       summary.textContent = settings.timeMode === 'delay'
-        ? `Delay scheduling: Instant..+${settings.delay}, selected ${delayLabel(selectedActionDelay())}`
-        : `${titleCase(settings.timeMode)} time layer; open for controls`;
+        ? `Time schedule: Instant..+${settings.delay}, selected ${delayLabel(selectedActionDelay())}`
+        : `Time period: appear ${settings.periodOn}, disappear ${settings.periodOff}`;
     }
+    panel.querySelectorAll('[data-st-schedule-control]').forEach((el) => { el.hidden = settings.timeMode !== 'delay'; });
+    panel.querySelectorAll('[data-st-period-control]').forEach((el) => { el.hidden = settings.timeMode !== 'periodic' || family !== 'go'; });
+    panel.querySelectorAll('[data-st-age-control]').forEach((el) => { el.hidden = settings.ageMode !== 'lifetime'; });
     renderActionDelayButtons();
     const host = panel.querySelector('[data-st-observables]');
     if (host) host.innerHTML = Object.entries(obs).map(([key, value]) => `<span><strong>${escapeHTML(labelFor(key))}:</strong> ${escapeHTML(value)}</span>`).join('');
@@ -1392,7 +1501,11 @@
   }
 
   function settingSignature() {
-    return [layer, family, settings.timeMode, settings.dt, settings.delay, settings.actionDelay, settings.period, settings.lifetime, settings.oldAge, settings.noiseMode, settings.noiseRate, settings.noisePeriod].join('-');
+    return [layer, family, settings.timeMode, settings.ageMode, settings.dt, settings.delay, settings.actionDelay, settings.periodOn, settings.periodOff, settings.lifetime, settings.oldAge, settings.noiseMode, settings.noiseRate, settings.noisePeriod].join('-');
+  }
+
+  function modeLabel(value) {
+    return value === 'periodic' ? 'Time period' : 'Time schedule';
   }
 
   function titleCase(value) { return String(value || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }

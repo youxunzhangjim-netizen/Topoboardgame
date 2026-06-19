@@ -1074,6 +1074,7 @@ class Go3DRenderer {
             const value = logic.board[index];
             if (!value) continue;
             const coord = logic.coordFromIndex(index);
+            if (this.app?.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
             if (!this.coordVisible(coord)) continue;
             const positions = this.positionsForCoord(coord, logic);
             if (value === COLORS.black) black.push(...positions);
