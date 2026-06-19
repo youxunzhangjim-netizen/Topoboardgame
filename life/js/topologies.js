@@ -84,9 +84,9 @@ export function positionKey(position) {
   return position.join(',');
 }
 
-const TRIANGULAR_DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
-const HONEYCOMB_EVEN = [[1, 0], [-1, 0], [0, 1]];
-const HONEYCOMB_ODD = [[1, 0], [-1, 0], [0, -1]];
+const TRIANGULAR_EVEN = [[1, 0], [-1, 0], [0, 1]];
+const TRIANGULAR_ODD = [[1, 0], [-1, 0], [0, -1]];
+const HEXAGON_CELL_DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 const BCC_DIRECTIONS = [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => [x, y, z])));
 const FCC_DIRECTIONS = [];
 for (const a of [-1, 1]) {
@@ -107,8 +107,8 @@ export function generateDirections(dimension = 2, neighborhoodType = 'moore', la
   if (dim === 1) return [[-1], [1]];
 
   if (dim === 2 && (type === 'nearest' || type === 'lattice')) {
-    if (lat === 'triangular') return TRIANGULAR_DIRECTIONS;
-    if (lat === 'honeycomb') return ((position[0] + position[1]) % 2 === 0) ? HONEYCOMB_EVEN : HONEYCOMB_ODD;
+    if (lat === 'triangular') return ((position[0] + position[1]) % 2 === 0) ? TRIANGULAR_EVEN : TRIANGULAR_ODD;
+    if (lat === 'honeycomb') return HEXAGON_CELL_DIRECTIONS;
     return [[1, 0], [-1, 0], [0, 1], [0, -1]];
   }
 
@@ -120,8 +120,8 @@ export function generateDirections(dimension = 2, neighborhoodType = 'moore', la
   }
 
   if (dim === 2) {
-    if (lat === 'triangular') return TRIANGULAR_DIRECTIONS;
-    if (lat === 'honeycomb') return ((position[0] + position[1]) % 2 === 0) ? HONEYCOMB_EVEN : HONEYCOMB_ODD;
+    if (lat === 'triangular') return ((position[0] + position[1]) % 2 === 0) ? TRIANGULAR_EVEN : TRIANGULAR_ODD;
+    if (lat === 'honeycomb') return HEXAGON_CELL_DIRECTIONS;
   }
 
   if (dim === 3) {

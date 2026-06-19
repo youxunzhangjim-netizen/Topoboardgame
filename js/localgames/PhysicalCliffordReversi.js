@@ -146,7 +146,7 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
         this.physicalConfig = {
             physicalInitialState: PHYSICAL_INITIAL_STATES.includes(options.physicalInitialState)
                 ? options.physicalInitialState
-                : 'stabilizer_vacuum',
+                : 'paired_defects',
             sparseErrorDensity: Math.max(
                 0.01,
                 Math.min(0.5, Number(options.sparseErrorDensity ?? physicalProblemConfig.errorDensity) || 0.08)

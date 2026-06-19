@@ -1083,8 +1083,8 @@ input:disabled {
 .board-appearance-control select { min-width: 100%; }
 
 /* Compact language icon menu */
-.language-switch.compact-language { position: relative; display: inline-flex; align-items: center; gap: 0; padding: 4px; overflow: visible; }
-.language-switch.compact-language .language-icon-button { width: 40px; height: 40px; border-radius: 14px; border: 1px solid rgba(125, 211, 252, 0.36); background: rgba(8, 13, 20, 0.92); color: #dff8ff; display: inline-grid; place-items: center; cursor: pointer; }
+.language-switch.compact-language { position: relative; display: inline-flex; align-items: center; gap: 0; padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; }
+.language-switch.compact-language .language-icon-button { width: 40px; height: 40px; border: 0; border-radius: 999px; background: transparent; color: #dff8ff; display: inline-grid; place-items: center; cursor: pointer; box-shadow: none; }
 .language-switch.compact-language .language-popover { display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 70; min-width: 132px; padding: 8px; border: 1px solid rgba(125, 211, 252, 0.34); border-radius: 14px; background: rgba(6, 11, 18, 0.98); box-shadow: 0 18px 38px rgba(0,0,0,.38); }
 .language-switch.compact-language:hover .language-popover, .language-switch.compact-language:focus-within .language-popover { display: grid; gap: 6px; }
 .language-switch.compact-language .lang-option { width: 100%; justify-content: center; }

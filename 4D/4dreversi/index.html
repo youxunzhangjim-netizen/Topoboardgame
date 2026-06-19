@@ -15,10 +15,41 @@
             border-radius: 0;
             border: 0;
             background: rgba(3, 8, 16, 0.46);
+            overflow: hidden;
+            position: relative;
         }
-        .reversi4d-jump-form .slice-grid { width: 100%; justify-content: center; padding: 8px; }
-        .reversi4d-jump-form .slice-board { border-color: rgba(97,174,255,.24); background: rgba(5,12,24,.76); }
-        .reversi4d-jump-form .xy-grid { box-shadow: 0 12px 30px rgba(0,0,0,.22); }
+        .reversi4d-jump-form .slice-grid.reversi4d-projection {
+            display: block;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 520px;
+            min-width: 0;
+            padding: 0;
+            background: linear-gradient(180deg, rgba(4, 10, 20, .94), rgba(3, 7, 14, .98));
+            touch-action: none;
+        }
+        .reversi4d-edge-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .reversi4d-edge { stroke: rgba(128, 190, 255, .22); stroke-width: 1.1; }
+        .reversi4d-projection .vertex.projected-vertex {
+            position: absolute;
+            width: clamp(18px, 2.3vw, 28px);
+            height: clamp(18px, 2.3vw, 28px);
+            min-height: 0;
+            padding: 0;
+            border: 1px solid rgba(116, 177, 255, .38);
+            border-radius: 50%;
+            background: rgba(8, 19, 31, .92);
+            transform: translate(-50%, -50%);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .32);
+        }
+        .reversi4d-projection .vertex.projected-vertex::before,
+        .reversi4d-projection .vertex.projected-vertex::after { display: none; }
+        .reversi4d-projection .vertex.projected-vertex.liberty { background: rgba(34, 197, 94, .34); border-color: rgba(99, 255, 164, .68); }
+        .reversi4d-projection .vertex.projected-vertex.group,
+        .reversi4d-projection .vertex.projected-vertex.hover { background: rgba(72, 199, 244, .3); }
+        .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
+        .reversi4d-projection .stone { width: 76%; }
         .reversi4d-jump-form .jump-side .panel,
         .reversi4d-jump-form .jump-side .status-card,
         .reversi4d-jump-form .jump-side .control-group,
@@ -103,12 +134,23 @@
                 <label>Nz <input id="nzInput" type="number" min="4" max="9" value="5"></label>
                 <label>Nw <input id="nwInput" type="number" min="4" max="9" value="5"></label>
             </div>
-<div class="control-group">
+            <div class="control-group">
                 <label for="zoomLayerSelect">Zoom Layer</label>
                 <select id="zoomLayerSelect">
                     <option value="all">All layers</option>
                 </select>
             </div>
+
+            <details class="advanced-settings view-settings" open>
+                <summary>Board View</summary>
+                <div class="jump-grid">
+                    <label>Rotate X<input id="viewRotateX" type="range" min="-90" max="90" value="-26"></label>
+                    <label>Rotate Y<input id="viewRotateY" type="range" min="-180" max="180" value="32"></label>
+                    <label>Rotate Z<input id="viewRotateZ" type="range" min="-180" max="180" value="0"></label>
+                    <label>Zoom<input id="viewZoom" type="range" min="0.45" max="2.4" step="0.01" value="1"></label>
+                </div>
+                <button id="viewResetButton" type="button" class="secondary">Reset View</button>
+            </details>
 
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
@@ -136,6 +178,7 @@
         </aside>
     </main>
 
+    <script type="module" src="../../js/shared/GameControlGuides.js"></script>
     <script type="module" src="./js/main.js?v=20260614-4d-reversi"></script>
 
     <script>

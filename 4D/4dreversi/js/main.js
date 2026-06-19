@@ -38,6 +38,15 @@ class Reversi4DApp {
         this.hoverKey = '';
         this.pieceAges = {};
         this.noiseTick = 0;
+        this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+        this.viewControls = {
+            rotX: document.getElementById('viewRotateX'),
+            rotY: document.getElementById('viewRotateY'),
+            rotZ: document.getElementById('viewRotateZ'),
+            zoom: document.getElementById('viewZoom'),
+            reset: document.getElementById('viewResetButton')
+        };
+        this.suppressClickUntil = 0;
         this.logic = this.createLogic();
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.bindEvents();
@@ -144,6 +153,7 @@ class Reversi4DApp {
             event.preventDefault();
             this.sendChatMessage();
         });
+        this.installViewControls();
         this.gridEl.addEventListener('pointerover', (event) => {
             const button = event.target.closest('button[data-coord]');
             this.hoverKey = button ? button.dataset.key : '';
@@ -155,6 +165,58 @@ class Reversi4DApp {
             this.updateBoardHighlights();
             this.updateSelectionSummary();
         });
+    }
+
+    installViewControls() {
+        const syncView = () => {
+            this.view.rotX = Number(this.viewControls.rotX?.value ?? this.view.rotX);
+            this.view.rotY = Number(this.viewControls.rotY?.value ?? this.view.rotY);
+            this.view.rotZ = Number(this.viewControls.rotZ?.value ?? this.view.rotZ);
+            this.view.zoom = Math.max(0.35, Math.min(2.8, Number(this.viewControls.zoom?.value ?? this.view.zoom)));
+            this.render();
+        };
+        for (const control of [this.viewControls.rotX, this.viewControls.rotY, this.viewControls.rotZ, this.viewControls.zoom]) {
+            control?.addEventListener('input', syncView);
+        }
+        this.viewControls.reset?.addEventListener('click', () => {
+            this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+            if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
+            if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
+            if (this.viewControls.rotZ) this.viewControls.rotZ.value = String(this.view.rotZ);
+            if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom);
+            this.render();
+        });
+        this.gridEl.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const factor = event.deltaY < 0 ? 1.08 : 0.92;
+            this.view.zoom = Math.max(0.35, Math.min(2.8, this.view.zoom * factor));
+            if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom.toFixed(2));
+            this.render();
+        }, { passive: false });
+        this.gridEl.addEventListener('pointerdown', (event) => {
+            this.view.drag = { x: event.clientX, y: event.clientY, rotX: this.view.rotX, rotY: this.view.rotY, active: false };
+            this.gridEl.setPointerCapture?.(event.pointerId);
+        });
+        this.gridEl.addEventListener('pointermove', (event) => {
+            if (!this.view.drag) return;
+            const dx = event.clientX - this.view.drag.x;
+            const dy = event.clientY - this.view.drag.y;
+            if (!this.view.drag.active && Math.hypot(dx, dy) < 4) return;
+            this.view.drag.active = true;
+            this.view.rotY = this.view.drag.rotY + dx * 0.45;
+            this.view.rotX = this.view.drag.rotX - dy * 0.45;
+            if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
+            if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
+            this.render();
+        });
+        const stopDrag = (event) => {
+            if (!this.view.drag) return;
+            if (this.view.drag.active) this.suppressClickUntil = performance.now() + 220;
+            this.view.drag = null;
+            try { this.gridEl.releasePointerCapture?.(event.pointerId); } catch {}
+        };
+        this.gridEl.addEventListener('pointerup', stopDrag);
+        this.gridEl.addEventListener('pointercancel', stopDrag);
     }
 
     resetGame({ broadcast = false } = {}) {
@@ -258,48 +320,106 @@ class Reversi4DApp {
         const preview = this.hoverKey ? this.logic.previewMove(this.hoverKey.split(',').map(Number)) : [];
         const previewFlips = new Set(preview.map((coord) => this.logic.key(coord)));
 
-        this.gridEl.style.gridTemplateColumns = onlyLayer ? '1fr' : `repeat(${depth}, max-content)`;
+        this.gridEl.className = 'slice-grid reversi4d-projection';
+        this.gridEl.style.gridTemplateColumns = '';
         this.gridEl.innerHTML = '';
+        const rect = this.gridEl.getBoundingClientRect();
+        const boardWidth = Math.max(320, rect.width || this.gridEl.clientWidth || 720);
+        const boardHeight = Math.max(480, rect.height || this.gridEl.clientHeight || 540);
+        const coords = [];
 
         for (let w = 0; w < wSize; w += 1) {
             for (let z = 0; z < depth; z += 1) {
                 if (onlyLayer && (onlyLayer[0] !== z || onlyLayer[1] !== w)) continue;
-                const slice = document.createElement('section');
-                slice.className = `slice-board${onlyLayer ? ' zoomed' : ''}`;
-                slice.innerHTML = `<div class="slice-title">z=${z}, w=${w}</div>`;
-                const grid = document.createElement('div');
-                grid.className = 'xy-grid';
-                grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
-                grid.style.gridTemplateRows = `repeat(${height}, 1fr)`;
                 for (let y = 0; y < height; y += 1) {
                     for (let x = 0; x < width; x += 1) {
-                        const coord = [x, y, z, w];
-                        const key = this.logic.key(coord);
-                        const stone = this.logic.get(coord);
-                        const button = document.createElement('button');
-                        button.type = 'button';
-                        button.className = 'vertex';
-                        button.dataset.coord = JSON.stringify(coord);
-                        button.dataset.key = key;
-                        button.title = `(${coord.join(',')})`;
-                        button.setAttribute('aria-label', `Point (${coord.join(',')})`);
-                        button.addEventListener('click', () => this.play(coord));
-                        button.classList.toggle('selected', key === this.selectedKey);
-                        button.classList.toggle('hover', key === this.hoverKey);
-                        button.classList.toggle('liberty', legal.has(key));
-                        button.classList.toggle('group', previewFlips.has(key));
-                        if (stone) {
-                            const node = document.createElement('span');
-                            node.className = `stone ${stone.color}`;
-                            button.append(node);
-                        }
-                        grid.append(button);
+                        coords.push([x, y, z, w]);
                     }
                 }
-                slice.append(grid);
-                this.gridEl.append(slice);
             }
         }
+        const projected = new Map(coords.map((coord) => [this.logic.key(coord), { coord, ...this.projectCoord(coord, boardWidth, boardHeight) }]));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'reversi4d-edge-layer');
+        svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
+        for (const item of projected.values()) {
+            for (let axis = 0; axis < 4; axis += 1) {
+                const next = [...item.coord];
+                next[axis] += 1;
+                const other = projected.get(this.logic.key(next));
+                if (!other) continue;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'reversi4d-edge');
+                line.setAttribute('x1', item.x.toFixed(1));
+                line.setAttribute('y1', item.y.toFixed(1));
+                line.setAttribute('x2', other.x.toFixed(1));
+                line.setAttribute('y2', other.y.toFixed(1));
+                line.setAttribute('opacity', String(Math.max(0.22, Math.min(0.72, 0.55 - Math.min(item.depth, other.depth) * 0.06))));
+                svg.append(line);
+            }
+        }
+        this.gridEl.append(svg);
+        [...projected.values()]
+            .sort((a, b) => a.depth - b.depth)
+            .forEach(({ coord, x, y, depth: zDepth }) => {
+                const key = this.logic.key(coord);
+                const stone = this.logic.get(coord);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'vertex projected-vertex';
+                button.dataset.coord = JSON.stringify(coord);
+                button.dataset.key = key;
+                button.title = `(${coord.join(',')})`;
+                button.setAttribute('aria-label', `Point (${coord.join(',')})`);
+                button.style.left = `${x}px`;
+                button.style.top = `${y}px`;
+                button.style.zIndex = String(Math.round((zDepth + 8) * 100));
+                button.addEventListener('click', () => {
+                    if (performance.now() < this.suppressClickUntil) return;
+                    this.play(coord);
+                });
+                button.classList.toggle('selected', key === this.selectedKey);
+                button.classList.toggle('hover', key === this.hoverKey);
+                button.classList.toggle('liberty', legal.has(key));
+                button.classList.toggle('group', previewFlips.has(key));
+                if (stone) {
+                    const node = document.createElement('span');
+                    node.className = `stone ${stone.color}`;
+                    button.append(node);
+                }
+                this.gridEl.append(button);
+            });
+    }
+
+    projectCoord(coord, width, height) {
+        const { width: nx, height: ny, depth, wSize } = this.logic.topology;
+        const scaleAxis = (value, max) => (value / Math.max(1, max - 1) - 0.5) * 2;
+        const point = [
+            scaleAxis(coord[0], nx),
+            scaleAxis(coord[1], ny),
+            scaleAxis(coord[2], depth) + scaleAxis(coord[3], wSize) * 0.55
+        ];
+        const [x, y, z] = this.rotatePoint3D(point);
+        const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
+        const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
+        return { x: width / 2 + x * scale, y: height * 0.44 + y * scale, depth: z };
+    }
+
+    rotatePoint3D(point) {
+        let [x, y, z] = point;
+        const rx = (this.view.rotX || 0) * Math.PI / 180;
+        const ry = (this.view.rotY || 0) * Math.PI / 180;
+        const rz = (this.view.rotZ || 0) * Math.PI / 180;
+        let c = Math.cos(rx);
+        let s = Math.sin(rx);
+        [y, z] = [y * c - z * s, y * s + z * c];
+        c = Math.cos(ry);
+        s = Math.sin(ry);
+        [x, z] = [x * c + z * s, -x * s + z * c];
+        c = Math.cos(rz);
+        s = Math.sin(rz);
+        [x, y] = [x * c - y * s, x * s + y * c];
+        return [x, y, z];
     }
 
     updateBoardHighlights() {

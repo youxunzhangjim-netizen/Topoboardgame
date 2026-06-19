@@ -473,8 +473,8 @@
                     <label>
                         Initial Rule
                         <select id="physicalInitialStateSelect">
-                            <option value="stabilizer_vacuum" selected>Stabilizer Vacuum</option>
-                            <option value="paired_defects">Paired Defects</option>
+                            <option value="paired_defects" selected>Paired Defects</option>
+                            <option value="stabilizer_vacuum">Stabilizer Vacuum</option>
                             <option value="domain_wall_seed">Domain Wall Seed</option>
                             <option value="prepared_clifford_circuit">Prepared Clifford Circuit</option>
                             <option value="custom_setup">Custom Setup</option>
@@ -972,6 +972,23 @@
             </div>
         </section>
 
+        <section class="lab-history-panels" aria-label="Lab move history and logs">
+            <section>
+                <h2>Move History</h2>
+                <ol id="historyList" class="history-list"></ol>
+            </section>
+
+            <section>
+                <h2>Braid Event Log</h2>
+                <ol id="braidEventList" class="history-list"></ol>
+            </section>
+
+            <section>
+                <h2>Stochastic Event Log</h2>
+                <ol id="stochasticList" class="history-list"></ol>
+            </section>
+        </section>
+
         <section class="layer-panel" id="layerPanel" hidden>
             <label>
                 z layer
@@ -1183,27 +1200,13 @@
                 </section>
 
                 <section>
-                    <h2>Move History</h2>
-                    <ol id="historyList" class="history-list"></ol>
-                </section>
-
-                <section>
-                    <h2>Braid Event Log</h2>
-                    <ol id="braidEventList" class="history-list"></ol>
-                </section>
-
-                <section>
-                    <h2>Stochastic Event Log</h2>
-                    <ol id="stochasticList" class="history-list"></ol>
-                </section>
-
-                <section>
                     <h2>Research Export</h2>
                     <textarea id="exportText" readonly spellcheck="false"></textarea>
                 </section>
             </aside>
         </section>
     </main>
+    <script type="module" src="../js/shared/GameControlGuides.js"></script>
     <script type="module" src="./js/main.js?v=20260615-cft-reversi"></script>
 </body>
 </html>

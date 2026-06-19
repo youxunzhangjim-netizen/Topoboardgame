@@ -319,8 +319,8 @@ select {
 
 .piece-white {
     color: #f1f5f9;
-    -webkit-text-stroke: 0.8px rgba(2, 6, 23, 0.95);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(100, 200, 255, 0.4);
+    -webkit-text-stroke: 0;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.78), 0 5px 12px rgba(0, 0, 0, 0.58), 0 0 8px rgba(255, 255, 255, 0.24);
 }
 
 .piece-black {
@@ -980,20 +980,24 @@ body > .language-switch .lang-divider {
 body > .language-switch.compact-language {
     width: auto;
     gap: 0;
-    padding: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     overflow: visible;
 }
 .language-switch.compact-language { position: relative; display: inline-flex; align-items: center; }
 .language-switch.compact-language .language-icon-button {
     width: 42px;
     height: 42px;
-    border-radius: 14px;
-    border: 1px solid rgba(125, 211, 252, 0.36);
-    background: rgba(8, 13, 20, 0.92);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
     color: #dff8ff;
     display: inline-grid;
     place-items: center;
     cursor: pointer;
+    box-shadow: none;
 }
 .language-switch.compact-language .language-popover {
     display: none;

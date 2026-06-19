@@ -581,6 +581,7 @@
     const originalSelectSquare = target.selectSquare?.bind(target);
     const originalSetupBoard = target.setupBoard?.bind(target);
     const originalSetupBoard3D = target.setupBoard3D?.bind(target);
+    if (originalApplyMove) target.__spaceTimeOriginalApplyMove = originalApplyMove;
     if (originalSetupBoard) {
       target.setupBoard = (...args) => {
         const result = originalSetupBoard(...args);
@@ -743,7 +744,7 @@
       const button = event.target.closest('button[data-st-popup-delay]');
       if (!button || !state.pendingDelayAction) return;
       const delay = readNumber(button.dataset.stPopupDelay, 0, 0, settings.delay);
-      finalizeDelayAction(delay);
+      void finalizeDelayAction(delay);
     });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') hideSchedulePopover();
@@ -788,7 +789,7 @@
     return true;
   }
 
-  function finalizeDelayAction(delay) {
+  async function finalizeDelayAction(delay) {
     const pending = state.pendingDelayAction;
     if (!pending?.draft) return;
     const { app, draft } = pending;
@@ -807,7 +808,7 @@
     saveSettings();
     if (action.instant) {
       hideSchedulePopover();
-      const ok = applyScheduledAction(app, action);
+      const ok = await applyScheduledAction(app, action);
       if (ok) processDueScheduledActions(app);
       state.lastApplyMessage = ok ? 'Instant action resolved.' : 'Instant action was cancelled because it is no longer legal.';
       triggerRender(app);
@@ -1162,11 +1163,13 @@
     if (!game?.board) return false;
     const piece = getChessPiece(game, action.from);
     if (!piece || piece.color !== action.player) return false;
+    if (action.instant) return applyInstantChess(game, action);
     const savedPlayer = game.currentPlayer;
     game.currentPlayer = action.player;
     const legal = findChessLegalMove(game, action.from, action.to);
     game.currentPlayer = savedPlayer;
     if (!legal) return false;
+    const movedType = piece.type || piece.kind || '';
     const captured = legal.enPassant && legal.capturePos
       ? getChessPiece(game, legal.capturePos)
       : getChessPiece(game, action.to);
@@ -1175,14 +1178,15 @@
     if (legal.enPassant && legal.capturePos) setChessPiece(game, legal.capturePos, null);
     if (piece && typeof piece === 'object') piece.hasMoved = true;
     moveScheduledCastleRook(game, legal);
-    if (piece?.type === 'P' && isScheduledPromotionSquare(game, piece, action.to, legal)) {
+    const promotion = piece?.type === 'P' && isScheduledPromotionSquare(game, piece, action.to, legal) ? 'Q' : '';
+    if (promotion) {
       piece.type = 'Q';
       piece.display = piece.color === 'white' ? 'Q' : 'q';
       delete piece.pawnDirection;
     }
     if (captured) pushScheduledCapture(game, piece.color, captured);
     game.currentPlayer = savedPlayer;
-    game.moveHistory?.push?.({ kind: 'delayed-resolve', color: action.player, from: action.from, to: action.to, piece: piece.type || piece.kind || '' });
+    game.moveHistory?.push?.(scheduledChessHistoryEntry(game, piece, action.from, action.to, captured, promotion, movedType, legal.castling));
     game.pendingMoveTarget = null;
     game.checkGameEnd?.();
     game.renderBoard?.();
@@ -1191,6 +1195,47 @@
     game.renderer?.clearHighlights?.();
     game.renderer?.clearChosenMove?.();
     return true;
+  }
+
+  async function applyInstantChess(game, action) {
+    const savedPlayer = game.currentPlayer;
+    game.currentPlayer = action.player;
+    const legal = findChessLegalMove(game, action.from, action.to);
+    if (!legal) {
+      game.currentPlayer = savedPlayer;
+      return false;
+    }
+    const piece = getChessPiece(game, action.from);
+    const move = { from: cloneChessCoord(action.from), to: cloneChessCoord(action.to) };
+    if (piece?.type === 'P' && isScheduledPromotionSquare(game, piece, action.to, legal)) move.promotion = 'Q';
+    const applyMove = game.__spaceTimeOriginalApplyMove || game.applyMove?.bind(game);
+    if (typeof applyMove !== 'function') {
+      game.currentPlayer = savedPlayer;
+      return false;
+    }
+    const ok = await applyMove(move, { spacetimeSchedule: true });
+    if (!ok) {
+      game.currentPlayer = savedPlayer;
+      return false;
+    }
+    ageChessPieces(game, action.to);
+    markTurnAdvanced(game);
+    return true;
+  }
+
+  function scheduledChessHistoryEntry(game, piece, from, to, captured, promotion, movedType, castling) {
+    if (typeof game?.createMoveNotation === 'function') {
+      return game.createMoveNotation(piece, from, to, captured, promotion || null, movedType, castling || null);
+    }
+    return {
+      kind: 'move',
+      color: piece?.color || '',
+      type: movedType || piece?.type || piece?.kind || '',
+      from: chessCoordLabel(from),
+      to: chessCoordLabel(to),
+      capturedType: captured?.type || '',
+      promotionType: promotion || ''
+    };
   }
 
   function findChessLegalMove(game, from, to) {

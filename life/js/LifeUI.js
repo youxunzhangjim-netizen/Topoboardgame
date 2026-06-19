@@ -17,6 +17,11 @@ import { currentLifeLanguage, localizeStaticText, syncLifeLinks, t } from './i18
 import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManager.js';
 
 const COLORS = { 1: '#38bdf8', 2: '#ef4444', 3: '#22c55e', 4: '#f5b647' };
+const SQRT3 = Math.sqrt(3);
+const LATTICE_RULE_TUNING = Object.freeze({
+  triangular: { rule: 'B2/S12', birth: [2], survival: [1, 2], neighborhoodType: 'nearest', latticeNeighborCount: 3 },
+  honeycomb: { rule: 'B2/S34', birth: [2], survival: [3, 4], neighborhoodType: 'nearest', latticeNeighborCount: 6 }
+});
 
 function readParams() { return new URLSearchParams(window.location.search); }
 function formatNumber(value, digits = 3) {
@@ -54,6 +59,19 @@ function centerOfMass(engine) {
 function distance(a, b) {
   if (!a || !b) return 0;
   return Math.sqrt(a.reduce((sum, value, axis) => sum + (value - b[axis]) ** 2, 0));
+}
+
+function tuneRuleForLattice(rule, lattice, dimension) {
+  const tuning = Number(dimension) === 2 ? LATTICE_RULE_TUNING[lattice] : null;
+  if (!tuning || rule.type !== 'life-like') return rule;
+  return {
+    ...rule,
+    rule: tuning.rule,
+    birth: [...tuning.birth],
+    survival: [...tuning.survival],
+    neighborhoodType: tuning.neighborhoodType,
+    latticeNeighborCount: tuning.latticeNeighborCount
+  };
 }
 
 function compactLifeCell(cell = {}) {
@@ -402,8 +420,11 @@ export class LifeUI {
   }
 
   applyControls(preserve = true) {
-    const rule = getRulePreset(this.ruleSelect.value);
+    let rule = getRulePreset(this.ruleSelect.value);
     const speciesCount = Math.max(1, Number(this.speciesSelect.value) || 1);
+    const dimension = Number(this.dimensionSelect.value);
+    const lattice = this.latticeSelect.value;
+    rule = tuneRuleForLattice(rule, lattice, dimension);
     rule.speciesCount = speciesCount;
     rule.birthNoise = Number(this.birthNoiseRange.value) || 0;
     rule.deathNoise = Number(this.deathNoiseRange.value) || 0;
@@ -417,11 +438,11 @@ export class LifeUI {
     rule.oldAgePenalty = Number(this.oldAgePenaltyRange.value) || 0;
 
     this.engine.configure({
-      dimension: Number(this.dimensionSelect.value),
+      dimension,
       size: this.currentSize(),
       boundary: this.topologySelect.value,
-      neighborhoodType: this.neighborhoodSelect.value,
-      lattice: this.latticeSelect.value,
+      neighborhoodType: rule.neighborhoodType || this.neighborhoodSelect.value,
+      lattice,
       rule
     });
     if (!preserve) this.engine.clear();
@@ -801,6 +822,32 @@ export class LifeUI {
     const rows = Math.max(1, this.engine.dimension >= 2 ? this.engine.size[1] : 1);
     const zoom = Math.max(1, Math.min(48, Number(this.camera.zoom) || 1));
     this.camera.zoom = zoom;
+    if (this.engine.dimension === 2 && this.flatLatticeKind() === 'honeycomb') {
+      const radius = Math.max(1, Math.min(
+        width / (SQRT3 * (columns + 0.5)),
+        height / (1.5 * Math.max(0, rows - 1) + 2)
+      ) * zoom);
+      const hexWidth = SQRT3 * radius;
+      const hexHeight = 2 * radius;
+      const rowStep = 1.5 * radius;
+      const boardWidth = hexWidth * (columns + 0.5);
+      const boardHeight = rows <= 1 ? hexHeight : rowStep * (rows - 1) + hexHeight;
+      return {
+        columns,
+        rows,
+        zoom,
+        sx: hexWidth,
+        sy: rowStep,
+        hexRadius: radius,
+        hexWidth,
+        hexHeight,
+        hexRowStep: rowStep,
+        boardWidth,
+        boardHeight,
+        originX: (width - boardWidth) / 2 + (Number(this.camera.panX) || 0),
+        originY: (height - boardHeight) / 2 + (Number(this.camera.panY) || 0)
+      };
+    }
     const sx = (width / columns) * zoom;
     const sy = (height / rows) * zoom;
     const boardWidth = sx * columns;
@@ -894,16 +941,13 @@ export class LifeUI {
     }
 
     if (lattice === 'honeycomb') {
-      const w = Math.max(1, (right - left) * 0.5);
-      const h = Math.max(1, (bottom - top) * 0.5);
-      return [
-        [cx - w * 0.5, cy - h],
-        [cx + w * 0.5, cy - h],
-        [cx + w, cy],
-        [cx + w * 0.5, cy + h],
-        [cx - w * 0.5, cy + h],
-        [cx - w, cy]
-      ];
+      const radius = Math.max(1, (view.hexRadius || Math.min(view.sx / SQRT3, view.sy / 1.5)) - inset);
+      const centerX = originX + (x + 0.5 + (y % 2 ? 0.5 : 0)) * (view.hexWidth || view.sx);
+      const centerY = originY + radius + y * (view.hexRowStep || view.sy);
+      return Array.from({ length: 6 }, (_, index) => {
+        const angle = -Math.PI / 2 + index * Math.PI / 3;
+        return [centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius];
+      });
     }
 
     return [[left, top], [right, top], [right, bottom], [left, bottom]];
@@ -934,14 +978,22 @@ export class LifeUI {
   }
 
   flatLatticePositionFromPoint(point, view) {
-    const x0 = Math.max(0, Math.floor((point.x - view.originX) / view.sx) - 1);
-    const y0 = Math.max(0, Math.floor((point.y - view.originY) / view.sy) - 1);
-    const x1 = Math.min(this.engine.size[0] - 1, x0 + 3);
-    const y1 = Math.min(this.engine.size[1] - 1, y0 + 3);
+    const lattice = this.flatLatticeKind();
+    const xGuess = lattice === 'honeycomb'
+      ? Math.floor((point.x - view.originX) / (view.hexWidth || view.sx))
+      : Math.floor((point.x - view.originX) / view.sx);
+    const yGuess = lattice === 'honeycomb'
+      ? Math.floor((point.y - view.originY) / (view.hexRowStep || view.sy))
+      : Math.floor((point.y - view.originY) / view.sy);
+    const range = lattice === 'honeycomb' ? 3 : 1;
+    const x0 = Math.max(0, xGuess - range);
+    const y0 = Math.max(0, yGuess - range);
+    const x1 = Math.min(this.engine.size[0] - 1, xGuess + range + 1);
+    const y1 = Math.min(this.engine.size[1] - 1, yGuess + range + 1);
     let nearest = null;
     for (let y = y0; y <= y1; y += 1) {
       for (let x = x0; x <= x1; x += 1) {
-        const polygon = this.flatCellPolygon(x, y, view, Math.max(0.8, Math.min(view.sx, view.sy) * 0.04));
+        const polygon = this.flatCellPolygon(x, y, view, 0);
         if (this.pointInPolygon(point, polygon)) return [x, y];
         const cx = polygon.reduce((sum, p) => sum + p[0], 0) / polygon.length;
         const cy = polygon.reduce((sum, p) => sum + p[1], 0) / polygon.length;
@@ -949,7 +1001,10 @@ export class LifeUI {
         if (!nearest || distance < nearest.distance) nearest = { position: [x, y], distance };
       }
     }
-    return nearest && nearest.distance <= Math.max(view.sx, view.sy) * 0.42 ? nearest.position : null;
+    const maxDistance = lattice === 'honeycomb'
+      ? (view.hexRadius || Math.max(view.sx, view.sy) * 0.5)
+      : Math.max(view.sx, view.sy) * 0.42;
+    return nearest && nearest.distance <= maxDistance ? nearest.position : null;
   }
 
   projectedPointToPosition(point) {
@@ -1324,10 +1379,10 @@ export class LifeUI {
     ctx.strokeStyle = this.flatLatticeKind() === 'triangular'
       ? 'rgba(2, 6, 12, 0.78)'
       : 'rgba(2, 6, 12, 0.7)';
-    ctx.lineWidth = Math.max(0.55, Math.min(1.15, minCell * 0.05));
+    ctx.lineWidth = Math.max(0.5, Math.min(1.05, minCell * 0.04));
     for (let y = startY; y <= endY; y += 1) {
       for (let x = startX; x <= endX; x += 1) {
-        this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, view, Math.max(0.45, minCell * 0.035)));
+        this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, view, 0));
         ctx.stroke();
       }
     }
@@ -1489,7 +1544,19 @@ export class LifeUI {
         const drawY = this.engine.dimension === 1 ? originY + flatView.boardHeight * 0.46 : originY + y * sy;
         const drawW = Math.max(1, sx - 2);
         const drawH = this.engine.dimension === 1 ? Math.max(4, flatView.boardHeight * 0.08) : Math.max(1, sy - 2);
-        if (drawX + drawW < 0 || drawX > width || drawY + drawH < 0 || drawY > height) continue;
+        const lattice = this.flatLatticeKind();
+        const polygon = this.engine.dimension === 2 && lattice !== 'square'
+          ? this.flatCellPolygon(x, y, flatView, 0)
+          : null;
+        const bounds = polygon
+          ? polygon.reduce((box, [px, py]) => ({
+            minX: Math.min(box.minX, px),
+            maxX: Math.max(box.maxX, px),
+            minY: Math.min(box.minY, py),
+            maxY: Math.max(box.maxY, py)
+          }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity })
+          : { minX: drawX, maxX: drawX + drawW, minY: drawY, maxY: drawY + drawH };
+        if (bounds.maxX < 0 || bounds.minX > width || bounds.maxY < 0 || bounds.minY > height) continue;
         const position = this.engine.dimension === 1 ? [x] : [x, y];
         const cell = this.engine.getCell(position);
         if (!isAlive(cell)) continue;
@@ -1499,6 +1566,9 @@ export class LifeUI {
         ctx.fillStyle = COLORS[cell.species] || COLORS[1];
         if (this.engine.dimension === 1) {
           ctx.fillRect(drawX + 1, drawY + 1, drawW, drawH);
+        } else if (polygon) {
+          this.drawPolygonPath(ctx, polygon);
+          ctx.fill();
         } else {
           this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, flatView, Math.max(0.8, Math.min(sx, sy) * 0.08)));
           ctx.fill();

@@ -619,6 +619,28 @@ h2 {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
 }
 
+.lab-history-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.lab-history-panels section {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgba(218, 232, 224, 0.13);
+    border-radius: 8px;
+    background: rgba(15, 20, 27, 0.9);
+    box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+}
+
+.lab-history-panels h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
 .board-wrap {
     min-height: 620px;
     padding: 14px;

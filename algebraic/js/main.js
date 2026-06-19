@@ -1122,6 +1122,10 @@ function syncModeControls() {
     if (isPhysicalClifford) {
         let action = els.physicalActionSelect.value;
         const stabilizerProblem = selectedPhysicalProblemId() === 'stabilizer_pauli_recovery';
+        if (customStabilizerSetup && action !== 'reversi') {
+            els.physicalActionSelect.value = 'reversi';
+            action = 'reversi';
+        }
         const ancillasEnabled = !stabilizerProblem || els.stabilizerAncillaSelect.value === 'on';
         const phaseKickEnabled = !stabilizerProblem || els.stabilizerPhaseKickSelect.value === 'on';
         for (const option of els.physicalActionSelect.options) {
@@ -2388,7 +2392,9 @@ function renderFlatBoard() {
 
     const preview = currentReversiPreview();
     const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
-    const legalReversi = reversiPlacementActive()
+    const legalReversi = customStabilizerSetupPending()
+        ? new Set(game.topology.vertices().map(coordKey))
+        : reversiPlacementActive()
         ? new Set(game.legalMoves(
             game.currentPlayer,
             selectedReversiAlgebraValue()
@@ -2554,7 +2560,13 @@ function renderFlatBoard() {
 function algebraic3DViewState() {
     const preview = currentReversiPreview();
     let legalReversi = [];
-    if (reversiPlacementActive()) {
+    if (customStabilizerSetupPending()) {
+        legalReversiCache = {
+            signature: 'custom-stabilizer-setup',
+            keys: game.topology.vertices().map(coordKey)
+        };
+        legalReversi = legalReversiCache.keys;
+    } else if (reversiPlacementActive()) {
         const signature = [
             game.topology.name,
             game.topology.sizes.join('x'),
@@ -2656,7 +2668,9 @@ function updateBoardHighlights() {
     }
     const preview = currentReversiPreview();
     const previewFlips = new Set((preview?.flips || []).map((flip) => flip.key));
-    const legalReversi = reversiPlacementActive()
+    const legalReversi = customStabilizerSetupPending()
+        ? new Set(game.topology.vertices().map(coordKey))
+        : reversiPlacementActive()
         ? new Set(game.legalMoves(
             game.currentPlayer,
             selectedReversiAlgebraValue()
@@ -3055,15 +3069,63 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         : game.topology.displayCoord(coord);
 }
 
-function handlePhysicalCliffordClick(coord) {
+function executeCustomPauliSite(coord, { pauliLabel, pauliSign, phase = Number(els.physicalPhaseSelect.value) || 0 } = {}) {
+    if ([...els.physicalPauliSelect.options].some((option) => option.value === pauliLabel)) {
+        els.physicalPauliSelect.value = pauliLabel;
+    }
+    if (els.customInitialSignSelect) els.customInitialSignSelect.value = String(pauliSign || 1);
+    const result = game.setCustomInitialSite(coord, {
+        pauliLabel,
+        pauliSign,
+        phase
+    });
+    if (result?.ok) {
+        hoverCoord = null;
+        selectedPhysicalCoord = null;
+        els.statusText.textContent = pauliLabel === 'I'
+            ? `Custom setup cleared ${game.topology.displayCoord(coord)}. Press Start when the initial board is ready.`
+            : `Custom setup set ${pauliSign < 0 ? '-' : '+'}${pauliLabel} at ${game.topology.displayCoord(coord)}. Press Start when the initial board is ready.`;
+    } else if (result) {
+        els.statusText.textContent = result.error;
+    }
+    render();
+}
+
+function showCustomPauliSetupPalette(coord, event) {
+    const phase = Number(els.physicalPhaseSelect.value) || 0;
+    const labels = ['X', 'Y', 'Z'];
+    const items = [
+        {
+            label: 'Clear / I',
+            detail: 'Set this site to empty identity I.',
+            onChoose: () => executeCustomPauliSite(coord, { pauliLabel: 'I', pauliSign: 1, phase })
+        },
+        ...labels.flatMap((pauliLabel) => [
+            {
+                label: `Set +${pauliLabel}`,
+                detail: 'Positive stabilizer-sector Pauli site.',
+                onChoose: () => executeCustomPauliSite(coord, { pauliLabel, pauliSign: 1, phase })
+            },
+            {
+                label: `Set -${pauliLabel}`,
+                detail: 'Negative stabilizer-sector Pauli site.',
+                onChoose: () => executeCustomPauliSite(coord, { pauliLabel, pauliSign: -1, phase })
+            }
+        ])
+    ];
+    return showActionPalette(coord, event, {
+        title: `Custom Pauli at ${game.topology.displayCoord(coord)}`,
+        status: 'Choose I/X/Y/Z and sign for this recovery initial site.',
+        items
+    });
+}
+
+function handlePhysicalCliffordClick(coord, event = null) {
     const action = els.physicalActionSelect.value;
     let result = null;
     if (action === 'reversi' && customStabilizerSetupPending()) {
-        result = game.setCustomInitialSite(coord, {
-            pauliLabel: els.physicalPauliSelect.value,
-            pauliSign: Number(els.customInitialSignSelect?.value || 1),
-            phase: Number(els.physicalPhaseSelect.value)
-        });
+        showCustomPauliSetupPalette(coord, event);
+        return;
     } else if (action === 'reversi') {
         result = game.place(coord, {
             pauliLabel: els.physicalPauliSelect.value,
@@ -3774,7 +3836,7 @@ function handleCellClick(coord, event = null) {
         }
     }
     if (isPhysicalCliffordMode(game.mode)) {
-        handlePhysicalCliffordClick(coord);
+        handlePhysicalCliffordClick(coord, event);
         return;
     }
     if (isIsingDomainMode(game.mode)) {
@@ -4346,7 +4408,9 @@ function updateStatus() {
     if (isPhysicalCliffordMode(game.mode)) {
         const action = els.physicalActionSelect.value;
         const observables = game.computePhysicalObservables();
-        if (action === 'entangle_ancilla' && selectedPhysicalCoord) {
+        if (customStabilizerSetupPending()) {
+            els.statusText.textContent = `Custom Pauli recovery setup: click a site to choose I/X/Y/Z and sign. Current custom sites ${game.board.size}; press Start when ready.`;
+        } else if (action === 'entangle_ancilla' && selectedPhysicalCoord) {
             els.statusText.textContent = `Control ${game.topology.displayCoord(selectedPhysicalCoord)} selected. Choose an occupied target for ${els.entangleGateSelect.value}.`;
         } else if (action === 'reversi') {
             const preview = currentReversiPreview();

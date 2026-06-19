@@ -250,6 +250,10 @@ export class JumpGameApp {
     const coord = this.coordFromEvent(event);
     if (!coord) return;
     if (this.selected) {
+      if (this.game.chainFrom && samePoint(this.selected, coord)) {
+        this.stopJumpChain();
+        return;
+      }
       const move = this.legal.find((candidate) => samePoint(candidate.to, coord));
       if (move) {
         const result = this.game.applyMove(move);
@@ -299,7 +303,12 @@ export class JumpGameApp {
     pieces?.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-piece-key]');
       if (!button || !this.canCurrentUserAct()) return;
-      this.selectJumpPiece(parseCoordKey(button.dataset.pieceKey));
+      const coord = parseCoordKey(button.dataset.pieceKey);
+      if (this.game.chainFrom && this.selected && samePoint(this.selected, coord)) {
+        this.stopJumpChain();
+        return;
+      }
+      this.selectJumpPiece(coord);
     });
     moves?.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-move-id]');
@@ -324,6 +333,15 @@ export class JumpGameApp {
   canCurrentUserAct() {
     if (this.modeSelect?.value !== 'online') return true;
     return Boolean(this.network?.isConnected && this.myColor && this.myColor === this.game.currentPlayer);
+  }
+
+  stopJumpChain() {
+    if (!this.game?.chainFrom) return false;
+    this.game.endTurn();
+    this.selected = null;
+    this.legal = [];
+    this.afterMove('jump chain stopped');
+    return true;
   }
 
   selectJumpPiece(coord) {

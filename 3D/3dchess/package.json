@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "local": "vite --host 127.0.0.1 --port 5174 --open",
-    "build": "vite build",
+    "build": "vite build --configLoader runner",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
