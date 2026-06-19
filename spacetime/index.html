@@ -29,9 +29,9 @@
         <div class="control-grid compact">
           <label>Time mode
             <select id="timeModeSelect">
+              <option value="delay" selected>Delayed action / charge</option>
               <option value="decay">Age / decay</option>
               <option value="periodic">Periodic activity</option>
-              <option value="delay">Delayed action / charge</option>
             </select>
           </label>
           <label>Time lattice dt
@@ -41,7 +41,7 @@
             <input id="delayInput" type="number" min="1" max="32" value="2">
           </label>
           <label>Action delay
-            <input id="actionDelayInput" type="number" min="0" max="2" value="2">
+            <input id="actionDelayInput" type="number" min="0" max="2" value="0">
           </label>
           <label>Frequency / period
             <input id="periodInput" type="number" min="1" max="32" value="4">

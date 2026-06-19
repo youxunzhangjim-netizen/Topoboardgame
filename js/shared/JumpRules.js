@@ -246,9 +246,17 @@ export class JumpGameState {
   isEmpty(coord) { return this.topology.exists(coord) && !this.pieceAt(coord); }
   isOwn(coord, player = this.currentPlayer) { return this.pieceAt(coord) === player; }
 
+  chainVisitedKeys() {
+    const visited = new Set();
+    if (this.chainFrom) visited.add(this.key(this.chainFrom));
+    for (const coord of this.chainPath) visited.add(this.key(coord));
+    return visited;
+  }
+
   legalMovesFrom(coord, jumpsOnly = false) {
     if (!coord || !this.isOwn(coord)) return [];
     const startKey = this.key(coord);
+    const chainVisited = jumpsOnly ? this.chainVisitedKeys() : null;
     const moves = [];
     for (const dir of this.directions) {
       const first = this.topology.step(coord, dir);
@@ -263,8 +271,10 @@ export class JumpGameState {
       const second = this.topology.step(first.position, first.direction);
       if (!second) continue;
       if (!this.options.allowLoopJump && sameCoord(second.position, coord)) continue;
+      const landingKey = this.key(second.position);
+      if (chainVisited?.has(landingKey)) continue;
       if (!this.isEmpty(second.position)) continue;
-      moves.push({ type: 'jump', from: coord, over: first.position, to: second.position, direction: dir, id: `${startKey}>${this.key(second.position)}:jump` });
+      moves.push({ type: 'jump', from: coord, over: first.position, to: second.position, direction: dir, id: `${startKey}>${landingKey}:jump` });
     }
     return moves;
   }

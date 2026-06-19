@@ -118,6 +118,7 @@ let identityChannel = null;
 
 const guestProfileStorageKey = 'topoboardgame:guest-profile';
 const displayNameStorageKey = 'topoboardgame:display-name';
+const displayNameMemory = new Map();
 
 function safeLocalStorageGet(key) {
     try {
@@ -156,12 +157,15 @@ function userDisplayNameStorageKey(currentUser) {
 }
 
 function localDisplayName(currentUser) {
-    return safeLocalStorageGet(userDisplayNameStorageKey(currentUser));
+    const key = userDisplayNameStorageKey(currentUser);
+    return safeLocalStorageGet(key) || displayNameMemory.get(key) || '';
 }
 
 function setLocalDisplayName(currentUser, value) {
     const name = sanitizeDisplayName(value);
-    safeLocalStorageSet(userDisplayNameStorageKey(currentUser), name);
+    const key = userDisplayNameStorageKey(currentUser);
+    displayNameMemory.set(key, name);
+    safeLocalStorageSet(key, name);
     return name;
 }
 
@@ -536,6 +540,7 @@ export async function updateUserDisplayName(name) {
     const displayName = setLocalDisplayName(currentUser, name);
     try {
         await updateProfile(currentUser, { displayName });
+        user = auth?.currentUser || currentUser;
     } catch (error) {
         authWarn('updateUserDisplayName: updateProfile failed; saving Firestore/local name only', authErrorSummary(error));
     }

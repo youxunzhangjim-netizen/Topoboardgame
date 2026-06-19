@@ -163,6 +163,15 @@ function summarizeState(state) {
     };
 }
 
+function cleanDisplayName(value) {
+    const cleaned = String(value || '')
+        .replace(/[\u0000-\u001f\u007f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 24);
+    return cleaned || 'Player';
+}
+
 function elementSummary(element) {
     if (!element) return null;
     const rect = element.getBoundingClientRect?.();
@@ -373,10 +382,12 @@ function installLauncherAuth() {
         }
         nameBusy = true;
         lastNameMessage = '';
+        const requestedName = cleanDisplayName(displayNameInput.value);
+        latestState = { ...latestState, displayName: requestedName };
         render();
         try {
-            const nextState = await updateUserDisplayName(displayNameInput.value);
-            latestState = nextState;
+            const nextState = await updateUserDisplayName(requestedName);
+            latestState = { ...nextState, displayName: nextState?.displayName || requestedName };
             lastNameMessage = t('nameSaved');
             logAuth('updateUserDisplayName() resolved', summarizeState(nextState));
         } catch (error) {

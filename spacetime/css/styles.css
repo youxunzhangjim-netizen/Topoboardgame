@@ -91,12 +91,14 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
 }
 .selector-shell .setup-panel.selector-settings {
   grid-template-columns: minmax(320px, 1.1fr) minmax(300px, .95fr) minmax(280px, .9fr);
+  order: 3;
 }
 .dimension-launch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   align-items: stretch;
+  order: 2;
 }
 .dimension-launch-grid .dimension-card {
   display: grid;

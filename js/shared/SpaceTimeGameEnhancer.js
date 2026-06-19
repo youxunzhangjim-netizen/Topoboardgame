@@ -23,12 +23,16 @@
   const allowsNoise = family === 'go' || family === 'reversi';
   const isJump = family === 'jump';
   const isChess = family === 'chess';
+  const isSchedulingDefaultFamily = family === 'go' || family === 'reversi';
+  const explicitTimeMode = params.get('timeMode') || params.get('time') || '';
+  const settingsVersion = 2;
 
   const defaultMaxDelay = readNumber(params.get('delay'), 2, 1, 32);
   const DEFAULTS = {
-    timeMode: params.get('timeMode') || params.get('time') || 'decay',
+    settingsVersion,
+    timeMode: explicitTimeMode || (isSchedulingDefaultFamily ? 'delay' : 'decay'),
     delay: defaultMaxDelay,
-    actionDelay: readNumber(params.get('actionDelay'), defaultMaxDelay, 0, defaultMaxDelay),
+    actionDelay: readNumber(params.get('actionDelay'), 0, 0, defaultMaxDelay),
     period: readNumber(params.get('period') || params.get('frequency'), 4, 1, 32),
     lifetime: readNumber(params.get('lifetime'), 30, 1, 512),
     oldAge: readNumber(params.get('oldAge'), 24, 1, 512),
@@ -64,6 +68,7 @@
   });
 
   function readNumber(value, fallback, min, max) {
+    if (value === null || value === undefined || value === '') return fallback;
     const n = Number(value);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(min, Math.min(max, n));
@@ -72,10 +77,35 @@
   function loadSettings() {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      return { ...DEFAULTS, ...stored, noiseMode: allowsNoise ? (stored.noiseMode || DEFAULTS.noiseMode) : 'off' };
+      const merged = { ...DEFAULTS, ...stored, noiseMode: allowsNoise ? (stored.noiseMode || DEFAULTS.noiseMode) : 'off' };
+      if (isSchedulingDefaultFamily && !explicitTimeMode && stored.settingsVersion !== settingsVersion) {
+        merged.timeMode = 'delay';
+        merged.delay = DEFAULTS.delay;
+        merged.actionDelay = 0;
+      }
+      applyURLSettingOverrides(merged);
+      merged.settingsVersion = settingsVersion;
+      return merged;
     } catch {
-      return { ...DEFAULTS };
+      const merged = { ...DEFAULTS };
+      applyURLSettingOverrides(merged);
+      return merged;
     }
+  }
+
+  function applyURLSettingOverrides(target) {
+    if (explicitTimeMode) target.timeMode = explicitTimeMode;
+    if (params.has('delay')) target.delay = readNumber(params.get('delay'), target.delay, 1, 32);
+    if (params.has('actionDelay')) target.actionDelay = readNumber(params.get('actionDelay'), target.actionDelay, 0, target.delay);
+    if (params.has('period') || params.has('frequency')) target.period = readNumber(params.get('period') || params.get('frequency'), target.period, 1, 32);
+    if (params.has('lifetime')) target.lifetime = readNumber(params.get('lifetime'), target.lifetime, 1, 512);
+    if (params.has('oldAge')) target.oldAge = readNumber(params.get('oldAge'), target.oldAge, 1, 512);
+    if (params.has('dt')) target.dt = readNumber(params.get('dt'), target.dt, 1, 16);
+    if (allowsNoise && params.has('noiseMode')) target.noiseMode = params.get('noiseMode') || target.noiseMode;
+    if (allowsNoise && params.has('noiseRate')) target.noiseRate = readNumber(params.get('noiseRate'), target.noiseRate, 0, 1);
+    if (allowsNoise && params.has('noisePeriod')) target.noisePeriod = readNumber(params.get('noisePeriod'), target.noisePeriod, 1, 256);
+    if (!allowsNoise) target.noiseMode = 'off';
+    target.actionDelay = readNumber(target.actionDelay, 0, 0, target.delay);
   }
 
   function saveSettings() {
@@ -93,50 +123,59 @@
     const style = document.createElement('style');
     style.id = 'spaceTimeEnhancerStyle';
     style.textContent = `
-      .space-time-enhancer-panel{border:1px solid rgba(125,211,252,.38);border-radius:14px;background:linear-gradient(180deg,rgba(8,18,31,.94),rgba(7,13,22,.9));box-shadow:0 14px 36px rgba(0,0,0,.28);padding:14px;margin:14px 0;color:#eaf6ff;display:grid;gap:12px}
-      .space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
+      .space-time-enhancer-panel{border:1px solid rgba(125,211,252,.38);border-radius:14px;background:linear-gradient(180deg,rgba(8,18,31,.94),rgba(7,13,22,.9));box-shadow:0 14px 36px rgba(0,0,0,.28);padding:0;margin:14px 0;color:#eaf6ff;display:block}
+      .space-time-enhancer-panel>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;list-style:none;padding:12px 14px}.space-time-enhancer-panel>summary::-webkit-details-marker{display:none}.space-time-enhancer-panel>summary:after{content:'Open';border:1px solid rgba(125,211,252,.36);border-radius:999px;padding:4px 9px;color:#dbeafe;font-size:.72rem;font-weight:900}.space-time-enhancer-panel[open]>summary:after{content:'Close'}.space-time-enhancer-title{display:grid;gap:3px;min-width:0}.space-time-enhancer-title strong{color:#f8c75d;font-size:.95rem;text-transform:uppercase}.space-time-enhancer-title small{color:#cbd5e1;overflow-wrap:anywhere}.space-time-enhancer-body{display:grid;gap:12px;padding:0 14px 14px}.space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-delay-quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.space-time-delay-quick button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#dbeafe;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-delay-quick button.active{border-color:rgba(248,199,93,.9);background:rgba(248,199,93,.16);color:#fde68a}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover,.space-time-delay-quick button:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
 
   function installPanel() {
-    const card = document.createElement('section');
+    const card = document.createElement('details');
     card.className = 'space-time-enhancer-panel';
+    card.open = params.get('timeSettings') === 'open' || params.get('stOpen') === '1';
     card.innerHTML = `
-      <h3>${dimensionLabel} Time Layer</h3>
-      <p class="space-time-enhancer-muted">This mode uses the original ${dimensionLabel === '3+1D' ? '3D' : '2D'} ${titleCase(family)} board, pieces, topology, online room, and legal rules. The controls below attach time properties to the existing game pieces.</p>
-      <div class="space-time-enhancer-grid">
-        <label>Time mode
-          <select data-st-control="timeMode">
-            <option value="delay">Delayed action / charge</option>
-            <option value="periodic">Periodic activity</option>
-            <option value="decay">Age / decay</option>
-          </select>
-        </label>
-        <label>Time lattice dt<input data-st-control="dt" type="number" min="1" max="16" step="1"></label>
-        <label>Max schedule delay<input data-st-control="delay" type="number" min="1" max="32" step="1"></label>
-        <label>Action delay<input data-st-control="actionDelay" type="number" min="0" max="${settings.delay}" step="1"></label>
-        <label>Frequency / period<input data-st-control="period" type="number" min="1" max="32" step="1"></label>
-        <label>Lifetime<input data-st-control="lifetime" type="number" min="1" max="512" step="1"></label>
-        <label>Old age warning<input data-st-control="oldAge" type="number" min="1" max="512" step="1"></label>
-        <label data-st-noise>Noise
-          <select data-st-control="noiseMode">
-            <option value="off">Off</option>
-            <option value="pieces">Aged pieces only</option>
-            <option value="board">Whole board</option>
-          </select>
-        </label>
-        <label data-st-noise>Noise rate<input data-st-control="noiseRate" type="number" min="0" max="1" step="0.01"></label>
-        <label data-st-noise>Noise period<input data-st-control="noisePeriod" type="number" min="1" max="256" step="1"></label>
+      <summary>
+        <span class="space-time-enhancer-title">
+          <strong>${dimensionLabel} Time Layer</strong>
+          <small data-st-summary>${titleCase(settings.timeMode)} scheduling, +${settings.actionDelay} action delay</small>
+        </span>
+      </summary>
+      <div class="space-time-enhancer-body">
+        <p class="space-time-enhancer-muted">This mode uses the original ${dimensionLabel === '3+1D' ? '3D' : '2D'} ${titleCase(family)} board, pieces, topology, online room, and legal rules. The controls below attach time properties to the existing game pieces.</p>
+        <div class="space-time-enhancer-grid">
+          <label>Time mode
+            <select data-st-control="timeMode">
+              <option value="delay">Delayed action / charge</option>
+              <option value="periodic">Periodic activity</option>
+              <option value="decay">Age / decay</option>
+            </select>
+          </label>
+          <label>Time lattice dt<input data-st-control="dt" type="number" min="1" max="16" step="1"></label>
+          <label>Max schedule delay<input data-st-control="delay" type="number" min="1" max="32" step="1"></label>
+          <label>Action delay<input data-st-control="actionDelay" type="number" min="0" max="${settings.delay}" step="1"></label>
+          <div class="space-time-delay-quick" data-st-delay-buttons></div>
+          <label>Frequency / period<input data-st-control="period" type="number" min="1" max="32" step="1"></label>
+          <label>Lifetime<input data-st-control="lifetime" type="number" min="1" max="512" step="1"></label>
+          <label>Old age warning<input data-st-control="oldAge" type="number" min="1" max="512" step="1"></label>
+          <label data-st-noise>Noise
+            <select data-st-control="noiseMode">
+              <option value="off">Off</option>
+              <option value="pieces">Aged pieces only</option>
+              <option value="board">Whole board</option>
+            </select>
+          </label>
+          <label data-st-noise>Noise rate<input data-st-control="noiseRate" type="number" min="0" max="1" step="0.01"></label>
+          <label data-st-noise>Noise period<input data-st-control="noisePeriod" type="number" min="1" max="256" step="1"></label>
+        </div>
+        <p class="space-time-delay-help" data-st-delay-help hidden>Delay mode: choose an Action delay from Instant to the Max schedule delay, then click a legal empty action site or piece destination. Instant resolves immediately after this designed action; later delays resolve on their future turn if the source and target are still valid.</p>
+        <div class="space-time-enhancer-actions">
+          <button type="button" data-st-apply>Apply Time Settings</button>
+          <a href="${relativeRoot()}spacetime/">2+1D / 3+1D selector</a>
+        </div>
+        <div class="space-time-schedule" data-st-schedule></div>
+        <div class="space-time-observables" data-st-observables></div>
+        <p class="space-time-enhancer-muted" data-st-note></p>
       </div>
-      <p class="space-time-delay-help" data-st-delay-help hidden>Delay mode: choose an Action delay from 0 turns up to the Max schedule delay, then click a legal empty action site or piece destination. Delay 0 resolves immediately after this designed action; later delays resolve on their future turn if the source and target are still valid.</p>
-      <div class="space-time-enhancer-actions">
-        <button type="button" data-st-apply>Apply Time Settings</button>
-        <a href="${relativeRoot()}spacetime/">2+1D / 3+1D selector</a>
-      </div>
-      <div class="space-time-schedule" data-st-schedule></div>
-      <div class="space-time-observables" data-st-observables></div>
-      <p class="space-time-enhancer-muted" data-st-note></p>
     `;
     const controlsHost = document.querySelector('.sidebar .control-group') || document.querySelector('.jump-side .jump-card') || document.querySelector('.sidebar') || document.querySelector('.jump-side') || document.body;
     if (controlsHost.parentElement) controlsHost.parentElement.insertBefore(card, controlsHost.nextSibling);
@@ -168,6 +207,17 @@
         triggerRender(state.app);
         refreshPanel();
       });
+    });
+    card.querySelector('[data-st-delay-buttons]')?.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-st-action-delay]');
+      if (!button) return;
+      const control = card.querySelector('[data-st-control="actionDelay"]');
+      if (control) control.value = button.dataset.stActionDelay;
+      readSettingsFromControls();
+      saveSettings();
+      patchGame(state.app);
+      triggerRender(state.app);
+      refreshPanel();
     });
     return card;
   }
@@ -1031,6 +1081,13 @@
   function refreshPanel() {
     if (!panel) return;
     const obs = collectObservables();
+    const summary = panel.querySelector('[data-st-summary]');
+    if (summary) {
+      summary.textContent = settings.timeMode === 'delay'
+        ? `Delay scheduling: Instant..+${settings.delay}, selected ${delayLabel(selectedActionDelay())}`
+        : `${titleCase(settings.timeMode)} time layer; open for controls`;
+    }
+    renderActionDelayButtons();
     const host = panel.querySelector('[data-st-observables]');
     if (host) host.innerHTML = Object.entries(obs).map(([key, value]) => `<span><strong>${escapeHTML(labelFor(key))}:</strong> ${escapeHTML(value)}</span>`).join('');
     const schedule = panel.querySelector('[data-st-schedule]');
@@ -1043,6 +1100,27 @@
     if (help) help.hidden = settings.timeMode !== 'delay';
     const note = panel.querySelector('[data-st-note]');
     if (note) note.textContent = state.lastApplyMessage || state.patchName || 'Waiting for the original game engine to load.';
+  }
+
+  function renderActionDelayButtons() {
+    const host = panel.querySelector('[data-st-delay-buttons]');
+    if (!host) return;
+    host.hidden = settings.timeMode !== 'delay';
+    if (host.hidden) {
+      host.innerHTML = '';
+      return;
+    }
+    const selected = selectedActionDelay();
+    const max = readNumber(settings.delay, 2, 1, 32);
+    host.innerHTML = Array.from({ length: max + 1 }, (_, delay) => `
+      <button type="button" data-st-action-delay="${delay}" class="${delay === selected ? 'active' : ''}" aria-pressed="${delay === selected}">
+        ${escapeHTML(delayLabel(delay))}
+      </button>
+    `).join('');
+  }
+
+  function delayLabel(delay) {
+    return Number(delay) === 0 ? 'Instant' : `+${delay}`;
   }
 
   function settingSignature() {
