@@ -747,11 +747,31 @@ export class JumpGameApp {
     return this.dimension >= 3 || ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell', 'projection', '4d-torus', 'hypercube'].includes(topology);
   }
 
+  planarLatticeCoord(coord) {
+    const size = Math.max(1, this.game?.size || 1);
+    const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
+    if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
+      return {
+        x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
+        y: (coord[1] || 0) * Math.sqrt(3) / 2,
+        maxX: Math.max(1, (size - 1) * 1.5),
+        maxY: Math.max(1, (size - 1) * Math.sqrt(3) / 2)
+      };
+    }
+    return {
+      x: coord[0] || 0,
+      y: coord[1] || 0,
+      maxX: Math.max(1, size - 1),
+      maxY: Math.max(1, size - 1)
+    };
+  }
+
   embeddedPoint(coord) {
     const n = Math.max(1, this.game.size - 1);
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
-    const u = (coord[0] / Math.max(1, this.game.size)) * Math.PI * 2;
-    const v = (coord[1] / Math.max(1, this.game.size)) * Math.PI * 2;
+    const planar = this.planarLatticeCoord(coord);
+    const u = (planar.x / Math.max(1, planar.maxX + 1)) * Math.PI * 2;
+    const v = (planar.y / Math.max(1, planar.maxY + 1)) * Math.PI * 2;
     if (topology === 'torus' || topology === '4d-torus') {
       const R = 1.45;
       const r = 0.48;
@@ -815,9 +835,10 @@ export class JumpGameApp {
     const usableH = height - pad * 2;
     const zShift = this.dimension >= 3 ? (coord[2] - (n - 1) / 2) * (usableW / n) * 0.18 : 0;
     const wShift = this.dimension >= 4 ? (coord[3] - (n - 1) / 2) * (usableH / n) * 0.12 : 0;
+    const planar = this.planarLatticeCoord(coord);
     return {
-      x: pad + (coord[0] / Math.max(1, n - 1)) * usableW + zShift,
-      y: pad + (coord[1] / Math.max(1, n - 1)) * usableH - zShift + wShift
+      x: pad + (planar.x / planar.maxX) * usableW + zShift,
+      y: pad + (planar.y / planar.maxY) * usableH - zShift + wShift
     };
   }
 

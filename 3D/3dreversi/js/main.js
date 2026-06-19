@@ -924,9 +924,9 @@ class Reversi3DRenderer {
 
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
-        if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(coord, topology.width, topology.height, lift).position;
-        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(coord, topology.width, topology.height, lift);
-        if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(coord, topology.width, topology.height, lift).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(coord, topology.width, topology.height, lift, topology.lattice).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(coord, topology.width, topology.height, lift, topology.lattice);
+        if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(coord, topology.width, topology.height, lift, topology.lattice).position;
         if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return this.kleinOutsidePose(coord, topology.width, topology.height, lift).position;
         if (topology.topology === REVERSI_TOPOLOGIES.RP2) return this.flatPosition(coord, topology.width, topology.height, lift);
         if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) return this.spherePosition(coord, topology.width, topology.height, lift);
@@ -951,37 +951,53 @@ class Reversi3DRenderer {
         );
     }
 
-    torusPosition(coord, width, height, lift = 0) {
+    latticeSurfaceUV(coord, width, height, lattice = 'square') {
+        if (lattice === 'honeycomb') {
+            const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
+            const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
+            return {
+                u: (rawX / Math.max(1, width * Math.sqrt(3) / 2)) * TWO_PI,
+                v: (rawY / Math.max(1, height + 0.5)) * TWO_PI,
+                band: rawY / Math.max(1, height - 0.5)
+            };
+        }
+        return {
+            u: (Number(coord[0]) / Math.max(1, width)) * TWO_PI,
+            v: (Number(coord[1]) / Math.max(1, height)) * TWO_PI,
+            band: Number(coord[1]) / Math.max(1, height - 1)
+        };
+    }
+
+    torusPosition(coord, width, height, lift = 0, lattice = 'square') {
         const majorRadius = 3.35;
         const minorRadius = 1.22;
-        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
-        const v = (Number(coord[1]) / Math.max(1, height)) * TWO_PI;
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
         const tubeRadius = minorRadius + lift;
-        const ringRadius = majorRadius + tubeRadius * Math.cos(v);
+        const ringRadius = majorRadius + tubeRadius * Math.cos(uv.v);
         const position = new THREE.Vector3(
-            ringRadius * Math.cos(u),
-            ringRadius * Math.sin(u),
-            tubeRadius * Math.sin(v)
+            ringRadius * Math.cos(uv.u),
+            ringRadius * Math.sin(uv.u),
+            tubeRadius * Math.sin(uv.v)
         );
         const normal = new THREE.Vector3(
-            Math.cos(u) * Math.cos(v),
-            Math.sin(u) * Math.cos(v),
-            Math.sin(v)
+            Math.cos(uv.u) * Math.cos(uv.v),
+            Math.sin(uv.u) * Math.cos(uv.v),
+            Math.sin(uv.v)
         ).normalize();
         return { position, normal };
     }
 
-    cylinderPose(coord, width, height, lift = 0) {
+    cylinderPose(coord, width, height, lift = 0, lattice = 'square') {
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
         const radius = 3.16 + lift;
-        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
-        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
-        const position = new THREE.Vector3(radius * Math.cos(u), y, radius * Math.sin(u));
-        const normal = new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize();
+        const y = (0.5 - uv.band) * 5.8;
+        const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+        const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
     }
 
-    cylinderPosition(coord, width, height, lift = 0) {
-        return this.cylinderPose(coord, width, height, lift).position;
+    cylinderPosition(coord, width, height, lift = 0, lattice = 'square') {
+        return this.cylinderPose(coord, width, height, lift, lattice).position;
     }
 
     kleinOutsidePose(coord, width, height, lift = 0.1) {
@@ -1031,9 +1047,10 @@ class Reversi3DRenderer {
         return { tangentU, tangentT, normal };
     }
 
-    mobiusPose(coord, width, height, lift = 0) {
-        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
-        const t = this.mobiusTForY(Number(coord[1]), height);
+    mobiusPose(coord, width, height, lift = 0, lattice = 'square') {
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
+        const u = uv.u;
+        const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, uv.band);
         return {
             position: this.mobiusPoint(u, t, lift),
             normal: this.mobiusBasis(u, t).normal

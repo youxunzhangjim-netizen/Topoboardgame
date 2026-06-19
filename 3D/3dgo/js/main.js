@@ -1427,10 +1427,10 @@ class Go3DRenderer {
     }
 
     positionForCoord(coord, logic) {
-        if (logic.topology === 't2') return this.torusPosition(coord, logic.size, 0.18).position;
-        if (logic.topology === CYLINDER_GO_TOPOLOGY) return this.cylinderPosition(coord, logic.width, logic.height, 0.18).position;
+        if (logic.topology === 't2') return this.torusPosition(coord, logic.size, 0.18, logic.lattice).position;
+        if (logic.topology === CYLINDER_GO_TOPOLOGY) return this.cylinderPosition(coord, logic.width, logic.height, 0.18, logic.lattice).position;
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
-            return this.mobiusPose(coord, logic.width, logic.height, 0.18).position;
+            return this.mobiusPose(coord, logic.width, logic.height, 0.18, logic.lattice).position;
         }
         if (logic.topology === RP2_GO_TOPOLOGY) {
             return this.rp2Position(coord, logic.width, logic.height, 0.18);
@@ -1535,19 +1535,57 @@ class Go3DRenderer {
         return new THREE.Vector3((coord[0] - center) * scale, (coord[2] - center) * scale, (coord[1] - center) * scale);
     }
 
-    torusPosition(coord, size, lift = 0) {
+    latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE) {
+        if (lattice === TRIANGULAR_LATTICE) {
+            const rawX = Number(coord[0]) + Number(coord[1]) * 0.5;
+            const rawY = Number(coord[1]) * Math.sqrt(3) / 2;
+            return {
+                u: (rawX / Math.max(1, (width - 1) * 1.5 + 1)) * TWO_PI,
+                v: (rawY / Math.max(1, (height - 1) * Math.sqrt(3) / 2 + 1)) * TWO_PI,
+                band: rawY / Math.max(1, (height - 1) * Math.sqrt(3) / 2)
+            };
+        }
+        if (lattice === HONEYCOMB_LATTICE) {
+            const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
+            const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
+            return {
+                u: (rawX / Math.max(1, width * Math.sqrt(3) / 2)) * TWO_PI,
+                v: (rawY / Math.max(1, height + 0.5)) * TWO_PI,
+                band: rawY / Math.max(1, height - 0.5)
+            };
+        }
+        return {
+            u: (Number(coord[0]) / Math.max(1, width)) * TWO_PI,
+            v: (Number(coord[1]) / Math.max(1, height)) * TWO_PI,
+            band: Number(coord[1]) / Math.max(1, height - 1)
+        };
+    }
+
+    torusPosition(coord, size, lift = 0, lattice = SQUARE_LATTICE) {
+        if (lattice !== SQUARE_LATTICE) {
+            const uv = this.latticeSurfaceUV(coord, size, size, lattice);
+            const R = 3.35;
+            const r = 1.22 + lift;
+            const position = new THREE.Vector3(
+                (R + r * Math.cos(uv.v)) * Math.cos(uv.u),
+                (R + r * Math.cos(uv.v)) * Math.sin(uv.u),
+                r * Math.sin(uv.v)
+            );
+            const normal = new THREE.Vector3(Math.cos(uv.u) * Math.cos(uv.v), Math.sin(uv.u) * Math.cos(uv.v), Math.sin(uv.v)).normalize();
+            return { position, normal };
+        }
         const frame = torusFrame(coord, size, lift);
         const position = new THREE.Vector3(frame.position.x, frame.position.y, frame.position.z);
         const normal = new THREE.Vector3(frame.normal.x, frame.normal.y, frame.normal.z).normalize();
         return { position, normal };
     }
 
-    cylinderPosition(coord, width, height, lift = 0) {
+    cylinderPosition(coord, width, height, lift = 0, lattice = SQUARE_LATTICE) {
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
         const radius = 3.16 + lift;
-        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
-        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
-        const position = new THREE.Vector3(radius * Math.cos(u), y, radius * Math.sin(u));
-        const normal = new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize();
+        const y = (0.5 - uv.band) * 5.8;
+        const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+        const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
     }
 
@@ -1589,9 +1627,10 @@ class Go3DRenderer {
         return { tangentU, tangentT, normal };
     }
 
-    mobiusPose(coord, width, height, lift = 0) {
-        const u = (Number(coord[0]) / Math.max(1, width)) * TWO_PI;
-        const t = this.mobiusTForY(Number(coord[1]), height);
+    mobiusPose(coord, width, height, lift = 0, lattice = SQUARE_LATTICE) {
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
+        const u = uv.u;
+        const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, uv.band);
         return {
             position: this.mobiusPoint(u, t, lift),
             normal: this.mobiusBasis(u, t).normal

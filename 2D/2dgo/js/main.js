@@ -297,6 +297,22 @@ class Go2DApp {
                 size: cssSize
             };
         }
+        if (this.logic.lattice === 'triangular') {
+            const rawWidth = Math.max(1, (this.logic.size - 1) * 1.5 + 1);
+            const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1);
+            const step = span / Math.max(rawWidth, rawHeight);
+            const spanX = rawWidth * step;
+            const spanY = rawHeight * step;
+            return {
+                x: (cssSize - spanX) / 2,
+                y: (cssSize - spanY) / 2,
+                span: Math.max(spanX, spanY),
+                spanX,
+                spanY,
+                step,
+                size: cssSize
+            };
+        }
         return { x: margin, y: margin, span, step: span / (this.logic.size - 1), size: cssSize };
     }
 
@@ -315,6 +331,12 @@ class Go2DApp {
             return {
                 x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
                 y: rect.y + (coord[1] + (coord[0] % 2) * 0.5) * rect.step
+            };
+        }
+        if (this.logic.lattice === 'triangular') {
+            return {
+                x: rect.x + (coord[0] + coord[1] * 0.5) * rect.step,
+                y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
             };
         }
         return {
@@ -341,7 +363,7 @@ class Go2DApp {
             }
             return nearestDistance <= Math.max(14, rect.step * 0.42) ? nearest : null;
         }
-        if (this.logic.lattice === 'honeycomb') {
+        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'triangular') {
             let nearest = null;
             let nearestDistance = Infinity;
             for (let gy = 0; gy < this.logic.size; gy++) {
@@ -354,7 +376,8 @@ class Go2DApp {
                     }
                 }
             }
-            return nearestDistance <= Math.max(14, rect.step * 0.38) ? nearest : null;
+            const threshold = this.logic.lattice === 'honeycomb' ? 0.38 : 0.48;
+            return nearestDistance <= Math.max(14, rect.step * threshold) ? nearest : null;
         }
         const gx = Math.round((x - rect.x) / rect.step);
         const gy = Math.round((y - rect.y) / rect.step);

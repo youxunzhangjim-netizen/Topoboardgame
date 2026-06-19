@@ -167,62 +167,62 @@ function drawStaticCubeStack(canvas) {
     if (!canvas) return;
     const { width, height, ratio } = fitCanvas(canvas);
     const context = canvas.getContext('2d');
-    const centerX = width * 0.52;
-    const centerY = height * 0.58;
-    const base = Math.min(width, height) * 0.2;
+    const centerX = width * 0.51;
+    const centerY = height * 0.62;
+    const base = Math.min(width, height) * 0.16;
     const layers = 10;
     context.clearRect(0, 0, width, height);
     context.lineJoin = 'round';
     context.lineCap = 'round';
 
     function project(x, y, z, layer) {
-        const layerShift = (layer - (layers - 1) / 2) * base * 0.13;
+        const stackShift = (layer - (layers - 1) / 2) * base * 0.17;
         return {
-            x: centerX + (x - y) * base * 0.58 + layerShift,
-            y: centerY + (x + y) * base * 0.26 - z * base * 0.72 - layerShift * 0.38
+            x: centerX + (x - y) * base * 0.66 + stackShift,
+            y: centerY + (x + y) * base * 0.3 - z * base * 0.82 - stackShift * 0.45
         };
     }
 
+    function strokeLine(a, b) {
+        context.beginPath();
+        context.moveTo(a.x, a.y);
+        context.lineTo(b.x, b.y);
+        context.stroke();
+    }
+
     for (let layer = 0; layer < layers; layer++) {
-        const opacity = 0.18 + layer / (layers - 1) * 0.46;
-        const zOffset = (layer - (layers - 1) / 2) * 0.05;
-        const corners = [
-            project(-1, -1, -1 + zOffset, layer),
-            project(1, -1, -1 + zOffset, layer),
-            project(1, 1, -1 + zOffset, layer),
-            project(-1, 1, -1 + zOffset, layer),
-            project(-1, -1, 1 + zOffset, layer),
-            project(1, -1, 1 + zOffset, layer),
-            project(1, 1, 1 + zOffset, layer),
-            project(-1, 1, 1 + zOffset, layer)
-        ];
-        const edges = [
-            [0, 1], [1, 2], [2, 3], [3, 0],
-            [4, 5], [5, 6], [6, 7], [7, 4],
-            [0, 4], [1, 5], [2, 6], [3, 7]
-        ];
-        context.strokeStyle = `rgba(125, 211, 252, ${opacity})`;
-        context.lineWidth = (0.8 + layer * 0.05) * ratio;
-        for (const [from, to] of edges) {
-            context.beginPath();
-            context.moveTo(corners[from].x, corners[from].y);
-            context.lineTo(corners[to].x, corners[to].y);
-            context.stroke();
+        const opacity = 0.12 + layer / (layers - 1) * 0.5;
+        const values = [-1, -0.5, 0, 0.5, 1];
+
+        context.strokeStyle = `rgba(125, 211, 252, ${opacity * 0.58})`;
+        context.lineWidth = 0.52 * ratio;
+        for (const x of values) {
+            for (const y of values) strokeLine(project(x, y, -1, layer), project(x, y, 1, layer));
         }
-        for (let grid = -0.5; grid <= 0.51; grid += 0.5) {
-            const a = project(-1, grid, 1 + zOffset, layer);
-            const b = project(1, grid, 1 + zOffset, layer);
-            const c = project(grid, -1, 1 + zOffset, layer);
-            const d = project(grid, 1, 1 + zOffset, layer);
-            context.strokeStyle = `rgba(245, 182, 71, ${opacity * 0.5})`;
-            context.lineWidth = 0.55 * ratio;
-            context.beginPath();
-            context.moveTo(a.x, a.y);
-            context.lineTo(b.x, b.y);
-            context.moveTo(c.x, c.y);
-            context.lineTo(d.x, d.y);
-            context.stroke();
+        for (const x of values) {
+            for (const z of values) strokeLine(project(x, -1, z, layer), project(x, 1, z, layer));
         }
+        for (const y of values) {
+            for (const z of values) strokeLine(project(-1, y, z, layer), project(1, y, z, layer));
+        }
+
+        context.strokeStyle = `rgba(245, 182, 71, ${opacity * 0.68})`;
+        context.lineWidth = 0.7 * ratio;
+        for (const grid of [-0.5, 0, 0.5]) {
+            strokeLine(project(-1, grid, 1, layer), project(1, grid, 1, layer));
+            strokeLine(project(grid, -1, 1, layer), project(grid, 1, 1, layer));
+            strokeLine(project(1, -1, grid, layer), project(1, 1, grid, layer));
+            strokeLine(project(-1, 1, grid, layer), project(1, 1, grid, layer));
+        }
+
+        context.strokeStyle = `rgba(202, 241, 255, ${opacity + 0.14})`;
+        context.lineWidth = (0.82 + layer * 0.035) * ratio;
+        const cubeEdges = [
+            [[-1, -1, -1], [1, -1, -1]], [[1, -1, -1], [1, 1, -1]], [[1, 1, -1], [-1, 1, -1]], [[-1, 1, -1], [-1, -1, -1]],
+            [[-1, -1, 1], [1, -1, 1]], [[1, -1, 1], [1, 1, 1]], [[1, 1, 1], [-1, 1, 1]], [[-1, 1, 1], [-1, -1, 1]],
+            [[-1, -1, -1], [-1, -1, 1]], [[1, -1, -1], [1, -1, 1]], [[1, 1, -1], [1, 1, 1]], [[-1, 1, -1], [-1, 1, 1]]
+        ];
+        for (const [from, to] of cubeEdges) strokeLine(project(...from, layer), project(...to, layer));
     }
 }
 

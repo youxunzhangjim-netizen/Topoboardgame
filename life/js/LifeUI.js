@@ -888,6 +888,28 @@ export class LifeUI {
     const rows = Math.max(1, this.engine.dimension >= 2 ? this.engine.size[1] : 1);
     const zoom = Math.max(1, Math.min(48, Number(this.camera.zoom) || 1));
     this.camera.zoom = zoom;
+    if (this.engine.dimension === 2 && this.flatLatticeKind() === 'triangular') {
+      const baseSide = Math.max(1, Math.min(
+        width / Math.max(1, 1 + (columns - 1) * 0.5),
+        height / Math.max(1, rows * SQRT3 / 2)
+      ) * zoom);
+      const triangleHeight = baseSide * SQRT3 / 2;
+      const boardWidth = baseSide + Math.max(0, columns - 1) * baseSide * 0.5;
+      const boardHeight = rows * triangleHeight;
+      return {
+        columns,
+        rows,
+        zoom,
+        sx: baseSide * 0.5,
+        sy: triangleHeight,
+        triangleSide: baseSide,
+        triangleHeight,
+        boardWidth,
+        boardHeight,
+        originX: (width - boardWidth) / 2 + (Number(this.camera.panX) || 0),
+        originY: (height - boardHeight) / 2 + (Number(this.camera.panY) || 0)
+      };
+    }
     if (this.engine.dimension === 2 && this.flatLatticeKind() === 'honeycomb') {
       const radius = Math.max(1, Math.min(
         width / (SQRT3 * (columns + 0.5)),
@@ -1001,9 +1023,13 @@ export class LifeUI {
     const lattice = this.flatLatticeKind();
 
     if (lattice === 'triangular') {
+      const side = Math.max(1, (view.triangleSide || sx * 2) - inset * 2);
+      const height = Math.max(1, (view.triangleHeight || sy) - inset * SQRT3);
+      const leftEdge = originX + x * (view.triangleSide || sx * 2) * 0.5 + inset;
+      const topEdge = originY + y * (view.triangleHeight || sy) + inset * SQRT3 / 2;
       return ((x + y) % 2 === 0)
-        ? [[cx, top], [right, bottom], [left, bottom]]
-        : [[left, top], [right, top], [cx, bottom]];
+        ? [[leftEdge + side * 0.5, topEdge], [leftEdge + side, topEdge + height], [leftEdge, topEdge + height]]
+        : [[leftEdge, topEdge], [leftEdge + side, topEdge], [leftEdge + side * 0.5, topEdge + height]];
     }
 
     if (lattice === 'honeycomb') {
@@ -1047,11 +1073,13 @@ export class LifeUI {
     const lattice = this.flatLatticeKind();
     const xGuess = lattice === 'honeycomb'
       ? Math.floor((point.x - view.originX) / (view.hexWidth || view.sx))
+      : lattice === 'triangular'
+      ? Math.floor((point.x - view.originX) / Math.max(1, (view.triangleSide || view.sx * 2) * 0.5))
       : Math.floor((point.x - view.originX) / view.sx);
     const yGuess = lattice === 'honeycomb'
       ? Math.floor((point.y - view.originY) / (view.hexRowStep || view.sy))
       : Math.floor((point.y - view.originY) / view.sy);
-    const range = lattice === 'honeycomb' ? 3 : 1;
+    const range = lattice === 'honeycomb' ? 3 : lattice === 'triangular' ? 3 : 1;
     const x0 = Math.max(0, xGuess - range);
     const y0 = Math.max(0, yGuess - range);
     const x1 = Math.min(this.engine.size[0] - 1, xGuess + range + 1);
@@ -1210,13 +1238,42 @@ export class LifeUI {
     };
   }
 
-  surfaceRawPoint(x, y) {
-    const geom = this.boardGeometrySelect.value;
+  surfaceLatticePoint(x, y) {
     const nx = Math.max(1, this.engine.size[0]);
     const ny = Math.max(1, this.engine.size[1] || 1);
-    const u = (x / nx) * Math.PI * 2;
-    const vv = (y / Math.max(1, ny - 1));
-    const v2 = (y / ny) * Math.PI * 2;
+    const lattice = this.flatLatticeKind();
+    if (lattice === 'triangular') {
+      const rawX = x + y * 0.5;
+      const rawY = y * SQRT3 / 2;
+      return {
+        x: rawX,
+        y: rawY,
+        nx: nx + ny * 0.5,
+        ny: Math.max(1, ny * SQRT3 / 2)
+      };
+    }
+    if (lattice === 'honeycomb') {
+      const columnOffset = Math.floor(x) % 2 ? 0.5 : 0;
+      const rawX = x * SQRT3 / 2;
+      const rawY = y + columnOffset;
+      return {
+        x: rawX,
+        y: rawY,
+        nx: Math.max(1, nx * SQRT3 / 2),
+        ny: Math.max(1, ny + 0.5)
+      };
+    }
+    return { x, y, nx, ny };
+  }
+
+  surfaceRawPoint(x, y) {
+    const geom = this.boardGeometrySelect.value;
+    const latticePoint = this.surfaceLatticePoint(x, y);
+    const nx = latticePoint.nx;
+    const ny = latticePoint.ny;
+    const u = (latticePoint.x / nx) * Math.PI * 2;
+    const vv = (latticePoint.y / Math.max(1, ny));
+    const v2 = (latticePoint.y / ny) * Math.PI * 2;
     const vPi = vv * Math.PI;
 
     if (geom === 'sphere' || geom === 'rp2') {
@@ -1265,8 +1322,8 @@ export class LifeUI {
     }
 
     return {
-      x: (x / Math.max(1, nx - 1) - 0.5) * 1.8,
-      y: (y / Math.max(1, ny - 1) - 0.5) * 1.8,
+      x: (latticePoint.x / Math.max(1, nx) - 0.5) * 1.8,
+      y: (latticePoint.y / Math.max(1, ny) - 0.5) * 1.8,
       z: 0
     };
   }
@@ -1530,21 +1587,7 @@ export class LifeUI {
     if (lattice === 'triangular') {
       for (let y = 0; y < this.engine.size[1]; y += 1) {
         for (let x = 0; x < this.engine.size[0]; x += 1) {
-          const cx = originX + (x + 0.5) * sx;
-          const cy = originY + (y + 0.5) * sy;
-          ctx.beginPath();
-          if (x + 1 < this.engine.size[0]) {
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(originX + (x + 1.5) * sx, cy);
-          }
-          if (y + 1 < this.engine.size[1]) {
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx, originY + (y + 1.5) * sy);
-          }
-          if (x + 1 < this.engine.size[0] && y > 0) {
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(originX + (x + 1.5) * sx, originY + (y - 0.5) * sy);
-          }
+          this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, view, 0));
           ctx.stroke();
         }
       }

@@ -155,34 +155,38 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
 .time-plane-preview::before {
   content: "";
   position: absolute;
-  width: 82%;
-  height: 52%;
-  border: 1px solid rgba(125,211,252,.22);
-  border-radius: 50%;
+  width: 84%;
+  height: 58%;
+  border: 1px solid rgba(125,211,252,.28);
+  border-radius: 12px;
   background:
-    repeating-linear-gradient(90deg, rgba(125,211,252,.2) 0 1px, transparent 1px 20px),
-    repeating-linear-gradient(0deg, rgba(248,199,93,.14) 0 1px, transparent 1px 20px);
-  transform: rotateX(64deg) rotateZ(-12deg);
+    linear-gradient(90deg, rgba(248,199,93,.58) 1px, transparent 1px) 50% 0 / 24px 100%,
+    linear-gradient(rgba(125,211,252,.45) 1px, transparent 1px) 0 50% / 100% 24px,
+    radial-gradient(circle at 50% 50%, rgba(56,189,248,.22), transparent 58%);
+  transform: rotateX(63deg) rotateZ(-17deg);
   box-shadow: 0 28px 42px rgba(0,0,0,.32);
   opacity: .82;
   animation: planarWaveSheet 6.4s ease-in-out infinite;
 }
 .time-plane-preview span {
   position: absolute;
-  width: 70%;
-  height: 10px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(125,211,252,.08), rgba(125,211,252,.9), rgba(248,199,93,.76), transparent);
-  box-shadow: 0 0 20px rgba(56,189,248,.18);
-  transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
-  animation: planarWaveBand 4.8s ease-in-out infinite;
+  width: var(--wave-size, 28%);
+  aspect-ratio: 1;
+  border: 2px solid rgba(125,211,252,.68);
+  border-left-color: rgba(248,199,93,.82);
+  border-bottom-color: rgba(248,199,93,.16);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(56,189,248,.2);
+  opacity: 0;
+  transform: rotateX(63deg) rotateZ(calc(-17deg + var(--wave-turn, 0deg))) scale(.22);
+  animation: planarOutwardTwist 4.8s ease-out infinite;
   animation-delay: var(--wave-delay, 0s);
   z-index: 1;
 }
-.time-plane-preview span:nth-child(1) { --wave-y: -54px; --wave-y-tight: -42px; --wave-lift: 5px; --wave-skew: -8deg; --wave-skew-alt: 8deg; --wave-delay: .84s; width: 62%; }
-.time-plane-preview span:nth-child(2) { --wave-y: -18px; --wave-y-tight: -14px; --wave-lift: 14px; --wave-skew: 9deg; --wave-skew-alt: -9deg; --wave-delay: .28s; width: 72%; }
-.time-plane-preview span:nth-child(3) { --wave-y: 18px; --wave-y-tight: 14px; --wave-lift: 8px; --wave-skew: -5deg; --wave-skew-alt: 5deg; --wave-delay: -.28s; width: 68%; }
-.time-plane-preview span:nth-child(4) { --wave-y: 54px; --wave-y-tight: 42px; --wave-lift: 16px; --wave-skew: 12deg; --wave-skew-alt: -12deg; --wave-delay: -.84s; width: 58%; }
+.time-plane-preview span:nth-child(1) { --wave-size: 26%; --wave-turn: -14deg; --wave-delay: 0s; }
+.time-plane-preview span:nth-child(2) { --wave-size: 34%; --wave-turn: 12deg; --wave-delay: .74s; }
+.time-plane-preview span:nth-child(3) { --wave-size: 44%; --wave-turn: -24deg; --wave-delay: 1.48s; }
+.time-plane-preview span:nth-child(4) { --wave-size: 56%; --wave-turn: 20deg; --wave-delay: 2.22s; }
 .time-volume-preview {
   display: grid;
   place-items: center;
@@ -225,16 +229,14 @@ label { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: 
 .time-volume-preview span:nth-child(2) { --grid-y: 0px; --grid-z: 0px; --grid-scale: .94; --grid-delay: -1.7s; width: 56%; }
 .time-volume-preview span:nth-child(3) { --grid-y: -24px; --grid-z: 28px; --grid-scale: .84; --grid-delay: -2.8s; width: 47%; }
 @keyframes planarWaveSheet {
-  0%, 100% { transform: rotateX(64deg) rotateZ(-12deg) scaleX(1); }
-  50% { transform: rotateX(58deg) rotateZ(-20deg) scaleX(.94); }
+  0%, 100% { transform: rotateX(63deg) rotateZ(-17deg) skewX(0deg); }
+  50% { transform: rotateX(58deg) rotateZ(-25deg) skewX(-7deg); }
 }
-@keyframes planarWaveBand {
-  0%, 100% {
-    transform: rotateX(64deg) rotateZ(-12deg) translateY(var(--wave-y, 0px)) translateZ(var(--wave-lift, 0px)) skewX(var(--wave-skew, 0deg));
-  }
-  50% {
-    transform: rotateX(58deg) rotateZ(-22deg) translateY(var(--wave-y-tight, 0px)) translateZ(calc(var(--wave-lift, 0px) + 18px)) skewX(var(--wave-skew-alt, 0deg));
-  }
+@keyframes planarOutwardTwist {
+  0% { opacity: 0; transform: rotateX(63deg) rotateZ(calc(-17deg + var(--wave-turn, 0deg))) scale(.2); }
+  18% { opacity: .86; }
+  72% { opacity: .56; }
+  100% { opacity: 0; transform: rotateX(58deg) rotateZ(calc(62deg + var(--wave-turn, 0deg))) scale(1.65); }
 }
 @keyframes cubicGridBreath {
   0%, 100% {
