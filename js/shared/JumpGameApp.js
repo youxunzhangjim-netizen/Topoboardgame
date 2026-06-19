@@ -41,6 +41,8 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   Lattice: '晶格',
   'Board size': '棋盤大小',
   'Target axis': '目標軸',
+  Timer: '計時',
+  'No time': '不計時',
   'Target Mode': '目標模式',
   'Opponent Home Zone': '對方本區',
   'Antipodal Zone': '對跖目標區',
@@ -106,6 +108,7 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   'Suggested move': '建議走法',
   progress: '進度',
   'Score estimate for A': '玩家 A 分數估計',
+  'wins on time': '超時獲勝',
   'Polar Jump': '極座標跳棋',
   'Cylinder Jump': '圓柱跳棋',
   'Torus Jump': '環面跳棋',
@@ -190,6 +193,10 @@ export class JumpGameApp {
     this.topologySelect = document.getElementById('topologySelect');
     this.latticeSelect = document.getElementById('latticeSelect');
     this.sizeSelect = document.getElementById('boardSizeSelect');
+    this.timerSelect = document.getElementById('timerSelect');
+    this.timerRow = document.getElementById('jumpTimerRow');
+    this.timerAEl = document.getElementById('jumpTimerA');
+    this.timerBEl = document.getElementById('jumpTimerB');
     this.axisSelect = document.getElementById('targetAxisSelect');
     this.targetModeSelect = document.getElementById('targetModeSelect');
     this.endJumpButton = document.getElementById('endJumpButton');
@@ -199,6 +206,9 @@ export class JumpGameApp {
     this.selected = null;
     this.legal = [];
     this.history = [];
+    this.timeLimit = 0;
+    this.timeRemaining = { A: 0, B: 0 };
+    this.timerInterval = null;
     this.myColor = null;
     this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
     this.viewControls = {
@@ -223,6 +233,7 @@ export class JumpGameApp {
     this.suppressCanvasClickUntil = 0;
     this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
     this.game = this.createGame();
+    this.syncTimerFromSelect(true);
     this.install();
     this.updateLabels();
     this.render();
@@ -255,6 +266,7 @@ export class JumpGameApp {
     };
     setIfPresent(this.topologySelect, this.config.topology);
     setIfPresent(this.sizeSelect, this.config.size);
+    setIfPresent(this.timerSelect, this.config.timer || this.config.timeLimit || 0);
     setIfPresent(this.axisSelect, this.config.targetAxis);
     setIfPresent(this.targetModeSelect, this.config.labTargetMode);
     setIfPresent(this.latticeSelect, this.config.lattice);
@@ -316,7 +328,7 @@ export class JumpGameApp {
     addEventListener('resize', () => this.render());
     this.canvas.addEventListener('click', (event) => this.onCanvasClick(event));
     this.installViewControls();
-    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.sizeSelect, this.axisSelect, this.targetModeSelect]) {
+    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.sizeSelect, this.timerSelect, this.axisSelect, this.targetModeSelect]) {
       el?.addEventListener('change', () => {
         if (el === this.modeSelect && this.modeSelect?.value !== 'online') {
           this.network.close({ silent: true });
@@ -417,15 +429,77 @@ export class JumpGameApp {
   }
 
   resetGame() {
+    this.stopTimer();
     this.syncLatticeAvailability();
     this.game = this.createGame();
     this.selected = null;
     this.legal = [];
     this.history = [];
+    this.syncTimerFromSelect(true);
     this.network.gameKey = this.onlineGameKey();
     this.network.matchKey = this.onlineMatchKey();
     this.updateLabels();
     this.render();
+  }
+
+  syncTimerFromSelect(resetClocks = false) {
+    const value = Math.max(0, Number(this.timerSelect?.value || 0) || 0);
+    this.timeLimit = value;
+    if (resetClocks || !this.timeRemaining) this.timeRemaining = { A: value, B: value };
+    if (value <= 0) {
+      this.timeRemaining = { A: 0, B: 0 };
+      this.stopTimer();
+    }
+    this.updateTimerDisplay();
+  }
+
+  startTimer() {
+    if (this.timerInterval || this.timeLimit <= 0 || this.game?.winner) return;
+    this.timerInterval = setInterval(() => {
+      if (!this.game || this.game.winner || this.timeLimit <= 0) {
+        this.stopTimer();
+        return;
+      }
+      const player = this.game.currentPlayer === 'B' ? 'B' : 'A';
+      this.timeRemaining[player] = Math.max(0, Number(this.timeRemaining[player] || 0) - 1);
+      if (this.timeRemaining[player] <= 0) {
+        const winner = otherPlayer(player);
+        this.game.winner = winner;
+        this.history.push(`Player ${winner} ${this.t('wins on time', 'wins on time')}.`);
+        this.selected = null;
+        this.legal = [];
+        this.stopTimer();
+        this.network.sendState({ type: 'time_win' });
+      }
+      this.updateTimerDisplay();
+      this.render();
+    }, 1000);
+  }
+
+  stopTimer() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = null;
+  }
+
+  formatTimer(seconds) {
+    if (this.timeLimit <= 0) return '--';
+    const value = Math.max(0, Math.floor(Number(seconds) || 0));
+    const mins = Math.floor(value / 60);
+    const secs = value % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  updateTimerDisplay() {
+    const timed = this.timeLimit > 0;
+    if (this.timerRow) this.timerRow.hidden = false;
+    if (this.timerAEl) {
+      this.timerAEl.textContent = `A ${this.formatTimer(this.timeRemaining.A)}`;
+      this.timerAEl.classList.toggle('active', timed && this.game?.currentPlayer === 'A' && !this.game?.winner);
+    }
+    if (this.timerBEl) {
+      this.timerBEl.textContent = `B ${this.formatTimer(this.timeRemaining.B)}`;
+      this.timerBEl.classList.toggle('active', timed && this.game?.currentPlayer === 'B' && !this.game?.winner);
+    }
   }
 
   onCanvasClick(event) {
@@ -630,6 +704,8 @@ export class JumpGameApp {
   }
 
   afterMove(label) {
+    if (!this.game.winner) this.startTimer();
+    else this.stopTimer();
     this.render();
     this.network.sendState({ type: label || 'jump_move' });
     if (this.modeSelect?.value === 'robot' && !this.game.winner) setTimeout(() => this.robotTurn(), 180);
@@ -1000,6 +1076,7 @@ export class JumpGameApp {
     }
     if (this.endJumpButton) this.endJumpButton.disabled = !this.game.chainFrom;
     if (this.historyEl) this.historyEl.innerHTML = this.history.slice(-10).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
+    this.updateTimerDisplay();
     this.syncPieceFocusButton();
     this.renderMovePicker();
   }
@@ -1018,7 +1095,14 @@ export class JumpGameApp {
 
   setStatus(text) { if (this.statusEl && text) this.statusEl.textContent = text; }
   updateUI() { this.render(); }
-  exportState() { return this.game.serialize(); }
+  exportState() {
+    return {
+      ...this.game.serialize(),
+      timerEnabled: this.timeLimit > 0,
+      timeLimit: this.timeLimit,
+      timeRemaining: { ...this.timeRemaining }
+    };
+  }
   exportNetworkState() { return this.exportState(); }
   importState(state) {
     const normalized = normalizeJumpNetworkState(state);
@@ -1028,6 +1112,16 @@ export class JumpGameApp {
     if (normalized.lattice && this.latticeSelect) this.latticeSelect.value = normalizeJumpLattice(normalized.lattice, this.dimension, normalized.topology || this.topologySelect?.value);
     this.syncLatticeAvailability(normalized.topology || this.topologySelect?.value);
     this.game.import(normalized);
+    this.timeLimit = Number(normalized.timeLimit || 0) || 0;
+    this.timeRemaining = {
+      A: Number.isFinite(Number(normalized.timeRemaining?.A)) ? Number(normalized.timeRemaining.A) : this.timeLimit,
+      B: Number.isFinite(Number(normalized.timeRemaining?.B)) ? Number(normalized.timeRemaining.B) : this.timeLimit
+    };
+    if (this.timerSelect && [...this.timerSelect.options].some((option) => Number(option.value) === this.timeLimit)) {
+      this.timerSelect.value = String(this.timeLimit);
+    }
+    if (this.timeLimit > 0 && !this.game.winner) this.startTimer();
+    else this.stopTimer();
     this.selected = null;
     this.legal = [];
     this.updateLabels();
@@ -1040,9 +1134,10 @@ export class JumpGameApp {
     const t = this.topologySelect?.value || this.config.topology || 'plane';
     const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, t);
     const s = this.sizeSelect?.value || this.config.size;
+    const timer = this.timerSelect?.value || this.config.timer || this.config.timeLimit || 0;
     const axis = this.axisSelect?.value || 'x';
     const target = this.targetModeSelect?.value || 'opponentHome';
-    return `jump:${this.dimension}d:${t}:lattice${lattice}:size${s}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
+    return `jump:${this.dimension}d:${t}:lattice${lattice}:size${s}:timer${timer}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
   }
   updateOnlineRoomUI(roomId, color) { if (roomId) this.enterOnlineMode(); this.setOnlineColor(color); }
   setOnlineColor(color) { this.myColor = playerFromOnlineColor(color); }

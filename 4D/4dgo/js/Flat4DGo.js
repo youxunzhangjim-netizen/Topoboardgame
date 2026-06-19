@@ -260,7 +260,14 @@ export class Flat4DGoGame {
     }
 
     computeAreaScore() {
-        const score = { black: 0, white: this.komi, neutral: 0, komi: this.komi };
+        const score = {
+            black: 0,
+            white: this.komi,
+            neutral: 0,
+            komi: this.komi,
+            scoring: 'graph-area',
+            territoryRule: 'Empty regions are counted as territory only when every bordering stone on the selected 4D board graph belongs to one player; otherwise the region is neutral.'
+        };
         const visited = new Set();
 
         for (let index = 0; index < this.board.length; index++) {

@@ -389,8 +389,8 @@ class Reversi4DApp {
         ];
         const [x, y, z] = this.rotatePoint3D(point);
         const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
-        const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
-        return { x: width / 2 + x * scale, y: height * 0.44 + y * scale, depth: z };
+        const scale = Math.min(width, height) * 0.4 * (this.view.zoom || 1) * perspective;
+        return { x: width / 2 + x * scale, y: height * 0.47 + y * scale, depth: z };
     }
 
     rotatePoint3D(point) {

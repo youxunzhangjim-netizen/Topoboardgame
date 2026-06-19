@@ -2,12 +2,20 @@ import { StockfishAdapter } from './StockfishAdapter.js';
 
 function chessLike(context = {}) {
     const gameType = String(context.gameType || context.game || '').toLowerCase();
-    return gameType.includes('chess') || gameType.includes('jump');
+    return gameType.includes('chess');
 }
 
-function supportedReferenceTopology(context = {}) {
+function exactFairyVariantContext(context = {}) {
     const topology = String(context.topology || context.boundary || 'normal').toLowerCase();
-    return ['normal', 'standard', 'flat', 'open', 'forbidden', 'torus'].includes(topology);
+    const dimension = Number(context.dimension || 2);
+    const variantName = String(context.variantName || context.fairyVariant || '').trim();
+    const hasCustomTopology = !['normal', 'standard', 'flat', 'forbidden', ''].includes(topology);
+    return dimension === 2
+        && Boolean(variantName)
+        && !hasCustomTopology
+        && !context.timeMode
+        && !context.timeSchedule
+        && !context.timeEvolution;
 }
 
 export class FairyStockfishAdapter extends StockfishAdapter {
@@ -17,20 +25,24 @@ export class FairyStockfishAdapter extends StockfishAdapter {
     }
 
     isCompatible(context = {}) {
-        return chessLike(context) && supportedReferenceTopology(context);
+        return chessLike(context) && exactFairyVariantContext({ ...context, variantName: context.variantName || this.variantName });
     }
 
     async analyze(gameState, options = {}) {
         const context = {
             gameType: options.gameType || gameState?.gameType || 'chess',
             topology: options.topology || gameState?.topology || gameState?.boundary || 'normal',
-            dimension: options.dimension || gameState?.dimension || 2
+            dimension: options.dimension || gameState?.dimension || 2,
+            variantName: options.variantName || gameState?.variantName || this.variantName,
+            timeMode: options.timeMode || gameState?.timeMode || '',
+            timeSchedule: options.timeSchedule || gameState?.timeSchedule || null,
+            timeEvolution: options.timeEvolution || gameState?.timeEvolution || ''
         };
         if (!this.isCompatible(context)) {
             return {
                 engine: this.engineName,
                 available: false,
-                reason: 'Fairy-Stockfish is only a reference teacher where its variant rules are compatible; custom topology is handled by local robots.'
+                reason: 'Fairy-Stockfish can be wired only when an exact Fairy variant name matches the ordinary 2D chess-like rules. Topological boards, time modes, and custom Topoboardgame rules stay local-robot variants and may use Fairy-Stockfish only as a carefully converted teacher/baseline.'
             };
         }
         return super.analyze(gameState, {

@@ -167,19 +167,19 @@ function drawStaticCubeStack(canvas) {
     if (!canvas) return;
     const { width, height, ratio } = fitCanvas(canvas);
     const context = canvas.getContext('2d');
-    const centerX = width * 0.51;
-    const centerY = height * 0.62;
-    const base = Math.min(width, height) * 0.16;
+    const centerX = width * 0.5;
+    const centerY = height * 0.65;
+    const base = Math.min(width, height) * 0.19;
     const layers = 10;
     context.clearRect(0, 0, width, height);
     context.lineJoin = 'round';
     context.lineCap = 'round';
 
     function project(x, y, z, layer) {
-        const stackShift = (layer - (layers - 1) / 2) * base * 0.17;
+        const stackShift = (layer - (layers - 1) / 2) * base * 0.13;
         return {
-            x: centerX + (x - y) * base * 0.66 + stackShift,
-            y: centerY + (x + y) * base * 0.3 - z * base * 0.82 - stackShift * 0.45
+            x: centerX + (x - y) * base * 0.64 + stackShift,
+            y: centerY + (x + y) * base * 0.29 - z * base * 0.78 - stackShift * 0.42
         };
     }
 

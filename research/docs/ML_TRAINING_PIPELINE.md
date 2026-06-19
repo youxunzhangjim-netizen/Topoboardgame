@@ -35,6 +35,8 @@ normal 2D Go      -> KataGo directly
 normal 2D Reversi -> Edax directly
 ```
 
+Fairy-Stockfish is different: wire it only when a chess-like variant has an exact Fairy-Stockfish variant definition/name on an ordinary 2D board. Topological chess boards, time-schedule chess, and custom Topoboardgame movement/boundary rules are not automatically Fairy-Stockfish variants.
+
 Direct means the game is the ordinary flat 2D board with no topology, lattice, time schedule, age, delay, or +1D option. Anything else is a Topoboardgame variant. For variants, do not pretend the open engine understands the rules. Use the open engine only as a teacher/baseline when the position can be converted safely, then train a separate local model for that variant.
 
 ```text

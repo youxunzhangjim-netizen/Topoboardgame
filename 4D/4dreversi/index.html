@@ -30,26 +30,41 @@
             touch-action: none;
         }
         .reversi4d-edge-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-        .reversi4d-edge { stroke: rgba(128, 190, 255, .22); stroke-width: 1.1; }
+        .reversi4d-edge { stroke: rgba(128, 190, 255, .3); stroke-width: 1.35; }
         .reversi4d-projection .vertex.projected-vertex {
             position: absolute;
-            width: clamp(18px, 2.3vw, 28px);
-            height: clamp(18px, 2.3vw, 28px);
+            width: clamp(22px, 2.9vw, 36px);
+            height: clamp(22px, 2.9vw, 36px);
             min-height: 0;
             padding: 0;
-            border: 1px solid rgba(116, 177, 255, .38);
-            border-radius: 50%;
-            background: rgba(8, 19, 31, .92);
+            border: 1px solid rgba(143, 194, 255, .48);
+            border-radius: 10px;
+            background:
+                radial-gradient(circle at 34% 28%, rgba(214, 234, 255, .34), transparent 34%),
+                linear-gradient(145deg, rgba(14, 31, 50, .94), rgba(4, 11, 22, .96));
             transform: translate(-50%, -50%);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, .32);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, .34), inset 0 0 0 1px rgba(255, 255, 255, .04);
         }
         .reversi4d-projection .vertex.projected-vertex::before,
         .reversi4d-projection .vertex.projected-vertex::after { display: none; }
-        .reversi4d-projection .vertex.projected-vertex.liberty { background: rgba(34, 197, 94, .34); border-color: rgba(99, 255, 164, .68); }
+        .reversi4d-projection .vertex.projected-vertex.liberty {
+            background:
+                radial-gradient(circle at 50% 50%, rgba(99, 255, 164, .26), transparent 54%),
+                linear-gradient(145deg, rgba(15, 54, 39, .94), rgba(4, 16, 20, .96));
+            border-color: rgba(99, 255, 164, .72);
+        }
         .reversi4d-projection .vertex.projected-vertex.group,
-        .reversi4d-projection .vertex.projected-vertex.hover { background: rgba(72, 199, 244, .3); }
+        .reversi4d-projection .vertex.projected-vertex.hover {
+            background:
+                radial-gradient(circle at 50% 50%, rgba(72, 199, 244, .3), transparent 56%),
+                linear-gradient(145deg, rgba(14, 40, 58, .94), rgba(4, 11, 22, .96));
+        }
         .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
-        .reversi4d-projection .stone { width: 76%; }
+        .reversi4d-projection .stone {
+            width: 68%;
+            height: 68%;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, .34);
+        }
         .reversi4d-jump-form .jump-side .panel,
         .reversi4d-jump-form .jump-side .status-card,
         .reversi4d-jump-form .jump-side .control-group,
@@ -64,7 +79,7 @@
             <header class="top-bar jump-header">
                 <div>
                     <h1>4D Reversi</h1>
-                    <p>Standard 4D graph Reversi on configurable (x,y,z,w) boards. Default size: 5 x 5 x 5 x 5.</p>
+                    <p>Standard 4D graph Reversi on empty Jump-style 4D boards, with only the alternating center 2 x 2 x 2 x 2 opening occupied.</p>
                 </div>
                 <div class="jump-tags"><span>Reversi</span><span>4D</span><span>rays</span><span>topology</span></div>
             </header>

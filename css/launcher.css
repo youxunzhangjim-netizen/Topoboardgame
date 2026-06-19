@@ -328,6 +328,14 @@ h1 {
     gap: 18px;
 }
 
+#life-evolution-worlds {
+    order: 1;
+}
+
+#strategy-systems-labs {
+    order: 2;
+}
+
 .algebraic-mode-panel {
     display: grid;
     gap: 12px;

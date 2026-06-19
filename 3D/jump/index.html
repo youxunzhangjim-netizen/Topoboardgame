@@ -27,7 +27,12 @@
         <label>Mode<select id="gameModeSelect"><option value="local">Local</option><option value="online">Online</option><option value="robot">Robot</option></select></label>
         <label>Topology<select id="topologySelect"><option value="cube">3D Jump</option><option value="cylinder">3D Cylinder Jump</option><option value="torus">3D Torus Jump</option><option value="reflective">3D Reflective Jump</option><option value="sphere">3D Sphere / Shell Jump</option></select></label>
         <label>Board size<select id="boardSizeSelect"><option value="4" >4</option><option value="5" >5</option><option value="6" selected>6</option><option value="7" >7</option><option value="8" >8</option></select></label>
+        <label>Timer<select id="timerSelect"><option value="0" selected>No time</option><option value="180">3 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option><option value="1800">30 min</option></select></label>
         <label hidden>Target axis<select id="targetAxisSelect"><option value="x">x</option></select></label>
+      </div>
+      <div class="jump-timer-row" id="jumpTimerRow">
+        <span id="jumpTimerA">A --</span>
+        <span id="jumpTimerB">B --</span>
       </div>
       <details class="advanced-settings"><summary>Advanced / Research Settings</summary>
         <div class="jump-grid">
