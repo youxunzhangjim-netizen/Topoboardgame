@@ -27,9 +27,9 @@ assertFile('2D/jump/index.html');
 assertFile('3D/jump/index.html');
 assertFile('4D/jump/index.html');
 assertText('js/shared/JumpRules.js', [/allowMultiJump/, /captureOnJump/, /targetFillWin/, /JumpTopology/, /chooseJumpRobotMove/]);
-assertText('2D/jump/index.html', ['gameModeSelect', 'Online room', 'Local robot']);
-assertText('3D/jump/index.html', ['gameModeSelect', 'Online room', 'Local robot']);
-assertText('4D/jump/index.html', ['targetAxisSelect', 'Online room', 'Local robot']);
+assertText('2D/jump/index.html', ['gameModeSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
+assertText('3D/jump/index.html', ['gameModeSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
+assertText('4D/jump/index.html', ['targetAxisSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
 
 const checks = [
   {

@@ -50,8 +50,17 @@ export class JumpGameApp {
       rotY: document.getElementById('viewRotateY'),
       rotZ: document.getElementById('viewRotateZ'),
       zoom: document.getElementById('viewZoom'),
-      reset: document.getElementById('viewResetButton')
+      reset: document.getElementById('viewResetButton'),
+      focusOwn: document.getElementById('focusOwnPiecesBtn')
     };
+    this.sliceInputs = {
+      x: document.getElementById('r3FilterX') || document.getElementById('sliceXInput'),
+      y: document.getElementById('r3FilterY') || document.getElementById('sliceYInput'),
+      z: document.getElementById('r3FilterZ') || document.getElementById('sliceZInput'),
+      w: document.getElementById('sliceWInput')
+    };
+    this.sliceFilterEl = document.getElementById('r3FilterControl');
+    this.focusOwnPieces = false;
     this.movePicker = this.ensureMovePicker();
     this.suppressCanvasClickUntil = 0;
     this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
@@ -114,10 +123,20 @@ export class JumpGameApp {
     }
     this.viewControls.reset?.addEventListener('click', () => {
       this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+      this.clearR3SliceFilters(false);
       if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
       if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
       if (this.viewControls.rotZ) this.viewControls.rotZ.value = String(this.view.rotZ);
       if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom);
+      this.render();
+    });
+    for (const input of Object.values(this.sliceInputs || {})) {
+      input?.addEventListener('input', () => this.refreshR3SliceFilter());
+      input?.addEventListener('change', () => this.refreshR3SliceFilter());
+    }
+    this.viewControls.focusOwn?.addEventListener('click', () => {
+      this.focusOwnPieces = !this.focusOwnPieces;
+      this.syncPieceFocusButton();
       this.render();
     });
     this.canvas.addEventListener('wheel', (event) => {
@@ -161,6 +180,8 @@ export class JumpGameApp {
     this.canvas.addEventListener('pointerup', stopDrag);
     this.canvas.addEventListener('pointercancel', stopDrag);
     this.canvas.addEventListener('contextmenu', (event) => { if (this.usesEmbeddedView()) event.preventDefault(); });
+    this.updateR3SliceFilterVisibility();
+    this.syncPieceFocusButton();
   }
 
   updateLabels() {
@@ -364,18 +385,25 @@ export class JumpGameApp {
   }
 
   robotTurn() {
-    if (this.game.currentPlayer !== 'B') return;
+    if (this.game.currentPlayer !== 'B' || this.game.winner) return;
     let guard = 0;
     do {
       const move = chooseJumpRobotMove(this.game, 'B');
-      if (!move) break;
-      const result = this.game.applyMove(move);
-      this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
-      guard += 1;
-      if (!result.continueJump || guard > 8) {
-        if (result.continueJump) this.game.endTurn();
+      if (!move) {
+        this.game.endTurn();
+        this.history.push('Robot had no legal move and passed the turn.');
         break;
       }
+      const result = this.game.applyMove(move);
+      if (!result.ok) {
+        this.history.push(`Robot skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
+        this.game.endTurn();
+        break;
+      }
+      this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
+      guard += 1;
+      if (result.continueJump) this.game.endTurn();
+      break;
     } while (this.game.currentPlayer === 'B' && !this.game.winner);
     this.render();
   }
@@ -397,11 +425,53 @@ export class JumpGameApp {
 
   visibleCoord(coord) {
     if (this.dimension <= 2) return true;
-    const z = Number(document.getElementById('sliceZInput')?.value);
-    const w = Number(document.getElementById('sliceWInput')?.value);
-    if (Number.isFinite(z) && document.getElementById('sliceZInput')?.value !== '' && coord[2] !== z) return false;
-    if (this.dimension === 4 && Number.isFinite(w) && document.getElementById('sliceWInput')?.value !== '' && coord[3] !== w) return false;
+    const { x, y, z, w } = this.r3SliceSettings();
+    if (x !== null && coord[0] !== x) return false;
+    if (y !== null && coord[1] !== y) return false;
+    if (z !== null && coord[2] !== z) return false;
+    if (this.dimension === 4 && w !== null && coord[3] !== w) return false;
     return true;
+  }
+
+  sliceInputValue(input) {
+    if (!input || String(input.value || '').trim() === '') return null;
+    const parsed = Math.floor(Number(input.value));
+    if (!Number.isFinite(parsed)) return null;
+    return Math.max(0, parsed - 1);
+  }
+
+  r3SliceSettings() {
+    return {
+      x: this.sliceInputValue(this.sliceInputs?.x),
+      y: this.sliceInputValue(this.sliceInputs?.y),
+      z: this.sliceInputValue(this.sliceInputs?.z),
+      w: this.sliceInputValue(this.sliceInputs?.w)
+    };
+  }
+
+  clearR3SliceFilters(update = true) {
+    for (const input of Object.values(this.sliceInputs || {})) {
+      if (input) input.value = '';
+    }
+    if (update) this.render();
+  }
+
+  refreshR3SliceFilter() {
+    this.render();
+  }
+
+  updateR3SliceFilterVisibility() {
+    const show = this.dimension >= 3;
+    if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show;
+    if (this.viewControls.focusOwn) this.viewControls.focusOwn.hidden = !show;
+  }
+
+  focusPlayer() {
+    return this.modeSelect?.value === 'online' && this.myColor ? this.myColor : this.game.currentPlayer;
+  }
+
+  syncPieceFocusButton() {
+    this.viewControls.focusOwn?.setAttribute('aria-pressed', String(this.focusOwnPieces));
   }
 
   cellRadius() { return Math.max(8, Math.min(this.canvas.clientWidth || 720, this.canvas.clientHeight || 520) / (this.game.size * 2.8)); }
@@ -460,7 +530,7 @@ export class JumpGameApp {
       const [x, y, z] = this.rotatePoint3D(this.embeddedPoint(coord));
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
       const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
-      return { x: width / 2 + x * scale, y: height / 2 + y * scale, depth: z };
+      return { x: width / 2 + x * scale, y: height * 0.42 + y * scale, depth: z };
     }
     const pad = Math.max(40, Math.min(width, height) * 0.08);
     const usableW = width - pad * 2;
@@ -545,6 +615,9 @@ export class JumpGameApp {
     const p = this.project(coord);
     const r = this.cellRadius() * 0.72;
     const ctx = this.ctx;
+    const focus = this.focusOwnPieces ? this.focusPlayer() : null;
+    ctx.save();
+    if (focus && owner !== focus) ctx.globalAlpha = 0.34;
     ctx.fillStyle = owner === 'A' ? '#54a4ff' : '#ffbe4c';
     ctx.strokeStyle = '#f8fbff';
     ctx.lineWidth = 2;
@@ -553,6 +626,7 @@ export class JumpGameApp {
     ctx.font = `${Math.max(10, r * 0.75)}px system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(label?.charge || owner, p.x, p.y);
+    ctx.restore();
   }
 
   drawSelected(coord) {
@@ -583,6 +657,7 @@ export class JumpGameApp {
     if (this.progressEl) this.progressEl.innerHTML = `<span>Player A target: ${a.percentage}% (${a.filled}/${a.total})</span><span>Player B target: ${b.percentage}% (${b.filled}/${b.total})</span>`;
     if (this.endJumpButton) this.endJumpButton.disabled = !this.game.chainFrom;
     if (this.historyEl) this.historyEl.innerHTML = this.history.slice(-10).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
+    this.syncPieceFocusButton();
     this.renderMovePicker();
   }
 

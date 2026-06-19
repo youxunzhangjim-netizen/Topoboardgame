@@ -735,6 +735,10 @@ body[data-life-usage] #lifeCanvas:active {
   display: none !important;
 }
 
+.life-online-controls:not(.online-active) .life-online-details {
+  display: none !important;
+}
+
 .connection-status {
   padding: 9px 10px;
   border-radius: 10px;
@@ -818,3 +822,17 @@ body[data-life-usage] #lifeCanvas:active {
 .control-row:has(input[type="range"]) label { grid-column: 1; }
 .control-row:has(input[type="range"]) input[type="range"] { grid-column: 2; width: 100%; }
 .life-range-value { grid-column: 3; justify-self: end; min-width: 44px; padding: 4px 7px; border: 1px solid rgba(125,211,252,.25); border-radius: 10px; color: var(--gold); background: rgba(2,6,12,.72); font-size: 12px; font-weight: 900; text-align: right; }
+
+@media (min-width: 901px) {
+  .life-player-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 380px);
+  }
+
+  .life-control-panel {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}

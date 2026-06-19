@@ -189,13 +189,23 @@ function guestDisplayName(currentUser) {
     return generated;
 }
 
-function isGoogleUser(currentUser) {
+function providerIdsForUser(currentUser) {
+    return Array.isArray(currentUser?.providerData)
+        ? currentUser.providerData.map((provider) => provider?.providerId).filter(Boolean)
+        : [];
+}
+
+function isSignedInAccount(currentUser) {
     return Boolean(currentUser && !currentUser.isAnonymous);
 }
 
 function accountKindForUser(currentUser) {
     if (!currentUser) return 'offline-guest';
-    return currentUser.isAnonymous ? 'visitor' : 'google';
+    if (currentUser.isAnonymous) return 'visitor';
+    const providerIds = providerIdsForUser(currentUser);
+    if (providerIds.includes('google.com')) return 'google';
+    if (providerIds.includes('password')) return 'email';
+    return 'signed-in';
 }
 
 function profilePathForUser(currentUser) {
@@ -349,8 +359,8 @@ async function upsertUserProfile(currentUser, { source = 'session' } = {}) {
     }
 }
 
-async function upsertGoogleUserProfile(currentUser, { source = 'login' } = {}) {
-    if (!db || !isGoogleUser(currentUser)) return null;
+async function upsertSignedInUserProfile(currentUser, { source = 'login' } = {}) {
+    if (!db || !isSignedInAccount(currentUser)) return null;
     return upsertUserProfile(currentUser, { source });
 }
 
@@ -365,7 +375,7 @@ async function completePendingGoogleRedirect() {
         const result = await getRedirectResult(auth, browserPopupRedirectResolver);
         if (result?.user) {
             user = result.user;
-            await upsertGoogleUserProfile(user, { source: 'google-redirect' });
+            await upsertSignedInUserProfile(user, { source: 'google-redirect' });
             notifyAccountListeners();
             return result;
         }
@@ -378,8 +388,9 @@ async function completePendingGoogleRedirect() {
 
 export function getAccountState() {
     const currentUser = auth?.currentUser || user || null;
-    const signedIn = isGoogleUser(currentUser);
+    const signedIn = isSignedInAccount(currentUser);
     const isVisitor = Boolean(currentUser?.isAnonymous);
+    const providerIds = providerIdsForUser(currentUser);
     const profileWrite = profileWriteStateForUser(currentUser);
     return {
         configured: hasFirebaseConfig(),
@@ -387,7 +398,8 @@ export function getAccountState() {
         uid: currentUser?.uid || null,
         accountKind: accountKindForUser(currentUser),
         signedIn,
-        isGoogle: signedIn,
+        isGoogle: providerIds.includes('google.com'),
+        isEmail: providerIds.includes('password'),
         isVisitor,
         isGuest: !currentUser,
         isOfflineGuest: !currentUser,
@@ -425,7 +437,7 @@ export async function initAccountSession({ autoVisitor = false } = {}) {
     if (user?.isAnonymous) {
         await upsertVisitorUserProfile(user, { source: autoVisitor ? 'visitor-session' : 'account-session' });
     } else if (user) {
-        await upsertGoogleUserProfile(user, { source: 'account-session' });
+        await upsertSignedInUserProfile(user, { source: 'account-session' });
     }
     notifyAccountListeners();
     return getAccountState();
@@ -521,7 +533,7 @@ export async function signInWithGoogleAccount({ source = 'google-login' } = {}) 
         accountKind: accountKindForUser(user),
         user: authUserSummary(user)
     });
-    await upsertGoogleUserProfile(user, { source });
+    await upsertSignedInUserProfile(user, { source });
     authLog('signInWithGoogleAccount: online profile write finished', {
         lastProfileWrite,
         accountState: getAccountState()
@@ -536,7 +548,7 @@ export async function updateUserDisplayName(name) {
     await waitForInitialAuthState();
     const currentUser = auth?.currentUser || user || null;
     if (!currentUser) throw new Error('Sign in before setting a visible name.');
-    if (currentUser.isAnonymous) throw new Error('Visible names are available after Google sign-in.');
+    if (currentUser.isAnonymous) throw new Error('Visible names are available after sign-in.');
     const displayName = setLocalDisplayName(currentUser, name);
     try {
         await updateProfile(currentUser, { displayName });
@@ -544,8 +556,9 @@ export async function updateUserDisplayName(name) {
     } catch (error) {
         authWarn('updateUserDisplayName: updateProfile failed; saving Firestore/local name only', authErrorSummary(error));
     }
-    await upsertGoogleUserProfile(currentUser, { source: 'display-name' });
-    await refreshCurrentRoomPlayerProfile(currentUser);
+    const refreshedUser = auth?.currentUser || user || currentUser;
+    await upsertSignedInUserProfile(refreshedUser, { source: 'display-name' });
+    await refreshCurrentRoomPlayerProfile(refreshedUser);
     notifyAccountListeners();
     return getAccountState();
 }
@@ -915,7 +928,7 @@ export async function initOnline(options = {}) {
         if (user?.isAnonymous) {
             await upsertVisitorUserProfile(user, { source: 'online-init' });
         } else if (user) {
-            await upsertGoogleUserProfile(user, { source: 'online-init' });
+            await upsertSignedInUserProfile(user, { source: 'online-init' });
         }
         notifyAccountListeners();
         initialized = true;

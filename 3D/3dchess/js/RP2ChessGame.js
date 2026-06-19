@@ -42,9 +42,9 @@ export class RP2ChessGame {
         this.gameOver = false;
         this.showMoveHints = true;
         this.capturedPieces = { white: [], black: [] };
-        this.timerEnabled = true;
-        this.timeLimit = 600;
-        this.timeRemaining = { white: 600, black: 600 };
+        this.timerEnabled = false;
+        this.timeLimit = 0;
+        this.timeRemaining = { white: 0, black: 0 };
         this.timerInterval = null;
         this.gameStarted = false;
         this.gameMode = 'local';

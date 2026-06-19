@@ -41,11 +41,17 @@ export class GoRobotController {
     shouldBlockHumanInput(color = this.app.logic.currentPlayer) { return this.thinking || (this.isRobotMode() && color === this.side); }
     scheduleIfNeeded() {
         if (this.pendingTimer) window.clearTimeout(this.pendingTimer);
+        this.pendingTimer = null;
         if (!this.isRobotTurn()) return;
-        this.pendingTimer = window.setTimeout(() => this.forceMove(), 180);
+        this.pendingTimer = window.setTimeout(() => { this.pendingTimer = null; this.forceMove(); }, 180);
     }
     afterLocalAction() {
-        if (this.app.logic.gameOver) { this.renderFinalWinRateFlow(); return; }
+        if (this.pendingTimer) {
+            window.clearTimeout(this.pendingTimer);
+            this.pendingTimer = null;
+        }
+        if (this.app.logic.gameOver) { this.renderFinalWinRateFlow(); this.updatePanelState(); return; }
+        if (this.app.logic.scoringPending) { this.finalFlowKey = ''; this.updatePanelState(); return; }
         this.finalFlowKey = '';
         this.clearAnalysis();
         this.scheduleIfNeeded();
@@ -60,20 +66,27 @@ export class GoRobotController {
         await nextFrame();
         try {
             const result = chooseGoRobotMove(this.app.logic, this.depth);
-            if (!result.move) {
+            const move = chooseSafeRobotMove(this.app.logic, result.move);
+            if (!move) {
                 this.setMessage('Robot found no legal play. Passing if the rule engine allows it.');
                 const pass = this.app.logic.pass(this.app.logic.currentPlayer);
-                if (pass.ok) this.app.afterLocalAction(`${this.app.capitalize(this.app.logic.currentPlayer)} to play.`);
+                if (pass.ok) this.app.afterLocalAction(this.afterRobotMoveMessage('Pass'));
+                else this.setMessage(`Robot could not pass: ${pass.error || 'pass rejected'}`);
                 return;
             }
             const before = this.app.logic.currentPlayer;
-            const play = result.move.type === 'pass' ? this.app.logic.pass(before) : this.app.logic.tryPlay(result.move.coord, before);
+            const play = move.type === 'pass' ? this.app.logic.pass(before) : this.app.logic.tryPlay(move.coord, before);
             if (!play.ok) {
-                this.setMessage(`Robot move was rejected: ${play.error || 'illegal move'}`);
+                const fallback = move.type === 'pass' ? null : this.app.logic.pass(before);
+                if (fallback?.ok) {
+                    this.app.afterLocalAction(this.afterRobotMoveMessage('Pass'));
+                    return;
+                }
+                this.setMessage(`Robot move was rejected: ${play.error || fallback?.error || 'illegal move'}`);
                 return;
             }
-            const label = result.move.type === 'pass' ? 'Pass' : coordLabel(result.move.coord);
-            this.app.afterLocalAction(`Robot played ${label}. ${this.app.capitalize(this.app.logic.currentPlayer)} to play.`);
+            const label = move.type === 'pass' ? 'Pass' : coordLabel(move.coord);
+            this.app.afterLocalAction(this.afterRobotMoveMessage(label));
             if (!this.app.logic.gameOver) this.setMessage(`Robot played ${label}. Score ${formatScore(result.score)}. Sims ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`);
         } catch (error) {
             console.error(error);
@@ -133,11 +146,17 @@ export class GoRobotController {
     updatePanelState() {
         if (this.sideSelect) this.sideSelect.value = this.side;
         if (this.depthSelect) this.depthSelect.value = String(this.depth);
-        if (this.moveButton) this.moveButton.disabled = this.thinking || this.app.logic.gameOver || this.app.gameModeSelect?.value === 'online';
-        if (this.analyzeButton) this.analyzeButton.disabled = this.thinking || this.app.logic.gameOver;
+        const closed = this.app.logic.gameOver || this.app.logic.scoringPending;
+        if (this.moveButton) this.moveButton.disabled = this.thinking || closed || this.app.gameModeSelect?.value === 'online';
+        if (this.analyzeButton) this.analyzeButton.disabled = this.thinking || closed;
     }
     clearAnalysis() { if (this.output) this.output.innerHTML = '<p class="robot-muted">Click Analyze Position to rank legal plays, estimate win rate, and show group values.</p>'; }
     setMessage(message) { if (this.output) this.output.innerHTML = `<p class="robot-muted">${escapeHtml(message)}</p>`; }
+    afterRobotMoveMessage(label) {
+        if (this.app.logic.scoringPending) return `Robot played ${label}. Two passes. Both players must agree to count.`;
+        if (this.app.logic.gameOver) return `Robot played ${label}.`;
+        return `Robot played ${label}. ${this.app.capitalize(this.app.logic.currentPlayer)} to play.`;
+    }
 }
 
 
@@ -262,6 +281,20 @@ function getLegalPlayCandidates(logic, player) {
     }
     if (!moves.length || logic.passCount > 0) moves.push({ type: 'pass', label: 'Pass', captured: 0, liberties: 0 });
     return moves;
+}
+
+function chooseSafeRobotMove(logic, preferred) {
+    if (logic.gameOver || logic.scoringPending) return null;
+    const player = logic.currentPlayer;
+    const legal = getLegalPlayCandidates(logic, player);
+    const legalPlays = legal.filter((move) => move.type === 'play');
+    if (preferred?.type === 'play') {
+        const key = coordLabel(preferred.coord);
+        const matched = legalPlays.find((move) => coordLabel(move.coord) === key);
+        if (matched) return matched;
+    }
+    if (preferred?.type === 'pass' && legal.some((move) => move.type === 'pass')) return legal.find((move) => move.type === 'pass');
+    return legalPlays[0] || legal.find((move) => move.type === 'pass') || null;
 }
 
 function previewLegalPlay(logic, coord, color) {

@@ -394,7 +394,33 @@ const INITIAL_CLIFFORD_ALGEBRA_SET = params.get('algebraSet')
         || INITIAL_MODE === 'physical_clifford_reversi'
         ? 'physical'
         : '');
-const INITIAL_TOPOLOGY = params.get('topology') || params.get('board') || '';
+function normalizeTopologyAlias(value = '') {
+    const topology = String(value || '').trim().toLowerCase();
+    const aliases = {
+        t2: 'torus',
+        torus2d: 'torus',
+        '2-torus': 'torus',
+        s2: 'sphere_latitude',
+        sphere: 'sphere_latitude',
+        sphere_lat: 'sphere_latitude',
+        sphere_latitude_ns: 'sphere_latitude',
+        's2-sphere': 'sphere_latitude',
+        r2: 'flat',
+        plane: 'flat',
+        standard: 'flat',
+        rbc: 'random_boundary',
+        random: 'random_boundary',
+        'random-boundary': 'random_boundary',
+        '4d': 'flat_4d_grid',
+        flat_4d: 'flat_4d_grid',
+        '4d_grid': 'flat_4d_grid',
+        '3d': 'r3',
+        flat_3d_grid: 'r3'
+    };
+    return aliases[topology] || topology;
+}
+
+const INITIAL_TOPOLOGY = normalizeTopologyAlias(params.get('topology') || params.get('board') || '');
 const URL_PHYSICAL_PROBLEM_ID = params.get('physicalProblem') || params.get('problemId') || '';
 const MODE_SELECT_CATALOG = [...els.modeSelect.querySelectorAll('optgroup')].map((group) => ({
     label: group.label,

@@ -1582,64 +1582,106 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
-/* Temporal age indicator: a full circle means the piece is due for the current age/noise cycle. */
-.cell .age-ring {
-    position: absolute;
-    inset: 11%;
-    border-radius: 999px;
-    pointer-events: none;
-    background: conic-gradient(rgba(245, 182, 71, 0.96) 0 var(--age-angle), rgba(245, 182, 71, 0.08) var(--age-angle) 360deg);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-    opacity: 0.88;
-    z-index: 7;
-}
-.cell .age-ring.age-ring-due { filter: drop-shadow(0 0 8px rgba(245, 182, 71, 0.86)); opacity: 1; }
-
-/* More balanced Spin / Phase lab controls. */
-body[data-mode="ising_domain_game"] .section-algebra > .algebra-mode-fields,
-body[data-mode="two_phase_competition_game"] .section-algebra > .algebra-mode-fields,
-body[data-mode="spin_ice_vertex_game"] .section-algebra > .algebra-mode-fields,
-body[data-mode="z2_gauge_loop_game"] .section-algebra > .algebra-mode-fields {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    align-items: end;
-}
-body[data-mode="ising_domain_game"] .section-dynamics .control-fields,
-body[data-mode="two_phase_competition_game"] .section-dynamics .control-fields,
-body[data-mode="spin_ice_vertex_game"] .section-dynamics .control-fields,
-body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-
-/* Balanced lab control layout: keep Game / Board / Actions compact, avoid wide empty action columns. */
-@media (min-width: 1100px) {
-    .control-panel {
-        grid-template-columns: minmax(360px, 1.18fr) minmax(260px, 0.82fr) minmax(320px, 1fr);
+/* Balanced lab shell: keep the board visible first and put long lab settings in a usable side rail. */
+@media (min-width: 1180px) {
+    .app-shell {
+        width: min(1680px, 100%);
+        grid-template-columns: minmax(620px, 1fr) minmax(370px, 460px);
         align-items: start;
     }
+
+    .top-bar {
+        grid-column: 1 / -1;
+    }
+
+    .game-layout {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: start;
+        min-width: 0;
+    }
+
+    .control-panel {
+        grid-column: 2;
+        grid-row: 2;
+        grid-template-columns: 1fr;
+        align-self: start;
+        align-items: start;
+        max-height: calc(100vh - 130px);
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    .layer-panel {
+        grid-column: 1 / -1;
+    }
+
     .section-game,
     .section-board,
     .section-actions,
-    .section-dynamics {
-        grid-column: auto;
+    .section-dynamics,
+    .section-algebra,
+    .section-online {
+        grid-column: 1;
         min-width: 0;
+        border-right: 0;
+        padding-right: 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(218, 232, 224, 0.1);
     }
-    .section-game { order: 1; }
-    .section-board { order: 2; }
-    .section-actions { order: 3; border-right: 0; padding-right: 0; }
-    .section-dynamics { order: 4; grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid rgba(218, 232, 224, 0.1); border-right: 0; }
-    .section-algebra { order: 5; grid-column: 1 / -1; }
-    .section-online { order: 6; grid-column: 1 / -1; }
+
+    .section-online {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
     .section-actions .button-grid {
         grid-template-columns: repeat(2, minmax(130px, 1fr));
-        max-width: 460px;
+        max-width: none;
     }
+
     .section-board .control-fields.two-col,
-    .section-game .control-fields.two-col {
+    .section-game .control-fields.two-col,
+    .section-game .control-fields.three-col,
+    .section-online .control-fields {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .section-algebra > .algebra-mode-fields,
+    .section-dynamics .control-fields {
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .board-wrap {
+        min-height: calc(100vh - 130px);
+    }
+
+    .board {
+        max-width: min(78vh, 960px, 100%);
+    }
+
+    .algebraic-3d-board {
+        height: min(74vh, 760px);
+        min-height: 520px;
+    }
 }
+
 @media (min-width: 1500px) {
-    .app-shell { width: min(1680px, 100%); }
-    .control-panel { grid-template-columns: minmax(420px, 1.12fr) minmax(360px, 0.95fr) minmax(420px, 1.02fr); }
+    .app-shell {
+        grid-template-columns: minmax(760px, 1fr) minmax(420px, 500px);
+    }
+}
+
+@media (max-width: 1179px) {
+    .game-layout {
+        order: 2;
+    }
+
+    .control-panel {
+        order: 3;
+    }
+
+    .layer-panel {
+        order: 4;
+    }
 }

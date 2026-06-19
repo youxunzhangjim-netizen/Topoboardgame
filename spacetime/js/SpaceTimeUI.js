@@ -166,8 +166,8 @@ export class SpaceTimeUI {
     this.actionLabel.value = preset.actionLabel || SPACE_TIME_FAMILIES[preset.family]?.action || 'Action';
     this.delayInput.value = preset.delay || 2;
     this.periodInput.value = preset.period || 4;
-    this.lifetimeInput.value = preset.lifetime || 30;
-    this.oldAgeInput.value = preset.oldAge || 24;
+    this.lifetimeInput.value = preset.lifetime || 50;
+    this.oldAgeInput.value = preset.oldAge || 40;
     this.timeLatticeInput.value = preset.dt || 1;
     this.noiseInput.value = preset.allowNoise ? (preset.noise || 0) : 0;
     this.noiseControl.hidden = !preset.allowNoise;
@@ -191,8 +191,8 @@ export class SpaceTimeUI {
       lattice: this.latticeSelect.value,
       delay: clampInt(this.delayInput.value, 1, 16, 2),
       period: clampInt(this.periodInput.value, 1, 16, 4),
-      lifetime: clampInt(this.lifetimeInput.value, 1, 99, 30),
-      oldAge: clampInt(this.oldAgeInput.value, 1, 99, 24),
+      lifetime: clampInt(this.lifetimeInput.value, 1, 99, 50),
+      oldAge: clampInt(this.oldAgeInput.value, 1, 99, 40),
       dt: clampInt(this.timeLatticeInput.value, 1, 8, 1),
       noise: allowNoise ? Math.max(0, Math.min(1, Number(this.noiseInput.value) || 0)) : 0
     };
@@ -380,7 +380,7 @@ export class SpaceTimeUI {
       ctx.strokeStyle = piece.id === this.game.selectedPieceId ? '#ffffff' : piece.hiddenProgram ? '#f472b6' : 'rgba(255,255,255,.32)';
       ctx.lineWidth = piece.id === this.game.selectedPieceId ? Math.max(4, r * 0.14) : Math.max(2, r * 0.09);
       ctx.stroke();
-      const life = piece.lifetime || Number(this.lifetimeInput.value) || 30;
+      const life = piece.lifetime || Number(this.lifetimeInput.value) || 50;
       if (piece.age > 0 && this.game.preset.timeMode === 'decay') {
         const progress = Math.max(0.05, Math.min(1, piece.age / life));
         ctx.strokeStyle = progress >= 0.92 ? 'rgba(255,82,82,1)' : 'rgba(170,255,255,1)';

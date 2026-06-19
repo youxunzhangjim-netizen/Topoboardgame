@@ -32,6 +32,10 @@ function anyonSymbol(type) {
     return type || '1';
 }
 
+function isTokenBoardGame(game) {
+    return Boolean(game?.tokens instanceof Map && typeof game.tokenAt === 'function');
+}
+
 function labelSprite(text, {
     foreground = '#f8fbff',
     background = 'rgba(6, 11, 16, 0.86)',
@@ -112,6 +116,7 @@ export class Algebraic3DBoard {
         this.nodePoints = null;
         this.pointCoords = [];
         this.pointPositions = [];
+        this.surfaceMeshes = [];
 
         this.addLights();
         this.bind();
@@ -183,6 +188,7 @@ export class Algebraic3DBoard {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
+        this.surfaceMeshes = [];
 
         if (topology.name === 'torus') this.addTorusSurface();
         if (topology.name === 'sphere_latitude') this.addSphereSurface();
@@ -214,6 +220,8 @@ export class Algebraic3DBoard {
         );
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.userData.pickSurface = true;
+        this.surfaceMeshes.push(mesh);
         this.boardGroup.add(mesh);
     }
 
@@ -233,6 +241,8 @@ export class Algebraic3DBoard {
         );
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.userData.pickSurface = true;
+        this.surfaceMeshes.push(mesh);
         this.boardGroup.add(mesh);
     }
 
@@ -361,7 +371,7 @@ export class Algebraic3DBoard {
 
     renderEntities() {
         clearGroup(this.entityGroup);
-        if (this.game.mode === 'anyon_jump') {
+        if (isTokenBoardGame(this.game)) {
             for (const token of this.game.tokens.values()) this.addAnyon(token);
             return;
         }
@@ -706,7 +716,13 @@ export class Algebraic3DBoard {
         this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.pointer, this.camera);
-        const hits = this.raycaster.intersectObject(this.nodePoints, false);
+        const surfaceHits = this.surfaceMeshes.length
+            ? this.raycaster.intersectObjects(this.surfaceMeshes, false)
+            : [];
+        const surfaceDistance = surfaceHits[0]?.distance ?? Infinity;
+        const occlusionTolerance = Math.max(0.2, this.entityRadius() * 1.6);
+        const hits = this.raycaster.intersectObject(this.nodePoints, false)
+            .filter((hit) => hit.distance <= surfaceDistance + occlusionTolerance);
         return hits.length ? this.pointCoords[hits[0].index] || null : null;
     }
 

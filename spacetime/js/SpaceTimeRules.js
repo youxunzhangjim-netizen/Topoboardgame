@@ -92,7 +92,7 @@ export class SpaceTimeRules {
       id: `${player}-${index}-${Math.random().toString(36).slice(2, 7)}`,
       player,
       position,
-      lifetime: this.preset.timeMode === 'decay' ? (this.preset.lifetime ?? 30) : null,
+      lifetime: this.preset.timeMode === 'decay' ? (this.preset.lifetime ?? 50) : null,
       period: this.preset.timeMode === 'periodic' ? (this.preset.period || 4) : 1,
       phase: index % Math.max(1, this.preset.period || 1),
       cooldown: Number(this.preset.cooldown || 0),

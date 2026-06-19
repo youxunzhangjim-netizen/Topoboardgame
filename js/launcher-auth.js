@@ -23,10 +23,10 @@ const TEXT = {
         visitorStatus: 'Visitor mode is active. You can play online as a temporary visitor.',
         visitorStatusChecking: 'Visitor mode is active. Preparing online play...',
         visitorStatusSynced: 'Visitor mode is active. Online play is ready.',
-        signedInStatus: 'Google sign-in is active. Preparing online play...',
-        signedInStatusChecking: 'Google sign-in is active. Preparing online play...',
-        signedInStatusSynced: 'Google sign-in is active. Online play is ready.',
-        profileError: 'Google sign-in succeeded, but online play setup failed: {message}',
+        signedInStatus: 'Signed-in account is active. Preparing online play...',
+        signedInStatusChecking: 'Signed-in account is active. Preparing online play...',
+        signedInStatusSynced: 'Signed-in account is active. Online play is ready.',
+        profileError: 'Sign-in succeeded, but online play setup failed: {message}',
         visitorProfileError: 'Visitor mode is active, but online play setup failed: {message}',
         note: 'Google login connects online rooms and saved statistics to your account. Visitor mode is temporary.',
         working: 'Connecting...',
@@ -36,7 +36,7 @@ const TEXT = {
         saveName: 'Save',
         savingName: 'Saving...',
         nameSaved: 'Visible name saved.',
-        nameOnlySignedIn: 'Sign in with Google before setting a visible name.'
+        nameOnlySignedIn: 'Sign in before setting a visible name.'
     },
     zh: {
         guest: '離線 Guest',
@@ -51,10 +51,10 @@ const TEXT = {
         visitorStatus: '訪客模式已啟用。你可以用臨時訪客身分進行線上遊玩。',
         visitorStatusChecking: '訪客模式已啟用。正在準備線上遊玩...',
         visitorStatusSynced: '訪客模式已啟用。線上遊玩已準備完成。',
-        signedInStatus: 'Google 登入已啟用。正在準備線上遊玩...',
-        signedInStatusChecking: 'Google 登入已啟用。正在準備線上遊玩...',
-        signedInStatusSynced: 'Google 登入已啟用。線上遊玩已準備完成。',
-        profileError: 'Google 登入成功，但線上遊玩設定失敗：{message}',
+        signedInStatus: '帳號登入已啟用。正在準備線上遊玩...',
+        signedInStatusChecking: '帳號登入已啟用。正在準備線上遊玩...',
+        signedInStatusSynced: '帳號登入已啟用。線上遊玩已準備完成。',
+        profileError: '登入成功，但線上遊玩設定失敗：{message}',
         visitorProfileError: '訪客模式已啟用，但線上遊玩設定失敗：{message}',
         note: 'Google 登入會把線上房間與儲存統計連到你的帳號。訪客模式是臨時身分。',
         working: '連線中...',
@@ -64,7 +64,7 @@ const TEXT = {
         saveName: '儲存',
         savingName: '儲存中...',
         nameSaved: '顯示名稱已儲存。',
-        nameOnlySignedIn: '請先使用 Google 登入再設定顯示名稱。'
+        nameOnlySignedIn: '請先登入再設定顯示名稱。'
     }
 };
 

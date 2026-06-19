@@ -52,7 +52,19 @@
           <label>Rotate Z<input id="viewRotateZ" type="range" min="-180" max="180" value="0"></label>
           <label>Zoom<input id="viewZoom" type="range" min="0.45" max="2.4" step="0.01" value="1"></label>
         </div>
-        <button id="viewResetButton" type="button" class="secondary">Reset View</button>
+        <div class="r3-filter-control" id="r3FilterControl">
+          <label>R3 coordinate view filter</label>
+          <div class="r3-filter-grid">
+            <input id="r3FilterX" type="number" min="1" placeholder="x = all" aria-label="Show only X coordinate">
+            <input id="r3FilterY" type="number" min="1" placeholder="y = all" aria-label="Show only Y coordinate">
+            <input id="r3FilterZ" type="number" min="1" placeholder="z = all" aria-label="Show only Z coordinate">
+          </div>
+          <div class="jump-view-help">Leave a field empty to show all coordinates on that axis. Reset Camera clears this filter.</div>
+        </div>
+        <div class="jump-buttons jump-view-buttons">
+          <button id="viewResetButton" type="button" class="secondary">Reset Camera</button>
+          <button id="focusOwnPiecesBtn" type="button" class="secondary" aria-pressed="false">Focus Own</button>
+        </div>
         <p class="jump-view-help">Drag rotates 3D boards. Mouse wheel or trackpad zooms.</p>
       </details>
       <div class="jump-buttons"><button id="newGameButton">New Game</button><button id="endJumpButton" class="secondary" disabled>Stop Jump Chain</button></div>

@@ -16,7 +16,11 @@ service cloud.firestore {
           && request.resource.data.emailVerified is bool
           && (
             (
-              request.resource.data.accountKind == "google"
+              (
+                request.resource.data.accountKind == "google"
+                || request.resource.data.accountKind == "email"
+                || request.resource.data.accountKind == "signed-in"
+              )
               && request.resource.data.isAnonymous == false
             )
             || (
@@ -50,6 +54,8 @@ service cloud.firestore {
           && profile.displayName.size() <= 120
           && (
             profile.accountKind == "google"
+            || profile.accountKind == "email"
+            || profile.accountKind == "signed-in"
             || profile.accountKind == "visitor"
           )
           && (

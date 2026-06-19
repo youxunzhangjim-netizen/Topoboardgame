@@ -74,6 +74,8 @@ export const LIFE_TEXT = {
     drawTool: 'Draw',
     eraseTool: 'Erase',
     inspectTool: 'Inspect',
+    gridOn: 'Grid On',
+    gridOff: 'Grid Off',
     start: 'Start',
     pause: 'Pause',
     step: 'Step',
@@ -110,6 +112,28 @@ export const LIFE_TEXT = {
     playerB: 'Player B / Red',
     status: 'Status',
     canvasHelp: 'Click or drag on the board to draw, erase, or place species seeds.',
+    connection: 'Connection',
+    local: 'Local',
+    online: 'Online',
+    disconnected: 'Disconnected',
+    findMatch: 'Find Match',
+    createRoom: 'Create Room',
+    join: 'Join',
+    roomCode: 'Room code',
+    copyLink: 'Copy Link',
+    roomCodePlaceholder: 'Room code or shared link',
+    shareableLifeRoomLink: 'Shareable Life room link',
+    localBoardOnly: 'Local board only. Switch to Online to use rooms or matchmaking.',
+    onlineReady: 'Online mode is ready. Create a room, find a match, or join by room code.',
+    creatingLifeRoom: 'Creating Life room...',
+    findingLifeMatch: 'Finding Life match...',
+    joiningLifeRoom: 'Joining Life room...',
+    shareLinkCopied: 'Share link copied.',
+    copySelectedShareLink: 'Copy the selected share link.',
+    localBoardOnlyShort: 'Local board only.',
+    roomWaiting: 'Room {room}: waiting for opponent.',
+    connectedAs: 'Connected as {color}. The Life board is synchronized.',
+    connectedSpectator: 'Connected as spectator.',
     goalNone: 'Free play',
     goalSurvive: 'Survive for N generations',
     goalPopulationBand: 'Keep population in a target band',
@@ -126,6 +150,30 @@ export const LIFE_TEXT = {
     detected: 'detected'
   },
   zh: {
+    gridOn: '顯示格線',
+    gridOff: '隱藏格線',
+    connection: '連線',
+    local: '本機',
+    online: '線上',
+    disconnected: '未連線',
+    findMatch: '尋找配對',
+    createRoom: '建立房間',
+    join: '加入',
+    roomCode: '房間代碼',
+    copyLink: '複製連結',
+    roomCodePlaceholder: '房間代碼或分享連結',
+    shareableLifeRoomLink: 'Life 房間分享連結',
+    localBoardOnly: '目前是本機棋盤。切到線上後才顯示房間與配對。',
+    onlineReady: '線上模式已就緒。可以建立房間、尋找配對或輸入房間代碼。',
+    creatingLifeRoom: '正在建立 Life 房間...',
+    findingLifeMatch: '正在尋找 Life 配對...',
+    joiningLifeRoom: '正在加入 Life 房間...',
+    shareLinkCopied: '分享連結已複製。',
+    copySelectedShareLink: '請複製已選取的分享連結。',
+    localBoardOnlyShort: '目前是本機棋盤。',
+    roomWaiting: '房間 {room}：等待對手。',
+    connectedAs: '已以 {color} 連線。Life 棋盤會同步。',
+    connectedSpectator: '已作為觀戰者連線。',
     navBack: '← 生命世界',
     home: '首頁',
     lifeSubtitle: '創造生命、啟動演化，看看在不同空間中什麼能存活。',
@@ -233,6 +281,9 @@ export function localizeStaticText(root = document, language = currentLifeLangua
   });
   root.querySelectorAll('[data-life-i18n-label]').forEach((el) => {
     el.setAttribute('aria-label', t(el.dataset.lifeI18nLabel, language));
+  });
+  root.querySelectorAll('[data-life-i18n-placeholder]').forEach((el) => {
+    el.setAttribute('placeholder', t(el.dataset.lifeI18nPlaceholder, language));
   });
   root.querySelectorAll('[data-life-lang]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.lifeLang === language));

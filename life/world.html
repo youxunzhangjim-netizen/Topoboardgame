@@ -95,6 +95,7 @@
             <button class="life-button active" id="drawToolButton" type="button" data-tool="draw" data-life-i18n="drawTool">Draw</button>
             <button class="life-button" id="eraseToolButton" type="button" data-tool="erase" data-life-i18n="eraseTool">Erase</button>
             <button class="life-button" id="inspectToolButton" type="button" data-tool="inspect" data-life-i18n="inspectTool">Inspect</button>
+            <button class="life-button active" id="lifeGridToggleBtn" type="button" aria-pressed="true" data-life-i18n="gridOn">Grid On</button>
           </div>
           <div class="control-row">
             <label for="activePlayerSelect" data-life-i18n="activePlayer">Active player</label>
@@ -115,30 +116,30 @@
 
           <section class="life-online-controls" aria-label="Online Life room controls">
             <div class="control-row">
-              <label for="lifePlayModeSelect">Connection</label>
+              <label for="lifePlayModeSelect" data-life-i18n="connection">Connection</label>
               <select id="lifePlayModeSelect">
-                <option value="local">Local</option>
-                <option value="online">Online</option>
+                <option value="local" data-life-i18n="local">Local</option>
+                <option value="online" data-life-i18n="online">Online</option>
               </select>
             </div>
-            <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
-            <div class="life-button-row">
-              <button class="life-button" id="lifeFindMatchBtn" type="button">Find Match</button>
-              <button class="life-button" id="lifeCreateRoomBtn" type="button">Create Room</button>
+            <div class="connection-status disconnected life-online-details" id="connectionStatus" data-life-i18n="disconnected">Disconnected</div>
+            <div class="life-button-row life-online-details">
+              <button class="life-button" id="lifeFindMatchBtn" type="button" data-life-i18n="findMatch">Find Match</button>
+              <button class="life-button" id="lifeCreateRoomBtn" type="button" data-life-i18n="createRoom">Create Room</button>
             </div>
-            <div class="life-room-row">
-              <input id="roomIdInput" type="text" autocomplete="off" placeholder="Room code or shared link" />
-              <button class="life-button" id="lifeJoinRoomBtn" type="button">Join</button>
+            <div class="life-room-row life-online-details">
+              <input id="roomIdInput" type="text" autocomplete="off" placeholder="Room code or shared link" data-life-i18n-placeholder="roomCodePlaceholder" />
+              <button class="life-button" id="lifeJoinRoomBtn" type="button" data-life-i18n="join">Join</button>
             </div>
-            <div class="room-info" id="roomInfo" hidden>
-              <span>Room code</span>
+            <div class="room-info life-online-details" id="roomInfo" hidden>
+              <span data-life-i18n="roomCode">Room code</span>
               <strong id="roomIdDisplay"></strong>
               <div class="share-link-box">
-                <input id="shareLinkInput" type="text" readonly aria-label="Shareable Life room link" />
-                <button class="life-button" id="copyLinkBtn" type="button">Copy Link</button>
+                <input id="shareLinkInput" type="text" readonly aria-label="Shareable Life room link" data-life-i18n-label="shareableLifeRoomLink" />
+                <button class="life-button" id="copyLinkBtn" type="button" data-life-i18n="copyLink">Copy Link</button>
               </div>
             </div>
-            <p class="modifier-note life-online-note" id="lifeOnlineStatus">Local board only. Switch to Online to use matchmaking, room codes, or shared links.</p>
+            <p class="modifier-note life-online-note life-online-details" id="lifeOnlineStatus" data-life-i18n="localBoardOnly">Local board only. Switch to Online to use matchmaking, room codes, or shared links.</p>
           </section>
         </section>
 

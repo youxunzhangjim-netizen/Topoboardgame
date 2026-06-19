@@ -177,7 +177,7 @@ export class ChessGame {
         }
 
         const timerSelect = document.getElementById('timerSelect');
-        if (timerSelect) timerSelect.value = '600';
+        if (timerSelect) timerSelect.value = '0';
     }
 
     installBoardGameSwitch() {

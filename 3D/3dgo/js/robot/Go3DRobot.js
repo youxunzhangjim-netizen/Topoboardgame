@@ -192,19 +192,80 @@ export function installGo3DRobot(app) {
   else sidebar?.appendChild(panel);
   const side = panel.querySelector('#goRobotSideSelect'); const level = panel.querySelector('#goRobotLevelSelect'); const out = panel.querySelector('#goRobotAnalysisPanel');
   const isRobotMode = () => modeSelect?.value === 'robot';
-  async function makeMove() {
-    if (!isRobotMode() || app.logic.gameOver || app.logic.scoringPending || app.logic.currentPlayer !== side.value) return;
-    out.textContent = 'Robot is thinking...'; await new Promise(r => setTimeout(r, 20));
-    const a = analyzeGo3DPosition(app.logic, Number(level.value) || 1); render(out, a);
-    const move = a.topMoves[0]?.move; if (!move) return;
-    if (move.type === 'pass') app.logic.pass(app.logic.currentPlayer); else app.logic.tryPlay(move.coord, app.logic.currentPlayer);
-    app.afterLocalAction?.(`Robot played ${move.type === 'pass' ? 'Pass' : coordLabel(move.coord)}.`); app.updateUI?.();
+  let thinking = false;
+  let pendingTimer = 0;
+  function isRobotTurn() {
+    return isRobotMode() && !app.logic.gameOver && !app.logic.scoringPending && app.logic.currentPlayer === side.value;
   }
-  function schedule() { if (isRobotMode()) window.setTimeout(makeMove, 180); }
+  function updateButtons() {
+    const closed = app.logic.gameOver || app.logic.scoringPending;
+    panel.querySelector('#goRobotMoveBtn').disabled = thinking || closed || modeSelect?.value === 'online';
+    panel.querySelector('#goRobotAnalyzeBtn').disabled = thinking || closed;
+  }
+  function chooseSafeMove(preferred) {
+    if (app.logic.gameOver || app.logic.scoringPending) return null;
+    const legal = legalMoves(app.logic, app.logic.currentPlayer);
+    const legalPlays = legal.filter((move) => move.type === 'play');
+    if (preferred?.type === 'play') {
+      const key = coordLabel(preferred.coord);
+      const match = legalPlays.find((move) => coordLabel(move.coord) === key);
+      if (match) return match;
+    }
+    if (preferred?.type === 'pass') {
+      const pass = legal.find((move) => move.type === 'pass');
+      if (pass) return pass;
+    }
+    return legalPlays[0] || legal.find((move) => move.type === 'pass') || null;
+  }
+  function robotMessage(label) {
+    if (app.logic.scoringPending) return `Robot played ${label}. Two passes. Both players must agree to count.`;
+    if (app.logic.gameOver) return `Robot played ${label}.`;
+    return `Robot played ${label}.`;
+  }
+  async function makeMove() {
+    if (thinking || !isRobotTurn()) { updateButtons(); return; }
+    thinking = true;
+    out.textContent = 'Robot is thinking...';
+    updateButtons();
+    await new Promise(r => setTimeout(r, 20));
+    try {
+      const a = analyzeGo3DPosition(app.logic, Number(level.value) || 1); render(out, a);
+      const move = chooseSafeMove(a.topMoves[0]?.move);
+      if (!move) {
+        const pass = app.logic.pass(app.logic.currentPlayer);
+        if (pass.ok) app.afterLocalAction?.(robotMessage('Pass'));
+        else out.textContent = `Robot found no legal move: ${pass.error || 'pass rejected'}`;
+        return;
+      }
+      const actor = app.logic.currentPlayer;
+      const result = move.type === 'pass' ? app.logic.pass(actor) : app.logic.tryPlay(move.coord, actor);
+      if (!result.ok) {
+        const pass = move.type === 'pass' ? null : app.logic.pass(actor);
+        if (pass?.ok) {
+          app.afterLocalAction?.(robotMessage('Pass'));
+          return;
+        }
+        out.textContent = `Robot move was rejected: ${result.error || pass?.error || 'illegal move'}`;
+        return;
+      }
+      app.afterLocalAction?.(robotMessage(move.type === 'pass' ? 'Pass' : coordLabel(move.coord)));
+      app.updateUI?.();
+    } finally {
+      thinking = false;
+      updateButtons();
+    }
+  }
+  function schedule() {
+    if (pendingTimer) window.clearTimeout(pendingTimer);
+    pendingTimer = 0;
+    if (!isRobotTurn()) { updateButtons(); return; }
+    pendingTimer = window.setTimeout(() => { pendingTimer = 0; makeMove(); }, 180);
+  }
   panel.querySelector('#goRobotMoveBtn')?.addEventListener('click', makeMove);
   panel.querySelector('#goRobotAnalyzeBtn')?.addEventListener('click', () => render(out, analyzeGo3DPosition(app.logic, Number(level.value) || 1)));
   side.addEventListener('change', schedule); modeSelect?.addEventListener('change', () => { document.getElementById('onlineControls')?.classList.toggle('active', modeSelect.value === 'online'); schedule(); });
   const oldAfter = app.afterLocalAction?.bind(app); if (oldAfter) app.afterLocalAction = function(...args) { const result = oldAfter(...args); schedule(); return result; };
   const oldReset = app.resetGame?.bind(app); if (oldReset) app.resetGame = function(...args) { const result = oldReset(...args); schedule(); return result; };
+  updateButtons();
   schedule();
 }

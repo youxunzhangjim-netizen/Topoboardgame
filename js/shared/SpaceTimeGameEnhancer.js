@@ -25,7 +25,7 @@
   const isChess = family === 'chess';
   const isSchedulingDefaultFamily = family === 'go' || family === 'reversi';
   const explicitTimeMode = params.get('timeMode') || params.get('time') || '';
-  const settingsVersion = 2;
+  const settingsVersion = 3;
 
   const defaultMaxDelay = readNumber(params.get('delay'), 2, 1, 32);
   const DEFAULTS = {
@@ -34,8 +34,8 @@
     delay: defaultMaxDelay,
     actionDelay: readNumber(params.get('actionDelay'), 0, 0, defaultMaxDelay),
     period: readNumber(params.get('period') || params.get('frequency'), 4, 1, 32),
-    lifetime: readNumber(params.get('lifetime'), 30, 1, 512),
-    oldAge: readNumber(params.get('oldAge'), 24, 1, 512),
+    lifetime: readNumber(params.get('lifetime'), 50, 1, 512),
+    oldAge: readNumber(params.get('oldAge'), 40, 1, 512),
     dt: readNumber(params.get('dt'), 1, 1, 16),
     noiseMode: allowsNoise ? (params.get('noiseMode') || 'off') : 'off',
     noiseRate: allowsNoise ? readNumber(params.get('noiseRate'), 0.04, 0, 1) : 0,
@@ -53,13 +53,16 @@
     scheduledActions: [],
     lastApplyMessage: '',
     jumpAges: new Map(),
-    chessAges: new Map()
+    chessAges: new Map(),
+    pendingDelayAction: null,
+    schedulePopover: null
   };
 
   const panel = installPanel();
   installStyle();
   waitForGameApp().then((app) => {
     state.app = app;
+    applyNoTimerDefault(app);
     patchGame(app);
     readSettingsFromControls();
     writeSettingsToURL(false);
@@ -82,6 +85,10 @@
         merged.timeMode = 'delay';
         merged.delay = DEFAULTS.delay;
         merged.actionDelay = 0;
+      }
+      if (stored.settingsVersion !== settingsVersion) {
+        if (!params.has('lifetime')) merged.lifetime = DEFAULTS.lifetime;
+        if (!params.has('oldAge')) merged.oldAge = DEFAULTS.oldAge;
       }
       applyURLSettingOverrides(merged);
       merged.settingsVersion = settingsVersion;
@@ -118,13 +125,38 @@
     localStorage.setItem(storageKey, JSON.stringify(payload));
   }
 
+  function applyNoTimerDefault(app) {
+    if (params.has('timer') || params.has('timeLimit')) return;
+    const timerSelect = document.getElementById('timerSelect');
+    if (timerSelect && [...timerSelect.options].some((option) => option.value === '0')) {
+      timerSelect.value = '0';
+    }
+    for (const target of [app, app?.activeGame].filter(Boolean)) {
+      if ('timerEnabled' in target) target.timerEnabled = false;
+      if ('timeLimit' in target) target.timeLimit = 0;
+      if ('timeRemaining' in target) {
+        const current = target.timeRemaining || {};
+        target.timeRemaining = {
+          white: 0,
+          black: 0,
+          ...Object.fromEntries(Object.keys(current).map((key) => [key, 0]))
+        };
+      }
+      if (target.timerInterval) {
+        clearInterval(target.timerInterval);
+        target.timerInterval = null;
+      }
+      target.updateTimerDisplay?.();
+    }
+  }
+
   function installStyle() {
     if (document.getElementById('spaceTimeEnhancerStyle')) return;
     const style = document.createElement('style');
     style.id = 'spaceTimeEnhancerStyle';
     style.textContent = `
       .space-time-enhancer-panel{border:1px solid rgba(125,211,252,.38);border-radius:14px;background:linear-gradient(180deg,rgba(8,18,31,.94),rgba(7,13,22,.9));box-shadow:0 14px 36px rgba(0,0,0,.28);padding:0;margin:14px 0;color:#eaf6ff;display:block}
-      .space-time-enhancer-panel>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;list-style:none;padding:12px 14px}.space-time-enhancer-panel>summary::-webkit-details-marker{display:none}.space-time-enhancer-panel>summary:after{content:'Open';border:1px solid rgba(125,211,252,.36);border-radius:999px;padding:4px 9px;color:#dbeafe;font-size:.72rem;font-weight:900}.space-time-enhancer-panel[open]>summary:after{content:'Close'}.space-time-enhancer-title{display:grid;gap:3px;min-width:0}.space-time-enhancer-title strong{color:#f8c75d;font-size:.95rem;text-transform:uppercase}.space-time-enhancer-title small{color:#cbd5e1;overflow-wrap:anywhere}.space-time-enhancer-body{display:grid;gap:12px;padding:0 14px 14px}.space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-delay-quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.space-time-delay-quick button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#dbeafe;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-delay-quick button.active{border-color:rgba(248,199,93,.9);background:rgba(248,199,93,.16);color:#fde68a}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover,.space-time-delay-quick button:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
+      .space-time-enhancer-panel>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;list-style:none;padding:12px 14px}.space-time-enhancer-panel>summary::-webkit-details-marker{display:none}.space-time-enhancer-panel>summary:after{content:'Open';border:1px solid rgba(125,211,252,.36);border-radius:999px;padding:4px 9px;color:#dbeafe;font-size:.72rem;font-weight:900}.space-time-enhancer-panel[open]>summary:after{content:'Close'}.space-time-enhancer-title{display:grid;gap:3px;min-width:0}.space-time-enhancer-title strong{color:#f8c75d;font-size:.95rem;text-transform:uppercase}.space-time-enhancer-title small{color:#cbd5e1;overflow-wrap:anywhere}.space-time-enhancer-body{display:grid;gap:12px;padding:0 14px 14px}.space-time-enhancer-panel h3{margin:0;color:#f8c75d;font-size:1rem;letter-spacing:.02em;text-transform:uppercase}.space-time-enhancer-panel p{margin:0;color:#cbd5e1;line-height:1.45}.space-time-enhancer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-grid label{display:grid;gap:4px;color:#9fb8cf;font-weight:800;text-transform:uppercase;font-size:.73rem}.space-time-enhancer-panel select,.space-time-enhancer-panel input{min-width:0;width:100%;border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;padding:.55rem .62rem}.space-time-delay-quick{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}.space-time-delay-quick button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#dbeafe;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-delay-quick button.active{border-color:rgba(248,199,93,.9);background:rgba(248,199,93,.16);color:#fde68a}.space-time-enhancer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.space-time-enhancer-actions button,.space-time-enhancer-actions a{border:1px solid rgba(125,211,252,.36);border-radius:10px;background:#07101c;color:#f8fbff;text-align:center;text-decoration:none;font-weight:900;padding:.58rem .75rem}.space-time-enhancer-actions button:hover,.space-time-enhancer-actions a:hover,.space-time-delay-quick button:hover{border-color:rgba(248,199,93,.85)}.space-time-observables{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.space-time-observables span{border:1px solid rgba(125,211,252,.14);border-radius:8px;background:rgba(15,23,42,.58);padding:6px 8px;color:#dbeafe;font-size:.8rem}.space-time-enhancer-muted{font-size:.82rem;color:#a8b7c7}.space-time-schedule{display:grid;gap:5px}.space-time-schedule span{border:1px solid rgba(248,199,93,.22);border-radius:8px;background:rgba(248,199,93,.08);padding:6px 8px;color:#fde68a;font-size:.78rem}.space-time-delay-help{border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.5);padding:8px;color:#cbd5e1;font-size:.82rem;line-height:1.4}.space-time-schedule-popover{position:fixed;z-index:9999;display:grid;gap:8px;min-width:min(280px,calc(100vw - 24px));max-width:min(360px,calc(100vw - 24px));padding:10px;border:1px solid rgba(248,199,93,.68);border-radius:10px;background:rgba(7,13,22,.98);box-shadow:0 18px 48px rgba(0,0,0,.44);color:#eaf6ff}.space-time-schedule-popover[hidden]{display:none}.space-time-schedule-popover strong{color:#fde68a;font-size:.82rem;text-transform:uppercase}.space-time-schedule-popover small{color:#cbd5e1;line-height:1.35;overflow-wrap:anywhere}.space-time-schedule-popover .space-time-schedule-choices{display:flex;flex-wrap:wrap;gap:6px}.space-time-schedule-popover button{width:auto;min-height:30px;border:1px solid rgba(125,211,252,.32);border-radius:8px;background:#07101c;color:#f8fbff;padding:4px 8px;font-size:.78rem;font-weight:900}.space-time-schedule-popover button:hover{border-color:rgba(248,199,93,.85)}.space-time-schedule-popover button[data-st-popup-cancel]{margin-left:auto;color:#fecaca;border-color:rgba(248,113,113,.42)}.st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}.square.st-inactive{filter:grayscale(.5) brightness(.76)}.st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}.jump-time-age-ring{position:absolute;pointer-events:none}.space-time-enhancer-panel .hidden{display:none!important}@media(max-width:720px){.space-time-enhancer-grid,.space-time-enhancer-actions,.space-time-observables{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
@@ -303,6 +335,42 @@
 
   function patchStoneGame(app) {
     app.__spaceTimeSettings = settings;
+    if (!app.__spaceTimeStonePatched) {
+      app.__spaceTimeStonePatched = true;
+      const originalReset = app.resetGame?.bind(app);
+      if (originalReset) {
+        app.resetGame = (...args) => {
+          hideSchedulePopover();
+          state.scheduledActions = [];
+          return originalReset(...args);
+        };
+      }
+      const originalAfterLocalAction = app.afterLocalAction?.bind(app);
+      if (originalAfterLocalAction) {
+        app.afterLocalAction = (...args) => {
+          const result = originalAfterLocalAction(...args);
+          if (settings.timeMode === 'delay') processDueScheduledActions(app);
+          return result;
+        };
+      } else {
+        const originalPlayAt = app.playAt?.bind(app);
+        if (originalPlayAt) {
+          app.playAt = (...args) => {
+            const result = originalPlayAt(...args);
+            if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            return result;
+          };
+        }
+        const originalPassTurn = app.passTurn?.bind(app);
+        if (originalPassTurn) {
+          app.passTurn = (...args) => {
+            const result = originalPassTurn(...args);
+            if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            return result;
+          };
+        }
+      }
+    }
     if (layer === '2p1') {
       app.dynamicsSettings = () => ({
         timeEvolution: settings.timeMode === 'decay' ? 'decay' : 'age',
@@ -532,12 +600,157 @@
     }
   }
 
+  function ensureSchedulePopover() {
+    if (state.schedulePopover?.isConnected) return state.schedulePopover;
+    const popover = document.createElement('div');
+    popover.className = 'space-time-schedule-popover';
+    popover.hidden = true;
+    popover.innerHTML = `
+      <strong data-st-popup-title>Schedule action</strong>
+      <small data-st-popup-summary></small>
+      <div class="space-time-schedule-choices" data-st-popup-choices></div>
+    `;
+    popover.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const cancel = event.target.closest('[data-st-popup-cancel]');
+      if (cancel) {
+        hideSchedulePopover();
+        return;
+      }
+      const button = event.target.closest('button[data-st-popup-delay]');
+      if (!button || !state.pendingDelayAction) return;
+      const delay = readNumber(button.dataset.stPopupDelay, 0, 0, settings.delay);
+      finalizeDelayAction(delay);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') hideSchedulePopover();
+    });
+    document.body.appendChild(popover);
+    state.schedulePopover = popover;
+    return popover;
+  }
+
+  function hideSchedulePopover() {
+    if (state.schedulePopover) state.schedulePopover.hidden = true;
+    state.pendingDelayAction = null;
+  }
+
+  function showSchedulePopover(app, draft, event) {
+    const popover = ensureSchedulePopover();
+    state.pendingDelayAction = { app, draft };
+    const selected = selectedActionDelay();
+    const max = readNumber(settings.delay, 2, 1, 32);
+    const title = popover.querySelector('[data-st-popup-title]');
+    const summary = popover.querySelector('[data-st-popup-summary]');
+    const choices = popover.querySelector('[data-st-popup-choices]');
+    if (title) title.textContent = 'Pick schedule time';
+    if (summary) summary.textContent = draft.summary || 'Choose when this designed action should act.';
+    if (choices) {
+      choices.innerHTML = [
+        ...Array.from({ length: max + 1 }, (_, delay) => `
+          <button type="button" data-st-popup-delay="${delay}" aria-pressed="${delay === selected}">
+            ${escapeHTML(delayLabel(delay))}
+          </button>
+        `),
+        '<button type="button" data-st-popup-cancel>Cancel</button>'
+      ].join('');
+    }
+    popover.hidden = false;
+    const margin = 12;
+    const rect = popover.getBoundingClientRect();
+    const left = Math.min(window.innerWidth - rect.width - margin, Math.max(margin, Number(event?.clientX) + 8 || margin));
+    const top = Math.min(window.innerHeight - rect.height - margin, Math.max(margin, Number(event?.clientY) + 8 || margin));
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    return true;
+  }
+
+  function finalizeDelayAction(delay) {
+    const pending = state.pendingDelayAction;
+    if (!pending?.draft) return;
+    const { app, draft } = pending;
+    const baseTurn = currentTurn(app);
+    const action = {
+      ...draft,
+      dueTurn: baseTurn + (delay === 0 ? 0 : delay + 1),
+      createdTurn: baseTurn,
+      delay,
+      instant: delay === 0
+    };
+    delete action.summary;
+    settings.actionDelay = delay;
+    const control = panel.querySelector('[data-st-control="actionDelay"]');
+    if (control) control.value = String(delay);
+    saveSettings();
+    if (action.instant) {
+      hideSchedulePopover();
+      const ok = applyScheduledAction(app, action);
+      if (ok) processDueScheduledActions(app);
+      state.lastApplyMessage = ok ? 'Instant action resolved.' : 'Instant action was cancelled because it is no longer legal.';
+      triggerRender(app);
+      refreshPanel();
+      return;
+    }
+    state.scheduledActions.push(action);
+    recordDelayProgram(app, action);
+    clearPendingSelection(app, action);
+    hideSchedulePopover();
+    consumeTurnForScheduled(app, scheduleMessage(action));
+  }
+
+  function recordDelayProgram(app, action) {
+    if (action.kind === 'jump') {
+      app?.history?.push?.(`Player ${action.player} scheduled ${action.move?.type || 'move'} ${delayLabel(action.delay)} to turn ${action.dueTurn}`);
+      return;
+    }
+    const logic = app?.logic;
+    if (action.kind === 'go') {
+      logic?.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn, number: logic.moveNumber });
+      return;
+    }
+    if (action.kind === 'reversi') {
+      logic?.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn });
+      return;
+    }
+    if (action.kind === 'chess') {
+      const game = app?.activeGame || app;
+      game?.moveHistory?.push?.({ kind: 'delay', color: action.player, from: action.from, to: action.to, dueTurn: action.dueTurn });
+    }
+  }
+
+  function clearPendingSelection(app, action) {
+    if (action.kind === 'jump') {
+      app.selected = null;
+      app.legal = [];
+      if (app.game) app.game.selected = null;
+      app.render?.();
+    } else if (action.kind === 'chess') {
+      const game = app?.activeGame || app;
+      if (game) {
+        game.selectedSquare = null;
+        game.legalMoves = [];
+        game.pendingMoveTarget = null;
+        game.renderBoard?.();
+        game.renderer?.clearHighlights?.();
+        game.renderer?.clearChosenMove?.();
+      }
+    }
+  }
+
+  function scheduleMessage(action) {
+    if (action.kind === 'jump') return `Player ${action.player} designed a ${delayLabel(action.delay)} Jump action for turn ${action.dueTurn}.`;
+    if (action.kind === 'go') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Go placement for turn ${action.dueTurn}.`;
+    if (action.kind === 'reversi') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Reversi placement for turn ${action.dueTurn}.`;
+    if (action.kind === 'chess') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Chess move for turn ${action.dueTurn}.`;
+    return `Designed a ${delayLabel(action.delay)} future action for turn ${action.dueTurn}.`;
+  }
+
   function handleDelayCanvasClick(app, event) {
     if (family === 'jump') return handleDelayJumpClick(app, event);
     const coord = coordFromClick(app, event);
     if (!coord) return false;
-    if (family === 'go') return scheduleGoAction(app, coord);
-    if (family === 'reversi') return scheduleReversiAction(app, coord);
+    if (family === 'go') return scheduleGoAction(app, coord, event);
+    if (family === 'reversi') return scheduleReversiAction(app, coord, event);
     return false;
   }
 
@@ -552,11 +765,11 @@
   }
 
   function currentTurn(app) {
-    return Number(app?.logic?.moveNumber ?? app?.game?.turnNumber ?? app?.activeGame?.moveHistory?.length ?? app?.moveHistory?.length ?? state.turn ?? 0) || 0;
+    return Number(app?.logic?.moveNumber ?? app?.logic?.moveHistory?.length ?? app?.game?.turnNumber ?? app?.activeGame?.moveHistory?.length ?? app?.moveHistory?.length ?? state.turn ?? 0) || 0;
   }
 
   function selectedActionDelay() {
-    return readNumber(settings.actionDelay, settings.delay, 0, settings.delay);
+    return readNumber(settings.actionDelay, 0, 0, settings.delay);
   }
 
   function scheduledDueTurn(app) {
@@ -586,6 +799,7 @@
       if (game && !game.gameOver) game.currentPlayer = game.currentPlayer === 'white' ? 'black' : 'white';
     }
     state.scheduledCount += 1;
+    state.turn = Math.max(state.turn + 1, currentTurn(app));
     processDueScheduledActions(app);
     state.lastApplyMessage = message;
     triggerRender(app);
@@ -594,7 +808,7 @@
     try { app.network?.sendState?.({ type: 'spacetime_delay_program' }); } catch {}
   }
 
-  function scheduleGoAction(app, coord) {
+  function scheduleGoAction(app, coord, event) {
     const logic = app?.logic;
     if (!logic || logic.gameOver || !coord) return false;
     if (typeof app.canActFor === 'function' && !app.canActFor(logic.currentPlayer)) return false;
@@ -603,14 +817,15 @@
       app.setStatus?.('Delay design cancelled: that site is not empty.');
       return true;
     }
-    const action = { kind: 'go', player: logic.currentPlayer, coord: [...coord], dueTurn: scheduledDueTurn(app), createdTurn: currentTurn(app), delay: selectedActionDelay() };
-    state.scheduledActions.push(action);
-    logic.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn, number: logic.moveNumber });
-    consumeTurnForScheduled(app, `${titleCase(action.player)} designed a hidden future Go placement for turn ${action.dueTurn}.`);
-    return true;
+    return showSchedulePopover(app, {
+      kind: 'go',
+      player: logic.currentPlayer,
+      coord: [...coord],
+      summary: `Go ${titleCase(logic.currentPlayer)} placement at (${coord.join(',')})`
+    }, event);
   }
 
-  function scheduleReversiAction(app, coord) {
+  function scheduleReversiAction(app, coord, event) {
     const logic = app?.logic;
     if (!logic || logic.gameOver || !coord) return false;
     if (typeof app.canActFor === 'function' && !app.canActFor(logic.currentPlayer)) return false;
@@ -619,11 +834,12 @@
       app.setStatus?.('Delay design needs a currently legal Reversi placement.');
       return true;
     }
-    const action = { kind: 'reversi', player: logic.currentPlayer, coord: [...legal.coord], flips: legal.flips.map((c) => [...c]), dueTurn: scheduledDueTurn(app), createdTurn: currentTurn(app), delay: selectedActionDelay() };
-    state.scheduledActions.push(action);
-    logic.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn });
-    consumeTurnForScheduled(app, `${titleCase(action.player)} designed a hidden future Reversi flip for turn ${action.dueTurn}.`);
-    return true;
+    return showSchedulePopover(app, {
+      kind: 'reversi',
+      player: logic.currentPlayer,
+      coord: [...legal.coord],
+      summary: `Reversi ${titleCase(logic.currentPlayer)} at (${legal.coord.join(',')}); ${legal.flips.length} flip${legal.flips.length === 1 ? '' : 's'} if still legal`
+    }, event);
   }
 
   function handleDelayJumpClick(app, event) {
@@ -633,13 +849,12 @@
     if (app.selected) {
       const move = app.legal.find((candidate) => sameCoordArray(candidate.to, coord));
       if (move) {
-        const action = { kind: 'jump', player: app.game.currentPlayer, move: clonePlainMove(move), dueTurn: scheduledDueTurn(app), createdTurn: currentTurn(app), delay: selectedActionDelay() };
-        state.scheduledActions.push(action);
-        app.history?.push?.(`Player ${action.player} designed a future ${move.type} for turn ${action.dueTurn}`);
-        app.selected = null;
-        app.legal = [];
-        consumeTurnForScheduled(app, `Player ${action.player} designed a hidden future Jump action for turn ${action.dueTurn}.`);
-        return true;
+        return showSchedulePopover(app, {
+          kind: 'jump',
+          player: app.game.currentPlayer,
+          move: clonePlainMove(move),
+          summary: `Jump ${move.type} ${move.from.join(',')} -> ${move.to.join(',')}`
+        }, event);
       }
     }
     if (app.game.isOwn(coord)) {
@@ -750,14 +965,35 @@
     const game = app?.game;
     const move = action.move;
     if (!game || !move) return false;
-    const fromKey = game.key(move.from);
-    const toKey = game.key(move.to);
+    if (action.instant && typeof app?.applyJumpMove === 'function') {
+      if (game.currentPlayer !== action.player) return false;
+      const legalMove = game.legalMovesFrom?.(move.from, false)?.find((candidate) => (
+        candidate.type === move.type && sameCoordArray(candidate.to, move.to)
+      ));
+      return legalMove ? app.applyJumpMove(legalMove) : false;
+    }
+    const savedPlayer = game.currentPlayer;
+    game.currentPlayer = action.player;
+    const legal = game.legalMovesFrom?.(move.from, false)?.find((candidate) => (
+      candidate.type === move.type && sameCoordArray(candidate.to, move.to)
+    ));
+    game.currentPlayer = savedPlayer;
+    if (!legal) return false;
+    const fromKey = game.key(legal.from);
+    const toKey = game.key(legal.to);
     if (game.pieces.get(fromKey) !== action.player || game.pieces.has(toKey)) return false;
     const label = game.labels.get(fromKey);
     game.pieces.delete(fromKey);
     game.labels.delete(fromKey);
     game.pieces.set(toKey, action.player);
     if (label) game.labels.set(toKey, label);
+    if (legal.type === 'jump' && game.options?.captureOnJump && legal.over) {
+      game.pieces.delete(game.key(legal.over));
+      game.labels.delete(game.key(legal.over));
+    }
+    game.checkWinner?.();
+    app.render?.();
+    try { app.network?.sendState?.({ type: 'spacetime_delay_resolve' }); } catch {}
     app.history?.push?.(`Future ${move.type} resolved: ${move.from.join(',')} → ${move.to.join(',')}`);
     return true;
   }
@@ -765,22 +1001,54 @@
   function applyScheduledGo(app, action) {
     const logic = app?.logic;
     const index = logic?.indexFromCoord?.(action.coord);
-    if (!logic || !Number.isFinite(index) || logic.board[index] !== 0) return false;
-    logic.board[index] = action.player === 'white' ? 2 : 1;
-    logic.moveHistory?.unshift?.({ type: 'delayed-resolve', color: action.player, coord: action.coord, number: logic.moveNumber });
-    app.syncStoneAges?.();
+    if (!logic || !Number.isFinite(index) || typeof logic.tryPlay !== 'function') return false;
+    const savedPlayer = logic.currentPlayer;
+    const shouldRestorePlayer = !action.instant;
+    logic.currentPlayer = action.player;
+    const result = logic.tryPlay(action.coord, action.player);
+    if (!result?.ok) {
+      logic.currentPlayer = savedPlayer;
+      return false;
+    }
+    if (shouldRestorePlayer && !logic.gameOver && !logic.scoringPending) logic.currentPlayer = savedPlayer;
+    finishResolvedBoardAction(app, `${titleCase(action.player)} future Go placement resolved.`, { protectedIndexes: [index] });
     return true;
   }
 
   function applyScheduledReversi(app, action) {
     const logic = app?.logic;
-    if (!logic || logic.get(action.coord)) return false;
-    logic.set(action.coord, { color: action.player });
-    for (const coord of action.flips || []) if (logic.get(coord)) logic.set(coord, { color: action.player });
-    logic.lastFlipped = (action.flips || []).map((coord) => logic.key(coord));
-    logic.moveHistory?.unshift?.({ type: 'delayed-resolve', color: action.player, coord: action.coord, flipped: logic.lastFlipped.length });
-    app.syncPieceAges?.();
+    if (!logic || typeof logic.play !== 'function') return false;
+    const savedPlayer = logic.currentPlayer;
+    const shouldRestorePlayer = !action.instant;
+    logic.currentPlayer = action.player;
+    const result = logic.play(action.coord, action.player);
+    if (!result?.ok) {
+      logic.currentPlayer = savedPlayer;
+      return false;
+    }
+    if (shouldRestorePlayer && !logic.gameOver) logic.currentPlayer = savedPlayer;
+    const protectedKeys = [logic.key?.(result.coord || action.coord), ...(logic.lastFlipped || [])].filter(Boolean);
+    finishResolvedBoardAction(app, `${titleCase(action.player)} future Reversi placement resolved.`, { protectedKeys });
     return true;
+  }
+
+  function finishResolvedBoardAction(app, message, { protectedIndexes = [], protectedKeys = [] } = {}) {
+    let evolution = '';
+    if (typeof app?.advanceEvolution === 'function') {
+      const protectedList = protectedIndexes.length ? protectedIndexes : protectedKeys;
+      evolution = app.advanceEvolution(protectedList) || '';
+    } else if (typeof app?.applyTimeEvolutionAndNoise === 'function') {
+      app.applyTimeEvolutionAndNoise();
+    }
+    if ('gameStarted' in (app || {})) app.gameStarted = true;
+    app?.lockSettings?.();
+    app?.startTimer?.();
+    app?.syncStoneAges?.();
+    app?.syncPieceAges?.();
+    app?.setStatus?.(evolution ? `${message} ${evolution}.` : message);
+    app?.updateUI?.();
+    app?.broadcastState?.();
+    app?.robot?.afterLocalAction?.();
   }
 
   function applyScheduledChess(game, action) {
@@ -1047,7 +1315,7 @@
 
   function estimateTurn(app) {
     if (!app) return state.turn;
-    const turn = app.logic?.moveNumber ?? app.game?.turnNumber ?? app.activeGame?.moveHistory?.length ?? app.moveHistory?.length ?? 0;
+    const turn = app.logic?.moveNumber ?? app.logic?.moveHistory?.length ?? app.game?.turnNumber ?? app.activeGame?.moveHistory?.length ?? app.moveHistory?.length ?? 0;
     state.turn = Number(turn) || state.turn;
     return state.turn;
   }
