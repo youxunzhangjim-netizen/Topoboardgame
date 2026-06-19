@@ -121,7 +121,7 @@ body {
     overflow: auto;
 }
 .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.space-home-link { color: #e0f7ff; text-decoration: none; border: 1px solid rgba(72, 199, 244, 0.42); border-radius: 7px; padding: 7px 10px; font-weight: 800; }
+.space-home-link { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; color: #eef5ff; text-decoration: none; border: 1px solid rgba(97, 174, 255, 0.42); border-radius: 999px; background: rgba(5, 12, 24, 0.92); padding: 8px 12px; font-weight: 900; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
 .status-card, .panel, .boundary-info { padding: 10px; }
 .status-line { font-size: 14px; font-weight: 760; }
 .status-line + .status-line { margin-top: 5px; }

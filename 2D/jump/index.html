@@ -7,18 +7,6 @@
 <link rel="stylesheet" href="./css/jump.css">
 </head>
 <body>
-<nav class="jump-top-nav" aria-label="Page navigation">
-  <a class="jump-home-link" href="../../">⌂ Home</a>
-  <div class="jump-lang-menu">
-    <button id="jumpLangButton" type="button" aria-haspopup="true" aria-expanded="false">🌐</button>
-    <div id="jumpLangChoices" class="jump-lang-choices" hidden>
-      <button type="button" data-lang="en">English</button>
-      <button type="button" data-lang="zh-Hant">繁體中文</button>
-      <button type="button" data-lang="zh-Hans">简体中文</button>
-    </div>
-  </div>
-</nav>
-
 <main class="jump-shell">
   <section class="jump-board-panel">
     <header class="jump-header">
@@ -29,6 +17,10 @@
     <footer class="jump-status-bar"><strong id="jumpStatus">Ready</strong><div id="jumpProgress" class="jump-progress"></div></footer>
   </section>
   <aside class="jump-side">
+    <div class="jump-side-header">
+      <h2>Game Controls</h2>
+      <a class="jump-home-link" href="../../">Home</a>
+    </div>
     <section class="jump-card">
       <h2>Play</h2>
       <div class="jump-grid">
@@ -114,23 +106,5 @@
     })();
     </script>
 
-<script>
-(() => {
-  const button = document.getElementById('jumpLangButton');
-  const menu = document.getElementById('jumpLangChoices');
-  button?.addEventListener('click', () => {
-    const open = menu?.hidden === false;
-    if (menu) menu.hidden = open;
-    button.setAttribute('aria-expanded', String(!open));
-  });
-  menu?.querySelectorAll('[data-lang]').forEach((item) => item.addEventListener('click', () => {
-    const lang = item.dataset.lang || 'en';
-    localStorage.setItem('topoboardgame.lang', lang);
-    const url = new URL(location.href);
-    url.searchParams.set('lang', lang);
-    location.href = url.pathname + url.search + url.hash;
-  }));
-})();
-</script>
 </body>
 </html>

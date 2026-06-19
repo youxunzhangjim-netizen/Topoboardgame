@@ -241,6 +241,10 @@ const els = {
     timeDetails: document.querySelector('#timeDetails'),
     timeUpdateSelect: document.querySelector('#timeUpdateSelect'),
     timePeriodInput: document.querySelector('#timePeriodInput'),
+    timeHamiltonianSelect: document.querySelector('#timeHamiltonianSelect'),
+    timeHamiltonianStrengthInput: document.querySelector('#timeHamiltonianStrengthInput'),
+    timeMomentumInput: document.querySelector('#timeMomentumInput'),
+    timeSpinBiasInput: document.querySelector('#timeSpinBiasInput'),
     noiseSeedInput: document.querySelector('#noiseSeedInput'),
     anyonFlipControl: document.querySelector('#anyonFlipControl'),
     anyonFlipSelect: document.querySelector('#anyonFlipSelect'),
@@ -1202,7 +1206,7 @@ function syncModeControls() {
     els.countButton.hidden = !isGoMode(mode);
     els.measureButton.hidden = isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isJump;
-    els.dynamicsSection.hidden = isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isVirasoroGo || isCFTReversi;
+    els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
         els.virasoroActionSelect,
         Number(els.virasoroMaxModeSelect.value) >= 2
@@ -1313,6 +1317,10 @@ function timeConfig() {
         floquetMode: updateMode === 'off' ? 'off' : 'basic',
         updateMode,
         period: Number(els.timePeriodInput.value) || 4,
+        hamiltonianMode: els.timeHamiltonianSelect?.value || 'off',
+        hamiltonianStrength: Number(els.timeHamiltonianStrengthInput?.value || 0),
+        initialMomentum: Number(els.timeMomentumInput?.value || 0),
+        initialSpinBias: Number(els.timeSpinBiasInput?.value || 0),
         markedVertices: [hDefect],
         hDefectVertices: [hDefect],
         sDefectVertices: [sDefect],
@@ -4274,9 +4282,15 @@ function renderTimePanel() {
     }
     const state = game.time.gameTime;
     const config = game.time.config;
+    const attached = [];
+    if (config.hamiltonianMode && config.hamiltonianMode !== 'off') {
+        attached.push(`H=${config.hamiltonianMode}:${formatNumber(config.hamiltonianStrength)}`);
+    }
+    if (Math.abs(Number(config.initialMomentum) || 0) > 0) attached.push(`p0=${formatNumber(config.initialMomentum)}`);
+    if (Math.abs(Number(config.initialSpinBias) || 0) > 0) attached.push(`spin=${formatNumber(config.initialSpinBias)}`);
     els.timeStatus.textContent = config.updateMode === 'off'
         ? 'Time evolution off.'
-        : `tick ${state.tick}, round ${state.round}, clock ${state.phase}/${state.period - 1}, ${config.updateMode}`;
+        : `tick ${state.tick}, round ${state.round}, clock ${state.phase}/${state.period - 1}, ${config.updateMode}${attached.length ? `, ${attached.join(', ')}` : ''}`;
     els.phaseTimeline.innerHTML = game.time.phaseTimeline()
         .map((item) => `<span class="${item.active ? 'active' : ''}" title="${item.label}">${item.phase}</span>`)
         .join('');
@@ -4932,6 +4946,7 @@ for (const control of [
     els.pauliNoiseTypeSelect,
     els.applyNoiseSelect,
     els.timeUpdateSelect,
+    els.timeHamiltonianSelect,
     els.anyonFlipSelect,
     els.braidMemoryModeSelect,
     els.anyonModelSelect,
@@ -5004,6 +5019,9 @@ els.noiseRateInput.addEventListener('change', createGame);
 els.measurementErrorInput.addEventListener('change', createGame);
 els.noiseSeedInput.addEventListener('change', createGame);
 els.timePeriodInput.addEventListener('change', createGame);
+els.timeHamiltonianStrengthInput.addEventListener('change', createGame);
+els.timeMomentumInput.addEventListener('change', createGame);
+els.timeSpinBiasInput.addEventListener('change', createGame);
 els.phaseSignSelect.addEventListener('change', createGame);
 els.centralChargeInput.addEventListener('change', createGame);
 for (const control of [

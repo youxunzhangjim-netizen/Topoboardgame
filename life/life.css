@@ -81,6 +81,17 @@ body {
   outline: none;
 }
 
+.life-topbar a.ghost-button[data-life-i18n="home"] {
+  min-height: 34px;
+  padding: 8px 12px;
+  border-color: rgba(97, 174, 255, 0.42);
+  background: rgba(5, 12, 24, 0.92);
+  color: #eef5ff;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
 .life-hero {
   display: grid;
   gap: 10px;

@@ -2010,7 +2010,9 @@ class Go3DApp {
             return;
         }
         const placedIndex = this.logic.indexFromCoord(coord);
-        const result = this.logic.tryPlay(coord, this.logic.currentPlayer);
+        const result = this.logic.tryPlay(coord, this.logic.currentPlayer, {
+            virtualEmptyIndexes: this.isSpaceTimeIndexVisible?.(placedIndex, coord) === false ? [placedIndex] : []
+        });
         if (!result.ok) {
             this.setStatus(result.error);
             return;

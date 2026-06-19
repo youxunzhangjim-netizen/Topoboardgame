@@ -395,6 +395,7 @@
       if (originalAfterLocalAction) {
         app.afterLocalAction = (...args) => {
           const result = originalAfterLocalAction(...args);
+          markTurnAdvanced(app);
           if (settings.timeMode === 'delay') processDueScheduledActions(app);
           return result;
         };
@@ -402,16 +403,39 @@
         const originalPlayAt = app.playAt?.bind(app);
         if (originalPlayAt) {
           app.playAt = (...args) => {
+            const beforeTurn = observedTurn(app);
+            const beforePlayer = currentPlayerOf(app);
             const result = originalPlayAt(...args);
-            if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            if (didActionAdvance(app, beforeTurn, beforePlayer, result)) {
+              markTurnAdvanced(app);
+              if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            }
+            return result;
+          };
+        }
+        const originalPlay = app.play?.bind(app);
+        if (originalPlay) {
+          app.play = (...args) => {
+            const beforeTurn = observedTurn(app);
+            const beforePlayer = currentPlayerOf(app);
+            const result = originalPlay(...args);
+            if (didActionAdvance(app, beforeTurn, beforePlayer, result)) {
+              markTurnAdvanced(app);
+              if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            }
             return result;
           };
         }
         const originalPassTurn = app.passTurn?.bind(app);
         if (originalPassTurn) {
           app.passTurn = (...args) => {
+            const beforeTurn = observedTurn(app);
+            const beforePlayer = currentPlayerOf(app);
             const result = originalPassTurn(...args);
-            if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            if (didActionAdvance(app, beforeTurn, beforePlayer, result)) {
+              markTurnAdvanced(app);
+              if (settings.timeMode === 'delay') processDueScheduledActions(app);
+            }
             return result;
           };
         }
@@ -590,6 +614,7 @@
         const result = await originalApplyMove(...args);
         if (result) {
           ageChessPieces(target, args[0]?.to || null);
+          markTurnAdvanced(target);
           processDueScheduledActions(app);
           refreshPanel();
         }
@@ -790,30 +815,9 @@
       return;
     }
     state.scheduledActions.push(action);
-    recordDelayProgram(app, action);
     clearPendingSelection(app, action);
     hideSchedulePopover();
     consumeTurnForScheduled(app, scheduleMessage(action));
-  }
-
-  function recordDelayProgram(app, action) {
-    if (action.kind === 'jump') {
-      app?.history?.push?.(`Player ${action.player} scheduled ${action.move?.type || 'move'} ${delayLabel(action.delay)} to turn ${action.dueTurn}`);
-      return;
-    }
-    const logic = app?.logic;
-    if (action.kind === 'go') {
-      logic?.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn, number: logic.moveNumber });
-      return;
-    }
-    if (action.kind === 'reversi') {
-      logic?.moveHistory?.unshift?.({ type: 'delayed-program', color: action.player, coord: action.coord, dueTurn: action.dueTurn });
-      return;
-    }
-    if (action.kind === 'chess') {
-      const game = app?.activeGame || app;
-      game?.moveHistory?.push?.({ kind: 'delay', color: action.player, from: action.from, to: action.to, dueTurn: action.dueTurn });
-    }
   }
 
   function clearPendingSelection(app, action) {
@@ -863,7 +867,23 @@
   }
 
   function currentTurn(app) {
-    return Number(app?.logic?.moveNumber ?? app?.logic?.moveHistory?.length ?? app?.game?.turnNumber ?? app?.activeGame?.moveHistory?.length ?? app?.moveHistory?.length ?? state.turn ?? 0) || 0;
+    return Math.max(Number(state.turn) || 0, observedTurn(app));
+  }
+
+  function observedTurn(app) {
+    return Number(app?.logic?.moveNumber ?? app?.logic?.moveHistory?.length ?? app?.game?.turnNumber ?? app?.activeGame?.moveHistory?.length ?? app?.moveHistory?.length ?? 0) || 0;
+  }
+
+  function markTurnAdvanced(app) {
+    state.turn = Math.max((Number(state.turn) || 0) + 1, observedTurn(app));
+    return state.turn;
+  }
+
+  function didActionAdvance(app, beforeTurn, beforePlayer, result) {
+    if (result === false || result?.ok === false) return false;
+    if (observedTurn(app) > beforeTurn) return true;
+    if (beforePlayer !== undefined && currentPlayerOf(app) !== beforePlayer) return true;
+    return result === true || result?.ok === true;
   }
 
   function selectedActionDelay() {
@@ -897,7 +917,7 @@
       if (game && !game.gameOver) game.currentPlayer = game.currentPlayer === 'white' ? 'black' : 'white';
     }
     state.scheduledCount += 1;
-    state.turn = Math.max(state.turn + 1, currentTurn(app));
+    markTurnAdvanced(app);
     processDueScheduledActions(app);
     state.lastApplyMessage = message;
     triggerRender(app);
@@ -977,14 +997,13 @@
     if (game.selectedSquare) {
       const legal = (game.legalMoves || []).find((move) => move.r === row && move.c === col);
       if (legal) {
-        const action = { kind: 'chess', player: game.currentPlayer, from: { ...game.selectedSquare }, to: { r: row, c: col }, dueTurn: scheduledDueTurn(game), createdTurn: currentTurn(game), delay: selectedActionDelay() };
-        state.scheduledActions.push(action);
-        game.selectedSquare = null;
-        game.legalMoves = [];
-        game.moveHistory?.push?.({ kind: 'delay', color: action.player, from: action.from, to: action.to, dueTurn: action.dueTurn });
-        consumeTurnForScheduled(game, `${titleCase(action.player)} designed a hidden future Chess move for turn ${action.dueTurn}.`);
-        game.renderBoard?.();
-        return true;
+        return showSchedulePopover(game, {
+          kind: 'chess',
+          player: game.currentPlayer,
+          from: { ...game.selectedSquare },
+          to: { r: row, c: col },
+          summary: `Chess ${titleCase(game.currentPlayer)} ${chessCoordLabel(game.selectedSquare)} -> ${chessCoordLabel({ r: row, c: col })}`
+        }, event);
       }
     }
     const piece = game.getPiece?.(row, col) || game.board?.[row]?.[col];
@@ -1007,25 +1026,13 @@
     if (game.selectedSquare) {
       const legal = (game.legalMoves || []).find((move) => sameChessCoord(move, coord));
       if (legal) {
-        const action = {
+        return showSchedulePopover(game, {
           kind: 'chess',
           player: game.currentPlayer,
           from: cloneChessCoord(game.selectedSquare),
           to: cloneChessCoord(legal),
-          dueTurn: scheduledDueTurn(game),
-          createdTurn: currentTurn(game),
-          delay: selectedActionDelay()
-        };
-        state.scheduledActions.push(action);
-        game.selectedSquare = null;
-        game.legalMoves = [];
-        game.pendingMoveTarget = null;
-        game.moveHistory?.push?.({ kind: 'delay', color: action.player, from: action.from, to: action.to, dueTurn: action.dueTurn });
-        consumeTurnForScheduled(game, `${titleCase(action.player)} designed a hidden future Chess move for turn ${action.dueTurn}.`);
-        game.renderBoard?.();
-        game.renderer?.clearHighlights?.();
-        game.renderer?.clearChosenMove?.();
-        return true;
+          summary: `Chess ${titleCase(game.currentPlayer)} ${chessCoordLabel(game.selectedSquare)} -> ${chessCoordLabel(legal)}`
+        }, null);
       }
     }
 
@@ -1103,7 +1110,9 @@
     const savedPlayer = logic.currentPlayer;
     const shouldRestorePlayer = !action.instant;
     logic.currentPlayer = action.player;
-    const result = logic.tryPlay(action.coord, action.player);
+    const result = logic.tryPlay(action.coord, action.player, {
+      virtualEmptyIndexes: app?.isSpaceTimeIndexVisible?.(index, action.coord) === false ? [index] : []
+    });
     if (!result?.ok) {
       logic.currentPlayer = savedPlayer;
       return false;
@@ -1152,16 +1161,78 @@
   function applyScheduledChess(game, action) {
     if (!game?.board) return false;
     const piece = getChessPiece(game, action.from);
-    if (!piece || piece.color !== action.player || getChessPiece(game, action.to)) return false;
+    if (!piece || piece.color !== action.player) return false;
+    const savedPlayer = game.currentPlayer;
+    game.currentPlayer = action.player;
+    const legal = findChessLegalMove(game, action.from, action.to);
+    game.currentPlayer = savedPlayer;
+    if (!legal) return false;
+    const captured = legal.enPassant && legal.capturePos
+      ? getChessPiece(game, legal.capturePos)
+      : getChessPiece(game, action.to);
     setChessPiece(game, action.from, null);
     setChessPiece(game, action.to, piece);
+    if (legal.enPassant && legal.capturePos) setChessPiece(game, legal.capturePos, null);
     if (piece && typeof piece === 'object') piece.hasMoved = true;
+    moveScheduledCastleRook(game, legal);
+    if (piece?.type === 'P' && isScheduledPromotionSquare(game, piece, action.to, legal)) {
+      piece.type = 'Q';
+      piece.display = piece.color === 'white' ? 'Q' : 'q';
+      delete piece.pawnDirection;
+    }
+    if (captured) pushScheduledCapture(game, piece.color, captured);
+    game.currentPlayer = savedPlayer;
     game.moveHistory?.push?.({ kind: 'delayed-resolve', color: action.player, from: action.from, to: action.to, piece: piece.type || piece.kind || '' });
+    game.pendingMoveTarget = null;
+    game.checkGameEnd?.();
     game.renderBoard?.();
+    game.updateUI?.();
     game.renderer?.renderPieces3D?.(game.board);
     game.renderer?.clearHighlights?.();
     game.renderer?.clearChosenMove?.();
     return true;
+  }
+
+  function findChessLegalMove(game, from, to) {
+    if (typeof game?.getLegalMoves !== 'function') return null;
+    const legalMoves = game.getLegalMoves(...chessArgsFromCoord(game, from)) || [];
+    return legalMoves.find((move) => sameChessCoord(move, to)) || null;
+  }
+
+  function chessArgsFromCoord(game, coord = {}) {
+    if ('r' in coord || 'c' in coord) return [Number(coord.r), Number(coord.c)];
+    if (chessUsesSheet(game)) return [Number(coord.x), Number(coord.y), Number(coord.sheet || 0)];
+    return [Number(coord.x), Number(coord.y), Number(coord.z || 0)];
+  }
+
+  function moveScheduledCastleRook(game, legal = {}) {
+    const from = legal.castling?.rookPos || legal.castling?.rookFrom;
+    const to = legal.castling?.newRookPos || legal.castling?.rookTo;
+    if (!from || !to) return;
+    const rook = getChessPiece(game, from);
+    if (!rook) return;
+    setChessPiece(game, from, null);
+    setChessPiece(game, to, rook);
+    rook.hasMoved = true;
+  }
+
+  function isScheduledPromotionSquare(game, piece, to, legal = {}) {
+    if (legal.promotion) return true;
+    if (typeof game?.isPromotionSquare !== 'function') return false;
+    if ('r' in to || 'c' in to) return game.isPromotionSquare(piece.color, Number(to.r));
+    if (chessUsesSheet(game)) return game.isPromotionSquare(piece.color, Number(to.x), Number(to.y), Number(to.sheet || 0));
+    return game.isPromotionSquare(piece.color, Number(to.x), Number(to.y), Number(to.z || 0));
+  }
+
+  function pushScheduledCapture(game, color, captured) {
+    if (!game?.capturedPieces?.[color]) return;
+    if (typeof game.normalizeCapturedPiece === 'function') {
+      game.capturedPieces[color].push(game.normalizeCapturedPiece(captured));
+    } else if (typeof game.pieceIcon === 'function') {
+      game.capturedPieces[color].push(game.pieceIcon(captured));
+    } else {
+      game.capturedPieces[color].push({ ...captured });
+    }
   }
 
   function clonePlainMove(move) {
@@ -1188,6 +1259,12 @@
     if ('r' in coord || 'c' in coord) return { r: Number(coord.r) || 0, c: Number(coord.c) || 0 };
     if ('sheet' in coord) return { x: Number(coord.x) || 0, y: Number(coord.y) || 0, sheet: Number(coord.sheet) || 0 };
     return { x: Number(coord.x) || 0, y: Number(coord.y) || 0, z: Number(coord.z) || 0 };
+  }
+
+  function chessCoordLabel(coord = {}) {
+    if ('r' in coord || 'c' in coord) return `(${Number(coord.r)},${Number(coord.c)})`;
+    if ('sheet' in coord) return `(${Number(coord.x)},${Number(coord.y)},s${Number(coord.sheet || 0)})`;
+    return `(${Number(coord.x)},${Number(coord.y)},${Number(coord.z || 0)})`;
   }
 
   function chessLayer(coord = {}) {
@@ -1221,7 +1298,7 @@
   function actionLabel(action) {
     const left = `T-${Math.max(0, Number(action.dueTurn) - currentTurn(state.app))}`;
     if (action.kind === 'jump') return `${left}: hidden Jump ${action.move?.type || 'move'} to ${action.move?.to?.join(',')}`;
-    if (action.kind === 'chess') return `${left}: hidden Chess move to ${action.to.r},${action.to.c}`;
+    if (action.kind === 'chess') return `${left}: hidden Chess move to ${chessCoordLabel(action.to)}`;
     return `${left}: hidden ${titleCase(action.kind)} action to ${(action.coord || []).join(',')}`;
   }
 
@@ -1421,8 +1498,7 @@
 
   function estimateTurn(app) {
     if (!app) return state.turn;
-    const turn = app.logic?.moveNumber ?? app.logic?.moveHistory?.length ?? app.game?.turnNumber ?? app.activeGame?.moveHistory?.length ?? app.moveHistory?.length ?? 0;
-    state.turn = Number(turn) || state.turn;
+    state.turn = currentTurn(app);
     return state.turn;
   }
 

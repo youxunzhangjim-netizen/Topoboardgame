@@ -35,6 +35,20 @@ function jumpWord() {
   return jumpLanguage() === 'zh' ? '跳棋' : 'Jump';
 }
 
+function playerFromOnlineColor(color) {
+  if (color === 'black') return 'A';
+  if (color === 'white') return 'B';
+  return color;
+}
+
+function normalizeJumpNetworkState(state = {}) {
+  return {
+    ...state,
+    currentPlayer: playerFromOnlineColor(state.currentPlayer),
+    winner: playerFromOnlineColor(state.winner)
+  };
+}
+
 export class JumpGameApp {
   constructor(config = {}) {
     this.config = withQuery(config);
@@ -105,14 +119,20 @@ export class JumpGameApp {
     this.canvas.addEventListener('click', (event) => this.onCanvasClick(event));
     this.installViewControls();
     for (const el of [this.modeSelect, this.topologySelect, this.sizeSelect, this.axisSelect, this.targetModeSelect]) {
-      el?.addEventListener('change', () => this.resetGame());
+      el?.addEventListener('change', () => {
+        if (el === this.modeSelect && this.modeSelect?.value !== 'online') {
+          this.network.close({ silent: true });
+          this.myColor = null;
+        }
+        this.resetGame();
+      });
     }
     this.endJumpButton?.addEventListener('click', () => { this.game.endTurn(); this.selected = null; this.legal = []; this.afterMove('jump chain stopped'); });
     this.newButton?.addEventListener('click', () => this.resetGame());
     this.analyzeButton?.addEventListener('click', () => this.showAnalysis());
-    document.getElementById('createRoomButton')?.addEventListener('click', () => this.network.createRoom());
-    document.getElementById('findMatchButton')?.addEventListener('click', () => this.network.findMatch());
-    document.getElementById('joinRoomButton')?.addEventListener('click', () => this.network.joinRoom(document.getElementById('roomIdInput')?.value?.trim()));
+    document.getElementById('createRoomButton')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.createRoom(); });
+    document.getElementById('findMatchButton')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.findMatch(); });
+    document.getElementById('joinRoomButton')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.joinRoom(document.getElementById('roomIdInput')?.value?.trim()); });
     document.getElementById('leaveRoomButton')?.addEventListener('click', () => this.network.close());
     document.getElementById('copyShareLinkButton')?.addEventListener('click', async () => {
       const input = document.getElementById('shareLinkInput');
@@ -120,7 +140,10 @@ export class JumpGameApp {
     });
     const params = new URLSearchParams(location.search);
     const room = params.get('room');
-    if (room) setTimeout(() => this.network.resumeOrJoinRoom(room), 200);
+    if (room) {
+      this.enterOnlineMode();
+      setTimeout(() => this.network.resumeOrJoinRoom(room), 200);
+    }
   }
 
 
@@ -299,7 +322,8 @@ export class JumpGameApp {
   }
 
   canCurrentUserAct() {
-    return !(this.modeSelect?.value === 'online' && this.myColor && this.myColor !== this.game.currentPlayer);
+    if (this.modeSelect?.value !== 'online') return true;
+    return Boolean(this.network?.isConnected && this.myColor && this.myColor === this.game.currentPlayer);
   }
 
   selectJumpPiece(coord) {
@@ -690,8 +714,9 @@ export class JumpGameApp {
   updateUI() { this.render(); }
   exportState() { return this.game.serialize(); }
   exportNetworkState() { return this.exportState(); }
-  importState(state) { this.game.import(state); this.selected = null; this.legal = []; this.render(); }
+  importState(state) { this.game.import(normalizeJumpNetworkState(state)); this.selected = null; this.legal = []; this.render(); }
   importNetworkState(state) { this.importState(state); }
+  enterOnlineMode() { if (this.modeSelect) this.modeSelect.value = 'online'; }
   onlineGameKey() { return `jump-${this.dimension}d-${this.config.labMode || 'game'}`; }
   onlineMatchKey() {
     const t = this.topologySelect?.value || this.config.topology || 'plane';
@@ -700,7 +725,8 @@ export class JumpGameApp {
     const target = this.targetModeSelect?.value || 'opponentHome';
     return `jump:${this.dimension}d:${t}:size${s}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
   }
-  setOnlineColor(color) { this.myColor = color === 'black' ? 'A' : color === 'white' ? 'B' : color; }
+  updateOnlineRoomUI(roomId, color) { if (roomId) this.enterOnlineMode(); this.setOnlineColor(color); }
+  setOnlineColor(color) { this.myColor = playerFromOnlineColor(color); }
 }
 
 function samePoint(a, b) { return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]); }

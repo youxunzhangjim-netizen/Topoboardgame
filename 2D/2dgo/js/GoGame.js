@@ -388,13 +388,20 @@ export class GoGameLogic {
         if (!this.containsCoord(coord)) return { ok: false, error: 'Point is outside the board.' };
 
         const index = this.indexFromCoord(coord);
-        if (this.board[index] !== COLORS.empty) return { ok: false, error: 'That point is occupied.' };
+        const virtualEmptyIndexes = new Set((options.virtualEmptyIndexes || []).map(Number));
+        if (this.board[index] !== COLORS.empty && !virtualEmptyIndexes.has(index)) return { ok: false, error: 'That point is occupied.' };
 
         const ownValue = colorToValue(color);
         const enemyValue = colorToValue(otherColor(color));
         const nextBoard = new Uint8Array(this.board);
         const nextLabels = [...this.pauliLabels];
         const nextAges = createAgeArray(nextBoard.length, this.pieceAges);
+        for (const virtualIndex of virtualEmptyIndexes) {
+            if (!Number.isInteger(virtualIndex) || virtualIndex < 0 || virtualIndex >= nextBoard.length) continue;
+            nextBoard[virtualIndex] = COLORS.empty;
+            nextLabels[virtualIndex] = 'I';
+            nextAges[virtualIndex] = 0;
+        }
         nextBoard[index] = ownValue;
         nextLabels[index] = normalizePauliLabel(options.pauli || options.pauliLabel || 'I');
         nextAges[index] = 0;

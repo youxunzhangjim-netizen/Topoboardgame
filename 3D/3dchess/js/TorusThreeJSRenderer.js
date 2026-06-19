@@ -443,27 +443,29 @@ export class TorusThreeJSRenderer {
     }
 
     createPieceShape(piece) {
-        const color = piece.color === 'white' ? 0xf5f7fb : 0x202633;
-        const accent = piece.color === 'white' ? 0x38bdf8 : 0xf59e0b;
-        const outline = piece.color === 'white' ? 0x9bdcff : 0xffc56a;
+        const color = piece.color === 'white' ? 0xffffff : 0x202633;
+        const accent = piece.color === 'white' ? 0xdff6ff : 0xf59e0b;
+        const outline = piece.color === 'white' ? 0x111827 : 0xffc56a;
         const material = new THREE.MeshStandardMaterial({
             color,
+            transparent: piece.color === 'white',
+            opacity: piece.color === 'white' ? 0.95 : 1,
             metalness: piece.color === 'white' ? 0.14 : 0.2,
-            roughness: piece.color === 'white' ? 0.28 : 0.31,
+            roughness: piece.color === 'white' ? 0.22 : 0.31,
             emissive: accent,
-            emissiveIntensity: piece.color === 'white' ? 0.07 : 0.18
+            emissiveIntensity: piece.color === 'white' ? 0.16 : 0.18
         });
         const trimMaterial = new THREE.MeshStandardMaterial({
             color: accent,
             metalness: 0.22,
             roughness: 0.26,
             emissive: accent,
-            emissiveIntensity: piece.color === 'white' ? 0.18 : 0.32
+            emissiveIntensity: piece.color === 'white' ? 0.24 : 0.32
         });
         const edgeMaterial = new THREE.LineBasicMaterial({
             color: outline,
             transparent: true,
-            opacity: piece.color === 'white' ? 0.62 : 0.85
+            opacity: piece.color === 'white' ? 0.82 : 0.85
         });
 
         const group = new THREE.Group();

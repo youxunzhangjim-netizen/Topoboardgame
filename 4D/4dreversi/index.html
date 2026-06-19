@@ -5,15 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4D Reversi</title>
     <link rel="stylesheet" href="../4dgo/css/styles.css?v=20260614-4d-reversi">
+    <link rel="stylesheet" href="../jump/css/jump.css?v=20260619-4d-reversi-form">
+    <style>
+        .reversi4d-jump-form .jump-board-panel { min-height: calc(100vh - 72px); }
+        .reversi4d-jump-form .jump-header h1 { font-size: clamp(28px, 4vw, 46px); }
+        .reversi4d-jump-form .reversi4d-board-panel {
+            flex: 1;
+            min-height: 480px;
+            border-radius: 0;
+            border: 0;
+            background: rgba(3, 8, 16, 0.46);
+        }
+        .reversi4d-jump-form .slice-grid { width: 100%; justify-content: center; padding: 8px; }
+        .reversi4d-jump-form .slice-board { border-color: rgba(97,174,255,.24); background: rgba(5,12,24,.76); }
+        .reversi4d-jump-form .xy-grid { box-shadow: 0 12px 30px rgba(0,0,0,.22); }
+        .reversi4d-jump-form .jump-side .panel,
+        .reversi4d-jump-form .jump-side .status-card,
+        .reversi4d-jump-form .jump-side .control-group,
+        .reversi4d-jump-form .jump-side .dimension-controls,
+        .reversi4d-jump-form .jump-side .control-grid,
+        .reversi4d-jump-form .jump-side .online-controls { border-radius: 14px; }
+    </style>
 </head>
 <body>
-    <main class="app-shell">
-        <section class="play-area">
-            <header class="top-bar">
+    <main class="app-shell jump-shell reversi4d-jump-form">
+        <section class="play-area jump-board-panel">
+            <header class="top-bar jump-header">
                 <div>
                     <h1>4D Reversi</h1>
                     <p>Flat graph Reversi on configurable (x,y,z,w) boards. Default size: 5 x 5 x 5 x 5.</p>
                 </div>
+                <div class="jump-tags"><span>Reversi</span><span>4D</span><span>rays</span><span>topology</span></div>
             </header>
 
             <div class="game-info-bar">
@@ -32,12 +54,12 @@
                 </div>
             </div>
 
-            <div class="board-panel">
+            <div class="board-panel reversi4d-board-panel">
                 <div id="sliceGrid" class="slice-grid" aria-label="4D Reversi slice boards"></div>
             </div>
         </section>
 
-        <aside class="sidebar">
+        <aside class="sidebar jump-side">
             <div class="sidebar-header">
                 <h2>Game Controls</h2>
                 <a class="space-home-link" href="../../" aria-label="Back to Topological Board Game picker">Home</a>

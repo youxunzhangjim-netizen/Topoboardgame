@@ -24,7 +24,7 @@ export const PIECE_GLYPHS = {
         R: '\u265C',
         B: '\u265D',
         N: '\u265E',
-        P: '\u265F'
+        P: '\u2659'
     }
 };
 

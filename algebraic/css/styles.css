@@ -63,9 +63,18 @@ button, select, input, textarea {
 }
 
 .home-link {
-    padding: 9px 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 8px 12px;
+    border: 1px solid rgba(97, 174, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(5, 12, 24, 0.92);
+    color: #eef5ff;
     text-decoration: none;
     font-weight: 900;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 
 .eyebrow {

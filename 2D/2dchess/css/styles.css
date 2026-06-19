@@ -34,17 +34,17 @@ select {
     align-items: center;
     justify-content: center;
     min-height: 34px;
-    padding: 7px 12px;
-    border: 1px solid rgba(56, 189, 248, 0.62);
-    border-radius: 8px;
-    background: rgba(15, 23, 42, 0.9);
-    color: #e0f7ff;
+    padding: 8px 12px;
+    border: 1px solid rgba(97, 174, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(5, 12, 24, 0.92);
+    color: #eef5ff;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 900;
     flex: 0 0 auto;
     line-height: 1;
     text-decoration: none;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 
 .space-home-link:hover,
@@ -319,17 +319,13 @@ select {
 
 .piece-white {
     color: #f1f5f9;
+    -webkit-text-stroke: 0.8px rgba(2, 6, 23, 0.95);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(100, 200, 255, 0.4);
 }
 
 .piece-black {
     color: #1a1a1a;
     text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3), 0 0 8px rgba(200, 100, 100, 0.4);
-}
-
-.piece-black.piece-P {
-    font-size: 0.82em;
-    transform: translateY(-0.02em);
 }
 
 .sidebar {

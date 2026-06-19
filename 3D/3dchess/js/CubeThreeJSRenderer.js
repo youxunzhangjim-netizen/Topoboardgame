@@ -254,27 +254,29 @@ export class CubeThreeJSRenderer {
     }
 
     createPieceShape(piece) {
-        const color = piece.color === 'white' ? 0xf4f7fb : 0x2b3445;
-        const accent = piece.color === 'white' ? 0x38bdf8 : 0xfbbf24;
-        const outline = piece.color === 'white' ? 0x7dd3fc : 0xfbbf24;
+        const color = piece.color === 'white' ? 0xffffff : 0x2b3445;
+        const accent = piece.color === 'white' ? 0xdff6ff : 0xfbbf24;
+        const outline = piece.color === 'white' ? 0x111827 : 0xfbbf24;
         const material = new THREE.MeshStandardMaterial({
             color,
+            transparent: piece.color === 'white',
+            opacity: piece.color === 'white' ? 0.95 : 1,
             metalness: piece.color === 'white' ? 0.12 : 0.18,
-            roughness: piece.color === 'white' ? 0.32 : 0.28,
+            roughness: piece.color === 'white' ? 0.24 : 0.28,
             emissive: accent,
-            emissiveIntensity: piece.color === 'white' ? 0.06 : 0.2
+            emissiveIntensity: piece.color === 'white' ? 0.16 : 0.2
         });
         const trimMaterial = new THREE.MeshStandardMaterial({
             color: accent,
             metalness: 0.2,
             roughness: 0.3,
             emissive: accent,
-            emissiveIntensity: piece.color === 'white' ? 0.18 : 0.32
+            emissiveIntensity: piece.color === 'white' ? 0.24 : 0.32
         });
         const edgeMaterial = new THREE.LineBasicMaterial({
             color: outline,
             transparent: true,
-            opacity: piece.color === 'white' ? 0.7 : 0.9
+            opacity: piece.color === 'white' ? 0.82 : 0.9
         });
 
         const group = new THREE.Group();

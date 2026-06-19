@@ -14,6 +14,10 @@ export const DEFAULT_TIME_CONFIG = Object.freeze({
     maxEnergy: 10,
     decayRate: 0.92,
     diffusionRate: 0.15,
+    hamiltonianMode: 'off',
+    hamiltonianStrength: 0,
+    initialMomentum: 0,
+    initialSpinBias: 0,
     roundEndingPlayer: 'white',
     labelRotation: Object.freeze({ X: 'Y', Y: 'Z', Z: 'X', I: 'I' }),
     hDefectVertices: Object.freeze([]),
@@ -127,6 +131,10 @@ export function normalizeTimeConfig(config = {}) {
         maxEnergy: finiteNumber(config.maxEnergy, DEFAULT_TIME_CONFIG.maxEnergy, 0, 1000000),
         decayRate: finiteNumber(config.decayRate, DEFAULT_TIME_CONFIG.decayRate, 0, 1),
         diffusionRate: finiteNumber(config.diffusionRate, DEFAULT_TIME_CONFIG.diffusionRate, 0, 1),
+        hamiltonianMode: ['off', 'field', 'coupled'].includes(config.hamiltonianMode) ? config.hamiltonianMode : 'off',
+        hamiltonianStrength: finiteNumber(config.hamiltonianStrength, DEFAULT_TIME_CONFIG.hamiltonianStrength, 0, 1000),
+        initialMomentum: finiteNumber(config.initialMomentum, DEFAULT_TIME_CONFIG.initialMomentum, -1000, 1000),
+        initialSpinBias: finiteNumber(config.initialSpinBias, DEFAULT_TIME_CONFIG.initialSpinBias, -1, 1),
         hDefectVertices: normalizeVertexList(config.hDefectVertices),
         sDefectVertices: normalizeVertexList(config.sDefectVertices),
         markedVertices: normalizeVertexList(config.markedVertices),
@@ -295,11 +303,38 @@ export class FloquetEngine {
             if (!entity || typeof entity !== 'object') continue;
             entity.age = integer((entity.age ?? 0) + 1, 1, 0);
             entity.energy = Math.min(this.config.maxEnergy, finiteNumber(entity.energy, 0, 0) + this.config.rechargeRate);
+            this.applyTemporalAttachment(entity);
             entity.cooldown = Math.max(0, integer(entity.cooldown, 0, 0) - 1);
             entity.phaseLabel = integer(entity.phaseLabel, 0, 0);
             count += 1;
         }
         return count;
+    }
+
+    applyTemporalAttachment(entity) {
+        if (!entity || typeof entity !== 'object') return;
+        const p0 = this.config.initialMomentum;
+        if (Math.abs(p0) > 1e-12 && entity.initialMomentum == null) {
+            entity.initialMomentum = p0;
+            entity.momentum = Array.isArray(entity.momentum) ? entity.momentum : [p0, 0, 0, 0];
+        }
+        const spinBias = this.config.initialSpinBias;
+        if (Math.abs(spinBias) > 1e-12 && entity.initialSpinBias == null) {
+            entity.initialSpinBias = spinBias;
+            entity.spin = spinBias >= 0 ? 'up' : 'down';
+        }
+        if (this.config.hamiltonianMode === 'off' || this.config.hamiltonianStrength <= 0) return;
+        const period = Math.max(1, this.config.period);
+        const phaseWeight = (this.gameTime.phase + 1) / period;
+        const coupling = this.config.hamiltonianMode === 'coupled'
+            ? 1 + Math.abs(Number(entity.initialMomentum || 0)) * 0.05
+            : 1;
+        entity.hamiltonianMode = this.config.hamiltonianMode;
+        entity.hamiltonianPhase = this.gameTime.phase;
+        entity.energy = Math.min(
+            this.config.maxEnergy,
+            finiteNumber(entity.energy, 0, 0) + this.config.hamiltonianStrength * phaseWeight * coupling
+        );
     }
 
     decayFields() {
@@ -601,7 +636,11 @@ export class FloquetEngine {
 
     tooltipForEntity(entity = {}) {
         const temporal = createTemporalEntityState(entity);
-        return `age ${temporal.age}; energy ${temporal.energy}; phase ${temporal.phaseLabel}; cooldown ${temporal.cooldown}`;
+        const attachments = [];
+        if (entity.initialMomentum != null) attachments.push(`p0 ${entity.initialMomentum}`);
+        if (entity.initialSpinBias != null) attachments.push(`spin ${entity.initialSpinBias}`);
+        if (entity.hamiltonianMode) attachments.push(`H ${entity.hamiltonianMode}`);
+        return `age ${temporal.age}; energy ${temporal.energy}; phase ${temporal.phaseLabel}; cooldown ${temporal.cooldown}${attachments.length ? `; ${attachments.join('; ')}` : ''}`;
     }
 
     importVertexFields(fields = []) {

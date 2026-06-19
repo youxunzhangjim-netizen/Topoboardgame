@@ -379,7 +379,10 @@ class Go2DApp {
             this.setStatus(`Waiting for ${this.logic.currentPlayer}.`);
             return;
         }
-        const result = this.logic.tryPlay(coord, this.logic.currentPlayer);
+        const index = this.logic.indexFromCoord(coord);
+        const result = this.logic.tryPlay(coord, this.logic.currentPlayer, {
+            virtualEmptyIndexes: this.isSpaceTimeIndexVisible?.(index, coord) === false ? [index] : []
+        });
         if (!result.ok) {
             this.setStatus(result.error);
             return;
