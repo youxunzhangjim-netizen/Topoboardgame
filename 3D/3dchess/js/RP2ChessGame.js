@@ -148,6 +148,7 @@ export class RP2ChessGame {
     createPawn(color, row, sheet = 0) {
         const pawn = createPiece(color, 'P');
         pawn.pawnDirection = this.pawnDirectionFromHome(color, row, sheet);
+        pawn.pawnHandedness = pawn.pawnDirection > 0 ? 'R' : 'L';
         return pawn;
     }
 

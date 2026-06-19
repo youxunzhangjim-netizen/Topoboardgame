@@ -65,9 +65,9 @@
                 <div class="control-group">
                     <label for="gameModeSelect" data-i18n="controls.gameMode">Game Mode:</label>
                     <select id="gameModeSelect">
-                        <option value="local" data-i18n="controls.local">Local (Pass & Play)</option>
-                        <option value="online" data-i18n="controls.online">Online (Multiplayer)</option>
-                        <option value="robot" data-i18n="controls.robot">Local Robot (Baby)</option>
+                        <option value="local">Local</option>
+                        <option value="online">Online</option>
+                        <option value="robot">Robot</option>
                     </select>
                 </div>
 
@@ -159,8 +159,8 @@
                 </div>
 
                 <div class="info-section robot-panel" id="robotPanel">
-                    <h3>Local Robot & Analysis</h3>
-                    <p class="robot-muted">Select <strong>Local Robot</strong> from Game Mode to use the robot as an opponent.</p>
+                    <h3>Robot & Analysis</h3>
+                    <p class="robot-muted">Select <strong>Robot</strong> from Game Mode to use the robot as an opponent.</p>
                     <div class="control-group compact-control">
                         <label for="robotSideSelect">Robot Side:</label>
                         <select id="robotSideSelect">
@@ -217,5 +217,6 @@
     </div>
 
     <script type="module" src="./js/main.js"></script>
+    <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
 </body>
 </html>

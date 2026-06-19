@@ -56,8 +56,8 @@
             <div class="control-group">
                 <label for="gameModeSelect">Game Mode</label>
                 <select id="gameModeSelect">
-                    <option value="local" selected>Local Pass and Play</option>
-                    <option value="online">Online Multiplayer</option>
+                    <option value="local" selected>Local</option>
+                    <option value="online">Online</option>
                 </select>
                 <div class="boundary-info" id="onlineColorStatus">Local pass and play</div>
             </div>
@@ -86,43 +86,7 @@
                 <label>Nz <input id="nzInput" type="number" min="1" max="9" value="5"></label>
                 <label>Nw <input id="nwInput" type="number" min="1" max="9" value="5"></label>
             </div>
-
-
-            <section class="panel compact-panel dynamics-settings">
-                <h3>Time Evolution & Noise</h3>
-                <div class="control-grid dynamics-grid">
-                    <div class="control-group compact-control">
-                        <label for="timeEvolutionSelect">Age Rule</label>
-                        <select id="timeEvolutionSelect">
-                            <option value="off" selected>Off</option>
-                            <option value="age">Track Age</option>
-                            <option value="decay">Remove Old Pieces</option>
-                        </select>
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="timeLifetimeInput">Age Limit</label>
-                        <input id="timeLifetimeInput" type="number" min="1" max="999" step="1" value="60">
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noiseModeSelect">Noise</label>
-                        <select id="noiseModeSelect">
-                            <option value="off" selected>Off</option>
-                            <option value="random-death">Random Removal</option>
-                            <option value="random-birth">Random Birth</option>
-                        </select>
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noiseRateInput">Noise Rate</label>
-                        <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0">
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noisePeriodInput">Noise Period</label>
-                        <input id="noisePeriodInput" type="number" min="1" max="200" step="1" value="1">
-                    </div>
-                </div>
-            </section>
-
-            <div class="control-group">
+<div class="control-group">
                 <label for="zoomLayerSelect">Zoom Layer</label>
                 <select id="zoomLayerSelect">
                     <option value="all">All layers</option>
@@ -158,5 +122,32 @@
     </main>
 
     <script type="module" src="./js/main.js?v=20260614-4d-liberties"></script>
+
+    <script>
+    (() => {
+        const lang = new URLSearchParams(location.search).get('lang') || localStorage.getItem('topoboardgame.lang') || navigator.language || 'en';
+        if (!String(lang).toLowerCase().startsWith('zh')) return;
+        const map = new Map([
+            ['Local', 'Local'],
+            ['Online', 'Online'],
+            ['Robot', 'Robot'],
+            ['Find Match', '尋找對手'],
+            ['Create Room', '建立房間'],
+            ['Join Room', '加入房間'],
+            ['Copy Share Link', '複製分享連結'],
+            ['Room:', '房間：'],
+            ['5-digit room code or shared link', '5 位數房號或分享連結'],
+            ['Message opponent', '傳訊息給對手'],
+            ['Send', '送出']
+        ]);
+        document.querySelectorAll('option, button, label, small, span').forEach((node) => {
+            const text = node.childNodes.length === 1 ? node.textContent.trim() : '';
+            if (map.has(text)) node.textContent = map.get(text);
+        });
+        document.querySelectorAll('input[placeholder]').forEach((node) => {
+            if (map.has(node.placeholder)) node.placeholder = map.get(node.placeholder);
+        });
+    })();
+    </script>
 </body>
 </html>

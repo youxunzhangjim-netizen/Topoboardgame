@@ -112,9 +112,9 @@
             <div class="control-group">
                 <label for="gameModeSelect" data-i18n="controls.gameMode">Game Mode</label>
                 <select id="gameModeSelect">
-                    <option value="local" data-i18n="controls.local">Local Pass and Play</option>
-                    <option value="robot">Local Robot</option>
-                    <option value="online" data-i18n="controls.online">Online Multiplayer</option>
+                    <option value="local">Local</option>
+                    <option value="online">Online</option>
+                    <option value="robot">Robot</option>
                 </select>
             </div>
 
@@ -198,7 +198,7 @@
 
             <div class="control-grid">
                 <button id="cameraReset" data-i18n="controls.resetCamera">Reset Camera</button>
-                <button id="focusOwnPiecesBtn" type="button" data-i18n="controls.focusOwnPieces" aria-pressed="false">Focus My Pieces</button>
+                <button id="focusOwnPiecesBtn" type="button" data-i18n="controls.focusOwnPieces" aria-pressed="false">Focus Own</button>
                 <button id="newGameBtn" data-i18n="controls.newGame">New Game</button>
                 <button id="offerDrawBtn" class="warning" data-i18n="controls.offerDraw">Offer Draw</button>
                 <button id="surrenderBtn" class="danger" data-i18n="controls.surrender">Surrender</button>
@@ -251,5 +251,6 @@
     </div>
 
     <script type="module" src="./js/main.js"></script>
+    <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
 </body>
 </html>

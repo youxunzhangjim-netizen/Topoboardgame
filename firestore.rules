@@ -40,6 +40,51 @@ service cloud.firestore {
         return request.auth != null;
       }
 
+      function validRoomPlayerProfile(profile, uid) {
+        return profile is map
+          && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
+          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL"])
+          && profile.uid == uid
+          && profile.displayName is string
+          && profile.displayName.size() > 0
+          && profile.displayName.size() <= 120
+          && (
+            profile.accountKind == "google"
+            || profile.accountKind == "visitor"
+          )
+          && (
+            profile.photoURL == null
+            || profile.photoURL is string
+          );
+      }
+
+      function updatesOwnPlayerInfo(slot) {
+        return resource.data.players[slot] == request.auth.uid
+          && validRoomPlayerProfile(request.resource.data.playerInfo[slot], request.auth.uid);
+      }
+
+      function isPlayerInfoRefresh() {
+        return signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["playerInfo", "updatedAt"])
+          && (
+            (
+              updatesOwnPlayerInfo("white")
+              && request.resource.data.playerInfo.black == resource.data.playerInfo.black
+              && request.resource.data.playerInfo.waiting == resource.data.playerInfo.waiting
+            )
+            || (
+              updatesOwnPlayerInfo("black")
+              && request.resource.data.playerInfo.white == resource.data.playerInfo.white
+              && request.resource.data.playerInfo.waiting == resource.data.playerInfo.waiting
+            )
+            || (
+              updatesOwnPlayerInfo("waiting")
+              && request.resource.data.playerInfo.white == resource.data.playerInfo.white
+              && request.resource.data.playerInfo.black == resource.data.playerInfo.black
+            )
+          );
+      }
+
       function isPlayer(room) {
         return room.players.white == request.auth.uid
           || room.players.black == request.auth.uid;
@@ -200,7 +245,7 @@ service cloud.firestore {
         && request.resource.data.moveNumber == 0;
 
       allow update: if signedIn()
-        && (isJoin() || isPublicWaitingTouch() || isLegalClientMove() || isLeave() || isPublicWaitingLeave());
+        && (isJoin() || isPublicWaitingTouch() || isLegalClientMove() || isLeave() || isPublicWaitingLeave() || isPlayerInfoRefresh());
 
       allow delete: if false;
 

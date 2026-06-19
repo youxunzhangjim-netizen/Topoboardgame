@@ -52,9 +52,9 @@
             <div class="control-group">
                 <label for="gameModeSelect">Game Mode</label>
                 <select id="gameModeSelect">
-                    <option value="local" selected>Local Pass and Play</option>
-                    <option value="online">Online Multiplayer</option>
-                    <option value="robot">Local Robot (Baby)</option>
+                    <option value="local" selected>Local</option>
+                    <option value="online">Online</option>
+                    <option value="robot">Robot</option>
                 </select>
                 <div class="boundary-info online-color-status" id="onlineColorStatus" hidden></div>
             </div>
@@ -121,28 +121,8 @@
             </div>
 
             <div class="boundary-info" id="modeInfo">R3 Standard uses a cubic graph with ordinary open boundaries. Moves can bracket along 26 topology-aware ray directions.</div>
-
-            <div class="control-group">
-                <label for="timeEvolutionSelect">Time Evolution</label>
-                <select id="timeEvolutionSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="count">Count age only</option>
-                    <option value="decay">Decay and vanish</option>
-                </select>
-                <input id="timeLifetimeInput" class="custom-size-input" type="number" min="1" max="512" step="1" value="12" aria-label="Piece lifetime in turns">
-                <div class="boundary-info">Age advances after moves and passes. Decay removes pieces only when selected.</div>
-            </div>
-
-            <div class="control-group">
-                <label for="noiseModeSelect">Noise</label>
-                <select id="noiseModeSelect">
-                    <option value="off" selected>Off</option>
-                    <option value="pieces">Existing pieces</option>
-                    <option value="board">Whole board</option>
-                </select>
-                <input id="noisePeriodInput" class="custom-size-input" type="number" min="1" max="512" step="1" value="6" aria-label="Noise period in age turns">
-                <div class="boundary-info">Noise uses the age clock even when age decay is off.</div>
-            </div>
+</div>
+</div>
 
             <div class="control-group r3-filter-control" id="r3FilterControl">
                 <label>R3 coordinate view filter</label>
@@ -158,7 +138,7 @@
             <div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
                 <button id="cameraResetBtn" type="button">Reset Camera</button>
-                <button id="focusOwnPiecesBtn" type="button" aria-pressed="false">Focus My Pieces</button>
+                <button id="focusOwnPiecesBtn" type="button" aria-pressed="false">Focus Own</button>
                 <button id="newGameBtn" type="button">New Game</button>
             </div>
 
@@ -241,5 +221,33 @@
         })();
     </script>
     <script type="module" src="./js/main.js?v=20260616-multimode-surfaces"></script>
+    <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
+
+    <script>
+    (() => {
+        const lang = new URLSearchParams(location.search).get('lang') || localStorage.getItem('topoboardgame.lang') || navigator.language || 'en';
+        if (!String(lang).toLowerCase().startsWith('zh')) return;
+        const map = new Map([
+            ['Local', 'Local'],
+            ['Online', 'Online'],
+            ['Robot', 'Robot'],
+            ['Find Match', '尋找對手'],
+            ['Create Room', '建立房間'],
+            ['Join Room', '加入房間'],
+            ['Copy Share Link', '複製分享連結'],
+            ['Room:', '房間：'],
+            ['5-digit room code or shared link', '5 位數房號或分享連結'],
+            ['Message opponent', '傳訊息給對手'],
+            ['Send', '送出']
+        ]);
+        document.querySelectorAll('option, button, label, small, span').forEach((node) => {
+            const text = node.childNodes.length === 1 ? node.textContent.trim() : '';
+            if (map.has(text)) node.textContent = map.get(text);
+        });
+        document.querySelectorAll('input[placeholder]').forEach((node) => {
+            if (map.has(node.placeholder)) node.placeholder = map.get(node.placeholder);
+        });
+    })();
+    </script>
 </body>
 </html>

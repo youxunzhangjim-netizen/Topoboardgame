@@ -21,6 +21,16 @@ function assertText(path, patterns) {
   }
 }
 
+assertFile('js/shared/JumpRules.js');
+assertFile('js/shared/JumpRobot.js');
+assertFile('2D/jump/index.html');
+assertFile('3D/jump/index.html');
+assertFile('4D/jump/index.html');
+assertText('js/shared/JumpRules.js', [/allowMultiJump/, /captureOnJump/, /targetFillWin/, /JumpTopology/, /chooseJumpRobotMove/]);
+assertText('2D/jump/index.html', ['gameModeSelect', 'Online room', 'Local robot']);
+assertText('3D/jump/index.html', ['gameModeSelect', 'Online room', 'Local robot']);
+assertText('4D/jump/index.html', ['targetAxisSelect', 'Online room', 'Local robot']);
+
 const checks = [
   {
     name: '2D Chess',
@@ -113,4 +123,4 @@ for (const check of checks) {
   const robotModuleName = check.robotFiles[0].split('/').pop().replace('.js', '');
   console.log(`${check.name}: robot coverage ok (${robotModuleName})`);
 }
-console.log('Local robot coverage checks passed for 2D/3D Chess, Go, and Reversi.');
+console.log('Local robot coverage checks passed for 2D/3D Chess, Go, Reversi, and shared Jump games.');

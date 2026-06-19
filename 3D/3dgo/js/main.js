@@ -79,7 +79,7 @@ const I18N = {
         app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 Go with 9, 13, and 19 scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
-        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local Pass and Play', online: 'Online Multiplayer', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus My Pieces', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
+        controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local', online: 'Online', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus Own', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
         online: { localStatus: 'Local pass and play', findMatch: 'Find Match', privateRoom: 'PRIVATE ROOM', createRoom: 'Create Room', or: 'OR', roomInput: '5-digit room code or shared link', joinRoom: 'Join Room', roomCode: 'Room Code', copy: 'Copy', copied: 'Copied', onlineAs: ({ color }) => 'Online as ' + color },
         chat: { title: 'Online Chat', empty: 'Connect online to chat.', placeholder: 'Message online opponent', send: 'Send', player: 'Player', connectFirst: 'Connect online before chatting.' },
         mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The north and south pole nodes are playable and connect to every point on the nearest latitude ring.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
@@ -95,7 +95,7 @@ const I18N = {
         app: { title: '3D 圍棋', tagline: 'R3 格點、T2 環面、S2 球面與克萊因瓶圍棋，支援 9、13、19 尺寸。' },
         colors: { black: '黑方', white: '白方' },
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
-        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', sliceView: 'R3 切片視圖', sliceHelp: '空白代表顯示全部。x = 5 只顯示第 5 層 yz 平面。', resetCamera: '重設視角', focusOwnPieces: '只突出己方棋子', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
+        controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', sliceView: 'R3 切片視圖', sliceHelp: '空白代表顯示全部。x = 5 只顯示第 5 層 yz 平面。', resetCamera: '重設視角', focusOwnPieces: '突出己方', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
         online: { localStatus: '本地輪流', findMatch: '尋找配對', privateRoom: '私人房間', createRoom: '建立房間', or: '或', roomInput: '5 位房間碼或分享連結', joinRoom: '加入房間', roomCode: '房間碼', copy: '複製', copied: '已複製', onlineAs: ({ color }) => '線上身分：' + color },
         mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。南北極點可落子，並連到最近緯度環上的每個節點。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
         timer: { none: '無計時', five: '5 分鐘', ten: '10 分鐘', thirty: '30 分鐘', hour: '1 小時', oneDay: '1 天' },
@@ -1136,9 +1136,9 @@ class Go3DRenderer {
         const radius = isR3LikeTopology(logic.topology)
             ? (logic.size <= 9 ? 0.18 : logic.size <= 13 ? 0.13 : 0.095)
             : (logic.size <= 9 ? 0.16 : logic.size <= 13 ? 0.13 : 0.105);
-        const ringGeometry = new THREE.TorusGeometry(radius * 1.45, Math.max(0.008, radius * 0.055), 8, 48);
-        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.82, depthWrite: false });
-        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.92, depthWrite: false });
+        const ringGeometry = new THREE.TorusGeometry(radius * 1.55, Math.max(0.012, radius * 0.085), 10, 64);
+        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: 0.96, depthWrite: false });
+        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 1, depthWrite: false });
         normalMaterial.userData.baseOpacity = normalMaterial.opacity;
         warnMaterial.userData.baseOpacity = warnMaterial.opacity;
         for (const item of items) {
@@ -1903,25 +1903,15 @@ class Go3DApp {
     }
 
     shouldShowAgeRings() {
-        return this.pieceTimeConfig().enabled;
+        return false;
     }
 
     pieceTimeConfig() {
-        const mode = this.timeEvolutionSelect?.value || 'off';
-        const noiseEnabled = (this.noiseModeSelect?.value || 'off') !== 'off';
-        return normalizePieceTimeConfig({
-            enabled: mode !== 'off' || noiseEnabled,
-            mode: mode === 'decay' ? 'decay' : 'count',
-            decay: mode === 'decay',
-            lifespan: this.timeLifetimeInput?.value || 12
-        });
+        return normalizePieceTimeConfig({ enabled: false, mode: 'count', decay: false, lifespan: 12 });
     }
 
     noiseConfig() {
-        return {
-            mode: this.noiseModeSelect?.value || 'off',
-            period: Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
-        };
+        return { mode: 'off', period: 1 };
     }
 
     syncPieceAges() {
@@ -2383,17 +2373,7 @@ class Go3DApp {
 
     onlineMatchKey() {
         const settings = this.getNetworkSettings();
-        return [
-            settings.variant,
-            settings.mode,
-            settings.lattice,
-            settings.size,
-            settings.timer,
-            settings.timeEvolution,
-            settings.timeLifetime,
-            settings.noiseMode,
-            settings.noisePeriod
-        ].join(':');
+        return [settings.variant, settings.mode, settings.lattice, settings.size, settings.timer].join(':');
     }
 
     exportNetworkState() {

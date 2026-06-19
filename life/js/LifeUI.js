@@ -578,8 +578,8 @@ export class LifeUI {
     if (this.lifeJoinRoomBtn) this.lifeJoinRoomBtn.disabled = !online;
     if (this.roomIdInput) this.roomIdInput.disabled = !online;
     const text = message || (online
-      ? 'Online room mode is ready. Create a room, find a match, or join by room code.'
-      : 'Local board only. Switch to Online room to use matchmaking, room codes, or shared links.');
+      ? 'Online mode is ready. Create a room, find a match, or join by room code.'
+      : 'Local board only. Switch to Online to use matchmaking, room codes, or shared links.');
     this.setStatus(text);
   }
 
@@ -1144,6 +1144,7 @@ export class LifeUI {
         }
       }
     }
+    this.drawFlatLatticeOverlay(ctx, width, height, sx, sy);
     this.drawFlatBoundary(ctx, width, height);
 
     const yLimit = this.engine.dimension === 1 ? 1 : this.engine.size[1];

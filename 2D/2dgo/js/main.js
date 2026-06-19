@@ -142,28 +142,15 @@ class Go2DApp {
     }
 
     dynamicControls() {
-        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+        return [];
     }
 
     dynamicsSettings() {
-        const lifetime = Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60)));
-        const rate = Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0));
-        const period = Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)));
-        return {
-            timeEvolution: this.timeEvolutionSelect?.value || 'off',
-            lifetime,
-            noiseMode: this.noiseModeSelect?.value || 'off',
-            noiseRate: rate,
-            noisePeriod: period
-        };
+        return { timeEvolution: 'off', lifetime: 60, noiseMode: 'off', noiseRate: 0, noisePeriod: 1 };
     }
 
-    setDynamicsSettings(settings = {}) {
-        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
-        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
-        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
-        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
-        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    setDynamicsSettings() {
+        // Ordinary 2D/4D modes do not expose +1D time/noise settings.
     }
 
     coordKeyFromIndex(index) {
@@ -813,11 +800,11 @@ class Go2DApp {
         const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
         const ctx = this.ctx;
         ctx.save();
-        ctx.lineWidth = Math.max(2, radius * 0.09);
+        ctx.lineWidth = Math.max(3, radius * 0.13);
         ctx.lineCap = 'round';
-        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(248, 113, 113, 0.96)' : 'rgba(56, 189, 248, 0.9)';
+        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(125, 255, 255, 0.98)';
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = progress >= 0.96 ? 10 : 4;
+        ctx.shadowBlur = progress >= 0.96 ? 16 : 9;
         ctx.beginPath();
         ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
         ctx.stroke();
@@ -1079,18 +1066,7 @@ class Go2DApp {
 
     onlineMatchKey() {
         const settings = this.getNetworkSettings();
-        return [
-            settings.variant,
-            settings.mode,
-            settings.lattice,
-            settings.size,
-            settings.timer,
-            settings.dynamics.timeEvolution,
-            settings.dynamics.lifetime,
-            settings.dynamics.noiseMode,
-            settings.dynamics.noiseRate,
-            settings.dynamics.noisePeriod
-        ].join(':');
+        return [settings.variant, settings.mode, settings.lattice, settings.size, settings.timer].join(':');
     }
 
     exportNetworkState() {

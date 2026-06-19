@@ -61,9 +61,9 @@
             <div class="control-group">
                 <label for="gameModeSelect">Game Mode</label>
                 <select id="gameModeSelect">
-                    <option value="local">Local Pass and Play</option>
-                    <option value="online">Online Multiplayer</option>
-                    <option value="robot">Local Robot (Baby)</option>
+                    <option value="local">Local</option>
+                    <option value="online">Online</option>
+                    <option value="robot">Robot</option>
                 </select>
             </div>
 
@@ -128,42 +128,7 @@
                     <option value="86400">1 Day</option>
                 </select>
             </div>
-
-            <section class="panel compact-panel dynamics-settings">
-                <h3>Time Evolution & Noise</h3>
-                <div class="control-grid dynamics-grid">
-                    <div class="control-group compact-control">
-                        <label for="timeEvolutionSelect">Age Rule</label>
-                        <select id="timeEvolutionSelect">
-                            <option value="off" selected>Off</option>
-                            <option value="age">Track Age</option>
-                            <option value="decay">Remove Old Stones</option>
-                        </select>
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="timeLifetimeInput">Age Limit</label>
-                        <input id="timeLifetimeInput" type="number" min="1" max="999" step="1" value="60">
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noiseModeSelect">Noise</label>
-                        <select id="noiseModeSelect">
-                            <option value="off" selected>Off</option>
-                            <option value="random-death">Random Removal</option>
-                            <option value="random-birth">Random Birth</option>
-                        </select>
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noiseRateInput">Noise Rate</label>
-                        <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0">
-                    </div>
-                    <div class="control-group compact-control">
-                        <label for="noisePeriodInput">Noise Period</label>
-                        <input id="noisePeriodInput" type="number" min="1" max="200" step="1" value="1">
-                    </div>
-                </div>
-            </section>
-
-            <div class="control-grid">
+<div class="control-grid">
                 <button id="passBtn" type="button">Pass</button>
                 <button id="countBtn" type="button">Agree Count</button>
                 <button id="newGameBtn" type="button">New Game</button>
@@ -187,8 +152,8 @@
             </section>
 
             <section class="panel robot-panel" id="robotPanel">
-                <h3>Local Robot & Analysis</h3>
-                <p class="robot-muted">Choose <strong>Local Robot</strong> in Game Mode to play against this local rule+search bot.</p>
+                <h3>Robot & Analysis</h3>
+                <p class="robot-muted">Choose <strong>Robot</strong> in Game Mode to play against this local rule+search bot.</p>
                 <div class="control-group compact-control">
                     <label for="robotSideSelect">Robot Side</label>
                     <select id="robotSideSelect">
@@ -216,12 +181,40 @@
 
             <section class="panel">
                 <h3>Rules</h3>
-                <div class="rules-text">Area scoring with 7.5 komi, capture by removing groups with no liberties, suicide forbidden, positional superko, and final scoring after two passes plus both players agreeing to count. Square, honeycomb, and triangular boards use four, three, and six graph neighbors respectively.</div>
+                <div class="rules-text">Area scoring with 7.5 komi, capture by removing groups with no liberties, suicide forbidden, positional superko, and final scoring after two passes plus both players agreeing to count. Endgame starts when both players pass or neither side can play. On Polar boards, the true center is useful for connection but the center alone does not claim a whole empty region. Square, honeycomb, and triangular boards use four, three, and six graph neighbors respectively.</div>
             </section>
 
         </aside>
     </main>
 
     <script type="module" src="./js/main.js?v=20260614-hex-face-patches"></script>
+    <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
+
+    <script>
+    (() => {
+        const lang = new URLSearchParams(location.search).get('lang') || localStorage.getItem('topoboardgame.lang') || navigator.language || 'en';
+        if (!String(lang).toLowerCase().startsWith('zh')) return;
+        const map = new Map([
+            ['Local', 'Local'],
+            ['Online', 'Online'],
+            ['Robot', 'Robot'],
+            ['Find Match', '尋找對手'],
+            ['Create Room', '建立房間'],
+            ['Join Room', '加入房間'],
+            ['Copy Share Link', '複製分享連結'],
+            ['Room:', '房間：'],
+            ['5-digit room code or shared link', '5 位數房號或分享連結'],
+            ['Message opponent', '傳訊息給對手'],
+            ['Send', '送出']
+        ]);
+        document.querySelectorAll('option, button, label, small, span').forEach((node) => {
+            const text = node.childNodes.length === 1 ? node.textContent.trim() : '';
+            if (map.has(text)) node.textContent = map.get(text);
+        });
+        document.querySelectorAll('input[placeholder]').forEach((node) => {
+            if (map.has(node.placeholder)) node.placeholder = map.get(node.placeholder);
+        });
+    })();
+    </script>
 </body>
 </html>

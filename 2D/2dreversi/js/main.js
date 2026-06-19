@@ -83,25 +83,15 @@ class Reversi2DApp {
     }
 
     dynamicControls() {
-        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+        return [];
     }
 
     dynamicsSettings() {
-        return {
-            timeEvolution: this.timeEvolutionSelect?.value || 'off',
-            lifetime: Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60))),
-            noiseMode: this.noiseModeSelect?.value || 'off',
-            noiseRate: Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0)),
-            noisePeriod: Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)))
-        };
+        return { timeEvolution: 'off', lifetime: 60, noiseMode: 'off', noiseRate: 0, noisePeriod: 1 };
     }
 
-    setDynamicsSettings(settings = {}) {
-        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
-        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
-        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
-        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
-        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    setDynamicsSettings() {
+        // Ordinary 2D/4D modes do not expose +1D time/noise settings.
     }
 
     syncPieceAges() {
@@ -543,11 +533,11 @@ class Reversi2DApp {
         const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
         const ctx = this.ctx;
         ctx.save();
-        ctx.lineWidth = Math.max(2, radius * 0.09);
+        ctx.lineWidth = Math.max(3, radius * 0.13);
         ctx.lineCap = 'round';
-        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(248, 113, 113, 0.96)' : 'rgba(56, 189, 248, 0.9)';
+        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(125, 255, 255, 0.98)';
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = progress >= 0.96 ? 10 : 4;
+        ctx.shadowBlur = progress >= 0.96 ? 16 : 9;
         ctx.beginPath();
         ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
         ctx.stroke();
@@ -697,8 +687,7 @@ class Reversi2DApp {
     }
 
     onlineMatchKey() {
-        const d = this.dynamicsSettings();
-        return ['2dreversi', this.boundarySelect.value, this.latticeSelect.value, this.boardSize(), d.timeEvolution, d.lifetime, d.noiseMode, d.noiseRate, d.noisePeriod].join(':');
+        return ['2dreversi', this.boundarySelect.value, this.latticeSelect.value, this.boardSize()].join(':');
     }
 
     exportNetworkState() {

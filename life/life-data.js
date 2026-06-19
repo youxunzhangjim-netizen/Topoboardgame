@@ -24,11 +24,13 @@ export const LIFE_MODIFIERS = [
 
 export const LIFE_GEOMETRIES = [
   { id: 'r2', title: 'R2 Open Plane', zhTitle: 'R2 開放平面', dimension: 2, topology: 'open', view: 'flat', latticeSet: '2d' },
-  { id: 't2', title: 'T2 Torus / Periodic Surface', zhTitle: 'T2 環面生命', dimension: 2, topology: 'torus', view: 'surface3d', latticeSet: '2d' },
+  { id: 't2_flat', title: 'T2 Torus Flat Board', zhTitle: 'T2 環面 2D 棋盤', dimension: 2, topology: 'torus', view: 'flat', latticeSet: '2d' },
+  { id: 't2', title: 'T2 Torus Surface', zhTitle: 'T2 環面曲面', dimension: 2, topology: 'torus', view: 'surface3d', latticeSet: '2d' },
   { id: 'mobius', title: 'Möbius Strip Surface', zhTitle: 'Mobius 帶生命', dimension: 2, topology: 'mobius', view: 'surface3d', latticeSet: '2d' },
-  { id: 'klein', title: 'Klein Bottle Surface', zhTitle: 'Klein 瓶生命', dimension: 2, topology: 'klein', view: 'surface3d', latticeSet: '2d' },
+  { id: 'klein_flat', title: 'Klein Bottle Flat Board', zhTitle: 'Klein 瓶 2D 棋盤', dimension: 2, topology: 'klein', view: 'flat', latticeSet: '2d' },
+  { id: 'klein', title: 'Klein Bottle Surface', zhTitle: 'Klein 瓶曲面', dimension: 2, topology: 'klein', view: 'surface3d', latticeSet: '2d' },
   { id: 'sphere', title: 'S2 Sphere Surface', zhTitle: 'S2 球面生命', dimension: 2, topology: 'sphere', view: 'surface3d', latticeSet: '2d' },
-  { id: 'rp2', title: 'RP2 Projective Surface', zhTitle: 'RP2 投影平面生命', dimension: 2, topology: 'projective', view: 'surface3d', latticeSet: '2d' },
+  { id: 'rp2', title: 'RP2 Projective Plane Board', zhTitle: 'RP2 投影平面 2D 棋盤', dimension: 2, topology: 'projective', view: 'flat', latticeSet: '2d' },
   { id: 'r3', title: 'R3 Open Voxel Volume', zhTitle: 'R3 體素生命', dimension: 3, topology: 'open', view: 'volume', latticeSet: '3d' },
   { id: 't3', title: 'T3 Periodic Voxel Volume', zhTitle: 'T3 週期體素生命', dimension: 3, topology: 'torus', view: 'volume', latticeSet: '3d' },
   { id: 'r3_random', title: '3D RBC Life', zhTitle: '3D RBC 生命', dimension: 3, topology: 'random', view: 'volume', latticeSet: '3d' },

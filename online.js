@@ -540,6 +540,7 @@ export async function updateUserDisplayName(name) {
         authWarn('updateUserDisplayName: updateProfile failed; saving Firestore/local name only', authErrorSummary(error));
     }
     await upsertGoogleUserProfile(currentUser, { source: 'display-name' });
+    await refreshCurrentRoomPlayerProfile(currentUser);
     notifyAccountListeners();
     return getAccountState();
 }
@@ -596,6 +597,36 @@ function playerProfileForRoom(currentUser = user) {
 
 function roomPlayerInfoForColor(color, currentUser = user) {
     return color ? { [color]: playerProfileForRoom(currentUser) } : {};
+}
+
+async function refreshCurrentRoomPlayerProfile(currentUser = user) {
+    if (!db || !roomId || !currentUser) return;
+    const room = latestRoom || {};
+    const uid = currentUser.uid;
+    const updates = {};
+    const profile = playerProfileForRoom(currentUser);
+    if (!profile) return;
+    if (room.players?.white === uid) updates['playerInfo.white'] = profile;
+    if (room.players?.black === uid) updates['playerInfo.black'] = profile;
+    if (room.players?.waiting === uid) updates['playerInfo.waiting'] = profile;
+    if (!Object.keys(updates).length) return;
+    try {
+        await updateDoc(roomReference(roomId), {
+            ...updates,
+            updatedAt: serverTimestamp()
+        });
+        latestRoom = {
+            ...room,
+            playerInfo: {
+                ...(room.playerInfo || {}),
+                ...(updates['playerInfo.white'] ? { white: updates['playerInfo.white'] } : {}),
+                ...(updates['playerInfo.black'] ? { black: updates['playerInfo.black'] } : {}),
+                ...(updates['playerInfo.waiting'] ? { waiting: updates['playerInfo.waiting'] } : {})
+            }
+        };
+    } catch (error) {
+        authWarn('refreshCurrentRoomPlayerProfile: room profile update failed', authErrorSummary(error));
+    }
 }
 
 function waitingPlayerProfile(room) {

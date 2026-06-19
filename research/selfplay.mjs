@@ -215,11 +215,17 @@ function defaultSize(game) {
   if (game === '3dgo') return 5;
   if (game === '3dreversi') return 6;
   if (game === '3dchess') return 8;
+  if (game === '2djump') return 8;
+  if (game === '3djump') return 6;
+  if (game === '4djump') return 4;
   return 8;
 }
 function defaultBoundary(game) {
   if (game === '2dchess') return 'forbidden';
   if (game === '3dchess') return 'r3';
+  if (game === '2djump') return 'plane';
+  if (game === '3djump') return 'cube';
+  if (game === '4djump') return 'hypercube';
   if (game === '2dgo' || game === '2dreversi') return 'open2d';
   if (game === '3dgo' || game === '3dreversi') return 'r3';
   return 'open2d';

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4D Jump - Topoboardgame</title>
+<link rel="stylesheet" href="./css/jump.css">
+</head>
+<body>
+<nav class="jump-top-nav" aria-label="Page navigation">
+  <a class="jump-home-link" href="../../">⌂ Home</a>
+  <div class="jump-lang-menu">
+    <button id="jumpLangButton" type="button" aria-haspopup="true" aria-expanded="false">🌐</button>
+    <div id="jumpLangChoices" class="jump-lang-choices" hidden>
+      <button type="button" data-lang="en">English</button>
+      <button type="button" data-lang="zh-Hant">繁體中文</button>
+      <button type="button" data-lang="zh-Hans">简体中文</button>
+    </div>
+  </div>
+</nav>
+
+<main class="jump-shell">
+  <section class="jump-board-panel">
+    <header class="jump-header">
+      <div><h1 id="gameTitle">4D Jump</h1><p id="gameDescription"></p></div>
+      <div class="jump-tags"><span>jump</span><span>chain</span><span>target</span><span>topology</span><span>4D</span></div>
+    </header>
+    <div class="jump-canvas-wrap"><canvas id="jumpCanvas" aria-label="Jump board"></canvas></div>
+    <footer class="jump-status-bar"><strong id="jumpStatus">Ready</strong><div id="jumpProgress" class="jump-progress"></div></footer>
+  </section>
+  <aside class="jump-side">
+    <section class="jump-card">
+      <h2>Play</h2>
+      <div class="jump-grid">
+        <label>Mode<select id="gameModeSelect"><option value="local">Local</option><option value="online">Online</option><option value="robot">Robot</option></select></label>
+        <label>Topology<select id="topologySelect"><option value="hypercube">4D Jump</option><option value="4d-torus">4D Torus Jump</option><option value="cube">4D Hypercube Jump</option><option value="projection">4D Projection Jump</option></select></label>
+        <label>Board size<select id="boardSizeSelect"><option value="4" >4</option><option value="5" selected>5</option><option value="6" >6</option></select></label>
+        <label>Target axis<select id="targetAxisSelect"><option value="x">x</option><option value="y">y</option><option value="z">z</option><option value="w">w</option></select></label>
+      </div>
+      <details class="advanced-settings"><summary>Advanced / Research Settings</summary>
+        <div class="jump-grid">
+          <label>Target Mode<select id="targetModeSelect"><option value="opponentHome">Opponent Home Zone</option><option value="antipodal">Antipodal Zone</option><option value="sameCharge">Same Charge Sector</option><option value="fusionTarget">Fusion Target</option><option value="braidTarget">Braid Target</option><option value="custom">Custom Marked Target</option></select></label>
+          <label>Slice z<input id="sliceZInput" type="number" min="0" placeholder="all"></label>
+          <label>Slice w<input id="sliceWInput" type="number" min="0" placeholder="all"></label>
+        </div>
+      </details>
+
+      <details class="advanced-settings view-settings" open><summary>Board View</summary>
+        <div class="jump-grid">
+          <label>Rotate X<input id="viewRotateX" type="range" min="-90" max="90" value="-26"></label>
+          <label>Rotate Y<input id="viewRotateY" type="range" min="-180" max="180" value="32"></label>
+          <label>Rotate Z<input id="viewRotateZ" type="range" min="-180" max="180" value="0"></label>
+          <label>Zoom<input id="viewZoom" type="range" min="0.45" max="2.4" step="0.01" value="1"></label>
+        </div>
+        <button id="viewResetButton" type="button" class="secondary">Reset View</button>
+        <p class="jump-view-help">Drag rotates 3D boards. Mouse wheel or trackpad zooms.</p>
+      </details>
+      <div class="jump-buttons"><button id="newGameButton">New Game</button><button id="endJumpButton" class="secondary" disabled>Stop Jump Chain</button></div>
+    </section>
+    <section class="jump-card">
+      <h2>Online</h2>
+      <div class="jump-online">
+        <span id="connectionStatus" class="disconnected">Disconnected</span>
+        <div class="jump-buttons"><button id="findMatchButton">Find Match</button><button id="createRoomButton">Create Room</button></div>
+        <div class="jump-online-row"><input id="roomIdInput" placeholder="Room code"><button id="joinRoomButton">Join</button></div>
+        <div id="roomInfo" class="room-info" hidden><small>Room: <strong id="roomIdDisplay"></strong></small><input id="shareLinkInput" readonly><button id="copyShareLinkButton">Copy Share Link</button></div>
+        <button id="leaveRoomButton" class="secondary">Leave Room</button>
+      </div>
+    </section>
+    <section class="jump-card"><h2>Zones</h2><div class="legend"><span><i class="swatch a-home"></i>Player A home / B target</span><span><i class="swatch b-home"></i>Player B home / A target</span><span><i class="swatch step"></i>Legal step</span><span><i class="swatch jump"></i>Legal jump</span></div></section>
+    <section class="jump-card"><h2>Info</h2><p id="jumpInfo" class="jump-info"></p></section>
+    <section class="jump-card"><h2>Move History + Analysis</h2><ol id="moveHistory" class="move-history"></ol><button id="analyzeButton">Analyze / Suggest</button><pre id="analysisOutput" class="analysis-output"></pre></section>
+  </aside>
+</main>
+<script type="module" src="./js/main.js"></script>
+
+    <script>
+    (() => {
+        const lang = new URLSearchParams(location.search).get('lang') || localStorage.getItem('topoboardgame.lang') || navigator.language || 'en';
+        if (!String(lang).toLowerCase().startsWith('zh')) return;
+        const map = new Map([
+            ['Local', 'Local'],
+            ['Online', 'Online'],
+            ['Robot', 'Robot'],
+            ['Find Match', '尋找對手'],
+            ['Create Room', '建立房間'],
+            ['Join Room', '加入房間'],
+            ['Copy Share Link', '複製分享連結'],
+            ['Room:', '房間：'],
+            ['5-digit room code or shared link', '5 位數房號或分享連結'],
+            ['Message opponent', '傳訊息給對手'],
+            ['Send', '送出']
+        ]);
+        document.querySelectorAll('option, button, label, small, span').forEach((node) => {
+            const text = node.childNodes.length === 1 ? node.textContent.trim() : '';
+            if (map.has(text)) node.textContent = map.get(text);
+        });
+        document.querySelectorAll('input[placeholder]').forEach((node) => {
+            if (map.has(node.placeholder)) node.placeholder = map.get(node.placeholder);
+        });
+    })();
+    </script>
+
+<script>
+(() => {
+  const button = document.getElementById('jumpLangButton');
+  const menu = document.getElementById('jumpLangChoices');
+  button?.addEventListener('click', () => {
+    const open = menu?.hidden === false;
+    if (menu) menu.hidden = open;
+    button.setAttribute('aria-expanded', String(!open));
+  });
+  menu?.querySelectorAll('[data-lang]').forEach((item) => item.addEventListener('click', () => {
+    const lang = item.dataset.lang || 'en';
+    localStorage.setItem('topoboardgame.lang', lang);
+    const url = new URL(location.href);
+    url.searchParams.set('lang', lang);
+    location.href = url.pathname + url.search + url.hash;
+  }));
+})();
+</script>
+</body>
+</html>

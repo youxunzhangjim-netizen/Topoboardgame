@@ -535,6 +535,7 @@ export class GoGameLogic {
 
             const region = [];
             const borderColors = new Set();
+            const borderStoneIndexes = { black: new Set(), white: new Set() };
             const stack = [index];
             visited.add(index);
 
@@ -549,14 +550,20 @@ export class GoGameLogic {
                             stack.push(next);
                         }
                     } else {
-                        borderColors.add(valueToColor(neighborValue));
+                        const color = valueToColor(neighborValue);
+                        borderColors.add(color);
+                        borderStoneIndexes[color]?.add(next);
                     }
                 }
             }
 
             if (borderColors.size === 1) {
                 const owner = [...borderColors][0];
-                score[owner] += region.length;
+                const polarCenterOnly = this.topology === 'polar'
+                    && this.dimension === 2
+                    && [...(borderStoneIndexes[owner] || [])].every((stoneIndex) => this.coordFromIndex(stoneIndex)[0] === 0);
+                if (polarCenterOnly) score.neutral += region.length;
+                else score[owner] += region.length;
             } else {
                 score.neutral += region.length;
             }

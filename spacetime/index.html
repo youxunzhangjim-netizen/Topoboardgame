@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2+1D / 3+1D Space-Time Games - Topoboardgame</title>
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <main class="space-time-shell selector-shell">
+    <header class="space-time-hero">
+      <a class="home-link" href="../">← Home</a>
+      <div>
+        <p class="eyebrow">Topoboardgame</p>
+        <h1>2+1D / 3+1D Space-Time Games</h1>
+        <p class="subtitle">Original Chess, Go, Reversi, and Jump boards with a time layer attached.</p>
+        <p>These are not separate simplified prototypes. Each Play button opens the existing 2D or 3D game page, keeping its original board renderer, pieces, topology, boundaries, lattice controls, local / online / robot modes, and rules. The +1D controls add age, lifetime, delay, rhythm, cooldown, and optional noise where the game allows it.</p>
+      </div>
+    </header>
+
+    <section class="info-strip card">
+      <p><strong>For players:</strong> Time becomes a strategic resource. Pieces can charge, wait, age, decay, vanish, reappear, or act only on a rhythm.</p>
+      <p><strong>For researchers:</strong> Spin, phase, parity, momentum, and Hamiltonian-style observables are kept in Strategy &amp; Systems Labs, not in ordinary 2+1D / 3+1D games.</p>
+    </section>
+
+    <section class="setup-panel card selector-settings" aria-label="Default time settings">
+      <div class="setup-section section-game">
+        <h2>Time Settings</h2>
+        <div class="control-grid compact">
+          <label>Time mode
+            <select id="timeModeSelect">
+              <option value="decay">Age / decay</option>
+              <option value="periodic">Periodic activity</option>
+              <option value="delay">Delayed action / charge</option>
+            </select>
+          </label>
+          <label>Time lattice dt
+            <input id="dtInput" type="number" min="1" max="16" value="1">
+          </label>
+          <label>Max schedule delay
+            <input id="delayInput" type="number" min="1" max="32" value="2">
+          </label>
+          <label>Action delay
+            <input id="actionDelayInput" type="number" min="0" max="2" value="2">
+          </label>
+          <label>Frequency / period
+            <input id="periodInput" type="number" min="1" max="32" value="4">
+          </label>
+          <label>Lifetime
+            <input id="lifetimeInput" type="number" min="1" max="512" value="30">
+          </label>
+          <label>Old age warning
+            <input id="oldAgeInput" type="number" min="1" max="512" value="24">
+          </label>
+        </div>
+      </div>
+      <div class="setup-section section-board">
+        <h2>Noise</h2>
+        <p>Noise is available only for +1D Go and Reversi. Chess and Jump keep deterministic movement.</p>
+        <div class="control-grid compact">
+          <label>Noise mode
+            <select id="noiseModeSelect">
+              <option value="off">Off</option>
+              <option value="pieces">Aged pieces only</option>
+              <option value="board">Whole board</option>
+            </select>
+          </label>
+          <label>Noise rate
+            <input id="noiseRateInput" type="number" min="0" max="1" step="0.01" value="0.04">
+          </label>
+          <label>Noise period
+            <input id="noisePeriodInput" type="number" min="1" max="256" value="6">
+          </label>
+        </div>
+      </div>
+      <div class="setup-section section-actions">
+        <h2>How it works</h2>
+        <p>Choose a card below. The opened game page will show a +1D Time Layer panel inside its normal controls. The page URL carries these settings so online rooms and shared links use compatible time rules.</p>
+      </div>
+    </section>
+
+    <section class="dimension-launch-grid" aria-label="Space-time game choices">
+      <article class="dimension-card card">
+        <span class="dimension-copy"><strong>2+1D</strong><small>2D boards with discrete turn time</small></span>
+        <a class="game-option st-launch" data-layer="2p1" data-family="chess" href="../2D/2dchess/?spacetime=2p1&family=chess"><span class="game-option-copy"><strong>2+1D Chess</strong><small>Original 2D Chess with age, delay, and cooldown. Period mode is not used for Chess.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="go" href="../2D/2dgo/?spacetime=2p1&family=go"><span class="game-option-copy"><strong>2+1D Go</strong><small>Original 2D Go with age, lifetime, periodic stones, and optional noise.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="reversi" href="../2D/2dreversi/?spacetime=2p1&family=reversi"><span class="game-option-copy"><strong>2+1D Reversi</strong><small>Original 2D Reversi flipping with time and optional noise.</small></span></a>
+        <a class="game-option st-launch" data-layer="2p1" data-family="jump" href="../2D/jump/?spacetime=2p1&family=jump"><span class="game-option-copy"><strong>2+1D Jump</strong><small>Original Jump race with timed target and age rules.</small></span></a>
+      </article>
+      <article class="dimension-card card">
+        <span class="dimension-copy"><strong>3+1D</strong><small>3D volume boards with discrete turn time</small></span>
+        <a class="game-option st-launch" data-layer="3p1" data-family="chess" href="../3D/3dchess/?spacetime=3p1&family=chess&variant=cube"><span class="game-option-copy"><strong>3+1D Chess</strong><small>Original 3D Chess boards with age and delay. Period mode is not used for Chess.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="go" href="../3D/3dgo/?spacetime=3p1&family=go"><span class="game-option-copy"><strong>3+1D Go</strong><small>Original 3D Go with age rings, lifetime, and optional noise.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="reversi" href="../3D/3dreversi/?spacetime=3p1&family=reversi"><span class="game-option-copy"><strong>3+1D Reversi</strong><small>Original 3D Reversi line rules with time settings.</small></span></a>
+        <a class="game-option st-launch" data-layer="3p1" data-family="jump" href="../3D/jump/?spacetime=3p1&family=jump"><span class="game-option-copy"><strong>3+1D Jump</strong><small>Original 3D Jump volumes with timed pieces and target progress.</small></span></a>
+      </article>
+      <article class="dimension-card card lab-note-card">
+        <span class="dimension-copy"><strong>Physics Labs</strong><small>Internal-state and Hamiltonian-style systems</small></span>
+        <p>Momentum, Hamiltonian walks, spin, phase, parity, charge sectors, and physics observables belong in the Labs. Ordinary 2+1D / 3+1D games do not show those lab observables.</p>
+        <a class="game-option" href="../algebraic/?gameLayer=physics"><span class="game-option-copy"><strong>Open Strategy &amp; Systems Labs</strong><small>Use physical and algebraic time systems there.</small></span></a>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const controls = {
+        timeMode: document.getElementById('timeModeSelect'),
+        dt: document.getElementById('dtInput'),
+        delay: document.getElementById('delayInput'),
+        actionDelay: document.getElementById('actionDelayInput'),
+        period: document.getElementById('periodInput'),
+        lifetime: document.getElementById('lifetimeInput'),
+        oldAge: document.getElementById('oldAgeInput'),
+        noiseMode: document.getElementById('noiseModeSelect'),
+        noiseRate: document.getElementById('noiseRateInput'),
+        noisePeriod: document.getElementById('noisePeriodInput')
+      };
+      function updateLinks() {
+        document.querySelectorAll('.st-launch').forEach((link) => {
+          const url = new URL(link.getAttribute('href'), location.href);
+          const family = link.dataset.family;
+          url.searchParams.set('spacetime', link.dataset.layer);
+          url.searchParams.set('family', family);
+          const selectedTimeMode = family === 'chess' && controls.timeMode.value === 'periodic' ? 'decay' : controls.timeMode.value;
+          url.searchParams.set('timeMode', selectedTimeMode);
+          url.searchParams.set('dt', controls.dt.value);
+          url.searchParams.set('delay', controls.delay.value);
+          url.searchParams.set('actionDelay', controls.actionDelay.value);
+          url.searchParams.set('period', controls.period.value);
+          url.searchParams.set('lifetime', controls.lifetime.value);
+          url.searchParams.set('oldAge', controls.oldAge.value);
+          if (family === 'go' || family === 'reversi') {
+            url.searchParams.set('noiseMode', controls.noiseMode.value);
+            url.searchParams.set('noiseRate', controls.noiseRate.value);
+            url.searchParams.set('noisePeriod', controls.noisePeriod.value);
+          } else {
+            url.searchParams.delete('noiseMode');
+            url.searchParams.delete('noiseRate');
+            url.searchParams.delete('noisePeriod');
+          }
+          link.href = url.pathname + url.search;
+        });
+      }
+      controls.delay?.addEventListener('change', () => {
+        const maxDelay = Math.max(1, Math.min(32, Number(controls.delay.value) || 1));
+        controls.delay.value = String(maxDelay);
+        controls.actionDelay.max = String(maxDelay);
+        if (Number(controls.actionDelay.value) > maxDelay) controls.actionDelay.value = String(maxDelay);
+        updateLinks();
+      });
+      Object.values(controls).forEach((control) => {
+        if (control !== controls.delay) control?.addEventListener('change', updateLinks);
+      });
+      updateLinks();
+    })();
+  </script>
+</body>
+</html>

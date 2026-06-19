@@ -183,10 +183,10 @@ export function chooseGo3DRobotMove(logic, level = 1) {
 export function installGo3DRobot(app) {
   if (!app || app.__robot3dInstalled) return; app.__robot3dInstalled = true;
   const modeSelect = document.getElementById('gameModeSelect');
-  if (modeSelect && !modeSelect.querySelector('option[value="robot"]')) modeSelect.insertAdjacentHTML('beforeend', '<option value="robot">Local Robot</option>');
+  if (modeSelect && !modeSelect.querySelector('option[value="robot"]')) modeSelect.insertAdjacentHTML('beforeend', '<option value="robot">Robot</option>');
   const sidebar = document.querySelector('.sidebar');
   const panel = document.createElement('section'); panel.className = 'panel robot-panel';
-  panel.innerHTML = `<h3>Local Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="goRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="goRobotLevelSelect"><option value="1" selected>Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div><div class="control-grid robot-buttons"><button id="goRobotMoveBtn" type="button">Robot Move</button><button id="goRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="goRobotAnalysisPanel">Choose Local Robot, or click Analyze Position.</div>`;
+  panel.innerHTML = `<h3>Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="goRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="goRobotLevelSelect"><option value="1" selected>Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div><div class="control-grid robot-buttons"><button id="goRobotMoveBtn" type="button">Robot Move</button><button id="goRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="goRobotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
   if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
   else sidebar?.appendChild(panel);

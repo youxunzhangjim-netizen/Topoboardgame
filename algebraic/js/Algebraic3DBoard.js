@@ -236,6 +236,27 @@ export class Algebraic3DBoard {
         this.boardGroup.add(mesh);
     }
 
+    localGraphSteps(coord) {
+        const topology = this.game.topology;
+        if (topology?.name === 'r3' && typeof topology.step === 'function') {
+            return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                .map((direction) => topology.step(coord, direction))
+                .filter((step) => {
+                    if (!step?.coord) return false;
+                    const manhattan = coord.reduce((sum, value, axis) => sum + Math.abs((step.coord[axis] || 0) - value), 0);
+                    return manhattan === 1;
+                });
+        }
+        if ((topology?.name === 'sphere_latitude' || topology?.lattice === 'honeycomb') && typeof topology?.neighbors === 'function') {
+            return topology.neighbors(coord).map((neighbor) => ({ coord: neighbor, edge: { rawTo: neighbor } }));
+        }
+        if (typeof topology?.directions === 'function' && typeof topology.step === 'function') {
+            return topology.directions().map((direction) => topology.step(coord, direction)).filter(Boolean);
+        }
+        return (typeof topology?.neighbors === 'function' ? topology.neighbors(coord) : [])
+            .map((neighbor) => ({ coord: neighbor, edge: { rawTo: neighbor } }));
+    }
+
     addGraph() {
         const topology = this.game.topology;
         const linePositions = [];
@@ -246,10 +267,7 @@ export class Algebraic3DBoard {
             const point = this.positionForCoord(coord, 0.07);
             this.pointCoords.push(coord);
             this.pointPositions.push(point);
-            const steps = typeof topology.directions === 'function' && typeof topology.step === 'function'
-                ? topology.directions().map((direction) => topology.step(coord, direction)).filter(Boolean)
-                : (typeof topology.neighbors === 'function' ? topology.neighbors(coord) : [])
-                    .map((neighbor) => ({ coord: neighbor, edge: { rawTo: neighbor } }));
+            const steps = this.localGraphSteps(coord);
             for (const step of steps) {
                 const neighbor = step.coord;
                 const edgeKey = [keyOf(coord), keyOf(neighbor)].sort().join('|');
@@ -566,11 +584,11 @@ export class Algebraic3DBoard {
         const period = Math.max(1, Number(this.game.time?.config?.period || 4));
         const progress = Math.max(0.04, Math.min(1, age / period));
         const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(radius * 1.6, radius * 0.055, 8, Math.max(8, Math.ceil(48 * progress)), TWO_PI * progress),
+            new THREE.TorusGeometry(radius * 1.72, Math.max(0.01, radius * 0.085), 10, Math.max(12, Math.ceil(64 * progress)), TWO_PI * progress),
             new THREE.MeshBasicMaterial({
-                color: progress >= 0.95 ? 0xffd166 : 0x7dd3fc,
+                color: progress >= 0.95 ? 0xff4040 : 0x9ffcff,
                 transparent: true,
-                opacity: progress >= 0.95 ? 0.98 : 0.72,
+                opacity: progress >= 0.95 ? 1 : 0.96,
                 depthWrite: false
             })
         );

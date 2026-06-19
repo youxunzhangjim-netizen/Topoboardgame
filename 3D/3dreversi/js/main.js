@@ -154,11 +154,14 @@ class Reversi3DRenderer {
         const linePositions = [];
         const addSegment = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
         const drawn = new Set();
+        const visualDirections = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
         for (const coord of topology.allCoords()) {
             if (!this.coordVisible(coord)) continue;
-            for (const direction of topology.directionsFor(coord)) {
+            for (const direction of visualDirections) {
                 const next = topology.step(coord, direction);
                 if (!next || !this.coordVisible(next)) continue;
+                const manhattan = coord.reduce((sum, value, axis) => sum + Math.abs((next[axis] || 0) - value), 0);
+                if (manhattan !== 1) continue;
                 const edgeKey = [coord.join(','), next.join(',')].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
@@ -673,9 +676,9 @@ class Reversi3DRenderer {
         if (!config?.enabled) return;
         const lifetime = Math.max(1, Number(config.lifespan || config.lifetime) || 1);
         const radius = this.markerRadius(logic);
-        const ringGeometry = new THREE.TorusGeometry(radius * 1.45, Math.max(0.008, radius * 0.055), 8, 48);
-        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.82, depthWrite: false });
-        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xf87171, transparent: true, opacity: 0.92, depthWrite: false });
+        const ringGeometry = new THREE.TorusGeometry(radius * 1.55, Math.max(0.012, radius * 0.085), 10, 64);
+        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: 0.96, depthWrite: false });
+        const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 1, depthWrite: false });
         normalMaterial.userData.baseOpacity = normalMaterial.opacity;
         warnMaterial.userData.baseOpacity = warnMaterial.opacity;
         for (const item of items) {
@@ -1245,25 +1248,15 @@ class Reversi3DApp {
     }
 
     shouldShowAgeRings() {
-        return this.pieceTimeConfig().enabled;
+        return false;
     }
 
     pieceTimeConfig() {
-        const mode = this.timeEvolutionSelect?.value || 'off';
-        const noiseEnabled = (this.noiseModeSelect?.value || 'off') !== 'off';
-        return normalizePieceTimeConfig({
-            enabled: mode !== 'off' || noiseEnabled,
-            mode: mode === 'decay' ? 'decay' : 'count',
-            decay: mode === 'decay',
-            lifespan: this.timeLifetimeInput?.value || 12
-        });
+        return normalizePieceTimeConfig({ enabled: false, mode: 'count', decay: false, lifespan: 12 });
     }
 
     noiseConfig() {
-        return {
-            mode: this.noiseModeSelect?.value || 'off',
-            period: Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
-        };
+        return { mode: 'off', period: 1 };
     }
 
     ensureStoneAges() {
@@ -1502,16 +1495,7 @@ class Reversi3DApp {
     }
 
     onlineMatchKey() {
-        return [
-            '3dreversi',
-            this.modeSelect.value,
-            this.currentLattice(),
-            this.boardSize(),
-            this.timeEvolutionSelect?.value || 'off',
-            Math.max(1, Math.min(512, Math.floor(Number(this.timeLifetimeInput?.value) || 12))),
-            this.noiseModeSelect?.value || 'off',
-            Math.max(1, Math.min(512, Math.floor(Number(this.noisePeriodInput?.value) || 6)))
-        ].join(':');
+        return ['3dreversi', this.modeSelect.value, this.currentLattice(), this.boardSize()].join(':');
     }
 
     exportNetworkState() {

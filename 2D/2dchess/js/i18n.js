@@ -27,9 +27,9 @@ const DICTIONARY = {
         controls: {
             title: 'Game Controls',
             gameMode: 'Game Mode:',
-            local: 'Local (Pass & Play)',
-            robot: 'Local Robot (Baby)',
-            online: 'Online (Multiplayer)',
+            local: 'Local',
+            robot: 'Robot',
+            online: 'Online',
             boundary: 'Boundary Condition:',
             timer: 'Timer per Player:',
             newGame: 'New Game',

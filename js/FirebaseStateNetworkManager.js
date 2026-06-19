@@ -1,24 +1,22 @@
-import {
-    createPrivateRoom,
-    findMatch,
-    getOnlineState,
-    initOnline,
-    joinPrivateRoom,
-    leaveRoom,
-    reconnectRoom,
-    sendChatMessage,
-    sendMove
-} from '../online.js';
+let onlineApiPromise = null;
+
+function loadOnlineApi() {
+    if (!onlineApiPromise) onlineApiPromise = import('../online.js');
+    return onlineApiPromise;
+}
 
 function cloneState(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
 function defaultTurnFromState(state, app) {
-    return state?.currentPlayer
+    const turn = state?.currentPlayer
         || state?.logic?.currentPlayer
         || app?.logic?.currentPlayer
         || 'black';
+    if (turn === 'A') return 'black';
+    if (turn === 'B') return 'white';
+    return turn;
 }
 
 function setConnectionStatus(roomId, room) {
@@ -64,11 +62,12 @@ export class FirebaseStateNetworkManager {
         this.roomId = '';
         this.myColor = null;
         this.peer = { id: '' };
+        this.onlineApi = null;
 
         this.ready = null;
     }
 
-    hooks() {
+    hooks(api = this.onlineApi) {
         this.gameKey = this.app.onlineGameKey?.() || this.gameKey || 'topoboardgame';
         this.matchKey = this.app.onlineMatchKey?.() || this.matchKey || this.gameKey;
         const app = this.app;
@@ -88,7 +87,7 @@ export class FirebaseStateNetworkManager {
             getCurrentTurn: (state) => defaultTurnFromState(state, app),
             getTurnFromBoard: (state) => defaultTurnFromState(state, app),
             onRoomChanged: ({ roomId, playerColor, room }) => {
-                const online = getOnlineState();
+                const online = api?.getOnlineState?.() || {};
                 this.roomId = roomId || '';
                 this.myColor = playerColor || null;
                 this.peer.id = online.uid || '';
@@ -110,7 +109,7 @@ export class FirebaseStateNetworkManager {
                 } else if (typeof app.receiveChatMessage === 'function') {
                     (messages || []).forEach((message) => app.receiveChatMessage({
                         id: message.id,
-                        sender: message.uid === getOnlineState().uid ? 'me' : 'opponent',
+                        sender: message.uid === (api?.getOnlineState?.().uid || '') ? 'me' : 'opponent',
                         player: message.player,
                         author: message.displayName || message.player,
                         displayName: message.displayName || '',
@@ -121,8 +120,9 @@ export class FirebaseStateNetworkManager {
         };
     }
 
-    init() {
-        this.ready = initOnline(this.hooks());
+    async init() {
+        this.onlineApi = await loadOnlineApi();
+        this.ready = this.onlineApi.initOnline(this.hooks(this.onlineApi));
         return this.ready;
     }
 
@@ -133,18 +133,23 @@ export class FirebaseStateNetworkManager {
     }
 
     async ensureReady() {
-        const ready = await this.init();
-        if (ready && !ready.ok) {
-            this.setOnlineMessage(ready.error || 'Online rooms are not available yet.');
+        try {
+            const ready = await this.init();
+            if (ready && !ready.ok) {
+                this.setOnlineMessage(ready.error || 'Online rooms are not available yet.');
+            }
+            return ready?.ok ? ready : null;
+        } catch (error) {
+            this.setOnlineMessage(`Online rooms are not available yet: ${error.message}`);
+            return null;
         }
-        return ready?.ok ? ready : null;
     }
 
     async createRoom() {
         try {
             const ready = await this.ensureReady();
             if (!ready) return null;
-            return await createPrivateRoom(this.app.exportNetworkState?.() || this.app.exportState?.());
+            return await this.onlineApi.createPrivateRoom(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
             this.setOnlineMessage(`Could not create room: ${error.message}`);
             return null;
@@ -155,7 +160,7 @@ export class FirebaseStateNetworkManager {
         try {
             const ready = await this.ensureReady();
             if (!ready) return null;
-            return await findMatch(this.app.exportNetworkState?.() || this.app.exportState?.());
+            return await this.onlineApi.findMatch(this.app.exportNetworkState?.() || this.app.exportState?.());
         } catch (error) {
             this.setOnlineMessage(`Matchmaking failed: ${error.message}`);
             return null;
@@ -170,7 +175,7 @@ export class FirebaseStateNetworkManager {
         try {
             const ready = await this.ensureReady();
             if (!ready) return null;
-            return await joinPrivateRoom(roomId);
+            return await this.onlineApi.joinPrivateRoom(roomId);
         } catch (error) {
             this.setOnlineMessage(`Could not join room: ${error.message}`);
             return null;
@@ -181,7 +186,7 @@ export class FirebaseStateNetworkManager {
         try {
             const ready = await this.ensureReady();
             if (!ready) return false;
-            const result = await reconnectRoom();
+            const result = await this.onlineApi.reconnectRoom();
             return Boolean(result.ok);
         } catch (error) {
             this.setOnlineMessage(`Reconnect failed: ${error.message}`);
@@ -192,7 +197,8 @@ export class FirebaseStateNetworkManager {
     async sendState(move = {}) {
         if (!this.isConnected) return false;
         try {
-            await sendMove({
+            if (!this.onlineApi) return false;
+            await this.onlineApi.sendMove({
                 type: move.type || 'state_update',
                 boardState: this.app.exportNetworkState?.() || this.app.exportState?.()
             });
@@ -206,7 +212,8 @@ export class FirebaseStateNetworkManager {
     async sendChat(message) {
         const text = typeof message === 'string' ? message : message?.text;
         try {
-            return await sendChatMessage(text);
+            if (!this.onlineApi) return false;
+            return await this.onlineApi.sendChatMessage(text);
         } catch (error) {
             this.setOnlineMessage(`Chat failed: ${error.message}`);
             return false;
@@ -214,7 +221,9 @@ export class FirebaseStateNetworkManager {
     }
 
     async close(options = {}) {
-        await leaveRoom({ updateRemote: options.silent ? false : true });
+        if (this.onlineApi) {
+            await this.onlineApi.leaveRoom({ updateRemote: options.silent ? false : true });
+        }
         this.isConnected = false;
         this.roomId = '';
         this.myColor = null;

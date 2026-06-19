@@ -70,25 +70,15 @@ class Reversi4DApp {
     }
 
     dynamicControls() {
-        return [this.timeEvolutionSelect, this.timeLifetimeInput, this.noiseModeSelect, this.noiseRateInput, this.noisePeriodInput].filter(Boolean);
+        return [];
     }
 
     dynamicsSettings() {
-        return {
-            timeEvolution: this.timeEvolutionSelect?.value || 'off',
-            lifetime: Math.max(1, Math.min(999, Math.floor(Number(this.timeLifetimeInput?.value) || 60))),
-            noiseMode: this.noiseModeSelect?.value || 'off',
-            noiseRate: Math.max(0, Math.min(1, Number(this.noiseRateInput?.value) || 0)),
-            noisePeriod: Math.max(1, Math.min(200, Math.floor(Number(this.noisePeriodInput?.value) || 1)))
-        };
+        return { timeEvolution: 'off', lifetime: 60, noiseMode: 'off', noiseRate: 0, noisePeriod: 1 };
     }
 
-    setDynamicsSettings(settings = {}) {
-        if (this.timeEvolutionSelect && settings.timeEvolution) this.timeEvolutionSelect.value = settings.timeEvolution;
-        if (this.timeLifetimeInput && settings.lifetime !== undefined) this.timeLifetimeInput.value = String(settings.lifetime);
-        if (this.noiseModeSelect && settings.noiseMode) this.noiseModeSelect.value = settings.noiseMode;
-        if (this.noiseRateInput && settings.noiseRate !== undefined) this.noiseRateInput.value = String(settings.noiseRate);
-        if (this.noisePeriodInput && settings.noisePeriod !== undefined) this.noisePeriodInput.value = String(settings.noisePeriod);
+    setDynamicsSettings() {
+        // Ordinary 2D/4D modes do not expose +1D time/noise settings.
     }
 
     syncPieceAges() {
@@ -387,8 +377,7 @@ class Reversi4DApp {
 
     onlineMatchKey() {
         const { nx, ny, nz, nw } = this.sizes();
-        const d = this.dynamicsSettings();
-        return ['4dreversi', nx, ny, nz, nw, d.timeEvolution, d.lifetime, d.noiseMode, d.noiseRate, d.noisePeriod].join(':');
+        return ['4dreversi', nx, ny, nz, nw].join(':');
     }
 
     exportNetworkState() {

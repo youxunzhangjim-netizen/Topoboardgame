@@ -393,16 +393,16 @@ export function installChess3DRobot(shell) {
   const onlineStatus = document.getElementById('onlineColorStatus');
   const sidebar = document.querySelector('.sidebar');
   if (modeSelect && !modeSelect.querySelector('option[value="robot"]')) {
-    modeSelect.insertAdjacentHTML('beforeend', '<option value="robot">Local Robot</option>');
+    modeSelect.insertAdjacentHTML('beforeend', '<option value="robot">Robot</option>');
   }
   const panel = document.createElement('section');
   panel.className = 'panel robot-panel';
   panel.innerHTML = `
-    <h3>Local Robot & Analysis</h3>
+    <h3>Robot & Analysis</h3>
     <div class="robot-row"><label>Robot side</label><select id="robotSideSelect"><option value="black">Black</option><option value="white">White</option></select></div>
     <div class="robot-row"><label>Strength</label><select id="robotDepthSelect"><option value="1">Depth 1</option><option value="2" selected>Depth 2</option><option value="3">Depth 3</option><option value="4">Depth 4</option></select></div>
     <div class="control-grid robot-buttons"><button id="robotMoveBtn" type="button">Robot Move</button><button id="robotAnalyzeBtn" type="button">Analyze Position</button></div>
-    <div class="robot-analysis" id="robotAnalysisPanel">Choose Local Robot, or click Analyze Position.</div>`;
+    <div class="robot-analysis" id="robotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
   if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
   else sidebar?.appendChild(panel);

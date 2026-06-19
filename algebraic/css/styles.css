@@ -1610,3 +1610,36 @@ body[data-mode="spin_ice_vertex_game"] .section-dynamics .control-fields,
 body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
+
+/* Balanced lab control layout: keep Game / Board / Actions compact, avoid wide empty action columns. */
+@media (min-width: 1100px) {
+    .control-panel {
+        grid-template-columns: minmax(360px, 1.18fr) minmax(260px, 0.82fr) minmax(320px, 1fr);
+        align-items: start;
+    }
+    .section-game,
+    .section-board,
+    .section-actions,
+    .section-dynamics {
+        grid-column: auto;
+        min-width: 0;
+    }
+    .section-game { order: 1; }
+    .section-board { order: 2; }
+    .section-actions { order: 3; border-right: 0; padding-right: 0; }
+    .section-dynamics { order: 4; grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid rgba(218, 232, 224, 0.1); border-right: 0; }
+    .section-algebra { order: 5; grid-column: 1 / -1; }
+    .section-online { order: 6; grid-column: 1 / -1; }
+    .section-actions .button-grid {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+        max-width: 460px;
+    }
+    .section-board .control-fields.two-col,
+    .section-game .control-fields.two-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (min-width: 1500px) {
+    .app-shell { width: min(1680px, 100%); }
+    .control-panel { grid-template-columns: minmax(420px, 1.12fr) minmax(360px, 0.95fr) minmax(420px, 1.02fr); }
+}

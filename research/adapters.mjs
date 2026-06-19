@@ -19,6 +19,7 @@ import { GoGameLogic as Go3DLogic, otherColor as otherGo3DColor } from '../3D/3d
 import { chooseGo3DRobotMove, analyzeGo3DPosition } from '../3D/3dgo/js/robot/Go3DRobot.js';
 
 import { ReversiGame, otherReversiColor } from '../js/reversi/ReversiGame.js';
+import { JumpGameState, chooseJumpRobotMove, otherPlayer as otherJumpPlayer } from '../js/shared/JumpRules.js';
 import { chooseReversiRobotMove, analyzeReversiPosition } from '../2D/2dreversi/js/robot/ReversiRobot.js';
 import { chooseReversi3DRobotMove, analyzeReversi3DPosition } from '../3D/3dreversi/js/robot/Reversi3DRobot.js';
 
@@ -28,7 +29,10 @@ export const SUPPORTED_RESEARCH_GAMES = Object.freeze([
   '2dgo',
   '2dreversi',
   '3dgo',
-  '3dreversi'
+  '3dreversi',
+  '2djump',
+  '3djump',
+  '4djump'
 ]);
 
 export function createResearchAdapter(gameKey, options = {}) {
@@ -39,6 +43,9 @@ export function createResearchAdapter(gameKey, options = {}) {
   if (game === '2dreversi') return createReversiAdapter({ ...options, dimension: 2 });
   if (game === '3dgo') return create3DGoAdapter(options);
   if (game === '3dreversi') return createReversiAdapter({ ...options, dimension: 3 });
+  if (game === '2djump') return createJumpAdapter({ ...options, dimension: 2 });
+  if (game === '3djump') return createJumpAdapter({ ...options, dimension: 3 });
+  if (game === '4djump') return createJumpAdapter({ ...options, dimension: 4 });
   throw new Error(`Unsupported headless research game "${gameKey}". Supported: ${SUPPORTED_RESEARCH_GAMES.join(', ')}.`);
 }
 
@@ -206,6 +213,37 @@ function createReversiAdapter(options = {}) {
       return { ok: Boolean(result?.ok), move: chosen, result };
     },
     opponent: otherReversiColor
+  };
+}
+
+function createJumpAdapter(options = {}) {
+  const dimension = Number(options.dimension) || (String(options.game || '').startsWith('4') ? 4 : String(options.game || '').startsWith('3') ? 3 : 2);
+  const logic = new JumpGameState({
+    dimension,
+    size: clamp(Number(options.size) || (dimension === 4 ? 4 : dimension === 3 ? 6 : 8), 4, dimension === 2 ? 16 : 8),
+    topology: options.boundary || options.topology || (dimension === 4 ? 'hypercube' : dimension === 3 ? 'cube' : 'plane'),
+    targetAxis: options.targetAxis || 'x',
+    labMode: options.labMode || '',
+    labTargetMode: options.labTargetMode || 'opponentHome'
+  });
+  return {
+    kind: `${dimension}djump`,
+    options: { topology: logic.topologyName, size: logic.size, dimension: logic.dimension, targetAxis: logic.targetAxis, labMode: logic.labMode },
+    currentPlayer: () => logic.currentPlayer,
+    isTerminal: () => Boolean(logic.winner),
+    winner: () => logic.winner || '',
+    legalMoves: () => logic.allLegalMoves(logic.currentPlayer),
+    serializeState: () => logic.serialize(),
+    evaluate: (player = logic.currentPlayer) => logic.score(player),
+    chooseBuiltin: () => ({ move: chooseJumpRobotMove(logic, logic.currentPlayer), score: logic.score(logic.currentPlayer), nodes: logic.allLegalMoves().length }),
+    analyze: () => ({ currentScore: logic.score(logic.currentPlayer), legalCount: logic.allLegalMoves().length }),
+    applyMove(move) {
+      const chosen = logic.allLegalMoves(logic.currentPlayer).find((candidate) => candidate.id === move?.id) || move;
+      const result = logic.applyMove(chosen);
+      if (result.continueJump) logic.endTurn();
+      return { ok: Boolean(result?.ok), move: chosen, result };
+    },
+    opponent: otherJumpPlayer
   };
 }
 
