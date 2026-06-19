@@ -13,10 +13,16 @@ function isNormalOthelloContext(context = {}) {
     const topology = String(context.topology || context.boundary || 'normal').toLowerCase();
     const size = Number(context.boardSize || context.size || 8);
     const dimension = Number(context.dimension || 2);
+    const lattice = String(context.lattice || 'square').toLowerCase();
     return (gameType.includes('reversi') || gameType.includes('othello'))
         && dimension === 2
         && size === 8
-        && ['normal', 'standard', 'flat', 'open', 'open2d', ''].includes(topology);
+        && ['square', 'standard', ''].includes(lattice)
+        && ['normal', 'standard', 'flat', 'open2d', ''].includes(topology)
+        && !context.timeMode
+        && !context.timeSchedule
+        && !context.timeEvolution
+        && !context.delayMode;
 }
 
 function parseEdaxOutput(output) {
@@ -49,10 +55,14 @@ export class EdaxAdapter {
             gameType: options.gameType || gameState?.gameType || 'reversi',
             topology: options.topology || gameState?.topology || 'normal',
             dimension: options.dimension || gameState?.dimension || 2,
-            boardSize: options.boardSize || gameState?.boardSize || gameState?.size || 8
+            boardSize: options.boardSize || gameState?.boardSize || gameState?.size || 8,
+            lattice: options.lattice || gameState?.lattice || 'square',
+            timeMode: options.timeMode || gameState?.timeMode || '',
+            timeSchedule: options.timeSchedule || gameState?.timeSchedule || null,
+            timeEvolution: options.timeEvolution || gameState?.timeEvolution || ''
         };
         if (!this.isCompatible(context)) {
-            return unavailable('Edax is used as a normal 8x8 Reversi/Othello teacher only.');
+            return unavailable('Edax is used directly only for normal 2D 8x8 square Reversi/Othello. Custom boundaries, lattices, higher-dimensional boards, and +1D modes must use Topoboardgame local variant robots trained with Edax as a teacher/baseline where compatible.');
         }
         if (!this.client) return unavailable('No Edax client is configured.');
         if (typeof this.client.analyze === 'function') {

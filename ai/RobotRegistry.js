@@ -10,6 +10,27 @@ import {
     SUPPORTED_TOPOLOGY_VARIANTS
 } from './RobotPlayer.js';
 
+export const MASTER_ENGINE_ROBOTS = Object.freeze({
+    chess: {
+        engine: 'Stockfish',
+        adapter: 'StockfishAdapter',
+        directUse: 'normal 2D chess only, with the ordinary flat 8x8 board and no topology/time/lattice options',
+        variantUse: 'teacher/baseline only; train separate Topoboardgame chess variant robots for boundary, topology, 3D, 4D, and time modes'
+    },
+    go: {
+        engine: 'KataGo',
+        adapter: 'KataGoAdapter',
+        directUse: 'normal 2D Go only, with the ordinary flat square board and no topology/time/lattice options',
+        variantUse: 'teacher/baseline only; train separate Topoboardgame Go variant robots for torus, Mobius, RP2, sphere, cylinder, lattices, and +1D modes'
+    },
+    reversi: {
+        engine: 'Edax',
+        adapter: 'EdaxAdapter',
+        directUse: 'normal 2D 8x8 Reversi/Othello only, with the ordinary flat square board and no topology/time/lattice options',
+        variantUse: 'teacher/baseline only; train separate Topoboardgame Reversi variant robots for boundary, lattice, 3D, 4D, and +1D modes'
+    }
+});
+
 export const LOCAL_ROBOT_BASELINES = Object.freeze({
     chess: [
         '2D/2dchess/js/robot/ChessRobotAdapter.js',
@@ -40,6 +61,77 @@ const FAMILY_CLASSES = Object.freeze({
 
 function familyIdFor(gameType) {
     return String(gameType || '').trim().toLowerCase();
+}
+
+function normalizedTopology(context = {}) {
+    return String(context.topology || context.boundary || context.boundaryCondition || context.mode || 'normal').toLowerCase();
+}
+
+function normalizedLattice(context = {}) {
+    return String(context.lattice || context.boardLattice || 'square').toLowerCase();
+}
+
+function hasAttachedOptions(context = {}) {
+    return Boolean(
+        context.timeMode
+        || context.timeSchedule
+        || context.timeEvolution
+        || context.delayMode
+        || context.ageMode
+        || context.periodMode
+        || context.topologicalMode
+        || context.attachedOptions
+        || context.variantOptions
+    );
+}
+
+export function isDirectMasterEngineContext(context = {}) {
+    const gameType = familyIdFor(context.gameType || context.game);
+    const dimension = Number(context.dimension || 2);
+    const topology = normalizedTopology(context);
+    const lattice = normalizedLattice(context);
+    const size = Number(context.boardSize || context.size || (gameType === 'reversi' ? 8 : 0));
+    if (!MASTER_ENGINE_ROBOTS[gameType] || dimension !== 2 || hasAttachedOptions(context)) return false;
+    if (!['normal', 'standard', 'flat', 'forbidden', 'open2d', ''].includes(topology)) return false;
+    if (!['square', 'standard', ''].includes(lattice)) return false;
+    if (gameType === 'chess') return size === 0 || size === 8;
+    if (gameType === 'go') return size === 0 || size >= 2;
+    if (gameType === 'reversi') return size === 8;
+    return false;
+}
+
+export function classifyMasterEngineUse(context = {}) {
+    const gameType = familyIdFor(context.gameType || context.game);
+    const master = MASTER_ENGINE_ROBOTS[gameType] || null;
+    if (!master) {
+        return {
+            gameType,
+            mode: 'local-only',
+            direct: false,
+            teacherOnly: false,
+            reason: 'No open master engine is configured for this game family.'
+        };
+    }
+    if (isDirectMasterEngineContext(context)) {
+        return {
+            gameType,
+            mode: 'direct-master-engine',
+            direct: true,
+            teacherOnly: false,
+            engine: master.engine,
+            adapter: master.adapter,
+            reason: master.directUse
+        };
+    }
+    return {
+        gameType,
+        mode: 'teacher-for-variant',
+        direct: false,
+        teacherOnly: true,
+        engine: master.engine,
+        adapter: master.adapter,
+        reason: master.variantUse
+    };
 }
 
 function modelIdFor({ gameType, variant = 'base', topology = 'normal', modelId = '' }) {
@@ -116,6 +208,10 @@ export class RobotRegistry {
         const wanted = familyIdFor(gameType);
         return [...this.robots.values()].filter((robot) => !wanted || robot.gameType === wanted);
     }
+
+    masterEnginePolicy(context = {}) {
+        return classifyMasterEngineUse(context);
+    }
 }
 
 export function createDefaultRobotRegistry() {
@@ -126,7 +222,9 @@ export function createDefaultRobotRegistry() {
             baseRobotClass: ClassRef,
             familyName: ROBOT_FAMILIES[gameType],
             localRobotPaths: LOCAL_ROBOT_BASELINES[gameType],
-            notes: 'Open engines are teachers/baselines only. Topoboardgame local robots are the trainable robots for custom topology games.'
+            notes: MASTER_ENGINE_ROBOTS[gameType]
+                ? `${MASTER_ENGINE_ROBOTS[gameType].engine} may be used directly only for the normal 2D game. Open engines are teachers/baselines for variants; Topoboardgame local robots are the trainable robots for custom topology games.`
+                : 'Topoboardgame local robots are the trainable robots for custom topology games.'
         });
         registry.createRobot({ gameType, variant: 'base', topology: 'normal', modelId: `models/${gameType}/base` });
     }

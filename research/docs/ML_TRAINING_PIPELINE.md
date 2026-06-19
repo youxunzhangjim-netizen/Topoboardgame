@@ -25,6 +25,35 @@ rules + built-in robots
   -> tournaments and statistics
 ```
 
+## Open master engines vs Topoboardgame robots
+
+Normal 2D games may use open trained master engines directly:
+
+```text
+normal 2D Chess   -> Stockfish directly
+normal 2D Go      -> KataGo directly
+normal 2D Reversi -> Edax directly
+```
+
+Direct means the game is the ordinary flat 2D board with no topology, lattice, time schedule, age, delay, or +1D option. Anything else is a Topoboardgame variant. For variants, do not pretend the open engine understands the rules. Use the open engine only as a teacher/baseline when the position can be converted safely, then train a separate local model for that variant.
+
+```text
+Stockfish/KataGo/Edax teacher data
+  + Topoboardgame legal moves and topology rules
+  + self-play on the real variant
+  -> local variant robot
+```
+
+Examples:
+
+```text
+Stockfish -> BaseChessRobot -> TorusChessRobot / CubeChessRobot / TimeScheduleChessRobot
+KataGo    -> BaseGoRobot    -> MobiusGoRobot / RP2GoRobot / HoneycombGoRobot
+Edax      -> BaseReversiRobot -> KleinReversiRobot / 4DReversiRobot
+```
+
+The base model is never overwritten. Save variant models separately so learning torus, Mobius, lattice, 3D, 4D, or +1D rules does not damage the normal-game robot.
+
 ## 1. Generate self-play data
 
 Example for 2D Chess RBC left/right boundary:

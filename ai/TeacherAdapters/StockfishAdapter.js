@@ -13,9 +13,17 @@ function isNormal2DChessContext(context = {}) {
     const gameType = String(context.gameType || context.game || '').toLowerCase();
     const topology = String(context.topology || context.boundary || 'normal').toLowerCase();
     const dimension = Number(context.dimension || 2);
+    const lattice = String(context.lattice || 'square').toLowerCase();
+    const size = Number(context.boardSize || context.size || 8);
     return gameType.includes('chess')
         && dimension === 2
-        && ['normal', 'flat', 'standard', 'forbidden', 'open', ''].includes(topology);
+        && (size === 8 || !Number.isFinite(size))
+        && ['square', 'standard', ''].includes(lattice)
+        && ['normal', 'flat', 'standard', 'forbidden', ''].includes(topology)
+        && !context.timeMode
+        && !context.timeSchedule
+        && !context.timeEvolution
+        && !context.delayMode;
 }
 
 function parseUciInfo(lines = []) {
@@ -65,10 +73,15 @@ export class StockfishAdapter {
         const context = {
             gameType: options.gameType || gameState?.gameType || 'chess',
             topology: options.topology || gameState?.topology || gameState?.boundary || 'normal',
-            dimension: options.dimension || gameState?.dimension || 2
+            dimension: options.dimension || gameState?.dimension || 2,
+            lattice: options.lattice || gameState?.lattice || 'square',
+            boardSize: options.boardSize || gameState?.boardSize || gameState?.size || 8,
+            timeMode: options.timeMode || gameState?.timeMode || '',
+            timeSchedule: options.timeSchedule || gameState?.timeSchedule || null,
+            timeEvolution: options.timeEvolution || gameState?.timeEvolution || ''
         };
         if (!this.isCompatible(context)) {
-            return unavailable('StockfishAdapter is only used as a normal 2D chess teacher.', this.engineName);
+            return unavailable('Stockfish is used directly only for normal 2D chess. Custom boundaries, topology, lattice, and time modes must use Topoboardgame local variant robots trained with Stockfish as a teacher/baseline where compatible.', this.engineName);
         }
         const fen = options.fen || gameState?.fen || gameState?.toFEN?.();
         if (!fen) return unavailable('No FEN was provided for UCI analysis.', this.engineName);

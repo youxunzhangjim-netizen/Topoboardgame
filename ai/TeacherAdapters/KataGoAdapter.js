@@ -13,9 +13,15 @@ function isNormalGoContext(context = {}) {
     const gameType = String(context.gameType || context.game || '').toLowerCase();
     const topology = String(context.topology || context.boundary || 'normal').toLowerCase();
     const dimension = Number(context.dimension || 2);
+    const lattice = String(context.lattice || 'square').toLowerCase();
     return gameType.includes('go')
         && dimension === 2
-        && ['normal', 'standard', 'flat', 'open', 'open2d', ''].includes(topology);
+        && ['square', 'standard', ''].includes(lattice)
+        && ['normal', 'standard', 'flat', 'open2d', ''].includes(topology)
+        && !context.timeMode
+        && !context.timeSchedule
+        && !context.timeEvolution
+        && !context.delayMode;
 }
 
 async function gtp(client, command) {
@@ -57,10 +63,14 @@ export class KataGoAdapter {
         const context = {
             gameType: options.gameType || gameState?.gameType || 'go',
             topology: options.topology || gameState?.topology || 'normal',
-            dimension: options.dimension || gameState?.dimension || 2
+            dimension: options.dimension || gameState?.dimension || 2,
+            lattice: options.lattice || gameState?.lattice || 'square',
+            timeMode: options.timeMode || gameState?.timeMode || '',
+            timeSchedule: options.timeSchedule || gameState?.timeSchedule || null,
+            timeEvolution: options.timeEvolution || gameState?.timeEvolution || ''
         };
         if (!this.isCompatible(context)) {
-            return unavailable('KataGo is used as a normal Go teacher only; torus, Mobius, RP2, and higher-dimensional Go stay local-topology tasks.');
+            return unavailable('KataGo is used directly only for normal 2D square Go. Torus, Mobius, RP2, sphere, cylinder, alternate lattices, higher-dimensional boards, and +1D modes must use Topoboardgame local variant robots trained with KataGo as a teacher/baseline where compatible.');
         }
         if (!this.client) return unavailable('No GTP/KataGo client is configured.');
         if (typeof this.client.analyze === 'function') {
