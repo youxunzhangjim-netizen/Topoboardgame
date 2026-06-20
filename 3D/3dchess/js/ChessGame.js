@@ -79,10 +79,10 @@ const VARIANTS = {
     sphere: {
         label: 'Cyl',
         title: 'Cylinder Chess',
-        tagline: '2D chess on a cylinder: files wrap around the circumference while the top and bottom stay open.',
+        tagline: 'Standard 8 x 8 chess on a cylinder: files wrap around the circumference while the top and bottom stay open.',
         canvasLabel: '3D cylinder chess board',
         rulesTitle: 'Cylinder Rules',
-        rulesText: 'Cylinder chess uses 16 files around the circumference and 14 playable ranks along the open height. Moving left or right wraps around the cylinder; moving past the top or bottom edge is illegal. Each army has four extra side-support pawns. Pawns promote only by entering the opponent\'s original 8-piece king-row block.',
+        rulesText: 'Cylinder chess uses the same 8 x 8 starting board as standard chess, bent around one winding direction. Moving left or right wraps around the cylinder; moving past the top or bottom edge is illegal. Pawns promote on the opponent back rank.',
         boundaryValue: 'sphere',
         controller: SphereChessGame,
         urlValue: 'cylinder',
@@ -91,7 +91,7 @@ const VARIANTS = {
             tagline: '在圓柱面上進行二維西洋棋：左右沿圓周週期連接，上下邊界保持開放。',
             canvasLabel: '三維圓柱棋盤',
             rulesTitle: '圓柱規則',
-            rulesText: '圓柱棋使用 16 個沿圓周排列的檔與 14 個可走的高度列。左右移動會繞回圓柱另一側；超出上方或下方邊界的走法不合法。每方增加四枚側翼支援兵，兵只有進入對手原始八枚主棋所在列時才能升變。'
+            rulesText: '圓柱棋使用與標準西洋棋相同的 8 x 8 初始棋盤，並沿一個方向捲成圓柱。左右移動會繞回圓柱另一側；超出上方或下方邊界的走法不合法。兵到達對手底線時升變。'
         }
     },
     klein: {

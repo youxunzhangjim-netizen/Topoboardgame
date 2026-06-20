@@ -7,6 +7,8 @@ import {
     SPHERE_BOARD_WIDTH,
     SPHERE_HOME_ROWS,
     SPHERE_PAWN_DIR,
+    SPHERE_PLAYABLE_MAX_Y,
+    SPHERE_PLAYABLE_MIN_Y,
     createSphereInitialPieces,
     createSphereWhiteInitialPieces,
     sphereIsPlayable,
@@ -239,7 +241,7 @@ export class SphereChessGame extends TorusChessGame {
     }
 
     *validCells() {
-        for (let y = 1; y < this.boardHeight() - 1; y++) {
+        for (let y = SPHERE_PLAYABLE_MIN_Y; y <= Math.min(this.boardHeight() - 1, SPHERE_PLAYABLE_MAX_Y); y++) {
             for (let x = 0; x < this.boardWidth(); x++) {
                 yield { x, y, sheet: 0 };
             }

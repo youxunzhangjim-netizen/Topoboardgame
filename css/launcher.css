@@ -1656,22 +1656,21 @@ h1 {
     font-size: 12px;
     font-weight: 950;
     text-transform: uppercase;
-    text-decoration: underline;
-    text-underline-offset: 4px;
+    text-decoration: none;
     list-style: none;
 }
 .life-world-info-panel summary::-webkit-details-marker {
     display: none;
 }
 .life-world-info-panel summary::before {
-    content: "▸";
+    content: "\25B8";
     display: inline-block;
     margin-right: 6px;
     text-decoration: none;
     transform: translateY(-1px);
 }
 .life-world-info-panel[open] summary::before {
-    content: "▾";
+    content: "\25BE";
 }
 .life-world-info-panel span {
     color: rgba(225, 236, 242, 0.82);
@@ -1721,9 +1720,7 @@ h1 {
     color: rgba(125, 211, 252, 0.94);
     font-size: 13px;
     font-weight: 900;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-thickness: 1.5px;
+    text-decoration: none;
     text-transform: none;
     list-style: none;
 }
@@ -1733,7 +1730,7 @@ h1 {
 }
 
 .lab-card .lab-advanced summary::before {
-    content: "▸";
+    content: "\25B8";
     display: inline-block;
     margin-right: 6px;
     text-decoration: none;
@@ -1741,7 +1738,7 @@ h1 {
 }
 
 .lab-card .lab-advanced[open] summary::before {
-    content: "▾";
+    content: "\25BE";
 }
 
 .lab-card .lab-advanced summary:hover,

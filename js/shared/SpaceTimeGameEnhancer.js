@@ -996,14 +996,16 @@
     const row = Math.floor(index / 8);
     const col = index % 8;
     if (game.selectedSquare) {
-      const legal = (game.legalMoves || []).find((move) => move.r === row && move.c === col);
+      const clicked = { r: row, c: col };
+      const legal = findSelectedChessMove(game, clicked);
       if (legal) {
+        const target = cloneChessCoord(legal);
         return showSchedulePopover(game, {
           kind: 'chess',
           player: game.currentPlayer,
           from: { ...game.selectedSquare },
-          to: { r: row, c: col },
-          summary: `Chess ${titleCase(game.currentPlayer)} ${chessCoordLabel(game.selectedSquare)} -> ${chessCoordLabel({ r: row, c: col })}`
+          to: target,
+          summary: `Chess ${titleCase(game.currentPlayer)} ${chessCoordLabel(game.selectedSquare)} -> ${chessCoordLabel(target)}`
         }, event);
       }
     }
@@ -1025,7 +1027,7 @@
     }
 
     if (game.selectedSquare) {
-      const legal = (game.legalMoves || []).find((move) => sameChessCoord(move, coord));
+      const legal = findSelectedChessMove(game, coord);
       if (legal) {
         return showSchedulePopover(game, {
           kind: 'chess',
@@ -1043,6 +1045,13 @@
       return true;
     }
     return true;
+  }
+
+  function findSelectedChessMove(game, clicked) {
+    const legalMoves = game?.legalMoves || [];
+    return legalMoves.find((move) => sameChessCoord(move, clicked))
+      || legalMoves.find((move) => move.castling && sameChessCoord(castleRookFrom(move), clicked))
+      || null;
   }
 
   function processDueScheduledActions(app) {
@@ -1241,7 +1250,9 @@
   function findChessLegalMove(game, from, to) {
     if (typeof game?.getLegalMoves !== 'function') return null;
     const legalMoves = game.getLegalMoves(...chessArgsFromCoord(game, from)) || [];
-    return legalMoves.find((move) => sameChessCoord(move, to)) || null;
+    return legalMoves.find((move) => sameChessCoord(move, to))
+      || legalMoves.find((move) => move.castling && sameChessCoord(castleRookFrom(move), to))
+      || null;
   }
 
   function chessArgsFromCoord(game, coord = {}) {
@@ -1251,14 +1262,22 @@
   }
 
   function moveScheduledCastleRook(game, legal = {}) {
-    const from = legal.castling?.rookPos || legal.castling?.rookFrom;
-    const to = legal.castling?.newRookPos || legal.castling?.rookTo;
+    const from = castleRookFrom(legal);
+    const to = castleRookTo(legal);
     if (!from || !to) return;
     const rook = getChessPiece(game, from);
     if (!rook) return;
     setChessPiece(game, from, null);
     setChessPiece(game, to, rook);
     rook.hasMoved = true;
+  }
+
+  function castleRookFrom(move = {}) {
+    return move.castling?.rookPos || move.castling?.rookFrom || null;
+  }
+
+  function castleRookTo(move = {}) {
+    return move.castling?.newRookPos || move.castling?.rookTo || null;
   }
 
   function isScheduledPromotionSquare(game, piece, to, legal = {}) {

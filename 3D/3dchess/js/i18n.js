@@ -156,7 +156,7 @@ const DICTIONARY = {
                 periodic: 'T2 uses 112 playable blocks shown as an 8-cell short winding and a 14-row long direction. The six extra blank rows sit between the initial armies, and both directions wrap periodically.',
                 rp2: 'RP2 uses one 12x14 fundamental board. Crossing a boundary lands on the opposite edge with the matched coordinate reversed, and the raised cage arrows show the antipodal gluing.',
                 mobius: 'Mobius uses two full 8x8 surface sides. The lateral x edges are open; crossing the winding y edge reverses x and lands on the opposite side. The armies start on matching coordinates on opposite normals.',
-                sphere: 'Cylinder chess uses 16 files around the circumference and 14 playable ranks along the open height. Moving left or right wraps around the cylinder; moving past the top or bottom edge is illegal. Each army has four extra side-support pawns. Pawns promote only on the opponent\'s original 8-piece king-row block.',
+                sphere: 'Cylinder chess uses the same 8 x 8 starting board as standard chess, bent around one winding direction. Moving left or right wraps around the cylinder; moving past the top or bottom edge is illegal. Pawns promote on the opponent back rank.',
                 klein: 'Klein bottle chess uses a 12x16 board with no boundary. Left and right wrap normally; crossing the top or bottom reverses x. Pawns promote only on the opponent original central 8-piece king row.'
             }
         },
@@ -368,7 +368,7 @@ const DICTIONARY = {
                 periodic: 'T2 使用 112 個可用格：短方向 8 格、長方向 14 行。初始雙方之間加入六行空格，兩個方向皆為週期連接。',
                 rp2: 'RP2 使用一個 12x14 基本棋盤。越過邊界會到達對邊並反轉對應座標，升起的箭頭顯示對映黏合。',
                 mobius: 'Mobius 使用兩個完整 8x8 表面。橫向 x 邊界開放；穿過纏繞 y 邊界會反轉 x 並到達另一面。',
-                sphere: '圓柱棋使用 16 個沿圓周排列的檔與 14 個可走的高度列。左右移動會繞回圓柱另一側；超出上方或下方邊界的走法不合法。每方增加四枚側翼支援兵。'
+                sphere: '圓柱棋使用與標準西洋棋相同的 8 x 8 初始棋盤，並沿一個方向捲成圓柱。左右移動會繞回圓柱另一側；超出上方或下方邊界的走法不合法。兵到達對手底線時升變。'
             }
         },
         boundary: {

@@ -3,6 +3,7 @@ import { TorusThreeJSRenderer } from './TorusThreeJSRenderer.js';
 import {
     SPHERE_BOARD_HEIGHT,
     SPHERE_BOARD_WIDTH,
+    SPHERE_PLAYABLE_MAX_Y,
     SPHERE_PLAYABLE_MIN_Y
 } from './SphereConfig.js';
 
@@ -78,7 +79,7 @@ export class SphereThreeJSRenderer extends TorusThreeJSRenderer {
     }
 
     playableMaxY() {
-        return this.boardHeight() - 2;
+        return Math.min(this.boardHeight() - 1, SPHERE_PLAYABLE_MAX_Y);
     }
 
     addGridLines() {

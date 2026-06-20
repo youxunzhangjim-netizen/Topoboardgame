@@ -601,18 +601,39 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer) {
 
 function scoreJumpMove(game, move, player) {
   const target = game.targetZone(player);
+  const home = game.homeZone(player);
+  const fromKey = coordKey(move.from);
+  const toKey = coordKey(move.to);
   const before = distanceToTarget(game, move.from, target);
   const after = distanceToTarget(game, move.to, target);
   const progress = before - after;
   const inChain = Boolean(game.chainFrom);
+  const fromTarget = target.has(fromKey);
+  const toTarget = target.has(toKey);
+  const fromHome = home.has(fromKey);
+  const toHome = home.has(toKey);
+  const homePiecesLeft = countPlayerPiecesInZone(game, player, home);
+  if (fromTarget && !toTarget) return -1000 - after;
   const jumpBonus = move.type === 'jump' ? (inChain ? 0.4 : 3) : 0;
-  const targetBonus = target.has(coordKey(move.to)) ? 20 : 0;
+  const targetBonus = toTarget ? (fromTarget ? 12 : 34) : 0;
   const chainProgress = move.type === 'jump' ? potentialContinuationProgress(game, move, player, target) : 0;
   const chainBonus = Math.max(0, chainProgress) * 1.75;
   const stalledChainPenalty = inChain && progress <= 0 ? 8 : 0;
+  const homeClearBonus = fromHome && !toHome ? 18 : 0;
+  const homeReturnPenalty = !fromHome && toHome ? 28 : 0;
+  const ignoredHomePenalty = homePiecesLeft > 0 && !fromHome && !toTarget ? Math.min(18, 4 + homePiecesLeft * 1.2) : 0;
+  const backwardPenalty = progress < 0 ? Math.abs(progress) * 14 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return progress * 9 + jumpBonus + targetBonus + chainBonus + directionBonus + polarBonus - stalledChainPenalty + Math.random() * 0.1;
+  return progress * 12 + jumpBonus + targetBonus + chainBonus + homeClearBonus + directionBonus + polarBonus - stalledChainPenalty - homeReturnPenalty - ignoredHomePenalty - backwardPenalty + Math.random() * 0.1;
+}
+
+function countPlayerPiecesInZone(game, player, zone) {
+  let count = 0;
+  for (const key of zone || []) {
+    if (game.pieces.get(key) === player) count += 1;
+  }
+  return count;
 }
 
 function potentialContinuationProgress(game, move, player, target) {
