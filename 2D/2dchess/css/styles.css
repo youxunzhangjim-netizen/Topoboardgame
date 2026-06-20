@@ -349,6 +349,13 @@ select {
     margin-bottom: 0;
 }
 
+.sidebar-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+}
+
 .sidebar h2 {
     margin-bottom: 20px;
     color: #38bdf8;
@@ -383,6 +390,10 @@ select {
 .status-line {
     color: #f1f5f9;
     line-height: 1.4;
+}
+
+.status .status-line {
+    display: none;
 }
 
 .muted {
@@ -1017,3 +1028,12 @@ body > .language-switch.compact-language {
 .language-switch.compact-language:focus-within .language-popover { display: grid; gap: 6px; }
 .language-switch.compact-language .lang-option { width: 100%; justify-content: center; }
 .language-switch.compact-language .lang-divider { display: none; }
+
+body > .language-switch.compact-language {
+    display: none;
+}
+
+.sidebar-header .language-switch.compact-language .language-popover {
+    top: calc(100% + 8px);
+    bottom: auto;
+}

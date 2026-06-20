@@ -827,20 +827,12 @@ export class JumpGameApp {
     const size = Math.max(1, this.game?.size || 1);
     const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
     if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
-      const mobileVertical = (this.canvas?.clientWidth || window.innerWidth || 720) < 680;
-      if (mobileVertical) {
-        return {
-          x: ((coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5) * Math.sqrt(3) / 2,
-          y: coord[1] || 0,
-          maxX: Math.max(1, (size - 0.5) * Math.sqrt(3) / 2),
-          maxY: Math.max(1, size - 1)
-        };
-      }
+      const last = Math.max(0, size - 1);
       return {
-        x: (coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5,
+        x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
         y: (coord[1] || 0) * Math.sqrt(3) / 2,
-        maxX: Math.max(1, size - 0.5),
-        maxY: Math.max(1, (size - 1) * Math.sqrt(3) / 2)
+        maxX: Math.max(1, last * 1.5),
+        maxY: Math.max(1, last * Math.sqrt(3) / 2)
       };
     }
     return {

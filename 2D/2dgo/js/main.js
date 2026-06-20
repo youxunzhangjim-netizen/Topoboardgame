@@ -10,6 +10,7 @@ class Go2DApp {
     constructor() {
         this.canvas = document.getElementById('goBoard');
         this.ctx = this.canvas.getContext('2d');
+        this.boardPanel = this.canvas.closest('.board-panel');
         this.sizeSelect = document.getElementById('boardSizeSelect');
         this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.boundarySelect = document.getElementById('boundarySelect');
@@ -265,11 +266,17 @@ class Go2DApp {
     }
 
     resize() {
-        const rect = this.canvas.getBoundingClientRect();
-        const size = Math.max(320, Math.floor(Math.min(rect.width || 720, rect.height || rect.width || 720)));
+        const panelRect = this.boardPanel?.getBoundingClientRect?.() || this.canvas.parentElement?.getBoundingClientRect?.() || { width: 720, height: 720 };
+        const panelPadding = 24;
+        const baseSize = Math.max(320, Math.floor(Math.min(
+            Math.max(320, (panelRect.width || 720) - panelPadding),
+            Math.max(320, (panelRect.height || panelRect.width || 720) - panelPadding)
+        )));
+        const size = Math.max(220, Math.floor(baseSize * this.boardZoom));
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         this.canvas.width = Math.floor(size * dpr);
         this.canvas.height = Math.floor(size * dpr);
+        this.canvas.style.width = `${size}px`;
         this.canvas.style.height = `${size}px`;
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         this.render();
@@ -278,7 +285,7 @@ class Go2DApp {
     boardRect() {
         const cssSize = this.canvas.width / Math.min(window.devicePixelRatio || 1, 2);
         const margin = Math.max(28, cssSize * 0.07);
-        const span = (cssSize - margin * 2) * this.boardZoom;
+        const span = cssSize - margin * 2;
         if (this.logic.topology === 'polar') {
             return {
                 x: cssSize / 2,
@@ -439,7 +446,7 @@ class Go2DApp {
         event.preventDefault();
         const factor = event.deltaY < 0 ? 1.1 : 0.9;
         this.boardZoom = Math.max(0.65, Math.min(3.5, this.boardZoom * factor));
-        this.render();
+        this.resize();
     }
 
     handleBoardPointerDown(event) {
@@ -459,7 +466,7 @@ class Go2DApp {
         const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
         this.boardZoom = Math.max(0.65, Math.min(3.5, this.pinchStart.zoom * distance / Math.max(1, this.pinchStart.distance)));
         this.suppressClickUntil = performance.now() + 220;
-        this.render();
+        this.resize();
     }
 
     handleBoardPointerEnd(event) {

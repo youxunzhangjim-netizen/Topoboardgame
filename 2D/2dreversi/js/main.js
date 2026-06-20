@@ -6,6 +6,7 @@ class Reversi2DApp {
     constructor() {
         this.canvas = document.getElementById('reversiBoard');
         this.ctx = this.canvas.getContext('2d');
+        this.boardPanel = this.canvas.closest('.board-panel');
         this.sizeSelect = document.getElementById('boardSizeSelect');
         this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.boundarySelect = document.getElementById('boundarySelect');
@@ -205,11 +206,17 @@ class Reversi2DApp {
     }
 
     resize() {
-        const rect = this.canvas.getBoundingClientRect();
-        const size = Math.max(320, Math.floor(Math.min(rect.width || 720, rect.height || rect.width || 720)));
+        const panelRect = this.boardPanel?.getBoundingClientRect?.() || this.canvas.parentElement?.getBoundingClientRect?.() || { width: 720, height: 720 };
+        const panelPadding = 24;
+        const baseSize = Math.max(320, Math.floor(Math.min(
+            Math.max(320, (panelRect.width || 720) - panelPadding),
+            Math.max(320, (panelRect.height || panelRect.width || 720) - panelPadding)
+        )));
+        const size = Math.max(220, Math.floor(baseSize * this.boardZoom));
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         this.canvas.width = Math.floor(size * dpr);
         this.canvas.height = Math.floor(size * dpr);
+        this.canvas.style.width = `${size}px`;
         this.canvas.style.height = `${size}px`;
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         this.render();
@@ -247,7 +254,7 @@ class Reversi2DApp {
         event.preventDefault();
         const factor = event.deltaY < 0 ? 1.1 : 0.9;
         this.boardZoom = Math.max(0.65, Math.min(3.5, this.boardZoom * factor));
-        this.render();
+        this.resize();
     }
 
     handleBoardPointerDown(event) {
@@ -267,7 +274,7 @@ class Reversi2DApp {
         const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
         this.boardZoom = Math.max(0.65, Math.min(3.5, this.pinchStart.zoom * distance / Math.max(1, this.pinchStart.distance)));
         this.suppressClickUntil = performance.now() + 220;
-        this.render();
+        this.resize();
     }
 
     handleBoardPointerEnd(event) {
@@ -342,7 +349,7 @@ class Reversi2DApp {
         const width = this.canvas.clientWidth || 720;
         const height = this.canvas.clientHeight || width;
         const margin = Math.max(18, Math.min(width, height) * 0.045);
-        const usable = (Math.min(width, height) - margin * 2) * this.boardZoom;
+        const usable = Math.min(width, height) - margin * 2;
         if (this.logic.topology.topology === 'polar') {
             const radius = usable / 2;
             return {

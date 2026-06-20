@@ -95,18 +95,21 @@ body {
 .capture-count { font-weight: 850; }
 
 .board-panel {
-    min-height: min(86vh, calc(100vh - 180px));
     display: grid;
-    place-items: center;
+    align-items: start;
+    justify-items: center;
+    height: clamp(360px, calc(100vh - 190px), 86vh);
+    min-height: 0;
     padding: 12px;
     border-radius: 8px;
     background: linear-gradient(180deg, rgba(12, 15, 19, 0.58), rgba(12, 15, 19, 0.9));
-    overflow: hidden;
+    overflow: auto;
 }
 
 #goBoard {
-    width: min(100%, calc(100vh - 170px), 1180px);
-    max-width: min(1180px, 100%);
+    display: block;
+    width: min(100%, 1180px);
+    max-width: none;
     aspect-ratio: 1;
     border-radius: 8px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);

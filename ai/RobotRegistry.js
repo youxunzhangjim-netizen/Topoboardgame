@@ -144,6 +144,18 @@ export function classifyMasterEngineUse(context = {}) {
             reason: master.directUse
         };
     }
+    const topology = normalizedTopology(context);
+    if (gameType === 'chess' && ['open', 'suicide', 'open-suicide', 'open_suicide'].includes(topology)) {
+        return {
+            gameType,
+            mode: 'open-suicide-teacher-for-local-variant',
+            direct: false,
+            teacherOnly: true,
+            engine: master.engine,
+            adapter: master.adapter,
+            reason: 'Stockfish supplies mastered ordinary 2D chess teacher data; Topoboardgame local chess robots keep and learn the Open (Suicide) boundary rules.'
+        };
+    }
     const spacetime = String(context.spacetime || context.layer || '').toLowerCase();
     if (['2p1', '2+1d', '2+1'].includes(spacetime) && SPACETIME_MASTER_TEACHERS[gameType]) {
         const teacher = SPACETIME_MASTER_TEACHERS[gameType];
