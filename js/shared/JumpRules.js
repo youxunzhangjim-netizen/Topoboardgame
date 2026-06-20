@@ -35,42 +35,55 @@ function diamondRows(size) {
   for (let r = -2 * arm; r <= 2 * arm; r += 1) {
     const abs = Math.abs(r);
     const length = abs > arm ? 2 * arm + 1 - abs : 2 * arm + 1 + abs;
-    const qMin = -Math.floor((length - 1) / 2);
+    const qMin = Math.round((-r - (length - 1)) / 2);
     rows.push({ r, qMin, qMax: qMin + length - 1, length });
   }
   return { arm, rows };
 }
 
-function diamondCoords(size) {
-  const { rows } = diamondRows(size);
+function isFullStarCoord(coord, arm) {
+  const [q, r] = coord;
+  const s = -q - r;
+  const inBandCount = [Math.abs(q) <= arm, Math.abs(r) <= arm, Math.abs(s) <= arm].filter(Boolean).length;
+  return Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) <= 2 * arm && inBandCount >= 2;
+}
+
+function isTwoPlayerDiamondCoord(coord, arm) {
+  const [q, r] = coord;
+  const s = -q - r;
+  return isFullStarCoord(coord, arm) && Math.abs(q) <= arm && Math.abs(s) <= arm;
+}
+
+function diamondCoords(size, playerCount = 3) {
+  const { arm } = diamondRows(size);
+  const includeSideCamps = Number(playerCount) >= 3;
   const coords = [];
-  for (const row of rows) {
-    for (let q = row.qMin; q <= row.qMax; q += 1) coords.push([q, row.r]);
+  for (let r = -2 * arm; r <= 2 * arm; r += 1) {
+    for (let q = -2 * arm; q <= 2 * arm; q += 1) {
+      const coord = [q, r];
+      const ok = includeSideCamps ? isFullStarCoord(coord, arm) : isTwoPlayerDiamondCoord(coord, arm);
+      if (ok) coords.push(coord);
+    }
   }
   return coords;
 }
 
-function diamondCamp(size, axis, sign) {
+function diamondCamp(size, name, playerCount = 3) {
   const arm = diamondArm(size);
-  const coords = diamondCoords(size);
-  const campSize = arm * (arm + 1) / 2;
-  if (axis === 1 && sign < 0) return coords.filter((coord) => (coord[1] || 0) <= -arm - 1).map((coord) => coordKey(coord));
-  if (axis === 1 && sign > 0) return coords.filter((coord) => (coord[1] || 0) >= arm + 1).map((coord) => coordKey(coord));
-  const anchor = axis === 0
-    ? [sign * 2 * arm, 0]
-    : [sign * arm, -sign * 2 * arm];
-  return closestDiamondCamp(coords, anchor, campSize);
-}
-
-function closestDiamondCamp(coords, anchor, count) {
-  return coords
-    .map((coord) => ({
-      coord,
-      distance: Math.hypot((coord[0] || 0) - anchor[0], (coord[1] || 0) - anchor[1])
-    }))
-    .sort((a, b) => a.distance - b.distance || (a.coord[1] || 0) - (b.coord[1] || 0) || (a.coord[0] || 0) - (b.coord[0] || 0))
-    .slice(0, count)
-    .map((item) => coordKey(item.coord));
+  return diamondCoords(size, playerCount)
+    .filter((coord) => {
+      const [q, r] = coord;
+      const s = -q - r;
+      if (name === 'top') return r < -arm;
+      if (name === 'bottom') return r > arm;
+      if (name === 'upperRight') return q > arm;
+      if (name === 'lowerLeft') return q < -arm;
+      if (name === 'upperLeft') return s > arm;
+      if (name === 'lowerRight') return s < -arm;
+      return false;
+    })
+    .sort((a, b) => a[1] - b[1] || a[0] - b[0])
+    .map((coord) => coordKey(coord));
 }
 
 export function normalizeJumpLattice(lattice = 'square', dimension = 2, topology = 'plane') {
@@ -119,12 +132,13 @@ function reflected(v, size) {
 }
 
 export class JumpTopology {
-  constructor({ dimension = 2, size = 8, topology = 'plane', boundary = topology, targetAxis = 'x' } = {}) {
+  constructor({ dimension = 2, size = 8, topology = 'plane', boundary = topology, targetAxis = 'x', playerCount = 2 } = {}) {
     this.dimension = clampInt(dimension, 2, 4);
     this.size = clampInt(size, 4, this.dimension === 2 ? 24 : 12);
     this.topology = String(boundary || topology || 'plane').toLowerCase();
     this.targetAxis = ['x', 'y', 'z', 'w'].includes(String(targetAxis)) ? String(targetAxis) : 'x';
     this.axisIndex = { x: 0, y: 1, z: 2, w: 3 }[this.targetAxis] ?? 0;
+    this.playerCount = Math.max(2, Math.min(3, Math.floor(Number(playerCount) || 2)));
   }
 
   allCoords() {
@@ -137,7 +151,7 @@ export class JumpTopology {
       }
       return coords;
     }
-    if (this.dimension === 2 && this.topology === 'diamond') return diamondCoords(size);
+    if (this.dimension === 2 && this.topology === 'diamond') return diamondCoords(size, this.playerCount);
     const rec = (prefix) => {
       if (prefix.length === this.dimension) { coords.push(prefix); return; }
       for (let i = 0; i < size; i += 1) rec([...prefix, i]);
@@ -161,8 +175,8 @@ export class JumpTopology {
       if (!Array.isArray(coord) || coord.length !== 2) return false;
       const [q, r] = coord;
       if (!Number.isInteger(q) || !Number.isInteger(r)) return false;
-      const row = diamondRows(this.size).rows.find((entry) => entry.r === r);
-      return Boolean(row && q >= row.qMin && q <= row.qMax);
+      const arm = diamondArm(this.size);
+      return this.playerCount >= 3 ? isFullStarCoord(coord, arm) : isTwoPlayerDiamondCoord(coord, arm);
     }
     return Array.isArray(coord) && coord.length === this.dimension && coord.every((v) => Number.isInteger(v) && v >= 0 && v < this.size);
   }
@@ -269,7 +283,7 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const top = String(topology || 'plane').toLowerCase();
   const width = Math.max(1, Math.floor(n / (dim === 2 ? 4 : 3)));
   const radius = Math.max(1, Math.floor(n / 5));
-  const coords = new JumpTopology({ dimension: dim, size: n, topology: top, targetAxis }).allCoords();
+  const coords = new JumpTopology({ dimension: dim, size: n, topology: top, targetAxis, playerCount }).allCoords();
   const aHome = new Set();
   const bHome = new Set();
   const cHome = new Set();
@@ -278,13 +292,13 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const sphere = ['sphere', 'shell'].includes(top);
 
   if (dim === 2 && top === 'diamond') {
-    for (const key of diamondCamp(n, 1, -1)) aHome.add(key);
-    for (const key of diamondCamp(n, 1, 1)) bHome.add(key);
+    for (const key of diamondCamp(n, 'top', playerCount)) aHome.add(key);
+    for (const key of diamondCamp(n, 'bottom', playerCount)) bHome.add(key);
     if (playerCount >= 3) {
       cHome.clear();
       bHome.clear();
-      for (const key of diamondCamp(n, 0, 1)) bHome.add(key);
-      for (const key of diamondCamp(n, 0, -1)) cHome.add(key);
+      for (const key of diamondCamp(n, 'lowerRight', playerCount)) bHome.add(key);
+      for (const key of diamondCamp(n, 'lowerLeft', playerCount)) cHome.add(key);
     }
   } else if (sphere) {
     for (const c of coords) {
@@ -312,11 +326,11 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
     }
   }
 
-  const aTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 1, 1) : bHome);
-  const bTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? cHome : aHome);
+  const aTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'bottom', playerCount) : bHome);
+  const bTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'upperLeft', playerCount) : aHome);
   const cTarget = new Set();
   if (dim === 2 && top === 'diamond' && playerCount >= 3) {
-    for (const key of bHome) cTarget.add(key);
+    for (const key of diamondCamp(n, 'upperRight', playerCount)) cTarget.add(key);
   }
 
   if (String(labTargetMode).toLowerCase() === 'antipodal') {
@@ -337,7 +351,7 @@ export class JumpGameState {
     this.zoneMode = options.zoneMode || 'auto';
     this.labMode = options.labMode || '';
     this.labTargetMode = options.labTargetMode || 'opponentHome';
-    this.topology = new JumpTopology({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis });
+    this.topology = new JumpTopology({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, playerCount: this.playerCount });
     this.directions = createDirectionVectors(this.dimension, this.lattice, this.topologyName);
     this.currentPlayer = 'A';
     this.turnNumber = 1;
@@ -557,7 +571,7 @@ export class JumpGameState {
     this.currentPlayer = state.currentPlayer || 'A';
     this.turnNumber = Number(state.turnNumber) || 1;
     this.winner = state.winner || null;
-    this.topology = new JumpTopology({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis });
+    this.topology = new JumpTopology({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, playerCount: this.playerCount });
     this.directions = createDirectionVectors(this.dimension, this.lattice, this.topologyName);
     this.zones = createHomeTargetZones({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, zoneMode: this.zoneMode, labTargetMode: this.labTargetMode, playerCount: this.playerCount });
     this.pieces = new Map(Array.isArray(state.pieces) ? state.pieces : []);

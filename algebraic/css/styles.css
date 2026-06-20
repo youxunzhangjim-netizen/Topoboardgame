@@ -1509,6 +1509,21 @@ h2 {
     gap: 8px;
 }
 
+.lab-export-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+    justify-content: start;
+    gap: 8px;
+}
+
+.lab-export-actions button {
+    min-height: 38px;
+    padding: 7px 12px;
+    border-color: rgba(66, 198, 255, 0.38);
+    font-weight: 900;
+    cursor: pointer;
+}
+
 .legend {
     display: flex;
     flex-wrap: wrap;
@@ -1711,6 +1726,7 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     .lab-history-panels,
     .lab-export-panel {
         grid-column: 1 / -1;
+        grid-row: auto;
     }
 
     .section-game,
@@ -1770,6 +1786,10 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
 }
 
 @media (max-width: 1179px) {
+    .top-bar {
+        order: 1;
+    }
+
     .game-layout {
         order: 2;
     }
@@ -1780,5 +1800,13 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
 
     .layer-panel {
         order: 4;
+    }
+
+    .lab-history-panels {
+        order: 5;
+    }
+
+    .lab-export-panel {
+        order: 6;
     }
 }

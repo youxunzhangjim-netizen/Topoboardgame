@@ -42,36 +42,37 @@
             touch-action: none;
         }
         .reversi4d-edge-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-        .reversi4d-edge { stroke: rgba(128, 190, 255, .26); stroke-width: 1.05; }
+        .reversi4d-edge { stroke: rgba(108, 164, 224, .22); stroke-width: .85; }
         .reversi4d-projection .vertex.projected-vertex {
             position: absolute;
-            width: 7px !important;
-            height: 7px !important;
+            width: 4px !important;
+            height: 4px !important;
             min-width: 0 !important;
             min-height: 0 !important;
-            max-width: 7px;
-            max-height: 7px;
+            max-width: 4px;
+            max-height: 4px;
             padding: 0 !important;
             border: 0;
             border-radius: 50%;
-            background: rgba(220, 238, 255, .72);
+            background: rgba(95, 127, 160, .42);
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 5px rgba(180, 215, 255, .48);
+            box-shadow: 0 0 2px rgba(86, 132, 184, .28);
+            overflow: visible;
         }
         .reversi4d-projection .vertex.projected-vertex::before,
         .reversi4d-projection .vertex.projected-vertex::after { display: none; }
         .reversi4d-projection .vertex.projected-vertex.liberty {
-            width: 10px !important;
-            height: 10px !important;
-            max-width: 10px;
-            max-height: 10px;
-            background: rgba(99, 255, 164, .88);
-            box-shadow: 0 0 8px rgba(99, 255, 164, .64);
+            width: 8px !important;
+            height: 8px !important;
+            max-width: 8px;
+            max-height: 8px;
+            background: rgba(94, 255, 166, .82);
+            box-shadow: 0 0 7px rgba(94, 255, 166, .58);
         }
         .reversi4d-projection .vertex.projected-vertex.group,
         .reversi4d-projection .vertex.projected-vertex.hover {
-            background: rgba(72, 199, 244, .88);
-            box-shadow: 0 0 9px rgba(72, 199, 244, .68);
+            background: rgba(72, 199, 244, .78);
+            box-shadow: 0 0 8px rgba(72, 199, 244, .58);
         }
         .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
         .reversi4d-projection .stone {
