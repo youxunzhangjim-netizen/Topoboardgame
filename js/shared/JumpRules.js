@@ -595,6 +595,7 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer) {
     const score = scoreJumpMove(game, move, player);
     if (!best || score > best.score) best = { move, score };
   }
+  if (game.chainFrom && best?.score <= 0) return null;
   return best?.move || moves[0];
 }
 
@@ -602,16 +603,21 @@ function scoreJumpMove(game, move, player) {
   const target = game.targetZone(player);
   const before = distanceToTarget(game, move.from, target);
   const after = distanceToTarget(game, move.to, target);
-  const jumpBonus = move.type === 'jump' ? 6 : 0;
+  const progress = before - after;
+  const inChain = Boolean(game.chainFrom);
+  const jumpBonus = move.type === 'jump' ? (inChain ? 0.4 : 3) : 0;
   const targetBonus = target.has(coordKey(move.to)) ? 20 : 0;
-  const chainBonus = move.type === 'jump' ? potentialContinuationJumps(game, move, player) * 5 : 0;
+  const chainProgress = move.type === 'jump' ? potentialContinuationProgress(game, move, player, target) : 0;
+  const chainBonus = Math.max(0, chainProgress) * 1.75;
+  const stalledChainPenalty = inChain && progress <= 0 ? 8 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return (before - after) * 5 + jumpBonus + targetBonus + chainBonus + directionBonus + polarBonus + Math.random() * 0.1;
+  return progress * 9 + jumpBonus + targetBonus + chainBonus + directionBonus + polarBonus - stalledChainPenalty + Math.random() * 0.1;
 }
 
-function potentialContinuationJumps(game, move, player) {
-  let count = 0;
+function potentialContinuationProgress(game, move, player, target) {
+  let best = 0;
+  const startDistance = distanceToTarget(game, move.to, target);
   const visited = new Set([coordKey(move.from), coordKey(move.to)]);
   for (const dir of game.directionsFor(move.to)) {
     const first = game.topology.step(move.to, dir);
@@ -625,9 +631,9 @@ function potentialContinuationJumps(game, move, player) {
     const landingKey = coordKey(second.position);
     if (visited.has(landingKey)) continue;
     if (!game.isEmpty(second.position)) continue;
-    count += 1;
+    best = Math.max(best, startDistance - distanceToTarget(game, second.position, target));
   }
-  return count;
+  return best;
 }
 function distanceToTarget(game, coord, targetSet) {
   let best = Infinity;
