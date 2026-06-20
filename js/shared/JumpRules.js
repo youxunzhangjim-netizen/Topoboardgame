@@ -234,9 +234,19 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
       if (cornerCluster(c, bAnchor, radius)) bHome.add(coordKey(c));
     }
   } else {
-    for (const c of coords) {
-      if (axisCluster(c, axis, 'low', width, n)) aHome.add(coordKey(c));
-      if (axisCluster(c, axis, 'high', width, n)) bHome.add(coordKey(c));
+    if (dim === 2 && top === 'diamond') {
+      const rows = Math.max(2, Math.floor(n / 3));
+      const maxSum = 2 * (n - 1);
+      for (const c of coords) {
+        const sum = (c[0] || 0) + (c[1] || 0);
+        if (sum < rows) aHome.add(coordKey(c));
+        if (sum > maxSum - rows) bHome.add(coordKey(c));
+      }
+    } else {
+      for (const c of coords) {
+        if (axisCluster(c, axis, 'low', width, n)) aHome.add(coordKey(c));
+        if (axisCluster(c, axis, 'high', width, n)) bHome.add(coordKey(c));
+      }
     }
   }
 

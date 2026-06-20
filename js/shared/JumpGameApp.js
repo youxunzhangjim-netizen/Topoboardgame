@@ -23,6 +23,8 @@ const TOPOLOGY_ZH_LABELS = {
   projection: '投影',
   '4d-torus': '4D 環面'
 };
+TOPOLOGY_LABELS.diamond = 'Diamond';
+TOPOLOGY_ZH_LABELS.diamond = 'è±å½¢';
 const LATTICE_LABELS = { square: 'Square', triangular: 'Triangular' };
 const JUMP_ZH_TEXT = new Map(Object.entries({
   '2D Jump': '2D 跳棋',
@@ -134,6 +136,7 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   'y = all': 'y = 全部',
   'z = all': 'z = 全部'
 }));
+JUMP_ZH_TEXT.set('Diamond Jump', '菱形跳棋');
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || min)); }
 function parseCoordKey(key) { return key.split(',').map(Number); }
@@ -424,7 +427,7 @@ export class JumpGameApp {
     if (this.infoEl) {
       this.infoEl.textContent = jumpLanguage() === 'zh'
         ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。方格棋盤使用上下左右連線，三角格棋盤增加兩條斜向連線；極座標棋盤固定使用方格徑向/角向連線。環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤會直接標出目標區，因為空間改變時「對面」的意思也會改變。'
-        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
+        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square or Triangular lattice links. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
     }
   }
 
@@ -825,7 +828,25 @@ export class JumpGameApp {
 
   planarLatticeCoord(coord) {
     const size = Math.max(1, this.game?.size || 1);
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
+    if (this.dimension === 2 && topology === 'diamond') {
+      const last = Math.max(1, size - 1);
+      if (lattice === 'triangular') {
+        return {
+          x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
+          y: (coord[1] || 0) * Math.sqrt(3) / 2,
+          maxX: last * 1.5,
+          maxY: last * Math.sqrt(3) / 2
+        };
+      }
+      return {
+        x: (coord[0] || 0) - (coord[1] || 0) + last,
+        y: (coord[0] || 0) + (coord[1] || 0),
+        maxX: last * 2,
+        maxY: last * 2
+      };
+    }
     if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
       const last = Math.max(0, size - 1);
       return {
