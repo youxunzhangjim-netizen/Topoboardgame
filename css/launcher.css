@@ -1652,12 +1652,26 @@ h1 {
 .life-world-info-panel summary {
     width: max-content;
     cursor: pointer;
-    color: rgba(245, 182, 71, 0.95);
+    color: rgba(125, 211, 252, 0.94);
     font-size: 12px;
     font-weight: 950;
     text-transform: uppercase;
     text-decoration: underline;
     text-underline-offset: 4px;
+    list-style: none;
+}
+.life-world-info-panel summary::-webkit-details-marker {
+    display: none;
+}
+.life-world-info-panel summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 6px;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+.life-world-info-panel[open] summary::before {
+    content: "▾";
 }
 .life-world-info-panel span {
     color: rgba(225, 236, 242, 0.82);
@@ -1711,6 +1725,23 @@ h1 {
     text-underline-offset: 4px;
     text-decoration-thickness: 1.5px;
     text-transform: none;
+    list-style: none;
+}
+
+.lab-card .lab-advanced summary::-webkit-details-marker {
+    display: none;
+}
+
+.lab-card .lab-advanced summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 6px;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.lab-card .lab-advanced[open] summary::before {
+    content: "▾";
 }
 
 .lab-card .lab-advanced summary:hover,
