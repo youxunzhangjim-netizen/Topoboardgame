@@ -19,8 +19,10 @@ const games = numberArg(args, 'games', 10, { min: 1, max: 10_000_000 });
 const maxPlies = numberArg(args, 'maxPlies', defaultMaxPlies(game), { min: 1, max: 50_000 });
 const depthA = numberArg(args, 'depthA', numberArg(args, 'depth', defaultDepth(game), { min: 1, max: 5 }), { min: 1, max: 5 });
 const depthB = numberArg(args, 'depthB', depthA, { min: 1, max: 5 });
+const depthC = numberArg(args, 'depthC', depthB, { min: 1, max: 5 });
 const botA = stringArg(args, 'botA', 'builtin');
 const botB = stringArg(args, 'botB', 'builtin');
+const botC = stringArg(args, 'botC', botB);
 const seed = stringArg(args, 'seed', `research-${Date.now()}`);
 const out = stringArg(args, 'out', defaultOutput(game));
 const record = stringArg(args, 'record', 'moves'); // moves | games
@@ -28,10 +30,13 @@ const includeState = boolArg(args, 'state', true);
 const includeLegalMoves = boolArg(args, 'legalMoves', false);
 const externalACommand = stringArg(args, 'externalA', '');
 const externalBCommand = stringArg(args, 'externalB', '');
+const externalCCommand = stringArg(args, 'externalC', '');
 const modelAPath = stringArg(args, 'modelA', stringArg(args, 'model', ''));
 const modelBPath = stringArg(args, 'modelB', modelAPath);
+const modelCPath = stringArg(args, 'modelC', modelBPath);
 const linearA = modelAPath && ['linear', 'linearA'].includes(botA) ? loadModel(modelAPath) : null;
 const linearB = modelBPath && ['linear', 'linearB'].includes(botB) ? loadModel(modelBPath) : null;
+const linearC = modelCPath && ['linear', 'linearC'].includes(botC) ? loadModel(modelCPath) : null;
 const timeoutMs = numberArg(args, 'externalTimeoutMs', 5000, { min: 100, max: 120000 });
 const progressEvery = numberArg(args, 'progressEvery', Math.max(1, Math.floor(games / 20)), { min: 1, max: 1_000_000 });
 
@@ -44,6 +49,7 @@ const rng = new ResearchRng(seed);
 const writer = new JsonlWriter(out);
 const externalA = externalACommand ? new ExternalRobotProcess(externalACommand, { name: 'externalA' }) : null;
 const externalB = externalBCommand ? new ExternalRobotProcess(externalBCommand, { name: 'externalB' }) : null;
+const externalC = externalCCommand ? new ExternalRobotProcess(externalCCommand, { name: 'externalC' }) : null;
 const started = performance.now();
 const summary = new Map();
 
@@ -55,6 +61,7 @@ try {
       topology: stringArg(args, 'topology', stringArg(args, 'boundary', defaultBoundary(game))),
       lattice: stringArg(args, 'lattice', defaultLattice(game)),
       size: numberArg(args, 'size', defaultSize(game), { min: 3, max: 30 }),
+      playerCount: numberArg(args, 'playerCount', defaultPlayerCount(game), { min: 2, max: 3 }),
       komi: Number(args.komi),
       seed: gameSeed
     });
@@ -69,6 +76,7 @@ try {
 } finally {
   externalA?.close();
   externalB?.close();
+  externalC?.close();
   await writer.close();
 }
 
@@ -83,8 +91,9 @@ async function runOneGame({ adapter, gameIndex, gameSeed }) {
   let lastScore = 0;
   while (!adapter.isTerminal() && ply < maxPlies) {
     const player = adapter.currentPlayer();
-    const depth = player === 'white' || player === 'black' ? (player === 'white' || player === 'black' ? (sideIndex(player) === 0 ? depthA : depthB) : depthA) : depthA;
-    const botKind = sideIndex(player) === 0 ? botA : botB;
+    const side = sideIndex(player);
+    const depth = side === 0 ? depthA : side === 2 ? depthC : depthB;
+    const botKind = side === 0 ? botA : side === 2 ? botC : botB;
     const legalMoves = adapter.legalMoves();
     if (!legalMoves.length) break;
     const before = includeState ? adapter.serializeState() : null;
@@ -146,9 +155,10 @@ async function chooseMove(adapter, context) {
     const move = rng.pick(legalMoves);
     return { move, score: 0, nodes: 0 };
   }
-  if (botKind === 'linear' || botKind === 'linearA' || botKind === 'linearB') {
-    const model = sideIndex(player) === 0 ? linearA : linearB;
-    if (!model) throw new Error(`Bot ${botKind} requires --model/--modelA/--modelB.`);
+  if (botKind === 'linear' || botKind === 'linearA' || botKind === 'linearB' || botKind === 'linearC') {
+    const side = sideIndex(player);
+    const model = side === 0 ? linearA : side === 2 ? linearC : linearB;
+    if (!model) throw new Error(`Bot ${botKind} requires --model/--modelA/--modelB/--modelC.`);
     const result = chooseLinearRobotMove(model, {
       game,
       options: adapter.options,
@@ -159,8 +169,8 @@ async function chooseMove(adapter, context) {
     const move = legalMoves.find((candidate) => serializeMove(candidate).id === result.moveId || candidate.id === result.moveId) || legalMoves[0];
     return { move, score: result.score, nodes: legalMoves.length, modelProbability: result.probability };
   }
-  if (botKind === 'externalA' && externalA || botKind === 'externalB' && externalB) {
-    const proc = botKind === 'externalA' ? externalA : externalB;
+  if (botKind === 'externalA' && externalA || botKind === 'externalB' && externalB || botKind === 'externalC' && externalC) {
+    const proc = botKind === 'externalA' ? externalA : botKind === 'externalC' ? externalC : externalB;
     const response = await proc.requestMove({
       game,
       player,
@@ -191,7 +201,10 @@ function serializeMove(move) {
 }
 
 function sideIndex(player) {
-  return ['white', 'black'].includes(player) ? (player === 'white' ? 0 : 1) : (player === 'black' ? 0 : 1);
+  const value = String(player || '').toLowerCase();
+  if (value === 'white' || value === 'a') return 0;
+  if (value === 'c') return 2;
+  return 1;
 }
 
 function winnerFromScore(score) {
@@ -215,7 +228,7 @@ function defaultSize(game) {
   if (game === '3dgo') return 5;
   if (game === '3dreversi') return 6;
   if (game === '3dchess') return 8;
-  if (game === '2djump') return 8;
+  if (game === '2djump') return 12;
   if (game === '3djump') return 6;
   if (game === '4djump') return 4;
   return 8;
@@ -223,7 +236,7 @@ function defaultSize(game) {
 function defaultBoundary(game) {
   if (game === '2dchess') return 'forbidden';
   if (game === '3dchess') return 'r3';
-  if (game === '2djump') return 'plane';
+  if (game === '2djump') return 'diamond';
   if (game === '3djump') return 'cube';
   if (game === '4djump') return 'hypercube';
   if (game === '2dgo' || game === '2dreversi') return 'open2d';
@@ -235,6 +248,7 @@ function defaultLattice(game) {
   if (game === '3dchess') return 'chess3d';
   return 'square';
 }
+function defaultPlayerCount(game) { return game === '2djump' ? 2 : 2; }
 function defaultOutput(game) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   return `local-data/selfplay/${game}-${stamp}.jsonl`;

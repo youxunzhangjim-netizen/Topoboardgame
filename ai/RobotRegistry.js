@@ -52,6 +52,21 @@ export const SPACETIME_MASTER_TEACHERS = Object.freeze({
     }
 });
 
+export const JUMP_REFERENCE_TEACHERS = Object.freeze({
+    twoPlayer: {
+        reference: 'Zedrichu Chinese Checkers',
+        strategy: 'minimax/paranoid search reference',
+        command: 'node research/external-bots/random-jsonl-robot.mjs --strategy zedrichu --depth 2',
+        use: 'teacher/baseline for two-player standard diamond boards on triangular or square links'
+    },
+    multiAgent: {
+        reference: 'davidschulte / PettingZoo Chinese Checkers',
+        strategy: 'max-n multi-agent training reference',
+        command: 'node research/external-bots/random-jsonl-robot.mjs --strategy pettingzoo --depth 2',
+        use: 'teacher/baseline for three-player standard star boards with independent A/B/C policies'
+    }
+});
+
 export const LOCAL_ROBOT_BASELINES = Object.freeze({
     chess: [
         '2D/2dchess/js/robot/ChessRobotAdapter.js',
@@ -268,7 +283,9 @@ export function createDefaultRobotRegistry() {
             baseRobotClass: ClassRef,
             familyName: ROBOT_FAMILIES[gameType],
             localRobotPaths: LOCAL_ROBOT_BASELINES[gameType],
-            notes: MASTER_ENGINE_ROBOTS[gameType]
+            notes: gameType === 'jump'
+                ? 'Zedrichu minimax and davidschulte/PettingZoo multi-agent designs are teacher references for standard diamond/star boards. Topoboardgame local Jump robots remain the trained and shipped robots.'
+                : MASTER_ENGINE_ROBOTS[gameType]
                 ? `${MASTER_ENGINE_ROBOTS[gameType].engine} may be used directly only for the normal 2D game. Open engines are teachers/baselines for variants; Topoboardgame local robots are the trainable robots for custom topology games.`
                 : 'Topoboardgame local robots are the trainable robots for custom topology games.'
         });

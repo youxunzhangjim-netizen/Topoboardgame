@@ -21,6 +21,30 @@ The reusable engine is in:
 
 Move generation is dimension-independent. Directions are arrays like `[dx, dy]`, `[dx, dy, dz]`, or `[dx, dy, dz, dw]`. For twisted spaces, the second half of a jump uses the transformed direction returned by the first topology step.
 
+## Open reference teachers
+
+Zedrichu's two-player Chinese Checkers minimax design and the davidschulte / PettingZoo Chinese Checkers multi-agent design are wired as research references. They do not replace the browser's local Jump robot. They produce teacher/self-play data for Topoboardgame's standard diamond/star geometry, using triangular or square links.
+
+Two-player triangular teacher versus the built-in local robot:
+
+~~~powershell
+npm run research:selfplay -- --game 2djump --boundary diamond --lattice triangular --playerCount 2 --botA externalA --externalA "node research/external-bots/random-jsonl-robot.mjs --strategy zedrichu --depth 2" --botB builtin --games 1000 --out local-data/selfplay/jump-2p-triangular-zedrichu.jsonl
+~~~
+
+Two-player square-link teacher:
+
+~~~powershell
+npm run research:selfplay -- --game 2djump --boundary diamond --lattice square --playerCount 2 --botA externalA --externalA "node research/external-bots/random-jsonl-robot.mjs --strategy zedrichu --depth 2" --botB builtin --games 1000 --out local-data/selfplay/jump-2p-square-zedrichu.jsonl
+~~~
+
+Three independent multi-agent policies on the triangular star board:
+
+~~~powershell
+npm run research:selfplay -- --game 2djump --boundary diamond --lattice triangular --playerCount 3 --botA externalA --externalA "node research/external-bots/random-jsonl-robot.mjs --strategy pettingzoo --depth 2" --botB externalB --externalB "node research/external-bots/random-jsonl-robot.mjs --strategy pettingzoo --depth 2" --botC externalC --externalC "node research/external-bots/random-jsonl-robot.mjs --strategy pettingzoo --depth 2" --games 1000 --out local-data/selfplay/jump-3p-triangular-pettingzoo.jsonl
+~~~
+
+Use the same three-player command with --lattice square for the square-link board. The runner validates every returned move against Topoboardgame's own rules before applying it.
+
 ## Training and evaluation commands
 
 Quick smoke training and evaluation:

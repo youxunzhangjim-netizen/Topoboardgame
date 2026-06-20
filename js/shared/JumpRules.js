@@ -613,19 +613,28 @@ function scoreJumpMove(game, move, player) {
   const fromHome = home.has(fromKey);
   const toHome = home.has(toKey);
   const homePiecesLeft = countPlayerPiecesInZone(game, player, home);
+  const outsideTarget = countPlayerPiecesOutsideZone(game, player, target);
+  const farthestUnfinishedDistance = maxPlayerDistanceToZone(game, player, target);
   if (fromTarget && !toTarget) return -1000 - after;
   const jumpBonus = move.type === 'jump' ? (inChain ? 0.4 : 3) : 0;
-  const targetBonus = toTarget ? (fromTarget ? 12 : 34) : 0;
+  const targetBonus = toTarget ? (fromTarget ? 0 : 58) : 0;
   const chainProgress = move.type === 'jump' ? potentialContinuationProgress(game, move, player, target) : 0;
   const chainBonus = Math.max(0, chainProgress) * 1.75;
   const stalledChainPenalty = inChain && progress <= 0 ? 8 : 0;
-  const homeClearBonus = fromHome && !toHome ? 18 : 0;
+  const lastHomePressure = homePiecesLeft > 0 ? 90 / homePiecesLeft : 0;
+  const homeClearBonus = fromHome && !toHome ? 42 + lastHomePressure : 0;
   const homeReturnPenalty = !fromHome && toHome ? 28 : 0;
-  const ignoredHomePenalty = homePiecesLeft > 0 && !fromHome && !toTarget ? Math.min(18, 4 + homePiecesLeft * 1.2) : 0;
+  const ignoredHomePenalty = homePiecesLeft > 0 && !fromHome && !toTarget ? 32 + lastHomePressure : 0;
+  const targetShufflePenalty = fromTarget && toTarget && outsideTarget > 0 ? 140 + outsideTarget * 3 : 0;
+  const laggardBonus = !fromTarget && before >= farthestUnfinishedDistance - 0.001
+    ? 48 + Math.max(0, outsideTarget - 1) * 2
+    : 0;
   const backwardPenalty = progress < 0 ? Math.abs(progress) * 14 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return progress * 12 + jumpBonus + targetBonus + chainBonus + homeClearBonus + directionBonus + polarBonus - stalledChainPenalty - homeReturnPenalty - ignoredHomePenalty - backwardPenalty + Math.random() * 0.1;
+  return progress * 15 + jumpBonus + targetBonus + chainBonus + homeClearBonus + laggardBonus + directionBonus + polarBonus
+    - stalledChainPenalty - homeReturnPenalty - ignoredHomePenalty - targetShufflePenalty - backwardPenalty
+    + Math.random() * 0.1;
 }
 
 function countPlayerPiecesInZone(game, player, zone) {
@@ -634,6 +643,23 @@ function countPlayerPiecesInZone(game, player, zone) {
     if (game.pieces.get(key) === player) count += 1;
   }
   return count;
+}
+
+function countPlayerPiecesOutsideZone(game, player, zone) {
+  let count = 0;
+  for (const [key, owner] of game.pieces.entries()) {
+    if (owner === player && !zone.has(key)) count += 1;
+  }
+  return count;
+}
+
+function maxPlayerDistanceToZone(game, player, zone) {
+  let max = 0;
+  for (const [key, owner] of game.pieces.entries()) {
+    if (owner !== player || zone.has(key)) continue;
+    max = Math.max(max, distanceToTarget(game, key.split(',').map(Number), zone));
+  }
+  return max;
 }
 
 function potentialContinuationProgress(game, move, player, target) {

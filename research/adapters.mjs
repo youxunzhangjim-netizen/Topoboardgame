@@ -226,13 +226,14 @@ function createJumpAdapter(options = {}) {
     size: clamp(Number(options.size) || (dimension === 4 ? 4 : dimension === 3 ? 6 : 8), 4, dimension === 2 ? 16 : 8),
     topology: options.boundary || options.topology || (dimension === 4 ? 'hypercube' : dimension === 3 ? 'cube' : 'plane'),
     lattice: options.lattice || 'square',
+    playerCount: Number(options.playerCount) || 2,
     targetAxis: options.targetAxis || 'x',
     labMode: options.labMode || '',
     labTargetMode: options.labTargetMode || 'opponentHome'
   });
   return {
     kind: `${dimension}djump`,
-    options: { topology: logic.topologyName, lattice: logic.lattice, size: logic.size, dimension: logic.dimension, targetAxis: logic.targetAxis, labMode: logic.labMode },
+    options: { topology: logic.topologyName, lattice: logic.lattice, size: logic.size, dimension: logic.dimension, playerCount: logic.playerCount, targetAxis: logic.targetAxis, labMode: logic.labMode },
     currentPlayer: () => logic.currentPlayer,
     isTerminal: () => Boolean(logic.winner),
     winner: () => logic.winner || '',
