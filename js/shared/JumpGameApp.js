@@ -911,16 +911,17 @@ export class JumpGameApp {
     const pad = Math.max(40, Math.min(width, height) * 0.08);
     const usableW = width - pad * 2;
     const usableH = height - pad * 2;
-    const boardW = usableW * zoom;
-    const boardH = usableH * zoom;
+    const planar = this.planarLatticeCoord(coord);
+    const boardScale = Math.min(usableW / planar.maxX, usableH / planar.maxY) * zoom;
+    const boardW = planar.maxX * boardScale;
+    const boardH = planar.maxY * boardScale;
     const originX = pad + (usableW - boardW) / 2;
     const originY = pad + (usableH - boardH) / 2;
-    const zShift = this.dimension >= 3 ? (coord[2] - (n - 1) / 2) * (boardW / n) * 0.18 : 0;
-    const wShift = this.dimension >= 4 ? (coord[3] - (n - 1) / 2) * (boardH / n) * 0.12 : 0;
-    const planar = this.planarLatticeCoord(coord);
+    const zShift = this.dimension >= 3 ? (coord[2] - (n - 1) / 2) * boardScale * 0.18 : 0;
+    const wShift = this.dimension >= 4 ? (coord[3] - (n - 1) / 2) * boardScale * 0.12 : 0;
     return {
-      x: originX + (planar.x / planar.maxX) * boardW + zShift,
-      y: originY + (planar.y / planar.maxY) * boardH - zShift + wShift
+      x: originX + planar.x * boardScale + zShift,
+      y: originY + planar.y * boardScale - zShift + wShift
     };
   }
 
