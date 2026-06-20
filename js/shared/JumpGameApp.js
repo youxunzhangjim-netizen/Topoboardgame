@@ -1,6 +1,7 @@
 import { FirebaseStateNetworkManager } from '../FirebaseStateNetworkManager.js';
 import { installProjectedBoardTouchControls } from './ProjectedBoardTouchControls.js';
 import { JumpGameState, chooseJumpRobotMove, coordKey, normalizeJumpLattice, otherPlayer } from './JumpRules.js';
+import { loadLatestJumpTrainedScorer } from './JumpTrainedRobot.js';
 
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
@@ -216,6 +217,7 @@ export class JumpGameApp {
     this.timeRemaining = { A: 0, B: 0 };
     this.timerInterval = null;
     this.myColor = null;
+    this.trainedRobotScorer = null;
     this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
     this.viewControls = {
       rotX: document.getElementById('viewRotateX'),
@@ -243,6 +245,11 @@ export class JumpGameApp {
     this.install();
     this.updateLabels();
     this.render();
+    loadLatestJumpTrainedScorer().then((scorer) => { this.trainedRobotScorer = scorer; });
+  }
+
+  chooseRobotMove(player = this.game.currentPlayer, remember = true) {
+    return chooseJumpRobotMove(this.game, player, this.trainedRobotScorer, { remember });
   }
 
   createGame() {
@@ -730,7 +737,7 @@ export class JumpGameApp {
 
   onlineRobotTurn(player = 'C') {
     if (this.modeSelect?.value !== 'online' || this.game.currentPlayer !== player || this.game.winner) return;
-    const move = chooseJumpRobotMove(this.game, player);
+    const move = this.chooseRobotMove(player);
     if (!move) {
       this.game.endTurn();
       this.history.push(`Robot ${player} had no legal move and passed the turn.`);
@@ -757,7 +764,7 @@ export class JumpGameApp {
     const robotPlayer = this.game.currentPlayer;
     if (robotPlayer !== 'B' || this.game.playerCount >= 3) {
       if (robotPlayer === 'A' || this.game.winner) return;
-      const move = chooseJumpRobotMove(this.game, robotPlayer);
+      const move = this.chooseRobotMove(robotPlayer);
       if (!move) {
         this.game.endTurn();
         this.history.push(`Robot ${robotPlayer} had no legal move and passed the turn.`);
@@ -784,7 +791,7 @@ export class JumpGameApp {
     if (this.game.currentPlayer !== 'B' || this.game.winner) return;
     let guard = 0;
     do {
-      const move = chooseJumpRobotMove(this.game, 'B');
+      const move = this.chooseRobotMove('B');
       if (!move) {
         this.game.endTurn();
         this.history.push('Robot had no legal move and passed the turn.');
@@ -1185,7 +1192,7 @@ export class JumpGameApp {
     const a = this.game.targetProgress('A');
     const b = this.game.targetProgress('B');
     const c = this.game.playerCount >= 3 ? this.game.targetProgress('C') : null;
-    const best = chooseJumpRobotMove(this.game, this.game.currentPlayer);
+    const best = this.chooseRobotMove(this.game.currentPlayer, false);
     if (this.analysisEl) {
       const suggested = best
         ? `${this.moveTypeLabel(best.type)} ${best.from.join(',')} -> ${best.to.join(',')}`

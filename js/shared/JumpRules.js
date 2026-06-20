@@ -587,16 +587,52 @@ export class JumpGameState {
   }
 }
 
-export function chooseJumpRobotMove(game, player = game.currentPlayer) {
+export function chooseJumpRobotMove(game, player = game.currentPlayer, trainedScorer = null, options = {}) {
   const moves = game.allLegalMoves(player);
   if (!moves.length) return null;
-  let best = null;
+  const memory = robotMoveMemory(game, player);
+  const ranked = [];
   for (const move of moves) {
-    const score = scoreJumpMove(game, move, player);
-    if (!best || score > best.score) best = { move, score };
+    const score = scoreJumpMove(game, move, player) - repeatedMovePenalty(memory, move);
+    ranked.push({ move, score });
+  }
+  ranked.sort((a, b) => b.score - a.score);
+  let best = ranked[0];
+  if (typeof trainedScorer === 'function') {
+    const closeMoves = ranked.filter((candidate) => candidate.score >= best.score - 0.75);
+    let trainedBest = null;
+    for (const candidate of closeMoves) {
+      const trainedScore = Number(trainedScorer(game, candidate.move, player));
+      if (Number.isFinite(trainedScore) && (!trainedBest || trainedScore > trainedBest.trainedScore)) {
+        trainedBest = { ...candidate, trainedScore };
+      }
+    }
+    if (trainedBest) best = trainedBest;
   }
   if (game.chainFrom && best?.score <= 0) return null;
+  if (options.remember !== false) rememberRobotMove(memory, best?.move);
   return best?.move || moves[0];
+}
+
+function robotMoveMemory(game, player) {
+  if (!game.robotMoveMemory) game.robotMoveMemory = new Map();
+  if (!game.robotMoveMemory.has(player)) game.robotMoveMemory.set(player, []);
+  return game.robotMoveMemory.get(player);
+}
+
+function repeatedMovePenalty(memory, move) {
+  if (!move) return 0;
+  const recent = memory.slice(-18);
+  const reverse = recent.at(-1)?.from === coordKey(move.to) && recent.at(-1)?.to === coordKey(move.from);
+  const repeated = recent.filter((entry) => entry.id === move.id).length;
+  const repeatedLanding = recent.filter((entry) => entry.to === coordKey(move.to)).length;
+  return (reverse ? 220 : 0) + repeated * 75 + repeatedLanding * 8;
+}
+
+function rememberRobotMove(memory, move) {
+  if (!move) return;
+  memory.push({ id: move.id, from: coordKey(move.from), to: coordKey(move.to) });
+  if (memory.length > 24) memory.splice(0, memory.length - 24);
 }
 
 function scoreJumpMove(game, move, player) {
@@ -615,25 +651,34 @@ function scoreJumpMove(game, move, player) {
   const homePiecesLeft = countPlayerPiecesInZone(game, player, home);
   const outsideTarget = countPlayerPiecesOutsideZone(game, player, target);
   const farthestUnfinishedDistance = maxPlayerDistanceToZone(game, player, target);
+  const targetDepthGain = fromTarget && toTarget
+    ? distanceToTarget(game, move.to, home) - distanceToTarget(game, move.from, home)
+    : 0;
   if (fromTarget && !toTarget) return -1000 - after;
   const jumpBonus = move.type === 'jump' ? (inChain ? 0.4 : 3) : 0;
   const targetBonus = toTarget ? (fromTarget ? 0 : 58) : 0;
   const chainProgress = move.type === 'jump' ? potentialContinuationProgress(game, move, player, target) : 0;
   const chainBonus = Math.max(0, chainProgress) * 1.75;
   const stalledChainPenalty = inChain && progress <= 0 ? 8 : 0;
+  const lateralStallPenalty = !fromTarget && progress === 0 ? 12 : 0;
   const lastHomePressure = homePiecesLeft > 0 ? 90 / homePiecesLeft : 0;
   const homeClearBonus = fromHome && !toHome ? 42 + lastHomePressure : 0;
   const homeReturnPenalty = !fromHome && toHome ? 28 : 0;
   const ignoredHomePenalty = homePiecesLeft > 0 && !fromHome && !toTarget ? 32 + lastHomePressure : 0;
-  const targetShufflePenalty = fromTarget && toTarget && outsideTarget > 0 ? 140 + outsideTarget * 3 : 0;
+  const targetRearrangeBonus = fromTarget && toTarget && outsideTarget > 0 && targetDepthGain > 0
+    ? 105 + targetDepthGain * 28 + outsideTarget * 2
+    : 0;
+  const targetShufflePenalty = fromTarget && toTarget && outsideTarget > 0 && targetDepthGain <= 0
+    ? 170 + outsideTarget * 3 + Math.abs(targetDepthGain) * 20
+    : 0;
   const laggardBonus = !fromTarget && before >= farthestUnfinishedDistance - 0.001
     ? 48 + Math.max(0, outsideTarget - 1) * 2
     : 0;
   const backwardPenalty = progress < 0 ? Math.abs(progress) * 14 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return progress * 15 + jumpBonus + targetBonus + chainBonus + homeClearBonus + laggardBonus + directionBonus + polarBonus
-    - stalledChainPenalty - homeReturnPenalty - ignoredHomePenalty - targetShufflePenalty - backwardPenalty
+  return progress * 15 + jumpBonus + targetBonus + chainBonus + homeClearBonus + laggardBonus + targetRearrangeBonus + directionBonus + polarBonus
+    - stalledChainPenalty - lateralStallPenalty - homeReturnPenalty - ignoredHomePenalty - targetShufflePenalty - backwardPenalty
     + Math.random() * 0.1;
 }
 
