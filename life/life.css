@@ -443,23 +443,49 @@ h1 {
   margin-top: 6px;
 }
 
-.life-info-cards article {
+.life-info-cards details {
   border: 1px solid rgba(56, 189, 248, 0.22);
   border-radius: 14px;
   background: rgba(7, 14, 22, 0.6);
   padding: 14px;
 }
 
-.life-info-cards strong {
+.life-info-cards summary {
+  cursor: pointer;
   color: var(--gold);
   text-transform: uppercase;
   font-size: 12px;
+  font-weight: 900;
 }
 
 .life-info-cards p {
   margin: 6px 0 0;
   color: rgba(226, 236, 238, 0.84);
   line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .life-play-invite {
+    gap: 8px;
+    padding: 12px 0 8px;
+  }
+
+  .life-play-invite h1 {
+    font-size: clamp(24px, 9vw, 36px);
+  }
+
+  .life-play-invite .description {
+    display: none;
+  }
+
+  .life-info-cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .life-info-cards details {
+    padding: 10px 12px;
+  }
 }
 
 .life-language-switch {
