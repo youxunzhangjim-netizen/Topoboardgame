@@ -22,6 +22,7 @@ local-data/
 local-models/*.json
 local-models/**/*.json
 local-data/datasets/
+engines/
 
 # Topoboardgame generated local/research outputs
 npm-debug.log*

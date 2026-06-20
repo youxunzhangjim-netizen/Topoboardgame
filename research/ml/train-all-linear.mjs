@@ -58,6 +58,10 @@ for (const boundary of ['r3', 't3', 'r3_random', 't2', 'cylinder', 'sphere', 'kl
   }
 }
 
+for (const lattice of ['triangular', 'square']) {
+  jobs.push({ game: '2djump', boundary: 'diamond', lattice, size: 12, playerCount: 2, teacher: 'zedrichu', games: counts.jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
+  jobs.push({ game: '2djump', boundary: 'diamond', lattice, size: 12, playerCount: 3, teacher: 'pettingzoo', games: counts.jump, depthA: 1, depthB: 1, epochs: preset === 'quick' ? 3 : 10, lr: 0.04 });
+}
 for (const boundary of ['plane', 'polar', 'cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere']) {
   const lattices = boundary === 'polar' ? ['square'] : ['square', 'triangular'];
   for (const lattice of lattices) {
@@ -82,7 +86,8 @@ console.log(JSON.stringify({ ok: true, preset, jobsRun: done }, null, 2));
 
 async function runJob(job) {
   const sizePart = job.size ? `-s${job.size}` : '';
-  const stem = `${job.game}-${job.boundary}-${job.lattice}${sizePart}`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const playerPart = job.playerCount ? `-p${job.playerCount}` : '';
+  const stem = `${job.game}-${job.boundary}-${job.lattice}${sizePart}${playerPart}`.replace(/[^a-zA-Z0-9_.-]/g, '_');
   const data = `local-data/selfplay/${stem}-${preset}.jsonl`;
   const model = `local-models/${stem}-linear.json`;
   const evalFile = `local-data/selfplay/eval-${stem}-linear-vs-builtin-${preset}.jsonl`;
@@ -90,8 +95,10 @@ async function runJob(job) {
   console.log(`\n=== ${stem} (${preset}) ===`);
   if (overwrite || !fs.existsSync(data)) {
     const selfArgs = ['research/selfplay.mjs', '--game', job.game, '--boundary', job.boundary, '--lattice', job.lattice, '--games', String(job.games), '--depthA', String(job.depthA), '--depthB', String(job.depthB), '--record', 'moves', '--state', 'true', '--out', data];
+    addTeacherArgs(selfArgs, job);
     if (preset === 'quick') selfArgs.push('--maxPlies', '30');
     if (job.size) selfArgs.push('--size', String(job.size));
+    if (job.playerCount) selfArgs.push('--playerCount', String(job.playerCount));
     runNode(selfArgs);
   } else console.log(`[skip] existing data ${data}`);
   if (overwrite || !fs.existsSync(model)) {
@@ -101,8 +108,27 @@ async function runJob(job) {
     const evalArgs = ['research/selfplay.mjs', '--game', job.game, '--boundary', job.boundary, '--lattice', job.lattice, '--botA', 'linear', '--modelA', model, '--botB', 'builtin', '--depthB', String(job.depthB), '--games', String(counts.eval), '--out', evalFile];
     if (preset === 'quick') evalArgs.push('--maxPlies', '30');
     if (job.size) evalArgs.push('--size', String(job.size));
+    if (job.playerCount) evalArgs.push('--playerCount', String(job.playerCount));
     runNode(evalArgs);
     runNode(['research/aggregate-stats.mjs', '--in', evalFile, '--out', summary]);
+  }
+}
+
+function addTeacherArgs(args, job) {
+  if (job.teacher === 'zedrichu') {
+    args.push(
+      '--botA', 'externalA',
+      '--externalA', 'node research/external-bots/random-jsonl-robot.mjs --strategy zedrichu --depth 2',
+      '--botB', 'builtin'
+    );
+  }
+  if (job.teacher === 'pettingzoo') {
+    const command = 'node research/external-bots/random-jsonl-robot.mjs --strategy pettingzoo --depth 2';
+    args.push(
+      '--botA', 'externalA', '--externalA', command,
+      '--botB', 'externalB', '--externalB', command,
+      '--botC', 'externalC', '--externalC', command
+    );
   }
 }
 

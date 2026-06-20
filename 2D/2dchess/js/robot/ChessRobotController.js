@@ -178,6 +178,10 @@ export class ChessRobotController {
 
     async runSearch(type) {
         const state = createAnalysisState(this.game);
+        if (type === 'move' && state.boundaryCondition === 'forbidden' && window.TopoboardgameLocalApp?.chooseStockfishMove) {
+            const masterMove = await this.runDesktopStockfish(state);
+            if (masterMove) return masterMove;
+        }
         if (window.Worker) {
             try {
                 return await this.runWorkerSearch(type, state);
@@ -189,6 +193,25 @@ export class ChessRobotController {
         return type === 'analyze'
             ? analyzePosition(this.game, this.depth)
             : chooseRobotMove(this.game, this.depth);
+    }
+
+    async runDesktopStockfish(state) {
+        const legalMoves = getAllLegalMoves(state, state.currentPlayer);
+        if (!legalMoves.length) return null;
+        try {
+            const response = await window.TopoboardgameLocalApp.chooseStockfishMove({
+                fen: stateToFen(state),
+                depth: 8 + this.depth * 2
+            });
+            if (!response?.available || !response.move) return null;
+            const move = legalMoves.find((candidate) => moveToUci(candidate) === response.move)
+                || legalMoves.find((candidate) => moveToUci(candidate).slice(0, 4) === response.move.slice(0, 4));
+            if (!move) return null;
+            return { move, score: 0, nodes: legalMoves.length, engine: response.engine || 'Stockfish', depth: response.depth };
+        } catch (error) {
+            console.warn('Stockfish unavailable; using the Topoboardgame local robot.', error);
+            return null;
+        }
     }
 
     runWorkerSearch(type, state) {
@@ -221,6 +244,64 @@ export class ChessRobotController {
         }
         return this.worker;
     }
+}
+
+function stateToFen(state) {
+    const rows = state.board.map((row) => {
+        let text = '';
+        let empty = 0;
+        for (const piece of row) {
+            if (!piece) {
+                empty += 1;
+                continue;
+            }
+            if (empty) {
+                text += String(empty);
+                empty = 0;
+            }
+            const symbol = piece.type === 'N' ? 'n' : piece.type.toLowerCase();
+            text += piece.color === 'white' ? symbol.toUpperCase() : symbol;
+        }
+        return text + (empty ? String(empty) : '');
+    });
+    const active = state.currentPlayer === 'black' ? 'b' : 'w';
+    const castling = castlingRights(state.board);
+    const enPassant = enPassantFen(state);
+    return rows.join('/') + ' ' + active + ' ' + castling + ' ' + enPassant + ' ' + (state.halfMoveClock || 0) + ' 1';
+}
+
+function castlingRights(board) {
+    let rights = '';
+    const whiteKing = board[7]?.[4];
+    const blackKing = board[0]?.[4];
+    if (whiteKing?.type === 'K' && whiteKing.color === 'white' && !whiteKing.hasMoved) {
+        if (board[7]?.[7]?.type === 'R' && !board[7][7].hasMoved) rights += 'K';
+        if (board[7]?.[0]?.type === 'R' && !board[7][0].hasMoved) rights += 'Q';
+    }
+    if (blackKing?.type === 'K' && blackKing.color === 'black' && !blackKing.hasMoved) {
+        if (board[0]?.[7]?.type === 'R' && !board[0][7].hasMoved) rights += 'k';
+        if (board[0]?.[0]?.type === 'R' && !board[0][0].hasMoved) rights += 'q';
+    }
+    return rights || '-';
+}
+
+function moveToUci(move) {
+    const promotion = move.promotion ? String(move.promotion).toLowerCase()[0] : '';
+    return coordToSquare(move.from) + coordToSquare(move.to) + promotion;
+}
+
+function coordToSquare(coord) {
+    const row = Number(coord.r ?? coord.row);
+    const col = Number(coord.c ?? coord.col);
+    return 'abcdefgh'[col] + String(8 - row);
+}
+
+function enPassantFen(state) {
+    if (!state.enPassantTarget) return '-';
+    const destinationRow = Number(state.enPassantTarget.r ?? state.enPassantTarget.row);
+    const col = Number(state.enPassantTarget.c ?? state.enPassantTarget.col);
+    const crossedRow = state.currentPlayer === 'black' ? destinationRow + 1 : destinationRow - 1;
+    return coordToSquare({ r: crossedRow, c: col });
 }
 
 function moveRow(rank, item) {
