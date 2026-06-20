@@ -1801,6 +1801,10 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     }
 
     .game-layout {
+        display: contents;
+    }
+
+    .game-layout > .board-wrap {
         order: 2;
     }
 
@@ -1812,11 +1816,15 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
         order: 4;
     }
 
-    .lab-history-panels {
+    .game-layout > .side-panel {
         order: 5;
     }
 
-    .lab-export-panel {
+    .lab-history-panels {
         order: 6;
+    }
+
+    .lab-export-panel {
+        order: 7;
     }
 }

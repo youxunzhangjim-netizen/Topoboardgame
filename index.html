@@ -17,6 +17,14 @@
     <div class="launcher-background-torus" aria-hidden="true">
         <canvas id="launcherTorusCanvas"></canvas>
     </div>
+    <a class="launcher-discord-button" href="./discord/" aria-label="Join Topoboardgame Discord" title="Join Discord" target="_blank" rel="noopener noreferrer" data-i18n-title="community.discord">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M8.2 7.5a9.5 9.5 0 0 1 7.6 0M9 16.2l-1.8 2.1c-2.5-.8-3.4-2-3.4-2 0-4.4 2-8 2-8A8.2 8.2 0 0 1 8.5 7l.7 1.1M15 16.2l1.8 2.1c2.5-.8 3.4-2 3.4-2 0-4.4-2-8-2-8A8.2 8.2 0 0 0 15.5 7l-.7 1.1"></path>
+            <circle cx="9" cy="13" r="1"></circle>
+            <circle cx="15" cy="13" r="1"></circle>
+            <path d="M8.2 16a8.7 8.7 0 0 0 7.6 0"></path>
+        </svg>
+    </a>
     <div class="launcher-language" aria-label="Language">
         <button id="launcherLanguageButton" class="launcher-language-button" type="button" aria-label="Choose language" aria-expanded="false" aria-controls="launcherLanguageMenu" data-i18n-aria-label="language.choose" data-i18n-title="language.choose">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -448,6 +456,9 @@
                         choose: 'Choose language',
                         prompt: 'What language do you want?'
                     },
+                    community: {
+                        discord: 'Join Discord'
+                    },
                     account: {
                         guest: 'Offline Guest',
                         visitor: 'Visitor',
@@ -631,6 +642,9 @@
                     }
                 },
                 zh: {
+                    community: {
+                        discord: '加入 Discord'
+                    },
                     language: {
                         choose: '選擇語言',
                         prompt: '你想使用哪一種語言？'

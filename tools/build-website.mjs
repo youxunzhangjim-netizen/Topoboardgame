@@ -52,6 +52,7 @@ mkdirSync(output, { recursive: true });
 copy(launcherOutput, output);
 copyIfExists(join(root, 'js'), join(output, 'js'));
 copyIfExists(join(root, 'docs'), join(output, 'docs'));
+copy(join(root, 'discord'), join(output, 'discord'));
 mkdirSync(join(output, '2D'), { recursive: true });
 mkdirSync(join(output, '3D'), { recursive: true });
 mkdirSync(join(output, '4D'), { recursive: true });

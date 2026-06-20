@@ -135,10 +135,48 @@ body::before {
     right: 14px;
     bottom: 52px;
     top: auto;
-    z-index: 4;
+    z-index: 1002;
     display: grid;
     justify-items: end;
     gap: 8px;
+}
+
+.launcher-discord-button {
+    position: fixed;
+    right: 48px;
+    bottom: 52px;
+    z-index: 4;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--text);
+    text-decoration: none;
+    transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
+}
+
+.launcher-discord-button:hover {
+    color: #ffe7ac;
+    opacity: 0.86;
+    transform: scale(1.08);
+}
+
+.launcher-discord-button:focus-visible {
+    color: #ffe7ac;
+    outline: 2px solid #7dd3fc;
+    outline-offset: 2px;
+    transform: scale(1.08);
+}
+
+.launcher-discord-button svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .launcher-language-button {
