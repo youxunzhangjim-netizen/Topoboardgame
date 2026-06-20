@@ -292,13 +292,13 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const sphere = ['sphere', 'shell'].includes(top);
 
   if (dim === 2 && top === 'diamond') {
-    for (const key of diamondCamp(n, 'top', playerCount)) aHome.add(key);
-    for (const key of diamondCamp(n, 'bottom', playerCount)) bHome.add(key);
+    for (const key of diamondCamp(n, 'bottom', playerCount)) aHome.add(key);
+    for (const key of diamondCamp(n, 'top', playerCount)) bHome.add(key);
     if (playerCount >= 3) {
       cHome.clear();
       bHome.clear();
-      for (const key of diamondCamp(n, 'lowerRight', playerCount)) bHome.add(key);
-      for (const key of diamondCamp(n, 'lowerLeft', playerCount)) cHome.add(key);
+      for (const key of diamondCamp(n, 'upperRight', playerCount)) bHome.add(key);
+      for (const key of diamondCamp(n, 'upperLeft', playerCount)) cHome.add(key);
     }
   } else if (sphere) {
     for (const c of coords) {
@@ -326,11 +326,11 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
     }
   }
 
-  const aTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'bottom', playerCount) : bHome);
-  const bTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'upperLeft', playerCount) : aHome);
+  const aTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'top', playerCount) : bHome);
+  const bTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 'lowerLeft', playerCount) : aHome);
   const cTarget = new Set();
   if (dim === 2 && top === 'diamond' && playerCount >= 3) {
-    for (const key of diamondCamp(n, 'upperRight', playerCount)) cTarget.add(key);
+    for (const key of diamondCamp(n, 'lowerRight', playerCount)) cTarget.add(key);
   }
 
   if (String(labTargetMode).toLowerCase() === 'antipodal') {
@@ -439,6 +439,11 @@ export class JumpGameState {
     const saved = this.currentPlayer;
     this.currentPlayer = player;
     const moves = [];
+    if (this.chainFrom && this.selected && player === saved) {
+      moves.push(...this.legalMovesFrom(this.selected, true));
+      this.currentPlayer = saved;
+      return moves;
+    }
     for (const [key, owner] of this.pieces.entries()) {
       if (owner !== player) continue;
       const coord = key.split(',').map(Number);
@@ -594,14 +599,35 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer) {
 }
 
 function scoreJumpMove(game, move, player) {
-  const target = player === 'A' ? game.zones.aTarget : game.zones.bTarget;
+  const target = game.targetZone(player);
   const before = distanceToTarget(game, move.from, target);
   const after = distanceToTarget(game, move.to, target);
   const jumpBonus = move.type === 'jump' ? 6 : 0;
   const targetBonus = target.has(coordKey(move.to)) ? 20 : 0;
+  const chainBonus = move.type === 'jump' ? potentialContinuationJumps(game, move, player) * 5 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return (before - after) * 5 + jumpBonus + targetBonus + directionBonus + polarBonus + Math.random() * 0.1;
+  return (before - after) * 5 + jumpBonus + targetBonus + chainBonus + directionBonus + polarBonus + Math.random() * 0.1;
+}
+
+function potentialContinuationJumps(game, move, player) {
+  let count = 0;
+  const visited = new Set([coordKey(move.from), coordKey(move.to)]);
+  for (const dir of game.directionsFor(move.to)) {
+    const first = game.topology.step(move.to, dir);
+    if (!first) continue;
+    const middlePiece = game.pieceAt(first.position);
+    if (!middlePiece) continue;
+    if (middlePiece === player && !game.options.jumpOverFriendly) continue;
+    if (middlePiece !== player && !game.options.jumpOverEnemy) continue;
+    const second = game.topology.step(first.position, first.direction);
+    if (!second) continue;
+    const landingKey = coordKey(second.position);
+    if (visited.has(landingKey)) continue;
+    if (!game.isEmpty(second.position)) continue;
+    count += 1;
+  }
+  return count;
 }
 function distanceToTarget(game, coord, targetSet) {
   let best = Infinity;

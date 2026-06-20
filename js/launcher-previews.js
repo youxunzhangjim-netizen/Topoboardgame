@@ -120,8 +120,8 @@ function drawTesseract(canvas, time) {
     if (!canvas) return;
     const { width, height, ratio } = fitCanvas(canvas);
     const context = canvas.getContext('2d');
-    const phase = reduceMotion ? 0.6 : time * 0.00028;
-    const scale = Math.min(width, height) * 0.29;
+    const phase = time * (reduceMotion ? 0.00012 : 0.00028);
+    const scale = Math.min(width, height) * 0.36;
     const points = vertices4d.map((source) => {
         const point = [...source];
         rotatePair(point, 0, 3, phase);
@@ -135,8 +135,8 @@ function drawTesseract(canvas, time) {
         ];
         const depth = 3.8 - projected3d[2];
         return {
-            x: width * 0.5 + projected3d[0] / depth * scale * 4.6,
-            y: height * 0.51 + projected3d[1] / depth * scale * 4.6,
+            x: width * 0.5 + projected3d[0] / depth * scale * 5.15,
+            y: height * 0.51 + projected3d[1] / depth * scale * 5.15,
             depth
         };
     });
@@ -230,7 +230,7 @@ function render(time = 0) {
     draw3dBoard(preview3d, time);
     drawTesseract(preview3p1, time);
     drawStaticCubeStack(preview4d);
-    if (!reduceMotion) requestAnimationFrame(render);
+    requestAnimationFrame(render);
 }
 
 window.addEventListener('resize', () => {

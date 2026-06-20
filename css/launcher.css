@@ -60,7 +60,7 @@ body::before {
 .launcher-author {
     position: static;
     display: grid;
-    gap: 5px;
+    gap: 2px;
     justify-items: end;
     color: rgba(237, 244, 246, 0.68);
     font-size: 11px;
@@ -69,18 +69,19 @@ body::before {
     text-transform: none;
 }
 
-.dimension-author {
-    position: absolute;
-    top: 54px;
-    right: 18px;
-    z-index: 3;
-    max-width: min(210px, 48%);
-    padding: 7px 9px;
-    border: 1px solid rgba(56, 189, 248, 0.22);
-    border-radius: 8px;
-    background: rgba(7, 12, 18, 0.56);
+.intro-author {
+    justify-self: end;
+    align-self: end;
+    margin: -16px 4px -8px 0;
     text-align: right;
-    overflow-wrap: anywhere;
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+.intro-author span,
+.intro-author a {
+    white-space: nowrap;
 }
 
 .launcher-author a {
@@ -1643,17 +1644,20 @@ h1 {
     align-content: start;
     margin: 20px 20px 20px 0;
     min-height: 0;
-    padding: 12px;
-    border: 1px solid rgba(56, 189, 248, 0.22);
-    border-radius: 8px;
-    background: rgba(7, 12, 18, 0.48);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 .life-world-info-panel summary {
+    width: max-content;
     cursor: pointer;
     color: rgba(245, 182, 71, 0.95);
     font-size: 12px;
     font-weight: 950;
     text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 4px;
 }
 .life-world-info-panel span {
     color: rgba(225, 236, 242, 0.82);

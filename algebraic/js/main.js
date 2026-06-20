@@ -352,24 +352,24 @@ const els = {
 };
 
 const MODE_LABELS = {
-    clifford_reversi: 'Stabilizer Recovery',
-    physical_clifford_reversi: 'Pauli-Frame Recovery',
+    clifford_reversi: 'Stabilizer Recovery Reversi',
+    physical_clifford_reversi: 'Pauli-Frame Recovery Reversi',
     clifford_go: 'Clifford Go',
     physical_clifford_go: 'Physical Clifford Go',
     clifford_jump: 'Clifford Jump Chess',
     physical_clifford_jump: 'Physical Clifford Jump Chess',
     anyon_reversi: 'Anyon Reversi',
     physical_anyon_reversi: 'Physical Anyon Reversi',
-    physical_virasoro_go: 'CFT Field Insertion',
+    physical_virasoro_go: 'CFT Field Insertion Go',
     physical_virasoro_reversi: 'CFT Domain-Wall Reversi',
     virasoro_jump: 'Virasoro Jump Chess',
     physical_virasoro_jump: 'Physical Virasoro Jump Chess',
-    anyon_jump: 'Anyon Fusion & Braiding',
-    physical_anyon_jump: 'Topological Memory',
+    anyon_jump: 'Anyon Fusion & Braiding Jump',
+    physical_anyon_jump: 'Topological Memory Jump',
     ising_domain_game: 'Spin & Phase Domain Game',
     two_phase_competition_game: 'Two-Phase Competition Game',
     physical_cluster_go: 'Physical Cluster Go',
-    physical_jump_particles: 'Physical Jump Particles',
+    physical_jump_particles: 'Physical Jump Particles Game',
     spin_ice_vertex_game: 'Spin Ice Vertex Game',
     z2_gauge_loop_game: 'Z2 Gauge Loop Game'
 };

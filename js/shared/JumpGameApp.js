@@ -741,7 +741,12 @@ export class JumpGameApp {
         this.game.endTurn();
       } else {
         this.history.push(`Robot ${player} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
-        if (result.continueJump) this.game.endTurn();
+        if (result.continueJump) {
+          this.render();
+          this.network.sendState({ type: 'jump_robot_chain_move' });
+          setTimeout(() => this.onlineRobotTurn(player), 160);
+          return;
+        }
       }
     }
     this.render();
@@ -763,7 +768,11 @@ export class JumpGameApp {
           this.game.endTurn();
         } else {
           this.history.push(`Robot ${robotPlayer} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
-          if (result.continueJump) this.game.endTurn();
+          if (result.continueJump) {
+            this.render();
+            setTimeout(() => this.robotTurn(), 160);
+            return;
+          }
         }
       }
       this.render();
@@ -789,7 +798,7 @@ export class JumpGameApp {
       }
       this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
       guard += 1;
-      if (result.continueJump) this.game.endTurn();
+      if (result.continueJump) continue;
       break;
     } while (this.game.currentPlayer === 'B' && !this.game.winner);
     this.render();
@@ -1086,13 +1095,13 @@ export class JumpGameApp {
     const p = this.project(coord);
     const r = this.cellRadius() * 1.25;
     const ctx = this.ctx;
+    const drawDisc = (fill, stroke, scale = 1, lineWidth = 2) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * scale, 0, Math.PI * 2);
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
+    };
     if (this.isPolarBoard()) {
-      const drawDisc = (fill, stroke, scale = 1) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r * scale, 0, Math.PI * 2);
-        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
-      };
       if (this.game.zones.aHome.has(key)) drawDisc('rgba(84, 164, 255, 0.22)', null, 1);
       if (this.game.zones.aTarget.has(key)) drawDisc(null, 'rgba(84, 164, 255, 0.85)', 1);
       if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.22)', null, 1);
@@ -1101,12 +1110,12 @@ export class JumpGameApp {
       if (this.game.zones.cTarget?.has(key)) drawDisc(null, 'rgba(190, 96, 255, 0.85)', 0.72);
       return;
     }
-    if (this.game.zones.aHome.has(key)) { ctx.fillStyle = 'rgba(84, 164, 255, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
-    if (this.game.zones.aTarget.has(key)) { ctx.strokeStyle = 'rgba(84, 164, 255, 0.85)'; ctx.strokeRect(p.x - r, p.y - r, r * 2, r * 2); }
-    if (this.game.zones.bHome.has(key)) { ctx.fillStyle = 'rgba(255, 190, 76, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
-    if (this.game.zones.bTarget.has(key)) { ctx.strokeStyle = 'rgba(255, 190, 76, 0.85)'; ctx.strokeRect(p.x - r * 0.82, p.y - r * 0.82, r * 1.64, r * 1.64); }
-    if (this.game.zones.cHome?.has(key)) { ctx.fillStyle = 'rgba(190, 96, 255, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
-    if (this.game.zones.cTarget?.has(key)) { ctx.strokeStyle = 'rgba(190, 96, 255, 0.85)'; ctx.strokeRect(p.x - r * 0.72, p.y - r * 0.72, r * 1.44, r * 1.44); }
+    if (this.game.zones.aHome.has(key)) drawDisc('rgba(84, 164, 255, 0.22)', null, 1);
+    if (this.game.zones.aTarget.has(key)) drawDisc(null, 'rgba(84, 164, 255, 0.85)', 1);
+    if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.22)', null, 1);
+    if (this.game.zones.bTarget.has(key)) drawDisc(null, 'rgba(255, 190, 76, 0.85)', 0.82);
+    if (this.game.zones.cHome?.has(key)) drawDisc('rgba(190, 96, 255, 0.22)', null, 1);
+    if (this.game.zones.cTarget?.has(key)) drawDisc(null, 'rgba(190, 96, 255, 0.85)', 0.72);
   }
 
   drawSite(coord) {
