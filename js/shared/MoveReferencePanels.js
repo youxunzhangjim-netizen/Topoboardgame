@@ -23,11 +23,11 @@ function installStyles() {
     style.id = 'reference-panel-layout-style';
     style.textContent = `
         .reference-panels-below-board {
-            grid-column: 1;
             display: grid;
             gap: 14px;
             align-self: start;
             min-width: 0;
+            margin-top: 14px;
         }
         .reference-panels-below-board > * {
             min-width: 0;
@@ -41,22 +41,17 @@ function installStyles() {
             max-height: 260px;
             overflow: auto;
         }
-        @media (max-width: 980px) {
-            .reference-panels-below-board {
-                grid-column: 1;
-            }
-        }
     `;
     document.head.appendChild(style);
 }
 
 function createTarget(playArea, shell) {
-    let target = shell.querySelector(':scope > .reference-panels-below-board');
+    let target = playArea.querySelector(':scope > .reference-panels-below-board');
     if (target) return target;
     target = document.createElement('section');
     target.className = 'reference-panels-below-board';
     target.setAttribute('aria-label', 'Reference panels');
-    shell.appendChild(target);
+    playArea.appendChild(target);
     return target;
 }
 
