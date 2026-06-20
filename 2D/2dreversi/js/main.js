@@ -2,6 +2,13 @@ import { ReversiGame, normalizeReversiSize, normalizeReversiTopology } from '../
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { ReversiRobotController } from './robot/ReversiRobot.js';
 
+const BOARD_THEMES = [
+    { light: '#f1f5f9', dark: '#334155', line: 'rgba(15, 23, 42, 0.42)', polar: '#334155' },
+    { light: '#e9d8d0', dark: '#5b4b43', line: 'rgba(44, 32, 27, 0.5)', polar: '#5b4b43' },
+    { light: '#dde7e3', dark: '#35524a', line: 'rgba(5, 12, 14, 0.58)', polar: '#35524a' },
+    { light: '#d9e2ec', dark: '#1e3a8a', line: 'rgba(10, 20, 54, 0.48)', polar: '#1e3a8a' }
+];
+
 class Reversi2DApp {
     constructor() {
         this.canvas = document.getElementById('reversiBoard');
@@ -35,9 +42,11 @@ class Reversi2DApp {
         this.chatMessagesEl = document.getElementById('chatMessages');
         this.chatInput = document.getElementById('chatInput');
         this.chatSendBtn = document.getElementById('chatSendBtn');
+        this.colorButtons = [...document.querySelectorAll('.color-pair')];
         this.hoverCoord = null;
         this.lastRect = null;
         this.boardZoom = 1;
+        this.boardTheme = Number(localStorage.getItem('topoboardgame.2dreversi.boardTheme') || 2);
         this.zoomPointers = new Map();
         this.pinchStart = null;
         this.suppressClickUntil = 0;
@@ -187,7 +196,30 @@ class Reversi2DApp {
             event.preventDefault();
             this.sendChatMessage();
         });
+        this.colorButtons.forEach((button) => {
+            button.addEventListener('click', () => this.setBoardTheme(Number(button.dataset.theme || 0)));
+        });
+        this.syncThemeButtons();
         this.robot?.attach();
+    }
+
+    themeColors() {
+        return BOARD_THEMES[this.boardTheme] || BOARD_THEMES[2];
+    }
+
+    setBoardTheme(index) {
+        this.boardTheme = Math.max(0, Math.min(BOARD_THEMES.length - 1, Number(index) || 0));
+        localStorage.setItem('topoboardgame.2dreversi.boardTheme', String(this.boardTheme));
+        this.syncThemeButtons();
+        this.render();
+    }
+
+    syncThemeButtons() {
+        this.colorButtons.forEach((button) => {
+            const active = Number(button.dataset.theme || 0) === this.boardTheme;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
     }
 
     updateCustomSizeVisibility() {
@@ -400,6 +432,7 @@ class Reversi2DApp {
         this.lastRect = rect;
         const legalMoves = new Map(this.logic.legalMoves().map((move) => [this.logic.key(move.coord), move]));
         const n = this.logic.topology.width;
+        const theme = this.themeColors();
 
         if (this.logic.topology.lattice === 'honeycomb') {
             for (const coord of this.logic.topology.allCoords()) this.drawHexCell(coord, rect);
@@ -410,9 +443,9 @@ class Reversi2DApp {
                 for (let x = 0; x < n; x += 1) {
                     const px = rect.left + x * rect.step;
                     const py = rect.top + y * rect.step;
-                    ctx.fillStyle = (x + y) % 2 === 0 ? '#2f6b55' : '#245745';
+                    ctx.fillStyle = (x + y) % 2 === 0 ? theme.light : theme.dark;
                     ctx.fillRect(px, py, rect.step, rect.step);
-                    ctx.strokeStyle = 'rgba(5, 12, 14, 0.58)';
+                    ctx.strokeStyle = theme.line;
                     ctx.lineWidth = 1;
                     ctx.strokeRect(px, py, rect.step, rect.step);
                 }
@@ -452,12 +485,13 @@ class Reversi2DApp {
         const ctx = this.ctx;
         const rings = this.logic.topology.height;
         const sectors = this.logic.topology.width;
+        const theme = this.themeColors();
         ctx.save();
-        ctx.fillStyle = '#255d49';
+        ctx.fillStyle = theme.polar || theme.dark;
         ctx.beginPath();
         ctx.arc(rect.centerX, rect.centerY, rect.radius + rect.step * 0.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(5, 12, 14, 0.78)';
+        ctx.strokeStyle = theme.line;
         ctx.lineWidth = Math.max(1.25, rect.step * 0.035);
         for (let ring = 1; ring < rings; ring += 1) {
             ctx.beginPath();
@@ -495,10 +529,11 @@ class Reversi2DApp {
 
     drawHexCell(coord, rect) {
         const center = this.hexCenter(coord, rect);
+        const theme = this.themeColors();
         this.traceHex(center, rect.radius * 0.94);
-        this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? '#367c62' : '#255d49';
+        this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? theme.light : theme.dark;
         this.ctx.fill();
-        this.ctx.strokeStyle = 'rgba(3, 9, 12, 0.92)';
+        this.ctx.strokeStyle = theme.line;
         this.ctx.lineWidth = Math.max(1.25, rect.radius * 0.075);
         this.ctx.stroke();
     }

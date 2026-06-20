@@ -156,6 +156,42 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .share-link-input { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .move-history { min-height: 178px; max-height: 320px; overflow: auto; align-content: start; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.045); font-size: 13px; }
+.color-board {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(148, 163, 184, 0.3);
+}
+.color-pair {
+    display: flex;
+    gap: 2px;
+    width: auto;
+    min-height: 0;
+    padding: 2px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+}
+.color-pair.active {
+    border-color: rgba(72, 199, 244, 0.72);
+}
+.color-pair:hover,
+.color-pair:focus-visible {
+    border-color: rgba(148, 163, 184, 0.8);
+    background: transparent;
+    transform: scale(1.05);
+    outline: none;
+}
+.color-swatch {
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.6);
+    border-radius: 4px;
+}
 .chat-panel { margin-top: auto; }
 .chat-messages {
     min-height: 130px;

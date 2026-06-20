@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2D Reversi</title>
-    <link rel="stylesheet" href="./css/styles.css?v=20260614-hex-geometry">
+    <link rel="stylesheet" href="./css/styles.css?v=20260620-chess-style-appearance">
 </head>
 <body>
     <main class="app-shell">
@@ -109,6 +109,25 @@
                 <div class="move-history" id="moveHistoryList"></div>
             </section>
 
+            <div class="color-board" aria-label="Board colors">
+                <button class="color-pair" data-theme="0" type="button" aria-label="Classic board colors">
+                    <span class="color-swatch" style="background:#f1f5f9;"></span>
+                    <span class="color-swatch" style="background:#334155;"></span>
+                </button>
+                <button class="color-pair" data-theme="1" type="button" aria-label="Brown board colors">
+                    <span class="color-swatch" style="background:#e9d8d0;"></span>
+                    <span class="color-swatch" style="background:#5b4b43;"></span>
+                </button>
+                <button class="color-pair" data-theme="2" type="button" aria-label="Green board colors">
+                    <span class="color-swatch" style="background:#dde7e3;"></span>
+                    <span class="color-swatch" style="background:#35524a;"></span>
+                </button>
+                <button class="color-pair" data-theme="3" type="button" aria-label="Blue board colors">
+                    <span class="color-swatch" style="background:#d9e2ec;"></span>
+                    <span class="color-swatch" style="background:#1e3a8a;"></span>
+                </button>
+            </div>
+
             <section class="panel robot-panel" id="robotPanel">
                 <h3>Robot & Analysis</h3>
                 <p class="robot-muted">Choose <strong>Robot</strong> in Game Mode to play against this local rule+search bot.</p>
@@ -153,7 +172,7 @@
 
     <script type="module" src="../../js/shared/GameControlGuides.js"></script>
     <script type="module" src="../../js/shared/MoveReferencePanels.js"></script>
-    <script type="module" src="./js/main.js?v=20260614-hex-face-patches"></script>
+    <script type="module" src="./js/main.js?v=20260620-chess-style-appearance"></script>
     <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
 
     <script>
