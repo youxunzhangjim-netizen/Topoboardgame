@@ -39,6 +39,8 @@ Fairy-Stockfish is different: wire it only when a chess-like variant has an exac
 
 Direct means the game is the ordinary flat 2D board with no topology, lattice, time schedule, age, delay, or +1D option. Anything else is a Topoboardgame variant. For variants, do not pretend the open engine understands the rules. Use the open engine only as a teacher/baseline when the position can be converted safely, then train a separate local model for that variant.
 
+For 2+1D games, connect the ordinary spatial projection to the suitable open teacher first, then keep the scheduled-time rules local: Stockfish for 2+1D Chess, KataGo for 2+1D Go, and Edax for 2+1D Reversi. Edax should be treated as a normal 8x8 Othello/Reversi teacher, not as a general all-board-size engine.
+
 ```text
 Stockfish/KataGo/Edax teacher data
   + Topoboardgame legal moves and topology rules

@@ -31,6 +31,27 @@ export const MASTER_ENGINE_ROBOTS = Object.freeze({
     }
 });
 
+export const SPACETIME_MASTER_TEACHERS = Object.freeze({
+    chess: {
+        layer: '2+1D',
+        engine: 'Stockfish',
+        adapter: 'StockfishAdapter',
+        use: 'teacher/baseline for the spatial chess position only; Time schedule and Age are resolved by Topoboardgame local robots'
+    },
+    go: {
+        layer: '2+1D',
+        engine: 'KataGo',
+        adapter: 'KataGoAdapter',
+        use: 'teacher/baseline for the ordinary square Go projection only; Time schedule, Age, topology, and lattice changes are resolved by Topoboardgame local robots'
+    },
+    reversi: {
+        layer: '2+1D',
+        engine: 'Edax',
+        adapter: 'EdaxAdapter',
+        use: 'teacher/baseline only for normal 8x8 square Reversi/Othello positions; non-8x8, scheduled, topological, and lattice boards are trained as local variants'
+    }
+});
+
 export const LOCAL_ROBOT_BASELINES = Object.freeze({
     chess: [
         '2D/2dchess/js/robot/ChessRobotAdapter.js',
@@ -121,6 +142,19 @@ export function classifyMasterEngineUse(context = {}) {
             engine: master.engine,
             adapter: master.adapter,
             reason: master.directUse
+        };
+    }
+    const spacetime = String(context.spacetime || context.layer || '').toLowerCase();
+    if (['2p1', '2+1d', '2+1'].includes(spacetime) && SPACETIME_MASTER_TEACHERS[gameType]) {
+        const teacher = SPACETIME_MASTER_TEACHERS[gameType];
+        return {
+            gameType,
+            mode: 'spacetime-teacher-for-local-variant',
+            direct: false,
+            teacherOnly: true,
+            engine: teacher.engine,
+            adapter: teacher.adapter,
+            reason: teacher.use
         };
     }
     return {

@@ -68,7 +68,7 @@ select {
 .header h1 {
     margin-bottom: 10px;
     color: #38bdf8;
-    font-size: 2.5em;
+    font-size: 2.85em;
     letter-spacing: 0;
 }
 
@@ -315,6 +315,7 @@ select {
     width: 1em;
     height: 1em;
     line-height: 1;
+    transform: scale(1.08);
 }
 
 .piece-white {

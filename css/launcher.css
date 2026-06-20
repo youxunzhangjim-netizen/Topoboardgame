@@ -119,8 +119,8 @@ body::before {
 
 .launcher-language {
     position: fixed;
-    right: 16px;
-    bottom: 64px;
+    right: 14px;
+    bottom: 58px;
     z-index: 4;
     display: grid;
     justify-items: end;
@@ -128,8 +128,8 @@ body::before {
 }
 
 .launcher-language-button {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     display: grid;
     place-items: center;
     border: 0;
@@ -147,8 +147,8 @@ body::before {
 }
 
 .launcher-language-button svg {
-    width: 21px;
-    height: 21px;
+    width: 20px;
+    height: 20px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
@@ -157,13 +157,13 @@ body::before {
 }
 
 .launcher-language-menu {
-    width: 214px;
+    width: max-content;
     display: grid;
-    gap: 10px;
-    padding: 12px;
-    border: 1px solid rgba(56, 189, 248, 0.46);
+    gap: 6px;
+    padding: 8px 10px;
+    border: 0;
     border-radius: 8px;
-    background: rgba(15, 20, 27, 0.96);
+    background: rgba(15, 20, 27, 0.9);
     color: var(--text);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
 }
@@ -182,23 +182,25 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 9px;
+    gap: 6px;
 }
 
 .launcher-language-options button {
-    min-width: 42px;
-    min-height: 32px;
-    border: 1px solid rgba(168, 180, 188, 0.32);
-    border-radius: 6px;
-    background: rgba(8, 12, 18, 0.84);
+    min-width: 0;
+    min-height: 0;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: var(--text);
     font-weight: 900;
     cursor: pointer;
 }
 
 .launcher-language-options button[aria-pressed="true"] {
-    border-color: rgba(245, 182, 71, 0.82);
     color: #ffe7ac;
+    text-decoration: underline;
+    text-underline-offset: 4px;
 }
 
 .launcher-shell {

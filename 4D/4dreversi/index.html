@@ -30,20 +30,20 @@
             touch-action: none;
         }
         .reversi4d-edge-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-        .reversi4d-edge { stroke: rgba(128, 190, 255, .3); stroke-width: 1.35; }
+        .reversi4d-edge { stroke: rgba(128, 190, 255, .26); stroke-width: 1.05; }
         .reversi4d-projection .vertex.projected-vertex {
             position: absolute;
-            width: clamp(22px, 2.9vw, 36px);
-            height: clamp(22px, 2.9vw, 36px);
+            width: clamp(12px, 1.35vw, 20px);
+            height: clamp(12px, 1.35vw, 20px);
             min-height: 0;
             padding: 0;
-            border: 1px solid rgba(143, 194, 255, .48);
-            border-radius: 10px;
+            border: 1px solid rgba(143, 194, 255, .5);
+            border-radius: 50%;
             background:
-                radial-gradient(circle at 34% 28%, rgba(214, 234, 255, .34), transparent 34%),
+                radial-gradient(circle at 34% 28%, rgba(214, 234, 255, .42), transparent 36%),
                 linear-gradient(145deg, rgba(14, 31, 50, .94), rgba(4, 11, 22, .96));
             transform: translate(-50%, -50%);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, .34), inset 0 0 0 1px rgba(255, 255, 255, .04);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .04);
         }
         .reversi4d-projection .vertex.projected-vertex::before,
         .reversi4d-projection .vertex.projected-vertex::after { display: none; }
@@ -61,9 +61,9 @@
         }
         .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
         .reversi4d-projection .stone {
-            width: 68%;
-            height: 68%;
-            box-shadow: 0 5px 12px rgba(0, 0, 0, .34);
+            width: 72%;
+            height: 72%;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, .34);
         }
         .reversi4d-jump-form .jump-side .panel,
         .reversi4d-jump-form .jump-side .status-card,

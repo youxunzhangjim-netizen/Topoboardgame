@@ -36,6 +36,10 @@ class Reversi2DApp {
         this.chatSendBtn = document.getElementById('chatSendBtn');
         this.hoverCoord = null;
         this.lastRect = null;
+        this.boardZoom = 1;
+        this.zoomPointers = new Map();
+        this.pinchStart = null;
+        this.suppressClickUntil = 0;
         this.myColor = null;
         this.chatMessages = [];
         this.pieceAges = {};
@@ -137,8 +141,13 @@ class Reversi2DApp {
 
     bindEvents() {
         window.addEventListener('resize', () => this.resize());
+        this.canvas.addEventListener('wheel', (event) => this.handleBoardWheel(event), { passive: false });
+        this.canvas.addEventListener('pointerdown', (event) => this.handleBoardPointerDown(event));
         this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
-        this.canvas.addEventListener('pointerleave', () => {
+        this.canvas.addEventListener('pointerup', (event) => this.handleBoardPointerEnd(event));
+        this.canvas.addEventListener('pointercancel', (event) => this.handleBoardPointerEnd(event));
+        this.canvas.addEventListener('pointerleave', (event) => {
+            this.handleBoardPointerEnd(event);
             this.hoverCoord = null;
             this.render();
         });
@@ -207,11 +216,13 @@ class Reversi2DApp {
     }
 
     handlePointerMove(event) {
+        this.handleBoardPointerMove(event);
         this.hoverCoord = this.coordFromEvent(event);
         this.render();
     }
 
     handleBoardClick(event) {
+        if (performance.now() < this.suppressClickUntil) return;
         const coord = this.coordFromEvent(event);
         if (!coord) return;
         if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
@@ -230,6 +241,38 @@ class Reversi2DApp {
             return;
         }
         this.afterLocalAction(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
+    }
+
+    handleBoardWheel(event) {
+        event.preventDefault();
+        const factor = event.deltaY < 0 ? 1.1 : 0.9;
+        this.boardZoom = Math.max(0.65, Math.min(3.5, this.boardZoom * factor));
+        this.render();
+    }
+
+    handleBoardPointerDown(event) {
+        this.zoomPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.zoomPointers.size >= 2) {
+            const [a, b] = [...this.zoomPointers.values()];
+            this.pinchStart = { distance: Math.hypot(a.x - b.x, a.y - b.y), zoom: this.boardZoom };
+            this.canvas.setPointerCapture?.(event.pointerId);
+        }
+    }
+
+    handleBoardPointerMove(event) {
+        if (!this.zoomPointers.has(event.pointerId)) return;
+        this.zoomPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.zoomPointers.size < 2 || !this.pinchStart) return;
+        const [a, b] = [...this.zoomPointers.values()];
+        const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+        this.boardZoom = Math.max(0.65, Math.min(3.5, this.pinchStart.zoom * distance / Math.max(1, this.pinchStart.distance)));
+        this.suppressClickUntil = performance.now() + 220;
+        this.render();
+    }
+
+    handleBoardPointerEnd(event) {
+        this.zoomPointers.delete(event.pointerId);
+        if (this.zoomPointers.size < 2) this.pinchStart = null;
     }
 
     passTurn() {
@@ -299,7 +342,7 @@ class Reversi2DApp {
         const width = this.canvas.clientWidth || 720;
         const height = this.canvas.clientHeight || width;
         const margin = Math.max(18, Math.min(width, height) * 0.045);
-        const usable = Math.min(width, height) - margin * 2;
+        const usable = (Math.min(width, height) - margin * 2) * this.boardZoom;
         if (this.logic.topology.topology === 'polar') {
             const radius = usable / 2;
             return {

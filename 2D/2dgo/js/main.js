@@ -60,6 +60,10 @@ class Go2DApp {
         this.timerInterval = null;
         this.hoverCoord = null;
         this.lastBoardRect = null;
+        this.boardZoom = 1;
+        this.zoomPointers = new Map();
+        this.pinchStart = null;
+        this.suppressClickUntil = 0;
         this.chatMessages = [];
         this.stoneAges = {};
         this.noiseTick = 0;
@@ -201,8 +205,12 @@ class Go2DApp {
 
     bindEvents() {
         window.addEventListener('resize', () => this.resize());
+        this.canvas.addEventListener('wheel', (event) => this.handleBoardWheel(event), { passive: false });
+        this.canvas.addEventListener('pointerdown', (event) => this.handleBoardPointerDown(event));
         this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
-        this.canvas.addEventListener('pointerleave', () => { this.hoverCoord = null; this.render(); });
+        this.canvas.addEventListener('pointerup', (event) => this.handleBoardPointerEnd(event));
+        this.canvas.addEventListener('pointercancel', (event) => this.handleBoardPointerEnd(event));
+        this.canvas.addEventListener('pointerleave', (event) => { this.handleBoardPointerEnd(event); this.hoverCoord = null; this.render(); });
         this.canvas.addEventListener('click', (event) => this.handleBoardClick(event));
         this.sizeSelect.addEventListener('change', () => {
             this.updateCustomSizeVisibility();
@@ -270,7 +278,7 @@ class Go2DApp {
     boardRect() {
         const cssSize = this.canvas.width / Math.min(window.devicePixelRatio || 1, 2);
         const margin = Math.max(28, cssSize * 0.07);
-        const span = cssSize - margin * 2;
+        const span = (cssSize - margin * 2) * this.boardZoom;
         if (this.logic.topology === 'polar') {
             return {
                 x: cssSize / 2,
@@ -298,8 +306,13 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'triangular') {
-            const rawWidth = Math.max(1, (this.logic.size - 1) * 1.5 + 1);
-            const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1);
+            const mobileVertical = cssSize < 680;
+            const rawWidth = mobileVertical
+                ? Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1)
+                : Math.max(1, (this.logic.size - 1) * 1.5 + 1);
+            const rawHeight = mobileVertical
+                ? Math.max(1, (this.logic.size - 1) * 1.5 + 1)
+                : Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1);
             const step = span / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
@@ -334,6 +347,12 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'triangular') {
+            if ((rect.size || this.canvas.clientWidth || 720) < 680) {
+                return {
+                    x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
+                    y: rect.y + (coord[1] + coord[0] * 0.5) * rect.step
+                };
+            }
             return {
                 x: rect.x + (coord[0] + coord[1] * 0.5) * rect.step,
                 y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
@@ -388,11 +407,13 @@ class Go2DApp {
     }
 
     handlePointerMove(event) {
+        this.handleBoardPointerMove(event);
         this.hoverCoord = this.pixelToCoord(event);
         this.render();
     }
 
     handleBoardClick(event) {
+        if (performance.now() < this.suppressClickUntil) return;
         const coord = this.pixelToCoord(event);
         if (!coord) return;
         if (this.robot?.shouldBlockHumanInput(this.logic.currentPlayer)) {
@@ -412,6 +433,38 @@ class Go2DApp {
             return;
         }
         this.afterLocalAction(`${this.capitalize(otherColor(this.logic.currentPlayer))} to play.`);
+    }
+
+    handleBoardWheel(event) {
+        event.preventDefault();
+        const factor = event.deltaY < 0 ? 1.1 : 0.9;
+        this.boardZoom = Math.max(0.65, Math.min(3.5, this.boardZoom * factor));
+        this.render();
+    }
+
+    handleBoardPointerDown(event) {
+        this.zoomPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.zoomPointers.size >= 2) {
+            const [a, b] = [...this.zoomPointers.values()];
+            this.pinchStart = { distance: Math.hypot(a.x - b.x, a.y - b.y), zoom: this.boardZoom };
+            this.canvas.setPointerCapture?.(event.pointerId);
+        }
+    }
+
+    handleBoardPointerMove(event) {
+        if (!this.zoomPointers.has(event.pointerId)) return;
+        this.zoomPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (this.zoomPointers.size < 2 || !this.pinchStart) return;
+        const [a, b] = [...this.zoomPointers.values()];
+        const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+        this.boardZoom = Math.max(0.65, Math.min(3.5, this.pinchStart.zoom * distance / Math.max(1, this.pinchStart.distance)));
+        this.suppressClickUntil = performance.now() + 220;
+        this.render();
+    }
+
+    handleBoardPointerEnd(event) {
+        this.zoomPointers.delete(event.pointerId);
+        if (this.zoomPointers.size < 2) this.pinchStart = null;
     }
 
     passTurn() {

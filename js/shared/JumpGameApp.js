@@ -807,7 +807,7 @@ export class JumpGameApp {
   }
 
   polarLayout(width = this.canvas.clientWidth || 720, height = this.canvas.clientHeight || 520) {
-    const radius = Math.min(width, height) * 0.39;
+    const radius = Math.min(width, height) * 0.39 * (this.view.zoom || 1);
     return {
       cx: width / 2,
       cy: height * 0.5,
@@ -827,10 +827,19 @@ export class JumpGameApp {
     const size = Math.max(1, this.game?.size || 1);
     const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
     if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
+      const mobileVertical = (this.canvas?.clientWidth || window.innerWidth || 720) < 680;
+      if (mobileVertical) {
+        return {
+          x: ((coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5) * Math.sqrt(3) / 2,
+          y: coord[1] || 0,
+          maxX: Math.max(1, (size - 0.5) * Math.sqrt(3) / 2),
+          maxY: Math.max(1, size - 1)
+        };
+      }
       return {
-        x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
+        x: (coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5,
         y: (coord[1] || 0) * Math.sqrt(3) / 2,
-        maxX: Math.max(1, (size - 1) * 1.5),
+        maxX: Math.max(1, size - 0.5),
         maxY: Math.max(1, (size - 1) * Math.sqrt(3) / 2)
       };
     }
@@ -906,15 +915,20 @@ export class JumpGameApp {
       const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
       return { x: width / 2 + x * scale, y: height * 0.42 + y * scale, depth: z };
     }
+    const zoom = this.view.zoom || 1;
     const pad = Math.max(40, Math.min(width, height) * 0.08);
     const usableW = width - pad * 2;
     const usableH = height - pad * 2;
-    const zShift = this.dimension >= 3 ? (coord[2] - (n - 1) / 2) * (usableW / n) * 0.18 : 0;
-    const wShift = this.dimension >= 4 ? (coord[3] - (n - 1) / 2) * (usableH / n) * 0.12 : 0;
+    const boardW = usableW * zoom;
+    const boardH = usableH * zoom;
+    const originX = pad + (usableW - boardW) / 2;
+    const originY = pad + (usableH - boardH) / 2;
+    const zShift = this.dimension >= 3 ? (coord[2] - (n - 1) / 2) * (boardW / n) * 0.18 : 0;
+    const wShift = this.dimension >= 4 ? (coord[3] - (n - 1) / 2) * (boardH / n) * 0.12 : 0;
     const planar = this.planarLatticeCoord(coord);
     return {
-      x: pad + (planar.x / planar.maxX) * usableW + zShift,
-      y: pad + (planar.y / planar.maxY) * usableH - zShift + wShift
+      x: originX + (planar.x / planar.maxX) * boardW + zShift,
+      y: originY + (planar.y / planar.maxY) * boardH - zShift + wShift
     };
   }
 
