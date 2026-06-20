@@ -148,7 +148,7 @@ const DICTIONARY = {
             N: 'Knight',
             P: 'Pawn',
             legendTitle: 'Piece Symbols:',
-            legendHtml: '\u2654/\u265A = King | \u2655/\u265B = Queen<br>\u2656/\u265C = Rook | \u2657/\u265D = Bishop<br>\u2658/\u265E = Knight | \u2659/\u265F = Pawn'
+            legendHtml: '<span class="piece-glyph piece-white piece-K">\u2654</span>/<span class="piece-glyph piece-black piece-K">\u265A</span> = King | <span class="piece-glyph piece-white piece-Q">\u2655</span>/<span class="piece-glyph piece-black piece-Q">\u265B</span> = Queen<br><span class="piece-glyph piece-white piece-R">\u2656</span>/<span class="piece-glyph piece-black piece-R">\u265C</span> = Rook | <span class="piece-glyph piece-white piece-B">\u2657</span>/<span class="piece-glyph piece-black piece-B">\u265D</span> = Bishop<br><span class="piece-glyph piece-white piece-N">\u2658</span>/<span class="piece-glyph piece-black piece-N">\u265E</span> = Knight | <span class="piece-glyph piece-white piece-P">\u2659</span>/<span class="piece-glyph piece-black piece-P">\u265F</span> = Pawn'
         },
         hints: {
             label: 'Move Hints'
@@ -335,7 +335,7 @@ const DICTIONARY = {
             N: '馬',
             P: '兵',
             legendTitle: '棋子符號：',
-            legendHtml: '\u2654/\u265A = 王 | \u2655/\u265B = 后<br>\u2656/\u265C = 車 | \u2657/\u265D = 象<br>\u2658/\u265E = 馬 | \u2659/\u265F = 兵'
+            legendHtml: '<span class="piece-glyph piece-white piece-K">\u2654</span>/<span class="piece-glyph piece-black piece-K">\u265A</span> = 王 | <span class="piece-glyph piece-white piece-Q">\u2655</span>/<span class="piece-glyph piece-black piece-Q">\u265B</span> = 后<br><span class="piece-glyph piece-white piece-R">\u2656</span>/<span class="piece-glyph piece-black piece-R">\u265C</span> = 車 | <span class="piece-glyph piece-white piece-B">\u2657</span>/<span class="piece-glyph piece-black piece-B">\u265D</span> = 象<br><span class="piece-glyph piece-white piece-N">\u2658</span>/<span class="piece-glyph piece-black piece-N">\u265E</span> = 馬 | <span class="piece-glyph piece-white piece-P">\u2659</span>/<span class="piece-glyph piece-black piece-P">\u265F</span> = 兵'
         },
         hints: {
             label: '走法提示'
