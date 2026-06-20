@@ -23,8 +23,10 @@ const TOPOLOGY_ZH_LABELS = {
   projection: '投影',
   '4d-torus': '4D 環面'
 };
-TOPOLOGY_LABELS.diamond = 'Diamond';
-TOPOLOGY_ZH_LABELS.diamond = 'è±å½¢';
+TOPOLOGY_LABELS.plane = 'Square Board';
+TOPOLOGY_LABELS.diamond = 'Standard';
+TOPOLOGY_ZH_LABELS.plane = '\u65b9\u5f62\u68cb\u76e4';
+TOPOLOGY_ZH_LABELS.diamond = '\u6a19\u6e96';
 const LATTICE_LABELS = { square: 'Square', triangular: 'Triangular' };
 const JUMP_ZH_TEXT = new Map(Object.entries({
   '2D Jump': '2D 跳棋',
@@ -146,10 +148,10 @@ function withQuery(defaults = {}) {
   return {
     ...defaults,
     dimension: Number(value('dimension', defaults.dimension || 2)),
-    topology: value('topology', defaults.topology || defaults.boundary || 'plane'),
-    lattice: value('lattice', defaults.lattice || 'square'),
+    topology: value('topology', defaults.topology || defaults.boundary || 'diamond'),
+    lattice: value('lattice', defaults.lattice || 'triangular'),
     labMode: value('lab', defaults.labMode || ''),
-    size: Number(value('size', defaults.size || (defaults.dimension === 4 ? 5 : defaults.dimension === 3 ? 6 : 8)))
+    size: Number(value('size', defaults.size || (defaults.dimension === 4 ? 5 : defaults.dimension === 3 ? 6 : 12)))
   };
 }
 
@@ -195,6 +197,7 @@ export class JumpGameApp {
     this.modeSelect = document.getElementById('gameModeSelect');
     this.topologySelect = document.getElementById('topologySelect');
     this.latticeSelect = document.getElementById('latticeSelect');
+    this.playerCountSelect = document.getElementById('playerCountSelect');
     this.sizeSelect = document.getElementById('boardSizeSelect');
     this.timerSelect = document.getElementById('timerSelect');
     this.timerRow = document.getElementById('jumpTimerRow');
@@ -246,6 +249,7 @@ export class JumpGameApp {
     const topology = this.topologySelect?.value || this.config.topology || 'plane';
     this.syncLatticeAvailability(topology);
     const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, topology);
+    const playerCount = Math.max(2, Math.min(3, Math.floor(Number(this.playerCountSelect?.value || this.config.playerCount || 2) || 2)));
     const size = Number(this.sizeSelect?.value || this.config.size || (this.dimension === 4 ? 5 : this.dimension === 3 ? 6 : 8));
     const targetAxis = this.axisSelect?.value || this.config.targetAxis || 'x';
     const labTargetMode = this.targetModeSelect?.value || 'opponentHome';
@@ -254,6 +258,7 @@ export class JumpGameApp {
       size,
       topology,
       lattice,
+      playerCount,
       targetAxis,
       labMode: this.config.labMode || '',
       labTargetMode,
@@ -273,6 +278,7 @@ export class JumpGameApp {
     setIfPresent(this.axisSelect, this.config.targetAxis);
     setIfPresent(this.targetModeSelect, this.config.labTargetMode);
     setIfPresent(this.latticeSelect, this.config.lattice);
+    setIfPresent(this.playerCountSelect, this.config.playerCount || 2);
     this.syncLatticeAvailability();
   }
 
@@ -331,7 +337,7 @@ export class JumpGameApp {
     addEventListener('resize', () => this.render());
     this.canvas.addEventListener('click', (event) => this.onCanvasClick(event));
     this.installViewControls();
-    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.sizeSelect, this.timerSelect, this.axisSelect, this.targetModeSelect]) {
+    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.playerCountSelect, this.sizeSelect, this.timerSelect, this.axisSelect, this.targetModeSelect]) {
       el?.addEventListener('change', () => {
         if (el === this.modeSelect && this.modeSelect?.value !== 'online') {
           this.network.close({ silent: true });
@@ -425,6 +431,8 @@ export class JumpGameApp {
     const desc = document.getElementById('gameDescription');
     if (desc) desc.textContent = lab ? labDescription(lab) : dimensionDescription(this.dimension);
     if (this.infoEl) {
+      this.infoEl.textContent = jumpIntroText();
+      return;
       this.infoEl.textContent = jumpLanguage() === 'zh'
         ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。方格棋盤使用上下左右連線，三角格棋盤增加兩條斜向連線；極座標棋盤固定使用方格徑向/角向連線。環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤會直接標出目標區，因為空間改變時「對面」的意思也會改變。'
         : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square or Triangular lattice links. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
@@ -831,20 +839,21 @@ export class JumpGameApp {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
     if (this.dimension === 2 && topology === 'diamond') {
-      const last = Math.max(1, size - 1);
-      if (lattice === 'triangular') {
-        return {
-          x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
-          y: (coord[1] || 0) * Math.sqrt(3) / 2,
-          maxX: last * 1.5,
-          maxY: last * Math.sqrt(3) / 2
-        };
-      }
+      const points = this.game.topology.allCoords().map((c) => ({
+        x: (c[0] || 0) + (c[1] || 0) * 0.5,
+        y: (c[1] || 0) * Math.sqrt(3) / 2
+      }));
+      const minX = Math.min(...points.map((p) => p.x));
+      const minY = Math.min(...points.map((p) => p.y));
+      const maxX = Math.max(...points.map((p) => p.x));
+      const maxY = Math.max(...points.map((p) => p.y));
+      const x = (coord[0] || 0) + (coord[1] || 0) * 0.5;
+      const y = (coord[1] || 0) * Math.sqrt(3) / 2;
       return {
-        x: (coord[0] || 0) - (coord[1] || 0) + last,
-        y: (coord[0] || 0) + (coord[1] || 0),
-        maxX: last * 2,
-        maxY: last * 2
+        x: x - minX,
+        y: y - minY,
+        maxX: Math.max(1, maxX - minX),
+        maxY: Math.max(1, maxY - minY)
       };
     }
     if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
@@ -1039,12 +1048,16 @@ export class JumpGameApp {
       if (this.game.zones.aTarget.has(key)) drawDisc(null, 'rgba(84, 164, 255, 0.85)', 1);
       if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.22)', null, 1);
       if (this.game.zones.bTarget.has(key)) drawDisc(null, 'rgba(255, 190, 76, 0.85)', 0.82);
+      if (this.game.zones.cHome?.has(key)) drawDisc('rgba(190, 96, 255, 0.22)', null, 1);
+      if (this.game.zones.cTarget?.has(key)) drawDisc(null, 'rgba(190, 96, 255, 0.85)', 0.72);
       return;
     }
     if (this.game.zones.aHome.has(key)) { ctx.fillStyle = 'rgba(84, 164, 255, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
     if (this.game.zones.aTarget.has(key)) { ctx.strokeStyle = 'rgba(84, 164, 255, 0.85)'; ctx.strokeRect(p.x - r, p.y - r, r * 2, r * 2); }
     if (this.game.zones.bHome.has(key)) { ctx.fillStyle = 'rgba(255, 190, 76, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
     if (this.game.zones.bTarget.has(key)) { ctx.strokeStyle = 'rgba(255, 190, 76, 0.85)'; ctx.strokeRect(p.x - r * 0.82, p.y - r * 0.82, r * 1.64, r * 1.64); }
+    if (this.game.zones.cHome?.has(key)) { ctx.fillStyle = 'rgba(190, 96, 255, 0.22)'; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
+    if (this.game.zones.cTarget?.has(key)) { ctx.strokeStyle = 'rgba(190, 96, 255, 0.85)'; ctx.strokeRect(p.x - r * 0.72, p.y - r * 0.72, r * 1.44, r * 1.44); }
   }
 
   drawSite(coord) {
@@ -1061,11 +1074,11 @@ export class JumpGameApp {
     const focus = this.focusOwnPieces ? this.focusPlayer() : null;
     ctx.save();
     if (focus && owner !== focus) ctx.globalAlpha = 0.34;
-    ctx.fillStyle = owner === 'A' ? '#54a4ff' : '#ffbe4c';
+    ctx.fillStyle = owner === 'A' ? '#54a4ff' : owner === 'C' ? '#be60ff' : '#ffbe4c';
     ctx.strokeStyle = '#f8fbff';
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = owner === 'A' ? '#04111f' : '#160d02';
+    ctx.fillStyle = owner === 'A' ? '#04111f' : owner === 'C' ? '#170620' : '#160d02';
     ctx.font = `${Math.max(10, r * 0.75)}px system-ui, sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(label?.charge || owner, p.x, p.y);
@@ -1096,11 +1109,12 @@ export class JumpGameApp {
   updateStatus() {
     const a = this.game.targetProgress('A');
     const b = this.game.targetProgress('B');
+    const c = this.game.playerCount >= 3 ? this.game.targetProgress('C') : null;
     if (this.statusEl) this.statusEl.textContent = this.game.winner
       ? `${this.t('Winner', 'Winner')}: ${this.game.winner}`
       : `${this.t('Turn', 'Turn')} ${this.game.turnNumber}: ${this.t('Player', 'Player')} ${this.game.currentPlayer}`;
     if (this.progressEl) {
-      this.progressEl.innerHTML = `<span>${escapeHtml(this.t('Player', 'Player'))} A ${escapeHtml(this.t('target', 'target'))}: ${a.percentage}% (${a.filled}/${a.total})</span><span>${escapeHtml(this.t('Player', 'Player'))} B ${escapeHtml(this.t('target', 'target'))}: ${b.percentage}% (${b.filled}/${b.total})</span>`;
+      this.progressEl.innerHTML = `<span>${escapeHtml(this.t('Player', 'Player'))} A ${escapeHtml(this.t('target', 'target'))}: ${a.percentage}% (${a.filled}/${a.total})</span><span>${escapeHtml(this.t('Player', 'Player'))} B ${escapeHtml(this.t('target', 'target'))}: ${b.percentage}% (${b.filled}/${b.total})</span>${c ? `<span>${escapeHtml(this.t('Player', 'Player'))} C ${escapeHtml(this.t('target', 'target'))}: ${c.percentage}% (${c.filled}/${c.total})</span>` : ''}`;
     }
     if (this.endJumpButton) this.endJumpButton.disabled = !this.game.chainFrom;
     if (this.historyEl) this.historyEl.innerHTML = this.history.slice(-10).map((line) => `<li>${escapeHtml(line)}</li>`).join('');
@@ -1112,12 +1126,13 @@ export class JumpGameApp {
   showAnalysis() {
     const a = this.game.targetProgress('A');
     const b = this.game.targetProgress('B');
+    const c = this.game.playerCount >= 3 ? this.game.targetProgress('C') : null;
     const best = chooseJumpRobotMove(this.game, this.game.currentPlayer);
     if (this.analysisEl) {
       const suggested = best
         ? `${this.moveTypeLabel(best.type)} ${best.from.join(',')} -> ${best.to.join(',')}`
         : this.t('none', 'none');
-      this.analysisEl.textContent = `${this.t('Current player', 'Current player')}: ${this.game.currentPlayer}\n${this.t('Legal moves', 'Legal moves')}: ${this.game.allLegalMoves().length}\n${this.t('Suggested move', 'Suggested move')}: ${suggested}\n${this.t('Player', 'Player')} A ${this.t('progress', 'progress')}: ${a.percentage}%\n${this.t('Player', 'Player')} B ${this.t('progress', 'progress')}: ${b.percentage}%\n${this.t('Score estimate for A', 'Score estimate for A')}: ${this.game.score('A')}`;
+      this.analysisEl.textContent = `${this.t('Current player', 'Current player')}: ${this.game.currentPlayer}\n${this.t('Legal moves', 'Legal moves')}: ${this.game.allLegalMoves().length}\n${this.t('Suggested move', 'Suggested move')}: ${suggested}\n${this.t('Player', 'Player')} A ${this.t('progress', 'progress')}: ${a.percentage}%\n${this.t('Player', 'Player')} B ${this.t('progress', 'progress')}: ${b.percentage}%${c ? `\n${this.t('Player', 'Player')} C ${this.t('progress', 'progress')}: ${c.percentage}%` : ''}\n${this.t('Score estimate for A', 'Score estimate for A')}: ${this.game.score('A')}`;
     }
   }
 
@@ -1136,6 +1151,9 @@ export class JumpGameApp {
     const normalized = normalizeJumpNetworkState(state);
     if (normalized.topology && this.topologySelect && [...this.topologySelect.options].some((option) => option.value === normalized.topology)) {
       this.topologySelect.value = normalized.topology;
+    }
+    if (normalized.playerCount && this.playerCountSelect && [...this.playerCountSelect.options].some((option) => option.value === String(normalized.playerCount))) {
+      this.playerCountSelect.value = String(normalized.playerCount);
     }
     if (normalized.lattice && this.latticeSelect) this.latticeSelect.value = normalizeJumpLattice(normalized.lattice, this.dimension, normalized.topology || this.topologySelect?.value);
     this.syncLatticeAvailability(normalized.topology || this.topologySelect?.value);
@@ -1161,11 +1179,12 @@ export class JumpGameApp {
   onlineMatchKey() {
     const t = this.topologySelect?.value || this.config.topology || 'plane';
     const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, t);
+    const players = this.playerCountSelect?.value || this.config.playerCount || this.game?.playerCount || 2;
     const s = this.sizeSelect?.value || this.config.size;
     const timer = this.timerSelect?.value || this.config.timer || this.config.timeLimit || 0;
     const axis = this.axisSelect?.value || 'x';
     const target = this.targetModeSelect?.value || 'opponentHome';
-    return `jump:${this.dimension}d:${t}:lattice${lattice}:size${s}:timer${timer}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
+    return `jump:${this.dimension}d:${t}:players${players}:lattice${lattice}:size${s}:timer${timer}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
   }
   updateOnlineRoomUI(roomId, color) { if (roomId) this.enterOnlineMode(); this.setOnlineColor(color); }
   setOnlineColor(color) { this.myColor = playerFromOnlineColor(color); }
@@ -1173,14 +1192,22 @@ export class JumpGameApp {
 
 function samePoint(a, b) { return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]); }
 function escapeHtml(text) { return String(text).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+function jumpIntroText() {
+  if (jumpLanguage() === 'zh') {
+    return '\u8df3\u68cb\u4f7f\u7528\u4e00\u6b65\u79fb\u52d5\u8207\u9023\u8df3\u3002\u6a19\u6e96\u8df3\u68cb\u662f\u5169\u4eba\u83f1\u5f62 / \u661f\u5f62\u68cb\u76e4\uff0c\u68cb\u5b50\u5f9e\u672c\u65b9\u4e09\u89d2\u71df\u5340\u51fa\u767c\uff0c\u76ee\u6a19\u662f\u5168\u90e8\u79fb\u5230\u5c0d\u9762\u71df\u5340\u3002\u4e0d\u540c\u6676\u683c\u90fd\u7528\u76f8\u540c\u76f4\u7dda\u8df3\u8e8d\u898f\u5247\uff1a\u6cbf\u4e00\u689d\u53ef\u898b\u9023\u7dda\u8df3\u904e\u76f8\u9130\u4e00\u500b\u68cb\u5b50\uff0c\u843d\u5728\u540c\u4e00\u76f4\u7dda\u7684\u4e0b\u4e00\u500b\u7a7a\u4f4d\u3002\u65b9\u683c\u8207\u4e09\u89d2\u683c\u53ea\u6539\u8b8a\u53ef\u898b\u7684\u76f4\u7dda\u65b9\u5411\uff1b\u74b0\u9762\u3001\u83ab\u6bd4\u70cf\u65af\u3001Klein\u3001RP2\u3001\u7403\u9762\u30013D \u8207 4D \u68cb\u76e4\u6703\u76f4\u63a5\u6a19\u51fa\u76ee\u6a19\u5340\u3002';
+  }
+  return 'Chinese Checkers uses step moves and chain jumps. Standard Jump is a two-player diamond/star board: pieces start in triangular camps and race into the opposite camp. Every lattice type uses the same straight jump rule: follow one visible lattice line, jump over one adjacent occupied site, and land on the next empty site on that same line. Square and Triangular lattices only change which straight line directions are available. Torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards mark target zones explicitly because opposite changes with the space.';
+}
 function dimensionDescription(d) {
   if (jumpLanguage() === 'zh') {
+    if (d === 2) return '\u4e2d\u570b\u8df3\u68cb\u5f0f\u7684\u6a19\u6e96\u5169\u4eba\u83f1\u5f62 / \u661f\u5f62\u68cb\u76e4\uff0c\u5f9e\u4e09\u89d2\u71df\u5340\u51fa\u767c\uff0c\u6cbf\u76f4\u7dda\u4e00\u6b65\u6216\u9023\u8df3\u5230\u5c0d\u9762\u71df\u5340\u3002';
     if (d === 3) return '在體積、層與包裹空間中進行跳棋連跳，3D 拓撲會改變距離、包圍與目標區。';
     if (d === 4) return '在投影的高維棋盤上競速，用連跳與目標區探索 4D 空間策略。';
     return '在平面與拓撲棋盤上一步移動和連跳，把棋子從本方區域移到對方目標區。';
   }
-  if (d === 3) return 'Jump through volumes, layers, and wrapped spaces. Plan chain paths where distance, enclosure, and targets depend on 3D topology.';
-  if (d === 4) return 'Race through projected higher-dimensional boards. Use jumps and target zones to explore strategy in 4D spaces.';
+  if (d === 3) return 'Chinese Checkers-style jumping through volumes, layers, and wrapped spaces. Every jump crosses one adjacent piece along a visible straight lattice line.';
+  if (d === 4) return 'Chinese Checkers-style jumping on projected higher-dimensional boards, with chain jumps and explicit target zones for 4D strategy.';
+  if (d === 2) return 'Chinese Checkers-style Standard Jump starts on a two-player diamond/star board with triangular camps and straight-line step or chain jumps.';
   return 'Leap and chain across standard and topological boards. Move pieces from your home zone into the opponent’s target zone.';
 }
 function labTitle(lab) {

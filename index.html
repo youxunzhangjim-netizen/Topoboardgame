@@ -1017,6 +1017,44 @@
                 });
             }
 
+            function installLauncherExpanders() {
+                const setupCard = (card, selector) => {
+                    const trigger = selector ? card.querySelector(selector) : card;
+                    if (!trigger) return;
+                    card.classList.add('is-collapsible');
+                    card.dataset.expanded = 'false';
+                    trigger.classList.add('launcher-expand-trigger');
+                    trigger.setAttribute('role', 'button');
+                    trigger.setAttribute('tabindex', '0');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    const setExpanded = (expanded) => {
+                        card.dataset.expanded = String(expanded);
+                        trigger.setAttribute('aria-expanded', String(expanded));
+                    };
+                    const toggle = (event) => {
+                        if (event?.target?.closest?.('a,button,select,input,textarea,summary')) return;
+                        setExpanded(card.dataset.expanded !== 'true');
+                    };
+                    trigger.addEventListener('click', toggle);
+                    trigger.addEventListener('keydown', (event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        setExpanded(card.dataset.expanded !== 'true');
+                    });
+                };
+
+                document.querySelectorAll('.dimension-card').forEach((card) => {
+                    setupCard(card, '.dimension-copy');
+                    const visual = card.querySelector('.dimension-visual');
+                    const copy = card.querySelector('.dimension-copy');
+                    if (visual && copy) visual.addEventListener('click', () => copy.click());
+                });
+
+                document.querySelectorAll('.lab-card').forEach((card) => {
+                    setupCard(card, '.lab-card-head');
+                });
+            }
+
             function installFeedbackLinks() {
                 const email = 'youxunzhangjim@gmail.com';
                 const templates = {
@@ -1116,6 +1154,7 @@
             persistLanguage(currentLanguage);
             installLanguageControl();
             installModeFamilySelectors();
+            installLauncherExpanders();
             installFeedbackLinks();
             applyLauncherLanguage();
             setBadgeState('loading');

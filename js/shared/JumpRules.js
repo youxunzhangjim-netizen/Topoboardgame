@@ -13,11 +13,58 @@ export const DEFAULT_JUMP_OPTIONS = Object.freeze({
   maxTurns: 240
 });
 
-export const PLAYERS = Object.freeze(['A', 'B']);
+export const PLAYERS = Object.freeze(['A', 'B', 'C']);
+export function activePlayers(count = 2) { return PLAYERS.slice(0, Math.max(2, Math.min(3, Math.floor(Number(count) || 2)))); }
 export function otherPlayer(player) { return player === 'A' ? 'B' : 'A'; }
+export function nextJumpPlayer(player, count = 2) {
+  const players = activePlayers(count);
+  const index = players.indexOf(player);
+  return players[(index + 1 + players.length) % players.length] || 'A';
+}
 export function coordKey(coord) { return coord.join(','); }
 export function sameCoord(a, b) { return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => Number(v) === Number(b[i])); }
 export function cloneCoord(coord) { return coord.map((v) => Number(v)); }
+
+function diamondArm(size) {
+  return Math.max(3, Math.floor(clampInt(size, 6, 24) / 3));
+}
+
+function diamondRows(size) {
+  const arm = diamondArm(size);
+  const rows = [];
+  for (let r = -2 * arm; r <= 2 * arm; r += 1) {
+    const abs = Math.abs(r);
+    let length;
+    if (abs > arm) {
+      length = 2 * arm + 1 - abs;
+    } else {
+      length = 3 * arm + 1 - abs;
+    }
+    const qMin = -Math.floor(length / 2);
+    rows.push({ r, qMin, qMax: qMin + length - 1, length });
+  }
+  return { arm, rows };
+}
+
+function diamondCoords(size) {
+  const { rows } = diamondRows(size);
+  const coords = [];
+  for (const row of rows) {
+    for (let q = row.qMin; q <= row.qMax; q += 1) coords.push([q, row.r]);
+  }
+  return coords;
+}
+
+function closestDiamondCamp(coords, anchor, count) {
+  return coords
+    .map((coord) => ({
+      coord,
+      distance: Math.hypot((coord[0] || 0) - anchor[0], (coord[1] || 0) - anchor[1])
+    }))
+    .sort((a, b) => a.distance - b.distance || (a.coord[1] || 0) - (b.coord[1] || 0) || (a.coord[0] || 0) - (b.coord[0] || 0))
+    .slice(0, count)
+    .map((item) => coordKey(item.coord));
+}
 
 export function normalizeJumpLattice(lattice = 'square', dimension = 2, topology = 'plane') {
   const dim = clampInt(dimension, 2, 4);
@@ -83,6 +130,7 @@ export class JumpTopology {
       }
       return coords;
     }
+    if (this.dimension === 2 && this.topology === 'diamond') return diamondCoords(size);
     const rec = (prefix) => {
       if (prefix.length === this.dimension) { coords.push(prefix); return; }
       for (let i = 0; i < size; i += 1) rec([...prefix, i]);
@@ -101,6 +149,13 @@ export class JumpTopology {
         && ring >= 0
         && ring < this.size
         && (ring === 0 ? sector === 0 : sector >= 0 && sector < this.size);
+    }
+    if (this.dimension === 2 && this.topology === 'diamond') {
+      if (!Array.isArray(coord) || coord.length !== 2) return false;
+      const [q, r] = coord;
+      if (!Number.isInteger(q) || !Number.isInteger(r)) return false;
+      const row = diamondRows(this.size).rows.find((entry) => entry.r === r);
+      return Boolean(row && q >= row.qMin && q <= row.qMax);
     }
     return Array.isArray(coord) && coord.length === this.dimension && coord.every((v) => Number.isInteger(v) && v >= 0 && v < this.size);
   }
@@ -200,7 +255,7 @@ function distanceChebyshev(a, b) { return Math.max(...a.map((v, i) => Math.abs(v
 function axisCluster(coord, axis, side, width, size) { return side === 'low' ? coord[axis] < width : coord[axis] >= size - width; }
 function cornerCluster(coord, anchor, radius) { return distanceChebyshev(coord, anchor) <= radius; }
 
-export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'plane', targetAxis = 'x', zoneMode = 'auto', labTargetMode = 'opponentHome' } = {}) {
+export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'plane', targetAxis = 'x', zoneMode = 'auto', labTargetMode = 'opponentHome', playerCount = 2 } = {}) {
   const dim = clampInt(dimension, 2, 4);
   const n = clampInt(size, 4, 24);
   const axis = { x: 0, y: 1, z: 2, w: 3 }[targetAxis] ?? 0;
@@ -210,11 +265,25 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const coords = new JumpTopology({ dimension: dim, size: n, topology: top, targetAxis }).allCoords();
   const aHome = new Set();
   const bHome = new Set();
+  const cHome = new Set();
 
   const closed = ['torus', 'pbc', 't3', '4d-torus', 'torus4d', 'cylinder', 'cyl', 'pbcx', 'pbc-x', 'mobius', 'klein', 'klein_bottle', 'rp2', 'projective', 'projection'].includes(top);
   const sphere = ['sphere', 'shell'].includes(top);
 
-  if (sphere) {
+  if (dim === 2 && top === 'diamond') {
+    const arm = diamondArm(n);
+    for (const c of coords) {
+      const q = c[0] || 0;
+      const r = c[1] || 0;
+      if (r <= -arm - 1) aHome.add(coordKey(c));
+      if (r >= arm + 1) bHome.add(coordKey(c));
+    }
+    if (playerCount >= 3) {
+      const campSize = arm * (arm + 1) / 2;
+      cHome.clear();
+      for (const key of closestDiamondCamp(coords, [-2 * arm, 0], campSize)) cHome.add(key);
+    }
+  } else if (sphere) {
     for (const c of coords) {
       if (axisCluster(c, 1, 'low', width, n)) aHome.add(coordKey(c));
       if (axisCluster(c, 1, 'high', width, n)) bHome.add(coordKey(c));
@@ -234,29 +303,25 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
       if (cornerCluster(c, bAnchor, radius)) bHome.add(coordKey(c));
     }
   } else {
-    if (dim === 2 && top === 'diamond') {
-      const rows = Math.max(2, Math.floor(n / 3));
-      const maxSum = 2 * (n - 1);
-      for (const c of coords) {
-        const sum = (c[0] || 0) + (c[1] || 0);
-        if (sum < rows) aHome.add(coordKey(c));
-        if (sum > maxSum - rows) bHome.add(coordKey(c));
-      }
-    } else {
-      for (const c of coords) {
-        if (axisCluster(c, axis, 'low', width, n)) aHome.add(coordKey(c));
-        if (axisCluster(c, axis, 'high', width, n)) bHome.add(coordKey(c));
-      }
+    for (const c of coords) {
+      if (axisCluster(c, axis, 'low', width, n)) aHome.add(coordKey(c));
+      if (axisCluster(c, axis, 'high', width, n)) bHome.add(coordKey(c));
     }
   }
 
   const aTarget = new Set(bHome);
   const bTarget = new Set(aHome);
+  const cTarget = new Set();
+  if (dim === 2 && top === 'diamond' && playerCount >= 3) {
+    const arm = diamondArm(n);
+    const campSize = arm * (arm + 1) / 2;
+    for (const key of closestDiamondCamp(coords, [2 * arm, 0], campSize)) cTarget.add(key);
+  }
 
   if (String(labTargetMode).toLowerCase() === 'antipodal') {
-    return { aHome, bHome, aTarget, bTarget, mode: 'antipodal', width, radius };
+    return { aHome, bHome, cHome, aTarget, bTarget, cTarget, mode: 'antipodal', width, radius };
   }
-  return { aHome, bHome, aTarget, bTarget, mode: 'opponentHome', width, radius };
+  return { aHome, bHome, cHome, aTarget, bTarget, cTarget, mode: 'opponentHome', width, radius };
 }
 
 export class JumpGameState {
@@ -267,6 +332,7 @@ export class JumpGameState {
     this.topologyName = options.topology || options.boundary || 'plane';
     this.lattice = normalizeJumpLattice(options.lattice || 'square', this.dimension, this.topologyName);
     this.targetAxis = options.targetAxis || 'x';
+    this.playerCount = Math.max(2, Math.min(3, Math.floor(Number(options.playerCount) || 2)));
     this.zoneMode = options.zoneMode || 'auto';
     this.labMode = options.labMode || '';
     this.labTargetMode = options.labTargetMode || 'opponentHome';
@@ -280,7 +346,7 @@ export class JumpGameState {
     this.chainPath = [];
     this.pieces = new Map();
     this.labels = new Map();
-    this.zones = createHomeTargetZones({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, zoneMode: this.zoneMode, labTargetMode: this.labTargetMode });
+    this.zones = createHomeTargetZones({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, zoneMode: this.zoneMode, labTargetMode: this.labTargetMode, playerCount: this.playerCount });
     this.resetPieces();
   }
 
@@ -289,6 +355,9 @@ export class JumpGameState {
     this.labels.clear();
     for (const key of this.zones.aHome) { this.pieces.set(key, 'A'); this.labels.set(key, this.createLabel('A', key)); }
     for (const key of this.zones.bHome) { this.pieces.set(key, 'B'); this.labels.set(key, this.createLabel('B', key)); }
+    if (this.playerCount >= 3) {
+      for (const key of this.zones.cHome) { this.pieces.set(key, 'C'); this.labels.set(key, this.createLabel('C', key)); }
+    }
   }
 
   createLabel(player, key) {
@@ -403,7 +472,7 @@ export class JumpGameState {
     this.chainPath = [];
     this.checkWinner();
     if (!this.winner) {
-      this.currentPlayer = otherPlayer(this.currentPlayer);
+      this.currentPlayer = nextJumpPlayer(this.currentPlayer, this.playerCount);
       this.turnNumber += 1;
       if (this.options.scoreAfterTurnLimit && this.turnNumber > this.options.maxTurns) this.winner = this.scoreWinner();
     }
@@ -411,9 +480,9 @@ export class JumpGameState {
 
   checkWinner() {
     if (!this.options.targetFillWin) return null;
-    for (const player of PLAYERS) {
-      const target = player === 'A' ? this.zones.aTarget : this.zones.bTarget;
-      const homeCount = player === 'A' ? this.zones.aHome.size : this.zones.bHome.size;
+    for (const player of activePlayers(this.playerCount)) {
+      const target = this.targetZone(player);
+      const homeCount = this.homeZone(player).size;
       const filled = [...target].filter((key) => this.pieces.get(key) === player).length;
       if (filled >= Math.max(1, Math.min(homeCount, target.size))) {
         this.winner = player;
@@ -424,23 +493,34 @@ export class JumpGameState {
   }
 
   targetProgress(player) {
-    const target = player === 'A' ? this.zones.aTarget : this.zones.bTarget;
-    const total = Math.max(1, player === 'A' ? this.zones.aHome.size : this.zones.bHome.size);
+    const target = this.targetZone(player);
+    const total = Math.max(1, this.homeZone(player).size);
     const filled = [...target].filter((key) => this.pieces.get(key) === player).length;
     return { filled, total, percentage: Math.min(100, Math.round((filled / total) * 100)) };
   }
 
+  homeZone(player) {
+    if (player === 'C') return this.zones.cHome || new Set();
+    return player === 'A' ? this.zones.aHome : this.zones.bHome;
+  }
+
+  targetZone(player) {
+    if (player === 'C') return this.zones.cTarget || new Set();
+    return player === 'A' ? this.zones.aTarget : this.zones.bTarget;
+  }
+
   score(player = 'A') {
     const own = this.targetProgress(player).percentage;
-    const opp = this.targetProgress(otherPlayer(player)).percentage;
+    const opponents = activePlayers(this.playerCount).filter((p) => p !== player);
+    const opp = opponents.reduce((sum, p) => sum + this.targetProgress(p).percentage, 0) / Math.max(1, opponents.length);
     return own - opp;
   }
 
   scoreWinner() {
-    const a = this.targetProgress('A').percentage;
-    const b = this.targetProgress('B').percentage;
-    if (a > b) return 'A';
-    if (b > a) return 'B';
+    const ranked = activePlayers(this.playerCount)
+      .map((player) => ({ player, score: this.targetProgress(player).percentage }))
+      .sort((a, b) => b.score - a.score);
+    if (ranked[0]?.score > ranked[1]?.score) return ranked[0].player;
     return 'draw';
   }
 
@@ -450,6 +530,7 @@ export class JumpGameState {
       size: this.size,
       topology: this.topologyName,
       lattice: this.lattice,
+      playerCount: this.playerCount,
       targetAxis: this.targetAxis,
       zoneMode: this.zoneMode,
       labMode: this.labMode,
@@ -467,6 +548,7 @@ export class JumpGameState {
     this.size = clampInt(state.size || this.size, 4, this.dimension === 2 ? 24 : 12);
     this.topologyName = state.topology || this.topologyName;
     this.lattice = normalizeJumpLattice(state.lattice || this.lattice, this.dimension, this.topologyName);
+    this.playerCount = Math.max(2, Math.min(3, Math.floor(Number(state.playerCount || this.playerCount) || 2)));
     this.targetAxis = state.targetAxis || this.targetAxis;
     this.zoneMode = state.zoneMode || this.zoneMode;
     this.labMode = state.labMode || this.labMode;
@@ -476,7 +558,7 @@ export class JumpGameState {
     this.winner = state.winner || null;
     this.topology = new JumpTopology({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis });
     this.directions = createDirectionVectors(this.dimension, this.lattice, this.topologyName);
-    this.zones = createHomeTargetZones({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, zoneMode: this.zoneMode, labTargetMode: this.labTargetMode });
+    this.zones = createHomeTargetZones({ dimension: this.dimension, size: this.size, topology: this.topologyName, targetAxis: this.targetAxis, zoneMode: this.zoneMode, labTargetMode: this.labTargetMode, playerCount: this.playerCount });
     this.pieces = new Map(Array.isArray(state.pieces) ? state.pieces : []);
     this.labels = new Map(Array.isArray(state.labels) ? state.labels : []);
     this.selected = null;
