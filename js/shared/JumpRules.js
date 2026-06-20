@@ -34,13 +34,8 @@ function diamondRows(size) {
   const rows = [];
   for (let r = -2 * arm; r <= 2 * arm; r += 1) {
     const abs = Math.abs(r);
-    let length;
-    if (abs > arm) {
-      length = 2 * arm + 1 - abs;
-    } else {
-      length = 3 * arm + 1 - abs;
-    }
-    const qMin = -Math.floor(length / 2);
+    const length = abs > arm ? 2 * arm + 1 - abs : 2 * arm + 1 + abs;
+    const qMin = -Math.floor((length - 1) / 2);
     rows.push({ r, qMin, qMax: qMin + length - 1, length });
   }
   return { arm, rows };
@@ -53,6 +48,18 @@ function diamondCoords(size) {
     for (let q = row.qMin; q <= row.qMax; q += 1) coords.push([q, row.r]);
   }
   return coords;
+}
+
+function diamondCamp(size, axis, sign) {
+  const arm = diamondArm(size);
+  const coords = diamondCoords(size);
+  const campSize = arm * (arm + 1) / 2;
+  if (axis === 1 && sign < 0) return coords.filter((coord) => (coord[1] || 0) <= -arm - 1).map((coord) => coordKey(coord));
+  if (axis === 1 && sign > 0) return coords.filter((coord) => (coord[1] || 0) >= arm + 1).map((coord) => coordKey(coord));
+  const anchor = axis === 0
+    ? [sign * 2 * arm, 0]
+    : [sign * arm, -sign * 2 * arm];
+  return closestDiamondCamp(coords, anchor, campSize);
 }
 
 function closestDiamondCamp(coords, anchor, count) {
@@ -271,17 +278,13 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const sphere = ['sphere', 'shell'].includes(top);
 
   if (dim === 2 && top === 'diamond') {
-    const arm = diamondArm(n);
-    for (const c of coords) {
-      const q = c[0] || 0;
-      const r = c[1] || 0;
-      if (r <= -arm - 1) aHome.add(coordKey(c));
-      if (r >= arm + 1) bHome.add(coordKey(c));
-    }
+    for (const key of diamondCamp(n, 1, -1)) aHome.add(key);
+    for (const key of diamondCamp(n, 1, 1)) bHome.add(key);
     if (playerCount >= 3) {
-      const campSize = arm * (arm + 1) / 2;
       cHome.clear();
-      for (const key of closestDiamondCamp(coords, [-2 * arm, 0], campSize)) cHome.add(key);
+      bHome.clear();
+      for (const key of diamondCamp(n, 0, 1)) bHome.add(key);
+      for (const key of diamondCamp(n, 0, -1)) cHome.add(key);
     }
   } else if (sphere) {
     for (const c of coords) {
@@ -309,13 +312,11 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
     }
   }
 
-  const aTarget = new Set(bHome);
-  const bTarget = new Set(aHome);
+  const aTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? diamondCamp(n, 1, 1) : bHome);
+  const bTarget = new Set(dim === 2 && top === 'diamond' && playerCount >= 3 ? cHome : aHome);
   const cTarget = new Set();
   if (dim === 2 && top === 'diamond' && playerCount >= 3) {
-    const arm = diamondArm(n);
-    const campSize = arm * (arm + 1) / 2;
-    for (const key of closestDiamondCamp(coords, [2 * arm, 0], campSize)) cTarget.add(key);
+    for (const key of bHome) cTarget.add(key);
   }
 
   if (String(labTargetMode).toLowerCase() === 'antipodal') {

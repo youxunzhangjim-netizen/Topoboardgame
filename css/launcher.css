@@ -60,10 +60,10 @@ body::before {
 .launcher-author {
     position: fixed;
     right: 16px;
-    bottom: 14px;
+    bottom: 34px;
     z-index: 2;
     display: grid;
-    gap: 3px;
+    gap: 6px;
     justify-items: end;
     color: rgba(237, 244, 246, 0.68);
     font-size: 12px;
@@ -83,12 +83,11 @@ body::before {
 }
 
 .launcher-feedback {
-    position: fixed;
-    left: 16px;
-    bottom: 14px;
-    z-index: 4;
+    position: static;
+    z-index: auto;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     pointer-events: auto;
 }
@@ -120,7 +119,7 @@ body::before {
 .launcher-language {
     position: fixed;
     right: 14px;
-    bottom: 58px;
+    bottom: 108px;
     z-index: 4;
     display: grid;
     justify-items: end;
@@ -250,6 +249,16 @@ body::before {
 
 .brand-block::before {
     display: none;
+}
+
+.brand-kicker {
+    width: max-content;
+    color: rgba(125, 211, 252, 0.82);
+    font-size: 12px;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .brand-title-row {
@@ -1045,10 +1054,8 @@ h1 {
     }
 
     .launcher-feedback {
-        left: 10px;
-        bottom: 10px;
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-end;
         gap: 6px;
     }
 
@@ -1068,7 +1075,7 @@ h1 {
 .launcher-account {
     position: fixed;
     right: 16px;
-    bottom: 146px;
+    bottom: 196px;
     z-index: 1000;
     display: grid;
     justify-items: end;
@@ -1392,7 +1399,7 @@ h1 {
 @media (max-width: 700px) {
     .launcher-account {
         right: 12px;
-        bottom: 136px;
+        bottom: 178px;
     }
 
     .launcher-account-button {
@@ -1704,6 +1711,27 @@ h1 {
 #strategy-systems-labs .lab-advanced {
     margin: 0 0 2px;
     align-self: start;
+}
+
+.lab-card.is-collapsible:not([data-expanded="true"]) .lab-facts,
+.lab-card.is-collapsible:not([data-expanded="true"]) .lab-advanced,
+.lab-card.is-collapsible:not([data-expanded="true"]) .lab-presets,
+#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-facts,
+#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-advanced,
+#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-presets {
+    display: none;
+}
+
+.lab-card.is-collapsible[data-expanded="true"] .lab-advanced,
+.lab-card.is-collapsible[data-expanded="true"] .lab-presets,
+#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"] .lab-advanced,
+#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"] .lab-presets {
+    display: grid;
+}
+
+.lab-card.is-collapsible[data-expanded="true"]:has(.lab-advanced[open]) .lab-facts,
+#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"]:has(.lab-advanced[open]) .lab-facts {
+    display: grid;
 }
 .jump-mode-stack{display:grid;gap:.55rem;margin-top:.55rem}.jump-option-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.jump-option-card em{display:block;margin-top:.35rem;color:#8fc7ff;font-size:.76rem;font-style:normal}.jump-card-actions{display:flex;gap:.4rem;align-items:center}.jump-card-actions .lab-preset{padding:.48rem .7rem;min-width:auto}.jump-lab-card .extra-mode-copy small{display:block;color:#b8c6d8;margin-top:.25rem}@media(max-width:760px){.jump-option-card{grid-template-columns:1fr}.jump-card-actions{margin-top:.5rem}}
 

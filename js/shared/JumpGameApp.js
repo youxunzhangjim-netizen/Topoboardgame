@@ -451,6 +451,9 @@ export class JumpGameApp {
     this.network.matchKey = this.onlineMatchKey();
     this.updateLabels();
     this.render();
+    if (this.modeSelect?.value === 'online' && this.game.playerCount >= 3 && this.game.currentPlayer === 'C' && this.myColor === 'A') {
+      setTimeout(() => this.onlineRobotTurn('C'), 220);
+    }
   }
 
   syncTimerFromSelect(resetClocks = false) {
@@ -719,10 +722,56 @@ export class JumpGameApp {
     else this.stopTimer();
     this.render();
     this.network.sendState({ type: label || 'jump_move' });
-    if (this.modeSelect?.value === 'robot' && !this.game.winner) setTimeout(() => this.robotTurn(), 180);
+    if (this.modeSelect?.value === 'online' && this.game.playerCount >= 3 && this.game.currentPlayer === 'C' && this.myColor === 'A') {
+      setTimeout(() => this.onlineRobotTurn('C'), 220);
+    }
+    if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') setTimeout(() => this.robotTurn(), 180);
+  }
+
+  onlineRobotTurn(player = 'C') {
+    if (this.modeSelect?.value !== 'online' || this.game.currentPlayer !== player || this.game.winner) return;
+    const move = chooseJumpRobotMove(this.game, player);
+    if (!move) {
+      this.game.endTurn();
+      this.history.push(`Robot ${player} had no legal move and passed the turn.`);
+    } else {
+      const result = this.game.applyMove(move);
+      if (!result.ok) {
+        this.history.push(`Robot ${player} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
+        this.game.endTurn();
+      } else {
+        this.history.push(`Robot ${player} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+        if (result.continueJump) this.game.endTurn();
+      }
+    }
+    this.render();
+    this.network.sendState({ type: 'jump_robot_c_move' });
   }
 
   robotTurn() {
+    const robotPlayer = this.game.currentPlayer;
+    if (robotPlayer !== 'B' || this.game.playerCount >= 3) {
+      if (robotPlayer === 'A' || this.game.winner) return;
+      const move = chooseJumpRobotMove(this.game, robotPlayer);
+      if (!move) {
+        this.game.endTurn();
+        this.history.push(`Robot ${robotPlayer} had no legal move and passed the turn.`);
+      } else {
+        const result = this.game.applyMove(move);
+        if (!result.ok) {
+          this.history.push(`Robot ${robotPlayer} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
+          this.game.endTurn();
+        } else {
+          this.history.push(`Robot ${robotPlayer} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+          if (result.continueJump) this.game.endTurn();
+        }
+      }
+      this.render();
+      if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') {
+        setTimeout(() => this.robotTurn(), 180);
+      }
+      return;
+    }
     if (this.game.currentPlayer !== 'B' || this.game.winner) return;
     let guard = 0;
     do {

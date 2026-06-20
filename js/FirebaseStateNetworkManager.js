@@ -16,6 +16,7 @@ function defaultTurnFromState(state, app) {
         || 'black';
     if (turn === 'A') return 'black';
     if (turn === 'B') return 'white';
+    if (turn === 'C') return 'black';
     return turn;
 }
 
