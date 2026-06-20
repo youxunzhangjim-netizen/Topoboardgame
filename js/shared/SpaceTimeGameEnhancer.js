@@ -844,7 +844,7 @@
     if (action.kind === 'jump') return `Player ${action.player} designed a ${delayLabel(action.delay)} Jump action for turn ${action.dueTurn}.`;
     if (action.kind === 'go') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Go placement for turn ${action.dueTurn}.`;
     if (action.kind === 'reversi') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Reversi placement for turn ${action.dueTurn}.`;
-    if (action.kind === 'chess') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} Chess move for turn ${action.dueTurn}.`;
+    if (action.kind === 'chess') return `${titleCase(action.player)} designed a ${delayLabel(action.delay)} hidden scheduled action for turn ${action.dueTurn}.`;
     return `Designed a ${delayLabel(action.delay)} future action for turn ${action.dueTurn}.`;
   }
 
@@ -1343,7 +1343,7 @@
   function actionLabel(action) {
     const left = `T-${Math.max(0, Number(action.dueTurn) - currentTurn(state.app))}`;
     if (action.kind === 'jump') return `${left}: hidden Jump ${action.move?.type || 'move'} to ${action.move?.to?.join(',')}`;
-    if (action.kind === 'chess') return `${left}: hidden Chess move to ${chessCoordLabel(action.to)}`;
+    if (action.kind === 'chess') return `${left}: hidden scheduled action`;
     return `${left}: hidden ${titleCase(action.kind)} action to ${(action.coord || []).join(',')}`;
   }
 
