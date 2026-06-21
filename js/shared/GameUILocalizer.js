@@ -164,6 +164,24 @@ const ZH = new Map(Object.entries({
   'Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links.': '蜂巢格每個內部點有三個圖鄰居；棋群、氣、提子和地盤都使用這些連結。',
   'Triangular uses six graph neighbors per interior point. A group is captured only after every exposed axial and diagonal liberty is enclosed.': '三角格每個內部點有六個圖鄰居；必須封住所有外露的軸向和斜向氣後才會提子。',
   'Cylinder identifies only left-right edges, while top and bottom remain ordinary open Reversi edges.': '圓柱只把左右邊界相接，上下仍是普通的開放 Reversi 邊界。',
+  'Cylinder identifies only the left-right edges. Top and bottom stay open, so liberties can vanish at the caps.': '圓柱只把左右邊界相接。上下保持開放，所以棋子在端點可能失去氣。',
+  'Cylinder Reversi wraps left-right around the circumference while top and bottom remain open.': '圓柱 Reversi 會把左右方向繞成圓周，上下仍保持開放。',
+  'Cylinder Go wraps left-right around the circumference while top and bottom remain open.': '圓柱圍棋會把左右方向繞成圓周，上下仍保持開放。',
+  'PBC identifies both left-right and top-bottom edges.': 'PBC 會同時接合左右與上下邊界。',
+  'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.': 'PBC 會同時接合左右與上下邊界。每個點在棋盤兩個方向都有週期鄰居。',
+  '2D RBC uses one fixed random map from each boundary exit to another boundary point. The map is stored with the game state.': '2D RBC 會把每個邊界出口固定隨機映射到另一個邊界點，並把映射保存在局面狀態中。',
+  '2D RBC uses one fixed random map from each boundary exit to another boundary square. The map stays static for this game.': '2D RBC 會把每個邊界出口固定隨機映射到另一個邊界格，這局遊戲中映射保持不變。',
+  'Polar coordinates use one true center node, radial rings, circular angular neighbors, and center-to-first-ring links.': '極座標棋盤使用一個真正中心點、徑向環、圓周角向鄰居，以及中心到第一圈的連線。',
+  'Polar coordinates use one true center node, radial rings, circular angular neighbors, and ring/ray bracketing.': '極座標棋盤使用一個真正中心點、徑向環、圓周角向鄰居，並可沿環向與射線方向夾擊。',
+  'Polar rays can bracket around rings and radially through the center.': '極座標射線可以沿圓環夾擊，也可以沿徑向穿過中心夾擊。',
+  'R3 uses open boundaries in x, y, and z.': 'R3 在 x、y、z 方向使用開放邊界。',
+  'T2 wraps both directions on the torus board.': 'T2 環面會在棋盤兩個方向週期包回。',
+  'T3 PBC wraps x, y, and z, so every cubic axis is periodic.': 'T3 PBC 會在 x、y、z 三個方向週期包回，因此每個立方軸都是週期的。',
+  '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.': '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。',
+  'Klein bottle uses normal left-right wrap and flipped top-bottom wrap on the board graph.': 'Klein 瓶在棋盤圖上左右正常包回，上下包回時會翻轉。',
+  'Mobius strip uses one twisted horizontal wrap with open vertical edges.': 'Mobius 帶使用單一扭轉的水平方向包回，垂直方向保持開放。',
+  'Mobius strip is rendered as a solid twisted band. Horizontal seam crossings flip the transverse coordinate.': 'Mobius 帶會顯示為實心扭轉帶；穿過水平接縫時橫向座標會翻轉。',
+  'Area scoring with 7.5 komi. Captures, liberties, superko, and territory use the selected board graph.': '使用 7.5 貼目的面積計分。提子、氣、超劫與地盤都依照所選棋盤圖計算。',
   'R3 Standard uses ordinary open boundaries in x, y, and z.': 'R3 標準在 x、y、z 方向都使用普通開放邊界。',
   'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.': 'R3 標準使用普通開放立方邊界。Reversi 夾擊可沿 26 個圖射線方向進行。'
 }));
@@ -171,7 +189,7 @@ const ZH = new Map(Object.entries({
 const originals = new WeakMap();
 let language = detectLanguage();
 let observer = null;
-const GLOBE_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm6.93 9h-3.18a15.8 15.8 0 0 0-1.1-5.02A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.68.98 1.43 3.03 1.7 6.96h-3.4c.27-3.93 1.02-5.98 1.7-6.96ZM4.26 13h3.99c.12 2.02.43 3.78.87 5.08A8.04 8.04 0 0 1 4.26 13Zm3.99-2H4.26a8.04 8.04 0 0 1 4.86-5.08A21.9 21.9 0 0 0 8.25 11ZM12 19.96c-.68-.98-1.43-3.03-1.7-6.96h3.4c-.27 3.93-1.02 5.98-1.7 6.96Zm2.88-1.88c.44-1.3.75-3.06.87-5.08h3.99a8.04 8.04 0 0 1-4.86 5.08ZM15.75 11a21.9 21.9 0 0 0-.87-5.08A8.04 8.04 0 0 1 19.74 11h-3.99Z"/></svg>';
+const GLOBE_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path></svg>';
 
 export function installGameUILocalizer() {
   document.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
@@ -247,13 +265,45 @@ function translateValue(text) {
   if (ZH.has(text)) return ZH.get(text);
   return text
     .replace(/Standard uses ordinary open board edges\./g, '標準使用普通的開放棋盤邊界。')
+    .replace(/Standard uses ordinary board edges\./g, '標準使用普通的棋盤邊界。')
     .replace(/Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x\./g, 'Klein 瓶左右正常相接，上下相接時 x 會翻轉：從 x 離開會進入 size - 1 - x。')
     .replace(/Klein bottle identifies left-right normally and top-bottom with x flipped\./g, 'Klein 瓶左右正常相接，上下相接時 x 會翻轉。')
+    .replace(/The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x\./g, 'Klein 瓶左右正常包回，上下包回時會翻轉：從 x 離開會進入 width - 1 - x。')
+    .replace(/Klein connects left-right normally and top-bottom with an x-flip\./g, 'Klein 瓶會左右正常相接，上下相接時 x 會翻轉。')
+    .replace(/Cylinder identifies only the left-right edges\. Top and bottom stay open, so liberties can vanish at the caps\./g, '圓柱只把左右邊界相接。上下保持開放，所以棋子在端點可能失去氣。')
+    .replace(/Cylinder identifies only left-right edges, while top and bottom remain ordinary open Reversi edges\./g, '圓柱只把左右邊界相接，上下仍是普通的開放 Reversi 邊界。')
+    .replace(/Cylinder wraps left-right only\./g, '圓柱只在左右方向週期包回。')
+    .replace(/PBC identifies both left-right and top-bottom edges\. Every point has periodic neighbors in both board directions\./g, 'PBC 會同時接合左右與上下邊界。每個點在棋盤兩個方向都有週期鄰居。')
+    .replace(/PBC identifies both left-right and top-bottom edges\./g, 'PBC 會同時接合左右與上下邊界。')
+    .replace(/PBC connects both left-right and top-bottom sides\./g, 'PBC 會同時接合左右與上下兩側。')
+    .replace(/2D RBC uses one fixed random map from each boundary exit to another boundary point\. The map is stored with the game state\./g, '2D RBC 會把每個邊界出口固定隨機映射到另一個邊界點，並把映射保存在局面狀態中。')
+    .replace(/2D RBC uses one fixed random map from each boundary exit to another boundary square\. The map stays static for this game\./g, '2D RBC 會把每個邊界出口固定隨機映射到另一個邊界格，這局遊戲中映射保持不變。')
+    .replace(/2D RBC creates one fixed random boundary map for this game\./g, '2D RBC 會為這局遊戲建立一份固定的隨機邊界映射。')
+    .replace(/Polar coordinates use one true center node, radial rings, circular angular neighbors, and center-to-first-ring links\./g, '極座標棋盤使用一個真正中心點、徑向環、圓周角向鄰居，以及中心到第一圈的連線。')
+    .replace(/Polar coordinates use one true center node, radial rings, circular angular neighbors, and ring\/ray bracketing\./g, '極座標棋盤使用一個真正中心點、徑向環、圓周角向鄰居，並可沿環向與射線方向夾擊。')
+    .replace(/Polar adds one center node with radial rings\./g, '極座標會加入一個中心點與徑向環。')
+    .replace(/Polar rays can bracket around rings and radially through the center\./g, '極座標射線可以沿圓環夾擊，也可以沿徑向穿過中心夾擊。')
     .replace(/Square uses the usual four orthogonal graph neighbors\./g, '方格使用一般的上下左右四個正交圖鄰居。')
     .replace(/Square uses the usual eight 2D rays\./g, '方格使用一般的八個 2D 射線方向。')
     .replace(/Honeycomb uses regular hexagonal cells\. Stones occupy cell centers and bracket along six axial rays\./g, '蜂巢格使用正六邊形單元。棋子位於單元中心，並沿六個軸向射線夾擊。')
     .replace(/Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links\./g, '蜂巢格每個內部點有三個圖鄰居；棋群、氣、提子和地盤都使用這些連結。')
     .replace(/Triangular uses six graph neighbors per interior point\. A group is captured only after every exposed axial and diagonal liberty is enclosed\./g, '三角格每個內部點有六個圖鄰居；必須封住所有外露的軸向和斜向氣後才會提子。')
+    .replace(/Square, honeycomb, and triangular boards use four, three, and six graph neighbors respectively\./g, '方格、蜂巢格、三角格棋盤分別使用四個、三個、六個圖鄰居。')
+    .replace(/Area scoring with 7\.5 komi, capture by removing groups with no liberties, suicide forbidden, positional superko, and final scoring after two passes plus both players agreeing to count\./g, '使用 7.5 貼目的面積計分；無氣棋群會被提走；禁止自殺；採位置超劫；雙方連續停手並同意數目後進行終局計分。')
+    .replace(/Endgame starts when both players pass or neither side can play\./g, '當雙方都停手，或雙方都沒有可下位置時進入終局。')
+    .replace(/On Polar boards, the true center is useful for connection but the center alone does not claim a whole empty region\./g, '在極座標棋盤上，真正中心點有助於連接，但單靠中心點不會直接佔領整片空區。')
+    .replace(/R3 Standard uses ordinary open cubic boundaries\. Reversi brackets can run through all 26 graph ray directions\./g, 'R3 標準使用普通開放立方邊界。Reversi 夾擊可沿 26 個圖射線方向進行。')
+    .replace(/R3 Standard uses ordinary open boundaries in x, y, and z\./g, 'R3 標準在 x、y、z 方向都使用普通開放邊界。')
+    .replace(/R3 uses open boundaries in x, y, and z\./g, 'R3 在 x、y、z 方向使用開放邊界。')
+    .replace(/T2 wraps both directions on the torus board\./g, 'T2 環面會在棋盤兩個方向週期包回。')
+    .replace(/T3 PBC wraps x, y, and z, so every cubic axis is periodic\./g, 'T3 PBC 會在 x、y、z 三個方向週期包回，因此每個立方軸都是週期的。')
+    .replace(/3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point\./g, '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。')
+    .replace(/Cylinder Reversi wraps left-right around the circumference while top and bottom remain open\./g, '圓柱 Reversi 會把左右方向繞成圓周，上下仍保持開放。')
+    .replace(/Cylinder Go wraps left-right around the circumference while top and bottom remain open\./g, '圓柱圍棋會把左右方向繞成圓周，上下仍保持開放。')
+    .replace(/Klein bottle uses normal left-right wrap and flipped top-bottom wrap on the board graph\./g, 'Klein 瓶在棋盤圖上左右正常包回，上下包回時會翻轉。')
+    .replace(/Mobius strip uses one twisted horizontal wrap with open vertical edges\./g, 'Mobius 帶使用單一扭轉的水平方向包回，垂直方向保持開放。')
+    .replace(/Mobius strip is rendered as a solid twisted band\. Horizontal seam crossings flip the transverse coordinate\./g, 'Mobius 帶會顯示為實心扭轉帶；穿過水平接縫時橫向座標會翻轉。')
+    .replace(/Area scoring with 7\.5 komi\. Captures, liberties, superko, and territory use the selected board graph\./g, '使用 7.5 貼目的面積計分。提子、氣、超劫與地盤都依照所選棋盤圖計算。')
     .replace(/^(\d+) stones?$/, '$1 顆棋子')
     .replace(/^Robot is thinking\.\.\.$/, '機器人思考中…')
     .replace(/^Robot is searching for (.+) at (?:depth|search level) (\d+)\.\.\.$/, '機器人正在以深度 $2 為 $1 搜尋…')
@@ -319,9 +369,31 @@ function normalizeLanguageIcons() {
   document.querySelectorAll('.language-icon-button').forEach((button) => {
     if (!button.querySelector('svg')) button.innerHTML = GLOBE_ICON;
     button.setAttribute('aria-label', 'Language');
+    if (!button.dataset.sharedLanguageToggleBound) {
+      button.dataset.sharedLanguageToggleBound = 'true';
+      button.addEventListener('click', (event) => {
+        const control = button.closest('.language-switch, .life-language-switch, .shared-game-language');
+        const menu = control?.querySelector('.language-popover, .shared-game-language-menu');
+        if (!control || !menu) return;
+        event.preventDefault();
+        const open = control.dataset.languageOpen !== 'true';
+        control.dataset.languageOpen = String(open);
+        button.setAttribute('aria-expanded', String(open));
+        if (menu.classList.contains('shared-game-language-menu')) menu.hidden = !open;
+      });
+    }
   });
   document.querySelectorAll('[data-lang-option="en"], [data-life-lang="en"]').forEach((button) => { button.textContent = 'En'; });
   document.querySelectorAll('[data-lang-option="zh"], [data-life-lang="zh"]').forEach((button) => { button.textContent = '中'; });
+  document.querySelectorAll('.language-popover, .life-language-switch .language-popover').forEach((menu) => {
+    const buttons = Array.from(menu.querySelectorAll('[data-lang-option], [data-life-lang]'));
+    if (buttons.length < 2 || menu.querySelector('.shared-language-divider')) return;
+    const divider = document.createElement('span');
+    divider.className = 'shared-language-divider';
+    divider.setAttribute('aria-hidden', 'true');
+    divider.textContent = '|';
+    buttons[0].after(divider);
+  });
 }
 
 function syncLanguageControl() {
@@ -332,7 +404,7 @@ function installStyles() {
   if (document.getElementById('shared-game-language-style')) return;
   const style = document.createElement('style');
   style.id = 'shared-game-language-style';
-  style.textContent = `.game-title-copy,.header>div:not(.game-title-actions),.top-bar>div:not(.game-title-actions),.jump-header>div:not(.game-title-actions){min-width:0}.game-title-copy h1,.game-title-copy p{overflow-wrap:anywhere}.game-title-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:80}.header,.top-bar,.jump-header,.life-topbar{align-items:center}.header,.top-bar,.jump-header{display:flex;justify-content:space-between;gap:14px}.game-title-actions .language-icon-button,.shared-game-language-icon{width:34px!important;min-width:34px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:1;letter-spacing:0}.game-title-actions .language-icon-button svg,.shared-game-language-icon svg{width:18px;height:18px}.shared-game-language{position:relative;display:flex;align-items:center}.shared-game-language-icon{display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.shared-game-language-icon:hover{opacity:.78;transform:scale(1.06)}.shared-game-language-icon:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}.shared-game-language-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:1200;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:#101722;box-shadow:0 10px 30px #0008;white-space:nowrap}.shared-game-language-menu[hidden]{display:none}.shared-game-language-menu button{min-width:0;padding:2px 4px;border:0;background:transparent;color:inherit;cursor:pointer}.shared-game-language-menu button[aria-pressed=true]{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px}@media(max-width:620px){.header,.top-bar,.jump-header{align-items:flex-start}.header{position:relative;display:block;padding-top:50px}.header>.game-title-actions{position:absolute;right:0;top:0}.game-title-actions{gap:4px}.game-title-actions .space-home-link,.game-title-actions .jump-home-link,.game-title-actions .home-link{padding:7px 9px;min-height:32px}}`;
+  style.textContent = `.game-title-copy,.header>div:not(.game-title-actions),.top-bar>div:not(.game-title-actions),.jump-header>div:not(.game-title-actions){min-width:0}.game-title-copy h1,.game-title-copy p{overflow-wrap:anywhere}.game-title-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:80}.header,.top-bar,.jump-header,.life-topbar{align-items:center}.header,.top-bar,.jump-header{display:flex;justify-content:space-between;gap:14px}.game-title-actions .language-icon-button,.shared-game-language-icon{width:30px!important;min-width:30px!important;height:30px!important;padding:0!important;border:0!important;border-radius:999px!important;background:transparent!important;box-shadow:none!important;color:inherit!important;font-size:0!important;line-height:1;letter-spacing:0}.game-title-actions .language-icon-button svg,.shared-game-language-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.shared-game-language{position:relative;display:flex;align-items:center}.shared-game-language-icon{display:grid;place-items:center;cursor:pointer}.game-title-actions .language-icon-button:hover,.game-title-actions .language-icon-button:focus-visible,.shared-game-language-icon:hover,.shared-game-language-icon:focus-visible{color:#ffe7ac;outline:none}.shared-game-language-menu,.game-title-actions .language-popover{position:absolute!important;right:0!important;top:calc(100% + 5px)!important;z-index:1200!important;align-items:center!important;grid-auto-flow:column!important;grid-template-columns:none!important;flex-direction:row!important;gap:6px!important;padding:8px 10px!important;border:0!important;border-radius:8px!important;background:rgba(15,20,27,.94)!important;box-shadow:0 18px 48px rgba(0,0,0,.38)!important;white-space:nowrap}.shared-game-language-menu{display:flex}.shared-game-language-menu[hidden]{display:none!important}.game-title-actions .language-popover{display:none!important}.game-title-actions .compact-language:hover .language-popover,.game-title-actions .compact-language:focus-within .language-popover,.game-title-actions .compact-language[data-language-open=true] .language-popover{display:flex!important}.shared-game-language-menu button,.game-title-actions .language-popover button{min-width:0!important;min-height:0!important;width:auto!important;padding:2px 4px!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important;font-size:13px!important;font-weight:900!important;line-height:1.2!important;cursor:pointer}.game-title-actions .language-popover button + button::before{content:none!important}.shared-game-language-menu span,.game-title-actions .language-popover .shared-language-divider{font-size:13px;font-weight:900;color:inherit}.shared-game-language-menu button[aria-pressed=true],.game-title-actions .language-popover button[aria-pressed=true],.game-title-actions .language-popover button.active{color:#ffe7ac!important;text-decoration:underline;text-underline-offset:4px}@media(max-width:620px){.header,.top-bar,.jump-header{align-items:flex-start}.header{position:relative;display:block;padding-top:50px}.header>.game-title-actions{position:absolute;right:0;top:0}.game-title-actions{gap:4px}.game-title-actions .space-home-link,.game-title-actions .jump-home-link,.game-title-actions .home-link{padding:7px 9px;min-height:32px}}`;
   document.head.append(style);
 }
 

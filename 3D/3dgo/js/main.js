@@ -139,32 +139,32 @@ Object.assign(I18N.zh.mode, {
 
 Object.assign(I18N.zh.app, {
     title: '3D 圍棋',
-    tagline: 'R3 Standard、T3 PBC、3D RBC、T2 torus、S2 sphere 與 Klein bottle 圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein 瓶、Mobius 帶與 RP2 圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 Standard 圍棋',
     t3Option: 'T3 PBC 圍棋',
     r3RandomOption: '3D RBC 圍棋',
-    t2Option: 'T2 torus 圍棋',
-    sphereOption: 'S2 sphere 圍棋',
-    kleinOption: 'Klein bottle 圍棋',
-    mobiusOption: 'Mobius strip 圍棋',
+    t2Option: 'T2 環面圍棋',
+    sphereOption: 'S2 球面圍棋',
+    kleinOption: 'Klein 瓶圍棋',
+    mobiusOption: 'Mobius 帶圍棋',
     rp2Option: 'RP2 圍棋',
     r3Display: ({ size }) => size + '^3 R3 Standard 圍棋',
     t3Display: ({ size }) => size + '^3 T3 PBC 圍棋',
     r3RandomDisplay: ({ size }) => size + '^3 3D RBC 圍棋',
-    t2Display: ({ size }) => size + ' x ' + size + ' T2 torus 圍棋',
-    sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 sphere 圍棋',
-    kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein bottle 圍棋',
-    mobiusDisplay: ({ width, height }) => width + ' x ' + height + ' Mobius strip 圍棋',
+    t2Display: ({ size }) => size + ' x ' + size + ' T2 環面圍棋',
+    sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 球面圍棋',
+    kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein 瓶圍棋',
+    mobiusDisplay: ({ width, height }) => width + ' x ' + height + ' Mobius 帶圍棋',
     rp2Display: ({ width, height }) => width + ' x ' + height + ' RP2 圍棋',
-    r3Info: 'R3 Standard 使用 x、y、z 的普通開放邊界。',
+    r3Info: 'R3 標準在 x、y、z 三個方向使用普通開放邊界。',
     t3Info: 'T3 PBC 會在 x、y、z 三個方向週期包回。',
     r3RandomInfo: '3D RBC 會用固定種子的隨機映射，把每個立方體邊界出口連到另一個邊界點。',
-    t2Info: 'T2 torus 會在環面上的兩個方向週期包回。',
-    sphereInfo: 'S2 sphere 使用經度環；水平方向包回，南北極點可落子並連到最近緯度環。',
-    kleinInfo: 'Klein bottle 左右正常包回，上下包回時 x 會翻轉為 width - 1 - x。',
-    mobiusInfo: 'Mobius strip 使用單一扭轉方向包回，垂直方向維持開放邊界。',
+    t2Info: 'T2 環面會在棋盤兩個方向週期包回。',
+    sphereInfo: 'S2 球面使用經度環；水平方向包回，南北極點可落子並連到最近緯度環。',
+    kleinInfo: 'Klein 瓶左右正常包回，上下包回時 x 會翻轉為 width - 1 - x。',
+    mobiusInfo: 'Mobius 帶使用單一扭轉方向包回，垂直方向維持開放邊界。',
     rp2Info: 'RP2 使用立體對映邊界板；升起的弧線顯示對邊反轉黏合，每次穿越邊界會翻轉另一個座標。'
 });
 
@@ -1845,7 +1845,7 @@ class Go3DApp {
     }
 
     latticeInfo(lattice = this.logic?.lattice) {
-        return ({
+        const enInfo = {
             [SQUARE_LATTICE]: ' Square surface nodes have four wrapped neighbors.',
             [HONEYCOMB_LATTICE]: ' Honeycomb surface nodes have three wrapped neighbors.',
             [TRIANGULAR_LATTICE]: ' Triangular surface nodes have six wrapped neighbors.',
@@ -1853,7 +1853,17 @@ class Go3DApp {
             [BCC_LATTICE]: ' BCC sites use eight body-diagonal nearest neighbors.',
             [FCC_LATTICE]: ' FCC sites use twelve face-diagonal nearest neighbors.',
             [HCP_LATTICE]: ' HCP sites use six in-plane and six adjacent-layer nearest neighbors.'
-        })[lattice] || '';
+        };
+        const zhInfo = {
+            [SQUARE_LATTICE]: ' 方格曲面節點有四個包回鄰居。',
+            [HONEYCOMB_LATTICE]: ' 蜂巢曲面節點有三個包回鄰居。',
+            [TRIANGULAR_LATTICE]: ' 三角曲面節點有六個包回鄰居。',
+            [SIMPLE_CUBIC_LATTICE]: ' 簡單立方格點有六個最近鄰。',
+            [BCC_LATTICE]: ' BCC 格點使用八個體對角最近鄰。',
+            [FCC_LATTICE]: ' FCC 格點使用十二個面對角最近鄰。',
+            [HCP_LATTICE]: ' HCP 格點使用六個同層與六個相鄰層最近鄰。'
+        };
+        return (currentLanguage === 'zh' ? zhInfo : enInfo)[lattice] || '';
     }
 
     tryJoinSharedRoomFromUrl() {
