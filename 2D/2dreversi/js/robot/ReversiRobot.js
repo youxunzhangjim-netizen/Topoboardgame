@@ -420,7 +420,7 @@ function scoreToWinRate(score) { if (score >= 90000) return 0.999; if (score <= 
 function formatScore(score) { if (score >= 90000) return '+W'; if (score <= -90000) return '-L'; return `${score >= 0 ? '+' : ''}${(score / 10).toFixed(1)}`; }
 function coordLabel(coord) { return `(${coord.map((value) => value + 1).join(',')})`; }
 function moveRow(rank, item) { const reasons = item.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join(''); return `<li><div><strong>${rank}. ${escapeHtml(item.move.label || coordLabel(item.move.coord))}</strong></div><div class="robot-muted">score ${escapeHtml(item.scoreText)} · win ${(100 * item.winRate).toFixed(1)}%</div><ul>${reasons}</ul></li>`; }
-function clampDepth(value) { return Math.max(1, Math.min(5, Math.floor(Number(value) || 3))); }
+function clampDepth(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 3))); }
 function now() { return globalThis.performance?.now?.() ?? Date.now(); }
 function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
 function nextFrame() { return new Promise((resolve) => window.requestAnimationFrame(() => resolve())); }
