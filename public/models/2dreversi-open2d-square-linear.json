@@ -1,0 +1,178 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:23:26.171Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.018846853841831768,
+    "board_size": 0.007935524350664788,
+    "boundary:open2d": 0.018846853841831768,
+    "coord_0": -0.19863344390761237,
+    "coord_1": -0.07742076594434179,
+    "cross:2dreversi:open2d": 0.018846853841831768,
+    "cross:2dreversi:open2d:square": 0.018846853841831768,
+    "cross:edge:open2d": 0.1200549987418965,
+    "dimension": 0.01256457551017236,
+    "game_is:2dreversi": 0.018846853841831768,
+    "game:2dreversi": 0.018846853841831768,
+    "lattice:square": 0.018846853841831768,
+    "legal_count_log": 0.04273363750504111,
+    "move_bias": 0.018846853841831768,
+    "move_center_closeness": 0.09608188897813483,
+    "move_edge": 0.1200549987418965,
+    "move_flips_count": -0.00527952155880982,
+    "move_near_edge": -0.0822101248237153,
+    "move_type:place": 0.018846853841831768,
+    "player:black": 0.9384535799367435,
+    "player:white": -0.9196003580993005,
+    "reversi_disc_balance": -0.18418935503783226,
+    "reversi_endgame_phase": -0.027168984587054405,
+    "reversi_occupancy": -0.027168984587054405,
+    "topology:open2d": 0.018846853841831768
+  },
+  "training": {
+    "examples": 120,
+    "epochs": 4,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.680264,
+        "examples": 120,
+        "accuracy": 0.5833,
+        "logLoss": 0.63298,
+        "brier": 0.221419
+      },
+      {
+        "epoch": 2,
+        "loss": 0.614777,
+        "examples": 120,
+        "accuracy": 0.7583,
+        "logLoss": 0.611422,
+        "brier": 0.210628
+      },
+      {
+        "epoch": 3,
+        "loss": 0.611194,
+        "examples": 120,
+        "accuracy": 0.75,
+        "logLoss": 0.58841,
+        "brier": 0.199258
+      },
+      {
+        "epoch": 4,
+        "loss": 0.59735,
+        "examples": 120,
+        "accuracy": 0.75,
+        "logLoss": 0.561707,
+        "brier": 0.187474
+      }
+    ],
+    "featureCount": 25,
+    "input": "local-data/selfplay/2dreversi-open2d-square-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:black",
+        "weight": 0.938454
+      },
+      {
+        "feature": "player:white",
+        "weight": -0.9196
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.198633
+      },
+      {
+        "feature": "reversi_disc_balance",
+        "weight": -0.184189
+      },
+      {
+        "feature": "cross:edge:open2d",
+        "weight": 0.120055
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.120055
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.096082
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.08221
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.077421
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.042734
+      },
+      {
+        "feature": "reversi_endgame_phase",
+        "weight": -0.027169
+      },
+      {
+        "feature": "reversi_occupancy",
+        "weight": -0.027169
+      },
+      {
+        "feature": "bias",
+        "weight": 0.018847
+      },
+      {
+        "feature": "boundary:open2d",
+        "weight": 0.018847
+      },
+      {
+        "feature": "cross:2dreversi:open2d",
+        "weight": 0.018847
+      },
+      {
+        "feature": "cross:2dreversi:open2d:square",
+        "weight": 0.018847
+      },
+      {
+        "feature": "game_is:2dreversi",
+        "weight": 0.018847
+      },
+      {
+        "feature": "game:2dreversi",
+        "weight": 0.018847
+      },
+      {
+        "feature": "lattice:square",
+        "weight": 0.018847
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.018847
+      },
+      {
+        "feature": "move_type:place",
+        "weight": 0.018847
+      },
+      {
+        "feature": "topology:open2d",
+        "weight": 0.018847
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.012565
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.007936
+      },
+      {
+        "feature": "move_flips_count",
+        "weight": -0.00528
+      }
+    ]
+  }
+}

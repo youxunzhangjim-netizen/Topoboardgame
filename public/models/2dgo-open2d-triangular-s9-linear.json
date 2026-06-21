@@ -1,0 +1,178 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:19:17.018Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.046057648313370135,
+    "board_size": 0.021816771083670413,
+    "boundary:open2d": 0.046057648313370135,
+    "coord_0": -0.32614834235589857,
+    "coord_1": -0.0018384199139097482,
+    "cross:2dgo:open2d": 0.046057648313370135,
+    "cross:2dgo:open2d:triangular": 0.046057648313370135,
+    "cross:capture:open2d": -0.05723329823304432,
+    "cross:edge:open2d": -0.003613737033761514,
+    "dimension": 0.030705114228129504,
+    "game_is:2dgo": 0.046057648313370135,
+    "game:2dgo": 0.046057648313370135,
+    "go_capture_balance": -0.02383252075510236,
+    "go_empty_fraction": 0.046057648313370135,
+    "lattice:triangular": 0.046057648313370135,
+    "legal_count_log": 0.028231609593636176,
+    "move_bias": 0.046057648313370135,
+    "move_capture_count": -0.0057233298233044325,
+    "move_center_closeness": -0.013088918610455082,
+    "move_edge": -0.003613737033761514,
+    "move_near_edge": 0.1695599589147455,
+    "move_type:play": 0.046057648313370135,
+    "player:black": -1.6559723995888107,
+    "player:white": 1.7019472996941312,
+    "topology:open2d": 0.046057648313370135
+  },
+  "training": {
+    "examples": 60,
+    "epochs": 4,
+    "lr": 0.05,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.584692,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.421199,
+        "brier": 0.119058
+      },
+      {
+        "epoch": 2,
+        "loss": 0.365837,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.28315,
+        "brier": 0.06123
+      },
+      {
+        "epoch": 3,
+        "loss": 0.254319,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.208981,
+        "brier": 0.035877
+      },
+      {
+        "epoch": 4,
+        "loss": 0.188652,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.180962,
+        "brier": 0.031037
+      }
+    ],
+    "featureCount": 25,
+    "input": "local-data/selfplay/2dgo-open2d-triangular-s9-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": 1.701947
+      },
+      {
+        "feature": "player:black",
+        "weight": -1.655972
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.326148
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.16956
+      },
+      {
+        "feature": "cross:capture:open2d",
+        "weight": -0.057233
+      },
+      {
+        "feature": "bias",
+        "weight": 0.046058
+      },
+      {
+        "feature": "boundary:open2d",
+        "weight": 0.046058
+      },
+      {
+        "feature": "cross:2dgo:open2d",
+        "weight": 0.046058
+      },
+      {
+        "feature": "cross:2dgo:open2d:triangular",
+        "weight": 0.046058
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": 0.046058
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": 0.046058
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.046058
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": 0.046058
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.046058
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.046058
+      },
+      {
+        "feature": "topology:open2d",
+        "weight": 0.046058
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.030705
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.028232
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": -0.023833
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.021817
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.013089
+      },
+      {
+        "feature": "move_capture_count",
+        "weight": -0.005723
+      },
+      {
+        "feature": "cross:edge:open2d",
+        "weight": -0.003614
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.003614
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.001838
+      }
+    ]
+  }
+}

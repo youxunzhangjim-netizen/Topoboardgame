@@ -234,6 +234,7 @@ function sanitizeProfileInfo(value = {}, currentUser = null) {
     const joinedDate = sanitizeJoinedDate(value.joinedDate) || defaultJoinedDate(currentUser);
     const showEmail = value.showEmail === true || value.showEmail === 'true';
     const publicEmail = showEmail ? (sanitizeEmail(value.publicEmail) || sanitizeEmail(currentUser?.email)) : '';
+    const allowRobotLearning = value.allowRobotLearning !== false && value.allowRobotLearning !== 'false';
     return {
         joinedDate,
         bio: sanitizeProfileText(value.bio, 140),
@@ -241,7 +242,8 @@ function sanitizeProfileInfo(value = {}, currentUser = null) {
         favoriteGame: sanitizeProfileText(value.favoriteGame, 40),
         defaultLanguage: sanitizeLanguage(value.defaultLanguage || safeLocalStorageGet('topoboardgame.lang') || 'en'),
         showEmail,
-        publicEmail
+        publicEmail,
+        allowRobotLearning
     };
 }
 
@@ -410,7 +412,8 @@ function publicUserProfile(currentUser) {
         favoriteGame: profileInfo.favoriteGame,
         defaultLanguage: profileInfo.defaultLanguage || 'en',
         showEmail: Boolean(profileInfo.showEmail),
-        publicEmail: profileInfo.showEmail ? profileInfo.publicEmail : ''
+        publicEmail: profileInfo.showEmail ? profileInfo.publicEmail : '',
+        allowRobotLearning: profileInfo.allowRobotLearning !== false
     };
 }
 
@@ -437,7 +440,7 @@ async function upsertUserProfile(currentUser, { source = 'session' } = {}) {
         }
         const localInfo = localProfileInfo(currentUser);
         const mergedInfo = {};
-        for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail']) {
+        for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail', 'allowRobotLearning']) {
             if (!localInfo[key] && existingData[key]) mergedInfo[key] = existingData[key];
         }
         if (Object.keys(mergedInfo).length) setLocalProfileInfo(currentUser, mergedInfo);
@@ -502,7 +505,7 @@ export function getAccountState() {
     const isVisitor = Boolean(currentUser?.isAnonymous);
     const providerIds = providerIdsForUser(currentUser);
     const profileWrite = profileWriteStateForUser(currentUser);
-    const profileInfo = currentUser ? profileInfoForUser(currentUser) : { joinedDate: '', bio: '', location: '', favoriteGame: '', defaultLanguage: 'en', showEmail: false, publicEmail: '' };
+    const profileInfo = currentUser ? profileInfoForUser(currentUser) : { joinedDate: '', bio: '', location: '', favoriteGame: '', defaultLanguage: 'en', showEmail: false, publicEmail: '', allowRobotLearning: true };
     return {
         configured: hasFirebaseConfig(),
         ready: Boolean(auth),
@@ -525,6 +528,7 @@ export function getAccountState() {
         defaultLanguage: profileInfo.defaultLanguage || 'en',
         showEmail: Boolean(profileInfo.showEmail),
         publicEmail: profileInfo.publicEmail || '',
+        allowRobotLearning: profileInfo.allowRobotLearning !== false,
         accountEmail: signedIn ? (currentUser.email || '') : '',
         photoURL: signedIn ? (currentUser.photoURL || null) : null,
         emailVerified: signedIn ? Boolean(currentUser.emailVerified) : false,
@@ -672,7 +676,7 @@ export async function updateUserProfileInfo(info = {}) {
     const hasDisplayName = Object.prototype.hasOwnProperty.call(info, 'displayName');
     const displayName = hasDisplayName ? setLocalDisplayName(currentUser, info.displayName) : displayNameForUser(currentUser);
     const profileUpdate = {};
-    for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail']) {
+    for (const key of ['joinedDate', 'bio', 'location', 'favoriteGame', 'defaultLanguage', 'showEmail', 'publicEmail', 'allowRobotLearning']) {
         if (Object.prototype.hasOwnProperty.call(info, key)) profileUpdate[key] = info[key];
     }
     setLocalProfileInfo(currentUser, profileUpdate);
@@ -748,7 +752,8 @@ function playerProfileForRoom(currentUser = user) {
         favoriteGame: profile.favoriteGame || '',
         defaultLanguage: profile.defaultLanguage || 'en',
         showEmail: Boolean(profile.showEmail),
-        publicEmail: profile.showEmail ? (profile.publicEmail || '') : ''
+        publicEmail: profile.showEmail ? (profile.publicEmail || '') : '',
+        allowRobotLearning: profile.allowRobotLearning !== false
     };
 }
 

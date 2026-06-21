@@ -31,6 +31,7 @@ service cloud.firestore {
           && validOptionalProfileString("location", 40)
           && validOptionalProfileString("favoriteGame", 40)
           && validOptionalProfileBool("showEmail")
+          && validOptionalProfileBool("allowRobotLearning")
           && validOptionalProfileString("publicEmail", 120)
           && request.resource.data.emailVerified is bool
           && (
@@ -79,7 +80,7 @@ service cloud.firestore {
       function validRoomPlayerProfile(profile, uid) {
         return profile is map
           && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
-          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "showEmail", "publicEmail"])
+          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "showEmail", "publicEmail", "allowRobotLearning"])
           && profile.uid == uid
           && profile.displayName is string
           && profile.displayName.size() > 0
@@ -89,6 +90,7 @@ service cloud.firestore {
           && validOptionalRoomProfileString(profile, "location", 40)
           && validOptionalRoomProfileString(profile, "favoriteGame", 40)
           && validOptionalRoomProfileBool(profile, "showEmail")
+          && validOptionalRoomProfileBool(profile, "allowRobotLearning")
           && validOptionalRoomProfileString(profile, "publicEmail", 120)
           && (
             profile.accountKind == "google"

@@ -33,7 +33,7 @@ const TEXT = {
         signedInStatusSynced: 'Signed-in account is active. Online play is ready.',
         profileError: 'Sign-in succeeded, but online play setup failed: {message}',
         visitorProfileError: 'Visitor mode is active, but online play setup failed: {message}',
-        note: 'Google login connects online rooms and saved statistics to your account. Visitor mode is temporary.',
+        note: 'Anonymous robot games may be used to improve local robots. Sign in to opt out of learning from your games.',
         working: 'Connecting...',
         error: 'Login failed: {message}',
         visibleName: 'Visible name',
@@ -62,6 +62,7 @@ const TEXT = {
         variant: 'Variant',
         topology: 'Topology',
         showEmail: 'Show my email',
+        allowRobotLearning: 'Allow robot learning from my games',
         namePlaceholder: 'Name shown to opponents',
         bioPlaceholder: 'Short public profile',
         locationPlaceholder: 'City or region',
@@ -90,7 +91,7 @@ const TEXT = {
         signedInStatusSynced: '帳號登入已啟用。線上遊玩已準備完成。',
         profileError: '登入成功，但線上遊玩設定失敗：{message}',
         visitorProfileError: '訪客模式已啟用，但線上遊玩設定失敗：{message}',
-        note: 'Google 登入會把線上房間與儲存統計連到你的帳號。訪客模式是臨時身分。',
+        note: '匿名與機器人對局可能用於改進本機機器人。登入後可選擇不讓自己的對局被學習。',
         working: '連線中...',
         error: '登入失敗：{message}',
         visibleName: '顯示名稱',
@@ -119,6 +120,7 @@ const TEXT = {
         variant: '變體',
         topology: '拓撲',
         showEmail: '顯示我的 email',
+        allowRobotLearning: '允許用我的對局訓練機器人',
         namePlaceholder: '對手會看到的名稱',
         bioPlaceholder: '簡短的公開簡介',
         locationPlaceholder: '城市或地區',
@@ -230,7 +232,8 @@ function summarizeState(state) {
         defaultLanguage: state?.defaultLanguage || 'en',
         showEmail: Boolean(state?.showEmail),
         publicEmail: state?.publicEmail || '',
-        accountEmail: state?.accountEmail || ''
+        accountEmail: state?.accountEmail || '',
+        allowRobotLearning: state?.allowRobotLearning !== false
     };
 }
 
@@ -348,6 +351,8 @@ function installLauncherAuth() {
     const showEmailLabel = document.getElementById('launcherProfileShowEmailLabel');
     const showEmailInput = document.getElementById('launcherProfileShowEmailInput');
     const publicEmailInput = document.getElementById('launcherProfilePublicEmailInput');
+    const robotLearningLabel = document.getElementById('launcherProfileRobotLearningLabel');
+    const robotLearningInput = document.getElementById('launcherProfileRobotLearningInput');
 
     const missing = {
         root: !root,
@@ -387,7 +392,9 @@ function installLauncherAuth() {
         friendProfile: !friendProfile,
         showEmailLabel: !showEmailLabel,
         showEmailInput: !showEmailInput,
-        publicEmailInput: !publicEmailInput
+        publicEmailInput: !publicEmailInput,
+        robotLearningLabel: !robotLearningLabel,
+        robotLearningInput: !robotLearningInput
     };
     if (Object.values(missing).some(Boolean)) {
         warnAuth('account UI install stopped because one or more elements are missing', missing);
@@ -560,6 +567,7 @@ function installLauncherAuth() {
         favoriteLabel.textContent = t('favoriteGame');
         languageLabel.textContent = t('defaultLanguage');
         showEmailLabel.textContent = t('showEmail');
+        robotLearningLabel.textContent = t('allowRobotLearning');
         displayNameInput.placeholder = t('namePlaceholder');
         bioInput.placeholder = t('bioPlaceholder');
         locationInput.placeholder = t('locationPlaceholder');
@@ -567,7 +575,7 @@ function installLauncherAuth() {
         publicEmailInput.placeholder = t('emailPlaceholder');
         displayNameSave.textContent = nameBusy ? t('savingName') : t('saveName');
         displayNameSave.disabled = busy || nameBusy || !canEdit;
-        [displayNameInput, bioInput, locationInput, favoriteInput, languageSelect, showEmailInput].forEach((input) => {
+        [displayNameInput, bioInput, locationInput, favoriteInput, languageSelect, showEmailInput, robotLearningInput].forEach((input) => {
             input.disabled = busy || nameBusy || !canEdit;
         });
         publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
@@ -579,6 +587,7 @@ function installLauncherAuth() {
         if (canEdit && document.activeElement !== favoriteInput) favoriteInput.value = latestState?.favoriteGame || '';
         if (canEdit && document.activeElement !== languageSelect) languageSelect.value = normalizeProfileLanguage(latestState?.defaultLanguage || 'en');
         if (canEdit && document.activeElement !== showEmailInput) showEmailInput.checked = Boolean(latestState?.showEmail);
+        if (canEdit && document.activeElement !== robotLearningInput) robotLearningInput.checked = latestState?.allowRobotLearning !== false;
         if (canEdit && document.activeElement !== publicEmailInput) publicEmailInput.value = latestState?.publicEmail || latestState?.accountEmail || '';
         publicEmailInput.disabled = busy || nameBusy || !canEdit || !showEmailInput.checked;
         joinedDateValue.textContent = latestState?.joinedDate || '-';
@@ -587,6 +596,7 @@ function installLauncherAuth() {
 
     const render = (state = latestState) => {
         latestState = state || latestState || { signedIn: false, isVisitor: false };
+        globalThis.TopoboardgameAccountState = summarizeState(latestState);
         const signedIn = Boolean(latestState.signedIn);
         const visitor = Boolean(latestState.isVisitor);
         name.textContent = signedIn
@@ -723,7 +733,8 @@ function installLauncherAuth() {
             favoriteGame: cleanProfileText(favoriteInput.value, 40),
             defaultLanguage: normalizeProfileLanguage(languageSelect.value),
             showEmail: Boolean(showEmailInput.checked),
-            publicEmail: showEmailInput.checked ? cleanProfileText(publicEmailInput.value || latestState?.accountEmail || '', 120) : ''
+            publicEmail: showEmailInput.checked ? cleanProfileText(publicEmailInput.value || latestState?.accountEmail || '', 120) : '',
+            allowRobotLearning: Boolean(robotLearningInput.checked)
         };
         latestState = { ...latestState, ...requestedProfile };
         render();

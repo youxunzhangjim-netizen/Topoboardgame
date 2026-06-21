@@ -1,0 +1,183 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:20:24.486Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.040081347584041686,
+    "board_size": 0.018985893048999215,
+    "boundary:pbc": 0.040081347584041686,
+    "coord_0": 0.004296459934376992,
+    "coord_1": -0.03918817430367855,
+    "cross:2dgo:pbc": 0.040081347584041686,
+    "cross:2dgo:pbc:square": 0.040081347584041686,
+    "cross:capture:pbc": -0.00026866829059220537,
+    "cross:edge:pbc": 0.0275580316868515,
+    "dimension": 0.026720911749810325,
+    "game_is:2dgo": 0.040081347584041686,
+    "game:2dgo": 0.040081347584041686,
+    "go_capture_balance": -0.04511538353037927,
+    "go_empty_fraction": 0.040081347584041686,
+    "lattice:square": 0.040081347584041686,
+    "legal_count_log": 0.024131849811024127,
+    "move_bias": 0.040081347584041686,
+    "move_capture_count": -0.005055479464472997,
+    "move_center_closeness": 0.05474652373663381,
+    "move_corner_or_anchor": -0.10931604459928294,
+    "move_edge": 0.0275580316868515,
+    "move_near_edge": -0.00195585916354964,
+    "move_type:play": 0.040081347584041686,
+    "player:black": -1.679822118713715,
+    "player:white": 1.7198113801821762,
+    "topology:pbc": 0.040081347584041686
+  },
+  "training": {
+    "examples": 60,
+    "epochs": 4,
+    "lr": 0.05,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.595281,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.423187,
+        "brier": 0.11959
+      },
+      {
+        "epoch": 2,
+        "loss": 0.373125,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.288501,
+        "brier": 0.063533
+      },
+      {
+        "epoch": 3,
+        "loss": 0.259304,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.212529,
+        "brier": 0.036922
+      },
+      {
+        "epoch": 4,
+        "loss": 0.193482,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.187744,
+        "brier": 0.033741
+      }
+    ],
+    "featureCount": 26,
+    "input": "local-data/selfplay/2dgo-pbc-square-s9-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": 1.719811
+      },
+      {
+        "feature": "player:black",
+        "weight": -1.679822
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.109316
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.054747
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": -0.045115
+      },
+      {
+        "feature": "bias",
+        "weight": 0.040081
+      },
+      {
+        "feature": "boundary:pbc",
+        "weight": 0.040081
+      },
+      {
+        "feature": "cross:2dgo:pbc",
+        "weight": 0.040081
+      },
+      {
+        "feature": "cross:2dgo:pbc:square",
+        "weight": 0.040081
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": 0.040081
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": 0.040081
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.040081
+      },
+      {
+        "feature": "lattice:square",
+        "weight": 0.040081
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.040081
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.040081
+      },
+      {
+        "feature": "topology:pbc",
+        "weight": 0.040081
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.039188
+      },
+      {
+        "feature": "cross:edge:pbc",
+        "weight": 0.027558
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.027558
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.026721
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.024132
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.018986
+      },
+      {
+        "feature": "move_capture_count",
+        "weight": -0.005055
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.004296
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.001956
+      },
+      {
+        "feature": "cross:capture:pbc",
+        "weight": -0.000269
+      }
+    ]
+  }
+}

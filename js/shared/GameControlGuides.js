@@ -1,4 +1,5 @@
 import { installGameUILocalizer } from './GameUILocalizer.js';
+import './RobotLearningRecorder.js';
 
 const GUIDE_STYLE_ID = 'topoboardgame-control-guide-style';
 

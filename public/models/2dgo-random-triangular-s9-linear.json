@@ -1,0 +1,168 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:22:18.328Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.027622372543192802,
+    "board_size": 0.01308427591574977,
+    "boundary:random": 0.027622372543192802,
+    "coord_0": 0.16922765046115065,
+    "coord_1": -0.08623112758599252,
+    "cross:2dgo:random": 0.027622372543192802,
+    "cross:2dgo:random:triangular": 0.027622372543192802,
+    "cross:edge:random": -0.02652361753834566,
+    "dimension": 0.018414924236252756,
+    "game_is:2dgo": 0.027622372543192802,
+    "game:2dgo": 0.027622372543192802,
+    "go_empty_fraction": 0.027622372543192802,
+    "lattice:triangular": 0.027622372543192802,
+    "legal_count_log": 0.015101072251618337,
+    "move_bias": 0.027622372543192802,
+    "move_center_closeness": -0.11074538764240281,
+    "move_corner_or_anchor": 0.09477733505539403,
+    "move_edge": -0.02652361753834566,
+    "move_near_edge": 0.26979638140903783,
+    "move_type:play": 0.027622372543192802,
+    "player:black": -1.6690617168522708,
+    "player:white": 1.696566898991941,
+    "topology:random": 0.027622372543192802
+  },
+  "training": {
+    "examples": 60,
+    "epochs": 4,
+    "lr": 0.05,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.589054,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.426745,
+        "brier": 0.122418
+      },
+      {
+        "epoch": 2,
+        "loss": 0.369206,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.283758,
+        "brier": 0.061274
+      },
+      {
+        "epoch": 3,
+        "loss": 0.256646,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.209744,
+        "brier": 0.036129
+      },
+      {
+        "epoch": 4,
+        "loss": 0.188923,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.18679,
+        "brier": 0.033881
+      }
+    ],
+    "featureCount": 23,
+    "input": "local-data/selfplay/2dgo-random-triangular-s9-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": 1.696567
+      },
+      {
+        "feature": "player:black",
+        "weight": -1.669062
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.269796
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.169228
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.110745
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.094777
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.086231
+      },
+      {
+        "feature": "bias",
+        "weight": 0.027622
+      },
+      {
+        "feature": "boundary:random",
+        "weight": 0.027622
+      },
+      {
+        "feature": "cross:2dgo:random",
+        "weight": 0.027622
+      },
+      {
+        "feature": "cross:2dgo:random:triangular",
+        "weight": 0.027622
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": 0.027622
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": 0.027622
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.027622
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": 0.027622
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.027622
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.027622
+      },
+      {
+        "feature": "topology:random",
+        "weight": 0.027622
+      },
+      {
+        "feature": "cross:edge:random",
+        "weight": -0.026524
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.026524
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.018415
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.015101
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.013084
+      }
+    ]
+  }
+}

@@ -46,15 +46,17 @@ body {
 
 .life-topbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   padding: 22px 0 0;
+  align-items: center;
 }
 
 .life-player-title {
   display: grid;
   gap: 3px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .life-player-title h1 {
@@ -435,7 +437,8 @@ h1 {
 
 @media (max-width: 620px) {
   .life-topbar {
-    align-items: flex-start;
+    align-items: center;
+    gap: 6px;
   }
 
   .life-topbar .game-title-actions {
@@ -445,6 +448,21 @@ h1 {
   .life-topbar .game-title-actions .ghost-button {
     min-height: 34px;
     padding: 0 9px;
+  }
+
+  .life-player-title h1 {
+    font-size: clamp(20px, 7vw, 30px);
+  }
+
+  .life-player-title .eyebrow {
+    font-size: 10px;
+  }
+
+  .life-topbar > .ghost-button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+    white-space: nowrap;
   }
 }
 
@@ -869,10 +887,10 @@ body[data-life-usage] #lifeCanvas:active {
 
 /* Compact language icon menu */
 .life-language-switch.compact-language { position: relative; display: inline-flex; align-items: center; gap: 0; overflow: visible; }
-.life-language-switch.compact-language .language-icon-button { width: 42px; min-width: 42px; height: 42px; padding: 0; border: 0; background: transparent; display: inline-grid; place-items: center; box-shadow: none; }
-.life-language-switch.compact-language .language-popover { display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 70; min-width: 140px; padding: 8px; border: 1px solid rgba(125, 211, 252, 0.34); border-radius: 14px; background: rgba(6, 11, 18, 0.98); box-shadow: 0 18px 38px rgba(0,0,0,.38); }
-.life-language-switch.compact-language:hover .language-popover, .life-language-switch.compact-language:focus-within .language-popover { display: grid; gap: 6px; }
-.life-language-switch.compact-language .language-popover .ghost-button { width: 100%; min-width: 0; justify-content: center; }
+.life-language-switch.compact-language .language-icon-button { width: 34px; min-width: 34px; height: 34px; padding: 0; border: 0; background: transparent; display: inline-grid; place-items: center; box-shadow: none; }
+.life-language-switch.compact-language .language-popover { display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 70; min-width: 0; padding: 8px 10px; border: 1px solid rgba(125, 211, 252, 0.34); border-radius: 10px; background: rgba(6, 11, 18, 0.98); box-shadow: 0 18px 38px rgba(0,0,0,.38); white-space: nowrap; }
+.life-language-switch.compact-language:hover .language-popover, .life-language-switch.compact-language:focus-within .language-popover { display: flex; align-items: center; gap: 6px; }
+.life-language-switch.compact-language .language-popover .ghost-button { width: auto; min-width: 0; justify-content: center; padding: 0 4px; border: 0; background: transparent; }
 
 /* Tighter Life play layout and numeric modifier readouts */
 .life-player-shell { padding-top: 8px; }

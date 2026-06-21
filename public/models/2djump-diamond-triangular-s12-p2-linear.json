@@ -1,0 +1,211 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-20T15:47:56.900Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.014943081485047829,
+    "board_size": -0.009437736461245043,
+    "boundary:diamond": -0.014943081485047829,
+    "coord_0": 0.2145164376757298,
+    "coord_1": -0.495208772943747,
+    "cross:2djump:diamond": -0.014943081485047829,
+    "cross:2djump:diamond:triangular": -0.014943081485047829,
+    "cross:edge:diamond": 0.011730024423884645,
+    "dimension": -0.009962059304392288,
+    "game:2djump": -0.014943081485047829,
+    "lattice:triangular": -0.014943081485047829,
+    "legal_count_log": -0.05549592711346337,
+    "move_bias": -0.014943081485047829,
+    "move_center_closeness": -0.443699699880514,
+    "move_corner_or_anchor": 0.12575731768322174,
+    "move_edge": 0.011730024423884645,
+    "move_near_edge": -0.011366338171760122,
+    "move_type:jump": 0.11416340765576045,
+    "move_type:step": -0.3645921076983453,
+    "player:A": 5.688186040168154,
+    "player:B": -5.713966955392664,
+    "topology:diamond": -0.014943081485047829
+  },
+  "training": {
+    "examples": 45613,
+    "epochs": 10,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.009254,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.00302,
+        "brier": 0.000011
+      },
+      {
+        "epoch": 2,
+        "loss": 0.002914,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002861,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 3,
+        "loss": 0.00286,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002856,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 4,
+        "loss": 0.002856,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002865,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 5,
+        "loss": 0.002856,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002854,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 6,
+        "loss": 0.002857,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002852,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 7,
+        "loss": 0.002856,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002856,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 8,
+        "loss": 0.002855,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002854,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 9,
+        "loss": 0.002856,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002856,
+        "brier": 0.000009
+      },
+      {
+        "epoch": 10,
+        "loss": 0.002855,
+        "examples": 45613,
+        "accuracy": 1,
+        "logLoss": 0.002858,
+        "brier": 0.000009
+      }
+    ],
+    "featureCount": 22,
+    "input": "local-data/selfplay/2djump-diamond-triangular-s12-p2-normal.jsonl",
+    "gameFilter": "2djump",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:B",
+        "weight": -5.713967
+      },
+      {
+        "feature": "player:A",
+        "weight": 5.688186
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.495209
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.4437
+      },
+      {
+        "feature": "move_type:step",
+        "weight": -0.364592
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.214516
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.125757
+      },
+      {
+        "feature": "move_type:jump",
+        "weight": 0.114163
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.055496
+      },
+      {
+        "feature": "bias",
+        "weight": -0.014943
+      },
+      {
+        "feature": "boundary:diamond",
+        "weight": -0.014943
+      },
+      {
+        "feature": "cross:2djump:diamond",
+        "weight": -0.014943
+      },
+      {
+        "feature": "cross:2djump:diamond:triangular",
+        "weight": -0.014943
+      },
+      {
+        "feature": "game:2djump",
+        "weight": -0.014943
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": -0.014943
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.014943
+      },
+      {
+        "feature": "topology:diamond",
+        "weight": -0.014943
+      },
+      {
+        "feature": "cross:edge:diamond",
+        "weight": 0.01173
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.01173
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.011366
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.009962
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.009438
+      }
+    ]
+  }
+}

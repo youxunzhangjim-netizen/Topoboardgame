@@ -1,0 +1,178 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:25:36.675Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.013783018273912664,
+    "board_size": 0.005803381193285785,
+    "boundary:cylinder": 0.013783018273912664,
+    "coord_0": -0.0017404193855309134,
+    "coord_1": 0.06233336641373906,
+    "cross:2dreversi:cylinder": 0.013783018273912664,
+    "cross:2dreversi:cylinder:square": 0.013783018273912664,
+    "cross:edge:cylinder": 0.01865639472760395,
+    "dimension": 0.009188683443614539,
+    "game_is:2dreversi": 0.013783018273912664,
+    "game:2dreversi": 0.013783018273912664,
+    "lattice:square": 0.013783018273912664,
+    "legal_count_log": 0.002608792884970389,
+    "move_bias": 0.013783018273912664,
+    "move_center_closeness": 0.07608942417964781,
+    "move_edge": 0.01865639472760395,
+    "move_flips_count": 0.003986479901980737,
+    "move_near_edge": -0.04307205929013438,
+    "move_type:place": 0.013783018273912664,
+    "player:black": 2.1574000049194693,
+    "player:white": -2.143628152527855,
+    "reversi_disc_balance": 0.10008450658080138,
+    "reversi_endgame_phase": -0.03597564261598334,
+    "reversi_occupancy": -0.03597564261598334,
+    "topology:cylinder": 0.013783018273912664
+  },
+  "training": {
+    "examples": 120,
+    "epochs": 4,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.506515,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.334199,
+        "brier": 0.080847
+      },
+      {
+        "epoch": 2,
+        "loss": 0.267161,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.221524,
+        "brier": 0.043371
+      },
+      {
+        "epoch": 3,
+        "loss": 0.17693,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.147593,
+        "brier": 0.019655
+      },
+      {
+        "epoch": 4,
+        "loss": 0.128285,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.111268,
+        "brier": 0.011378
+      }
+    ],
+    "featureCount": 25,
+    "input": "local-data/selfplay/2dreversi-cylinder-square-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:black",
+        "weight": 2.1574
+      },
+      {
+        "feature": "player:white",
+        "weight": -2.143628
+      },
+      {
+        "feature": "reversi_disc_balance",
+        "weight": 0.100085
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.076089
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.062333
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.043072
+      },
+      {
+        "feature": "reversi_endgame_phase",
+        "weight": -0.035976
+      },
+      {
+        "feature": "reversi_occupancy",
+        "weight": -0.035976
+      },
+      {
+        "feature": "cross:edge:cylinder",
+        "weight": 0.018656
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.018656
+      },
+      {
+        "feature": "bias",
+        "weight": 0.013783
+      },
+      {
+        "feature": "boundary:cylinder",
+        "weight": 0.013783
+      },
+      {
+        "feature": "cross:2dreversi:cylinder",
+        "weight": 0.013783
+      },
+      {
+        "feature": "cross:2dreversi:cylinder:square",
+        "weight": 0.013783
+      },
+      {
+        "feature": "game_is:2dreversi",
+        "weight": 0.013783
+      },
+      {
+        "feature": "game:2dreversi",
+        "weight": 0.013783
+      },
+      {
+        "feature": "lattice:square",
+        "weight": 0.013783
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.013783
+      },
+      {
+        "feature": "move_type:place",
+        "weight": 0.013783
+      },
+      {
+        "feature": "topology:cylinder",
+        "weight": 0.013783
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.009189
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.005803
+      },
+      {
+        "feature": "move_flips_count",
+        "weight": 0.003986
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.002609
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.00174
+      }
+    ]
+  }
+}

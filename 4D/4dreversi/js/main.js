@@ -1,6 +1,7 @@
 import { ReversiGame, normalizeReversiSize, otherReversiColor } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { installProjectedBoardTouchControls } from '../../../js/shared/ProjectedBoardTouchControls.js';
+import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 
 class Reversi4DApp {
     constructor() {
@@ -560,3 +561,4 @@ class Reversi4DApp {
 window.reversi4dApp = new Reversi4DApp();
 window.Reversi4DGame = ReversiGame;
 window.otherReversiColor = otherReversiColor;
+installGameUILocalizer();

@@ -1,5 +1,6 @@
 import { COLORS, FLAT_4D_GO_TOPOLOGY, Flat4DGoGame, otherColor, valueToColor } from './Flat4DGo.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 
 const KOMI = 7.5;
 
@@ -503,3 +504,4 @@ class Go4DApp {
 
 window.go4dApp = new Go4DApp();
 window.FLAT_4D_GO_TOPOLOGY = FLAT_4D_GO_TOPOLOGY;
+installGameUILocalizer();

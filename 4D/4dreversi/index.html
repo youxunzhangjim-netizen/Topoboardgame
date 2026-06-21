@@ -56,7 +56,7 @@
             border-radius: 50%;
             background: rgba(95, 127, 160, .42);
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 2px rgba(86, 132, 184, .28);
+            box-shadow: none;
             overflow: visible;
         }
         .reversi4d-projection .vertex.projected-vertex::before,
@@ -66,19 +66,19 @@
             height: 8px !important;
             max-width: 8px;
             max-height: 8px;
-            background: rgba(94, 255, 166, .82);
-            box-shadow: 0 0 7px rgba(94, 255, 166, .58);
+            background: rgba(44, 150, 96, .86);
+            box-shadow: none;
         }
         .reversi4d-projection .vertex.projected-vertex.group,
         .reversi4d-projection .vertex.projected-vertex.hover {
-            background: rgba(72, 199, 244, .78);
-            box-shadow: 0 0 8px rgba(72, 199, 244, .58);
+            background: rgba(70, 150, 190, .86);
+            box-shadow: none;
         }
         .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
         .reversi4d-projection .stone {
             width: 16px;
             height: 16px;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, .34);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .28);
         }
         .reversi4d-jump-form .jump-side .panel,
         .reversi4d-jump-form .jump-side .status-card,
@@ -102,12 +102,11 @@
                     <h1>4D Reversi</h1>
                     <p>Standard 4D graph Reversi on empty Jump-style 4D boards, with only the alternating center 2 x 2 x 2 x 2 opening occupied.</p>
                 </div>
-                <div class="jump-tags"><span>Reversi</span><span>4D</span><span>rays</span><span>topology</span></div>
             </header>
 
             <div class="game-info-bar">
                 <div class="turn-pill" id="playerTurn">Black to play</div>
-                <div class="boundary-display" id="topologyMode">flat_4d_reversi</div>
+                <div class="boundary-display" id="topologyMode" hidden>flat_4d_reversi</div>
             </div>
 
             <div class="captured-pieces-container">

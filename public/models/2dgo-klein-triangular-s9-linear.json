@@ -1,0 +1,168 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:21:34.059Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.02243336894423819,
+    "board_size": 0.01062632793498253,
+    "boundary:klein": 0.02243336894423819,
+    "coord_0": 0.12061780383246645,
+    "coord_1": 0.20852239162758748,
+    "cross:2dgo:klein": 0.02243336894423819,
+    "cross:2dgo:klein:triangular": 0.02243336894423819,
+    "cross:edge:klein": 0.09137539575429783,
+    "dimension": 0.014955586773948431,
+    "game_is:2dgo": 0.02243336894423819,
+    "game:2dgo": 0.02243336894423819,
+    "go_empty_fraction": 0.02243336894423819,
+    "lattice:triangular": 0.02243336894423819,
+    "legal_count_log": 0.011152794109664846,
+    "move_bias": 0.02243336894423819,
+    "move_center_closeness": -0.023549784311315443,
+    "move_corner_or_anchor": -0.0062882162179807785,
+    "move_edge": 0.09137539575429783,
+    "move_near_edge": 0.015133443235337017,
+    "move_type:play": 0.02243336894423819,
+    "player:black": -1.6829402940838927,
+    "player:white": 1.7052440697854199,
+    "topology:klein": 0.02243336894423819
+  },
+  "training": {
+    "examples": 60,
+    "epochs": 4,
+    "lr": 0.05,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.590887,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.428523,
+        "brier": 0.123342
+      },
+      {
+        "epoch": 2,
+        "loss": 0.371901,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.286704,
+        "brier": 0.062618
+      },
+      {
+        "epoch": 3,
+        "loss": 0.258732,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.213408,
+        "brier": 0.037662
+      },
+      {
+        "epoch": 4,
+        "loss": 0.191647,
+        "examples": 60,
+        "accuracy": 1,
+        "logLoss": 0.189342,
+        "brier": 0.034831
+      }
+    ],
+    "featureCount": 23,
+    "input": "local-data/selfplay/2dgo-klein-triangular-s9-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": 1.705244
+      },
+      {
+        "feature": "player:black",
+        "weight": -1.68294
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.208522
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.120618
+      },
+      {
+        "feature": "cross:edge:klein",
+        "weight": 0.091375
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.091375
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.02355
+      },
+      {
+        "feature": "bias",
+        "weight": 0.022433
+      },
+      {
+        "feature": "boundary:klein",
+        "weight": 0.022433
+      },
+      {
+        "feature": "cross:2dgo:klein",
+        "weight": 0.022433
+      },
+      {
+        "feature": "cross:2dgo:klein:triangular",
+        "weight": 0.022433
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": 0.022433
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": 0.022433
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.022433
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": 0.022433
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.022433
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.022433
+      },
+      {
+        "feature": "topology:klein",
+        "weight": 0.022433
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.015133
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.014956
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.011153
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.010626
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.006288
+      }
+    ]
+  }
+}

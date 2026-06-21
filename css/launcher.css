@@ -1659,9 +1659,13 @@ h1 {
     overflow: hidden;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(190px, 0.32fr);
+    grid-template-areas:
+        "main info"
+        "modes modes";
     align-items: stretch;
 }
 .life-world-main-link {
+    grid-area: main;
     display: grid;
     grid-template-columns: minmax(150px, 0.42fr) minmax(260px, 1fr);
     gap: 18px;
@@ -1677,6 +1681,7 @@ h1 {
     background: rgba(56, 189, 248, 0.055);
 }
 .life-world-info-panel {
+    grid-area: info;
     display: grid;
     gap: 8px;
     align-content: start;
@@ -1716,9 +1721,18 @@ h1 {
     line-height: 1.55;
     text-transform: none;
 }
+
+.life-world-card .life-neighborhood-options {
+    grid-area: modes;
+    padding: 0 20px 20px;
+}
 @media (max-width: 960px) {
     .life-world-card {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "main"
+            "info"
+            "modes";
     }
 
     .life-world-main-link {

@@ -1,0 +1,262 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-18T13:47:42.588Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.12620733486116997,
+    "board_size": -0.05978239520637796,
+    "boundary:polar": -0.12620733486116997,
+    "coord_0": 0.37262161433137597,
+    "coord_1": 0.14439937294099225,
+    "cross:2dgo:polar": -0.12620733486116997,
+    "cross:2dgo:polar:square": -0.12620733486116997,
+    "cross:capture:polar": 0.002654008813150596,
+    "cross:edge:polar": -0.1624394408322332,
+    "dimension": -0.08413826530989085,
+    "game_is:2dgo": -0.12620733486116997,
+    "game:2dgo": -0.12620733486116997,
+    "go_capture_balance": 4.814291143627996,
+    "go_empty_fraction": -0.12620733486116997,
+    "go_pass_count": 0.17589985599482177,
+    "lattice:square": -0.12620733486116997,
+    "legal_count_log": 0.8417535808707062,
+    "move_bias": -0.12620733486116997,
+    "move_capture_count": 2.1265142990891737,
+    "move_center_closeness": 0.008502321938874593,
+    "move_corner_or_anchor": 0.17315235796259512,
+    "move_edge": -0.1624394408322332,
+    "move_is_pass": -0.20899429470795783,
+    "move_near_edge": 0.044113926110385955,
+    "move_type:pass": -0.20899429470795783,
+    "move_type:play": -0.10902062349980657,
+    "player:black": 0.1803548347553204,
+    "player:white": -0.36408054490044733,
+    "topology:polar": -0.12620733486116997
+  },
+  "training": {
+    "examples": 14447,
+    "epochs": 12,
+    "lr": 0.05,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.37903,
+        "examples": 14447,
+        "accuracy": 0.7743,
+        "logLoss": 0.364002,
+        "brier": 0.128943
+      },
+      {
+        "epoch": 2,
+        "loss": 0.370549,
+        "examples": 14447,
+        "accuracy": 0.805,
+        "logLoss": 0.345783,
+        "brier": 0.121357
+      },
+      {
+        "epoch": 3,
+        "loss": 0.372867,
+        "examples": 14447,
+        "accuracy": 0.7767,
+        "logLoss": 0.360213,
+        "brier": 0.127782
+      },
+      {
+        "epoch": 4,
+        "loss": 0.371205,
+        "examples": 14447,
+        "accuracy": 0.7646,
+        "logLoss": 0.39784,
+        "brier": 0.141675
+      },
+      {
+        "epoch": 5,
+        "loss": 0.372755,
+        "examples": 14447,
+        "accuracy": 0.7509,
+        "logLoss": 0.463281,
+        "brier": 0.164326
+      },
+      {
+        "epoch": 6,
+        "loss": 0.372457,
+        "examples": 14447,
+        "accuracy": 0.8047,
+        "logLoss": 0.345262,
+        "brier": 0.121086
+      },
+      {
+        "epoch": 7,
+        "loss": 0.371997,
+        "examples": 14447,
+        "accuracy": 0.7888,
+        "logLoss": 0.367858,
+        "brier": 0.130025
+      },
+      {
+        "epoch": 8,
+        "loss": 0.370513,
+        "examples": 14447,
+        "accuracy": 0.7635,
+        "logLoss": 0.388522,
+        "brier": 0.13826
+      },
+      {
+        "epoch": 9,
+        "loss": 0.372391,
+        "examples": 14447,
+        "accuracy": 0.7662,
+        "logLoss": 0.375094,
+        "brier": 0.134552
+      },
+      {
+        "epoch": 10,
+        "loss": 0.371811,
+        "examples": 14447,
+        "accuracy": 0.7632,
+        "logLoss": 0.385386,
+        "brier": 0.139032
+      },
+      {
+        "epoch": 11,
+        "loss": 0.373655,
+        "examples": 14447,
+        "accuracy": 0.7512,
+        "logLoss": 0.45695,
+        "brier": 0.163152
+      },
+      {
+        "epoch": 12,
+        "loss": 0.370885,
+        "examples": 14447,
+        "accuracy": 0.7605,
+        "logLoss": 0.398494,
+        "brier": 0.143065
+      }
+    ],
+    "featureCount": 29,
+    "input": "local-data/selfplay/2dgo-polar-square-9x9-10k.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "go_capture_balance",
+        "weight": 4.814291
+      },
+      {
+        "feature": "move_capture_count",
+        "weight": 2.126514
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.841754
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.372622
+      },
+      {
+        "feature": "player:white",
+        "weight": -0.364081
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": -0.208994
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": -0.208994
+      },
+      {
+        "feature": "player:black",
+        "weight": 0.180355
+      },
+      {
+        "feature": "go_pass_count",
+        "weight": 0.1759
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.173152
+      },
+      {
+        "feature": "cross:edge:polar",
+        "weight": -0.162439
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.162439
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.144399
+      },
+      {
+        "feature": "bias",
+        "weight": -0.126207
+      },
+      {
+        "feature": "boundary:polar",
+        "weight": -0.126207
+      },
+      {
+        "feature": "cross:2dgo:polar",
+        "weight": -0.126207
+      },
+      {
+        "feature": "cross:2dgo:polar:square",
+        "weight": -0.126207
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": -0.126207
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": -0.126207
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": -0.126207
+      },
+      {
+        "feature": "lattice:square",
+        "weight": -0.126207
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.126207
+      },
+      {
+        "feature": "topology:polar",
+        "weight": -0.126207
+      },
+      {
+        "feature": "move_type:play",
+        "weight": -0.109021
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.084138
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.059782
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.044114
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.008502
+      },
+      {
+        "feature": "cross:capture:polar",
+        "weight": 0.002654
+      }
+    ]
+  }
+}

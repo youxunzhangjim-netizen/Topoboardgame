@@ -77,6 +77,10 @@
                     <span id="launcherProfileShowEmailLabel">Show my email</span>
                 </label>
                 <input id="launcherProfilePublicEmailInput" type="email" maxlength="120" autocomplete="email" placeholder="Email shown only when enabled">
+                <label class="launcher-profile-check" for="launcherProfileRobotLearningInput">
+                    <input id="launcherProfileRobotLearningInput" type="checkbox" checked>
+                    <span id="launcherProfileRobotLearningLabel">Allow robot learning from my games</span>
+                </label>
                 <label for="launcherProfileLanguageSelect" id="launcherProfileLanguageLabel">Default language</label>
                 <select id="launcherProfileLanguageSelect">
                     <option value="en">English</option>
@@ -422,7 +426,6 @@
                                 <span></span><span></span><span></span><span></span>
                             </span>
                             <span class="extra-mode-copy life-world-copy">
-                                <strong data-i18n="life.title">Life &amp; Evolution Worlds</strong>
                                 <small data-i18n="life.longDesc">Pick one of three Life rule families below, then choose the board space, lattice, noise, age, species, and challenge settings inside the Life interface.</small>
                             </span>
                         </a>
@@ -430,12 +433,12 @@
                             <summary data-i18n="life.info">Info</summary>
                             <span data-i18n="life.infoText">Zero-player, one-player, two-player, and research modes for cellular automata, ecology, topology, complex systems, and AI experiments.</span>
                         </details>
+                        <div class="life-world-mode-strip life-neighborhood-options" aria-label="Life neighborhood rule choices">
+                            <a class="lab-preset beginner" href="./life/world.html?mode=moore-life" data-i18n="life.moore">Moore Neighborhood Mode</a>
+                            <a class="lab-preset intermediate" href="./life/world.html?mode=von-neumann-life" data-i18n="life.vonNeumann">Von Neumann Neighborhood Mode</a>
+                            <a class="lab-preset advanced" href="./life/world.html?mode=lattice-nearest-life" data-i18n="life.latticeNearest">Lattice Nearest-Neighbor Mode</a>
+                        </div>
                     </article>
-                    <div class="life-world-mode-strip life-neighborhood-options" aria-label="Life neighborhood rule choices">
-                        <a class="lab-preset beginner" href="./life/world.html?mode=moore-life" data-i18n="life.moore">Moore Neighborhood Mode</a>
-                        <a class="lab-preset intermediate" href="./life/world.html?mode=von-neumann-life" data-i18n="life.vonNeumann">Von Neumann Neighborhood Mode</a>
-                        <a class="lab-preset advanced" href="./life/world.html?mode=lattice-nearest-life" data-i18n="life.latticeNearest">Lattice Nearest-Neighbor Mode</a>
-                    </div>
                 </section>
             </div>
         </section>

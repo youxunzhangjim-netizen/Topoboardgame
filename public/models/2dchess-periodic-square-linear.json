@@ -1,0 +1,222 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-19T16:17:30.042Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.015490115575630688,
+    "board_size": 0.006522159633466019,
+    "boundary:periodic": 0.015490115575630688,
+    "chess_material_balance": -0.07850534690945471,
+    "chess_piece_count_balance": -0.11266202191534315,
+    "chess_piece:bb": 0.021103961772410855,
+    "chess_piece:bk": 0.000968132223476918,
+    "chess_piece:bn": 0.004911437431631862,
+    "chess_piece:bp": 0.02096097894574179,
+    "chess_piece:bq": 0.01150133399801942,
+    "chess_piece:br": 0.001936264446953836,
+    "chess_piece:wb": 0.005973232638149911,
+    "chess_piece:wk": 0.000968132223476918,
+    "chess_piece:wn": 0.001936264446953836,
+    "chess_piece:wp": 0.012977691921663101,
+    "chess_piece:wq": 0.0006379997430203838,
+    "chess_piece:wr": 0.001936264446953836,
+    "chess_total_pieces": 0.042858593959971346,
+    "coord_0": 0.3608121903469692,
+    "coord_1": -0.051083472690622765,
+    "cross:2dchess:periodic": 0.015490115575630688,
+    "cross:capture:periodic": -0.027578468648557553,
+    "cross:edge:periodic": -0.10034418170852304,
+    "dimension": 0.010326748880458989,
+    "game_is:2dchess": 0.015490115575630688,
+    "game:2dchess": 0.015490115575630688,
+    "lattice:none": 0.015490115575630688,
+    "legal_count_log": -0.036810055438869,
+    "move_bias": 0.015490115575630688,
+    "move_capture_count": -0.0027578468648557565,
+    "move_captures_piece:B": -0.01759857223819932,
+    "move_captures_piece:N": 0.026065599571451572,
+    "move_captures_piece:P": -0.07372078417118229,
+    "move_captures_piece:Q": 0.03761849973760084,
+    "move_center_closeness": -0.041892321623892566,
+    "move_distance_manhattan": 0.012504831291436166,
+    "move_edge": -0.10034418170852304,
+    "move_is_long_range": -0.2000855571198757,
+    "move_near_edge": -0.04065584605578749,
+    "move_piece:B": 0.026491258665662237,
+    "move_piece:K": 0.20524808650284956,
+    "move_piece:N": -0.25762169895183407,
+    "move_piece:P": -0.02291213163727797,
+    "move_piece:Q": -0.014331255397765114,
+    "move_piece:R": 0.07873783090051142,
+    "move_type:move": 0.015490115575630688,
+    "player:black": -2.096888422348432,
+    "player:white": 2.112393887481443,
+    "topology:periodic": 0.015490115575630688
+  },
+  "training": {
+    "examples": 120,
+    "epochs": 4,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.503555,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.322086,
+        "brier": 0.076602
+      },
+      {
+        "epoch": 2,
+        "loss": 0.260206,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.209453,
+        "brier": 0.039584
+      },
+      {
+        "epoch": 3,
+        "loss": 0.171084,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.140236,
+        "brier": 0.018245
+      },
+      {
+        "epoch": 4,
+        "loss": 0.124412,
+        "examples": 120,
+        "accuracy": 1,
+        "logLoss": 0.106844,
+        "brier": 0.010884
+      }
+    ],
+    "featureCount": 49,
+    "input": "local-data/selfplay/2dchess-periodic-square-quick.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": 2.112394
+      },
+      {
+        "feature": "player:black",
+        "weight": -2.096888
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.360812
+      },
+      {
+        "feature": "move_piece:N",
+        "weight": -0.257622
+      },
+      {
+        "feature": "move_piece:K",
+        "weight": 0.205248
+      },
+      {
+        "feature": "move_is_long_range",
+        "weight": -0.200086
+      },
+      {
+        "feature": "chess_piece_count_balance",
+        "weight": -0.112662
+      },
+      {
+        "feature": "cross:edge:periodic",
+        "weight": -0.100344
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.100344
+      },
+      {
+        "feature": "move_piece:R",
+        "weight": 0.078738
+      },
+      {
+        "feature": "chess_material_balance",
+        "weight": -0.078505
+      },
+      {
+        "feature": "move_captures_piece:P",
+        "weight": -0.073721
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.051083
+      },
+      {
+        "feature": "chess_total_pieces",
+        "weight": 0.042859
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.041892
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.040656
+      },
+      {
+        "feature": "move_captures_piece:Q",
+        "weight": 0.037618
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.03681
+      },
+      {
+        "feature": "cross:capture:periodic",
+        "weight": -0.027578
+      },
+      {
+        "feature": "move_piece:B",
+        "weight": 0.026491
+      },
+      {
+        "feature": "move_captures_piece:N",
+        "weight": 0.026066
+      },
+      {
+        "feature": "move_piece:P",
+        "weight": -0.022912
+      },
+      {
+        "feature": "chess_piece:bb",
+        "weight": 0.021104
+      },
+      {
+        "feature": "chess_piece:bp",
+        "weight": 0.020961
+      },
+      {
+        "feature": "move_captures_piece:B",
+        "weight": -0.017599
+      },
+      {
+        "feature": "bias",
+        "weight": 0.01549
+      },
+      {
+        "feature": "boundary:periodic",
+        "weight": 0.01549
+      },
+      {
+        "feature": "cross:2dchess:periodic",
+        "weight": 0.01549
+      },
+      {
+        "feature": "game_is:2dchess",
+        "weight": 0.01549
+      },
+      {
+        "feature": "game:2dchess",
+        "weight": 0.01549
+      }
+    ]
+  }
+}
