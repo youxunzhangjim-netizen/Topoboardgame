@@ -186,6 +186,7 @@ const ZH = new Map(Object.entries({
   'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.': 'R3 標準使用普通開放立方邊界。Reversi 夾擊可沿 26 個圖射線方向進行。',
   '4D Go': '4D 圍棋',
   '4D Reversi': '4D 黑白棋',
+  'Open-boundary and fully periodic Go on 9x9, 13x13, and 19x19 boards.': '在 9x9、13x13、19x19 棋盤上遊玩開放邊界與全週期邊界圍棋。',
   'Standard 4D graph Go on configurable (x,y,z,w) boards. Default size: 5 x 5 x 5 x 5.': '標準 4D 圖圍棋，可設定 (x,y,z,w) 棋盤。預設大小：5 x 5 x 5 x 5。',
   'Standard 4D graph Reversi on empty Jump-style 4D boards, with only the alternating center 2 x 2 x 2 x 2 opening occupied.': '標準 4D 圖黑白棋，使用跳棋式空 4D 棋盤，開局只佔據中心 2 x 2 x 2 x 2 的交錯位置。',
   'Every (x,y,z,w) coordinate is a playable vertex. Liberties are only the eight possible 4D axis-neighbors inside the board; no diagonal liberties. A six-face enclosure in one 3D slice is not a capture if the two w-direction liberties remain open. Captures, suicide, superko, and territory use this full 4D graph.': '每個 (x,y,z,w) 座標都是可下的頂點。氣只來自棋盤內八個可能的 4D 軸向鄰居，沒有斜向氣。若同一個 3D 切片內只被六面包住，但 w 方向兩側仍有氣，就不算被提。提子、自殺、超劫與地盤都依照完整 4D 圖計算。',
@@ -194,9 +195,15 @@ const ZH = new Map(Object.entries({
   'Select a highlighted vertex for White.': '請為白方選擇高亮頂點。',
   'Select an empty vertex for Black.': '請為黑方選擇空頂點。',
   'Select an empty vertex for White.': '請為白方選擇空頂點。',
+  'Select an empty intersection for Black.': '請為黑方選擇空交點。',
+  'Select an empty intersection for White.': '請為白方選擇空交點。',
   'No active selection.': '目前沒有選取。',
   'Board View': '棋盤視角',
   'Time Layer': '時間層',
+  '2+1D Time Layer': '2+1D 時間層',
+  '3+1D Time Layer': '3+1D 時間層',
+  '2+1D TIME LAYER': '2+1D 時間層',
+  '3+1D TIME LAYER': '3+1D 時間層',
   'Time mode': '時間模式',
   'Time schedule': '時間排程',
   'Time period (Go +1D only)': '時間週期（僅 Go +1D）',
@@ -340,6 +347,34 @@ function translateValue(text) {
     .replace(/Mobius strip uses one twisted horizontal wrap with open vertical edges\./g, 'Mobius 帶使用單一扭轉的水平方向包回，垂直方向保持開放。')
     .replace(/Mobius strip is rendered as a solid twisted band\. Horizontal seam crossings flip the transverse coordinate\./g, 'Mobius 帶會顯示為實心扭轉帶；穿過水平接縫時橫向座標會翻轉。')
     .replace(/Area scoring with 7\.5 komi\. Captures, liberties, superko, and territory use the selected board graph\./g, '使用 7.5 貼目的面積計分。提子、氣、超劫與地盤都依照所選棋盤圖計算。')
+    .replace(/^([23]\+1D) TIME LAYER$/g, '$1 時間層')
+    .replace(/^([23]\+1D) Time Layer$/g, '$1 時間層')
+    .replace(/^Time schedule: Instant\.\.\+(\d+), selected Instant$/g, '時間排程：立即到 +$1，已選立即')
+    .replace(/^Time schedule: Instant\.\.\+(\d+), selected \+(\d+)$/g, '時間排程：立即到 +$1，已選 +$2')
+    .replace(/^Time period scheduling, \+(\d+) action delay$/g, '時間週期排程，行動延遲 +$1')
+    .replace(/^Time schedule scheduling, \+(\d+) action delay$/g, '時間排程，行動延遲 +$1')
+    .replace(/^Time period: appear (\d+), disappear (\d+)$/g, '時間週期：出現 $1，消失 $2')
+    .replace(/^Choose when this designed action should act\.$/g, '選擇這個設計好的行動要在何時作用。')
+    .replace(/^([23]\+1D) (Chess|Go|Reversi|Jump) uses original (2D|3D) rules with (Time schedule|Time period) settings\.$/g, (_match, dim, family, baseDim, mode) => {
+      const familyZh = { Chess: '西洋棋', Go: '圍棋', Reversi: '黑白棋', Jump: '跳棋' }[family] || family;
+      const modeZh = mode === 'Time period' ? '時間週期' : '時間排程';
+      return `${dim} ${familyZh} 使用原本 ${baseDim} 規則，並套用${modeZh}設定。`;
+    })
+    .replace(/^This mode uses the original (2D|3D) (Chess|Go|Reversi|Jump) board, pieces, topology, online room, and legal rules\. The controls below attach time properties to the existing game pieces\.$/g, (_match, dim, family) => {
+      const familyZh = { Chess: '西洋棋', Go: '圍棋', Reversi: '黑白棋', Jump: '跳棋' }[family] || family;
+      return `此模式使用原本的 ${dim} ${familyZh} 棋盤、棋子、拓撲、線上房間與合法規則。下方控制項會把時間性質附加到既有棋子上。`;
+    })
+    .replace(/^Time schedule: choose an Action delay from Instant to the Max schedule delay, then click a legal empty action site or piece destination\. Instant resolves immediately after this designed action; later delays resolve on their future turn if the source and target are still valid\.$/g, '時間排程：先在「立即」到「最大排程延遲」之間選擇行動延遲，再點合法的空行動位置或棋子目的地。立即會在設計此行動後立刻作用；較晚的延遲會在未來回合檢查來源與目標仍合法時才作用。')
+    .replace(/^Player ([A-Z]) designed a (Instant|\+\d+) Jump action for turn (\d+)\.$/g, (_match, player, delay, turn) => `玩家 ${player} 設計了${delay === 'Instant' ? '立即' : delay}跳棋行動，將在第 ${turn} 回合執行。`)
+    .replace(/^(Black|White) designed a (Instant|\+\d+) Go placement for turn (\d+)\.$/g, (_match, player, delay, turn) => `${player === 'Black' ? '黑方' : '白方'}設計了${delay === 'Instant' ? '立即' : delay}圍棋落子，將在第 ${turn} 回合執行。`)
+    .replace(/^(Black|White) designed a (Instant|\+\d+) Reversi placement for turn (\d+)\.$/g, (_match, player, delay, turn) => `${player === 'Black' ? '黑方' : '白方'}設計了${delay === 'Instant' ? '立即' : delay}黑白棋落子，將在第 ${turn} 回合執行。`)
+    .replace(/^(Black|White) designed a (Instant|\+\d+) hidden scheduled action for turn (\d+)\.$/g, (_match, player, delay, turn) => `${player === 'Black' ? '黑方' : '白方'}設計了${delay === 'Instant' ? '立即' : delay}隱藏排程行動，將在第 ${turn} 回合執行。`)
+    .replace(/^(Black|White) future Go placement resolved\.$/g, (_match, player) => `${player === 'Black' ? '黑方' : '白方'}的未來圍棋落子已執行。`)
+    .replace(/^(Black|White) future Reversi placement resolved\.$/g, (_match, player) => `${player === 'Black' ? '黑方' : '白方'}的未來黑白棋落子已執行。`)
+    .replace(/^\+(\d+): hidden scheduled action$/g, '+$1：隱藏排程行動')
+    .replace(/^([23]\+1D) Chess uses the original Chess board and rules with a time panel\.$/g, '$1 西洋棋使用原本棋盤與規則，並加入時間面板。')
+    .replace(/^([23]\+1D) Chess uses the original Chess pieces and legal moves with Time schedule\.$/g, '$1 西洋棋使用原本棋子與合法走法，並加入時間排程。')
+    .replace(/\bInstant\b/g, '立即')
     .replace(/^(\d+) stones?$/, '$1 顆棋子')
     .replace(/^Robot is thinking\.\.\.$/, '機器人思考中…')
     .replace(/^Robot is searching for (.+) at (?:depth|search level) (\d+)\.\.\.$/, '機器人正在以深度 $2 為 $1 搜尋…')

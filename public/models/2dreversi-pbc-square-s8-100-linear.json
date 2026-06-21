@@ -1,0 +1,215 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-21T08:53:25.688Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.030653549735445575,
+    "board_size": -0.012906769076758877,
+    "boundary:pbc": -0.030653549735445575,
+    "coord_0": -0.21914493563212545,
+    "coord_1": -0.00047794340586745487,
+    "cross:2dreversi:pbc": -0.030653549735445575,
+    "cross:2dreversi:pbc:square": -0.030653549735445575,
+    "cross:edge:pbc": 0.0008825337943527967,
+    "dimension": -0.020435710041481495,
+    "game_is:2dreversi": -0.030653549735445575,
+    "game:2dreversi": -0.030653549735445575,
+    "lattice:square": -0.030653549735445575,
+    "legal_count_log": 0.46780180296537266,
+    "move_bias": -0.030653549735445575,
+    "move_center_closeness": 0.30322453746921535,
+    "move_corner_or_anchor": 0.001760299883723131,
+    "move_edge": 0.0008825337943527967,
+    "move_flips_count": 0.7017983066188347,
+    "move_near_edge": -0.07041202330977098,
+    "move_type:place": -0.030653549735445575,
+    "player:black": -1.11735690902676,
+    "player:white": 1.0817035175094047,
+    "reversi_disc_balance": 0.20176089209180345,
+    "reversi_endgame_phase": -0.07273570830297653,
+    "reversi_occupancy": -0.07273570830297653,
+    "topology:pbc": -0.030653549735445575
+  },
+  "training": {
+    "examples": 6000,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.644197,
+        "examples": 6000,
+        "accuracy": 0.705,
+        "logLoss": 0.613564,
+        "brier": 0.203343
+      },
+      {
+        "epoch": 2,
+        "loss": 0.641912,
+        "examples": 6000,
+        "accuracy": 0.705,
+        "logLoss": 0.610972,
+        "brier": 0.202113
+      },
+      {
+        "epoch": 3,
+        "loss": 0.642511,
+        "examples": 6000,
+        "accuracy": 0.705,
+        "logLoss": 0.614162,
+        "brier": 0.203174
+      },
+      {
+        "epoch": 4,
+        "loss": 0.640495,
+        "examples": 6000,
+        "accuracy": 0.705,
+        "logLoss": 0.614792,
+        "brier": 0.203474
+      },
+      {
+        "epoch": 5,
+        "loss": 0.639124,
+        "examples": 6000,
+        "accuracy": 0.7048,
+        "logLoss": 0.624266,
+        "brier": 0.206948
+      },
+      {
+        "epoch": 6,
+        "loss": 0.642803,
+        "examples": 6000,
+        "accuracy": 0.6793,
+        "logLoss": 0.651734,
+        "brier": 0.2186
+      },
+      {
+        "epoch": 7,
+        "loss": 0.643251,
+        "examples": 6000,
+        "accuracy": 0.703,
+        "logLoss": 0.6319,
+        "brier": 0.210532
+      },
+      {
+        "epoch": 8,
+        "loss": 0.638332,
+        "examples": 6000,
+        "accuracy": 0.705,
+        "logLoss": 0.612997,
+        "brier": 0.202757
+      }
+    ],
+    "featureCount": 26,
+    "input": "local-data/selfplay/2dreversi-pbc-square-s8-100.jsonl",
+    "gameFilter": "2dreversi",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:black",
+        "weight": -1.117357
+      },
+      {
+        "feature": "player:white",
+        "weight": 1.081704
+      },
+      {
+        "feature": "move_flips_count",
+        "weight": 0.701798
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.467802
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.303225
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.219145
+      },
+      {
+        "feature": "reversi_disc_balance",
+        "weight": 0.201761
+      },
+      {
+        "feature": "reversi_endgame_phase",
+        "weight": -0.072736
+      },
+      {
+        "feature": "reversi_occupancy",
+        "weight": -0.072736
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.070412
+      },
+      {
+        "feature": "bias",
+        "weight": -0.030654
+      },
+      {
+        "feature": "boundary:pbc",
+        "weight": -0.030654
+      },
+      {
+        "feature": "cross:2dreversi:pbc",
+        "weight": -0.030654
+      },
+      {
+        "feature": "cross:2dreversi:pbc:square",
+        "weight": -0.030654
+      },
+      {
+        "feature": "game_is:2dreversi",
+        "weight": -0.030654
+      },
+      {
+        "feature": "game:2dreversi",
+        "weight": -0.030654
+      },
+      {
+        "feature": "lattice:square",
+        "weight": -0.030654
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.030654
+      },
+      {
+        "feature": "move_type:place",
+        "weight": -0.030654
+      },
+      {
+        "feature": "topology:pbc",
+        "weight": -0.030654
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.020436
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.012907
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.00176
+      },
+      {
+        "feature": "cross:edge:pbc",
+        "weight": 0.000883
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.000883
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.000478
+      }
+    ]
+  }
+}

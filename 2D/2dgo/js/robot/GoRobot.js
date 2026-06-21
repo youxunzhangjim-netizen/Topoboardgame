@@ -1,4 +1,5 @@
 import { COLORS, GoGameLogic, otherColor, valueToColor } from '../GoGame.js';
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 
 const MCTS_BUDGET_BY_LEVEL = { 1: 90, 2: 220, 3: 520, 4: 900 };
 const TIME_BY_LEVEL_MS = { 1: 180, 2: 430, 3: 850, 4: 1400 };
@@ -70,7 +71,19 @@ export class GoRobotController {
             if (!move) {
                 this.setMessage('Robot found no legal play. Passing if the rule engine allows it.');
                 const pass = this.app.logic.pass(this.app.logic.currentPlayer);
-                if (pass.ok) this.app.afterLocalAction(this.afterRobotMoveMessage('Pass'));
+                if (pass.ok) {
+                    recordRobotLearningMove({
+                        gameType: 'go',
+                        variant: '2d',
+                        topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                        player: this.side,
+                        robot: `level-${this.depth}`,
+                        move: { type: 'pass', label: 'Pass' },
+                        score: result.score,
+                        result: this.app.logic.gameOver ? { gameOver: true, winner: this.app.logic.winner || null } : null
+                    });
+                    this.app.afterLocalAction(this.afterRobotMoveMessage('Pass'));
+                }
                 else this.setMessage(`Robot could not pass: ${pass.error || 'pass rejected'}`);
                 return;
             }
@@ -79,6 +92,16 @@ export class GoRobotController {
             if (!play.ok) {
                 const fallback = move.type === 'pass' ? null : this.app.logic.pass(before);
                 if (fallback?.ok) {
+                    recordRobotLearningMove({
+                        gameType: 'go',
+                        variant: '2d',
+                        topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                        player: before,
+                        robot: `level-${this.depth}`,
+                        move: { type: 'pass', label: 'Pass', fallbackFor: move.coord || null },
+                        score: result.score,
+                        result: this.app.logic.gameOver ? { gameOver: true, winner: this.app.logic.winner || null } : null
+                    });
                     this.app.afterLocalAction(this.afterRobotMoveMessage('Pass'));
                     return;
                 }
@@ -86,6 +109,16 @@ export class GoRobotController {
                 return;
             }
             const label = move.type === 'pass' ? 'Pass' : coordLabel(move.coord);
+            recordRobotLearningMove({
+                gameType: 'go',
+                variant: '2d',
+                topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                player: before,
+                robot: `level-${this.depth}`,
+                move: { type: move.type, coord: move.coord || null, label },
+                score: result.score,
+                result: this.app.logic.gameOver ? { gameOver: true, winner: this.app.logic.winner || null } : null
+            });
             this.app.afterLocalAction(this.afterRobotMoveMessage(label));
             if (!this.app.logic.gameOver) this.setMessage(`Robot played ${label}. Score ${formatScore(result.score)}. Sims ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`);
         } catch (error) {

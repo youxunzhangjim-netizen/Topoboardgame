@@ -54,6 +54,22 @@ export function recordRobotLearningGame(record = {}) {
   return true;
 }
 
+export function recordRobotLearningMove(record = {}) {
+  const move = {
+    player: record.player || record.side || '',
+    action: record.action || record.move || null,
+    result: record.result || null,
+    score: record.score ?? null,
+    createdAt: new Date().toISOString()
+  };
+  return recordRobotLearningGame({
+    ...record,
+    source: record.source || 'robot-move',
+    moves: [move],
+    turnCount: 1
+  });
+}
+
 export function listRobotLearningRecords() {
   return safeRead();
 }
@@ -65,6 +81,7 @@ export function clearRobotLearningRecords() {
 globalThis.TopoboardgameRobotLearning = {
   canRecord: canRecordRobotLearning,
   record: recordRobotLearningGame,
+  recordMove: recordRobotLearningMove,
   list: listRobotLearningRecords,
   clear: clearRobotLearningRecords
 };

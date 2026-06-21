@@ -1,4 +1,5 @@
 import { ReversiGame, otherReversiColor } from '../../../../js/reversi/ReversiGame.js';
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 
 const INF = 1e9;
 const TIME_MS = { 1: 80, 2: 220, 3: 520, 4: 900 };
@@ -137,7 +138,24 @@ export function installReversi3DRobot(app) {
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
   if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
   else sidebar?.appendChild(panel); const side=panel.querySelector('#reversiRobotSideSelect'); const depth=panel.querySelector('#reversiRobotDepthSelect'); const out=panel.querySelector('#reversiRobotAnalysisPanel'); const isRobot=()=>modeSelect?.value==='robot';
-  async function makeMove(){ if(!isRobot()||app.logic.gameOver||app.logic.currentPlayer!==side.value)return; out.textContent='Robot is thinking...'; await new Promise(r=>setTimeout(r,20)); const a=analyzeReversi3DPosition(app.logic,Number(depth.value)||2); render(out,a); const m=a.topMoves[0]?.move; if(m){ const actor = app.logic.currentPlayer; const result = app.logic.play(m.coord, actor); if (result.ok) { app.setStatus?.(`Robot ${actor} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`); app.updateUI?.(); app.broadcastState?.(); } }}
+  async function makeMove(){
+    if(!isRobot()||app.logic.gameOver||app.logic.currentPlayer!==side.value)return;
+    out.textContent='Robot is thinking...';
+    await new Promise(r=>setTimeout(r,20));
+    const a=analyzeReversi3DPosition(app.logic,Number(depth.value)||2);
+    render(out,a);
+    const m=a.topMoves[0]?.move;
+    if(m){
+      const actor = app.logic.currentPlayer;
+      const result = app.logic.play(m.coord, actor);
+      if (result.ok) {
+        recordRobotLearningMove({ gameType: 'reversi', variant: '3d', topology: `${app.logic.topology?.topology || 'r3'}:${app.logic.topology?.lattice || 'sc'}`, player: actor, robot: `depth-${depth.value || 2}`, move: { type: 'play', coord: m.coord, label: coordLabel(m.coord), flipped: result.flipped }, score: a.topMoves[0]?.score ?? null, result: app.logic.gameOver ? { gameOver: true, winner: app.logic.winner || null } : null });
+        app.setStatus?.(`Robot ${actor} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
+        app.updateUI?.();
+        app.broadcastState?.();
+      }
+    }
+  }
   function schedule(){ if(isRobot()) window.setTimeout(makeMove,180); }
   panel.querySelector('#reversiRobotMoveBtn')?.addEventListener('click',makeMove); panel.querySelector('#reversiRobotAnalyzeBtn')?.addEventListener('click',()=>render(out,analyzeReversi3DPosition(app.logic,Number(depth.value)||2)));
   side.addEventListener('change',schedule); modeSelect?.addEventListener('change',()=>{ app.updateOnlineControls?.(); schedule(); });

@@ -1,4 +1,5 @@
 import { GoGameLogic, COLORS, otherColor, valueToColor } from '../GoGame.js';
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 
 const TOPOLOGY_INFLUENCE = new Set(['t3', 'r3_random', 't2', 'cylinder', 'sphere_latitude_ring', 'klein_bottle', 'mobius_strip', 'rp2']);
 const BUDGET = { 1: 80, 2: 200, 3: 420, 4: 760 };
@@ -233,7 +234,10 @@ export function installGo3DRobot(app) {
       const move = chooseSafeMove(a.topMoves[0]?.move);
       if (!move) {
         const pass = app.logic.pass(app.logic.currentPlayer);
-        if (pass.ok) app.afterLocalAction?.(robotMessage('Pass'));
+        if (pass.ok) {
+          recordRobotLearningMove({ gameType: 'go', variant: '3d', topology: `${app.logic.topology || 'r3'}:${app.logic.lattice || 'sc'}`, player: side.value, robot: `level-${level.value || 1}`, move: { type: 'pass' }, result: app.logic.gameOver ? { gameOver: true, winner: app.logic.winner || null } : null });
+          app.afterLocalAction?.(robotMessage('Pass'));
+        }
         else out.textContent = `Robot found no legal move: ${pass.error || 'pass rejected'}`;
         return;
       }
@@ -242,12 +246,14 @@ export function installGo3DRobot(app) {
       if (!result.ok) {
         const pass = move.type === 'pass' ? null : app.logic.pass(actor);
         if (pass?.ok) {
+          recordRobotLearningMove({ gameType: 'go', variant: '3d', topology: `${app.logic.topology || 'r3'}:${app.logic.lattice || 'sc'}`, player: actor, robot: `level-${level.value || 1}`, move: { type: 'pass', fallbackFor: move.coord || null }, result: app.logic.gameOver ? { gameOver: true, winner: app.logic.winner || null } : null });
           app.afterLocalAction?.(robotMessage('Pass'));
           return;
         }
         out.textContent = `Robot move was rejected: ${result.error || pass?.error || 'illegal move'}`;
         return;
       }
+      recordRobotLearningMove({ gameType: 'go', variant: '3d', topology: `${app.logic.topology || 'r3'}:${app.logic.lattice || 'sc'}`, player: actor, robot: `level-${level.value || 1}`, move: { type: move.type, coord: move.coord || null, label: move.type === 'pass' ? 'Pass' : coordLabel(move.coord) }, result: app.logic.gameOver ? { gameOver: true, winner: app.logic.winner || null } : null });
       app.afterLocalAction?.(robotMessage(move.type === 'pass' ? 'Pass' : coordLabel(move.coord)));
       app.updateUI?.();
     } finally {

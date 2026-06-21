@@ -1,4 +1,5 @@
 import { ReversiGame, otherReversiColor } from '../../../../js/reversi/ReversiGame.js';
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 
 const INF = 1e9;
 const NODE_LIMIT_BY_DEPTH = { 1: 9000, 2: 22000, 3: 52000, 4: 90000, 5: 130000 };
@@ -51,12 +52,35 @@ export class ReversiRobotController {
             const result = chooseReversiRobotMove(this.app.logic, this.depth);
             if (!result.move) {
                 const pass = this.app.logic.pass();
-                if (pass.ok) this.app.afterLocalAction('Robot passed.');
+                if (pass.ok) {
+                    recordRobotLearningMove({
+                        gameType: 'reversi',
+                        variant: '2d',
+                        topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                        player: this.side,
+                        robot: `depth-${this.depth}`,
+                        move: { type: 'pass' },
+                        score: result.score,
+                        result: this.app.logic.gameOver ? { gameOver: true, winner: this.app.logic.winner || null } : null
+                    });
+                    this.app.afterLocalAction('Robot passed.');
+                }
                 else this.setMessage('Robot found no move and pass was rejected.');
                 return;
             }
-            const played = this.app.logic.play(result.move.coord, this.app.logic.currentPlayer);
+            const actor = this.app.logic.currentPlayer;
+            const played = this.app.logic.play(result.move.coord, actor);
             if (!played.ok) { this.setMessage(`Robot move was rejected: ${played.reason || 'illegal'}`); return; }
+            recordRobotLearningMove({
+                gameType: 'reversi',
+                variant: '2d',
+                topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                player: actor,
+                robot: `depth-${this.depth}`,
+                move: { type: 'play', coord: result.move.coord, label: coordLabel(result.move.coord), flipped: played.flipped },
+                score: result.score,
+                result: this.app.logic.gameOver ? { gameOver: true, winner: this.app.logic.winner || null } : null
+            });
             this.app.afterLocalAction(`Robot played ${coordLabel(result.move.coord)} and flipped ${played.flipped}.`);
             if (!this.app.logic.gameOver) this.setMessage(`Robot played ${coordLabel(result.move.coord)}. Score ${formatScore(result.score)}. Nodes ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`);
         } catch (error) { console.error(error); this.setMessage(`Robot error: ${error.message}`); }

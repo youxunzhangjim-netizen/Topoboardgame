@@ -2,6 +2,7 @@ import { FirebaseStateNetworkManager } from '../FirebaseStateNetworkManager.js';
 import { installProjectedBoardTouchControls } from './ProjectedBoardTouchControls.js';
 import { JumpGameState, chooseJumpRobotMove, coordKey, normalizeJumpLattice, otherPlayer } from './JumpRules.js';
 import { loadLatestJumpTrainedScorer } from './JumpTrainedRobot.js';
+import { recordRobotLearningMove } from './RobotLearningRecorder.js';
 
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
@@ -735,12 +736,31 @@ export class JumpGameApp {
     if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') setTimeout(() => this.robotTurn(), 180);
   }
 
+  recordJumpRobotMove(player, move, result = null) {
+    recordRobotLearningMove({
+      gameType: 'jump',
+      variant: `${this.dimension}d`,
+      topology: `${this.game?.topologyName || this.topologyName || 'standard'}:${this.game?.lattice || this.lattice || 'triangular'}:${this.game?.playerCount || 2}p`,
+      player,
+      robot: this.trainedRobotScorer ? 'trained-local' : 'heuristic-local',
+      move: move ? {
+        type: move.type,
+        from: move.from,
+        to: move.to,
+        over: move.over || null,
+        chain: Boolean(result?.continueJump)
+      } : { type: 'pass' },
+      result: this.game?.winner ? { gameOver: true, winner: this.game.winner } : null
+    });
+  }
+
   onlineRobotTurn(player = 'C') {
     if (this.modeSelect?.value !== 'online' || this.game.currentPlayer !== player || this.game.winner) return;
     const move = this.chooseRobotMove(player);
     if (!move) {
       this.game.endTurn();
       this.history.push(`Robot ${player} had no legal move and passed the turn.`);
+      this.recordJumpRobotMove(player, null);
     } else {
       const result = this.game.applyMove(move);
       if (!result.ok) {
@@ -748,6 +768,7 @@ export class JumpGameApp {
         this.game.endTurn();
       } else {
         this.history.push(`Robot ${player} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+        this.recordJumpRobotMove(player, move, result);
         if (result.continueJump) {
           this.render();
           this.network.sendState({ type: 'jump_robot_chain_move' });
@@ -768,6 +789,7 @@ export class JumpGameApp {
       if (!move) {
         this.game.endTurn();
         this.history.push(`Robot ${robotPlayer} had no legal move and passed the turn.`);
+        this.recordJumpRobotMove(robotPlayer, null);
       } else {
         const result = this.game.applyMove(move);
         if (!result.ok) {
@@ -775,6 +797,7 @@ export class JumpGameApp {
           this.game.endTurn();
         } else {
           this.history.push(`Robot ${robotPlayer} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+          this.recordJumpRobotMove(robotPlayer, move, result);
           if (result.continueJump) {
             this.render();
             setTimeout(() => this.robotTurn(), 160);
@@ -795,6 +818,7 @@ export class JumpGameApp {
       if (!move) {
         this.game.endTurn();
         this.history.push('Robot had no legal move and passed the turn.');
+        this.recordJumpRobotMove('B', null);
         break;
       }
       const result = this.game.applyMove(move);
@@ -804,6 +828,7 @@ export class JumpGameApp {
         break;
       }
       this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
+      this.recordJumpRobotMove('B', move, result);
       guard += 1;
       if (result.continueJump) continue;
       break;

@@ -1,3 +1,5 @@
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+
 const PIECE_VALUES = { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 };
 const PROMOTION_TYPES = ['Q', 'R', 'B', 'N'];
 
@@ -424,11 +426,23 @@ export function installChess3DRobot(shell) {
       const liveMove = liveLegalMoveFor(game, move);
       if (move && liveMove) {
         analysisPanel.textContent = `Robot found ${moveLabel(move)} at score ${((result.score || 0) / 100).toFixed(2)}; nodes ${result.nodes}${result.truncated ? ' (time-limited)' : ''}.`;
-        await game.applyMove({
+        const applied = await game.applyMove({
           from: move.from,
           to: liveMove,
           promotion: livePromotionFor(game, move, liveMove)
         }, { robot: true });
+        if (applied) {
+          recordRobotLearningMove({
+            gameType: 'chess',
+            variant: '3d',
+            topology: game.boundaryCondition || game.topology || game.constructor?.name || '3d',
+            player: robotSide(),
+            robot: `depth-${depth}`,
+            move: { from: move.from, to: liveMove, label: moveLabel(move), promotion: livePromotionFor(game, move, liveMove) },
+            score: result.score,
+            result: game.gameOver ? { gameOver: true, winner: game.winner || null, draw: Boolean(game.draw) } : null
+          });
+        }
       } else if (move) {
         analysisPanel.textContent = 'Robot move was rejected by the current board rules.';
       } else {

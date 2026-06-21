@@ -1,6 +1,7 @@
 import { chooseRobotMove, analyzePosition } from './ChessSearch.js';
 import { createAnalysisState, getAllLegalMoves, validateMoveStillLegal } from './ChessRobotAdapter.js';
 import { formatScore } from './ChessEvaluator.js';
+import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 
 export function robotPromotionForMove(legalMove) {
     return legalMove?.promotion || null;
@@ -87,6 +88,16 @@ export class ChessRobotController {
             }, { robot: true });
 
             if (ok) {
+                recordRobotLearningMove({
+                    gameType: 'chess',
+                    variant: '2d',
+                    topology: this.game.boundaryCondition || 'standard',
+                    player: currentSide,
+                    robot: `depth-${this.depth}`,
+                    move: { from: legal.from, to: legal.to, label: legal.label, promotion: robotPromotionForMove(legal) },
+                    score: result.score,
+                    result: this.game.gameOver ? { gameOver: true, winner: this.game.winner || null, draw: Boolean(this.game.draw) } : null
+                });
                 this.setPanelMessage(`Robot played ${legal.label}. Score ${formatScore(result.score)}. Nodes: ${result.nodes}${result.truncated ? ' (limited)' : ''}.`);
             } else {
                 this.setPanelMessage('Robot move was rejected by the current legal-move validator.');
