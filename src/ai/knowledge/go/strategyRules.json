@@ -1,0 +1,13 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "go",
+  "boardScope": "topology-transfer",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:user-sgf", "local:selfplay"],
+  "features": [
+    { "name": "liberties", "weight": 1.1, "appliesTo": ["standard", "topology-transfer"], "description": "Graph liberties of own and opponent groups." },
+    { "name": "territoryPotential", "weight": 1.2, "appliesTo": ["standard", "topology-transfer"], "description": "Empty-region control from graph flood-fill." },
+    { "name": "captureThreat", "weight": 1.5, "appliesTo": ["standard", "topology-transfer"], "description": "Immediate atari/capture opportunity." }
+  ]
+}
+

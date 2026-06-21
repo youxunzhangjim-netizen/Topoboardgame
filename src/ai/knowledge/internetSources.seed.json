@@ -1,0 +1,57 @@
+[
+  {
+    "id": "stockfish",
+    "name": "Stockfish chess engine",
+    "url": "https://stockfishchess.org/",
+    "license": "GPL-3.0-or-later. Use as a local external engine unless GPL obligations are intentionally handled.",
+    "redistributionAllowed": false,
+    "dataType": "ENGINE",
+    "notes": "Metadata only. The repository does not download or bundle Stockfish."
+  },
+  {
+    "id": "katago",
+    "name": "KataGo Go engine",
+    "url": "https://github.com/lightvector/KataGo",
+    "license": "MIT license for engine source; neural network/model files may have their own terms.",
+    "redistributionAllowed": false,
+    "dataType": "ENGINE",
+    "notes": "Metadata only. Configure a local KATAGO_PATH for analysis."
+  },
+  {
+    "id": "edax",
+    "name": "Edax Reversi engine",
+    "url": "https://github.com/abulmo/edax-reversi",
+    "license": "Verify upstream license before redistribution.",
+    "redistributionAllowed": false,
+    "dataType": "ENGINE",
+    "notes": "Metadata only. Configure a local EDAX_PATH for analysis."
+  },
+  {
+    "id": "wthor",
+    "name": "WTHOR Reversi game files",
+    "url": "https://www.ffothello.org/informatique/la-base-wthor/",
+    "license": "Verify data license before redistribution.",
+    "redistributionAllowed": false,
+    "dataType": "WTHOR",
+    "notes": "User-provided local files only; derived opening statistics can be regenerated locally."
+  },
+  {
+    "id": "pettingzoo-chinese-checkers",
+    "name": "PettingZoo Chinese Checkers research environment",
+    "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
+    "license": "Verify repository license before code reuse.",
+    "redistributionAllowed": false,
+    "dataType": "JSON",
+    "notes": "Metadata reference for multi-agent training ideas; do not copy code without license review."
+  },
+  {
+    "id": "scid",
+    "name": "Scid chess database tool",
+    "url": "https://scid.sourceforge.net/",
+    "license": "GPL software; bundled sample databases may have separate terms.",
+    "redistributionAllowed": false,
+    "dataType": "PGN",
+    "notes": "Metadata reference for PGN/database tooling, not a bundled data source."
+  }
+]
+

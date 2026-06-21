@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "reversi",
+  "boardScope": "topology-transfer",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:user-wthor", "local:edax-analysis", "local:selfplay"],
+  "features": [
+    { "name": "mobility", "weight": 1.4, "appliesTo": ["standard", "topology-transfer"], "description": "Legal move differential." },
+    { "name": "frontierDiscs", "weight": -0.8, "appliesTo": ["standard", "topology-transfer"], "description": "Discs adjacent to empty sites." },
+    { "name": "cornerOrAnchor", "weight": 2.0, "appliesTo": ["standard"], "description": "Corner and stable-anchor ownership where the topology has corners." },
+    { "name": "parity", "weight": 0.6, "appliesTo": ["standard", "topology-transfer"], "description": "Endgame parity and region-control feature." }
+  ]
+}
+

@@ -1,0 +1,15 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "chinese-checkers",
+  "boardScope": "graph-only",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:selfplay"],
+  "features": [
+    { "name": "graphDistanceToGoal", "weight": -2.2, "appliesTo": ["topology-transfer"], "description": "Shortest path distance on the active graph/topology." },
+    { "name": "futureJumpChainPotential", "weight": 1.5, "appliesTo": ["topology-transfer"], "description": "Potential jump chains after one setup move." },
+    { "name": "pieceConnectivity", "weight": 0.8, "appliesTo": ["topology-transfer"], "description": "Own pieces that can help form ladders." },
+    { "name": "isolatedPiecePenalty", "weight": -1.2, "appliesTo": ["topology-transfer"], "description": "Penalty for pieces far from useful jump supports." },
+    { "name": "opponentJumpOpportunityCreated", "weight": -1.8, "appliesTo": ["topology-transfer"], "description": "Penalty for creating strong opponent jumps." }
+  ]
+}
+

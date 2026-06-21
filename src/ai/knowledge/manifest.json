@@ -1,0 +1,77 @@
+{
+  "schema": "topoboardgame.ai.knowledge_manifest.v1",
+  "updatedAt": "2026-06-22T00:00:00.000+08:00",
+  "rules": [
+    "Generated knowledge files are local-only unless a source explicitly permits redistribution.",
+    "Live games must not browse or scrape the internet.",
+    "Robots load derived statistics, features, and weights; they do not copy guide text or paid databases.",
+    "Standard-board openings are tagged standard-only and are not directly applied to topology variants."
+  ],
+  "sources": [
+    {
+      "sourceName": "User-provided chess PGN folder",
+      "sourceUrl": "local:data/chess/pgn/",
+      "licenseSummary": "User is responsible for placing PGN files with suitable local-use or redistribution rights.",
+      "dataType": "PGN",
+      "redistributionAllowed": "local_only",
+      "localPath": "data/chess/pgn/"
+    },
+    {
+      "sourceName": "Local Stockfish executable",
+      "sourceUrl": "local:STOCKFISH_PATH",
+      "licenseSummary": "Engine executable is configured locally and not redistributed by this repository.",
+      "dataType": "engine",
+      "redistributionAllowed": "not_allowed",
+      "localPath": "process.env.STOCKFISH_PATH"
+    },
+    {
+      "sourceName": "Local Syzygy tablebase folder",
+      "sourceUrl": "local:LOCAL_SYZYGY_PATH",
+      "licenseSummary": "Optional local tablebase path. Tablebase files are not included in this repository.",
+      "dataType": "tablebase",
+      "redistributionAllowed": "not_allowed",
+      "localPath": "process.env.LOCAL_SYZYGY_PATH"
+    },
+    {
+      "sourceName": "User-provided Go SGF folder",
+      "sourceUrl": "local:data/go/sgf/",
+      "licenseSummary": "User is responsible for SGF licensing. Scripts derive joseki/fuseki statistics only.",
+      "dataType": "SGF",
+      "redistributionAllowed": "local_only",
+      "localPath": "data/go/sgf/"
+    },
+    {
+      "sourceName": "Local KataGo executable",
+      "sourceUrl": "local:KATAGO_PATH",
+      "licenseSummary": "Engine executable is configured locally and not redistributed by this repository.",
+      "dataType": "engine",
+      "redistributionAllowed": "not_allowed",
+      "localPath": "process.env.KATAGO_PATH"
+    },
+    {
+      "sourceName": "User-provided Reversi WTHOR folder",
+      "sourceUrl": "local:data/reversi/wthor/",
+      "licenseSummary": "User is responsible for WTHOR licensing. Scripts derive move statistics only.",
+      "dataType": "WTHOR",
+      "redistributionAllowed": "local_only",
+      "localPath": "data/reversi/wthor/"
+    },
+    {
+      "sourceName": "Local Edax executable",
+      "sourceUrl": "local:EDAX_PATH",
+      "licenseSummary": "Engine executable is configured locally and not redistributed by this repository.",
+      "dataType": "engine",
+      "redistributionAllowed": "not_allowed",
+      "localPath": "process.env.EDAX_PATH"
+    },
+    {
+      "sourceName": "Topoboardgame Chinese Checkers local notes",
+      "sourceUrl": "local:data/chinese-checkers/notes/",
+      "licenseSummary": "User-authored notes and numeric features only. Do not paste copyrighted articles.",
+      "dataType": "notes",
+      "redistributionAllowed": "local_only",
+      "localPath": "data/chinese-checkers/notes/"
+    }
+  ]
+}
+

@@ -1,0 +1,15 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "chinese-checkers",
+  "boardScope": "standard-only",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:user-notes", "local:selfplay"],
+  "features": [
+    { "name": "totalGraphDistanceToGoal", "weight": -2.4, "appliesTo": ["standard"], "description": "Sum of shortest graph distances from pieces to target camp." },
+    { "name": "piecesInsideGoal", "weight": 5.0, "appliesTo": ["standard"], "description": "Pieces already in target camp." },
+    { "name": "piecesStillInStartingCamp", "weight": -3.0, "appliesTo": ["standard"], "description": "Penalty for pieces left behind." },
+    { "name": "longestAvailableJumpChain", "weight": 1.8, "appliesTo": ["standard"], "description": "Best immediate jump-chain length." },
+    { "name": "ownGoalBlockingPenalty", "weight": -2.0, "appliesTo": ["standard"], "description": "Penalty for blocking own incoming pieces in target camp." }
+  ]
+}
+

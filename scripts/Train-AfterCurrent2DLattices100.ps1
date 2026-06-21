@@ -20,6 +20,18 @@ function Write-Log($Message) {
   Write-Host $line
 }
 
+function Invoke-Native($ScriptBlock) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # Several research scripts report progress on stderr. Treat native process
+    # success by exit code so progress text does not stop the wrapper early.
+    $script:ErrorActionPreference = "Continue"
+    & $ScriptBlock
+  } finally {
+    $script:ErrorActionPreference = $previousErrorActionPreference
+  }
+}
+
 try {
   if ($WaitForPid -gt 0 -and (Get-Process -Id $WaitForPid -ErrorAction SilentlyContinue)) {
     Write-Log "Waiting for existing training PID $WaitForPid to finish."
@@ -38,32 +50,38 @@ try {
     $model = "local-models/$stem-linear.json"
 
     Write-Log "Self-play: $stem"
-    & npm.cmd run research:selfplay -- `
-      --game $job.Game `
-      --boundary $job.Boundary `
-      --lattice $job.Lattice `
-      --size $job.Size `
-      --games $Games `
-      --depthA $job.Depth `
-      --depthB $job.Depth `
-      --record moves `
-      --state true `
-      --out $data 2>> $err
+    Invoke-Native {
+      & npm.cmd run research:selfplay -- `
+        --game $job.Game `
+        --boundary $job.Boundary `
+        --lattice $job.Lattice `
+        --size $job.Size `
+        --games $Games `
+        --depthA $job.Depth `
+        --depthB $job.Depth `
+        --record moves `
+        --state true `
+        --out $data 2>> $err
+    }
     if ($LASTEXITCODE -ne 0) { throw "Self-play failed for $stem" }
 
     Write-Log "Train: $model"
-    & npm.cmd run ml:train-linear -- `
-      --in $data `
-      --out $model `
-      --epochs $Epochs `
-      --lr 0.04 `
-      --l2 0.0005 `
-      --game $job.Game 2>> $err
+    Invoke-Native {
+      & npm.cmd run ml:train-linear -- `
+        --in $data `
+        --out $model `
+        --epochs $Epochs `
+        --lr 0.04 `
+        --l2 0.0005 `
+        --game $job.Game 2>> $err
+    }
     if ($LASTEXITCODE -ne 0) { throw "Training failed for $stem" }
   }
 
   Write-Log "Promoting local-models/*.json to public/models."
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Promote-TrainedModels.ps1 2>> $err
+  Invoke-Native {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Promote-TrainedModels.ps1 2>> $err
+  }
   if ($LASTEXITCODE -ne 0) { throw "Model promotion failed" }
 
   Write-Log "Finished queued 2D lattice 100-game training."

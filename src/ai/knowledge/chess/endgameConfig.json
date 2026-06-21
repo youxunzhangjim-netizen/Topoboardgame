@@ -1,0 +1,15 @@
+{
+  "schema": "topoboardgame.ai.endgame_config.v1",
+  "gameType": "chess",
+  "exactSolver": {
+    "enabled": true,
+    "maxPieces": 7,
+    "localPathEnv": "LOCAL_SYZYGY_PATH"
+  },
+  "fallback": "engine",
+  "notes": [
+    "Syzygy files are optional local user data and are not redistributed.",
+    "If LOCAL_SYZYGY_PATH is missing or the position has more than 7 pieces, use Stockfish or local search."
+  ]
+}
+

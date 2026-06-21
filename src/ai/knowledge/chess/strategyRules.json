@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "chess",
+  "boardScope": "standard-only",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:user-pgn", "local:engine-analysis"],
+  "features": [
+    { "name": "centerControl", "weight": 1.2, "appliesTo": ["standard"], "description": "Derived count of attacked central squares." },
+    { "name": "kingSafety", "weight": 1.5, "appliesTo": ["standard"], "description": "Derived shield, exposure, and checking-threat score." },
+    { "name": "development", "weight": 0.9, "appliesTo": ["standard"], "description": "Minor-piece development and castling-readiness feature." },
+    { "name": "material", "weight": 3.0, "appliesTo": ["standard", "topology-transfer"], "description": "Material balance feature." }
+  ]
+}
+

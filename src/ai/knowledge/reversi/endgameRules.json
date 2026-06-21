@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.endgame_config.v1",
+  "gameType": "reversi",
+  "exactSolver": {
+    "enabled": true,
+    "maxEmptySquares": 10
+  },
+  "fallback": "local-search",
+  "notes": [
+    "Browser mode should keep the exact threshold small.",
+    "Desktop/local mode may raise the threshold after performance testing."
+  ]
+}
+

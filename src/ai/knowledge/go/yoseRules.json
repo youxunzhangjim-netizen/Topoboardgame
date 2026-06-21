@@ -1,0 +1,13 @@
+{
+  "schema": "topoboardgame.ai.strategy_rules.v1",
+  "gameType": "go",
+  "boardScope": "topology-transfer",
+  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "sources": ["local:user-sgf", "local:katago-analysis"],
+  "features": [
+    { "name": "scoreLead", "weight": 2.0, "appliesTo": ["standard"], "description": "Derived KataGo score lead when available." },
+    { "name": "ownershipSwing", "weight": 1.4, "appliesTo": ["standard"], "description": "Derived local ownership change estimate." },
+    { "name": "libertyPressure", "weight": 1.0, "appliesTo": ["standard", "topology-transfer"], "description": "Graph-liberty pressure feature." }
+  ]
+}
+

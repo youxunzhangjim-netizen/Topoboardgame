@@ -1,0 +1,279 @@
+{
+  "schema": "topoboardgame.ai.strategy_knowledge.v1",
+  "generatedAt": "2026-06-21T19:21:32.630Z",
+  "game": "chinese-checkers",
+  "boardFamily": "graph-topology",
+  "manifest": [
+    {
+      "id": "User-provided chess PGN folder",
+      "name": "User-provided chess PGN folder",
+      "url": "local:data/chess/pgn/",
+      "localPath": "data/chess/pgn/",
+      "license": "User is responsible for placing PGN files with suitable local-use or redistribution rights.",
+      "redistributionAllowed": false,
+      "dataType": "PGN",
+      "notes": ""
+    },
+    {
+      "id": "Local Stockfish executable",
+      "name": "Local Stockfish executable",
+      "url": "local:STOCKFISH_PATH",
+      "localPath": "process.env.STOCKFISH_PATH",
+      "license": "Engine executable is configured locally and not redistributed by this repository.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": ""
+    },
+    {
+      "id": "Local Syzygy tablebase folder",
+      "name": "Local Syzygy tablebase folder",
+      "url": "local:LOCAL_SYZYGY_PATH",
+      "localPath": "process.env.LOCAL_SYZYGY_PATH",
+      "license": "Optional local tablebase path. Tablebase files are not included in this repository.",
+      "redistributionAllowed": false,
+      "dataType": "TABLEBASE",
+      "notes": ""
+    },
+    {
+      "id": "User-provided Go SGF folder",
+      "name": "User-provided Go SGF folder",
+      "url": "local:data/go/sgf/",
+      "localPath": "data/go/sgf/",
+      "license": "User is responsible for SGF licensing. Scripts derive joseki/fuseki statistics only.",
+      "redistributionAllowed": false,
+      "dataType": "SGF",
+      "notes": ""
+    },
+    {
+      "id": "Local KataGo executable",
+      "name": "Local KataGo executable",
+      "url": "local:KATAGO_PATH",
+      "localPath": "process.env.KATAGO_PATH",
+      "license": "Engine executable is configured locally and not redistributed by this repository.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": ""
+    },
+    {
+      "id": "User-provided Reversi WTHOR folder",
+      "name": "User-provided Reversi WTHOR folder",
+      "url": "local:data/reversi/wthor/",
+      "localPath": "data/reversi/wthor/",
+      "license": "User is responsible for WTHOR licensing. Scripts derive move statistics only.",
+      "redistributionAllowed": false,
+      "dataType": "WTHOR",
+      "notes": ""
+    },
+    {
+      "id": "Local Edax executable",
+      "name": "Local Edax executable",
+      "url": "local:EDAX_PATH",
+      "localPath": "process.env.EDAX_PATH",
+      "license": "Engine executable is configured locally and not redistributed by this repository.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": ""
+    },
+    {
+      "id": "Topoboardgame Chinese Checkers local notes",
+      "name": "Topoboardgame Chinese Checkers local notes",
+      "url": "local:data/chinese-checkers/notes/",
+      "localPath": "data/chinese-checkers/notes/",
+      "license": "User-authored notes and numeric features only. Do not paste copyrighted articles.",
+      "redistributionAllowed": false,
+      "dataType": "NOTES",
+      "notes": ""
+    },
+    {
+      "id": "stockfish",
+      "name": "Stockfish chess engine",
+      "url": "https://stockfishchess.org/",
+      "license": "GPL-3.0-or-later. Use as a local external engine unless GPL obligations are intentionally handled.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": "Metadata only. The repository does not download or bundle Stockfish."
+    },
+    {
+      "id": "katago",
+      "name": "KataGo Go engine",
+      "url": "https://github.com/lightvector/KataGo",
+      "license": "MIT license for engine source; neural network/model files may have their own terms.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": "Metadata only. Configure a local KATAGO_PATH for analysis."
+    },
+    {
+      "id": "edax",
+      "name": "Edax Reversi engine",
+      "url": "https://github.com/abulmo/edax-reversi",
+      "license": "Verify upstream license before redistribution.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": "Metadata only. Configure a local EDAX_PATH for analysis."
+    },
+    {
+      "id": "wthor",
+      "name": "WTHOR Reversi game files",
+      "url": "https://www.ffothello.org/informatique/la-base-wthor/",
+      "license": "Verify data license before redistribution.",
+      "redistributionAllowed": false,
+      "dataType": "WTHOR",
+      "notes": "User-provided local files only; derived opening statistics can be regenerated locally."
+    },
+    {
+      "id": "pettingzoo-chinese-checkers",
+      "name": "PettingZoo Chinese Checkers research environment",
+      "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
+      "license": "Verify repository license before code reuse.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Metadata reference for multi-agent training ideas; do not copy code without license review."
+    },
+    {
+      "id": "scid",
+      "name": "Scid chess database tool",
+      "url": "https://scid.sourceforge.net/",
+      "license": "GPL software; bundled sample databases may have separate terms.",
+      "redistributionAllowed": false,
+      "dataType": "PGN",
+      "notes": "Metadata reference for PGN/database tooling, not a bundled data source."
+    }
+  ],
+  "rules": [
+    {
+      "id": "note-5a55f0b0",
+      "game": "chinese-checkers",
+      "phase": "middlegame",
+      "boardFamily": "graph-topology",
+      "description": "Place your own Chinese Checkers strategy notes or numeric weight overrides here.",
+      "features": [
+        "kingSafety"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-5d1e9ebd",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "Use `weights.json` for local overrides such as:",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-33b79ac0",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "```json",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-116fcc1c",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "{",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-48d63d7c",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "\"totalGraphDistanceToGoal\": -2.4,",
+      "features": [
+        "graphDistanceToGoal"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-e714cc1c",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "\"piecesInsideGoal\": 5.0",
+      "features": [
+        "graphDistanceToGoal"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-2243f97d",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "}",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-2ea9dc75",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "```",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    },
+    {
+      "id": "note-0cc581ab",
+      "game": "chinese-checkers",
+      "phase": "middlegame",
+      "boardFamily": "graph-topology",
+      "description": "Do not paste copyrighted strategy articles.",
+      "features": [
+        "heuristicPattern"
+      ],
+      "weight": 1,
+      "sourceIds": [
+        "Topoboardgame Chinese Checkers local notes"
+      ]
+    }
+  ],
+  "openingBook": [],
+  "endgameBook": [],
+  "decisionStack": [
+    "terminal",
+    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "opening-book",
+    "engine-or-search",
+    "difficulty-policy"
+  ]
+}
