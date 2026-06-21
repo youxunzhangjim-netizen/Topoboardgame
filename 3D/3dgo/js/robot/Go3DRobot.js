@@ -242,6 +242,16 @@ export function installGo3DRobot(app) {
         return;
       }
       const actor = app.logic.currentPlayer;
+      if (move.type !== 'pass' && await app.__spaceTimeScheduleRobotAction?.({
+        kind: 'go',
+        player: actor,
+        coord: move.coord,
+        score: a.topMoves[0]?.score ?? 0
+      })) {
+        recordRobotLearningMove({ gameType: 'go', variant: '3d+1', topology: `${app.logic.topology || 'r3'}:${app.logic.lattice || 'sc'}`, player: actor, robot: `level-${level.value || 1}:time-schedule`, move: { type: 'schedule', coord: move.coord, label: coordLabel(move.coord) }, score: a.topMoves[0]?.score ?? null, result: null });
+        out.textContent = `Robot scheduled ${coordLabel(move.coord)}.`;
+        return;
+      }
       const result = move.type === 'pass' ? app.logic.pass(actor) : app.logic.tryPlay(move.coord, actor);
       if (!result.ok) {
         const pass = move.type === 'pass' ? null : app.logic.pass(actor);

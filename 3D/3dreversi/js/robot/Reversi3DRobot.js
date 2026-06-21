@@ -147,6 +147,17 @@ export function installReversi3DRobot(app) {
     const m=a.topMoves[0]?.move;
     if(m){
       const actor = app.logic.currentPlayer;
+      if (await app.__spaceTimeScheduleRobotAction?.({
+        kind: 'reversi',
+        player: actor,
+        coord: m.coord,
+        flips: m.flips?.length || 0,
+        score: a.topMoves[0]?.score ?? 0
+      })) {
+        recordRobotLearningMove({ gameType: 'reversi', variant: '3d+1', topology: `${app.logic.topology?.topology || 'r3'}:${app.logic.topology?.lattice || 'sc'}`, player: actor, robot: `depth-${depth.value || 2}:time-schedule`, move: { type: 'schedule', coord: m.coord, label: coordLabel(m.coord), flipped: m.flips?.length || 0 }, score: a.topMoves[0]?.score ?? null, result: null });
+        out.textContent = `Robot scheduled ${coordLabel(m.coord)}.`;
+        return;
+      }
       const result = app.logic.play(m.coord, actor);
       if (result.ok) {
         recordRobotLearningMove({ gameType: 'reversi', variant: '3d', topology: `${app.logic.topology?.topology || 'r3'}:${app.logic.topology?.lattice || 'sc'}`, player: actor, robot: `depth-${depth.value || 2}`, move: { type: 'play', coord: m.coord, label: coordLabel(m.coord), flipped: result.flipped }, score: a.topMoves[0]?.score ?? null, result: app.logic.gameOver ? { gameOver: true, winner: app.logic.winner || null } : null });

@@ -226,7 +226,48 @@ const ZH = new Map(Object.entries({
   'Schedule action': '排程行動',
   'Pick schedule time': '選擇排程時間',
   'Instant': '立即',
-  'Cancel': '取消'
+  'Cancel': '取消',
+  'Copied': '已複製',
+  'Game started.': '遊戲開始。',
+  'Draw': '平手',
+  'No active selection.': '目前沒有選取。',
+  'No legal move. Pass is likely required.': '沒有合法著法，可能需要停手。',
+  'No bad move list.': '沒有不佳著法列表。',
+  'No signals.': '沒有局面指標。',
+  'Side': '方',
+  'Boundary': '邊界',
+  'Score': '分數',
+  'Win rate': '勝率',
+  'Top moves': '最佳著法',
+  'Bad moves': '不佳著法',
+  'Position signals': '局面指標',
+  'Final win-rate flow': '終局勝率曲線',
+  'Robot heuristic replay from the move record; it is an evaluation curve, not a solved-game proof.': '機器人依移動紀錄重放啟發式評估；這是評估曲線，不是已解證明。',
+  'Algebraic Game Guide': '代數遊戲指南',
+  'Introduction': '介紹',
+  'Close introduction': '關閉介紹',
+  'Clifford Introduction and Observables': 'Clifford 介紹與可觀測量',
+  'Stabilizer Introduction and Observables': 'Stabilizer 介紹與可觀測量',
+  'Physical Cluster Go Introduction and Observables': '物理團簇圍棋介紹與可觀測量',
+  'CFT Domain-Wall Reversi Introduction and Observables': 'CFT 疇壁黑白棋介紹與可觀測量',
+  'Anyon Introduction and Observables': '任意子介紹與可觀測量',
+  'CFT Observable Go Introduction and Observables': 'CFT 可觀測圍棋介紹與可觀測量',
+  'CFT Observables': 'CFT 可觀測量',
+  'Toric-Code QEC Observables': 'Toric Code 量子糾錯可觀測量',
+  'Stabilizer Observables': 'Stabilizer 可觀測量',
+  'Time Evolution': '時間演化',
+  'Local Rule Preview': '局部規則預覽',
+  'Braid Event Log': '編織事件紀錄',
+  'Stochastic Event Log': '隨機事件紀錄',
+  'Research Export': '研究匯出',
+  'Export JSON': '匯出 JSON',
+  'Export CSV': '匯出 CSV',
+  'Choose a legal move.': '選擇合法著法。',
+  'Time evolution off.': '時間演化關閉。',
+  'Discrete CFT estimators appear here.': '離散 CFT 估計量會顯示在這裡。',
+  'Discrete graph estimators only; these are not exact continuum CFT conformal blocks.': '這些僅為離散圖估計量，不是精確的連續 CFT 共形塊。',
+  'Select the toric-code memory physical problem to begin.': '選擇 Toric Code 記憶物理問題以開始。',
+  'Select the Pauli error-correction / recovery physical problem to begin.': '選擇 Pauli 糾錯／恢復物理問題以開始。'
 }));
 
 const originals = new WeakMap();
@@ -374,6 +415,112 @@ function translateValue(text) {
     .replace(/^\+(\d+): hidden scheduled action$/g, '+$1：隱藏排程行動')
     .replace(/^([23]\+1D) Chess uses the original Chess board and rules with a time panel\.$/g, '$1 西洋棋使用原本棋盤與規則，並加入時間面板。')
     .replace(/^([23]\+1D) Chess uses the original Chess pieces and legal moves with Time schedule\.$/g, '$1 西洋棋使用原本棋子與合法走法，並加入時間排程。')
+    .replace(/^New (.+) Reversi game started\.$/g, '新的 $1 黑白棋遊戲開始。')
+    .replace(/^Waiting for (black|white)\.$/g, (_match, color) => `等待${color === 'black' ? '黑方' : '白方'}。`)
+    .replace(/^(Black|White) flipped (\d+) stones?\.$/g, (_match, color, count) => `${color === 'Black' ? '黑方' : '白方'}翻轉 ${count} 顆棋子。`)
+    .replace(/^Robot (black|white) flipped (\d+) stones?\.$/g, (_match, color, count) => `機器人${color === 'black' ? '黑方' : '白方'}翻轉 ${count} 顆棋子。`)
+    .replace(/^Robot scheduled (.+)\.$/g, '機器人已排程 $1。')
+    .replace(/^Robot scheduled (.+)\. Score (.+)\.$/g, '機器人已排程 $1。分數 $2。')
+    .replace(/^Robot played (.+) and flipped (\d+)\.$/g, '機器人下在 $1，翻轉 $2 顆。')
+    .replace(/^Robot found (.+) at score (.+); nodes (\d+)( \(time-limited\))?\.$/g, (_match, move, score, nodes, limited) => `機器人找到 ${move}，分數 ${score}；節點 ${nodes}${limited ? '（限時）' : ''}。`)
+    .replace(/^Robot found no legal move\.$/g, '機器人沒有找到合法著法。')
+    .replace(/^Robot found no move and pass was rejected\.$/g, '機器人沒有找到著法，且停手被拒絕。')
+    .replace(/^Robot move was rejected(?:: (.+))?\.$/g, (_match, reason) => `機器人著法被拒絕${reason ? `：${reason}` : ''}。`)
+    .replace(/^Robot error: (.+)$/g, '機器人錯誤：$1')
+    .replace(/^Analysis error: (.+)$/g, '分析錯誤：$1')
+    .replace(/^Analyzing (black|white) at (?:depth|search level) (\d+)\.\.\.$/g, (_match, color, depth) => `正在以深度 ${depth} 分析${color === 'black' ? '黑方' : '白方'}…`)
+    .replace(/^Depth (\d+); completed (\d+); (\d+) searched nodes(?:, time\/node limit reached)?\. Win rate is heuristic, not solved\.$/g, '深度 $1；已完成 $2；搜尋 $3 個節點。勝率是啟發式估計，不是已解結果。')
+    .replace(/^Black (\d+), White (\d+), Empty (\d+); completed depth (\d+)$/g, '黑方 $1，白方 $2，空點 $3；完成深度 $4')
+    .replace(/^(.+) to play · score (.+) · win estimate (.+)% · nodes (\d+)$/g, '$1 行動 · 分數 $2 · 勝率估計 $3% · 節點 $4')
+    .replace(/^(.+) to play · score (.+) · win estimate (.+)% · (.+)\/(.+) · nodes (\d+)( \(time-limited\))?$/g, (_match, player, score, win, topology, lattice, nodes, limited) => `${player} 行動 · 分數 ${score} · 勝率估計 ${win}% · ${topology}/${lattice} · 節點 ${nodes}${limited ? '（限時）' : ''}`)
+    .replace(/^score (.+) · win (.+)%$/g, '分數 $1 · 勝率 $2%')
+    .replace(/^(.+) has no legal moves\. Final count\.$/g, '$1 沒有合法著法。最終計數。')
+    .replace(/^(Black|White) wins by (.+)$/g, (_match, color, margin) => `${color === 'Black' ? '黑方' : '白方'}勝 ${margin}`)
+    .replace(/^(Black|White) wins$/g, (_match, color) => `${color === 'Black' ? '黑方' : '白方'}獲勝`)
+    .replace(/^Final count: (.+)$/g, '最終計數：$1')
+    .replace(/^(Black|White) passed$/g, (_match, color) => `${color === 'Black' ? '黑方' : '白方'}停手`)
+    .replace(/^(Black|White) auto-passed$/g, (_match, color) => `${color === 'Black' ? '黑方' : '白方'}自動停手`)
+    .replace(/^(Black|White) \(([^)]+)\) flipped (\d+)$/g, (_match, color, coord, count) => `${color === 'Black' ? '黑方' : '白方'}（${coord}）翻轉 ${count} 顆`)
+    .replace(/^Empty \(([^)]+)\): legal, flips (\d+)\.$/g, '空點（$1）：合法，可翻轉 $2 顆。')
+    .replace(/^Empty \(([^)]+)\): not legal for current player\.$/g, '空點（$1）：目前玩家不能下在這裡。')
+    .replace(/^(Black|White) stone at \(([^)]+)\)\.$/g, (_match, color, coord) => `${color === 'Black' ? '黑方' : '白方'}棋子在（${coord}）。`)
+    .replace(/^That vertex does not bracket any opponent stones\.$/g, '該頂點沒有夾住任何對手棋子。')
+    .replace(/^Move unavailable\.$/g, '此著法不可用。')
+    .replace(/^Pass is only available when the current player has no legal move\.$/g, '只有目前玩家沒有合法著法時才能停手。')
+    .replace(/^Pass unavailable\.$/g, '目前不能停手。')
+    .replace(/^Turn passed\.$/g, '本回合停手。')
+    .replace(/^Current$/g, '目前')
+    .replace(/^Model$/g, '模型')
+    .replace(/^Central Charge$/g, '中心荷')
+    .replace(/^Dominant Block$/g, '主導共形塊')
+    .replace(/^Entropy$/g, '熵')
+    .replace(/^Strongest Correlation$/g, '最強相關')
+    .replace(/^OPE Channels$/g, 'OPE 通道')
+    .replace(/^Anomaly Events$/g, '異常事件')
+    .replace(/^Vacuum Block$/g, '真空共形塊')
+    .replace(/^Total Charge$/g, '總荷')
+    .replace(/^Logical Sector$/g, '邏輯扇區')
+    .replace(/^Memory$/g, '記憶')
+    .replace(/^Vacuum Recovery$/g, '真空恢復')
+    .replace(/^Average Braid Length$/g, '平均編織長度')
+    .replace(/^Maximum Braid Length$/g, '最大編織長度')
+    .replace(/^Successful Unbraids$/g, '成功解編織')
+    .replace(/^Failed Unbraids$/g, '失敗解編織')
+    .replace(/^Syndrome Weight$/g, '症候權重')
+    .replace(/^Check Violations$/g, '檢查違反數')
+    .replace(/^Global Parity$/g, '全域奇偶')
+    .replace(/^Commutation Conflicts$/g, '對易衝突')
+    .replace(/^Ancillas$/g, '輔助位')
+    .replace(/^Measurement Errors$/g, '測量錯誤')
+    .replace(/^Vacuum$/g, '真空')
+    .replace(/^Alive$/g, '存活')
+    .replace(/^Not recovered$/g, '尚未恢復')
+    .replace(/^Yes$/g, '是')
+    .replace(/^No$/g, '否')
+    .replace(/^Algebra set:$/g, '代數設定：')
+    .replace(/^Lab goal:$/g, '實驗目標：')
+    .replace(/^Physical meaning:$/g, '物理意義：')
+    .replace(/^Physical problem \/ goal:$/g, '物理問題／目標：')
+    .replace(/^Initial states:$/g, '初始狀態：')
+    .replace(/^Actions:$/g, '行動：')
+    .replace(/^Observables:$/g, '可觀測量：')
+    .replace(/^Results:$/g, '結果：')
+    .replace(/^Answer:$/g, '答案：')
+    .replace(/^Move rule:$/g, '移動規則：')
+    .replace(/^3D boards:$/g, '3D 棋盤：')
+    .replace(/^Dynamics choices:$/g, '動力學選項：')
+    .replace(/^Topology:$/g, '拓撲：')
+    .replace(/^Measurements:$/g, '測量：')
+    .replace(/^Default CFT:$/g, '預設 CFT：')
+    .replace(/^Estimator note:$/g, '估計器說明：')
+    .replace(/Clifford Reversi is one game with configurable algebra and opening rules\./g, 'Clifford 黑白棋是一個可設定代數與開局規則的遊戲。')
+    .replace(/Standard Pauli keeps the ordinary four-stone Reversi opening\./g, '標準 Pauli 保留普通四子黑白棋開局。')
+    .replace(/Choose Stabilizer Algebra to use qubit sites, alternate initial rules, measurements, phases, and ancillas\./g, '選擇 Stabilizer Algebra 可使用量子位點、替代初始規則、測量、相位與輔助位。')
+    .replace(/compare how the same Pauli\/Clifford flipping rule changes when topology, seams, lattice, noise, and time settings alter the rays that carry local information\./g, '比較同一個 Pauli/Clifford 翻轉規則在拓撲、接縫、晶格、噪聲與時間設定改變局部資訊傳遞射線時如何變化。')
+    .replace(/place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray\./g, '只有當空頂點沿拓撲感知射線夾住至少一條對手鏈時，才能放置帶 Pauli 標籤的棋子。')
+    .replace(/Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions\./g, '射線使用所選拓撲，因此 2D RBC、環面、Klein 瓶、RP2、S2 緯線與 4D 網格棋盤都使用各自的圖正規化，而不是平面邊界假設。')
+    .replace(/every bracketed opponent stone changes to the acting color\./g, '每顆被夾住的對手棋子都會變成行動方顏色。')
+    .replace(/Pauli noise changes labels with seeded random rolls\./g, 'Pauli 噪聲會用帶種子的隨機擲骰改變標籤。')
+    .replace(/Time evolution can age pieces on the selected clock after moves or full rounds/g, '時間演化可在移動後或完整輪次後依所選時鐘讓棋子老化')
+    .replace(/the export records topology, lattice, board labels, move history, position history, probability\/noise events, time-evolution state, and final counts\./g, '匯出會記錄拓撲、晶格、棋盤標籤、移動歷史、局面歷史、機率／噪聲事件、時間演化狀態與最終計數。')
+    .replace(/this is the Stabilizer Algebra configuration of the same Clifford Reversi game\./g, '這是同一個 Clifford 黑白棋遊戲的 Stabilizer Algebra 設定。')
+    .replace(/empty vertices are identity I with no active excitation\./g, '空頂點是沒有活躍激發的恆等 I。')
+    .replace(/Occupied vertices store owner, Pauli I\/X\/Y\/Z, sign, phase modulo four, and optional ancilla data\./g, '被佔據的頂點會儲存所有者、Pauli I/X/Y/Z、符號、模四相位與可選輔助位資料。')
+    .replace(/recovery means using local Pauli-frame actions to reduce measured X\/Z syndrome defects and return the board toward the stabilizer vacuum or intended logical sector\./g, '恢復表示使用局部 Pauli-frame 行動降低測得的 X/Z 症候缺陷，並讓棋盤回到 stabilizer 真空或目標邏輯扇區。')
+    .replace(/Stabilizer Pauli correction\/recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli\/phase distributions, and a compact final answer/g, 'Stabilizer Pauli 糾錯／恢復會匯出初始與最終可觀測量、完整物理歷史、測量紀錄、電路歷史、恢復時間、邏輯錯誤旗標、最終扇區、Pauli/相位分布與精簡最終答案')
+    .replace(/black is species A, phase A, or spin sector A\./g, '黑方代表物種 A、相位 A 或自旋扇區 A。')
+    .replace(/White is species B, phase B, or spin sector B\./g, '白方代表物種 B、相位 B 或自旋扇區 B。')
+    .replace(/test whether competing local growth rules create survival, extinction, percolation, or topology-wrapping clusters on different spaces\./g, '測試競爭式局部生長規則是否會在不同空間中產生存活、滅絕、滲流或繞拓撲的團簇。')
+    .replace(/liberties are neighboring empty graph vertices that can feed growth\./g, '氣是可供生長的相鄰空圖頂點。')
+    .replace(/black is the \+ source\/domain sign and white is the - source\/domain sign\./g, '黑方是正源／正疇符號，白方是負源／負疇符號。')
+    .replace(/A stone is a primary field or spin\/domain insertion\./g, '一顆棋子代表 primary field 或自旋／疇插入。')
+    .replace(/use Reversi brackets as discrete intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph\./g, '使用黑白棋夾擊作為離散區間，觀察源符號、疇壁與 OPE 通道如何在所選圖上重組。')
+    .replace(/create mobile topological charges, braid or unbraid their worldlines, then test whether fusion and logical memory return to the intended vacuum or sector\./g, '建立可移動拓撲荷，編織或解編織其世界線，再測試融合與邏輯記憶是否回到目標真空或扇區。')
+    .replace(/a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex/g, '一個棋子可以跳到相鄰空頂點，或越過一個被佔據的相鄰棋子到下一個空頂點')
+    .replace(/the board is a discretized Riemann surface \/ graph manifold\./g, '棋盤是離散化的 Riemann 曲面／圖流形。')
+    .replace(/place primary fields and use Go captures as graph operations, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates\./g, '放置 primary field，並把圍棋提子當作圖操作，再測量哪個共形塊、相關模式、熵增長或異常響應占主導。')
+    .replace(/legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency\./g, '合法落子、氣、提子、自殺、超劫、停手與面積計分都使用拓撲鄰接。')
+    .replace(/export summarizes final dominant block, identity\/vacuum block dominance, entropy growth, strongest correlations, final OPE sector, and anomaly count\./g, '匯出會總結最終主導共形塊、恆等／真空共形塊優勢、熵增長、最強相關、最終 OPE 扇區與異常數。')
     .replace(/\bInstant\b/g, '立即')
     .replace(/^(\d+) stones?$/, '$1 顆棋子')
     .replace(/^Robot is thinking\.\.\.$/, '機器人思考中…')

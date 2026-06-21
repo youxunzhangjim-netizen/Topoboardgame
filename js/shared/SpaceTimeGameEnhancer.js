@@ -375,8 +375,109 @@
     if (family === 'go' || family === 'reversi') patchStoneGame(app);
     if (family === 'jump') patchJumpGame(app);
     if (family === 'chess') patchChessGame(app);
+    installRobotScheduleApi(app);
     installDelayClickDesign(app);
     patchNetworkKeys(app);
+  }
+
+  function installRobotScheduleApi(app) {
+    if (!app || app.__spaceTimeRobotScheduleApi) return;
+    app.__spaceTimeRobotScheduleApi = true;
+    app.__spaceTimeScheduleRobotAction = (draft = {}) => {
+      if (settings.timeMode !== 'delay' || !draft || draft.kind !== family) return false;
+      const normalized = normalizeRobotActionDraft(app, draft);
+      if (!normalized) return false;
+      const delay = chooseRobotScheduleDelay(normalized);
+      return scheduleProgrammaticAction(app, normalized, delay);
+    };
+  }
+
+  function normalizeRobotActionDraft(app, draft = {}) {
+    if (family === 'go') {
+      const logic = app?.logic;
+      if (!logic || logic.gameOver || draft.type === 'pass' || !draft.coord) return null;
+      const index = logic.indexFromCoord?.(draft.coord);
+      if (!Number.isFinite(index) || logic.board?.[index] !== 0) return null;
+      return {
+        kind: 'go',
+        player: draft.player || logic.currentPlayer,
+        coord: [...draft.coord],
+        score: Number(draft.score || 0),
+        summary: draft.summary || `Go ${titleCase(draft.player || logic.currentPlayer)} placement at (${draft.coord.join(',')})`
+      };
+    }
+    if (family === 'reversi') {
+      const logic = app?.logic;
+      if (!logic || logic.gameOver || !draft.coord) return null;
+      const player = draft.player || logic.currentPlayer;
+      const legal = logic.legalMoves?.(player)?.find((move) => logic.key(move.coord) === logic.key(draft.coord));
+      if (!legal) return null;
+      return {
+        kind: 'reversi',
+        player,
+        coord: [...legal.coord],
+        flips: Number(draft.flips ?? legal.flips?.length ?? 0),
+        score: Number(draft.score || 0),
+        summary: draft.summary || `Reversi ${titleCase(player)} at (${legal.coord.join(',')}); ${legal.flips.length} flip${legal.flips.length === 1 ? '' : 's'} if still legal`
+      };
+    }
+    if (family === 'jump') {
+      if (!draft.move) return null;
+      return {
+        kind: 'jump',
+        player: draft.player || app?.game?.currentPlayer || 'A',
+        move: clonePlainMove(draft.move),
+        score: Number(draft.score || 0),
+        summary: draft.summary || `Jump ${draft.move.type} ${draft.move.from?.join(',')} -> ${draft.move.to?.join(',')}`
+      };
+    }
+    return null;
+  }
+
+  async function scheduleProgrammaticAction(app, draft, delay) {
+    const baseTurn = currentTurn(app);
+    const action = {
+      ...draft,
+      dueTurn: baseTurn + (delay === 0 ? 0 : delay + 1),
+      createdTurn: baseTurn,
+      delay,
+      instant: delay === 0
+    };
+    delete action.summary;
+    settings.actionDelay = delay;
+    saveSettings();
+    if (action.instant) {
+      const ok = await applyScheduledAction(app, action);
+      if (ok) processDueScheduledActions(app);
+      state.lastApplyMessage = ok ? 'Robot instant action resolved.' : 'Robot instant action was cancelled because it is no longer legal.';
+      triggerRender(app);
+      refreshPanel();
+      return Boolean(ok);
+    }
+    state.scheduledActions.push(action);
+    clearPendingSelection(app, action);
+    consumeTurnForScheduled(app, scheduleMessage(action));
+    return true;
+  }
+
+  function chooseRobotScheduleDelay(draft = {}) {
+    const max = readNumber(settings.delay, 2, 1, 32);
+    if (max <= 0) return 0;
+    if (draft.kind === 'reversi') {
+      if (Number(draft.flips || 0) >= 3 || Number(draft.score || 0) >= 160) return 0;
+      if (Number(draft.flips || 0) >= 2 || Number(draft.score || 0) >= 60) return Math.min(1, max);
+      return Math.min(2, max);
+    }
+    if (draft.kind === 'go') {
+      if (Number(draft.score || 0) >= 80) return 0;
+      if (Number(draft.score || 0) >= 20) return Math.min(1, max);
+      return Math.min(2, max);
+    }
+    if (draft.kind === 'jump') {
+      if (draft.move?.type === 'jump' || Number(draft.score || 0) >= 50) return 0;
+      return Math.min(1, max);
+    }
+    return Math.min(selectedActionDelay(), max);
   }
 
   function patchStoneGame(app) {

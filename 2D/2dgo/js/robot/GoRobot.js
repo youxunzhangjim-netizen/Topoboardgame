@@ -88,6 +88,26 @@ export class GoRobotController {
                 return;
             }
             const before = this.app.logic.currentPlayer;
+            if (move.type !== 'pass' && await this.app.__spaceTimeScheduleRobotAction?.({
+                kind: 'go',
+                player: before,
+                coord: move.coord,
+                score: result.score
+            })) {
+                const label = coordLabel(move.coord);
+                recordRobotLearningMove({
+                    gameType: 'go',
+                    variant: '2d+1',
+                    topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                    player: before,
+                    robot: `level-${this.depth}:time-schedule`,
+                    move: { type: 'schedule', coord: move.coord, label },
+                    score: result.score,
+                    result: null
+                });
+                this.setMessage(`Robot scheduled ${label}. Score ${formatScore(result.score)}.`);
+                return;
+            }
             const play = move.type === 'pass' ? this.app.logic.pass(before) : this.app.logic.tryPlay(move.coord, before);
             if (!play.ok) {
                 const fallback = move.type === 'pass' ? null : this.app.logic.pass(before);

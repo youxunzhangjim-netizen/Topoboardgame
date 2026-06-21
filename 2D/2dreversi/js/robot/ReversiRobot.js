@@ -69,6 +69,26 @@ export class ReversiRobotController {
                 return;
             }
             const actor = this.app.logic.currentPlayer;
+            if (await this.app.__spaceTimeScheduleRobotAction?.({
+                kind: 'reversi',
+                player: actor,
+                coord: result.move.coord,
+                flips: result.move.flips?.length || 0,
+                score: result.score
+            })) {
+                recordRobotLearningMove({
+                    gameType: 'reversi',
+                    variant: '2d+1',
+                    topology: `${this.app.logic.topology?.topology || 'standard'}:${this.app.logic.topology?.lattice || 'square'}`,
+                    player: actor,
+                    robot: `depth-${this.depth}:time-schedule`,
+                    move: { type: 'schedule', coord: result.move.coord, label: coordLabel(result.move.coord), flipped: result.move.flips?.length || 0 },
+                    score: result.score,
+                    result: null
+                });
+                this.setMessage(`Robot scheduled ${coordLabel(result.move.coord)}. Score ${formatScore(result.score)}.`);
+                return;
+            }
             const played = this.app.logic.play(result.move.coord, actor);
             if (!played.ok) { this.setMessage(`Robot move was rejected: ${played.reason || 'illegal'}`); return; }
             recordRobotLearningMove({
