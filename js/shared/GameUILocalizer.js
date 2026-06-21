@@ -1,6 +1,15 @@
 const ZH = new Map(Object.entries({
   'Language': '語言',
   'Home': '首頁',
+  'Topological Board Game': '拓撲棋盤遊戲',
+  'Strategy & Systems Labs': '策略與系統實驗室',
+  'Game': '遊戲',
+  'Game Layer': '遊戲層',
+  'Algebraic Games': '代數遊戲',
+  'Research Problem': '研究問題',
+  'None': '無',
+  'On': '開啟',
+  'Off': '關閉',
   'Game Controls': '遊戲控制',
   'Play': '遊玩',
   'Game Mode': '遊戲模式',
@@ -147,7 +156,16 @@ const ZH = new Map(Object.entries({
   '3D Sphere': '3D 球面',
   '2D Cut-open Fallback': '2D 切開備用視圖',
   'Standard / Simple Cubic': '標準／簡單立方',
-  'Standard / Square': '標準／方格'
+  'Standard / Square': '標準／方格',
+  'Standard uses ordinary open board edges.': '標準使用普通的開放棋盤邊界。',
+  'Square uses the usual four orthogonal graph neighbors.': '方格使用一般的上下左右四個正交圖鄰居。',
+  'Square uses the usual eight 2D rays.': '方格使用一般的八個 2D 射線方向。',
+  'Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.': '蜂巢格使用正六邊形單元。棋子位於單元中心，並沿六個軸向射線夾擊。',
+  'Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links.': '蜂巢格每個內部點有三個圖鄰居；棋群、氣、提子和地盤都使用這些連結。',
+  'Triangular uses six graph neighbors per interior point. A group is captured only after every exposed axial and diagonal liberty is enclosed.': '三角格每個內部點有六個圖鄰居；必須封住所有外露的軸向和斜向氣後才會提子。',
+  'Cylinder identifies only left-right edges, while top and bottom remain ordinary open Reversi edges.': '圓柱只把左右邊界相接，上下仍是普通的開放 Reversi 邊界。',
+  'R3 Standard uses ordinary open boundaries in x, y, and z.': 'R3 標準在 x、y、z 方向都使用普通開放邊界。',
+  'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.': 'R3 標準使用普通開放立方邊界。Reversi 夾擊可沿 26 個圖射線方向進行。'
 }));
 
 const originals = new WeakMap();
@@ -174,9 +192,19 @@ export function installGameUILocalizer() {
 export function setGameLanguage(value) {
   language = normalizeLanguage(value);
   document.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
-  for (const key of ['topoboardgame-language', 'topoboardgame.lang', 'topological-boardgame:language']) {
+  for (const key of [
+    'topological-boardgame:language',
+    'topoboardgame-language',
+    'topoboardgame.lang',
+    '2dchess:language',
+    '3dchess:language',
+    '3dgo:language'
+  ]) {
     localStorage.setItem(key, language);
   }
+  const url = new URL(location.href);
+  url.searchParams.set('lang', language);
+  history.replaceState(history.state, '', url);
   translateTree(document.body, true);
   syncLanguageControl();
 }
@@ -217,6 +245,12 @@ function translateAttributes(element) {
 function translateValue(text) {
   if (ZH.has(text)) return ZH.get(text);
   return text
+    .replace(/Standard uses ordinary open board edges\./g, '標準使用普通的開放棋盤邊界。')
+    .replace(/Square uses the usual four orthogonal graph neighbors\./g, '方格使用一般的上下左右四個正交圖鄰居。')
+    .replace(/Square uses the usual eight 2D rays\./g, '方格使用一般的八個 2D 射線方向。')
+    .replace(/Honeycomb uses regular hexagonal cells\. Stones occupy cell centers and bracket along six axial rays\./g, '蜂巢格使用正六邊形單元。棋子位於單元中心，並沿六個軸向射線夾擊。')
+    .replace(/Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links\./g, '蜂巢格每個內部點有三個圖鄰居；棋群、氣、提子和地盤都使用這些連結。')
+    .replace(/Triangular uses six graph neighbors per interior point\. A group is captured only after every exposed axial and diagonal liberty is enclosed\./g, '三角格每個內部點有六個圖鄰居；必須封住所有外露的軸向和斜向氣後才會提子。')
     .replace(/^(\d+) stones?$/, '$1 顆棋子')
     .replace(/^Robot is thinking\.\.\.$/, '機器人思考中…')
     .replace(/^Robot is searching for (.+) at (?:depth|search level) (\d+)\.\.\.$/, '機器人正在以深度 $2 為 $1 搜尋…')
@@ -226,14 +260,43 @@ function translateValue(text) {
 }
 
 function installLanguageControl() {
-  if (document.querySelector('.language-switcher, [data-game-language-control]')) return;
-  const host = document.querySelector('.sidebar-header, .jump-side-header');
+  const host = document.querySelector('.header, .top-bar, .jump-header, .life-topbar');
   if (!host) return;
+  if (host.matches('.header') && host.querySelector(':scope > h1')) {
+    const copy = document.createElement('div');
+    copy.className = 'game-title-copy';
+    host.querySelectorAll(':scope > h1, :scope > p').forEach((element) => copy.append(element));
+    host.prepend(copy);
+  }
+  let actions = host.querySelector(':scope > .game-title-actions');
+  if (!actions) {
+    actions = document.createElement('div');
+    actions.className = 'game-title-actions';
+    host.append(actions);
+  }
+
+  const home = document.querySelector('.space-home-link, .jump-home-link, .home-link');
+  if (home && !actions.contains(home)) actions.append(home);
+
+  const nativeControl = document.querySelector('.language-switch, .life-language-switch');
+  if (nativeControl) {
+    nativeControl.dataset.gameLanguageControl = 'true';
+    actions.append(nativeControl);
+    document.querySelectorAll('.language-switch, .life-language-switch').forEach((control) => {
+      if (control !== nativeControl) control.hidden = true;
+    });
+    normalizeLanguageIcons();
+    return;
+  }
+  if (document.querySelector('[data-game-language-control]')) {
+    normalizeLanguageIcons();
+    return;
+  }
   const control = document.createElement('div');
   control.className = 'shared-game-language';
   control.dataset.gameLanguageControl = 'true';
-  control.innerHTML = `<button type="button" class="shared-game-language-icon" aria-label="Language" title="Language" aria-expanded="false"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></button><div class="shared-game-language-menu" hidden><button type="button" data-shared-lang="en">EN</button><span>|</span><button type="button" data-shared-lang="zh">中文</button></div>`;
-  host.append(control);
+  control.innerHTML = `<button type="button" class="shared-game-language-icon" aria-label="Language" title="Language" aria-expanded="false">En | 中</button><div class="shared-game-language-menu" hidden><button type="button" data-shared-lang="en">En</button><span>|</span><button type="button" data-shared-lang="zh">中</button></div>`;
+  actions.append(control);
   const icon = control.querySelector('.shared-game-language-icon');
   const menu = control.querySelector('.shared-game-language-menu');
   icon.addEventListener('click', () => {
@@ -249,6 +312,15 @@ function installLanguageControl() {
   syncLanguageControl();
 }
 
+function normalizeLanguageIcons() {
+  document.querySelectorAll('.language-icon-button').forEach((button) => {
+    button.textContent = 'En | 中';
+    button.setAttribute('aria-label', 'Language');
+  });
+  document.querySelectorAll('[data-lang-option="en"], [data-life-lang="en"]').forEach((button) => { button.textContent = 'En'; });
+  document.querySelectorAll('[data-lang-option="zh"], [data-life-lang="zh"]').forEach((button) => { button.textContent = '中'; });
+}
+
 function syncLanguageControl() {
   document.querySelectorAll('[data-shared-lang]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.sharedLang === language)));
 }
@@ -257,15 +329,15 @@ function installStyles() {
   if (document.getElementById('shared-game-language-style')) return;
   const style = document.createElement('style');
   style.id = 'shared-game-language-style';
-  style.textContent = `.shared-game-language{position:relative;margin-left:auto;display:flex;align-items:center}.shared-game-language-icon{width:32px;height:32px;padding:6px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.shared-game-language-icon:hover{opacity:.78;transform:scale(1.06)}.shared-game-language-icon:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}.shared-game-language-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.shared-game-language-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:1200;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:#101722;box-shadow:0 10px 30px #0008;white-space:nowrap}.shared-game-language-menu[hidden]{display:none}.shared-game-language-menu button{min-width:0;padding:2px 4px;border:0;background:transparent;color:inherit;cursor:pointer}.shared-game-language-menu button[aria-pressed=true]{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px}`;
+  style.textContent = `.game-title-copy,.header>div:not(.game-title-actions),.top-bar>div:not(.game-title-actions),.jump-header>div:not(.game-title-actions){min-width:0}.game-title-copy h1,.game-title-copy p{overflow-wrap:anywhere}.game-title-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:80}.header,.top-bar,.jump-header,.life-topbar{align-items:center}.header,.top-bar,.jump-header{display:flex;justify-content:space-between;gap:14px}.game-title-actions .language-icon-button,.shared-game-language-icon{width:auto!important;min-width:54px!important;height:32px!important;padding:0 5px!important;font-size:13px;font-weight:800;line-height:1;letter-spacing:0;white-space:nowrap}.shared-game-language{position:relative;display:flex;align-items:center}.shared-game-language-icon{display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.shared-game-language-icon:hover{opacity:.78;transform:scale(1.06)}.shared-game-language-icon:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}.shared-game-language-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:1200;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:#101722;box-shadow:0 10px 30px #0008;white-space:nowrap}.shared-game-language-menu[hidden]{display:none}.shared-game-language-menu button{min-width:0;padding:2px 4px;border:0;background:transparent;color:inherit;cursor:pointer}.shared-game-language-menu button[aria-pressed=true]{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px}@media(max-width:620px){.header,.top-bar,.jump-header{align-items:flex-start}.header{position:relative;display:block;padding-top:50px}.header>.game-title-actions{position:absolute;right:0;top:0}.game-title-actions{gap:4px}.game-title-actions .space-home-link,.game-title-actions .jump-home-link,.game-title-actions .home-link{padding:7px 9px;min-height:32px}}`;
   document.head.append(style);
 }
 
 function detectLanguage() {
   const url = new URLSearchParams(location.search).get('lang');
-  const stored = localStorage.getItem('topoboardgame-language')
+  const stored = localStorage.getItem('topological-boardgame:language')
+    || localStorage.getItem('topoboardgame-language')
     || localStorage.getItem('topoboardgame.lang')
-    || localStorage.getItem('topological-boardgame:language')
     || localStorage.getItem('3dgo:language');
   return normalizeLanguage(url || stored || document.documentElement.lang || navigator.language);
 }

@@ -51,6 +51,19 @@ body {
   padding: 22px 0 0;
 }
 
+.life-player-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.life-player-title h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 40px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
 .ghost-button,
 .life-button,
 .info-button {
@@ -417,6 +430,21 @@ h1 {
   .life-card-grid,
   .life-player-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .life-topbar {
+    align-items: flex-start;
+  }
+
+  .life-topbar .game-title-actions {
+    gap: 4px;
+  }
+
+  .life-topbar .game-title-actions .ghost-button {
+    min-height: 34px;
+    padding: 0 9px;
   }
 }
 

@@ -120,7 +120,7 @@ function modeToEngineConfig(mode) {
   if (mode.mutation != null) rule.mutationRate = mode.mutation;
   return {
     dimension: geometry.dimension,
-    size: geometry.dimension === 3 ? [40, 40, 10] : [64, 64],
+    size: geometry.dimension === 3 ? [40, 40, 10] : [48, 48],
     boundary: geometry.boundary,
     lattice: mode.lattice || (geometry.dimension === 3 ? 'sc' : 'square'),
     neighborhoodType: mode.neighborhoodType || (geometry.dimension === 3 ? 'von_neumann' : 'moore'),
@@ -391,7 +391,7 @@ export class LifeUI {
     const geometry = findLifeGeometry(mode.geometry || (config.dimension === 3 ? 'r3' : 'r2'));
     this.boardGeometrySelect.value = geometry.id;
     this.dimensionSelect.value = String(config.dimension);
-    this.boardSizeSelect.value = String(config.dimension === 3 ? 40 : 64);
+    this.boardSizeSelect.value = String(config.dimension === 3 ? 40 : 48);
     this.topologySelect.value = config.boundary;
     this.viewModeSelect.value = geometry.view;
     this.populateLattices(geometry.id, config.lattice);
@@ -438,7 +438,7 @@ export class LifeUI {
   }
 
   currentSize() {
-    const n = Math.max(8, Number(this.boardSizeSelect.value) || 64);
+    const n = Math.max(8, Number(this.boardSizeSelect.value) || 48);
     const dimension = Math.max(1, Number(this.dimensionSelect.value) || 2);
     if (dimension === 1) return [n];
     if (dimension === 2) return [n, n];
@@ -581,7 +581,7 @@ export class LifeUI {
       this.latticeSelect?.value || 'square',
       this.viewModeSelect?.value || 'flat',
       this.dimensionSelect?.value || '2',
-      this.boardSizeSelect?.value || '64',
+      this.boardSizeSelect?.value || '48',
       this.ruleSelect?.value || 'conway',
       this.neighborhoodSelect?.value || 'moore',
       `bn${this.birthNoiseRange?.value || 0}`,

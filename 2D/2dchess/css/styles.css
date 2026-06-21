@@ -79,10 +79,17 @@ select {
 
 .main-content {
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: minmax(0, 1fr) 350px;
     gap: 30px;
     align-items: start;
     margin-bottom: 30px;
+}
+
+.board-wrapper,
+.sidebar,
+.reference-panels-below-board {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .board-wrapper {
@@ -239,6 +246,10 @@ select {
 .square {
     position: relative;
     display: flex;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
@@ -866,7 +877,7 @@ body > .language-switch .lang-divider {
     }
 
     .main-content {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .header h1 {

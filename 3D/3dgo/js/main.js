@@ -197,10 +197,10 @@ let currentLanguage = (() => {
         const params = new URLSearchParams(window.location.search);
         const fromUrl = normalizeLanguage(params.get('lang'));
         if (fromUrl && Object.prototype.hasOwnProperty.call(I18N, fromUrl)) return fromUrl;
-        const stored = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
-        if (stored && Object.prototype.hasOwnProperty.call(I18N, stored)) return stored;
         const global = normalizeLanguage(window.localStorage.getItem(GLOBAL_LANGUAGE_STORAGE_KEY));
-        return global && Object.prototype.hasOwnProperty.call(I18N, global) ? global : 'en';
+        if (global && Object.prototype.hasOwnProperty.call(I18N, global)) return global;
+        const stored = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+        return stored && Object.prototype.hasOwnProperty.call(I18N, stored) ? stored : 'en';
     } catch {
         return 'en';
     }

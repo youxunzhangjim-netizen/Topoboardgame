@@ -10,6 +10,10 @@
   <div class="life-bg" aria-hidden="true"></div>
   <main class="life-player-shell">
     <nav class="life-topbar" aria-label="Life player navigation">
+      <div class="life-player-title">
+        <p class="eyebrow">Life &amp; Evolution Worlds</p>
+        <h1 id="lifeModeTitle">Life World</h1>
+      </div>
       <a href="./" class="ghost-button" data-life-i18n="navBack">← Life Worlds</a>
       <a href="../" class="ghost-button" data-life-i18n="home">Home</a>
       <span class="life-language-switch compact-language" aria-label="Language">
@@ -96,6 +100,18 @@
               <option value="3">3 species</option>
             </select>
           </div>
+          <div class="control-row life-density-control">
+            <label for="boardSizeSelect" data-life-i18n="boardSize">Blocks per side</label>
+            <select id="boardSizeSelect">
+              <option value="24">24</option>
+              <option value="32">32</option>
+              <option value="40">40</option>
+              <option value="48" selected>48</option>
+              <option value="64">64</option>
+              <option value="96">96</option>
+              <option value="128">128</option>
+            </select>
+          </div>
 
           <section class="life-online-controls" aria-label="Online Life room controls">
             <div class="control-row">
@@ -169,16 +185,6 @@
                 <option value="2" selected>2D</option>
                 <option value="3">3D</option>
                 <option value="4">4D abstract</option>
-              </select>
-            </div>
-            <div class="control-row">
-              <label for="boardSizeSelect" data-life-i18n="boardSize">Board size</label>
-              <select id="boardSizeSelect">
-                <option value="32">32</option>
-                <option value="48">48</option>
-                <option value="64" selected>64</option>
-                <option value="96">96</option>
-                <option value="128">128</option>
               </select>
             </div>
             <div class="control-row legacy-topology-control" aria-hidden="true">
@@ -273,8 +279,6 @@
     </section>
 
     <section class="life-play-invite">
-      <p class="eyebrow">Life & Evolution Worlds</p>
-      <h1 id="lifeModeTitle">Life World</h1>
       <p class="subtitle" id="lifeModeTags">simulation</p>
       <p class="description" id="lifeModeDescription">Seed cells and start evolution.</p>
       <div class="life-info-cards">

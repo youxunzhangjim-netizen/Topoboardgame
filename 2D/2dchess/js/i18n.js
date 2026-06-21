@@ -398,10 +398,10 @@ function resolveInitialLanguage() {
         const params = new URLSearchParams(window.location.search);
         const fromUrl = normalizeLanguage(params.get('lang'));
         if (fromUrl) return fromUrl;
-        const local = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
-        if (local) return local;
         const global = normalizeLanguage(window.localStorage.getItem(GLOBAL_LANGUAGE_STORAGE_KEY));
         if (global) return global;
+        const local = normalizeLanguage(window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+        if (local) return local;
     } catch {
         return DEFAULT_LANGUAGE;
     }
