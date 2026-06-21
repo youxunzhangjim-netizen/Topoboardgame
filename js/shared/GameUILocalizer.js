@@ -171,6 +171,7 @@ const ZH = new Map(Object.entries({
 const originals = new WeakMap();
 let language = detectLanguage();
 let observer = null;
+const GLOBE_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm6.93 9h-3.18a15.8 15.8 0 0 0-1.1-5.02A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.68.98 1.43 3.03 1.7 6.96h-3.4c.27-3.93 1.02-5.98 1.7-6.96ZM4.26 13h3.99c.12 2.02.43 3.78.87 5.08A8.04 8.04 0 0 1 4.26 13Zm3.99-2H4.26a8.04 8.04 0 0 1 4.86-5.08A21.9 21.9 0 0 0 8.25 11ZM12 19.96c-.68-.98-1.43-3.03-1.7-6.96h3.4c-.27 3.93-1.02 5.98-1.7 6.96Zm2.88-1.88c.44-1.3.75-3.06.87-5.08h3.99a8.04 8.04 0 0 1-4.86 5.08ZM15.75 11a21.9 21.9 0 0 0-.87-5.08A8.04 8.04 0 0 1 19.74 11h-3.99Z"/></svg>';
 
 export function installGameUILocalizer() {
   document.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
@@ -246,6 +247,8 @@ function translateValue(text) {
   if (ZH.has(text)) return ZH.get(text);
   return text
     .replace(/Standard uses ordinary open board edges\./g, '標準使用普通的開放棋盤邊界。')
+    .replace(/Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x\./g, 'Klein 瓶左右正常相接，上下相接時 x 會翻轉：從 x 離開會進入 size - 1 - x。')
+    .replace(/Klein bottle identifies left-right normally and top-bottom with x flipped\./g, 'Klein 瓶左右正常相接，上下相接時 x 會翻轉。')
     .replace(/Square uses the usual four orthogonal graph neighbors\./g, '方格使用一般的上下左右四個正交圖鄰居。')
     .replace(/Square uses the usual eight 2D rays\./g, '方格使用一般的八個 2D 射線方向。')
     .replace(/Honeycomb uses regular hexagonal cells\. Stones occupy cell centers and bracket along six axial rays\./g, '蜂巢格使用正六邊形單元。棋子位於單元中心，並沿六個軸向射線夾擊。')
@@ -295,7 +298,7 @@ function installLanguageControl() {
   const control = document.createElement('div');
   control.className = 'shared-game-language';
   control.dataset.gameLanguageControl = 'true';
-  control.innerHTML = `<button type="button" class="shared-game-language-icon" aria-label="Language" title="Language" aria-expanded="false">En | 中</button><div class="shared-game-language-menu" hidden><button type="button" data-shared-lang="en">En</button><span>|</span><button type="button" data-shared-lang="zh">中</button></div>`;
+  control.innerHTML = `<button type="button" class="shared-game-language-icon" aria-label="Language" title="Language" aria-expanded="false">${GLOBE_ICON}</button><div class="shared-game-language-menu" hidden><button type="button" data-shared-lang="en">En</button><span>|</span><button type="button" data-shared-lang="zh">中</button></div>`;
   actions.append(control);
   const icon = control.querySelector('.shared-game-language-icon');
   const menu = control.querySelector('.shared-game-language-menu');
@@ -314,7 +317,7 @@ function installLanguageControl() {
 
 function normalizeLanguageIcons() {
   document.querySelectorAll('.language-icon-button').forEach((button) => {
-    button.textContent = 'En | 中';
+    if (!button.querySelector('svg')) button.innerHTML = GLOBE_ICON;
     button.setAttribute('aria-label', 'Language');
   });
   document.querySelectorAll('[data-lang-option="en"], [data-life-lang="en"]').forEach((button) => { button.textContent = 'En'; });
@@ -329,7 +332,7 @@ function installStyles() {
   if (document.getElementById('shared-game-language-style')) return;
   const style = document.createElement('style');
   style.id = 'shared-game-language-style';
-  style.textContent = `.game-title-copy,.header>div:not(.game-title-actions),.top-bar>div:not(.game-title-actions),.jump-header>div:not(.game-title-actions){min-width:0}.game-title-copy h1,.game-title-copy p{overflow-wrap:anywhere}.game-title-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:80}.header,.top-bar,.jump-header,.life-topbar{align-items:center}.header,.top-bar,.jump-header{display:flex;justify-content:space-between;gap:14px}.game-title-actions .language-icon-button,.shared-game-language-icon{width:auto!important;min-width:54px!important;height:32px!important;padding:0 5px!important;font-size:13px;font-weight:800;line-height:1;letter-spacing:0;white-space:nowrap}.shared-game-language{position:relative;display:flex;align-items:center}.shared-game-language-icon{display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.shared-game-language-icon:hover{opacity:.78;transform:scale(1.06)}.shared-game-language-icon:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}.shared-game-language-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:1200;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:#101722;box-shadow:0 10px 30px #0008;white-space:nowrap}.shared-game-language-menu[hidden]{display:none}.shared-game-language-menu button{min-width:0;padding:2px 4px;border:0;background:transparent;color:inherit;cursor:pointer}.shared-game-language-menu button[aria-pressed=true]{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px}@media(max-width:620px){.header,.top-bar,.jump-header{align-items:flex-start}.header{position:relative;display:block;padding-top:50px}.header>.game-title-actions{position:absolute;right:0;top:0}.game-title-actions{gap:4px}.game-title-actions .space-home-link,.game-title-actions .jump-home-link,.game-title-actions .home-link{padding:7px 9px;min-height:32px}}`;
+  style.textContent = `.game-title-copy,.header>div:not(.game-title-actions),.top-bar>div:not(.game-title-actions),.jump-header>div:not(.game-title-actions){min-width:0}.game-title-copy h1,.game-title-copy p{overflow-wrap:anywhere}.game-title-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;position:relative;z-index:80}.header,.top-bar,.jump-header,.life-topbar{align-items:center}.header,.top-bar,.jump-header{display:flex;justify-content:space-between;gap:14px}.game-title-actions .language-icon-button,.shared-game-language-icon{width:34px!important;min-width:34px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:1;letter-spacing:0}.game-title-actions .language-icon-button svg,.shared-game-language-icon svg{width:18px;height:18px}.shared-game-language{position:relative;display:flex;align-items:center}.shared-game-language-icon{display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.shared-game-language-icon:hover{opacity:.78;transform:scale(1.06)}.shared-game-language-icon:focus-visible{outline:2px solid #7dd3fc;outline-offset:2px}.shared-game-language-menu{position:absolute;right:0;top:calc(100% + 5px);z-index:1200;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;background:#101722;box-shadow:0 10px 30px #0008;white-space:nowrap}.shared-game-language-menu[hidden]{display:none}.shared-game-language-menu button{min-width:0;padding:2px 4px;border:0;background:transparent;color:inherit;cursor:pointer}.shared-game-language-menu button[aria-pressed=true]{color:#7dd3fc;text-decoration:underline;text-underline-offset:3px}@media(max-width:620px){.header,.top-bar,.jump-header{align-items:flex-start}.header{position:relative;display:block;padding-top:50px}.header>.game-title-actions{position:absolute;right:0;top:0}.game-title-actions{gap:4px}.game-title-actions .space-home-link,.game-title-actions .jump-home-link,.game-title-actions .home-link{padding:7px 9px;min-height:32px}}`;
   document.head.append(style);
 }
 
