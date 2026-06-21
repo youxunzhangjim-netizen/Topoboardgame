@@ -1,3 +1,5 @@
+import { installGameUILocalizer } from './GameUILocalizer.js';
+
 const GUIDE_STYLE_ID = 'topoboardgame-control-guide-style';
 
 const GUIDES = Object.freeze({
@@ -185,6 +187,7 @@ function targetForGuide(type) {
 }
 
 export function installGameControlGuide() {
+    installGameUILocalizer();
     if (document.querySelector('.game-control-guide[data-control-guide]')) return;
     const type = detectGuideType();
     const target = targetForGuide(type);
