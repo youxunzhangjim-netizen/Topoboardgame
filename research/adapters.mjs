@@ -429,7 +429,7 @@ function goLegalMoves(logic, player) {
     const result = clone.tryPlay(coord, player);
     if (result.ok) moves.push({ type: 'play', coord, id: coord.join(','), label: `(${coord.join(',')})`, captured: result.captured || 0 });
   }
-  if (!moves.length || logic.passCount > 0) moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
+  moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
   return moves;
 }
 

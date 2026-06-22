@@ -19,6 +19,16 @@
       "features": ["openingBookDisabled", "shapeStability", "graphLiberties", "selfplayBook"],
       "weight": 1.65,
       "sourceIds": ["katago-official", "cwi-go-games"]
+    },
+    {
+      "id": "go-graph-topology-endgame-pass-graph-area",
+      "game": "go",
+      "phase": "endgame",
+      "boardFamily": "graph-topology",
+      "description": "On topology boards, pass when graph flood-fill shows remaining empty regions are already owned and point plays would only reduce own graph-area score.",
+      "features": ["graphAreaScore", "passTiming", "ownTerritoryFillPenalty", "territoryFloodFill"],
+      "weight": 1.9,
+      "sourceIds": ["katago-official", "topoboardgame-local-notes"]
     }
   ]
 }

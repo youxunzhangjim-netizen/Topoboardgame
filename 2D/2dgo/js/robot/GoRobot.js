@@ -317,7 +317,10 @@ function rankCandidateMoves(logic, player, depth = 2) {
     const ranked = legal.map((move) => ({ ...move, prior: quickMoveScore(logic, move, player) })).sort((a, b) => b.prior - a.prior);
     const level = clampLevel(depth);
     const limit = Math.min(ranked.length, Math.max(10, CANDIDATE_LIMIT_BY_LEVEL[level] || 24));
-    return ranked.slice(0, limit);
+    const picked = ranked.slice(0, limit);
+    const pass = ranked.find((move) => move.type === 'pass');
+    if (pass && !picked.some((move) => move.type === 'pass')) picked[picked.length - 1] = pass;
+    return picked.sort((a, b) => b.prior - a.prior);
 }
 
 function playableCoords(logic) {
@@ -330,9 +333,22 @@ function getLegalPlayCandidates(logic, player) {
     const moves = [];
     for (const coord of playableCoords(logic)) {
         const preview = previewLegalPlay(logic, coord, player);
-        if (preview.ok) moves.push({ type: 'play', coord, captured: preview.captured, liberties: preview.liberties, label: coordLabel(coord) });
+        if (preview.ok) {
+            const region = emptyRegionInfo(logic, logic.indexFromCoord(coord));
+            moves.push({
+                type: 'play',
+                coord,
+                captured: preview.captured,
+                liberties: preview.liberties,
+                ownTerritoryFill: region.owner === player && preview.captured <= 0,
+                opponentTerritoryInvasion: region.owner === otherColor(player),
+                neutralRegion: !region.owner,
+                regionSize: region.size,
+                label: coordLabel(coord)
+            });
+        }
     }
-    if (!moves.length || logic.passCount > 0) moves.push({ type: 'pass', label: 'Pass', captured: 0, liberties: 0 });
+    moves.push({ type: 'pass', label: 'Pass', captured: 0, liberties: 0 });
     return moves;
 }
 
@@ -378,10 +394,13 @@ function previewLegalPlay(logic, coord, color) {
 }
 
 function quickMoveScore(logic, move, player) {
-    if (move.type === 'pass') return logic.passCount > 0 ? -5 : -60;
+    if (move.type === 'pass') return passMoveScore(logic, player);
     let score = 0;
     score += 16 * (move.captured || 0);
     score += 1.6 * (move.liberties || 0);
+    if (move.ownTerritoryFill) score -= ownTerritoryFillPenalty(logic, move);
+    if (move.opponentTerritoryInvasion) score += Math.min(12, Math.max(0, Number(move.regionSize) || 0));
+    if (move.neutralRegion) score += Math.min(8, Math.max(0, Number(move.regionSize) || 0) * 0.35);
     score += topologyMoveBonus(logic, move.coord, player);
     const [x, y] = move.coord;
     const center = (logic.size - 1) / 2;
@@ -399,6 +418,105 @@ function quickMoveScore(logic, move, player) {
     }
     score += 1.0 * friendlyNeighbors + 1.4 * enemyNeighbors;
     return score;
+}
+
+function passMoveScore(logic, player) {
+    const fill = boardFillRatio(logic);
+    const score = areaScoreDiff(logic, player);
+    const leadBonus = Math.max(-20, Math.min(20, score * 0.7));
+    const opponent = otherColor(player);
+    const ownDanger = atariGroupCount(logic, player);
+    const opponentDanger = atariGroupCount(logic, opponent);
+    let value = -95 + 115 * endgameProgress(logic);
+    if (logic.passCount > 0) value += 55;
+    if (fill > 0.62) value += 18;
+    if (fill > 0.78) value += 22;
+    value += leadBonus;
+    value -= 18 * ownDanger;
+    value -= 14 * opponentDanger;
+    return value;
+}
+
+function endgameProgress(logic) {
+    const fill = boardFillRatio(logic);
+    const emptyRegions = emptyRegionSummary(logic);
+    const ownedEmpty = emptyRegions.black + emptyRegions.white;
+    const neutralEmpty = emptyRegions.neutral;
+    const settledRatio = emptyRegions.total ? ownedEmpty / emptyRegions.total : 1;
+    const neutralPenalty = emptyRegions.total ? neutralEmpty / emptyRegions.total : 0;
+    return Math.max(0, Math.min(1, 0.58 * fill + 0.52 * settledRatio - 0.35 * neutralPenalty));
+}
+
+function ownTerritoryFillPenalty(logic, move) {
+    const regionSize = Math.max(1, Number(move.regionSize) || 1);
+    const base = regionSize <= 2 ? 52 : 72;
+    return base + Math.min(30, regionSize * 1.4) + (boardFillRatio(logic) > 0.55 ? 32 : 0);
+}
+
+function areaScoreDiff(logic, player) {
+    try {
+        const area = logic.computeAreaScore();
+        return player === 'black' ? area.black - area.white : area.white - area.black;
+    } catch {
+        return 0;
+    }
+}
+
+function boardFillRatio(logic) {
+    if (!logic.board?.length) return 0;
+    let stones = 0;
+    for (const value of logic.board) if (value !== COLORS.empty) stones += 1;
+    return stones / logic.board.length;
+}
+
+function atariGroupCount(logic, player) {
+    let count = 0;
+    for (const info of allGroups(logic)) {
+        if (info.color === player && info.liberties <= 1) count += 1;
+    }
+    return count;
+}
+
+function emptyRegionSummary(logic) {
+    const summary = { black: 0, white: 0, neutral: 0, total: 0 };
+    const visited = new Set();
+    for (let index = 0; index < logic.board.length; index += 1) {
+        if (logic.board[index] !== COLORS.empty || visited.has(index)) continue;
+        const region = emptyRegionInfo(logic, index, visited);
+        summary.total += region.size;
+        if (region.owner === 'black') summary.black += region.size;
+        else if (region.owner === 'white') summary.white += region.size;
+        else summary.neutral += region.size;
+    }
+    return summary;
+}
+
+function emptyRegionInfo(logic, startIndex, visited = null) {
+    if (startIndex < 0 || logic.board[startIndex] !== COLORS.empty) return { owner: '', size: 0 };
+    const localVisited = visited || new Set();
+    if (localVisited.has(startIndex)) return { owner: '', size: 0 };
+    const stack = [startIndex];
+    const borders = new Set();
+    let size = 0;
+    localVisited.add(startIndex);
+    while (stack.length) {
+        const index = stack.pop();
+        size += 1;
+        for (const next of logic.neighborsFromIndex(index)) {
+            const value = logic.board[next];
+            if (value === COLORS.empty) {
+                if (!localVisited.has(next)) {
+                    localVisited.add(next);
+                    stack.push(next);
+                }
+            } else {
+                const color = valueToColor(value);
+                if (color) borders.add(color);
+            }
+        }
+    }
+    const owner = borders.size === 1 ? [...borders][0] : '';
+    return { owner, size };
 }
 
 function applyGoMove(logic, move, player) { return move.type === 'pass' ? logic.pass(player) : logic.tryPlay(move.coord, player); }

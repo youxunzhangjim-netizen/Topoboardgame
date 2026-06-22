@@ -29,6 +29,16 @@
       "features": ["scoreLead", "ownershipMap", "senteGoteValue", "boundaryReduction", "koRisk", "passTiming"],
       "weight": 1.55,
       "sourceIds": ["katago-official"]
+    },
+    {
+      "id": "go-standard-endgame-pass-own-territory",
+      "game": "go",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "When remaining legal plays only fill secure own territory, do not self-fill; pass and enter graph-area scoring unless an urgent capture, atari defense, ko, or neutral yose remains.",
+      "features": ["passTiming", "ownTerritoryFillPenalty", "urgentCapture", "atariDefense", "neutralYose"],
+      "weight": 1.85,
+      "sourceIds": ["katago-official", "topoboardgame-local-notes"]
     }
   ]
 }

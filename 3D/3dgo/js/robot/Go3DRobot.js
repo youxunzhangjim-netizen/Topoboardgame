@@ -20,9 +20,21 @@ function legalMoves(logic, player = logic.currentPlayer) {
     if (idx < 0 || logic.board[idx] !== COLORS.empty) continue;
     const trial = cloneLogic(logic);
     const result = trial.tryPlay(coord, player);
-    if (result.ok) moves.push({ type: 'play', coord, captured: result.captured || 0, prior: 0 });
+    if (result.ok) {
+      const region = emptyRegionInfo(logic, idx);
+      moves.push({
+        type: 'play',
+        coord,
+        captured: result.captured || 0,
+        ownTerritoryFill: region.owner === player && (result.captured || 0) <= 0,
+        opponentTerritoryInvasion: region.owner === otherColor(player),
+        neutralRegion: !region.owner,
+        regionSize: region.size,
+        prior: 0
+      });
+    }
   }
-  if (!moves.length || logic.passCount > 0) moves.push({ type: 'pass', coord: null, captured: 0, prior: -40 });
+  moves.push({ type: 'pass', coord: null, captured: 0, prior: passPrior(logic, player) });
   return moves;
 }
 function applyMove(logic, move, player) { return move.type === 'pass' ? logic.pass(player) : logic.tryPlay(move.coord, player); }
@@ -83,12 +95,15 @@ function evaluate(logic, player = logic.currentPlayer) {
   return 13 * areaDiff + 9 * captureDiff + groupValue(logic, groupStats(logic, player)) - groupValue(logic, groupStats(logic, opponent)) + topologyValue(logic, player) - topologyValue(logic, opponent) + 1.3 * (mobility(logic, player) - mobility(logic, opponent));
 }
 function movePrior(logic, move, player) {
-  if (move.type === 'pass') return logic.passCount > 0 ? -5 : -65;
+  if (move.type === 'pass') return passPrior(logic, player);
   const trial = cloneLogic(logic);
   const before = evaluate(logic, player);
   const result = trial.tryPlay(move.coord, player);
   if (!result.ok) return -1e9;
   let score = evaluate(trial, player) - before + 18 * (move.captured || result.captured || 0);
+  if (move.ownTerritoryFill) score -= ownTerritoryFillPenalty(logic, move);
+  if (move.opponentTerritoryInvasion) score += Math.min(14, Math.max(0, Number(move.regionSize) || 0));
+  if (move.neutralRegion) score += Math.min(8, Math.max(0, Number(move.regionSize) || 0) * 0.25);
   const idx = trial.indexFromCoord(move.coord);
   if (idx >= 0) {
     const group = trial.getGroupAndLiberties(trial.board, idx);
@@ -100,8 +115,102 @@ function movePrior(logic, move, player) {
   if (logic.lattice !== 'sc' && logic.lattice !== 'square') score += 0.7 * (idx >= 0 ? trial.neighborsFromIndex(idx).length : 0);
   return score;
 }
+
+function passPrior(logic, player) {
+  const fill = boardFillRatio(logic);
+  const score = areaScoreDiff(logic, player);
+  const ownDanger = groupStats(logic, player).filter((group) => group.liberties <= 1).length;
+  const opponentDanger = groupStats(logic, otherColor(player)).filter((group) => group.liberties <= 1).length;
+  const regions = emptyRegionSummary(logic);
+  const settled = regions.total ? (regions.black + regions.white) / regions.total : 1;
+  const neutral = regions.total ? regions.neutral / regions.total : 0;
+  let value = -92 + 70 * fill + 58 * settled - 34 * neutral;
+  if (logic.passCount > 0) value += 55;
+  if (fill > 0.62) value += 18;
+  if (fill > 0.78) value += 24;
+  value += Math.max(-22, Math.min(22, score * 0.65));
+  value -= 18 * ownDanger;
+  value -= 14 * opponentDanger;
+  return value;
+}
+
+function ownTerritoryFillPenalty(logic, move) {
+  const size = Math.max(1, Number(move.regionSize) || 1);
+  return 62 + Math.min(34, size * 1.25) + (boardFillRatio(logic) > 0.55 ? 36 : 0);
+}
+
+function areaScoreDiff(logic, player) {
+  try {
+    const area = logic.computeAreaScore?.() || {};
+    const opponent = otherColor(player);
+    return (Number(area[player]) || 0) - (Number(area[opponent]) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function boardFillRatio(logic) {
+  if (!logic.board?.length) return 0;
+  let stones = 0;
+  let playable = 0;
+  for (let index = 0; index < logic.board.length; index += 1) {
+    if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index)) continue;
+    playable += 1;
+    if (logic.board[index] !== COLORS.empty) stones += 1;
+  }
+  return playable ? stones / playable : 0;
+}
+
+function emptyRegionSummary(logic) {
+  const summary = { black: 0, white: 0, neutral: 0, total: 0 };
+  const visited = new Set();
+  for (let index = 0; index < logic.board.length; index += 1) {
+    if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index)) continue;
+    if (logic.board[index] !== COLORS.empty || visited.has(index)) continue;
+    const region = emptyRegionInfo(logic, index, visited);
+    summary.total += region.size;
+    if (region.owner === 'black') summary.black += region.size;
+    else if (region.owner === 'white') summary.white += region.size;
+    else summary.neutral += region.size;
+  }
+  return summary;
+}
+
+function emptyRegionInfo(logic, startIndex, visited = null) {
+  if (startIndex < 0 || logic.board[startIndex] !== COLORS.empty) return { owner: '', size: 0 };
+  if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(startIndex)) return { owner: '', size: 0 };
+  const localVisited = visited || new Set();
+  if (localVisited.has(startIndex)) return { owner: '', size: 0 };
+  const stack = [startIndex];
+  const borders = new Set();
+  let size = 0;
+  localVisited.add(startIndex);
+  while (stack.length) {
+    const index = stack.pop();
+    size += 1;
+    for (const next of logic.neighborsFromIndex(index)) {
+      if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(next)) continue;
+      const value = logic.board[next];
+      if (value === COLORS.empty) {
+        if (!localVisited.has(next)) {
+          localVisited.add(next);
+          stack.push(next);
+        }
+      } else {
+        const color = valueToColor(value);
+        if (color) borders.add(color);
+      }
+    }
+  }
+  return { owner: borders.size === 1 ? [...borders][0] : '', size };
+}
+
 function rankedMoves(logic, player, level) {
-  return legalMoves(logic, player).map((m) => ({ ...m, prior: movePrior(logic, m, player) })).sort((a, b) => b.prior - a.prior).slice(0, CANDIDATE_CAP[level] || 20);
+  const ranked = legalMoves(logic, player).map((m) => ({ ...m, prior: movePrior(logic, m, player) })).sort((a, b) => b.prior - a.prior);
+  const picked = ranked.slice(0, CANDIDATE_CAP[level] || 20);
+  const pass = ranked.find((move) => move.type === 'pass');
+  if (pass && !picked.some((move) => move.type === 'pass')) picked[picked.length - 1] = pass;
+  return picked.sort((a, b) => b.prior - a.prior);
 }
 function playoutScore(logic, move, rootPlayer, level) {
   const clone = cloneLogic(logic);
