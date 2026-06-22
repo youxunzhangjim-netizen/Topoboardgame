@@ -6,7 +6,7 @@ import { recordRobotLearningMove } from './RobotLearningRecorder.js';
 
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
-  plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Möbius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
+  plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Mobius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
   cube: '3D', reflective: 'Reflective', shell: 'Sphere / Shell', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
 };
 const TOPOLOGY_ZH_LABELS = {
@@ -118,8 +118,7 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   'Polar Jump': '極座標跳棋',
   'Cylinder Jump': '圓柱跳棋',
   'Torus Jump': '環面跳棋',
-  'Möbius Jump': '莫比烏斯跳棋',
-  'MÃ¶bius Jump': '莫比烏斯跳棋',
+  'Mobius Jump': '莫比烏斯跳棋',
   'Klein Jump': 'Klein 瓶跳棋',
   'RP2 Jump': 'RP2 跳棋',
   'Sphere Jump': '球面跳棋',
@@ -443,7 +442,7 @@ export class JumpGameApp {
       return;
       this.infoEl.textContent = jumpLanguage() === 'zh'
         ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。方格棋盤使用上下左右連線，三角格棋盤增加兩條斜向連線；極座標棋盤固定使用方格徑向/角向連線。環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤會直接標出目標區，因為空間改變時「對面」的意思也會改變。'
-        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square or Triangular lattice links. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Möbius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
+        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square or Triangular lattice links. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
     }
   }
 

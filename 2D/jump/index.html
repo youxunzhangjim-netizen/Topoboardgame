@@ -24,7 +24,7 @@
       <h2>Play</h2>
       <div class="jump-grid">
         <label>Mode<select id="gameModeSelect"><option value="local">Local</option><option value="online">Online</option><option value="robot">Robot</option></select></label>
-        <label>Topology<select id="topologySelect"><option value="diamond" selected>Standard Jump</option><option value="plane">Square Board Jump</option><option value="polar">Polar Jump</option><option value="cylinder">Cylinder Jump</option><option value="torus">Torus Jump</option><option value="mobius">Möbius Jump</option><option value="klein">Klein Jump</option><option value="rp2">RP2 Jump</option><option value="sphere">Sphere Jump</option></select></label>
+        <label>Topology<select id="topologySelect"><option value="diamond" selected>Standard Jump</option><option value="plane">Square Board Jump</option><option value="polar">Polar Jump</option><option value="cylinder">Cylinder Jump</option><option value="torus">Torus Jump</option><option value="mobius">Mobius Jump</option><option value="klein">Klein Jump</option><option value="rp2">RP2 Jump</option><option value="sphere">Sphere Jump</option></select></label>
         <label>Players<select id="playerCountSelect"><option value="2" selected>2 players</option><option value="3">3 players</option></select></label>
         <label>Lattice<select id="latticeSelect"><option value="square">Square</option><option value="triangular" selected>Triangular</option></select></label>
         <label>Board size<select id="boardSizeSelect"><option value="6" >6</option><option value="8">8</option><option value="10" >10</option><option value="12" selected>12</option><option value="14" >14</option></select></label>
@@ -87,33 +87,6 @@
 <script type="module" src="../../js/shared/GameControlGuides.js"></script>
 <script type="module" src="./js/main.js"></script>
     <script src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
-
-    <script>
-    (() => {
-        const lang = new URLSearchParams(location.search).get('lang') || localStorage.getItem('topoboardgame.lang') || navigator.language || 'en';
-        if (!String(lang).toLowerCase().startsWith('zh')) return;
-        const map = new Map([
-            ['Local', 'Local'],
-            ['Online', 'Online'],
-            ['Robot', 'Robot'],
-            ['Find Match', '尋找對手'],
-            ['Create Room', '建立房間'],
-            ['Join Room', '加入房間'],
-            ['Copy Share Link', '複製分享連結'],
-            ['Room:', '房間：'],
-            ['5-digit room code or shared link', '5 位數房號或分享連結'],
-            ['Message opponent', '傳訊息給對手'],
-            ['Send', '送出']
-        ]);
-        document.querySelectorAll('option, button, label, small, span').forEach((node) => {
-            const text = node.childNodes.length === 1 ? node.textContent.trim() : '';
-            if (map.has(text)) node.textContent = map.get(text);
-        });
-        document.querySelectorAll('input[placeholder]').forEach((node) => {
-            if (map.has(node.placeholder)) node.placeholder = map.get(node.placeholder);
-        });
-    })();
-    </script>
 
 </body>
 </html>

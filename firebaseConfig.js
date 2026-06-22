@@ -1,17 +1,32 @@
 // Firebase Console -> Project settings -> Your apps -> Web app -> SDK setup.
-// Replace every PASTE_* value with the config from the Topoboardgame project.
+// Vercel/Vite builds read these from VITE_FIREBASE_* environment variables.
 // Firebase web config values identify the project; Firestore Security Rules
 // provide the actual access control.
+const viteEnv = import.meta.env || {};
+const runtimeConfig = globalThis.__TOPOBOARDGAME_FIREBASE__ || {};
+
+function configValue(viteValue, runtimeKey, envKey) {
+    const value = viteValue ?? runtimeConfig[runtimeKey] ?? runtimeConfig[envKey] ?? '';
+    return typeof value === 'string' ? value.trim() : String(value || '').trim();
+}
+
 export const firebaseConfig = {
-  apiKey: "AIzaSyCPvjfE_0eftxrj-HDViT02Hljj-aAqH5c",
-  authDomain: "topoboardgame.firebaseapp.com",
-  projectId: "topoboardgame",
-  storageBucket: "topoboardgame.firebasestorage.app",
-  messagingSenderId: "533937783773",
-  appId: "1:533937783773:web:18aa334256b8142038ec34"
+  apiKey: configValue(viteEnv.VITE_FIREBASE_API_KEY, 'apiKey', 'VITE_FIREBASE_API_KEY'),
+  authDomain: configValue(viteEnv.VITE_FIREBASE_AUTH_DOMAIN, 'authDomain', 'VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId: configValue(viteEnv.VITE_FIREBASE_PROJECT_ID, 'projectId', 'VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: configValue(viteEnv.VITE_FIREBASE_STORAGE_BUCKET, 'storageBucket', 'VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: configValue(viteEnv.VITE_FIREBASE_MESSAGING_SENDER_ID, 'messagingSenderId', 'VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: configValue(viteEnv.VITE_FIREBASE_APP_ID, 'appId', 'VITE_FIREBASE_APP_ID'),
+  measurementId: configValue(viteEnv.VITE_FIREBASE_MEASUREMENT_ID, 'measurementId', 'VITE_FIREBASE_MEASUREMENT_ID')
 };
 
 export function hasFirebaseConfig() {
-    return Object.values(firebaseConfig).every((value) =>
-        typeof value === 'string' && value.length > 0 && !value.startsWith('PASTE_'));
+    const required = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+    return required.every((key) => {
+        const value = firebaseConfig[key];
+        return typeof value === 'string'
+            && value.length > 0
+            && !value.startsWith('PASTE_')
+            && !value.startsWith('REPLACE_');
+    });
 }

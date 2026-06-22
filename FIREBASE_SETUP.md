@@ -3,12 +3,11 @@
 1. In Firebase Authentication, enable the **Anonymous** sign-in provider.
 2. Create a Cloud Firestore database.
 3. Register a Web app in the `Topoboardgame` Firebase project.
-4. Replace the `PASTE_*` values in `firebaseConfig.js`.
+4. In Vercel Project Settings > Environment Variables, add the Firebase Web app values: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, and optionally `VITE_FIREBASE_MEASUREMENT_ID`.
 5. Publish the contents of `firestore.rules` in Firestore's Rules tab.
-6. Add `youxunzhangjim-netizen.github.io` under Authentication > Settings > Authorized domains if it is not already present.
+6. Add `youxunzhangjim-netizen.github.io`, your Vercel preview/production domains, `localhost`, and `127.0.0.1` under Authentication > Settings > Authorized domains if they are not already present.
 
-The 2D Chess page imports Firebase directly from Google's browser CDN. It does
-not require Node.js, npm, a bundler, or a server process.
+The browser pages import Firebase directly from Google's browser CDN. Vite/Vercel injects only variables prefixed with `VITE_`, and `firebaseConfig.js` keeps online play disabled until all required Firebase values are present.
 
 The current rules enforce authenticated room membership, turn ownership, and
 monotonic move numbers. The board itself is still validated by the clients.
@@ -25,8 +24,8 @@ The browser app uses Firebase Anonymous Authentication and Cloud Firestore.
 
    `firebase deploy --only firestore:rules`
 
-GitHub Pages hosts the static files; Firebase supplies rooms, matchmaking,
-state synchronization, waiting counts, and room chat.
+GitHub Pages or Vercel hosts the static files; Firebase supplies rooms, matchmaking,
+state synchronization, waiting counts, account profiles, and room chat.
 
 ## Optional account login on the launcher
 

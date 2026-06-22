@@ -33,6 +33,9 @@ const ZH = new Map(Object.entries({
   'Connect online to chat.': '連線後即可聊天。',
   'Message opponent': '傳訊息給對手',
   'Message online opponent': '傳訊息給線上對手',
+  '5-digit room code or shared link': '5 位數房號或分享連結',
+  'Connect online before chatting.': '請先連線再聊天。',
+  'Synced online game.': '已同步線上棋局。',
   'Send': '傳送',
   'Board Size': '棋盤大小',
   'Board size': '棋盤大小',
@@ -121,7 +124,7 @@ const ZH = new Map(Object.entries({
   'Polar Jump': '極座標跳棋',
   'Cylinder Jump': '圓柱跳棋',
   'Torus Jump': '環面跳棋',
-  'Möbius Jump': 'Möbius 跳棋',
+  'Mobius Jump': 'Mobius 跳棋',
   'Klein Jump': 'Klein 跳棋',
   'Sphere Jump': '球面跳棋',
   '3D Jump': '3D 跳棋',
@@ -270,7 +273,7 @@ const ZH = new Map(Object.entries({
   'Select the Pauli error-correction / recovery physical problem to begin.': '選擇 Pauli 糾錯／恢復物理問題以開始。'
 }));
 
-const originals = new WeakMap();
+const textOriginals = new WeakMap();
 let language = detectLanguage();
 let observer = null;
 const GLOBE_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path></svg>';
@@ -284,10 +287,17 @@ export function installGameUILocalizer() {
     observer = new MutationObserver((records) => {
       for (const record of records) {
         if (record.type === 'characterData') translateText(record.target);
+        if (record.type === 'attributes') translateAttributes(record.target);
         for (const node of record.addedNodes) translateTree(node);
       }
     });
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label']
+    });
   }
   window.addEventListener('languagechange', (event) => setGameLanguage(event.detail?.language || detectLanguage()));
 }
@@ -318,32 +328,49 @@ function translateTree(root, force = false) {
   if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) return;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) translateText(walker.currentNode, force);
-  if (root.nodeType === Node.ELEMENT_NODE) translateAttributes(root);
-  root.querySelectorAll?.('[placeholder], [title], [aria-label]').forEach(translateAttributes);
+  if (root.nodeType === Node.ELEMENT_NODE) translateAttributes(root, force);
+  root.querySelectorAll?.('[placeholder], [title], [aria-label]').forEach((element) => translateAttributes(element, force));
 }
 
-function translateText(node) {
+function translateText(node, force = false) {
   if (!node?.parentElement || ['SCRIPT', 'STYLE'].includes(node.parentElement.tagName)) return;
   if (node.parentElement.closest('[data-no-localize]')) return;
-  if (!originals.has(node)) originals.set(node, node.nodeValue);
-  const original = originals.get(node);
+  let state = textOriginals.get(node);
+  if (!state) {
+    state = { original: node.nodeValue, rendered: '' };
+    textOriginals.set(node, state);
+  } else if (!force && node.nodeValue !== state.original && node.nodeValue !== state.rendered) {
+    state.original = node.nodeValue;
+  }
+  const original = state.original;
   const trimmed = original.trim();
   if (!trimmed) return;
   const translated = language === 'zh' ? translateValue(trimmed) : trimmed;
   const leading = original.match(/^\s*/)?.[0] || '';
   const trailing = original.match(/\s*$/)?.[0] || '';
   const next = `${leading}${translated}${trailing}`;
+  state.rendered = next;
   if (node.nodeValue !== next) node.nodeValue = next;
 }
 
-function translateAttributes(element) {
+function dataKeyForAttribute(prefix, attr) {
+  return `topoboardgame${prefix}${attr.replace(/-([a-z])/g, (_, c) => c.toUpperCase()).replace(/^./, (c) => c.toUpperCase())}`;
+}
+
+function translateAttributes(element, force = false) {
   if (element.closest?.('[data-no-localize]')) return;
   for (const attr of ['placeholder', 'title', 'aria-label']) {
     if (!element.hasAttribute?.(attr)) continue;
-    const dataKey = `topoboardgameOriginal${attr.replace(/-([a-z])/g, (_, c) => c.toUpperCase()).replace(/^./, (c) => c.toUpperCase())}`;
-    if (!element.dataset[dataKey]) element.dataset[dataKey] = element.getAttribute(attr);
-    const original = element.dataset[dataKey];
-    element.setAttribute(attr, language === 'zh' ? translateValue(original) : original);
+    const originalKey = dataKeyForAttribute('Original', attr);
+    const renderedKey = dataKeyForAttribute('Rendered', attr);
+    const current = element.getAttribute(attr);
+    const original = element.dataset[originalKey] || '';
+    const rendered = element.dataset[renderedKey] || '';
+    if (!original || (!force && current !== original && current !== rendered)) element.dataset[originalKey] = current;
+    const source = element.dataset[originalKey] || '';
+    const next = language === 'zh' ? translateValue(source) : source;
+    element.dataset[renderedKey] = next;
+    if (current !== next) element.setAttribute(attr, next);
   }
 }
 
