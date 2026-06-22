@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-06-22T03:34:46.866Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.04690032942483946,
+    "board_size": -0.01974752440531702,
+    "boundary:periodic": -0.04690032942483946,
+    "chess_material_balance": -1.9605372700374926,
+    "chess_piece_count_balance": -0.731679584754663,
+    "chess_piece:bb": 0.10226679724231301,
+    "chess_piece:bk": -0.0029312705890524662,
+    "chess_piece:bn": 0.05721607880632457,
+    "chess_piece:bp": 0.17071995206466684,
+    "chess_piece:bq": 0.02766551750225162,
+    "chess_piece:br": 0.04349624979662654,
+    "chess_piece:wb": 0.032708739569046276,
+    "chess_piece:wk": -0.0029312705890524662,
+    "chess_piece:wn": -0.0073989241168354375,
+    "chess_piece:wp": 0.10490224165005196,
+    "chess_piece:wq": 0.018762175419453075,
+    "chess_piece:wr": 0.02800413689458468,
+    "chess_total_pieces": 0.28272434621763276,
+    "coord_0": 0.15408555281002126,
+    "coord_1": 0.40192817090251526,
+    "cross:2dchess:periodic": -0.04690032942483946,
+    "cross:capture:periodic": 0.385457970074523,
+    "cross:edge:periodic": 0.18276418033223968,
+    "dimension": -0.031266901916669435,
+    "game_is:2dchess": -0.04690032942483946,
+    "game:2dchess": -0.04690032942483946,
+    "lattice:none": -0.04690032942483946,
+    "legal_count_log": -0.7646321148334648,
+    "move_bias": -0.04690032942483946,
+    "move_capture_count": 0.038545797007452295,
+    "move_captures_piece:B": 0.2411494399513913,
+    "move_captures_piece:N": -0.28338860737758215,
+    "move_captures_piece:P": 0.5047469828035934,
+    "move_captures_piece:Q": -0.056023633760000136,
+    "move_captures_piece:R": -0.020433241839005124,
+    "move_center_closeness": -0.31366711534215025,
+    "move_corner_or_anchor": 0.21980774318240504,
+    "move_distance_manhattan": -0.3326144010569071,
+    "move_edge": 0.18276418033223968,
+    "move_is_long_range": -0.5300576242620978,
+    "move_near_edge": 0.48203786782497227,
+    "move_piece:B": -0.20585114448142755,
+    "move_piece:K": 0.495430977622857,
+    "move_piece:N": -0.3174373673263165,
+    "move_piece:P": 0.04739266530187671,
+    "move_piece:Q": -0.7265286306725358,
+    "move_piece:R": 0.6513195789133882,
+    "move_promotion": 0.04623173493243671,
+    "move_type:move": -0.04690032942483946,
+    "player:black": -1.0528220061428764,
+    "player:white": 1.004837537974517,
+    "topology:periodic": -0.04690032942483946
+  },
+  "training": {
+    "examples": 714,
+    "epochs": 4,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.560061,
+        "examples": 714,
+        "accuracy": 0.7339,
+        "logLoss": 0.559642,
+        "brier": 0.191359
+      },
+      {
+        "epoch": 2,
+        "loss": 0.508993,
+        "examples": 714,
+        "accuracy": 0.7367,
+        "logLoss": 0.521384,
+        "brier": 0.175301
+      },
+      {
+        "epoch": 3,
+        "loss": 0.498708,
+        "examples": 714,
+        "accuracy": 0.7591,
+        "logLoss": 0.464582,
+        "brier": 0.154563
+      },
+      {
+        "epoch": 4,
+        "loss": 0.490081,
+        "examples": 714,
+        "accuracy": 0.7759,
+        "logLoss": 0.459699,
+        "brier": 0.151969
+      }
+    ],
+    "featureCount": 52,
+    "input": "local-data/selfplay/2dchess-periodic-square-ai-knowledge.jsonl",
+    "gameFilter": "2dchess",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "chess_material_balance",
+        "weight": -1.960537
+      },
+      {
+        "feature": "player:black",
+        "weight": -1.052822
+      },
+      {
+        "feature": "player:white",
+        "weight": 1.004838
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.764632
+      },
+      {
+        "feature": "chess_piece_count_balance",
+        "weight": -0.73168
+      },
+      {
+        "feature": "move_piece:Q",
+        "weight": -0.726529
+      },
+      {
+        "feature": "move_piece:R",
+        "weight": 0.65132
+      },
+      {
+        "feature": "move_is_long_range",
+        "weight": -0.530058
+      },
+      {
+        "feature": "move_captures_piece:P",
+        "weight": 0.504747
+      },
+      {
+        "feature": "move_piece:K",
+        "weight": 0.495431
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.482038
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.401928
+      },
+      {
+        "feature": "cross:capture:periodic",
+        "weight": 0.385458
+      },
+      {
+        "feature": "move_distance_manhattan",
+        "weight": -0.332614
+      },
+      {
+        "feature": "move_piece:N",
+        "weight": -0.317437
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.313667
+      },
+      {
+        "feature": "move_captures_piece:N",
+        "weight": -0.283389
+      },
+      {
+        "feature": "chess_total_pieces",
+        "weight": 0.282724
+      },
+      {
+        "feature": "move_captures_piece:B",
+        "weight": 0.241149
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.219808
+      },
+      {
+        "feature": "move_piece:B",
+        "weight": -0.205851
+      },
+      {
+        "feature": "cross:edge:periodic",
+        "weight": 0.182764
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.182764
+      },
+      {
+        "feature": "chess_piece:bp",
+        "weight": 0.17072
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.154086
+      },
+      {
+        "feature": "chess_piece:wp",
+        "weight": 0.104902
+      },
+      {
+        "feature": "chess_piece:bb",
+        "weight": 0.102267
+      },
+      {
+        "feature": "chess_piece:bn",
+        "weight": 0.057216
+      },
+      {
+        "feature": "move_captures_piece:Q",
+        "weight": -0.056024
+      },
+      {
+        "feature": "move_piece:P",
+        "weight": 0.047393
+      }
+    ]
+  }
+}

@@ -58,7 +58,7 @@ function latticeLibertyWeight(logic) {
 }
 function groupValue(logic, groups) {
   const lw = latticeLibertyWeight(logic);
-  return groups.reduce((sum, g) => sum + 2.3 * g.size + lw * g.liberties - (g.liberties <= 1 ? 24 + g.size : g.liberties === 2 ? 9 : 0) + (g.size >= 5 && g.liberties >= 5 ? 8 : 0), 0);
+  return groups.reduce((sum, g) => sum + 2.3 * g.size + lw * g.liberties - (g.liberties <= 1 ? 24 + g.size : g.liberties === 2 ? 9 : 0) + (g.size >= 5 && g.liberties >= 5 ? 8 : 0) + 14 * groupEyePotential(logic, g), 0);
 }
 function topologyValue(logic, color) {
   const value = color === 'black' ? COLORS.black : COLORS.white;
@@ -104,6 +104,7 @@ function movePrior(logic, move, player) {
   if (move.ownTerritoryFill) score -= ownTerritoryFillPenalty(logic, move);
   if (move.opponentTerritoryInvasion) score += Math.min(14, Math.max(0, Number(move.regionSize) || 0));
   if (move.neutralRegion) score += Math.min(8, Math.max(0, Number(move.regionSize) || 0) * 0.25);
+  score += basicShapeScore(logic, move, player);
   const idx = trial.indexFromCoord(move.coord);
   if (idx >= 0) {
     const group = trial.getGroupAndLiberties(trial.board, idx);
@@ -114,6 +115,79 @@ function movePrior(logic, move, player) {
   if (coord && coord.some((v, axis) => v === 0 || v === (logic.dimension === 3 ? logic.size : axis === 0 ? logic.width : logic.height) - 1) && TOPOLOGY_INFLUENCE.has(logic.topology)) score += 10;
   if (logic.lattice !== 'sc' && logic.lattice !== 'square') score += 0.7 * (idx >= 0 ? trial.neighborsFromIndex(idx).length : 0);
   return score;
+}
+
+function basicShapeScore(logic, move, player) {
+  if (!move?.coord) return 0;
+  const index = logic.indexFromCoord(move.coord);
+  if (index < 0) return 0;
+  const ownGroups = adjacentGroupInfos(logic, index, player);
+  const enemyGroups = adjacentGroupInfos(logic, index, otherColor(player));
+  let score = 0;
+  for (const group of ownGroups) {
+    if (group.liberties <= 1) score += 40 + 2 * group.size;
+    else if (group.liberties === 2) score += 16 + group.size;
+  }
+  if (ownGroups.length >= 2) score += 18 + 7 * (ownGroups.length - 2);
+  for (const group of enemyGroups) {
+    if (group.liberties <= 1) score += 44 + 2.5 * group.size;
+    else if (group.liberties === 2) score += 18 + group.size;
+  }
+  const eye = localEyeInfo(logic, index, player);
+  if (eye.ownEye) score -= move.ownTerritoryFill ? 62 : 22;
+  if (eye.falseEyeRisk) score -= 20;
+  if (move.neutralRegion && ownGroups.length && enemyGroups.length === 0) score += 12;
+  return score;
+}
+
+function adjacentGroupInfos(logic, index, color) {
+  const wanted = color === 'black' ? COLORS.black : COLORS.white;
+  const seen = new Set();
+  const groups = [];
+  for (const next of logic.neighborsFromIndex(index)) {
+    if (logic.board[next] !== wanted || seen.has(next)) continue;
+    const group = logic.getGroupAndLiberties(logic.board, next);
+    for (const stone of group.group) seen.add(stone);
+    groups.push({ size: group.group.size, liberties: group.liberties.size, anchor: logic.coordFromIndex(next) });
+  }
+  return groups;
+}
+
+function localEyeInfo(logic, index, player) {
+  const ownValue = player === 'black' ? COLORS.black : COLORS.white;
+  const enemyValue = player === 'black' ? COLORS.white : COLORS.black;
+  const neighbors = logic.neighborsFromIndex(index).filter((next) => typeof logic.isPlayableIndex !== 'function' || logic.isPlayableIndex(next));
+  if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, friendlyRatio: 0 };
+  let own = 0;
+  let enemy = 0;
+  let empty = 0;
+  for (const next of neighbors) {
+    if (logic.board[next] === ownValue) own += 1;
+    else if (logic.board[next] === enemyValue) enemy += 1;
+    else empty += 1;
+  }
+  const friendlyRatio = own / neighbors.length;
+  const ownEye = enemy === 0 && empty <= 1 && friendlyRatio >= 0.62;
+  const falseEyeRisk = ownEye && adjacentGroupInfos(logic, index, player).some((group) => group.liberties <= 2);
+  return { ownEye, falseEyeRisk, friendlyRatio };
+}
+
+function groupEyePotential(logic, groupInfo) {
+  const anchor = Array.isArray(groupInfo.anchor) ? logic.indexFromCoord(groupInfo.anchor) : -1;
+  if (anchor < 0) return 0;
+  const color = valueToColor(logic.board[anchor]);
+  if (!color) return 0;
+  const group = logic.getGroupAndLiberties(logic.board, anchor);
+  let potential = 0;
+  for (const liberty of group.liberties) {
+    const eye = localEyeInfo(logic, liberty, color);
+    if (eye.ownEye && !eye.falseEyeRisk) potential += 1;
+    else if (eye.friendlyRatio >= 0.5) potential += 0.3;
+    const region = emptyRegionInfo(logic, liberty);
+    if (region.owner === color && region.size >= 2) potential += Math.min(1.4, region.size / 5);
+  }
+  if (groupInfo.size >= 5 && groupInfo.liberties >= 4) potential += 0.3;
+  return Math.min(2.5, potential);
 }
 
 function passPrior(logic, player) {

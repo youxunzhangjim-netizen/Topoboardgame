@@ -417,6 +417,39 @@ function quickMoveScore(logic, move, player) {
         if (color === otherColor(player)) enemyNeighbors += 1;
     }
     score += 1.0 * friendlyNeighbors + 1.4 * enemyNeighbors;
+    score += basicGoShapeScore(logic, move, player);
+    return score;
+}
+
+function basicGoShapeScore(logic, move, player) {
+    if (!move?.coord) return 0;
+    const index = logic.indexFromCoord(move.coord);
+    if (index < 0) return 0;
+    const opponent = otherColor(player);
+    const ownGroups = adjacentGroupInfos(logic, index, player);
+    const enemyGroups = adjacentGroupInfos(logic, index, opponent);
+    let score = 0;
+
+    // Save weak groups and connect them before chasing loose points.
+    for (const group of ownGroups) {
+        if (group.liberties <= 1) score += 46 + 2.5 * group.size;
+        else if (group.liberties === 2) score += 18 + group.size;
+        else if (group.liberties === 3) score += 6;
+    }
+    if (ownGroups.length >= 2) score += 20 + 8 * (ownGroups.length - 2);
+
+    // Attack weak neighboring groups, but do not overvalue empty territory filling.
+    for (const group of enemyGroups) {
+        if (group.liberties <= 1) score += 50 + 3 * group.size;
+        else if (group.liberties === 2) score += 22 + group.size;
+    }
+
+    const eye = localEyeInfo(logic, index, player);
+    if (eye.ownEye) score -= move.ownTerritoryFill ? 70 : 26;
+    if (eye.falseEyeRisk) score -= 24;
+    if (move.neutralRegion && ownGroups.length && enemyGroups.length === 0) score += 14;
+    if (move.neutralRegion && ownGroups.length && eye.friendlyRatio >= 0.45) score += 16;
+    if (move.opponentTerritoryInvasion && enemyGroups.length && ownGroups.length) score += 10;
     return score;
 }
 
@@ -519,6 +552,38 @@ function emptyRegionInfo(logic, startIndex, visited = null) {
     return { owner, size };
 }
 
+function adjacentGroupInfos(logic, index, color) {
+    const wanted = color === 'black' ? COLORS.black : COLORS.white;
+    const seen = new Set();
+    const groups = [];
+    for (const next of logic.neighborsFromIndex(index)) {
+        if (logic.board[next] !== wanted || seen.has(next)) continue;
+        const group = logic.getGroupAndLiberties(logic.board, next);
+        for (const stone of group.group) seen.add(stone);
+        groups.push({ size: group.group.size, liberties: group.liberties.size, anchor: next });
+    }
+    return groups;
+}
+
+function localEyeInfo(logic, index, player) {
+    const ownValue = player === 'black' ? COLORS.black : COLORS.white;
+    const enemyValue = player === 'black' ? COLORS.white : COLORS.black;
+    const neighbors = logic.neighborsFromIndex(index);
+    if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, friendlyRatio: 0 };
+    let own = 0;
+    let enemy = 0;
+    let empty = 0;
+    for (const next of neighbors) {
+        if (logic.board[next] === ownValue) own += 1;
+        else if (logic.board[next] === enemyValue) enemy += 1;
+        else empty += 1;
+    }
+    const friendlyRatio = own / neighbors.length;
+    const ownEye = enemy === 0 && empty <= 1 && friendlyRatio >= 0.62;
+    const falseEyeRisk = ownEye && adjacentGroupInfos(logic, index, player).some((group) => group.liberties <= 2);
+    return { ownEye, falseEyeRisk, friendlyRatio };
+}
+
 function applyGoMove(logic, move, player) { return move.type === 'pass' ? logic.pass(player) : logic.tryPlay(move.coord, player); }
 function previewAfterMove(logic, move, player) { const clone = cloneGoLogic(logic); const ok = applyGoMove(clone, move, player); return ok?.ok ? clone : null; }
 
@@ -547,10 +612,30 @@ function groupScore(logic, player) {
         if (info.liberties <= 1) score -= 34 + 3 * info.size;
         else if (info.liberties === 2) score -= logic.lattice === 'honeycomb' ? 18 : 10;
         if (info.size >= 4 && info.liberties >= 4) score += 12;
+        score += 18 * groupEyePotential(logic, info, player);
     }
     return score;
 }
 function libertyWeight(logic) { if (logic.lattice === 'honeycomb') return 2.2; if (logic.lattice === 'triangular') return 1.1; return 1.6; }
+
+function groupEyePotential(logic, info, player) {
+    const ownValue = player === 'black' ? COLORS.black : COLORS.white;
+    let potential = 0;
+    const checked = new Set();
+    const group = logic.getGroupAndLiberties(logic.board, logic.indexFromCoord(info.anchor));
+    for (const liberty of group.liberties) {
+        if (checked.has(liberty)) continue;
+        checked.add(liberty);
+        const eye = localEyeInfo(logic, liberty, player);
+        if (eye.ownEye && !eye.falseEyeRisk) potential += 1;
+        else if (eye.friendlyRatio >= 0.5) potential += 0.35;
+        const region = emptyRegionInfo(logic, liberty);
+        if (region.owner === player && region.size >= 2) potential += Math.min(1.5, region.size / 4);
+    }
+    // Compact groups enclosing several local empty points are much closer to living.
+    if (info.size >= 5 && info.liberties >= 3) potential += 0.35;
+    return Math.min(2.5, potential);
+}
 
 function topologyScore(logic, player) {
     const stones = [];
