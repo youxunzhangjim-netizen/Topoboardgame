@@ -30,6 +30,7 @@ service cloud.firestore {
           && validOptionalProfileString("bio", 140)
           && validOptionalProfileString("location", 40)
           && validOptionalProfileString("favoriteGame", 40)
+          && validOptionalProfileString("defaultLanguage", 12)
           && validOptionalProfileBool("showEmail")
           && validOptionalProfileBool("allowRobotLearning")
           && validOptionalProfileString("publicEmail", 120)
@@ -57,6 +58,31 @@ service cloud.firestore {
       match /stats/{statId} {
         allow read, write: if isOwner();
       }
+
+      match /recentGames/{gameId} {
+        allow read, delete: if isOwner();
+        allow create, update: if isOwner()
+          && request.resource.data.id is string
+          && request.resource.data.id.size() <= 120
+          && request.resource.data.opponent is string
+          && request.resource.data.opponent.size() <= 120
+          && request.resource.data.result is string
+          && request.resource.data.result.size() <= 80
+          && request.resource.data.variant is string
+          && request.resource.data.variant.size() <= 120
+          && request.resource.data.topology is string
+          && request.resource.data.topology.size() <= 120;
+      }
+
+      match /friends/{friendId} {
+        allow read, delete: if isOwner();
+        allow create, update: if isOwner()
+          && request.resource.data.uid is string
+          && request.resource.data.uid.size() <= 120
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() > 0
+          && request.resource.data.displayName.size() <= 120;
+      }
     }
 
     match /rooms/{roomId} {
@@ -80,7 +106,7 @@ service cloud.firestore {
       function validRoomPlayerProfile(profile, uid) {
         return profile is map
           && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
-          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "showEmail", "publicEmail", "allowRobotLearning"])
+          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "defaultLanguage", "showEmail", "publicEmail", "allowRobotLearning"])
           && profile.uid == uid
           && profile.displayName is string
           && profile.displayName.size() > 0
@@ -89,6 +115,7 @@ service cloud.firestore {
           && validOptionalRoomProfileString(profile, "bio", 140)
           && validOptionalRoomProfileString(profile, "location", 40)
           && validOptionalRoomProfileString(profile, "favoriteGame", 40)
+          && validOptionalRoomProfileString(profile, "defaultLanguage", 12)
           && validOptionalRoomProfileBool(profile, "showEmail")
           && validOptionalRoomProfileBool(profile, "allowRobotLearning")
           && validOptionalRoomProfileString(profile, "publicEmail", 120)

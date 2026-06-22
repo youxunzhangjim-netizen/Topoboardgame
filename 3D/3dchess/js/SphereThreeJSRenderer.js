@@ -124,6 +124,11 @@ export class SphereThreeJSRenderer extends TorusThreeJSRenderer {
         this.labelGroup.clear();
     }
 
+    addPawnHandednessLabel() {
+        // Cylinder chess pawns use ordinary white/black forward ranks, so the
+        // torus handedness markers are visual noise here.
+    }
+
     createLongitudeLine(xBoundary, material) {
         const points = [];
         const theta = (xBoundary / this.boardWidth()) * TWO_PI;
