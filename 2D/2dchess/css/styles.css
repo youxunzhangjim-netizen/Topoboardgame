@@ -180,9 +180,14 @@ select {
 .captured-icons {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 4px;
     min-height: 30px;
     font-size: 1.3em;
+}
+
+.captured-piece {
+    flex: 0 0 auto;
 }
 
 .board-container {

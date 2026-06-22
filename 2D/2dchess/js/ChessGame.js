@@ -339,7 +339,7 @@ export class ChessGame {
 
         const actualCaptured = captured || enPassantCaptured;
         if (actualCaptured) {
-            this.capturedPieces[piece.color].push(this.pieceIcon(actualCaptured));
+            this.capturedPieces[piece.color].push(this.normalizeCapturedPiece(actualCaptured));
         }
 
         this.halfMoveClock = actualCaptured || movedType === 'P'
@@ -387,7 +387,7 @@ export class ChessGame {
 
         this.board[from.r][from.c] = null;
         piece.hasMoved = true;
-        this.capturedPieces[opponent].push(this.pieceIcon(piece));
+        this.capturedPieces[opponent].push(this.normalizeCapturedPiece(piece));
         this.halfMoveClock = 0;
         this.enPassantTarget = null;
         this.moveHistory.push({
@@ -643,8 +643,8 @@ export class ChessGame {
         if (whiteBox) whiteBox.classList.toggle('active', this.currentPlayer === 'white' && !this.gameOver);
         if (blackBox) blackBox.classList.toggle('active', this.currentPlayer === 'black' && !this.gameOver);
         if (boundaryMode) boundaryMode.textContent = this.tr(`boundary.names.${this.boundaryCondition}`);
-        if (whiteCaptured) whiteCaptured.innerHTML = this.capturedPieces.white.join(' ') || this.emptyInline('captured.none');
-        if (blackCaptured) blackCaptured.innerHTML = this.capturedPieces.black.join(' ') || this.emptyInline('captured.none');
+        if (whiteCaptured) whiteCaptured.innerHTML = this.renderCapturedPieces(this.capturedPieces.white);
+        if (blackCaptured) blackCaptured.innerHTML = this.renderCapturedPieces(this.capturedPieces.black);
         if (gameModeSelect) gameModeSelect.value = this.gameMode;
 
         if (onlineColorStatus) {
@@ -1078,6 +1078,26 @@ export class ChessGame {
 
     pieceIcon(piece) {
         return PIECE_GLYPHS[piece.color]?.[piece.type] || piece.display || '?';
+    }
+
+    normalizeCapturedPiece(value) {
+        if (value && typeof value === 'object') {
+            const color = value.color === 'black' ? 'black' : 'white';
+            const type = ['K', 'Q', 'R', 'B', 'N', 'P'].includes(value.type) ? value.type : 'P';
+            return { color, type };
+        }
+        return String(value || '');
+    }
+
+    renderCapturedPieces(pieces = []) {
+        if (!pieces.length) return this.emptyInline('captured.none');
+        return pieces.map((value) => {
+            const piece = this.normalizeCapturedPiece(value);
+            if (typeof piece === 'string') return piece;
+            const icon = this.pieceIcon(piece);
+            const title = `${this.pieceName(piece)} (${piece.color})`;
+            return `<span class="captured-piece piece-glyph piece-${piece.color} piece-${piece.type}" title="${title}" aria-label="${title}">${icon}</span>`;
+        }).join(' ');
     }
 
     pieceName(piece) {
