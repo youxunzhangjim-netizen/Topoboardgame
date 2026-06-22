@@ -4,9 +4,9 @@
   const pathname = window.location.pathname.toLowerCase();
   const isTwoDPath = pathname.includes('/2d/');
   const isThreeDPath = pathname.includes('/3d/');
-  const layer = rawLayer === '3p1' || rawLayer === '3+1' || rawLayer === '3d+1' || rawLayer === '3' || (rawLayer === '1' && isThreeDPath)
+  const layer = rawLayer === '3p1' || rawLayer === '3+1' || rawLayer === '3d+1' || (rawLayer === '1' && isThreeDPath)
     ? '3p1'
-    : rawLayer === '2p1' || rawLayer === '2+1' || rawLayer === '2d+1' || rawLayer === '2' || (rawLayer === '1' && isTwoDPath)
+    : rawLayer === '2p1' || rawLayer === '2+1' || rawLayer === '2d+1' || (rawLayer === '1' && isTwoDPath)
       ? '2p1'
       : '';
   if (!layer) return;

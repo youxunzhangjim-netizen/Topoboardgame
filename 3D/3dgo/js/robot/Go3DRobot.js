@@ -11,7 +11,7 @@ function sigmoid(score, scale = 90) { return 1 / (1 + Math.exp(-score / scale));
 function now() { return globalThis.performance?.now?.() ?? Date.now(); }
 function cloneLogic(logic) { const copy = new GoGameLogic(); copy.importState(logic.exportState()); return copy; }
 function coordLabel(coord) { return `(${coord.join(',')})`; }
-function clampLevel(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 1))); }
+function clampLevel(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 3))); }
 
 function legalMoves(logic, player = logic.currentPlayer) {
   const moves = [];
@@ -442,7 +442,7 @@ export function installGo3DRobot(app) {
   if (modeSelect && !modeSelect.querySelector('option[value="robot"]')) modeSelect.insertAdjacentHTML('beforeend', '<option value="robot">Robot</option>');
   const sidebar = document.querySelector('.sidebar');
   const panel = document.createElement('section'); panel.className = 'panel robot-panel';
-  panel.innerHTML = `<h3>Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="goRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="goRobotLevelSelect"><option value="1" selected>Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div><div class="control-grid robot-buttons"><button id="goRobotMoveBtn" type="button">Robot Move</button><button id="goRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="goRobotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
+  panel.innerHTML = `<h3>Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="goRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="goRobotLevelSelect"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3" selected>Level 3</option><option value="4">Level 4</option></select></div><div class="control-grid robot-buttons"><button id="goRobotMoveBtn" type="button">Robot Move</button><button id="goRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="goRobotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
   if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
   else sidebar?.appendChild(panel);
@@ -485,7 +485,7 @@ export function installGo3DRobot(app) {
     updateButtons();
     await new Promise(r => setTimeout(r, 20));
     try {
-      const a = analyzeGo3DPosition(app.logic, Number(level.value) || 1); render(out, a);
+      const a = analyzeGo3DPosition(app.logic, Number(level.value) || 3); render(out, a);
       const move = chooseSafeMove(a.topMoves[0]?.move);
       if (!move) {
         const pass = app.logic.pass(app.logic.currentPlayer);
@@ -533,7 +533,7 @@ export function installGo3DRobot(app) {
     pendingTimer = window.setTimeout(() => { pendingTimer = 0; makeMove(); }, 180);
   }
   panel.querySelector('#goRobotMoveBtn')?.addEventListener('click', makeMove);
-  panel.querySelector('#goRobotAnalyzeBtn')?.addEventListener('click', () => render(out, analyzeGo3DPosition(app.logic, Number(level.value) || 1)));
+  panel.querySelector('#goRobotAnalyzeBtn')?.addEventListener('click', () => render(out, analyzeGo3DPosition(app.logic, Number(level.value) || 3)));
   side.addEventListener('change', schedule); modeSelect?.addEventListener('change', () => { document.getElementById('onlineControls')?.classList.toggle('active', modeSelect.value === 'online'); schedule(); });
   const oldAfter = app.afterLocalAction?.bind(app); if (oldAfter) app.afterLocalAction = function(...args) { const result = oldAfter(...args); schedule(); return result; };
   const oldReset = app.resetGame?.bind(app); if (oldReset) app.resetGame = function(...args) { const result = oldReset(...args); schedule(); return result; };

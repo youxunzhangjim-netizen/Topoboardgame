@@ -8,7 +8,7 @@ const ROOT_CAP = { 1: 90, 2: 44, 3: 30, 4: 24 };
 
 function sigmoid(score, scale = 135) { return 1 / (1 + Math.exp(-score / scale)); }
 function now() { return globalThis.performance?.now?.() ?? Date.now(); }
-function clampDepth(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 2))); }
+function clampDepth(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 3))); }
 function cloneLogic(logic) { const copy = new ReversiGame(); copy.importState(logic.exportState()); return copy; }
 function coordLabel(coord) { return `(${coord.join(',')})`; }
 function dimensions(logic) { return [logic.topology.width, logic.topology.height, logic.topology.depth || 1]; }
@@ -146,7 +146,7 @@ function negamax(logic, depth, alpha, beta, player, root, ctx) {
   }
   ctx.tt.set(key, best); return best;
 }
-export function analyzeReversi3DPosition(logic, depth = 2) {
+export function analyzeReversi3DPosition(logic, depth = 3) {
   depth = clampDepth(depth);
   const player = logic.currentPlayer; const before = evaluate(logic, player); const ctx = context(depth, true);
   const rootMoves = orderMoves(logic, logic.legalMoves(player), player).slice(0, ROOT_CAP[depth] || 30);
@@ -186,7 +186,7 @@ function render(panel, a) {
   panel.innerHTML = `<h3>3D Reversi Robot Analysis</h3><p><strong>${a.player}</strong> to play · score ${a.currentScore.toFixed(1)} · win estimate ${(a.currentWinRate*100).toFixed(1)}% · ${a.topology}/${a.lattice} · nodes ${a.searched}${a.truncated ? ' (time-limited)' : ''}</p><p>Black ${a.counts.black}, White ${a.counts.white}, Empty ${a.counts.empty}; completed depth ${a.completedDepth}</p><h4>Top moves</h4><ol>${a.topMoves.map(r=>`<li><strong>${coordLabel(r.move.coord)}</strong> — ${r.score.toFixed(1)}, ${(r.winRate*100).toFixed(1)}%<br>${r.reasons.join('; ')}</li>`).join('')}</ol><h4>Bad moves</h4><ol>${a.badMoves.map(r=>`<li>${coordLabel(r.move.coord)} — ${r.score.toFixed(1)}<br>${r.reasons.join('; ')}</li>`).join('')}</ol>`;
 }
 
-export function chooseReversi3DRobotMove(logic, depth = 2) {
+export function chooseReversi3DRobotMove(logic, depth = 3) {
   const analysis = analyzeReversi3DPosition(logic, depth);
   const best = analysis.topMoves[0] || null;
   return {
@@ -201,7 +201,7 @@ export function installReversi3DRobot(app) {
   if (!app || app.__robot3dInstalled) return; app.__robot3dInstalled = true;
   const modeSelect = document.getElementById('gameModeSelect'); if (modeSelect && !modeSelect.querySelector('option[value="robot"]')) modeSelect.insertAdjacentHTML('beforeend','<option value="robot">Robot</option>');
   const sidebar = document.querySelector('.sidebar'); const panel = document.createElement('section'); panel.className='panel robot-panel';
-  panel.innerHTML = `<h3>Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="reversiRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="reversiRobotDepthSelect"><option value="1">Depth 1</option><option value="2" selected>Depth 2</option><option value="3">Depth 3</option><option value="4">Depth 4</option></select></div><div class="control-grid robot-buttons"><button id="reversiRobotMoveBtn" type="button">Robot Move</button><button id="reversiRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="reversiRobotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
+  panel.innerHTML = `<h3>Robot & Analysis</h3><div class="robot-row"><label>Robot side</label><select id="reversiRobotSideSelect"><option value="white">White</option><option value="black">Black</option></select></div><div class="robot-row"><label>Strength</label><select id="reversiRobotDepthSelect"><option value="1">Depth 1</option><option value="2">Depth 2</option><option value="3" selected>Depth 3</option><option value="4">Depth 4</option></select></div><div class="control-grid robot-buttons"><button id="reversiRobotMoveBtn" type="button">Robot Move</button><button id="reversiRobotAnalyzeBtn" type="button">Analyze Position</button></div><div class="robot-analysis" id="reversiRobotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
   if (historyPanel?.parentElement) historyPanel.insertAdjacentElement('afterend', panel);
   else sidebar?.appendChild(panel); const side=panel.querySelector('#reversiRobotSideSelect'); const depth=panel.querySelector('#reversiRobotDepthSelect'); const out=panel.querySelector('#reversiRobotAnalysisPanel'); const isRobot=()=>modeSelect?.value==='robot';

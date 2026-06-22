@@ -18,7 +18,7 @@ const ANALYSIS_TIME_BY_DEPTH_MS = { 1: 150, 2: 420, 3: 900, 4: 1600 };
 const ROOT_CAP_BY_DEPTH = { 1: 80, 2: 48, 3: 30, 4: 22 };
 const NODE_CAP_BY_PLY = { 1: 120, 2: 64, 3: 38, 4: 26 };
 
-export function chooseRobotMove(game, depth = 2) {
+export function chooseRobotMove(game, depth = 3) {
     const result = chooseRobotMoveFromState(createAnalysisState(game), depth);
     const legalMove = validateMoveStillLegal(game, result.move);
     return {
@@ -27,7 +27,7 @@ export function chooseRobotMove(game, depth = 2) {
     };
 }
 
-export function chooseRobotMoveFromState(inputState, depth = 2) {
+export function chooseRobotMoveFromState(inputState, depth = 3) {
     const state = normalizeState(inputState);
     const player = state.currentPlayer;
     const maxDepth = clampDepth(depth);
@@ -67,11 +67,11 @@ export function chooseRobotMoveFromState(inputState, depth = 2) {
     };
 }
 
-export function analyzePosition(game, depth = 2) {
+export function analyzePosition(game, depth = 3) {
     return analyzePositionFromState(createAnalysisState(game), depth);
 }
 
-export function analyzePositionFromState(inputState, depth = 2) {
+export function analyzePositionFromState(inputState, depth = 3) {
     const state = normalizeState(inputState);
     const player = state.currentPlayer;
     const maxDepth = clampDepth(depth);
@@ -370,5 +370,5 @@ function now() {
 }
 
 function clampDepth(value) {
-    return Math.max(1, Math.min(4, Math.floor(Number(value) || 2)));
+    return Math.max(1, Math.min(4, Math.floor(Number(value) || 3)));
 }

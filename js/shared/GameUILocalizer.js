@@ -348,6 +348,9 @@ function translateAttributes(element) {
 function translateValue(text) {
   if (ZH.has(text)) return ZH.get(text);
   return text
+    .replace(/Counting pending: provisional draw/g, '等待計分：暫時和棋')
+    .replace(/Counting pending: Black leads by ([\d.]+)/g, '等待計分：黑方暫時領先 $1')
+    .replace(/Counting pending: White leads by ([\d.]+)/g, '等待計分：白方暫時領先 $1')
     .replace(/Standard uses ordinary open board edges\./g, '標準使用普通的開放棋盤邊界。')
     .replace(/Standard uses ordinary board edges\./g, '標準使用普通的棋盤邊界。')
     .replace(/Klein bottle identifies left-right normally and top-bottom with x flipped: leaving at x enters at size - 1 - x\./g, 'Klein 瓶左右正常相接，上下相接時 x 會翻轉：從 x 離開會進入 size - 1 - x。')

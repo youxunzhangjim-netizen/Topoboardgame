@@ -493,6 +493,26 @@ class Go2DApp {
         this.afterLocalAction(message);
     }
 
+    autoFinalizeLocalCount() {
+        if (!this.logic.scoringPending || this.logic.gameOver || this.gameModeSelect.value === 'online') return '';
+        this.logic.agreeToCount('black');
+        this.logic.agreeToCount('white');
+        if (this.logic.gameOver) {
+            this.stopTimer();
+            return this.resultText();
+        }
+        return '';
+    }
+
+    pendingScoreText() {
+        if (!this.logic.scoringPending || this.logic.gameOver) return '';
+        const score = this.logic.computeAreaScore();
+        const margin = Math.abs(score.black - score.white);
+        if (margin === 0) return 'Counting pending: provisional draw';
+        const leader = score.black > score.white ? 'Black' : 'White';
+        return `Counting pending: ${leader} leads by ${margin}`;
+    }
+
     agreeCount() {
         const color = this.gameModeSelect.value === 'online'
             ? this.myColor
@@ -528,7 +548,8 @@ class Go2DApp {
         this.lockSettings();
         this.startTimer();
         this.applyTimeEvolutionAndNoise();
-        this.setStatus(message);
+        const finalMessage = this.autoFinalizeLocalCount() || message;
+        this.setStatus(finalMessage);
         this.broadcastState();
         this.updateUI();
         this.robot?.afterLocalAction();
@@ -1045,7 +1066,7 @@ class Go2DApp {
             : periodic
                 ? 'PBC identifies both left-right and top-bottom edges. Every point has periodic neighbors in both board directions.'
                 : 'Standard uses ordinary open board edges.') + latticeText;
-        this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? 'Counting pending' : `${this.capitalize(this.logic.currentPlayer)} to play`;
+        this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? this.pendingScoreText() : `${this.capitalize(this.logic.currentPlayer)} to play`;
         this.blackCapturedEl.textContent = `${this.logic.captures.black} ${this.logic.captures.black === 1 ? 'stone' : 'stones'}`;
         this.whiteCapturedEl.textContent = `${this.logic.captures.white} ${this.logic.captures.white === 1 ? 'stone' : 'stones'}`;
         this.blackTimerBox.classList.toggle('active', this.logic.currentPlayer === 'black' && !this.logic.gameOver);
@@ -1081,13 +1102,15 @@ class Go2DApp {
     }
 
     renderScore() {
-        if (!this.logic.score) {
+        const score = this.logic.score || (this.logic.scoringPending ? this.logic.computeAreaScore() : null);
+        if (!score) {
             this.scorePanel.hidden = true;
             this.scoreResult.textContent = '';
             return;
         }
         this.scorePanel.hidden = false;
-        this.scoreResult.textContent = `Black ${this.logic.score.black}, White ${this.logic.score.white} including ${this.logic.score.komi} komi. ${this.resultText()}`;
+        const suffix = this.logic.gameOver ? this.resultText() : this.pendingScoreText();
+        this.scoreResult.textContent = `Black ${score.black}, White ${score.white} including ${score.komi} komi. ${suffix}`;
     }
 
     resultText() {

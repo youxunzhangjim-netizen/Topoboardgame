@@ -85,8 +85,8 @@ async function maybeYield(stats) {
   stats.lastYield = nowMs();
 }
 function nowMs() { return globalThis.performance?.now?.() ?? Date.now(); }
-function makeStats(depth = 2, analysis = false) {
-  const time = (analysis ? 1.4 : 1) * ({ 1: 90, 2: 260, 3: 620, 4: 1100 }[Math.max(1, Math.min(4, Number(depth) || 2))] || 420);
+function makeStats(depth = 3, analysis = false) {
+  const time = (analysis ? 1.4 : 1) * ({ 1: 90, 2: 260, 3: 620, 4: 1100 }[Math.max(1, Math.min(4, Number(depth) || 3))] || 420);
   return { nodes: 0, nodeLimit: analysis ? 90000 : 52000, deadline: nowMs() + time, lastYield: nowMs(), tt: new Map(), truncated: false };
 }
 function timeUp(stats) {
@@ -326,7 +326,7 @@ function explainMove(game, before, move, scoreBefore, scoreAfter) {
   if (topo.includes('sphere') || topo.includes('rp2') || topo.includes('mobius') || topo.includes('klein')) reasons.push('uses the embedded surface legal moves');
   return reasons.length ? reasons : ['best searched legal move'];
 }
-function analyze(game, depth = 2) {
+function analyze(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const scoreBefore = evaluate(game, state, player);
@@ -346,7 +346,7 @@ function analyze(game, depth = 2) {
   return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
 }
 
-export async function analyze3DChessPosition(game, depth = 2) {
+export async function analyze3DChessPosition(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const scoreBefore = evaluate(game, state, player);
@@ -371,7 +371,7 @@ export async function analyze3DChessPosition(game, depth = 2) {
 }
 
 
-export async function choose3DChessRobotMove(game, depth = 2) {
+export async function choose3DChessRobotMove(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const stats = makeStats(depth, false);
@@ -381,7 +381,7 @@ export async function choose3DChessRobotMove(game, depth = 2) {
   if (!moves.length) return { move: null, score: evaluate(game, state, player), nodes: 0, truncated: false };
   let best = { move: moves[0], score: -Infinity };
   let completedDepth = 0;
-  for (let d = 1; d <= Math.max(1, Math.min(4, Number(depth) || 2)); d += 1) {
+  for (let d = 1; d <= Math.max(1, Math.min(4, Number(depth) || 3)); d += 1) {
     let iterationBest = null;
     for (const move of moves) {
       if (timeUp(stats)) break;
@@ -446,7 +446,7 @@ export function installChess3DRobot(shell) {
   panel.innerHTML = `
     <h3>Robot & Analysis</h3>
     <div class="robot-row"><label>Robot side</label><select id="robotSideSelect"><option value="black">Black</option><option value="white">White</option></select></div>
-    <div class="robot-row"><label>Strength</label><select id="robotDepthSelect"><option value="1">Depth 1</option><option value="2" selected>Depth 2</option><option value="3">Depth 3</option><option value="4">Depth 4</option></select></div>
+    <div class="robot-row"><label>Strength</label><select id="robotDepthSelect"><option value="1">Depth 1</option><option value="2">Depth 2</option><option value="3" selected>Depth 3</option><option value="4">Depth 4</option></select></div>
     <div class="control-grid robot-buttons"><button id="robotMoveBtn" type="button">Robot Move</button><button id="robotAnalyzeBtn" type="button">Analyze Position</button></div>
     <div class="robot-analysis" id="robotAnalysisPanel">Choose Robot, or click Analyze Position.</div>`;
   const historyPanel = document.getElementById('moveHistoryList')?.closest('.panel');
@@ -460,7 +460,7 @@ export function installChess3DRobot(shell) {
   function robotSide() { return sideSelect?.value || 'black'; }
   async function makeRobotMove() {
     if (thinking || !isRobotMode() || game.gameOver || game.currentPlayer !== robotSide()) return;
-    const depth = Math.max(1, Number(depthSelect?.value) || 2);
+    const depth = Math.max(1, Number(depthSelect?.value) || 3);
     analysisPanel.textContent = 'Robot is thinking...';
     thinking = true;
     await waitForBrowser();
@@ -504,7 +504,7 @@ export function installChess3DRobot(shell) {
     analysisPanel.textContent = 'Robot is analyzing...';
     await waitForBrowser();
     try {
-      renderAnalysis(analysisPanel, await analyze3DChessPosition(game, Math.max(1, Number(depthSelect?.value) || 2)));
+      renderAnalysis(analysisPanel, await analyze3DChessPosition(game, Math.max(1, Number(depthSelect?.value) || 3)));
     } finally {
       thinking = false;
     }

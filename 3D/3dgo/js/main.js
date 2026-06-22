@@ -111,6 +111,14 @@ const I18N = {
 Object.assign(I18N.en.app, {
     tagline: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 Go with 9, 13, and 19 scale options.'
 });
+Object.assign(I18N.en.score, {
+    pendingDraw: 'Counting pending: provisional draw',
+    pendingLead: ({ color, margin }) => 'Counting pending: ' + color + ' leads by ' + margin
+});
+Object.assign(I18N.zh.score, {
+    pendingDraw: '等待計分：暫時和棋',
+    pendingLead: ({ color, margin }) => '等待計分：' + color + '暫時領先 ' + margin
+});
 Object.assign(I18N.en.mode, {
     r3Option: 'R3 Standard Go',
     t3Option: 'T3 PBC Go',
@@ -2190,6 +2198,26 @@ class Go3DApp {
         this.afterLocalAction(evolution ? `${base}. ${evolution}.` : base);
     }
 
+    autoFinalizeLocalCount() {
+        if (!this.logic.scoringPending || this.logic.gameOver || this.gameModeSelect.value === 'online') return '';
+        this.logic.agreeToCount('black');
+        this.logic.agreeToCount('white');
+        if (this.logic.gameOver) {
+            this.stopTimer();
+            return this.resultText();
+        }
+        return '';
+    }
+
+    pendingScoreText() {
+        if (!this.logic.scoringPending || this.logic.gameOver) return '';
+        const score = this.logic.computeAreaScore();
+        const margin = Math.abs(score.black - score.white);
+        if (margin === 0) return tr('score.pendingDraw');
+        const leader = score.black > score.white ? 'black' : 'white';
+        return tr('score.pendingLead', { color: this.colorName(leader), margin });
+    }
+
     agreeCount() {
         const color = this.gameModeSelect.value === 'online'
             ? this.myColor
@@ -2224,7 +2252,8 @@ class Go3DApp {
         this.gameStarted = true;
         this.lockSettings();
         this.startTimer();
-        this.setStatus(message);
+        const finalMessage = this.autoFinalizeLocalCount() || message;
+        this.setStatus(finalMessage);
         this.broadcastState();
         this.updateUI();
     }
@@ -2357,7 +2386,7 @@ class Go3DApp {
         })} · ${this.latticeName()}`;
         this.modeInfo.textContent = tr(`mode.${modeKey}Info`) + this.latticeInfo();
         this.sphereViewGroup.hidden = !isSphere;
-        this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? tr('status.countingPending') : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
+        this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? this.pendingScoreText() : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
         this.blackCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.black });
         this.whiteCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.white });
         this.blackTimerBox.classList.toggle('active', this.logic.currentPlayer === 'black' && !this.logic.gameOver);
@@ -2411,13 +2440,15 @@ class Go3DApp {
     }
 
     renderScore() {
-        if (!this.logic.score) {
+        const score = this.logic.score || (this.logic.scoringPending ? this.logic.computeAreaScore() : null);
+        if (!score) {
             this.scorePanel.hidden = true;
             this.scoreResult.textContent = '';
             return;
         }
         this.scorePanel.hidden = false;
-        this.scoreResult.textContent = tr('score.summary', { black: this.logic.score.black, white: this.logic.score.white, komi: this.logic.score.komi, result: this.resultText() });
+        const result = this.logic.gameOver ? this.resultText() : this.pendingScoreText();
+        this.scoreResult.textContent = tr('score.summary', { black: score.black, white: score.white, komi: score.komi, result });
     }
 
     resultText() {

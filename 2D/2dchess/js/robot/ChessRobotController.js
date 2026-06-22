@@ -12,7 +12,7 @@ export class ChessRobotController {
         this.game = game;
         this.enabled = false;
         this.side = 'black';
-        this.depth = 2;
+        this.depth = 3;
         this.thinking = false;
         this.pendingTimer = null;
         this.worker = null;
@@ -34,7 +34,7 @@ export class ChessRobotController {
         });
 
         depth?.addEventListener('change', () => {
-            this.depth = Math.max(1, Math.min(4, Number(depth.value) || 2));
+            this.depth = Math.max(1, Math.min(4, Number(depth.value) || 3));
         });
 
         moveBtn?.addEventListener('click', () => this.forceRobotMove());

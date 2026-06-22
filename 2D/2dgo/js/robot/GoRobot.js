@@ -11,7 +11,7 @@ export class GoRobotController {
     constructor(app) {
         this.app = app;
         this.side = 'white';
-        this.depth = 2;
+        this.depth = 3;
         this.thinking = false;
         this.pendingTimer = null;
         this.finalFlowKey = '';
@@ -30,7 +30,7 @@ export class GoRobotController {
             this.scheduleIfNeeded();
             this.app.updateUI();
         });
-        this.depthSelect?.addEventListener('change', () => { this.depth = clampLevel(Number(this.depthSelect.value) || 2); });
+        this.depthSelect?.addEventListener('change', () => { this.depth = clampLevel(Number(this.depthSelect.value) || 3); });
         this.moveButton?.addEventListener('click', () => this.forceMove());
         this.analyzeButton?.addEventListener('click', () => this.renderAnalysis());
         this.updatePanelState();
@@ -219,13 +219,13 @@ export function estimateGoWinRates(logic) {
     return { blackWinRate, whiteWinRate: 1 - blackWinRate, score: blackScore };
 }
 
-export function chooseGoRobotMove(logic, depth = 2) {
+export function chooseGoRobotMove(logic, depth = 3) {
     const analysis = analyzeGoPosition(logic, depth, { moveOnly: true });
     const best = analysis.topMoves[0] || null;
     return { move: best?.move || null, score: best?.score ?? analysis.currentScore, nodes: analysis.nodes, truncated: analysis.truncated };
 }
 
-export function analyzeGoPosition(logic, depth = 2) {
+export function analyzeGoPosition(logic, depth = 3) {
     const level = clampLevel(depth);
     const player = logic.currentPlayer;
     const baseScore = evaluateGo(logic, player);
@@ -312,7 +312,7 @@ function weightedPick(moves, logic, player, ply) {
     return sorted[0];
 }
 
-function rankCandidateMoves(logic, player, depth = 2) {
+function rankCandidateMoves(logic, player, depth = 3) {
     const legal = getLegalPlayCandidates(logic, player);
     const ranked = legal.map((move) => ({ ...move, prior: quickMoveScore(logic, move, player) })).sort((a, b) => b.prior - a.prior);
     const level = clampLevel(depth);
@@ -864,7 +864,7 @@ function scoreToWinRate(score) { if (score >= 100000) return 0.999; if (score <=
 function formatScore(score) { if (score >= 90000) return '+W'; if (score <= -90000) return '-L'; return `${score >= 0 ? '+' : ''}${(score / 18).toFixed(1)} pts`; }
 function coordLabel(coord) { if (!Array.isArray(coord)) return 'pass'; return `(${coord.map((value) => value + 1).join(',')})`; }
 function moveRow(rank, item) { const reasons = item.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join(''); return `<li><div><strong>${rank}. ${escapeHtml(item.move.label || coordLabel(item.move.coord))}</strong></div><div class="robot-muted">score ${escapeHtml(item.scoreText)} · win ${(100 * item.winRate).toFixed(1)}% · ${item.visits || 0} sims</div><ul>${reasons}</ul></li>`; }
-function clampLevel(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 2))); }
+function clampLevel(value) { return Math.max(1, Math.min(4, Math.floor(Number(value) || 3))); }
 function now() { return globalThis.performance?.now?.() ?? Date.now(); }
 function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
 function nextFrame() { return new Promise((resolve) => window.requestAnimationFrame(() => resolve())); }
