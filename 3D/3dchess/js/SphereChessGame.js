@@ -9,6 +9,7 @@ import {
     SPHERE_PAWN_DIR,
     SPHERE_PLAYABLE_MAX_Y,
     SPHERE_PLAYABLE_MIN_Y,
+    SPHERE_WHITE_HOME_ROW,
     createSphereInitialPieces,
     createSphereWhiteInitialPieces,
     sphereIsPlayable,
@@ -220,8 +221,62 @@ export class SphereChessGame extends TorusChessGame {
         return this.uniqueMoves(moves);
     }
 
-    getCastlingMoves() {
-        return [];
+    getCastlingMoves(x, y, sheet = 0) {
+        const king = this.getPiece(x, y, sheet);
+        if (!king || king.type !== 'K' || king.hasMoved || sheet !== 0) return [];
+
+        const homeRow = this.homeRowFor(king.color);
+        const homeFiles = createSphereWhiteInitialPieces(this.boardWidth())
+            .filter((piece) => piece.y === SPHERE_WHITE_HOME_ROW)
+            .reduce((files, piece) => ({ ...files, [piece.type]: piece.x }), {});
+        const kingStartX = homeFiles.K;
+        if (y !== homeRow || x !== kingStartX || this.isInCheck(king.color)) return [];
+
+        const rookFiles = createSphereWhiteInitialPieces(this.boardWidth())
+            .filter((piece) => piece.y === SPHERE_WHITE_HOME_ROW && piece.type === 'R')
+            .map((piece) => piece.x)
+            .sort((a, b) => a - b);
+        const queenRookX = rookFiles[0];
+        const kingRookX = rookFiles[rookFiles.length - 1];
+        const options = [
+            {
+                side: 'kingside',
+                rookFrom: { x: kingRookX, y: homeRow },
+                rookTo: { x: kingStartX + 1, y: homeRow },
+                kingTo: { x: kingStartX + 2, y: homeRow },
+                clearX: [kingStartX + 1, kingStartX + 2],
+                kingPath: [{ x: kingStartX + 1, y: homeRow }, { x: kingStartX + 2, y: homeRow }]
+            },
+            {
+                side: 'queenside',
+                rookFrom: { x: queenRookX, y: homeRow },
+                rookTo: { x: kingStartX - 1, y: homeRow },
+                kingTo: { x: kingStartX - 2, y: homeRow },
+                clearX: [queenRookX + 1, queenRookX + 2, queenRookX + 3],
+                kingPath: [{ x: kingStartX - 1, y: homeRow }, { x: kingStartX - 2, y: homeRow }]
+            }
+        ];
+        const enemy = this.opponentOf(king.color);
+        const moves = [];
+
+        for (const option of options) {
+            const rook = this.getPiece(option.rookFrom.x, option.rookFrom.y, 0);
+            if (!rook || rook.color !== king.color || rook.type !== 'R' || rook.hasMoved) continue;
+            if (!option.clearX.every((pathX) => !this.getPiece(pathX, homeRow, 0))) continue;
+            if (!option.kingPath.every((square) => !this.isSquareAttacked(square.x, square.y, 0, enemy))) continue;
+            moves.push({
+                ...option.kingTo,
+                sheet: 0,
+                capture: false,
+                castling: {
+                    side: option.side,
+                    rookFrom: { ...option.rookFrom, sheet: 0 },
+                    rookTo: { ...option.rookTo, sheet: 0 }
+                }
+            });
+        }
+
+        return moves;
     }
 
     resolveTarget(x, y, sheet = 0) {
