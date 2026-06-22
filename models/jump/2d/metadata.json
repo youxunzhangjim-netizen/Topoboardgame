@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "topoboardgame.modelMetadata.v1",
+  "modelId": "models/jump/2d/variant-fine-tuning-1781876657762",
+  "gameType": "jump",
+  "variant": "2d",
+  "topology": "2d",
+  "baseModelId": "models/jump/base",
+  "rulesVersion": "local-current",
+  "trainingSource": "variant-fine-tuning",
+  "trainingDate": "2026-06-19T13:44:17.761Z",
+  "ratingEstimate": null,
+  "evaluationNotes": "method=variant-fine-tuning; examples=24000; Variant model saved separately to avoid catastrophic forgetting of the base robot.",
+  "modelDirectory": "models/jump/2d/"
+}

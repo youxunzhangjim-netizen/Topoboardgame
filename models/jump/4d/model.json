@@ -1,0 +1,7 @@
+{
+  "schema": "topoboardgame.localRobotModel.v1",
+  "method": "variant-fine-tuning",
+  "exampleCount": 24000,
+  "examplesDigest": "24000:4191:4475",
+  "note": "Open engines are teachers/baselines; this file describes a Topoboardgame local robot model for custom topology play."
+}
