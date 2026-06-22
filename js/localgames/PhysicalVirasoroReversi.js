@@ -8,11 +8,11 @@ import { coordKey, sumHomology } from '../topology/GraphTopologies.js';
 import { CliffordReversiGame } from './CliffordReversi.js';
 
 export const PHYSICAL_VIRASORO_REVERSI_MODE = 'physical_virasoro_reversi';
-export const CFT_REVERSI_PHYSICAL_SYSTEM_NAME = 'CFT/domain-wall interval Reversi on a topology graph';
-export const CFT_REVERSI_BLACK_WHITE_MEANING = 'black = + source/domain sign; white = - source/domain sign; stone = primary field or spin/domain insertion; bracketed Reversi line = discrete CFT interval; flipping = OPE channel/domain transformation';
+export const CFT_REVERSI_PHYSICAL_SYSTEM_NAME = 'CFT local operator and OPE interval system on a topology graph';
+export const CFT_REVERSI_BLACK_WHITE_MEANING = 'black = + source/domain sign; white = - source/domain sign; stone = primary-field insertion; occupied neighbors/rays define a discrete OPE interaction interval instead of an enclosing boardgame bracket';
 export const CFT_REVERSI_ALLOWED_ACTIONS = Object.freeze([
-    'place_primary_domain_stone',
-    'flip_bracketed_interval',
+    'insert_primary_field',
+    'propagate_local_ope_kernel',
     'update_ope_channel_along_interval',
     'measure_interval_parity',
     'measure_ope_channel',
@@ -20,7 +20,7 @@ export const CFT_REVERSI_ALLOWED_ACTIONS = Object.freeze([
     'apply_Ln_deformation',
     'pass'
 ]);
-export const CFT_REVERSI_LOCAL_UPDATE_RULES = 'A legal Reversi placement brackets an opponent path as a discrete CFT interval. Flipped interval stones change source/domain sign and update Ising OPE channel data. Measurements reveal parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update the stress proxy and N=2 anomaly log.';
+export const CFT_REVERSI_LOCAL_UPDATE_RULES = 'A primary insertion is legal on an empty graph vertex. The inserted field couples to occupied sites along nearby graph rays through the Ising-CFT OPE table, updates channel labels, phase transport, stress, entropy, and conformal-block estimators, and never requires an enclosing boardgame bracket. Measurements reveal interval parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update the stress proxy and N=2 anomaly log.';
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -55,7 +55,8 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
             centralCharge: Number.isFinite(Number(options.centralCharge)) ? Number(options.centralCharge) : 0.5,
             maxMode: Number(options.maxMode) >= 2 ? 2 : 1,
             temperature: Number.isFinite(Number(options.temperature)) ? Number(options.temperature) : 0.35,
-            domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(options.domainWallThickness) || 1)))
+            domainWallThickness: Math.max(1, Math.min(6, Math.floor(Number(options.domainWallThickness) || 1))),
+            interactionRadius: Math.max(1, Math.min(6, Math.floor(Number(options.interactionRadius) || 2)))
         };
         this.board.clear();
         this.history = [];
@@ -266,10 +267,10 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
                 cursor = next.coord;
                 continue;
             }
-            if (stone.color === player && chain.length) return { bracketed: true, chain, edges };
+            if (stone.color === player && chain.length) return { coupled: true, chain, edges };
             break;
         }
-        return { bracketed: false, chain: [], edges };
+        return { coupled: false, chain: [], edges };
     }
 
     previewMove(coord, player = this.currentPlayer, primaryType = this.cftConfig?.primaryType || 'sigma') {
@@ -278,48 +279,59 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         if (!this.isEmpty(normalized)) return { legal: false, reason: 'occupied', flips: [] };
         const flips = [];
         const rays = [];
+        const seen = new Set();
+        const radius = Math.max(1, Math.min(6, Number(this.cftConfig?.interactionRadius) || 2));
         for (const direction of this.topology.rayDirections()) {
-            const ray = this.collectCFTRay(normalized, direction, player);
-            if (!ray.bracketed) continue;
-            rays.push({ direction, chain: ray.chain.map((item) => item.coord), edges: ray.edges });
-            for (const item of ray.chain) {
-                const ope = this.cft.resolveOPE(primaryType, item.stone.primaryType, {
+            const chain = [];
+            const edges = [];
+            let cursor = normalized;
+            for (let index = 0; index < radius; index++) {
+                const step = this.topology.step(cursor, direction);
+                if (!step) break;
+                const key = coordKey(step.coord);
+                if (key === coordKey(normalized)) break;
+                edges.push(step.edge);
+                const stone = this.board.get(key);
+                cursor = step.coord;
+                if (!stone || seen.has(key)) continue;
+                seen.add(key);
+                chain.push([...step.coord]);
+                const ope = this.cft.resolveOPE(primaryType, stone.primaryType, {
                     tick: this.moveNumber + 1,
-                    coord: item.coord,
+                    coord: step.coord,
                     record: false
                 });
-                let phaseAngle = item.stone.phaseAngle + Math.PI;
-                for (const edge of item.edges) {
+                let phaseAngle = Number(stone.phaseAngle) || 0;
+                for (const edge of edges) {
                     const transport = this.topology.seamTransform(edge);
                     if (transport !== 'identity') phaseAngle += Math.PI / 2;
                 }
                 flips.push({
-                    coord: item.coord,
-                    key: item.key,
-                    before: item.stone,
+                    coord: [...step.coord],
+                    key,
+                    before: cloneValue(stone),
                     after: normalizeCFTStone({
-                        ...item.stone,
-                        sign: -item.stone.sign,
+                        ...stone,
                         primaryType: ope.resolved,
                         channelLabel: ope.channelLabel,
                         hiddenChannel: ope.hiddenChannel,
                         phaseAngle,
-                        lastUpdate: { action: 'cft_flip', tick: this.moveNumber + 1 }
+                        lastUpdate: { action: 'local_ope_update', tick: this.moveNumber + 1 }
                     }),
                     ope,
-                    transportEdges: item.edges
+                    transportEdges: [...edges],
+                    operator: 'local_ope_kernel'
                 });
             }
+            if (chain.length) rays.push({ direction, chain, edges: [...edges] });
         }
-        const unique = new Map();
-        for (const flip of flips) unique.set(flip.key, flip);
         return {
-            legal: unique.size > 0,
+            legal: true,
             coord: normalized,
             player,
             primaryType,
             rays,
-            flips: [...unique.values()]
+            flips
         };
     }
 
@@ -333,7 +345,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         const player = options.player || this.currentPlayer;
         const primaryType = options.primaryType || this.cftConfig.primaryType;
         const preview = this.previewMove(coord, player, primaryType);
-        if (!preview.legal) return { ok: false, error: 'Place a primary field where it brackets an opponent interval.', preview };
+        if (!preview.legal) return { ok: false, error: 'Insert a primary field on an empty graph vertex.', preview };
         const weights = ISING_CFT_PRIMARIES[primaryType] || { h: Number(options.h) || 0, hbar: Number(options.hbar) || 0 };
         this.setStone(preview.coord, {
             sign: player === 'black' ? 1 : -1,
@@ -342,7 +354,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
             hbar: weights.hbar,
             phaseAngle: Number(options.phaseAngle) || 0,
             channelLabel: 'source',
-            lastUpdate: { action: 'cft_place', tick: this.moveNumber + 1 }
+            lastUpdate: { action: 'insert_primary_field', tick: this.moveNumber + 1 }
         });
         for (const flip of preview.flips) this.cft.opeChannelHistory.push(cloneValue(flip.ope));
         for (const flip of preview.flips) this.board.set(flip.key, flip.after);
@@ -355,10 +367,12 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         const event = {
             mode: this.mode,
             type: 'place',
+            action: 'insert_primary_and_local_ope',
             number: this.moveNumber,
             player,
             placedStone: { coord: [...preview.coord], ...this.getStone(preview.coord) },
             flippedPath: this.lastFlippedPath,
+            localOPEPath: this.lastFlippedPath,
             flipped: preview.flips.map((flip) => ({
                 coord: flip.coord,
                 before: flip.before,
@@ -379,12 +393,13 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
         this.currentPlayer = otherPlayer(player);
         this.appendPhysicsHistory({
             player,
-            action: 'flip_bracketed_interval',
+            action: 'insert_primary_and_local_ope',
             placedStone: event.placedStone,
             flippedPath: event.flippedPath,
-            OPEUpdates: event.OPEUpdates
+            OPEUpdates: event.OPEUpdates,
+            metadata: { interactionRadius: this.cftConfig.interactionRadius }
         });
-        this.recordPosition('cft_move');
+        this.recordPosition('cft_operator_move');
         return { ok: true, event };
     }
 
@@ -593,7 +608,7 @@ export class PhysicalVirasoroReversiGame extends CliffordReversiGame {
             topologySector: cloneValue(sector),
             anomalyCount: observables.centralChargeAnomalyEvents.length,
             anomalyEvents: observables.centralChargeAnomalyEvents.length,
-            summary: `Discrete CFT/domain-wall interval estimate: ${observables.dominantConformalBlock} OPE/block dominates; final sector ${observables.finalCFTSector}; entropy ${observables.entanglementEntropyEstimate.toFixed(3)}; domain-wall length ${observables.domainWallLength}; ${observables.centralChargeAnomalyEvents.length} N=2 anomaly event${observables.centralChargeAnomalyEvents.length === 1 ? '' : 's'}.`
+            summary: `Discrete CFT local-OPE interval estimate: ${observables.dominantConformalBlock} OPE/block dominates; final sector ${observables.finalCFTSector}; entropy ${observables.entanglementEntropyEstimate.toFixed(3)}; domain-wall length ${observables.domainWallLength}; ${observables.centralChargeAnomalyEvents.length} N=2 anomaly event${observables.centralChargeAnomalyEvents.length === 1 ? '' : 's'}.`
         };
     }
 

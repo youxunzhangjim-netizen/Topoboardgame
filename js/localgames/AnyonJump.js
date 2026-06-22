@@ -825,7 +825,7 @@ export class AnyonJumpGame {
         if (!token) return { ok: false, error: 'Unknown token.', events: [] };
         if (token.owner !== this.currentPlayer) return { ok: false, error: 'Choose one of your own anyons.', events: [] };
         if (!Array.isArray(destinations) || destinations.length === 0) {
-            return { ok: false, error: 'Choose at least one jump landing for a chain jump.', events: [] };
+            return { ok: false, error: 'Choose at least one exchange landing for a multi-step scattering path.', events: [] };
         }
         const player = token.owner;
         const events = [];
@@ -838,7 +838,7 @@ export class AnyonJumpGame {
             if (!action) {
                 return {
                     ok: false,
-                    error: 'Chain jumps must continue with legal jump landings.',
+                    error: 'Multi-step scattering must continue with legal exchange landings.',
                     events
                 };
             }

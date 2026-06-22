@@ -14,7 +14,7 @@ const CLUSTER_INITIAL_STATES = Object.freeze([
 const CLUSTER_ACTIONS = Object.freeze([
     'place_species',
     'grow_connected_cluster',
-    'capture_zero_liberty_cluster',
+    'remove_zero_contact_cluster',
     'diffusion_noise_step',
     'pass'
 ]);
@@ -663,8 +663,8 @@ export class PhysicalClusterGoGame {
     exportState() {
         return {
             mode: this.mode,
-            physicalSystemName: 'Physical cluster Go competition graph',
-            blackWhiteMeaning: 'black = species A / phase A / spin sector A; white = species B / phase B / spin sector B; liberties = local growth or resource sites; capture = local extinction / annihilation / confinement',
+            physicalSystemName: 'Physical cluster-field competition graph',
+            blackWhiteMeaning: 'black = species A / phase A / spin sector A; white = species B / phase B / spin sector B; neighboring vacancies are resource contacts; zero-contact clusters undergo local extinction, annihilation, or confinement',
             initialStateOptions: [...CLUSTER_INITIAL_STATES],
             allowedActions: [...CLUSTER_ACTIONS],
             topology: {

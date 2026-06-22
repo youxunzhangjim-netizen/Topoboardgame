@@ -99,16 +99,16 @@ const cftReversi = new PhysicalVirasoroReversiGame({
 assert.equal(cftReversi.mode, 'physical_virasoro_reversi');
 assert.equal(cftReversi.board.size, 4, 'Four-sigma state replaces the ordinary Reversi opening.');
 assert.equal(cftReversi.counts().primaryTypes.sigma, 4);
-assert.equal(cftReversi.legalMoves('black', 'sigma').length, 4, 'Four-sigma state provides playable CFT brackets.');
+assert.ok(cftReversi.legalMoves('black', 'sigma').length > 4, 'Four-sigma state provides many empty local-OPE insertion sites.');
 const cftBefore = cftReversi.computeCFTObservables();
 assert.ok(cftBefore.fourPointCrossRatio > 0 && cftBefore.fourPointCrossRatio < 1);
 assert.equal(cftBefore.estimatorNotice.includes('not exact continuum'), true);
-assert.equal(cftBefore.physicalSystemName.includes('CFT/domain-wall interval'), true);
+assert.equal(cftBefore.physicalSystemName.includes('CFT local operator'), true);
 assert.equal(Object.values(cftBefore.opeChannelDistribution).reduce((total, count) => total + count, 0) >= 4, true);
 const cftMove = cftReversi.place([2, 3], { player: 'black', primaryType: 'sigma' });
-assert.equal(cftMove.ok, true, 'CFT Reversi places a primary on a legal bracket.');
-assert.equal(cftMove.event.OPEUpdates.length, 1, 'A bracketed primary creates an OPE update.');
-assert.equal(cftReversi.physicsHistory.at(-1).action, 'flip_bracketed_interval');
+assert.equal(cftMove.ok, true, 'CFT local-OPE mode inserts a primary on an empty vertex.');
+assert.ok(cftMove.event.OPEUpdates.length >= 1, 'A local primary insertion creates one or more OPE updates.');
+assert.equal(cftReversi.physicsHistory.at(-1).action, 'insert_primary_and_local_ope');
 const stressAction = cftReversi.applyVirasoroAction({
     action: 'L0',
     coord: [2, 3],
@@ -270,7 +270,7 @@ for (const initialState of [
     assert.ok(observables.largestCluster >= 1, 'Cluster observables include largest cluster size.');
     assert.equal(typeof observables.percolationProbability, 'number');
     assert.equal(typeof observables.survivalProbability, 'number');
-    assert.equal(cluster.exportState().allowedActions.includes('capture_zero_liberty_cluster'), true);
+    assert.equal(cluster.exportState().allowedActions.includes('remove_zero_contact_cluster'), true);
 }
 
 const physicalClusterCapture = new PhysicalClusterGoGame({
@@ -285,9 +285,9 @@ physicalClusterCapture.setSpecies([1, 0], 'A');
 physicalClusterCapture.setSpecies([2, 1], 'A');
 physicalClusterCapture.recordPosition('manual-capture');
 const physicalClusterCaptured = physicalClusterCapture.placeSpecies([1, 2], 'black');
-assert.equal(physicalClusterCaptured.ok, true, 'Cluster Go permits a no-liberty-looking placement when it captures and lives.');
-assert.equal(physicalClusterCaptured.captured, 1, 'Zero-liberty opponent cluster is captured as local extinction.');
-assert.equal(physicalClusterCapture.getSpecies([1, 1]), null, 'Captured cluster is removed from the substrate.');
+assert.equal(physicalClusterCaptured.ok, true, 'Cluster field permits a zero-contact-looking placement when it removes the opponent cluster and lives.');
+assert.equal(physicalClusterCaptured.captured, 1, 'Zero-contact opponent cluster is removed as local extinction.');
+assert.equal(physicalClusterCapture.getSpecies([1, 1]), null, 'Extinct cluster is removed from the substrate.');
 assert.equal(physicalClusterCapture.computePhysicalAnswer().whichSpeciesPercolated.length > 0, true);
 
 const physicalFlip = new PhysicalCliffordReversiGame({
@@ -296,11 +296,19 @@ const physicalFlip = new PhysicalCliffordReversiGame({
 });
 physicalFlip.setStone([3, 3], { color: 'white', pauliLabel: 'X', pauliSign: -1, phase: 0 });
 physicalFlip.setStone([4, 3], { color: 'black', pauliLabel: 'Z', pauliSign: 1, phase: 0 });
-const physicalPreview = physicalFlip.previewMove([2, 3], 'black', 'H');
-assert.equal(physicalPreview.legal, true, 'Physical mode keeps topology-aware Reversi bracketing.');
-assert.equal(physicalPreview.flips[0].after.pauliSign, 1, 'A physical Reversi flip changes the sector sign.');
-assert.equal(physicalPreview.flips[0].after.pauliLabel, 'Z', 'The selected Clifford gate transforms the flipped Pauli.');
-assert.equal(physicalPreview.flips[0].after.color, 'black', 'The displayed owner follows the physical sector sign.');
+const physicalPreview = physicalFlip.previewMove([3, 3], 'black', 'identity');
+assert.equal(physicalPreview.legal, true, 'Physical mode accepts a local Pauli recovery target without Reversi bracketing.');
+assert.equal(physicalPreview.flips.length, 1, 'Occupied data sites preview a local Pauli multiplication update.');
+assert.equal(physicalPreview.flips[0].operator, 'local_pauli_multiplication');
+const physicalCorrection = physicalFlip.place([3, 3], {
+    player: 'black',
+    pauliLabel: 'X',
+    pauliSign: -1,
+    transform: 'identity'
+});
+assert.equal(physicalCorrection.ok, true, 'A matching Pauli recovery operator is accepted.');
+assert.equal(physicalCorrection.event.type, 'apply_pauli_recovery_operator');
+assert.equal(physicalFlip.getStone([3, 3]), null, 'Multiplying by the matching error recovers the local identity.');
 
 for (const initialState of [
     'sparse_pauli_errors',

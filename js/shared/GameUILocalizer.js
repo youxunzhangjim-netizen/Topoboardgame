@@ -248,10 +248,10 @@ const ZH = new Map(Object.entries({
   'Close introduction': '關閉介紹',
   'Clifford Introduction and Observables': 'Clifford 介紹與可觀測量',
   'Stabilizer Introduction and Observables': 'Stabilizer 介紹與可觀測量',
-  'Physical Cluster Go Introduction and Observables': '物理團簇圍棋介紹與可觀測量',
-  'CFT Domain-Wall Reversi Introduction and Observables': 'CFT 疇壁黑白棋介紹與可觀測量',
+  'Physical Cluster Field Introduction and Observables': '物理團簇場介紹與可觀測量',
+  'CFT Local OPE Operators Introduction and Observables': 'CFT 局部 OPE 算符介紹與可觀測量',
   'Anyon Introduction and Observables': '任意子介紹與可觀測量',
-  'CFT Observable Go Introduction and Observables': 'CFT 可觀測圍棋介紹與可觀測量',
+  'CFT Field Insertion Graph Introduction and Observables': 'CFT 場插入圖介紹與可觀測量',
   'CFT Observables': 'CFT 可觀測量',
   'Toric-Code QEC Observables': 'Toric Code 量子糾錯可觀測量',
   'Stabilizer Observables': 'Stabilizer 可觀測量',
@@ -516,16 +516,46 @@ function translateValue(text) {
     .replace(/black is species A, phase A, or spin sector A\./g, '黑方代表物種 A、相位 A 或自旋扇區 A。')
     .replace(/White is species B, phase B, or spin sector B\./g, '白方代表物種 B、相位 B 或自旋扇區 B。')
     .replace(/test whether competing local growth rules create survival, extinction, percolation, or topology-wrapping clusters on different spaces\./g, '測試競爭式局部生長規則是否會在不同空間中產生存活、滅絕、滲流或繞拓撲的團簇。')
-    .replace(/liberties are neighboring empty graph vertices that can feed growth\./g, '氣是可供生長的相鄰空圖頂點。')
+    .replace(/resource contacts are neighboring empty graph vertices that can feed growth\./g, '資源接觸是可供生長的相鄰空圖頂點。')
+    .replace(/liberties are neighboring empty graph vertices that can feed growth\./g, '資源接觸是可供生長的相鄰空圖頂點。')
     .replace(/black is the \+ source\/domain sign and white is the - source\/domain sign\./g, '黑方是正源／正疇符號，白方是負源／負疇符號。')
     .replace(/A stone is a primary field or spin\/domain insertion\./g, '一顆棋子代表 primary field 或自旋／疇插入。')
-    .replace(/use Reversi brackets as discrete intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph\./g, '使用黑白棋夾擊作為離散區間，觀察源符號、疇壁與 OPE 通道如何在所選圖上重組。')
+    .replace(/use local OPE intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph\./g, '使用局部 OPE 區間觀察源符號、疇壁與 OPE 通道如何在所選圖上重組。')
+    .replace(/use Reversi brackets as discrete intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph\./g, '使用局部 OPE 區間觀察源符號、疇壁與 OPE 通道如何在所選圖上重組。')
     .replace(/create mobile topological charges, braid or unbraid their worldlines, then test whether fusion and logical memory return to the intended vacuum or sector\./g, '建立可移動拓撲荷，編織或解編織其世界線，再測試融合與邏輯記憶是否回到目標真空或扇區。')
-    .replace(/a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex/g, '一個棋子可以跳到相鄰空頂點，或越過一個被佔據的相鄰棋子到下一個空頂點')
+    .replace(/a token may hop to an adjacent empty vertex or exchange over one occupied neighboring token into the next empty vertex/g, '一個粒子可以躍遷到相鄰空頂點，或經由相鄰佔據粒子交換到下一個空頂點')
+    .replace(/a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex/g, '一個粒子可以躍遷到相鄰空頂點，或經由相鄰佔據粒子交換到下一個空頂點')
     .replace(/the board is a discretized Riemann surface \/ graph manifold\./g, '棋盤是離散化的 Riemann 曲面／圖流形。')
-    .replace(/place primary fields and use Go captures as graph operations, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates\./g, '放置 primary field，並把圍棋提子當作圖操作，再測量哪個共形塊、相關模式、熵增長或異常響應占主導。')
-    .replace(/legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency\./g, '合法落子、氣、提子、自殺、超劫、停手與面積計分都使用拓撲鄰接。')
+    .replace(/insert primary fields and use local graph\/OPE contact updates, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates\./g, '插入 primary field，並使用局部圖與 OPE 接觸更新，再測量哪個共形塊、相關模式、熵增長或異常響應占主導。')
+    .replace(/local insertion, graph contacts, OPE fusion updates, measurements, and pass actions use topology adjacency\./g, '局部插入、圖接觸、OPE 融合更新、測量與停手都使用拓撲鄰接。')
+    .replace(/legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency\./g, '局部插入、圖接觸、OPE 融合更新、測量與停手都使用拓撲鄰接。')
     .replace(/export summarizes final dominant block, identity\/vacuum block dominance, entropy growth, strongest correlations, final OPE sector, and anomaly count\./g, '匯出會總結最終主導共形塊、恆等／真空共形塊優勢、熵增長、最強相關、最終 OPE 扇區與異常數。')
+    .replace(/^Stabilizer\ Operator\ Grid$/g, 'Stabilizer 算符格')
+    .replace(/^Pauli\-Frame\ Recovery\ Operators$/g, 'Pauli-frame 恢復算符')
+    .replace(/^Clifford\ Insertion\ Field$/g, 'Clifford 插入場')
+    .replace(/^Physical\ Clifford\ Field\ Operators$/g, '物理 Clifford 場算符')
+    .replace(/^Clifford\ Worldline\ Operators$/g, 'Clifford 世界線算符')
+    .replace(/^Physical\ Clifford\ Worldlines$/g, '物理 Clifford 世界線')
+    .replace(/^Anyon\ Charge\ Fusion\ Grid$/g, 'Anyon 電荷融合格')
+    .replace(/^Physical\ Anyon\ Charge\ Grid$/g, '物理 Anyon 電荷格')
+    .replace(/^CFT\ Field\ Insertion\ Graph$/g, 'CFT 場插入圖')
+    .replace(/^CFT\ Local\ OPE\ Operators$/g, 'CFT 局部 OPE 算符')
+    .replace(/^Virasoro\ Worldline\ Operators$/g, 'Virasoro 世界線算符')
+    .replace(/^Physical\ Virasoro\ Worldlines$/g, '物理 Virasoro 世界線')
+    .replace(/^Anyon\ Fusion\ \&\ Braiding\ Worldlines$/g, 'Anyon 融合與編織世界線')
+    .replace(/^Topological\ Memory\ Worldlines$/g, '拓撲記憶世界線')
+    .replace(/^Physical\ Cluster\ Field$/g, '物理團簇場')
+    .replace(/^Particle\ Hopping\ \/\ Reaction\ System$/g, '粒子躍遷／反應系統')
+    .replace(/^CFT\ Local\ OPE\ Intro$/g, 'CFT 局部 OPE 簡介')
+    .replace(/^CFT\ Field\ Graph\ Intro$/g, 'CFT 場圖簡介')
+    .replace(/^Cluster\ Field\ Intro$/g, '團簇場簡介')
+    .replace(/^Particle\ Hopping\ Intro$/g, '粒子躍遷簡介')
+    .replace(/^Clifford\ Worldline\ Intro$/g, 'Clifford 世界線簡介')
+    .replace(/^Virasoro\ Worldline\ Intro$/g, 'Virasoro 世界線簡介')
+    .replace(/^Apply\ Pauli\ Recovery\ Operator$/g, '套用 Pauli 恢復算符')
+    .replace(/^Line\-Interval\ Rewrite$/g, '線區間重寫')
+    .replace(/^Exchange\ Across\ Particle$/g, '跨粒子交換')
+    .replace(/^Multi\-step\ Scattering$/g, '多步散射')
     .replace(/\bInstant\b/g, '立即')
     .replace(/^(\d+) stones?$/, '$1 顆棋子')
     .replace(/^Robot is thinking\.\.\.$/, '機器人思考中…')

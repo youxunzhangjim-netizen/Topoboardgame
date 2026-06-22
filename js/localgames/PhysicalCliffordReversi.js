@@ -25,7 +25,7 @@ export const PHYSICAL_MEASUREMENTS = Object.freeze([
     'local_pauli',
     'neighborhood_stabilizer_check',
     'connected_domain_parity',
-    'bracketed_line_parity',
+    'line_interval_parity',
     'stabilizer_check',
     'logical_cycle_parity'
 ]);
@@ -416,56 +416,135 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
     }
 
     previewMove(coord, player = this.currentPlayer, transform = this.defaultFlipTransform) {
-        const base = super.previewMove(coord, player, transform);
-        if (!base.legal) return base;
-        const flips = base.flips.map((flip) => {
-            let after = {
-                ...flip.before,
-                color: player,
-                pauliSign: -normalizePauliSign(flip.before.pauliSign),
-                phase: normalizePhase(flip.before.phase),
-                lastUpdate: { action: 'reversi_flip', tick: this.moveNumber + 1 }
+        const normalized = this.topology.normalize(coord);
+        if (!normalized) return { legal: false, reason: 'outside', flips: [] };
+        const key = coordKey(normalized);
+        const before = this.board.get(key) ? cloneValue(this.board.get(key)) : null;
+        if (before?.isAncilla) {
+            return {
+                legal: false,
+                reason: 'ancilla',
+                coord: normalized,
+                player,
+                transform,
+                flips: [],
+                affectedVertices: [normalized]
             };
-            after = transformPhysicalPauli(after, transform);
-            for (const edge of flip.transportEdges || []) {
-                after = transformPhysicalPauli(after, edge.transport || 'identity');
-            }
-            return { ...flip, after: syncPhysicalAliases(after) };
-        });
-        return { ...base, flips };
+        }
+        const defaultPauli = before?.pauliLabel || 'X';
+        const incoming = transformPhysicalPauli({
+            color: player,
+            pauliLabel: defaultPauli,
+            pauliSign: player === 'black' ? 1 : -1,
+            phase: 0
+        }, transform);
+        const multiplied = before
+            ? syncPhysicalAliases({ ...before, ...multiplyPaulis(before, incoming) })
+            : syncPhysicalAliases({ ...incoming });
+        return {
+            legal: true,
+            coord: normalized,
+            player,
+            transform,
+            flips: before ? [{
+                coord: normalized,
+                key,
+                before,
+                after: cloneValue(multiplied),
+                operator: 'local_pauli_multiplication'
+            }] : [],
+            affectedVertices: [normalized],
+            recoveryOperator: cloneValue(incoming)
+        };
+    }
+
+    legalMoves(player = this.currentPlayer, transform = this.defaultFlipTransform) {
+        return this.topology.vertices()
+            .map((coord) => this.previewMove(coord, player, transform))
+            .filter((preview) => preview.legal);
     }
 
     place(coord, options = {}) {
-        const result = super.place(coord, {
-            ...options,
-            pauliSign: options.pauliSign ?? (this.currentPlayer === 'black' ? 1 : -1)
-        });
-        if (!result.ok) return result;
-        const key = coordKey(result.event.coord);
-        const placed = this.board.get(key);
-        if (placed) {
-            placed.phase = normalizePhase(options.phase);
-            placed.pauliSign = normalizePauliSign(options.pauliSign ?? (result.event.player === 'black' ? 1 : -1));
-            placed.lastUpdate = { action: 'reversi_place', tick: this.moveNumber };
-            syncPhysicalAliases(placed);
+        const player = options.player || this.currentPlayer;
+        const normalized = this.topology.normalize(coord);
+        if (!normalized) return { ok: false, error: 'Choose a valid physical site.' };
+        const key = coordKey(normalized);
+        const before = this.board.get(key) ? cloneValue(this.board.get(key)) : null;
+        if (before?.isAncilla) {
+            return { ok: false, error: 'Use the ancilla controls for prepared ancilla sites.' };
         }
-        for (const flip of result.event.flipped) {
-            syncPhysicalAliases(this.board.get(coordKey(flip.coord)));
+        const rawOperator = {
+            color: player,
+            pauliLabel: normalizePauliLabel(options.pauliLabel || options.pauli || 'X', 'X'),
+            pauliSign: normalizePauliSign(options.pauliSign ?? (player === 'black' ? 1 : -1)),
+            phase: normalizePhase(options.phase)
+        };
+        const frameTransform = options.transform || this.defaultFlipTransform || 'identity';
+        const operator = syncPhysicalAliases(transformPhysicalPauli(rawOperator, frameTransform));
+        let after = null;
+        let removedIdentity = false;
+        if (before) {
+            after = syncPhysicalAliases({
+                ...before,
+                ...multiplyPaulis(before, operator),
+                isAncilla: before.isAncilla,
+                ancillaBasis: before.ancillaBasis,
+                lastUpdate: {
+                    action: 'apply_pauli_recovery_operator',
+                    operator: physicalLabel(operator),
+                    frameTransform,
+                    tick: this.moveNumber + 1
+                }
+            });
+            if (after.pauliLabel === 'I') {
+                this.board.delete(key);
+                removedIdentity = true;
+            } else {
+                this.board.set(key, after);
+            }
+        } else if (operator.pauliLabel !== 'I') {
+            after = syncPhysicalAliases({
+                ...operator,
+                lastUpdate: {
+                    action: 'apply_pauli_recovery_operator',
+                    operator: physicalLabel(operator),
+                    frameTransform,
+                    tick: this.moveNumber + 1
+                }
+            });
+            this.setStone(normalized, after);
         }
-        result.event.mode = this.mode;
-        result.event.phase = placed?.phase || 0;
-        this.appendPhysicsHistory({
-            player: result.event.player,
-            action: 'reversi_place',
-            affectedVertices: [result.event.coord, ...result.event.flipped.map((flip) => flip.coord)],
-            gates: [result.event.transform],
-            phaseChanges: result.event.flipped.map((flip) => ({
-                coord: flip.coord,
-                before: flip.before.phase || 0,
-                after: flip.after.phase || 0
-            })),
-            metadata: { eventNumber: result.event.number }
+        const phaseChanges = before || after ? [{
+            coord: normalized,
+            before: before?.phase ?? null,
+            after: after?.phase ?? null
+        }] : [];
+        const result = this.finishPhysicalAction({
+            player,
+            action: 'apply_pauli_recovery_operator',
+            affectedVertices: [normalized],
+            gates: [physicalLabel(operator), frameTransform].filter((gate) => gate && gate !== 'identity'),
+            phaseChanges,
+            metadata: {
+                before: before ? physicalLabel(before) : 'I',
+                operator: physicalLabel(operator),
+                after: after ? physicalLabel(after) : 'I',
+                removedIdentity,
+                frameTransform
+            },
+            consumeTurn: options.consumeTurn !== false,
+            record: options.record !== false
         });
+        result.event.coord = [...normalized];
+        result.event.placedStone = after ? { coord: [...normalized], ...cloneValue(after) } : null;
+        result.event.flipped = before ? [{
+            coord: [...normalized],
+            before,
+            after: after ? cloneValue(after) : null,
+            operator: cloneValue(operator)
+        }] : [];
+        result.event.phase = after?.phase || 0;
+        result.event.transform = frameTransform;
         return result;
     }
 
@@ -648,13 +727,37 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
         });
     }
 
+    lineIntervalTargets(vertex) {
+        const normalized = this.topology.normalize(vertex);
+        if (!normalized) return [];
+        const targets = new Map([[coordKey(normalized), normalized]]);
+        const directions = typeof this.topology.rayDirections === 'function'
+            ? this.topology.rayDirections()
+            : this.topology.directions();
+        const seedDirection = directions.find((direction) => Array.isArray(direction)
+            && direction.some((component) => Number(component) !== 0));
+        if (!seedDirection) return [normalized];
+        const maxSteps = Math.max(1, Math.min(4, Number(this.physicalConfig?.domainWallThickness) || 2));
+        for (const direction of [seedDirection, seedDirection.map((component) => -component)]) {
+            let cursor = normalized;
+            for (let stepIndex = 0; stepIndex < maxSteps; stepIndex++) {
+                const step = this.topology.step(cursor, direction);
+                if (!step?.coord) break;
+                const key = coordKey(step.coord);
+                if (targets.has(key)) break;
+                targets.set(key, [...step.coord]);
+                cursor = step.coord;
+            }
+        }
+        return [...targets.values()];
+    }
+
     measurementTargets(vertex, type = 'local_pauli') {
         const normalized = this.topology.normalize(vertex);
         if (!normalized) return [];
         if (type === 'connected_domain_parity') return this.connectedGroup(normalized).map((entry) => entry.coord);
-        if (type === 'bracketed_line_parity') {
-            const preview = this.previewMove(normalized, this.currentPlayer, this.defaultFlipTransform);
-            return [...new Map(preview.flips.map((flip) => [flip.key, flip.coord])).values()];
+        if (type === 'line_interval_parity') {
+            return this.lineIntervalTargets(normalized);
         }
         if (type === 'stabilizer_check' || type === 'neighborhood_stabilizer_check') {
             return [normalized, ...this.topology.neighbors(normalized)];

@@ -207,7 +207,7 @@ function eventAction(result, fallback) {
         return Number(event.captured || 0) > 0 ? 'capture_fuse_cluster' : 'place_primary_field';
     }
     if (fallback === 'place' && event.mode === 'physical_virasoro_reversi') {
-        return 'flip_bracketed_interval';
+        return event.action || 'insert_primary_and_local_ope';
     }
     if (measurementActions[measurementType]) return measurementActions[measurementType];
     if (fallback === 'measureTwoPoint') return 'measure_two_point_correlator';

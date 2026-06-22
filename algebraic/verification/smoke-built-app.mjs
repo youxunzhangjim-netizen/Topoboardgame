@@ -370,13 +370,13 @@ try {
             answer: state.physicalAnswer
         };
     });
-    assert.equal(clusterInitialState.title, 'Physical Cluster Go');
+    assert.equal(clusterInitialState.title, 'Physical Cluster Field');
     assert.equal(clusterInitialState.mode, 'physical_cluster_go');
     assert.equal(clusterInitialState.layer, 'physical');
     assert.equal(clusterInitialState.clusterControlsVisible, true);
     assert.equal(clusterInitialState.clusterRulesHidden, false);
     assert.equal(clusterInitialState.cells, 64);
-    assert.ok(clusterInitialState.legalCells > 0, 'Physical Cluster Go should expose legal resource sites.');
+    assert.ok(clusterInitialState.legalCells > 0, 'Physical Cluster Field should expose legal resource sites.');
     assert.match(clusterInitialState.blackLabel, /Species A/);
     assert.equal(typeof clusterInitialState.observables.largestCluster, 'number');
     assert.equal(typeof clusterInitialState.answer.whichSpeciesPercolated, 'string');
@@ -602,23 +602,23 @@ try {
             .map((node) => node.textContent || '')
             .join(' ')
     }));
-    assert.equal(fixedGoState.title, 'CFT Observable Go');
-    assert.equal(fixedGoState.modeControlHidden, false, 'Launcher-selected CFT Observable Go should remain changeable inside the algebraic app.');
-    assert.notEqual(fixedGoState.cftControlsDisplay, 'none', 'CFT Observable Go should show its CFT/Virasoro controls.');
-    assert.equal(fixedGoState.cliffordDisplay, 'none', 'CFT Observable Go should hide Clifford algebra group.');
-    assert.equal(fixedGoState.anyonDisplay, 'none', 'CFT Observable Go should hide Anyon algebra group.');
-    assert.equal(fixedGoState.virasoroDisplay, 'none', 'CFT Observable Go should hide the retired legacy Virasoro group.');
-    assert.equal(fixedGoState.pauliHidden, true, 'CFT Observable Go should hide Clifford Pauli controls.');
+    assert.equal(fixedGoState.title, 'CFT Field Insertion Graph');
+    assert.equal(fixedGoState.modeControlHidden, false, 'Launcher-selected CFT Field Insertion Graph should remain changeable inside the algebraic app.');
+    assert.notEqual(fixedGoState.cftControlsDisplay, 'none', 'CFT Field Insertion Graph should show its CFT/Virasoro controls.');
+    assert.equal(fixedGoState.cliffordDisplay, 'none', 'CFT Field Insertion Graph should hide Clifford algebra group.');
+    assert.equal(fixedGoState.anyonDisplay, 'none', 'CFT Field Insertion Graph should hide Anyon algebra group.');
+    assert.equal(fixedGoState.virasoroDisplay, 'none', 'CFT Field Insertion Graph should hide the retired legacy Virasoro group.');
+    assert.equal(fixedGoState.pauliHidden, true, 'CFT Field Insertion Graph should hide Clifford Pauli controls.');
     assert.equal(fixedGoState.pauliDisplay, 'none', 'Hidden Clifford controls should not occupy layout space.');
-    assert.equal(fixedGoState.braidHidden, true, 'CFT Observable Go should hide Anyon braid controls.');
+    assert.equal(fixedGoState.braidHidden, true, 'CFT Field Insertion Graph should hide Anyon braid controls.');
     assert.equal(fixedGoState.braidDisplay, 'none', 'Hidden Anyon controls should not occupy layout space.');
-    assert.equal(fixedGoState.rulesButton, 'CFT Observable Go Intro');
+    assert.equal(fixedGoState.rulesButton, 'CFT Field Graph Intro');
     assert.deepEqual(
         fixedGoState.physicalProblemOptions,
         ['', 'cft_conformal_block_observables'],
-        'CFT Observable Go should expose its compatible CFT observable wrapper only.'
+        'CFT Field Insertion Graph should expose its compatible CFT observable wrapper only.'
     );
-    assert.match(fixedGoState.rulesText, /CFT Observable Go Introduction/);
+    assert.match(fixedGoState.rulesText, /CFT Field Insertion Graph Introduction/);
     await page.locator('#rulesIntroButton').click();
     const visibleVirasoroRules = await page.evaluate(() => ({
         visible: document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') !== 'true',
@@ -626,7 +626,7 @@ try {
             .map((node) => node.textContent || '')
             .join(' ')
     }));
-    assert.equal(visibleVirasoroRules.visible, true, 'CFT Observable Go rules should open in the board area.');
+    assert.equal(visibleVirasoroRules.visible, true, 'CFT Field Insertion Graph rules should open in the board area.');
     assert.match(visibleVirasoroRules.text, /Virasoro actions/);
     await page.locator('#rulesIntroCloseButton').click();
     await page.waitForFunction(() => document.querySelector('#rulesIntroPanel')?.getAttribute('aria-hidden') === 'true');
@@ -639,8 +639,8 @@ try {
         cftBadges: document.querySelectorAll('.stone.go-stone .cft-badge').length,
         firstTitle: document.querySelector('.stone.go-stone.black')?.getAttribute('title') || ''
     }));
-    assert.ok(cftStoneState.blackStones >= 1, 'CFT Observable Go stones should render on the board.');
-    assert.ok(cftStoneState.cftBadges >= 1, 'CFT Observable Go stones should show CFT h badges.');
+    assert.ok(cftStoneState.blackStones >= 1, 'CFT Field Insertion Graph stones should render on the board.');
+    assert.ok(cftStoneState.cftBadges >= 1, 'CFT Field Insertion Graph stones should show CFT h badges.');
     assert.match(cftStoneState.firstTitle, /h=/);
     await page.selectOption('#cftActionSelect', 'L0');
     await page.locator('.stone.black').first().locator('xpath=..').click();
@@ -674,7 +674,7 @@ try {
             legalMoves: document.querySelectorAll('.cell.legal').length
         };
     });
-    assert.equal(cftInitialState.title, 'CFT Domain-Wall Reversi');
+    assert.equal(cftInitialState.title, 'CFT Local OPE Operators');
     assert.equal(cftInitialState.mode, 'physical_virasoro_reversi');
     assert.match(cftInitialState.physicalSystemName, /CFT\/domain-wall interval/);
     assert.equal(cftInitialState.initialState, 'four_sigma_block');
@@ -687,7 +687,7 @@ try {
     assert.equal(cftInitialState.controlsVisible, true);
     assert.equal(cftInitialState.cliffordHidden, true);
     assert.equal(cftInitialState.blockVisible, true);
-    assert.ok(cftInitialState.legalMoves > 0, 'Four-sigma opening should expose legal CFT brackets.');
+    assert.ok(cftInitialState.legalMoves > 0, 'Four-sigma opening should expose local-OPE insertion sites.');
 
     await page.locator('.cell.legal').first().click();
     await page.locator('.site-action-palette .site-action-choice').first().click();
@@ -705,7 +705,7 @@ try {
     });
     assert.equal(cftMoveState.moveNumber, 1);
     assert.equal(cftMoveState.historyType, 'place');
-    assert.equal(cftMoveState.physicsAction, 'flip_bracketed_interval');
+    assert.equal(cftMoveState.physicsAction, 'insert_primary_and_local_ope');
     assert.ok(cftMoveState.opeUpdates > 0);
     assert.ok(cftMoveState.physicsHistory >= 2);
     assert.ok(cftMoveState.finalCFTSector.length > 0);
@@ -713,7 +713,7 @@ try {
 
     await page.locator('#rulesIntroButton').click();
     const cftRules = await page.locator('[data-rules-mode="cft-reversi"]').textContent();
-    assert.match(cftRules, /CFT Domain-Wall Reversi/);
+    assert.match(cftRules, /CFT Local OPE Operators/);
     assert.match(cftRules, /Ising CFT/);
     assert.match(cftRules, /approximation|estimator/i);
     await page.locator('#rulesIntroCloseButton').click();

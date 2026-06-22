@@ -38,47 +38,47 @@
                     <label id="modeControl">
                         Mode
                         <select id="modeSelect">
-                            <optgroup label="Algebraic Games - Clifford">
-                                <option value="clifford_reversi" data-layer="algebraic">Stabilizer Recovery Reversi</option>
-                                <option value="clifford_go" data-layer="algebraic">Clifford Go</option>
-                                <option value="clifford_jump" data-layer="algebraic">Clifford Jump Chess</option>
+                            <optgroup label="Algebraic operator sandboxes - Clifford">
+                                <option value="clifford_reversi" data-layer="algebraic">Stabilizer Operator Grid</option>
+                                <option value="clifford_go" data-layer="algebraic">Clifford Insertion Field</option>
+                                <option value="clifford_jump" data-layer="algebraic">Clifford Worldline Operators</option>
                             </optgroup>
-                            <optgroup label="Algebraic Games - Anyon">
-                                <option value="anyon_reversi" data-layer="algebraic">Anyon Reversi</option>
-                                <option value="anyon_jump" data-layer="algebraic">Anyon Fusion &amp; Braiding Jump</option>
+                            <optgroup label="Algebraic operator sandboxes - Anyon">
+                                <option value="anyon_reversi" data-layer="algebraic">Anyon Charge Fusion Grid</option>
+                                <option value="anyon_jump" data-layer="algebraic">Anyon Fusion &amp; Braiding Worldlines</option>
                             </optgroup>
-                            <optgroup label="Algebraic Games - Virasoro">
-                                <option value="virasoro_jump" data-layer="algebraic">Virasoro Jump Chess</option>
+                            <optgroup label="Algebraic operator sandboxes - Virasoro">
+                                <option value="virasoro_jump" data-layer="algebraic">Virasoro Worldline Operators</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Spin / Ising systems">
                                 <option value="ising_domain_game" data-layer="physical">Spin &amp; Phase Domain Game</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Two-phase competition">
                                 <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Game</option>
-                                <option value="physical_cluster_go" data-layer="physical">Physical Cluster Go</option>
+                                <option value="physical_cluster_go" data-layer="physical">Physical Cluster Field</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Chiral systems">
-                                <option value="physical_virasoro_go" data-layer="physical">CFT Field Insertion Go</option>
-                                <option value="physical_virasoro_reversi" data-layer="physical">CFT Domain-Wall Reversi</option>
+                                <option value="physical_virasoro_go" data-layer="physical">CFT Field Insertion Graph</option>
+                                <option value="physical_virasoro_reversi" data-layer="physical">CFT Local OPE Operators</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Z2 gauge / toric-code systems">
                                 <option value="z2_gauge_loop_game" data-layer="physical">Z2 Gauge Loop Game</option>
-                                <option value="physical_anyon_jump" data-layer="physical">Topological Memory Jump</option>
-                                <option value="physical_jump_particles" data-layer="physical">Physical Jump Particles Game</option>
+                                <option value="physical_anyon_jump" data-layer="physical">Topological Memory Worldlines</option>
+                                <option value="physical_jump_particles" data-layer="physical">Particle Hopping / Reaction System</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Spin ice / vertex models">
                                 <option value="spin_ice_vertex_game" data-layer="physical">Spin Ice Vertex Game</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Stabilizer / Pauli-frame systems">
-                                <option value="physical_clifford_reversi" data-layer="physical">Pauli-Frame Recovery Reversi</option>
-                                <option value="physical_clifford_go" data-layer="physical">Physical Clifford Go</option>
-                                <option value="physical_clifford_jump" data-layer="physical">Physical Clifford Jump Chess</option>
+                                <option value="physical_clifford_reversi" data-layer="physical">Pauli-Frame Recovery Operators</option>
+                                <option value="physical_clifford_go" data-layer="physical">Physical Clifford Insertion Field</option>
+                                <option value="physical_clifford_jump" data-layer="physical">Physical Clifford Worldline Operators</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - Anyon / excitation systems">
-                                <option value="physical_anyon_reversi" data-layer="physical">Physical Anyon Reversi</option>
+                                <option value="physical_anyon_reversi" data-layer="physical">Physical Anyon Charge Fusion Grid</option>
                             </optgroup>
                             <optgroup label="Strategy & Systems Labs - CFT / Virasoro systems">
-                                <option value="physical_virasoro_jump" data-layer="physical">Physical Virasoro Jump Chess</option>
+                                <option value="physical_virasoro_jump" data-layer="physical">Physical Virasoro Worldline Operators</option>
                             </optgroup>
                         </select>
                     </label>
@@ -110,7 +110,7 @@
                         <select id="physicalProblemSelect">
                             <option value="" selected>None</option>
                             <optgroup label="Spin / Ising systems">
-                                <option value="ising_domain_wall_topology">Domain-Wall Reversi</option>
+                                <option value="ising_domain_wall_topology">Ising Domain-Wall Topology</option>
                             </optgroup>
                             <optgroup label="Z2 gauge / toric-code systems">
                                 <option value="toric_code_memory_unbraid">Topological Memory</option>
@@ -183,7 +183,7 @@
                         <select id="isingActionSelect">
                             <option value="place_or_flip" selected>Place / Flip Spin</option>
                             <option value="flip_domain">Flip Connected Domain</option>
-                            <option value="bracket_flip">Bracket Flip</option>
+                            <option value="bracket_flip">Line-Interval Rewrite (optional)</option>
                         </select>
                     </label>
                     <label id="isingJControl" hidden>
@@ -217,7 +217,7 @@
                         </select>
                     </label>
                     <label id="isingBracketFlipControl" hidden>
-                        Bracket Flip
+                        Line-Interval Rewrite
                         <select id="isingBracketFlipSelect">
                             <option value="off" selected>Off</option>
                             <option value="on">On</option>
@@ -399,10 +399,10 @@
                     <label id="jumpParticleActionControl" hidden>
                         Particle Action
                         <select id="jumpParticleActionSelect">
-                            <option value="auto" selected>Auto Hop / Jump / Recombine</option>
+                            <option value="auto" selected>Auto Hop / Exchange / Recombine</option>
                             <option value="hop">Hop Adjacent</option>
-                            <option value="jump">Jump Over Particle</option>
-                            <option value="chain_jump">Chain Jump</option>
+                            <option value="jump">Exchange Across Particle</option>
+                            <option value="chain_jump">Multi-step Scattering</option>
                             <option value="recombine">Recombine Opposite</option>
                             <option value="measure_path_parity">Measure Path Parity</option>
                         </select>
@@ -443,7 +443,7 @@
                     <label id="cliffordAlgebraSetControl">
                         Algebra Set
                         <select id="cliffordAlgebraSetSelect">
-                            <option value="standard" selected>Standard Pauli Reversi</option>
+                            <option value="standard" selected>Standard Pauli Operator Grid</option>
                             <option value="physical">Stabilizer Algebra</option>
                         </select>
                     </label>
@@ -456,14 +456,14 @@
                         </select>
                     </label>
                     <label id="transformControl">
-                        Flip Transform
+                        Frame Transform
                         <select id="transformSelect">
                             <option value="H">H</option>
                             <option value="S">S</option>
                         </select>
                     </label>
                     <label id="phaseSignControl">
-                        Phase Signs
+                        Phase / Sign Display
                         <select id="phaseSignSelect">
                             <option value="on" selected>On</option>
                             <option value="off">Off</option>
@@ -501,9 +501,9 @@
                         </select>
                     </label>
                     <label>
-                        Algebra Action
+                        Physical Action
                         <select id="physicalActionSelect">
-                            <option value="reversi" selected>Reversi Placement</option>
+                            <option value="reversi" selected>Apply Pauli Recovery Operator</option>
                             <option value="prepare_ancilla">Prepare Ancilla</option>
                             <option value="entangle_ancilla">Entangle Ancilla</option>
                             <option value="measure">Measure</option>
@@ -512,7 +512,7 @@
                         </select>
                     </label>
                     <label id="physicalPauliControl">
-                        Placed Pauli
+                        Operator Pauli
                         <select id="physicalPauliSelect">
                             <option value="I">I</option>
                             <option value="X" selected>X</option>
@@ -521,7 +521,7 @@
                         </select>
                     </label>
                     <label id="physicalPhaseControl">
-                        Placed Phase
+                        Operator Phase
                         <select id="physicalPhaseSelect">
                             <option value="0" selected>1</option>
                             <option value="1">i</option>
@@ -551,7 +551,7 @@
                         <select id="physicalMeasurementSelect">
                             <option value="local_pauli" selected>Local Pauli</option>
                             <option value="connected_domain_parity">Domain Parity</option>
-                            <option value="bracketed_line_parity">Bracketed Line</option>
+                            <option value="line_interval_parity">Line Interval</option>
                             <option value="stabilizer_check">Neighborhood Stabilizer</option>
                             <option value="logical_cycle_parity">Logical Cycle</option>
                         </select>
@@ -680,9 +680,9 @@
                         </select>
                     </label>
                     <label id="virasoroActionControl">
-                        Go Turn
+                        Field Turn
                         <select id="virasoroActionSelect">
-                            <option value="play" selected>Place Stone</option>
+                            <option value="play" selected>Insert Field</option>
                             <option value="L-1">L_-1 Shift</option>
                             <option value="L0">L_0 Add</option>
                             <option value="L1">L_1 Focus</option>
@@ -1022,10 +1022,10 @@
                         </div>
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
-                        <p><strong>Local operator choice:</strong> Clifford Go opens a small operator palette at the clicked site, so X/Y/Z are chosen where the insertion happens. The side Pauli selector remains a default for exports and keyboard-style operation.</p>
-                        <p><strong>Flip rule:</strong> every bracketed opponent stone changes to the acting color. Its Pauli label is transformed by the selected Clifford generator, and twisted seams apply their transport while the ray is resolved.</p>
+                        <p><strong>Local operator choice:</strong> Clifford Insertion Field opens a small operator palette at the clicked site, so X/Y/Z are chosen where the insertion happens. The side Pauli selector remains a default for exports and keyboard-style operation.</p>
+                        <p><strong>Flip rule:</strong> each locally coupled opponent operator is transformed by the selected Clifford generator, and twisted seams apply their transport while the graph ray is resolved.</p>
                         <p><strong>Pauli math:</strong> I=(0,0), X=(1,0), Z=(0,1), Y=(1,1). The symplectic product is x1*z2 + z1*x2 mod 2. Labels anticommute when this value is 1.</p>
-                        <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase Signs on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
+                        <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase / Sign Display on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
                         <p><strong>Dynamics choices:</strong> Pauli noise changes labels with seeded random rolls. Time evolution can age pieces on the selected clock after moves or full rounds, while noise can be applied separately from the same dynamics panel.</p>
                         <p><strong>Results:</strong> the export records topology, lattice, board labels, move history, position history, probability/noise events, time-evolution state, and final counts. These results let you compare how the same Clifford rule behaves on flat, random-boundary, torus, Klein, Mobius, RP2, S2, R3, and 4D graphs.</p>
                     </div>
@@ -1044,12 +1044,12 @@
                             <span>Recovery actions</span>
                             <span>Vacuum / logical sector</span>
                         </div>
-                        <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, bracketed-line parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
+                        <p><strong>Measurements:</strong> measure a local Pauli, connected-domain parity, line-interval parity, neighborhood stabilizer, or logical-cycle parity. Seeded measurement errors use the configured error rate, and the measured site collapses to the selected X or Z basis.</p>
                         <p><strong>Observables:</strong> every action records Pauli/sign/phase distributions, ancilla count, syndrome weight, local X/Z violations, global parity, commutation conflicts, logical sector, recovery state, measurement errors, and non-Clifford resource use.</p>
                         <p><strong>Results:</strong> Stabilizer Pauli correction/recovery exports the initial and final observables, full physics history, measurement log, circuit history, recovery time, logical-error flag, final sector, Pauli/phase distributions, and a compact final answer for whether recovery stayed in the intended stabilizer sector.</p>
                     </div>
                     <div data-rules-mode="physical-cluster-go" hidden>
-                        <h2>Physical Cluster Go Introduction and Observables</h2>
+                        <h2>Physical Cluster Field Introduction and Observables</h2>
                         <p><strong>Physical meaning:</strong> black is species A, phase A, or spin sector A. White is species B, phase B, or spin sector B. Empty vertices are local growth, oxygen, or resource sites on the selected topology graph.</p>
                         <p><strong>Physical problem / goal:</strong> test whether competing local growth rules create survival, extinction, percolation, or topology-wrapping clusters on different spaces.</p>
                         <div class="rules-mini-diagram" aria-label="Physical cluster flow">
@@ -1058,27 +1058,27 @@
                             <span>Wrap topology</span>
                             <span>Percolation answer</span>
                         </div>
-                        <p><strong>Liberties:</strong> liberties are neighboring empty graph vertices that can feed growth. Capture means local extinction, annihilation, or confinement of a connected cluster whose liberties have reached zero.</p>
+                        <p><strong>Resource contacts:</strong> neighboring empty graph vertices feed growth. A connected cluster with zero open contacts undergoes local extinction, annihilation, or confinement.</p>
                         <p><strong>Possible models:</strong> use the model selector to interpret the same rule set as percolation clusters, reaction-diffusion domains, two-species competition, exciton/hole recombination, or spin-domain growth.</p>
-                        <p><strong>Actions:</strong> place species on an empty site, grow a connected cluster into a neighboring resource site, automatically capture zero-liberty clusters, pass, or run an optional diffusion/noise step.</p>
+                        <p><strong>Actions:</strong> place species on an empty site, grow a connected cluster into a neighboring resource site, automatically remove zero-contact clusters, pass, or run an optional diffusion/noise step.</p>
                         <p><strong>Initial states:</strong> sparse seeds, random density, two-cluster competition, interface seed, and thermal cluster sample all create playable nonempty states with immediate growth/capture opportunities.</p>
-                        <p><strong>Observables:</strong> every move records cluster size distribution, largest cluster, percolation probability, capture/extinction events, interface length, correlation length estimate, survival probability, and topology-wrapping cluster count.</p>
+                        <p><strong>Observables:</strong> every move records cluster size distribution, largest cluster, percolation probability, removal/extinction events, interface length, correlation length estimate, survival probability, and topology-wrapping cluster count.</p>
                         <p><strong>Topology:</strong> all neighbors come from topology.neighbors(vertex), so torus, Klein, Mobius, RP2, sphere, random boundary, R3, and 4D graphs do not assume rectangular edges.</p>
                         <p><strong>Answer:</strong> export summarizes which species percolated, survival/extinction time, cluster-size exponent estimate when enough cluster statistics exist, and topology-wrapping probability.</p>
                     </div>
                     <div data-rules-mode="cft-reversi" hidden>
-                        <h2>CFT Domain-Wall Reversi Introduction and Observables</h2>
-                        <p><strong>Physical meaning:</strong> black is the + source/domain sign and white is the - source/domain sign. A stone is a primary field or spin/domain insertion. A bracketed Reversi line is a discrete CFT interval, and flipping is an OPE channel/domain transformation.</p>
-                        <p><strong>Physical problem / goal:</strong> use Reversi brackets as discrete intervals to see how source signs, domain walls, and OPE channels reorganize across the selected graph.</p>
+                        <h2>CFT Local OPE Operators Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black is the + source/domain sign and white is the - source/domain sign. A stone is a primary field or spin/domain insertion. Nearby occupied graph rays form a discrete OPE interaction interval; local OPE propagation updates channels and phase transport without requiring an enclosing boardgame bracket.</p>
+                        <p><strong>Physical problem / goal:</strong> insert primary fields and let local OPE kernels reorganize source signs, domain walls, and channel data across the selected graph.</p>
                         <div class="rules-mini-diagram" aria-label="CFT Reversi flow">
                             <span>Primary / domain</span>
-                            <span>Bracket interval</span>
+                            <span>Local OPE interval</span>
                             <span>OPE update</span>
                             <span>CFT sector answer</span>
                         </div>
                         <p><strong>Default CFT:</strong> Ising CFT uses c=1/2 with sigma, epsilon, and identity fields. OPE rules are sigma x sigma -> identity + epsilon, sigma x epsilon -> sigma, and epsilon x epsilon -> identity.</p>
-                        <p><strong>Initial states:</strong> choose domain wall seed, four sigma block, boundary condition change, thermal CFT sample, or two-phase interval seed. Vacuum is not a selectable Virasoro Reversi initial option.</p>
-                        <p><strong>Actions:</strong> place a primary/domain stone, flip a bracketed interval, update OPE channels along the interval, measure interval parity, measure OPE channel, measure region entropy, or apply an L_n deformation.</p>
+                        <p><strong>Initial states:</strong> choose domain wall seed, four sigma block, boundary condition change, thermal CFT sample, or two-phase interval seed. Vacuum is not a selectable local-OPE CFT initial option.</p>
+                        <p><strong>Actions:</strong> insert a primary/domain field, propagate the local OPE kernel along nearby graph rays, update channel labels, measure interval parity, measure OPE channel, measure region entropy, or apply an L_n deformation.</p>
                         <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, L_1. N=2 also enables L_-2 splitting and L_2 concentration. Overlap of N=2 actions can create central-charge anomaly markers.</p>
                         <p><strong>Observables:</strong> every turn records domain-wall length, primary counts, OPE channel transitions, conformalBlockWeights, dominant block, interval entropy estimate, stress proxy, central-charge anomaly events, and twisted/topological sector when supported by the topology.</p>
                         <p><strong>Estimator note:</strong> CFT correlations, conformal blocks, entropy, and stress are discrete graph estimators for gameplay and are not exact continuum CFT values.</p>
@@ -1094,11 +1094,11 @@
                             <span>Memory answer</span>
                         </div>
                         <p><strong>3D boards:</strong> R3, T2, and S2 use rotatable graph embeddings. Legal hops, jumps, braid paths, fusion sites, labels, and braid-state shadows are drawn directly on the 3D board.</p>
-                        <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or jump over one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
-                        <p><strong>2D RBC:</strong> when selected, each boundary exit is linked to one fixed random boundary square for the current game. Anyon hops and jumps use those links through the same graph-neighbor system as the other topologies.</p>
+                        <p><strong>Move rule:</strong> a token may hop to an adjacent empty vertex or exchange/scatter across one occupied neighboring token into the next empty vertex in the same topology-aware direction. The move stores the visited path as a worldline segment.</p>
+                        <p><strong>2D RBC:</strong> when selected, each boundary exit is linked to one fixed random boundary square for the current game. Anyon hops and exchanges use those links through the same graph-neighbor system as the other topologies.</p>
                         <p><strong>Symbols:</strong> toric code labels are 1, e, m, and &psi;. Ising labels are 1, &sigma;, and &psi;. Fibonacci labels are 1 and &tau;. Board tokens use these Greek symbols directly.</p>
                         <p><strong>Vacuum 1:</strong> 1 is the trivial topological charge, meaning no nontrivial anyon remains. It acts like the identity in fusion: 1 x a = a.</p>
-                        <p><strong>Braiding:</strong> a jump over a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
+                        <p><strong>Braiding:</strong> an exchange around a mutually nontrivial target can append a braid generator &sigma;<sub>i</sub> or &sigma;<sub>i</sub><sup>-1</sup>. Abelian parity toggles a Z2 braid state for e around m or m around e. Word Exact stores the full noncommutative braid word. Non-Abelian Channel also updates a hidden symbolic fusion channel.</p>
                         <p><strong>Unbraiding:</strong> select a braided token. The valid target is marked with a green UNBRAID badge. Clicking that target applies the next inverse generator. Full unbraiding requires the reverse inverse sequence; a wrong target or wrong sign appends a new braid instead of clearing the word. A successful inverse also reduces the visible braid count.</p>
                         <p><strong>Local excitation choice:</strong> in Excitation Energy mode, click an empty site to open only the affordable particle palette. Click an owned anyon to select it, then click an empty site to move or another token to braid/unbraid naturally; use Recombine / Recover for the selected anyon.</p>
                         <p><strong>General Z_n phase:</strong> the selectable non-vacuum charges are &alpha;<sub>1</sub> through &alpha;<sub>n-1</sub>. Fusion adds grades modulo n, so &alpha;<sub>i</sub> x &alpha;<sub>j</sub> = &alpha;<sub>(i+j) mod n</sub>, with grade 0 equal to vacuum 1. A positive braid adds +1/n, an inverse unbraid subtracts 1/n, and the token shows the signed net phase as a flat shadow under the piece.</p>
@@ -1112,17 +1112,17 @@
                         <p><strong>Observables and results:</strong> the QEC panel reports total fusion charge, logical sector, memory alive/lost, vacuum recovery, average and maximum braid word length, and successful or failed unbraids. Research export keeps worldlines, braid tokens, fusion outcomes, logical-sector history, energy history, memory lifetime, logical-error rate, unbraid success rate, and final physical answer.</p>
                     </div>
                     <div data-rules-mode="virasoro">
-                        <h2>CFT Observable Go Introduction and Observables</h2>
+                        <h2>CFT Field Insertion Graph Introduction and Observables</h2>
                         <p><strong>Physical system:</strong> the board is a discretized Riemann surface / graph manifold. Empty vertices are identity operators, stones are primary-field insertions, black and white are source sign or player control, and primaryType stores the physical field.</p>
-                        <p><strong>Physical problem / goal:</strong> place primary fields and use Go captures as graph operations, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates.</p>
-                        <div class="rules-mini-diagram" aria-label="CFT Go flow">
+                        <p><strong>Physical problem / goal:</strong> insert primary fields and use local graph/OPE contact updates, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates.</p>
+                        <div class="rules-mini-diagram" aria-label="CFT field-insertion flow">
                             <span>Primary insertion</span>
-                            <span>Go capture graph</span>
+                            <span>Local OPE graph</span>
                             <span>Virasoro action</span>
                             <span>Block / entropy answer</span>
                         </div>
                         <p><strong>Default CFT:</strong> Ising CFT is the default with c=1/2, identity h=0, sigma h=1/16, and epsilon h=1/2. Free Boson remains available as an alternate estimator.</p>
-                        <p><strong>Go rule:</strong> legal placement, liberties, captures, suicide, superko, passing, and area scoring use topology adjacency. Captures remove and fuse the captured primary cluster after the graph-liberty calculation.</p>
+                        <p><strong>Graph contact rule:</strong> legal insertion, local graph contacts, topology adjacency, passing, and optional counting use the graph substrate. Local fusion updates replace boardgame capture language with OPE/contact changes on primary-field clusters.</p>
                         <p><strong>Initial states:</strong> choose two-point insertions, four-point block, boundary CFT insertions, thermal sparse insertions, or an identity background seeded with sigma/epsilon defects. The empty vacuum is avoided as the default so the observable game starts with physics to measure.</p>
                         <p><strong>Measurements:</strong> measure OPE channel, two-point correlator, four-point correlator / block, dominant block, region entropy, or stress tensor proxy T(v). Hidden channels collapse when measured and seeded measurement errors are logged.</p>
                         <p><strong>Virasoro actions:</strong> N=1 enables L_-1, L_0, and L_1. N=2 adds L_-2 and L_2 and records central-charge anomaly events when overlapping N=2 stress updates occur.</p>

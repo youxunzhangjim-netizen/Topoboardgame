@@ -352,24 +352,24 @@ const els = {
 };
 
 const MODE_LABELS = {
-    clifford_reversi: 'Stabilizer Recovery Reversi',
-    physical_clifford_reversi: 'Pauli-Frame Recovery Reversi',
-    clifford_go: 'Clifford Go',
-    physical_clifford_go: 'Physical Clifford Go',
-    clifford_jump: 'Clifford Jump Chess',
-    physical_clifford_jump: 'Physical Clifford Jump Chess',
-    anyon_reversi: 'Anyon Reversi',
-    physical_anyon_reversi: 'Physical Anyon Reversi',
-    physical_virasoro_go: 'CFT Field Insertion Go',
-    physical_virasoro_reversi: 'CFT Domain-Wall Reversi',
-    virasoro_jump: 'Virasoro Jump Chess',
-    physical_virasoro_jump: 'Physical Virasoro Jump Chess',
-    anyon_jump: 'Anyon Fusion & Braiding Jump',
-    physical_anyon_jump: 'Topological Memory Jump',
+    clifford_reversi: 'Stabilizer Operator Grid',
+    physical_clifford_reversi: 'Pauli-Frame Recovery Operators',
+    clifford_go: 'Clifford Insertion Field',
+    physical_clifford_go: 'Physical Clifford Field Operators',
+    clifford_jump: 'Clifford Worldline Operators',
+    physical_clifford_jump: 'Physical Clifford Worldlines',
+    anyon_reversi: 'Anyon Charge Fusion Grid',
+    physical_anyon_reversi: 'Physical Anyon Charge Grid',
+    physical_virasoro_go: 'CFT Field Insertion Graph',
+    physical_virasoro_reversi: 'CFT Local OPE Operators',
+    virasoro_jump: 'Virasoro Worldline Operators',
+    physical_virasoro_jump: 'Physical Virasoro Worldlines',
+    anyon_jump: 'Anyon Fusion & Braiding Worldlines',
+    physical_anyon_jump: 'Topological Memory Worldlines',
     ising_domain_game: 'Spin & Phase Domain Game',
     two_phase_competition_game: 'Two-Phase Competition Game',
-    physical_cluster_go: 'Physical Cluster Go',
-    physical_jump_particles: 'Physical Jump Particles Game',
+    physical_cluster_go: 'Physical Cluster Field',
+    physical_jump_particles: 'Particle Hopping / Reaction System',
     spin_ice_vertex_game: 'Spin Ice Vertex Game',
     z2_gauge_loop_game: 'Z2 Gauge Loop Game'
 };
@@ -1246,17 +1246,17 @@ function syncModeControls() {
     if (els.clusterRules) els.clusterRules.hidden = !isCluster;
     if (els.rulesIntroButton) {
         const introLabel = isVirasoroGo
-            ? 'CFT Observable Go Intro'
-            : isVirasoroJump ? 'Virasoro Jump Intro'
-            : isCFTReversi ? 'CFT Domain-Wall Reversi Intro'
-            : isCluster ? 'Cluster Go Intro'
-            : isJumpParticles ? 'Jump Particles Intro'
+            ? 'CFT Field Graph Intro'
+            : isVirasoroJump ? 'Virasoro Worldline Intro'
+            : isCFTReversi ? 'CFT Local OPE Intro'
+            : isCluster ? 'Cluster Field Intro'
+            : isJumpParticles ? 'Particle Hopping Intro'
             : isAnyon || isAnyonReversi ? 'Anyon Intro'
-            : isCliffordJump ? 'Clifford Jump Intro' : 'Clifford Intro';
+            : isCliffordJump ? 'Clifford Worldline Intro' : 'Clifford Intro';
         els.rulesIntroButton.textContent = introLabel;
         if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = introLabel.replace('Intro', 'Introduction');
     }
-    document.title = `${MODE_LABELS[mode]} - Algebraic Board Games`;
+    document.title = `${MODE_LABELS[mode]} - Topological Labs`;
     return mode;
 }
 
@@ -1607,8 +1607,8 @@ function createGame() {
                 physicalSystemName: 'Ising spin-domain graph system',
                 blackWhiteMeaning: 'black = spin up s=+1; white = spin down s=-1; empty = unoccupied / undecided site; board = graph embedded in the selected topology',
                 initialStateOptions: ['random_spins', 'domain_wall_seed', 'droplet_seed', 'stripe_seed', 'checkerboard', 'thermal_sample'],
-                allowedActions: ['place_spin', 'flip_spin', 'flip_domain', 'bracket_flip', 'pass'],
-                localUpdateRules: 'Energy is E=-J sum_<ij> s_i s_j - h sum_i s_i over topology.neighbors(vertex). Local updates propose changed spins on graph vertices, compute deltaE, optionally apply Metropolis acceptance, then recompute domain-wall and topology observables.'
+                allowedActions: ['place_spin', 'flip_spin', 'flip_domain', 'line_interval_rewrite', 'pass'],
+                localUpdateRules: 'Energy is E=-J sum_<ij> s_i s_j - h sum_i s_i over topology.neighbors(vertex). Local updates propose changed spins on graph vertices, compute deltaE, optionally apply Metropolis acceptance, then recompute domain-wall and topology observables. Optional line-interval rewrite is a constrained spin update, not a Reversi rule.'
             })
             : mode === 'two_phase_competition_game'
                 ? createPhysicalModeDefinition(mode, {
@@ -1620,19 +1620,19 @@ function createGame() {
                 })
             : mode === 'physical_cluster_go'
                 ? createPhysicalModeDefinition(mode, {
-                    physicalSystemName: 'Physical cluster Go competition graph',
-                    blackWhiteMeaning: 'black = species A / phase A / spin sector A; white = species B / phase B / spin sector B; empty = local growth/resource site; liberties = available growth/oxygen/resource sites; capture = local extinction / annihilation / confinement',
+                    physicalSystemName: 'Physical cluster-field competition graph',
+                    blackWhiteMeaning: 'black = species A / phase A / spin sector A; white = species B / phase B / spin sector B; empty = local growth/resource site; neighboring vacancies are resource/oxygen contacts; zero-contact clusters undergo local extinction, annihilation, or confinement',
                     initialStateOptions: ['sparse_seeds', 'random_density', 'two_cluster_competition', 'interface_seed', 'thermal_cluster_sample'],
-                    allowedActions: ['place_species', 'grow_connected_cluster', 'capture_zero_liberty_cluster', 'diffusion_noise_step', 'pass'],
-                    localUpdateRules: 'Topology-aware graph liberties define local resources. A species can place on empty vertices or grow from adjacent same-species clusters. Opponent clusters with zero liberties are captured as local extinction; optional diffusion/noise grows random local droplets after updates.'
+                    allowedActions: ['place_species', 'grow_connected_cluster', 'remove_zero_contact_cluster', 'diffusion_noise_step', 'pass'],
+                    localUpdateRules: 'Topology-aware neighbor contacts define local resources. A species can nucleate on empty vertices or grow from adjacent same-species clusters. Opponent clusters with zero open contacts are removed as local extinction, annihilation, or confinement; optional diffusion/noise grows random local droplets after updates.'
                 })
             : mode === 'physical_jump_particles'
                 ? createPhysicalModeDefinition(mode, {
-                    physicalSystemName: 'Jumping particle reaction/exchange graph system',
-                    blackWhiteMeaning: 'black/white = two particle species or charge signs; jump = hopping over a barrier, exchange, or scattering event; capture = annihilation, recombination, or conversion',
+                    physicalSystemName: 'Particle hopping, exchange, and reaction graph system',
+                    blackWhiteMeaning: 'black/white = two particle species or charge signs; hop = adjacent propagation; exchange/scatter crosses an occupied barrier particle; recombination removes opposite charges or converts local state',
                     initialStateOptions: ['paired_particles', 'charge_recombination_pair', 'spin_exchange_seed', 'anyon_worldline_seed'],
-                    allowedActions: ['hop_to_adjacent_empty_vertex', 'jump_over_occupied_vertex', 'chain_jump', 'recombine_opposite_charges', 'measure_path_parity'],
-                    localUpdateRules: 'Particles occupy graph vertices. A hop moves to an adjacent empty vertex, a jump crosses one occupied barrier particle, a chain jump follows consecutive jump landings, recombination removes adjacent opposite charges and recovers energy, and optional path-parity measurement records exchange or braid parity.'
+                    allowedActions: ['hop_to_adjacent_empty_vertex', 'exchange_over_occupied_vertex', 'multi_step_scattering_path', 'recombine_opposite_charges', 'measure_path_parity'],
+                    localUpdateRules: 'Particles occupy graph vertices. A hop moves to an adjacent empty vertex, an exchange/scattering update crosses one occupied barrier particle, a multi-step scattering path follows consecutive allowed landings, recombination removes adjacent opposite charges and recovers energy, and path-parity measurement records exchange or braid parity.'
                 })
             : mode === 'spin_ice_vertex_game'
                 ? createPhysicalModeDefinition(mode, {
@@ -1652,19 +1652,19 @@ function createGame() {
                 })
             : mode === 'physical_virasoro_go'
                 ? createPhysicalModeDefinition(mode, {
-                    physicalSystemName: 'CFT observable Go on a discretized Riemann graph',
+                    physicalSystemName: 'CFT field-insertion graph on a discretized Riemann surface',
                     blackWhiteMeaning: 'board = discretized Riemann surface / graph manifold; empty = identity operator; stone = primary-field insertion; black/white = source sign or player control; primaryType carries the physical field',
                     initialStateOptions: ['two_point_insertions', 'four_point_block', 'boundary_cft', 'thermal_sparse', 'identity_background_with_defects'],
-                    allowedActions: ['place_primary_field', 'capture_fuse_cluster', 'measure_ope_channel', 'measure_two_point_correlator', 'measure_four_point_correlator', 'apply_Ln_deformation', 'pass', 'count'],
-                    localUpdateRules: 'Topology-aware Go placement inserts primary fields and captures/fuses clusters by graph liberties. Measurements estimate OPE channels and two-/four-point CFT observables. L_n Virasoro deformations update stress proxies, with N=2 tracking central-charge anomaly events.'
+                    allowedActions: ['insert_primary_field', 'local_OPE_fusion_update', 'measure_ope_channel', 'measure_two_point_correlator', 'measure_four_point_correlator', 'apply_Ln_deformation', 'pass', 'count'],
+                    localUpdateRules: 'Topology-aware field insertion adds primary operators to graph vertices. Local OPE fusion updates use adjacent graph connectivity and stress proxies rather than a boardgame capture goal. Measurements estimate OPE channels and two-/four-point CFT observables. L_n Virasoro deformations update stress proxies, with N=2 tracking central-charge anomaly events.'
                 })
             : mode === 'physical_virasoro_reversi'
                 ? createPhysicalModeDefinition(mode, {
-                    physicalSystemName: 'CFT/domain-wall interval Reversi on a topology graph',
-                    blackWhiteMeaning: 'black = + source/domain sign; white = - source/domain sign; stone = primary field or spin/domain insertion; bracketed Reversi line = discrete CFT interval; flipping = OPE channel/domain transformation',
+                    physicalSystemName: 'CFT local OPE interval system on a topology graph',
+                    blackWhiteMeaning: 'black = + source/domain sign; white = - source/domain sign; stone = primary field or spin/domain insertion; nearby occupied graph rays form a discrete OPE interaction interval; no enclosing boardgame bracket is required',
                     initialStateOptions: ['domain_wall_seed', 'four_sigma_block', 'boundary_condition_change', 'thermal_cft_sample', 'two_phase_interval_seed'],
-                    allowedActions: ['place_primary_domain_stone', 'flip_bracketed_interval', 'update_ope_channel_along_interval', 'measure_interval_parity', 'measure_ope_channel', 'measure_region_entropy', 'apply_Ln_deformation', 'pass'],
-                    localUpdateRules: 'A legal Reversi placement brackets an opponent path as a discrete CFT interval. Flipped interval stones change source/domain sign and update Ising OPE channels. Measurements reveal interval parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update stress and N=2 anomaly events.'
+                    allowedActions: ['insert_primary_field', 'propagate_local_ope_kernel', 'update_ope_channel_along_interval', 'measure_interval_parity', 'measure_ope_channel', 'measure_region_entropy', 'apply_Ln_deformation', 'pass'],
+                    localUpdateRules: 'A primary insertion is legal on an empty graph vertex. The inserted field couples to occupied nearby graph rays through the Ising-CFT OPE table, updates channel labels, seam phase transport, stress, entropy, and conformal-block estimators. Measurements reveal interval parity, OPE channel, entropy, stress, or four-point block estimators; L_n actions update stress and N=2 anomaly events.'
                 })
             : createPhysicalModeDefinition(mode);
         attachPhysicalGameFramework(game, definition);
@@ -2855,9 +2855,9 @@ function renderClusterSite(cell, coord) {
     node.textContent = stone.species;
     const badge = document.createElement('span');
     badge.className = 'cft-badge';
-    badge.textContent = `L${stone.liberties ?? 0}`;
+    badge.textContent = `R${stone.liberties ?? 0}`;
     node.append(badge);
-    node.title = `${stone.label}; liberties ${stone.liberties ?? 0}`;
+    node.title = `${stone.label}; resource contacts ${stone.liberties ?? 0}`;
     cell.append(node);
 }
 
@@ -2949,7 +2949,7 @@ function renderGoStone(cell, coord) {
         || (groupInfo ? `h=${formatNumber(groupInfo.h)}` : 'h=0');
     node.append(cft);
     node.title = groupInfo
-        ? `${stone.color} ${game.primaryLabel?.(stone) || 'primary'}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; liberties=${groupInfo.liberties.size}; channel=${cftChannelDisplay(stone)}`
+        ? `${stone.color} ${game.primaryLabel?.(stone) || 'primary'}; h=${formatNumber(stone.h)}, hbar=${formatNumber(stone.hbar)}; resource contacts=${groupInfo.liberties.size}; channel=${cftChannelDisplay(stone)}`
         : stone.color;
     cell.append(node);
 }
@@ -3026,8 +3026,8 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
             const neighborSpecies = game.getSpecies(neighbor);
             return neighborSpecies && neighborSpecies !== species;
         }).length;
-        const liberties = game.groupInfoAt(coord)?.liberties.size || 0;
-        return `${game.topology.displayCoord(coord)} species ${species}; liberties ${liberties}; same neighbors ${same}; interface neighbors ${opposite}`;
+        const resourceContacts = game.groupInfoAt(coord)?.liberties.size || 0;
+        return `${game.topology.displayCoord(coord)} species ${species}; resource contacts ${resourceContacts}; same neighbors ${same}; interface neighbors ${opposite}`;
     }
     if (isSpinIceVertexMode(game.mode)) {
         const info = game.getVertexState(coord);
@@ -3053,7 +3053,7 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
         const stressText = `T=${stress.stress.toFixed(2)}${stress.owner ? ` owner=${stress.owner}` : ''}`;
         if (groupInfo) {
             const channel = cftChannelDisplay(goStone);
-            return `${game.topology.displayCoord(coord)} ${goStone.color} ${game.primaryLabel(goStone)}; h=${goStone.h}, hbar=${goStone.hbar}; channel=${channel}; group liberties=${groupInfo.liberties.size}; ${stressText}`;
+            return `${game.topology.displayCoord(coord)} ${goStone.color} ${game.primaryLabel(goStone)}; h=${goStone.h}, hbar=${goStone.hbar}; channel=${channel}; group resource contacts=${groupInfo.liberties.size}; ${stressText}`;
         }
         return `${game.topology.displayCoord(coord)} empty; ${stressText}`;
     }
@@ -3066,8 +3066,8 @@ function cellTooltip(coord, { timeState = null, goStone = null } = {}) {
     if (isCliffordGoMode(game.mode)) {
         const stone = game.getStone(coord);
         return stone
-            ? `${game.topology.displayCoord(coord)} ${stone.color} ${game.primaryLabel(stone)}; liberties=${game.groupInfoAt(coord)?.liberties.size || 0}`
-            : `${game.topology.displayCoord(coord)} empty Clifford-Go vertex`;
+            ? `${game.topology.displayCoord(coord)} ${stone.color} ${game.primaryLabel(stone)}; graph contacts=${game.groupInfoAt(coord)?.liberties.size || 0}`
+            : `${game.topology.displayCoord(coord)} empty Clifford field vertex`;
     }
     return timeState
         ? `${game.topology.displayCoord(coord)} stress=${timeState.stress.toFixed(2)} potential=${timeState.potential.toFixed(2)} charge=${timeState.charge.toFixed(2)}`
@@ -3180,7 +3180,7 @@ function handlePhysicalCliffordClick(coord, event = null) {
             ?? (result.event.flipped?.length ? result.event.flipped.length + 1 : 1);
         els.statusText.textContent = result.event.type === 'custom_initial_site'
             ? `Custom setup updated ${game.topology.displayCoord(coord)}. Press Start when the initial board is ready.`
-            : `${capitalize(result.event.type || result.event.action)} completed on ${affected} site${affected === 1 ? '' : 's'}.`;
+            : `${(result.event.type || result.event.action || '').replaceAll('_', ' ')} completed on ${affected} site${affected === 1 ? '' : 's'}.`;
     } else {
         els.statusText.textContent = result.error;
     }
@@ -3303,7 +3303,7 @@ function handleCFTGoClick(coord) {
         hoverCoord = null;
         selectedCFTCoords = [];
         if (action === 'place') {
-            message = `Inserted ${els.cftPrimarySelect.value}; captured ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
+            message = `Inserted ${els.cftPrimarySelect.value}; locally fused ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
         } else if (action === 'measure') {
             const reported = typeof result.measurement.reported === 'number'
                 ? formatNumber(result.measurement.reported)
@@ -3395,7 +3395,7 @@ function handleClusterClick(coord) {
         const observables = result.event.observables;
         const update = result.event.physicalUpdate || {};
         const captured = Number(update.capturedCount || 0);
-        els.statusText.textContent = `${result.event.action.replaceAll('_', ' ')}; captured ${captured}; largest ${observables.largestCluster}; survival ${formatNumber(observables.survivalProbability)}; wraps ${observables.topologyWrappingClusterCount}.`;
+        els.statusText.textContent = `${result.event.action.replaceAll('_', ' ')}; removed ${captured}; largest ${observables.largestCluster}; survival ${formatNumber(observables.survivalProbability)}; wraps ${observables.topologyWrappingClusterCount}.`;
         statusHoldUntil = Date.now() + 1800;
         return;
     } else if (result) {
@@ -3531,7 +3531,7 @@ function executeCliffordGoPlacement(coord, pauliLabel = els.pauliSelect.value) {
     els.pauliSelect.value = pauliLabel;
     const result = game.tryPlay(coord, game.currentPlayer, { pauliLabel });
     els.statusText.textContent = result.ok
-        ? `Inserted ${game.primaryLabel(game.getStone(coord))}; captured ${result.captured || 0}.`
+        ? `Inserted ${game.primaryLabel(game.getStone(coord))}; locally fused ${result.captured || 0}.`
         : result.error;
     if (result.ok) hoverCoord = null;
     render();
@@ -3552,7 +3552,7 @@ function executeCFTGoPrimaryPlacement(coord, primaryType = els.cftPrimarySelect.
     if (result?.ok) {
         hoverCoord = null;
         selectedCFTCoords = [];
-        message = `Inserted ${els.cftPrimarySelect.value}; captured ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
+        message = `Inserted ${els.cftPrimarySelect.value}; locally fused ${result.captured || 0} primary field${result.captured === 1 ? '' : 's'}.`;
     } else if (result) {
         message = result.error;
     }
@@ -3611,7 +3611,7 @@ function showAnyonReversiPalette(coord, event) {
     const types = game.placementTypes?.() || excitationCatalog().types;
     return showActionPalette(coord, event, {
         title: `Place charge at ${game.topology.displayCoord(coord)}`,
-        status: 'Choose the anyon charge for this Reversi placement.',
+        status: 'Choose the anyon charge for this local fusion insertion.',
         items: types.map((type) => ({
             label: `Place ${jumpTypeDisplay(type)}`,
             detail: game.config?.anyonModel === 'zn' ? `Z_${game.config.generalAnyonGrade} charge ${type}` : type,
@@ -4317,10 +4317,19 @@ function renderStats() {
     if (isGoMode(game.mode)) {
         const counts = game.counts();
         const observables = game.computeCFTObservables?.();
-        els.blackCountLabel.textContent = isCliffordGoMode(game.mode) ? 'Black Pauli Stones' : 'Black Primaries';
-        els.whiteCountLabel.textContent = isCliffordGoMode(game.mode) ? 'White Pauli Stones' : 'White Primaries';
-        els.blackBraidLabel.textContent = isCliffordGoMode(game.mode) ? 'Black Captures' : 'Total Weight';
-        els.whiteBraidLabel.textContent = isCliffordGoMode(game.mode) ? 'White Captures' : 'Anomalies';
+        const physicalCliffordField = normalizeMode(game.mode) === 'physical_clifford_go';
+        els.blackCountLabel.textContent = isCliffordGoMode(game.mode)
+            ? (physicalCliffordField ? 'Black Pauli Operators' : 'Black Pauli Stones')
+            : 'Black Primaries';
+        els.whiteCountLabel.textContent = isCliffordGoMode(game.mode)
+            ? (physicalCliffordField ? 'White Pauli Operators' : 'White Pauli Stones')
+            : 'White Primaries';
+        els.blackBraidLabel.textContent = isCliffordGoMode(game.mode)
+            ? (physicalCliffordField ? 'Black Contact Removals' : 'Black Captures')
+            : 'Total Weight';
+        els.whiteBraidLabel.textContent = isCliffordGoMode(game.mode)
+            ? (physicalCliffordField ? 'White Contact Removals' : 'White Captures')
+            : 'Anomalies';
         els.blackCount.textContent = `${counts.black} (${game.captures.black})`;
         els.whiteCount.textContent = `${counts.white} (${game.captures.white})`;
         els.blackBraid.textContent = isCliffordGoMode(game.mode)
@@ -4423,8 +4432,8 @@ function updateStatus() {
             const preview = currentReversiPreview();
             const moves = game.legalMoves(game.currentPlayer, els.transformSelect.value).length;
             els.statusText.textContent = preview?.legal
-                ? `${capitalize(game.currentPlayer)} can flip ${preview.flips.length} physical site${preview.flips.length === 1 ? '' : 's'} with ${els.transformSelect.value}.`
-                : `${capitalize(game.currentPlayer)}: ${moves} legal Reversi placement${moves === 1 ? '' : 's'}. Select another physical action when the state has no bracket.`;
+                ? `${capitalize(game.currentPlayer)} can apply a Pauli recovery operator at this site with frame transform ${els.transformSelect.value}.`
+                : `${capitalize(game.currentPlayer)}: choose a site to apply the selected Pauli recovery operator; ${moves} data site${moves === 1 ? '' : 's'} available.`;
         } else {
             const prompts = {
                 prepare_ancilla: `Click an empty site to prepare ${els.ancillaBasisSelect.value}.`,
@@ -4444,8 +4453,8 @@ function updateStatus() {
             const preview = currentReversiPreview();
             const moves = game.legalMoves(game.currentPlayer, els.cftPrimarySelect.value).length;
             els.statusText.textContent = preview?.legal
-                ? `${capitalize(game.currentPlayer)} brackets ${preview.flips.length} site${preview.flips.length === 1 ? '' : 's'} as a discrete CFT interval.`
-                : `${capitalize(game.currentPlayer)} has ${moves} legal ${els.cftPrimarySelect.value} insertion${moves === 1 ? '' : 's'}.`;
+                ? `${capitalize(game.currentPlayer)} will insert ${els.cftPrimarySelect.value} and update ${preview.flips.length} nearby OPE site${preview.flips.length === 1 ? '' : 's'}.`
+                : `${capitalize(game.currentPlayer)} has ${moves} empty ${els.cftPrimarySelect.value} insertion site${moves === 1 ? '' : 's'}.`;
         } else if (action === 'measure') {
             const type = els.cftMeasurementSelect.value.replaceAll('_', ' ');
             els.statusText.textContent = type === 'four point block'
@@ -4466,7 +4475,7 @@ function updateStatus() {
         if (isAnyonReversiMode(game.mode)) {
             const selectedType = selectedReversiAlgebraValue();
             if (preview?.legal) {
-                els.statusText.textContent = `${capitalize(game.currentPlayer)} can fuse ${preview.flips.length} bracketed charge${preview.flips.length === 1 ? '' : 's'} with ${jumpTypeDisplay(selectedType)}.`;
+                els.statusText.textContent = `${capitalize(game.currentPlayer)} can fuse ${preview.flips.length} locally coupled charge${preview.flips.length === 1 ? '' : 's'} with ${jumpTypeDisplay(selectedType)}.`;
             } else if (!hoverCoord) {
                 const moves = game.legalMoves(game.currentPlayer, selectedType).length;
                 els.statusText.textContent = `${capitalize(game.currentPlayer)} has ${moves} legal Anyon Reversi move${moves === 1 ? '' : 's'}.`;
@@ -4483,7 +4492,7 @@ function updateStatus() {
         return;
     }
     if (isCliffordGoMode(game.mode)) {
-        els.statusText.textContent = `${capitalize(game.currentPlayer)} places ${els.pauliSelect.value}. Go captures use graph liberties; Pauli labels are carried by surviving stones.`;
+        els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.pauliSelect.value}. Graph contact rules update connected Pauli clusters and preserve topology seams.`;
         if (game.scoringPending) {
             els.statusText.textContent = 'Two passes made. Each player can press Count to agree and finish scoring.';
         }
@@ -4498,7 +4507,7 @@ function updateStatus() {
                 ? `${action} will affect ${preview.affected.length} stress vertex${preview.affected.length === 1 ? '' : 'es'}.`
                 : (preview?.error || `Choose a valid target for ${action}.`);
         } else if (action === 'place') {
-            els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.cftPrimarySelect.value}. Dominant block ${observables.dominantConformalBlock}; OPE sector ${observables.finalOPESector}; captures black ${game.captures.black}, white ${game.captures.white}.`;
+            els.statusText.textContent = `${capitalize(game.currentPlayer)} inserts ${els.cftPrimarySelect.value}. Dominant block ${observables.dominantConformalBlock}; OPE sector ${observables.finalOPESector}; local fusions black ${game.captures.black}, white ${game.captures.white}.`;
         } else if (action === 'measure') {
             const required = ['four_point_block', 'dominant_block'].includes(els.cftMeasurementSelect.value)
                 ? 4
@@ -4538,7 +4547,7 @@ function updateStatus() {
         const recovery = game.config?.setupMode === 'excitation'
             ? ' Choose Recombine / Recover to reclaim its energy.'
             : '';
-        els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local move/jump option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}${recovery}`;
+        els.statusText.textContent = `Selected ${selectedToken}: ${braidStatusLabel(token)}, parity ${token?.braidParity || 0}, word ${braidWordToText(token?.braidWord || [])}${channelText}, ${actions.length} local propagation/exchange option${actions.length === 1 ? '' : 's'}.${cancel}${inverse}${warning}${recovery}`;
     } else {
         const anyonTurnAction = game.config?.setupMode === 'excitation' ? els.anyonActionSelect.value : 'move';
         els.statusText.textContent = game.config?.setupMode === 'excitation' && anyonTurnAction === 'excite'
@@ -4547,7 +4556,7 @@ function updateStatus() {
             ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an owned anyon to recombine and recover energy.`
             : game.config?.setupMode === 'excitation'
             ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Select an owned anyon to move/braid, or choose Excite Anyon.`
-            : 'Select an anyon, then hop to a neighbor or jump over an occupied vertex.';
+            : 'Select an anyon, then hop to a neighbor or exchange around an occupied vertex.';
     }
 }
 
@@ -4565,7 +4574,7 @@ function renderLegend() {
         ? [
             '+/- is the source or domain sign',
             '\u03c3 and \u03b5 are Ising CFT primary labels',
-            'Gold outline: bracketed conformal interval',
+            'Gold outline: local OPE interaction interval',
             '? is a hidden OPE channel until measured',
             'T(v) is the discrete stress proxy',
             'Correlations, blocks, and entropy are graph estimators'
@@ -4573,8 +4582,8 @@ function renderLegend() {
         : isAnyonReversiMode(game.mode)
         ? [
             `${els.anyonModelSelect.value === 'zn_phase' ? 'Z_n charges' : 'Anyon charges'} are placed with the local site palette`,
-            'Gold outline previews bracketed fusion flips',
-            'Flipped chains fuse with the placed charge',
+            'Gold outline previews local fusion propagation',
+            'Affected chains update by charge-fusion transport',
             'Twisted seams apply the topology charge automorphism',
             'Measurement reports connected-domain total charge'
         ]
@@ -4591,8 +4600,8 @@ function renderLegend() {
         ? [
             'Black = species A / phase A / spin sector A; white = species B / phase B / spin sector B',
             'Empty sites are local growth, oxygen, or resource vertices',
-            'Liberties are available neighboring growth/resource sites',
-            'Clusters with zero liberties are captured as local extinction or confinement',
+            'Resource contacts are available neighboring growth/resource sites',
+            'Clusters with zero resource contacts are removed as local extinction or confinement',
             'Optional diffusion/noise grows random local droplets after updates',
             'Observables track cluster distribution, largest cluster, percolation, survival, and wrapping clusters'
         ]
@@ -4600,8 +4609,8 @@ function renderLegend() {
         ? [
             'Black/white are two particle species or charge signs',
             'Hop moves to an adjacent empty vertex',
-            'Jump crosses an occupied barrier particle into an empty landing',
-            'Chain jump follows consecutive jump landings',
+            'Exchange/scattering crosses an occupied interaction particle into an empty landing',
+            'Multi-step scattering follows consecutive legal exchange landings',
             'Adjacent opposite charges can recombine and recover energy',
             'Path parity records exchange or braid-like worldline complexity'
         ]
@@ -4634,7 +4643,7 @@ function renderLegend() {
         ]
         : isPhysicalVirasoroGoMode(game.mode)
             ? [
-                'Go captures still use graph liberties',
+                'Local OPE/contact updates use graph adjacency',
                 '\u03c3, \u03b5, 1, or V labels are primary insertions',
                 'T(v) is the approximate stress proxy',
                 'Gold outline previews a conformal deformation',
@@ -4642,16 +4651,16 @@ function renderLegend() {
             ]
             : isCliffordGoMode(game.mode)
                 ? [
-                    'Go captures use graph liberties',
+                    'Graph contacts update connected Pauli clusters',
                     '+X, +Y, and +Z are Pauli-labelled stones',
                     'Topology seams preserve the graph movement rules',
                     'Pass twice, then both players agree to count'
                 ]
             : [
             isCliffordJumpMode(game.mode)
-                ? 'Clifford Jump labels: X, Z, and Y move by Anyon Jump rules'
+                ? 'Clifford worldline labels: X, Z, and Y propagate on the graph'
                 : isVirasoroJumpMode(game.mode)
-                ? 'Virasoro Jump labels: sigma and epsilon primary excitations'
+                ? 'Virasoro worldline labels: sigma and epsilon primary excitations'
                 : els.anyonModelSelect.value === 'zn_phase'
                 ? `General Z_${Math.max(2, Math.min(64, Math.floor(Number(els.anyonGradeInput?.value) || 5)))} phase: braid +1/n, inverse -1/n`
                 : els.anyonModelSelect.value === 'ising'
@@ -4660,7 +4669,7 @@ function renderLegend() {
                     ? 'Fibonacci anyons: 1, \u03c4'
                     : 'e,m,\u03c8 toric anyons',
             '? hidden until measured',
-            'Blue path: jump line',
+            'Blue path: worldline / exchange path',
             'Braided marker: nontrivial memory',
             'Green UNBRAID badge: next inverse loop',
             game.config?.setupMode === 'excitation'
@@ -4716,7 +4725,7 @@ function renderHistory() {
         } else if (isPhysicalClusterGoMode(game.mode)) {
             const update = event.physicalUpdate || {};
             const observables = event.observables || {};
-            item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; captured ${update.capturedCount || 0}; largest ${observables.largestCluster ?? 0}; wraps ${observables.topologyWrappingClusterCount ?? 0}; survival ${formatNumber(observables.survivalProbability ?? 0)}.`;
+            item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; removed ${update.capturedCount || 0}; largest ${observables.largestCluster ?? 0}; wraps ${observables.topologyWrappingClusterCount ?? 0}; survival ${formatNumber(observables.survivalProbability ?? 0)}.`;
         } else if (isPhysicalJumpParticlesMode(game.mode)) {
             const update = event.physicalUpdate || {};
             const observables = event.observables || {};
@@ -4749,7 +4758,7 @@ function renderHistory() {
                 const inserted = isCliffordGoMode(game.mode)
                     ? `${event.pauliSign < 0 ? '-' : '+'}${event.pauliLabel || 'X'}`
                     : event.insertedPrimary?.primaryType || 'primary';
-                item.textContent = `#${event.number} ${event.color} inserted ${inserted} at ${event.coord.join(',')}; captured ${event.captured}.`;
+                item.textContent = `#${event.number} ${event.color} inserted ${inserted} at ${event.coord.join(',')}; fused/removed ${event.captured}.`;
             } else if (event.type === 'virasoro') {
                 item.textContent = `#${event.number} ${event.color} ${event.action} at ${event.coord?.join(',') || 'none'} affected ${event.affected?.length || 0}.`;
             } else if (event.type === 'score') {

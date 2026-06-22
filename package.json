@@ -77,7 +77,7 @@
     "ai:selfplay:reversi": "node --experimental-strip-types scripts/ai/train/selfPlayReversi.ts",
     "ai:selfplay:jump": "node --experimental-strip-types scripts/ai/train/selfPlayChineseCheckers.ts",
     "ai:evaluate": "node --experimental-strip-types scripts/ai/train/evaluateBots.ts",
-    "desktop:dir": "npm run build && electron-builder --dir",
+    "desktop:dir": "npm run build && electron-builder --dir --config.electronDist=node_modules/electron/dist",
     "desktop:package": "npm run build && electron-builder",
     "desktop:win": "npm run build && electron-builder --win",
     "desktop:mac": "npm run build && electron-builder --mac",
