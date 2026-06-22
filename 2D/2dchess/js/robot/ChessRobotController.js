@@ -80,11 +80,33 @@ export class ChessRobotController {
                 this.setPanelMessage('Robot found no legal move. Try Analyze Position to inspect the state.');
                 return;
             }
+            const promotion = robotPromotionForMove(legal);
+            if (await this.game.__spaceTimeScheduleRobotAction?.({
+                kind: 'chess',
+                player: currentSide,
+                from: legal.from,
+                to: legal.to,
+                promotion,
+                score: result.score
+            })) {
+                recordRobotLearningMove({
+                    gameType: 'chess',
+                    variant: '2d+1',
+                    topology: this.game.boundaryCondition || 'standard',
+                    player: currentSide,
+                    robot: `depth-${this.depth}:time-schedule`,
+                    move: { type: 'schedule', from: legal.from, to: legal.to, label: legal.label, promotion },
+                    score: result.score,
+                    result: null
+                });
+                this.setPanelMessage(`Robot scheduled a hidden move. Score ${formatScore(result.score)}. Nodes: ${result.nodes}${result.truncated ? ' (limited)' : ''}.`);
+                return;
+            }
 
             const ok = await this.game.applyMove({
                 from: legal.from,
                 to: legal.to,
-                promotion: robotPromotionForMove(legal)
+                promotion
             }, { robot: true });
 
             if (ok) {
@@ -94,7 +116,7 @@ export class ChessRobotController {
                     topology: this.game.boundaryCondition || 'standard',
                     player: currentSide,
                     robot: `depth-${this.depth}`,
-                    move: { from: legal.from, to: legal.to, label: legal.label, promotion: robotPromotionForMove(legal) },
+                    move: { from: legal.from, to: legal.to, label: legal.label, promotion },
                     score: result.score,
                     result: this.game.gameOver ? { gameOver: true, winner: this.game.winner || null, draw: Boolean(this.game.draw) } : null
                 });

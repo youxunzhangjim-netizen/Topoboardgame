@@ -242,6 +242,8 @@ function moveOrderingScore(move, state, player, context = null, ply = 0, preferr
     if (move.piece?.type === 'P' && [3, 4].includes(move.from?.c) && Math.abs((move.to?.r ?? 0) - (move.from?.r ?? 0)) >= 1) score += 240;
     if (['B', 'N'].includes(move.piece?.type) && isHomeMinor(move)) score += 520;
     if (move.piece?.type === 'Q' && isEarlyPosition(state) && !move.capture) score -= 360;
+    if (move.piece?.type === 'K' && isEarlyPosition(state) && !move.castling) score -= 1200;
+    if (move.piece?.type === 'R' && isEarlyPosition(state) && !move.capture) score -= 620;
     if (move.suicide) score += move.piece?.type === 'K' ? -100000 : -450;
     if (context) {
         const key = moveKey(move);

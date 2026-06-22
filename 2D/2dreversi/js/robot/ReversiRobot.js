@@ -274,6 +274,7 @@ function quickMoveScore(move, logic, player) {
     score += flipWeight * flipCount;
     score += anchorBonus(logic, move.coord) * 2.4;
     if (isXSquareDanger(logic, move.coord)) score -= 55;
+    if (isCSquareDanger(logic, move.coord)) score -= 38;
     if (isFrontierCoord(logic, move.coord)) score -= 10;
     const clone = cloneReversi(logic);
     const play = clone.play(move.coord, player);
@@ -411,6 +412,17 @@ function isXSquareDanger(logic, coord) {
     const xs = [[1, 1, 0, 0], [w - 2, 1, w - 1, 0], [1, h - 2, 0, h - 1], [w - 2, h - 2, w - 1, h - 1]];
     return xs.some(([xx, yy, cx, cy]) => x === xx && y === yy && !logic.get([cx, cy]));
 }
+function isCSquareDanger(logic, coord) {
+    if (logic.topology.topology !== 'open2d') return false;
+    const x = coord[0], y = coord[1], w = logic.topology.width, h = logic.topology.height;
+    const cs = [
+        [0, 1, 0, 0], [1, 0, 0, 0],
+        [w - 1, 1, w - 1, 0], [w - 2, 0, w - 1, 0],
+        [0, h - 2, 0, h - 1], [1, h - 1, 0, h - 1],
+        [w - 1, h - 2, w - 1, h - 1], [w - 2, h - 1, w - 1, h - 1]
+    ];
+    return cs.some(([xx, yy, cx, cy]) => x === xx && y === yy && !logic.get([cx, cy]));
+}
 function topologyControl(logic, player) {
     let score = 0;
     for (const [key, stone] of logic.board.entries()) {
@@ -448,6 +460,7 @@ function explainReversiMove(before, after, move, player, score) {
     if (move.flips?.length) reasons.push(`flips ${move.flips.length} disc${move.flips.length === 1 ? '' : 's'}`);
     if (anchorBonus(before, move.coord) > 0) reasons.push('takes a generalized anchor/corner');
     if (isXSquareDanger(before, move.coord)) reasons.push('danger: X-square before corner is secured');
+    if (isCSquareDanger(before, move.coord)) reasons.push('danger: edge-near-corner move before corner is secured');
     if (isFrontierCoord(before, move.coord)) reasons.push('touches frontier space, which may give opponent access');
     const beforeMob = before.legalMoves(player).length; const afterMob = after.legalMoves(player).length;
     if (afterMob > beforeMob) reasons.push('increases future mobility');

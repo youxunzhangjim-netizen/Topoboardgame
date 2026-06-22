@@ -594,6 +594,7 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer, trainedSc
   const ranked = [];
   for (const move of moves) {
     const score = scoreJumpMove(game, move, player) - repeatedMovePenalty(memory, move);
+    move.robotScore = score;
     ranked.push({ move, score });
   }
   ranked.sort((a, b) => b.score - a.score);
@@ -657,16 +658,18 @@ function scoreJumpMove(game, move, player) {
   if (fromTarget && !toTarget) return -1000 - after;
   const jumpBonus = move.type === 'jump' ? (inChain ? 0.4 : 3) : 0;
   const targetBonus = toTarget ? (fromTarget ? 0 : 58) : 0;
-  const chainProgress = move.type === 'jump' ? potentialContinuationProgress(game, move, player, target) : 0;
-  const chainBonus = Math.max(0, chainProgress) * 1.75;
+  const chain = move.type === 'jump' ? potentialJumpChainValue(game, move, player, target) : { progress: 0, length: 0, opponentBridges: 0 };
+  const chainProgress = chain.progress;
+  const chainBonus = Math.max(0, chainProgress) * 3.4 + chain.length * 18 + chain.opponentBridges * 5;
   const stalledChainPenalty = inChain && progress <= 0 ? 8 : 0;
   const lateralStallPenalty = !fromTarget && progress === 0 ? 12 : 0;
   const lastHomePressure = homePiecesLeft > 0 ? 90 / homePiecesLeft : 0;
   const homeClearBonus = fromHome && !toHome ? 42 + lastHomePressure : 0;
   const homeReturnPenalty = !fromHome && toHome ? 28 : 0;
   const ignoredHomePenalty = homePiecesLeft > 0 && !fromHome && !toTarget ? 32 + lastHomePressure : 0;
+  const targetFill = targetFillScore(game, move, player, target, home);
   const targetRearrangeBonus = fromTarget && toTarget && outsideTarget > 0 && targetDepthGain > 0
-    ? 105 + targetDepthGain * 28 + outsideTarget * 2
+    ? 130 + targetDepthGain * 38 + outsideTarget * 3
     : 0;
   const targetShufflePenalty = fromTarget && toTarget && outsideTarget > 0 && targetDepthGain <= 0
     ? 170 + outsideTarget * 3 + Math.abs(targetDepthGain) * 20
@@ -677,8 +680,10 @@ function scoreJumpMove(game, move, player) {
   const backwardPenalty = progress < 0 ? Math.abs(progress) * 14 : 0;
   const directionBonus = game.lattice === 'triangular' && move.direction?.filter(Boolean).length === 2 ? 0.8 : 0;
   const polarBonus = game.topologyName === 'polar' && Math.abs((move.to?.[0] || 0) - (move.from?.[0] || 0)) > 0 ? 0.6 : 0;
-  return progress * 15 + jumpBonus + targetBonus + chainBonus + homeClearBonus + laggardBonus + targetRearrangeBonus + directionBonus + polarBonus
+  const stepPenalty = move.type !== 'jump' && !toTarget ? 8 : 0;
+  return progress * 18 + jumpBonus + targetBonus + chainBonus + homeClearBonus + laggardBonus + targetRearrangeBonus + targetFill + directionBonus + polarBonus
     - stalledChainPenalty - lateralStallPenalty - homeReturnPenalty - ignoredHomePenalty - targetShufflePenalty - backwardPenalty
+    - stepPenalty
     + Math.random() * 0.1;
 }
 
@@ -707,12 +712,27 @@ function maxPlayerDistanceToZone(game, player, zone) {
   return max;
 }
 
-function potentialContinuationProgress(game, move, player, target) {
-  let best = 0;
-  const startDistance = distanceToTarget(game, move.to, target);
-  const visited = new Set([coordKey(move.from), coordKey(move.to)]);
-  for (const dir of game.directionsFor(move.to)) {
-    const first = game.topology.step(move.to, dir);
+function potentialJumpChainValue(game, move, player, target) {
+  const startDistance = distanceToTarget(game, move.from, target);
+  const seen = new Set([coordKey(move.from)]);
+  const best = jumpChainSearch(game, move.to, player, target, seen, 0, startDistance);
+  return best;
+}
+
+function jumpChainSearch(game, coord, player, target, seen, depth, startDistance) {
+  const key = coordKey(coord);
+  seen.add(key);
+  let best = {
+    progress: startDistance - distanceToTarget(game, coord, target),
+    length: depth,
+    opponentBridges: 0
+  };
+  if (depth >= 5) {
+    seen.delete(key);
+    return best;
+  }
+  for (const dir of game.directionsFor(coord)) {
+    const first = game.topology.step(coord, dir);
     if (!first) continue;
     const middlePiece = game.pieceAt(first.position);
     if (!middlePiece) continue;
@@ -721,11 +741,33 @@ function potentialContinuationProgress(game, move, player, target) {
     const second = game.topology.step(first.position, first.direction);
     if (!second) continue;
     const landingKey = coordKey(second.position);
-    if (visited.has(landingKey)) continue;
+    if (seen.has(landingKey)) continue;
     if (!game.isEmpty(second.position)) continue;
-    best = Math.max(best, startDistance - distanceToTarget(game, second.position, target));
+    const next = jumpChainSearch(game, second.position, player, target, seen, depth + 1, startDistance);
+    next.opponentBridges += middlePiece !== player ? 1 : 0;
+    if (
+      next.progress > best.progress + 0.001
+      || (Math.abs(next.progress - best.progress) <= 0.001 && next.length > best.length)
+      || (Math.abs(next.progress - best.progress) <= 0.001 && next.length === best.length && next.opponentBridges > best.opponentBridges)
+    ) best = { ...next };
   }
+  seen.delete(key);
   return best;
+}
+
+function targetFillScore(game, move, player, target, home) {
+  const toKey = coordKey(move.to);
+  if (!target.has(toKey)) return 0;
+  const emptyTargetSites = [...target].filter((key) => !game.pieces.has(key));
+  if (!emptyTargetSites.length) return 28;
+  const homeCenter = targetCenter(home, game.dimension);
+  const beforeRank = distanceChebyshev(move.from, homeCenter);
+  const afterRank = distanceChebyshev(move.to, homeCenter);
+  const emptiestDeep = Math.max(...emptyTargetSites.map((key) => distanceChebyshev(key.split(',').map(Number), homeCenter)));
+  const toDepth = distanceChebyshev(move.to, homeCenter);
+  const fillBonus = emptyTargetSites.includes(toKey) ? 52 : 0;
+  const deepBonus = toDepth >= emptiestDeep - 0.001 ? 45 : Math.max(0, toDepth - beforeRank) * 12;
+  return fillBonus + deepBonus + Math.max(0, afterRank - beforeRank) * 9;
 }
 function distanceToTarget(game, coord, targetSet) {
   let best = Infinity;

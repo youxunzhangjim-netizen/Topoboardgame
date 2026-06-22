@@ -418,6 +418,7 @@ function quickMoveScore(logic, move, player) {
     }
     score += 1.0 * friendlyNeighbors + 1.4 * enemyNeighbors;
     score += basicGoShapeScore(logic, move, player);
+    score += territoryProtectionMoveScore(logic, move, player);
     return score;
 }
 
@@ -445,8 +446,10 @@ function basicGoShapeScore(logic, move, player) {
     }
 
     const eye = localEyeInfo(logic, index, player);
-    if (eye.ownEye) score -= move.ownTerritoryFill ? 70 : 26;
-    if (eye.falseEyeRisk) score -= 24;
+    if (eye.ownEye) score -= move.ownTerritoryFill ? 92 : 34;
+    if (eye.falseEyeRisk) score -= 46;
+    if (eye.fakeEye) score -= 68;
+    if (eye.cutsNearby >= 2 && ownGroups.length) score += 24;
     if (move.neutralRegion && ownGroups.length && enemyGroups.length === 0) score += 14;
     if (move.neutralRegion && ownGroups.length && eye.friendlyRatio >= 0.45) score += 16;
     if (move.opponentTerritoryInvasion && enemyGroups.length && ownGroups.length) score += 10;
@@ -569,19 +572,44 @@ function localEyeInfo(logic, index, player) {
     const ownValue = player === 'black' ? COLORS.black : COLORS.white;
     const enemyValue = player === 'black' ? COLORS.white : COLORS.black;
     const neighbors = logic.neighborsFromIndex(index);
-    if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, friendlyRatio: 0 };
+    if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, fakeEye: false, friendlyRatio: 0, cutsNearby: 0 };
     let own = 0;
     let enemy = 0;
     let empty = 0;
+    let weakFriendly = 0;
     for (const next of neighbors) {
-        if (logic.board[next] === ownValue) own += 1;
+        if (logic.board[next] === ownValue) {
+            own += 1;
+            const group = logic.getGroupAndLiberties(logic.board, next);
+            if (group.liberties.size <= 2) weakFriendly += 1;
+        }
         else if (logic.board[next] === enemyValue) enemy += 1;
         else empty += 1;
     }
     const friendlyRatio = own / neighbors.length;
     const ownEye = enemy === 0 && empty <= 1 && friendlyRatio >= 0.62;
     const falseEyeRisk = ownEye && adjacentGroupInfos(logic, index, player).some((group) => group.liberties <= 2);
-    return { ownEye, falseEyeRisk, friendlyRatio };
+    const cutsNearby = empty + weakFriendly;
+    const fakeEye = ownEye && (weakFriendly >= 2 || cutsNearby >= 3);
+    return { ownEye, falseEyeRisk, fakeEye, friendlyRatio, cutsNearby };
+}
+
+function territoryProtectionMoveScore(logic, move, player) {
+    if (!move?.coord) return 0;
+    const index = logic.indexFromCoord(move.coord);
+    const opponent = otherColor(player);
+    const ownGroups = adjacentGroupInfos(logic, index, player);
+    const enemyGroups = adjacentGroupInfos(logic, index, opponent);
+    let score = 0;
+    const region = emptyRegionInfo(logic, index);
+    if (region.owner === player) {
+        const security = territoryRegionSecurity(logic, index, player);
+        if (security.borderWeakness > 0 && !move.ownTerritoryFill) score += 22 * security.borderWeakness;
+        if (move.ownTerritoryFill && security.borderWeakness <= 0) score -= 80;
+    }
+    if (ownGroups.length >= 2 && enemyGroups.length === 0) score += 28;
+    if (ownGroups.some((group) => group.liberties <= 2) && enemyGroups.length) score += 18;
+    return score;
 }
 
 function applyGoMove(logic, move, player) { return move.type === 'pass' ? logic.pass(player) : logic.tryPlay(move.coord, player); }
@@ -601,7 +629,8 @@ function evaluateGo(logic, player) {
     const groupDiff = groupScore(logic, player) - groupScore(logic, opponent);
     const topologyDiff = topologyScore(logic, player) - topologyScore(logic, opponent);
     const mobilityDiff = getLegalPlayCandidates(logic, player).length - getLegalPlayCandidates(logic, opponent).length;
-    return 15 * areaDiff + 10 * captureDiff + groupDiff + topologyDiff + 1.8 * mobilityDiff;
+    const territoryDiff = territorySecurityScore(logic, player) - territorySecurityScore(logic, opponent);
+    return 15 * areaDiff + 10 * captureDiff + groupDiff + topologyDiff + territoryDiff + 1.8 * mobilityDiff;
 }
 
 function groupScore(logic, player) {
@@ -627,7 +656,7 @@ function groupEyePotential(logic, info, player) {
         if (checked.has(liberty)) continue;
         checked.add(liberty);
         const eye = localEyeInfo(logic, liberty, player);
-        if (eye.ownEye && !eye.falseEyeRisk) potential += 1;
+        if (eye.ownEye && !eye.falseEyeRisk && !eye.fakeEye) potential += 1;
         else if (eye.friendlyRatio >= 0.5) potential += 0.35;
         const region = emptyRegionInfo(logic, liberty);
         if (region.owner === player && region.size >= 2) potential += Math.min(1.5, region.size / 4);
@@ -635,6 +664,49 @@ function groupEyePotential(logic, info, player) {
     // Compact groups enclosing several local empty points are much closer to living.
     if (info.size >= 5 && info.liberties >= 3) potential += 0.35;
     return Math.min(2.5, potential);
+}
+
+function territorySecurityScore(logic, player) {
+    let score = 0;
+    const visited = new Set();
+    for (let index = 0; index < logic.board.length; index += 1) {
+        if (logic.board[index] !== COLORS.empty || visited.has(index)) continue;
+        const region = emptyRegionInfo(logic, index, visited);
+        if (region.owner !== player) continue;
+        const security = territoryRegionSecurity(logic, index, player);
+        score += Math.min(24, region.size * 1.8);
+        score += 18 * security.safeBorders;
+        score -= 35 * security.borderWeakness;
+        if (region.size >= 4 && security.safeBorders >= 2) score += 22;
+    }
+    return score;
+}
+
+function territoryRegionSecurity(logic, startIndex, player) {
+    const ownValue = player === 'black' ? COLORS.black : COLORS.white;
+    const visited = new Set([startIndex]);
+    const stack = [startIndex];
+    const borderGroups = new Map();
+    while (stack.length) {
+        const index = stack.pop();
+        for (const next of logic.neighborsFromIndex(index)) {
+            if (logic.board[next] === COLORS.empty && !visited.has(next)) {
+                visited.add(next);
+                stack.push(next);
+            } else if (logic.board[next] === ownValue) {
+                const group = logic.getGroupAndLiberties(logic.board, next);
+                const anchor = [...group.group][0];
+                borderGroups.set(anchor, group.liberties.size);
+            }
+        }
+    }
+    let safeBorders = 0;
+    let borderWeakness = 0;
+    for (const liberties of borderGroups.values()) {
+        if (liberties >= 4) safeBorders += 1;
+        else if (liberties <= 2) borderWeakness += 1;
+    }
+    return { safeBorders, borderWeakness };
 }
 
 function topologyScore(logic, player) {

@@ -754,7 +754,7 @@ export class JumpGameApp {
     });
   }
 
-  onlineRobotTurn(player = 'C') {
+  async onlineRobotTurn(player = 'C') {
     if (this.modeSelect?.value !== 'online' || this.game.currentPlayer !== player || this.game.winner) return;
     const move = this.chooseRobotMove(player);
     if (!move) {
@@ -762,6 +762,12 @@ export class JumpGameApp {
       this.history.push(`Robot ${player} had no legal move and passed the turn.`);
       this.recordJumpRobotMove(player, null);
     } else {
+      if (await this.tryScheduleRobotJump(player, move)) {
+        this.recordJumpRobotMove(player, move, { scheduled: true });
+        this.render();
+        this.network.sendState({ type: 'jump_robot_scheduled_move' });
+        return;
+      }
       const result = this.game.applyMove(move);
       if (!result.ok) {
         this.history.push(`Robot ${player} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
@@ -781,7 +787,7 @@ export class JumpGameApp {
     this.network.sendState({ type: 'jump_robot_c_move' });
   }
 
-  robotTurn() {
+  async robotTurn() {
     const robotPlayer = this.game.currentPlayer;
     if (robotPlayer !== 'B' || this.game.playerCount >= 3) {
       if (robotPlayer === 'A' || this.game.winner) return;
@@ -791,6 +797,11 @@ export class JumpGameApp {
         this.history.push(`Robot ${robotPlayer} had no legal move and passed the turn.`);
         this.recordJumpRobotMove(robotPlayer, null);
       } else {
+        if (await this.tryScheduleRobotJump(robotPlayer, move)) {
+          this.recordJumpRobotMove(robotPlayer, move, { scheduled: true });
+          this.render();
+          return;
+        }
         const result = this.game.applyMove(move);
         if (!result.ok) {
           this.history.push(`Robot ${robotPlayer} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
@@ -821,6 +832,10 @@ export class JumpGameApp {
         this.recordJumpRobotMove('B', null);
         break;
       }
+      if (await this.tryScheduleRobotJump('B', move)) {
+        this.recordJumpRobotMove('B', move, { scheduled: true });
+        break;
+      }
       const result = this.game.applyMove(move);
       if (!result.ok) {
         this.history.push(`Robot skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
@@ -834,6 +849,18 @@ export class JumpGameApp {
       break;
     } while (this.game.currentPlayer === 'B' && !this.game.winner);
     this.render();
+  }
+
+  async tryScheduleRobotJump(player, move) {
+    if (!move || typeof this.__spaceTimeScheduleRobotAction !== 'function') return false;
+    const scheduled = await this.__spaceTimeScheduleRobotAction({
+      kind: 'jump',
+      player,
+      move,
+      score: Number(move.robotScore || 0)
+    });
+    if (scheduled) this.history.push(`Robot ${player} scheduled hidden Jump action.`);
+    return Boolean(scheduled);
   }
 
   coordFromEvent(event) {

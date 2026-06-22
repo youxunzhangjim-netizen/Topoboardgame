@@ -431,6 +431,24 @@
         summary: draft.summary || `Jump ${draft.move.type} ${draft.move.from?.join(',')} -> ${draft.move.to?.join(',')}`
       };
     }
+    if (family === 'chess') {
+      const from = draft.from ? cloneChessCoord(draft.from) : null;
+      const to = draft.to ? cloneChessCoord(draft.to) : null;
+      if (!from || !to) return null;
+      const player = draft.player || app?.currentPlayer || 'white';
+      const legal = findChessLegalMove(app, from, to);
+      if (!legal) return null;
+      return {
+        kind: 'chess',
+        player,
+        from,
+        to: cloneChessCoord(legal),
+        promotion: draft.promotion || legal.promotion || null,
+        castling: legal.castling || null,
+        score: Number(draft.score || 0),
+        summary: draft.summary || `Chess ${titleCase(player)} hidden scheduled move`
+      };
+    }
     return null;
   }
 
@@ -476,6 +494,11 @@
     if (draft.kind === 'jump') {
       if (draft.move?.type === 'jump' || Number(draft.score || 0) >= 50) return 0;
       return Math.min(1, max);
+    }
+    if (draft.kind === 'chess') {
+      if (draft.castling || Number(draft.score || 0) >= 450) return 0;
+      if (Number(draft.score || 0) >= 120) return Math.min(1, max);
+      return Math.min(2, max);
     }
     return Math.min(selectedActionDelay(), max);
   }

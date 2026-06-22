@@ -135,9 +135,9 @@ export function pieceProtectionScore(state, player) {
         const attackers = attackersToSquare(state, r, c, enemy);
         const defended = defenders.length > 0;
         if (defended) {
-            score += Math.min(44, 0.045 * value + 8 * Math.min(3, defenders.length));
+            score += Math.min(70, 0.06 * value + 11 * Math.min(4, defenders.length));
         } else {
-            score -= Math.min(80, 0.07 * value);
+            score -= Math.min(150, 0.11 * value);
         }
         if (!attackers.length) return;
         const cheapestAttacker = Math.min(...attackers.map((item) => PIECE_VALUES[item.piece.type] || 0));
@@ -146,13 +146,13 @@ export function pieceProtectionScore(state, player) {
             : Infinity;
         const unfavorableTrade = value - cheapestAttacker;
         if (!defended) {
-            score -= Math.max(90, 0.42 * value);
+            score -= Math.max(120, 0.62 * value);
         } else if (unfavorableTrade > 80 && cheapestDefender > cheapestAttacker) {
-            score -= Math.min(220, 0.22 * unfavorableTrade);
+            score -= Math.min(330, 0.34 * unfavorableTrade);
         } else {
-            score -= Math.min(55, 0.05 * value);
+            score -= Math.min(75, 0.07 * value);
         }
-        if (['Q', 'R'].includes(piece.type) && cheapestAttacker <= 330) score -= defended ? 70 : 150;
+        if (['Q', 'R'].includes(piece.type) && cheapestAttacker <= 330) score -= defended ? 110 : 240;
     });
     return score;
 }
@@ -182,15 +182,16 @@ export function openingDevelopmentScore(state, player) {
         else score += 10;
     }
     if (king) {
-        if (king.piece.hasMoved || king.c !== 4) score += 18;
         const legalCastles = getLegalMovesForPiece(state, king.r, king.c, player).filter((move) => move.castling);
-        if (legalCastles.length) score += 75;
-        if (king.piece.hasMoved && [2, 6].includes(king.c)) score += 110;
-        if (!king.piece.hasMoved && ownPieces + enemyPieces >= 26) score -= 35;
+        if (legalCastles.length) score += 115;
+        if (king.piece.hasMoved && [2, 6].includes(king.c)) score += 160;
+        else if (king.piece.hasMoved && ownPieces + enemyPieces >= 24) score -= 130;
+        if (!king.piece.hasMoved && ownPieces + enemyPieces >= 26) score -= 52;
     }
     for (const rookCol of [0, 7]) {
         const rook = getPiece(state, backRank, rookCol);
         if (rook?.color === player && rook.type === 'R' && !rook.hasMoved) score += 8;
+        if (rook?.color === player && rook.type === 'R' && rook.hasMoved && king && ![2, 6].includes(king.c) && ownPieces + enemyPieces >= 24) score -= 46;
     }
     return score;
 }
