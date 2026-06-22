@@ -2458,8 +2458,11 @@ class Go3DApp {
 
     resultText() {
         if (!this.logic.gameOver) return '';
-        if (this.logic.winner === 'draw') return tr('score.draw');
-        if (this.logic.score) return tr('score.winsBy', { color: this.colorName(this.logic.winner), margin: this.logic.score.margin });
+        if (this.logic.winner === 'draw') return this.logic.score ? `${tr('score.draw')} (${this.colorName('black')} ${this.logic.score.black}, ${this.colorName('white')} ${this.logic.score.white})` : tr('score.draw');
+        if (this.logic.score) {
+            const result = tr('score.winsBy', { color: this.colorName(this.logic.winner), margin: this.logic.score.margin });
+            return `${result} (${this.colorName('black')} ${this.logic.score.black}, ${this.colorName('white')} ${this.logic.score.white})`;
+        }
         return tr('score.wins', { color: this.colorName(this.logic.winner) });
     }
 

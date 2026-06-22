@@ -674,7 +674,7 @@ export class JumpGameApp {
 
     if (!canMove) {
       const text = this.game.winner
-        ? `${this.t('Winner', 'Winner')}: ${this.game.winner}`
+        ? this.resultText()
         : `${this.t('Waiting for Player', 'Waiting for Player')} ${player}`;
       if (this.movePicker.pieceSummary) this.movePicker.pieceSummary.textContent = text;
       if (this.movePicker.pieces) this.movePicker.pieces.innerHTML = `<span class="jump-empty-row">${escapeHtml(text)}</span>`;
@@ -1228,7 +1228,7 @@ export class JumpGameApp {
     const b = this.game.targetProgress('B');
     const c = this.game.playerCount >= 3 ? this.game.targetProgress('C') : null;
     if (this.statusEl) this.statusEl.textContent = this.game.winner
-      ? `${this.t('Winner', 'Winner')}: ${this.game.winner}`
+      ? this.resultText()
       : `${this.t('Turn', 'Turn')} ${this.game.turnNumber}: ${this.t('Player', 'Player')} ${this.game.currentPlayer}`;
     if (this.progressEl) {
       this.progressEl.innerHTML = `<span>${escapeHtml(this.t('Player', 'Player'))} A ${escapeHtml(this.t('target', 'target'))}: ${a.percentage}% (${a.filled}/${a.total})</span><span>${escapeHtml(this.t('Player', 'Player'))} B ${escapeHtml(this.t('target', 'target'))}: ${b.percentage}% (${b.filled}/${b.total})</span>${c ? `<span>${escapeHtml(this.t('Player', 'Player'))} C ${escapeHtml(this.t('target', 'target'))}: ${c.percentage}% (${c.filled}/${c.total})</span>` : ''}`;
@@ -1238,6 +1238,16 @@ export class JumpGameApp {
     this.updateTimerDisplay();
     this.syncPieceFocusButton();
     this.renderMovePicker();
+  }
+
+  resultText() {
+    if (!this.game?.winner) return '';
+    const players = ['A', 'B', ...(this.game.playerCount >= 3 ? ['C'] : [])];
+    const parts = players.map((player) => {
+      const progress = this.game.targetProgress(player);
+      return `${this.t('Player', 'Player')} ${player} ${progress.filled}/${progress.total} (${progress.percentage}%)`;
+    });
+    return `${this.t('Winner', 'Winner')}: ${this.game.winner} - ${parts.join(', ')}`;
   }
 
   showAnalysis() {

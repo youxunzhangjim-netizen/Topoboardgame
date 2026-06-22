@@ -390,8 +390,8 @@ class Go4DApp {
 
     resultText() {
         if (!this.logic.gameOver) return '';
-        if (this.logic.winner === 'draw') return 'Draw';
-        if (this.logic.score) return `${this.capitalize(this.logic.winner)} wins by ${this.logic.score.margin}`;
+        if (this.logic.winner === 'draw') return this.logic.score ? `Draw (Black ${this.logic.score.black}, White ${this.logic.score.white})` : 'Draw';
+        if (this.logic.score) return `${this.capitalize(this.logic.winner)} wins by ${this.logic.score.margin} (Black ${this.logic.score.black}, White ${this.logic.score.white})`;
         return `${this.capitalize(this.logic.winner)} wins`;
     }
 

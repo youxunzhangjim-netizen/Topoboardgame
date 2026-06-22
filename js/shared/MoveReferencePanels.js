@@ -5,6 +5,7 @@ const REFERENCE_TITLE_PATTERNS = [
     /online\s*chat/i,
     /piece\s*symbols?/i
 ];
+const MOBILE_RULES_BELOW_CONTROLS_QUERY = '(max-width: 980px)';
 
 function textOf(element) {
     return String(element?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -45,13 +46,32 @@ function installStyles() {
     document.head.appendChild(style);
 }
 
-function createTarget(playArea, shell) {
-    let target = playArea.querySelector(':scope > .reference-panels-below-board');
-    if (target) return target;
+function referenceTargetHost(shell, playArea, sidebars) {
+    const isMobile = window.matchMedia?.(MOBILE_RULES_BELOW_CONTROLS_QUERY).matches;
+    if (isMobile) {
+        const lastSidebar = [...sidebars].at(-1);
+        if (lastSidebar?.parentElement) return { parent: lastSidebar.parentElement, after: lastSidebar };
+    }
+    return { parent: playArea, after: null };
+}
+
+function createTarget(shell, playArea, sidebars) {
+    let target = shell.querySelector(':scope > .reference-panels-below-board')
+        || playArea.querySelector(':scope > .reference-panels-below-board');
+    const { parent, after } = referenceTargetHost(shell, playArea, sidebars);
+    if (target) {
+        if (after && target.previousElementSibling !== after) {
+            after.insertAdjacentElement('afterend', target);
+        } else if (!after && target.parentElement !== parent) {
+            parent.appendChild(target);
+        }
+        return target;
+    }
     target = document.createElement('section');
     target.className = 'reference-panels-below-board';
     target.setAttribute('aria-label', 'Reference panels');
-    playArea.appendChild(target);
+    if (after) after.insertAdjacentElement('afterend', target);
+    else parent.appendChild(target);
     return target;
 }
 
@@ -62,7 +82,7 @@ export function moveReferencePanelsBelowBoard() {
     const playArea = shell.querySelector(':scope > .play-area, :scope > .board-wrapper, :scope > .jump-board-panel');
     const sidebars = shell.querySelectorAll(':scope > .sidebar, :scope > aside.sidebar, :scope > .jump-side, :scope > aside.jump-side');
     if (!playArea || !sidebars.length) return;
-    const target = createTarget(playArea, shell);
+    const target = createTarget(shell, playArea, sidebars);
     for (const sidebar of sidebars) {
         const candidates = [...sidebar.children].filter((child) => {
             if (child.matches?.('.online-controls,.control-group,.controls,.jump-card:first-of-type')) return false;
@@ -78,3 +98,8 @@ if (document.readyState === 'loading') {
 } else {
     moveReferencePanelsBelowBoard();
 }
+
+window.addEventListener('resize', () => {
+    window.clearTimeout(moveReferencePanelsBelowBoard.resizeTimer);
+    moveReferencePanelsBelowBoard.resizeTimer = window.setTimeout(moveReferencePanelsBelowBoard, 120);
+});

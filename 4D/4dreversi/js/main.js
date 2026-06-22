@@ -438,9 +438,9 @@ class Reversi4DApp {
 
     resultText() {
         if (!this.logic.gameOver) return '';
-        if (this.logic.winner === 'draw') return 'Draw';
         const counts = this.logic.counts();
-        return `${this.capitalize(this.logic.winner)} wins by ${Math.abs(counts.black - counts.white)}`;
+        if (this.logic.winner === 'draw') return `Draw (Black ${counts.black}, White ${counts.white})`;
+        return `${this.capitalize(this.logic.winner)} wins by ${Math.abs(counts.black - counts.white)} (Black ${counts.black}, White ${counts.white})`;
     }
 
     canActFor(color) {

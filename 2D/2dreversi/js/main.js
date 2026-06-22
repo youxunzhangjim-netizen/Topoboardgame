@@ -726,10 +726,10 @@ class Reversi2DApp {
 
     resultText() {
         if (!this.logic.gameOver) return '';
-        if (this.logic.winner === 'draw') return 'Draw';
         const counts = this.logic.counts();
+        if (this.logic.winner === 'draw') return `Draw (Black ${counts.black}, White ${counts.white})`;
         const margin = Math.abs(counts.black - counts.white);
-        return `${this.capitalize(this.logic.winner)} wins by ${margin}`;
+        return `${this.capitalize(this.logic.winner)} wins by ${margin} (Black ${counts.black}, White ${counts.white})`;
     }
 
     canActFor(color) {
