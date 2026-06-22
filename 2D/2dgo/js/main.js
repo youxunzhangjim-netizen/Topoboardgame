@@ -548,7 +548,7 @@ class Go2DApp {
         this.lockSettings();
         this.startTimer();
         this.applyTimeEvolutionAndNoise();
-        const finalMessage = this.autoFinalizeLocalCount() || message;
+        const finalMessage = this.autoFinalizeLocalCount() || (this.logic.gameOver ? this.resultText() : message);
         this.setStatus(finalMessage);
         this.broadcastState();
         this.updateUI();
@@ -1078,8 +1078,12 @@ class Go2DApp {
         this.renderScore();
         this.renderChatMessages();
         this.render();
-        if (this.logic.gameOver) this.robot?.renderFinalWinRateFlow?.();
-        else this.robot?.updatePanelState?.();
+        if (this.logic.gameOver) {
+            this.setStatus(this.resultText());
+            this.robot?.renderFinalWinRateFlow?.();
+        } else {
+            this.robot?.updatePanelState?.();
+        }
     }
 
     updateTimerDisplay() {

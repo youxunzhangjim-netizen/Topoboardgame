@@ -190,8 +190,10 @@ export class GoRobotController {
         if (this.finalFlowKey === key) return;
         this.finalFlowKey = key;
         const flow = buildGoWinRateFlow(this.app.logic);
+        const result = this.app.resultText?.() || 'Game over';
         this.output.innerHTML = renderWinRateFlowChart(flow, {
             title: 'Final win-rate flow',
+            result,
             note: 'Robot heuristic from saved board history; it is an evaluation curve, not a solved-game proof.'
         });
     }
@@ -819,7 +821,7 @@ function buildGoWinRateFlow(logic) {
     return series;
 }
 
-function renderWinRateFlowChart(series, { title, note }) {
+function renderWinRateFlowChart(series, { title, result = '', note }) {
     const safe = Array.isArray(series) && series.length ? series : [{ move: 0, black: 0.5, white: 0.5 }];
     const width = 680;
     const height = 210;
@@ -835,6 +837,7 @@ function renderWinRateFlowChart(series, { title, note }) {
     return `
         <section class="robot-final-flow">
             <h4>${escapeHtml(title)}</h4>
+            ${result ? `<p><strong>${escapeHtml(result)}</strong></p>` : ''}
             <svg class="robot-flow-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Final win-rate flow chart for both players">
                 <line class="robot-flow-axis" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"></line>
                 <line class="robot-flow-axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line>

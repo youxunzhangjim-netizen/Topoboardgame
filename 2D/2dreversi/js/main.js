@@ -334,7 +334,7 @@ class Reversi2DApp {
 
     afterLocalAction(message) {
         this.applyTimeEvolutionAndNoise();
-        this.setStatus(message);
+        this.setStatus(this.logic.gameOver ? this.resultText() : message);
         this.updateUI();
         this.broadcastState();
         this.robot?.afterLocalAction();
