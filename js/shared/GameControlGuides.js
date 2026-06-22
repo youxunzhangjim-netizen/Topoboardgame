@@ -118,7 +118,8 @@ function detectGuideType() {
 }
 
 function pageLanguage() {
-    const saved = localStorage.getItem('topoboardgame-language')
+    const saved = localStorage.getItem('topological-boardgame:language')
+        || localStorage.getItem('topoboardgame-language')
         || localStorage.getItem('topoboardgame.lang')
         || localStorage.getItem('life-language')
         || '';
@@ -162,16 +163,46 @@ function createGuide(type) {
     const section = document.createElement('section');
     section.className = 'game-control-guide';
     section.dataset.controlGuide = type;
+    section.dataset.noLocalize = 'true';
     const title = document.createElement('h3');
     title.textContent = lang === 'zh' ? guide.zhTitle : guide.title;
     const list = document.createElement('ul');
     for (const text of (lang === 'zh' ? guide.zhItems : guide.items)) {
         const item = document.createElement('li');
-        item.textContent = text;
+        item.textContent = guideText(text, lang);
         list.append(item);
     }
     section.append(title, list);
     return section;
+}
+
+function guideText(text, lang) {
+    if (lang !== 'zh') return text;
+    return text
+        .replace(/\bLocal\b/g, '本機')
+        .replace(/\bOnline\b/g, '線上')
+        .replace(/\bRobot\b/g, '機器人')
+        .replace(/\bPass\b/g, '停手')
+        .replace(/\bAgree Count\b/g, '同意計分')
+        .replace(/\bTime schedule\b/g, '時間排程')
+        .replace(/\bStop Jump\b/g, '停止連跳')
+        .replace(/\bFocus Own\b/g, '聚焦己方')
+        .replace(/\bNew Game\b/g, '新局')
+        .replace(/\bDraw\b/g, '繪製')
+        .replace(/\bErase\b/g, '擦除')
+        .replace(/\bInspect\b/g, '檢查')
+        .replace(/\bStart\b/g, '開始')
+        .replace(/\bStep\b/g, '單步')
+        .replace(/\bReset\b/g, '重設')
+        .replace(/\bRandom seed\b/g, '隨機種子')
+        .replace(/\bGrid On\/Off\b/g, '格線開關')
+        .replace(/\bAdvanced settings\b/g, '進階設定')
+        .replace(/\bGame Controls\b/g, '遊戲控制')
+        .replace(/\bMove History\b/g, '走法記錄')
+        .replace(/\bLogs\b/g, '紀錄')
+        .replace(/\bCustom Setup\b/g, '自訂初態')
+        .replace(/\bStart\b/g, '開始')
+        .replace(/\binstant\b/g, '立即');
 }
 
 function targetForGuide(type) {
@@ -197,8 +228,17 @@ export function installGameControlGuide() {
     target.append(createGuide(type));
 }
 
+function refreshGameControlGuide() {
+    const current = document.querySelector('.game-control-guide[data-control-guide]');
+    if (!current) return installGameControlGuide();
+    const type = current.dataset.controlGuide || detectGuideType();
+    current.replaceWith(createGuide(type));
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', installGameControlGuide, { once: true });
 } else {
     installGameControlGuide();
 }
+
+window.addEventListener('languagechange', refreshGameControlGuide);

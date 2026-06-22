@@ -324,6 +324,7 @@ function translateTree(root, force = false) {
 
 function translateText(node) {
   if (!node?.parentElement || ['SCRIPT', 'STYLE'].includes(node.parentElement.tagName)) return;
+  if (node.parentElement.closest('[data-no-localize]')) return;
   if (!originals.has(node)) originals.set(node, node.nodeValue);
   const original = originals.get(node);
   const trimmed = original.trim();
@@ -336,6 +337,7 @@ function translateText(node) {
 }
 
 function translateAttributes(element) {
+  if (element.closest?.('[data-no-localize]')) return;
   for (const attr of ['placeholder', 'title', 'aria-label']) {
     if (!element.hasAttribute?.(attr)) continue;
     const dataKey = `topoboardgameOriginal${attr.replace(/-([a-z])/g, (_, c) => c.toUpperCase()).replace(/^./, (c) => c.toUpperCase())}`;

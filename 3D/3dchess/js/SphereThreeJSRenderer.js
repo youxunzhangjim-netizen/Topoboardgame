@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TorusThreeJSRenderer } from './TorusThreeJSRenderer.js';
 import {
     SPHERE_BOARD_HEIGHT,
@@ -14,7 +15,7 @@ const BOARD_DARK_COLOR = 0x31434c;
 export class SphereThreeJSRenderer extends TorusThreeJSRenderer {
     constructor(game) {
         super(game);
-        this.cylinderRadius = 3.05;
+        this.cylinderRadius = 2.38;
         this.cylinderHeight = 5.7;
         this.surfaceLift = 0.03;
         this.pieceLift = 0.22;
@@ -23,9 +24,16 @@ export class SphereThreeJSRenderer extends TorusThreeJSRenderer {
 
     init3D() {
         super.init3D();
+        this.controls.dispose?.();
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.enablePan = false;
         this.controls.rotateSpeed = 2.8;
         this.controls.minDistance = 5.2;
         this.controls.maxDistance = 20;
+        this.controls.minPolarAngle = Math.PI / 2;
+        this.controls.maxPolarAngle = Math.PI / 2;
         this.resetCamera();
     }
 
@@ -222,11 +230,62 @@ export class SphereThreeJSRenderer extends TorusThreeJSRenderer {
         ).normalize();
     }
 
+    async onMouseClick(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        const hintHits = this.raycaster.intersectObjects(this.highlightGroup.children, true);
+        const hint = hintHits.find((hit) => hit.object.userData?.type === 'legal-move');
+        if (hint) {
+            const { x, y, sheet = 0 } = hint.object.userData;
+            await this.game.handleSquareClick(x, y, sheet);
+            return;
+        }
+
+        const pieceHits = this.raycaster.intersectObjects(this.piecesGroup.children, true);
+        if (pieceHits.length) {
+            let obj = pieceHits[0].object;
+            while (obj && !obj.userData?.piece) obj = obj.parent;
+            if (obj?.userData?.piece) {
+                await this.game.handleSquareClick(obj.userData.x, obj.userData.y, obj.userData.sheet || 0);
+                return;
+            }
+        }
+
+        const coord = this.pickCylinderCellByScreenDistance(event, rect);
+        if (coord) await this.game.handleSquareClick(coord.x, coord.y, coord.sheet || 0);
+    }
+
+    pickCylinderCellByScreenDistance(event, rect) {
+        const targetX = event.clientX - rect.left;
+        const targetY = event.clientY - rect.top;
+        const projected = new THREE.Vector3();
+        let best = null;
+        for (const { x, y, sheet = 0 } of this.game.validCells()) {
+            const pose = this.getCellPose(x, y, 0.02);
+            projected.copy(pose.position).project(this.camera);
+            if (projected.z < -1 || projected.z > 1) continue;
+            const px = (projected.x * 0.5 + 0.5) * rect.width;
+            const py = (-projected.y * 0.5 + 0.5) * rect.height;
+            const screenDistance = Math.hypot(px - targetX, py - targetY);
+            if (screenDistance > 26) continue;
+            const cameraDistance = this.camera.position.distanceTo(pose.position);
+            if (!best
+                || screenDistance < best.screenDistance - 0.6
+                || (Math.abs(screenDistance - best.screenDistance) <= 0.6 && cameraDistance < best.cameraDistance)) {
+                best = { x, y, sheet, screenDistance, cameraDistance };
+            }
+        }
+        return best;
+    }
+
     homeCameraPosition() {
         const base = this.game.currentPlayer === 'black'
-            ? new THREE.Vector3(-5.8, 4.5, -8.2)
-            : new THREE.Vector3(5.8, 4.5, 8.2);
-        if (this.camera?.aspect < 0.72) base.setLength(13.8);
+            ? new THREE.Vector3(0, 0, -10.2)
+            : new THREE.Vector3(0, 0, 10.2);
+        if (this.camera?.aspect < 0.72) base.setLength(12.4);
         return base;
     }
 }

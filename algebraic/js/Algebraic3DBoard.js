@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const TWO_PI = Math.PI * 2;
 const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'cylinder', 'torus', 'sphere_latitude']);
+const CYLINDER_RADIUS = 2.38;
+const CYLINDER_HEIGHT = 5.8;
 
 function keyOf(coord) {
     return coord.join(',');
@@ -201,6 +203,8 @@ export class Algebraic3DBoard {
             axes.renderOrder = 4;
             this.boardGroup.add(axes);
         }
+        this.controls.minPolarAngle = topology.name === 'cylinder' ? Math.PI / 2 : 0;
+        this.controls.maxPolarAngle = topology.name === 'cylinder' ? Math.PI / 2 : Math.PI;
         this.resetCamera();
         this.resize();
     }
@@ -229,7 +233,7 @@ export class Algebraic3DBoard {
 
     addCylinderSurface() {
         const mesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(3.18, 3.18, 5.8, 128, 1, true),
+            new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
                 color: 0x7a8f5a,
                 roughness: 0.58,
@@ -724,8 +728,8 @@ export class Algebraic3DBoard {
     cylinderPosition(coord, lift = 0) {
         const [width, height] = this.game.topology.sizes;
         const u = TWO_PI * Number(coord[0]) / Math.max(1, width);
-        const radius = 3.18 + lift;
-        const y = ((height - 1) / 2 - Number(coord[1])) * (5.8 / Math.max(1, height - 1));
+        const radius = CYLINDER_RADIUS + lift;
+        const y = ((height - 1) / 2 - Number(coord[1])) * (CYLINDER_HEIGHT / Math.max(1, height - 1));
         return new THREE.Vector3(
             radius * Math.cos(u),
             y,
@@ -756,7 +760,9 @@ export class Algebraic3DBoard {
         const surfaceHits = this.surfaceMeshes.length
             ? this.raycaster.intersectObjects(this.surfaceMeshes, false)
             : [];
-        const surfaceDistance = surfaceHits[0]?.distance ?? Infinity;
+        const surfaceDistance = this.game?.topology?.name === 'cylinder'
+            ? Infinity
+            : surfaceHits[0]?.distance ?? Infinity;
         const occlusionTolerance = Math.max(0.2, this.entityRadius() * 1.6);
         const hits = this.raycaster.intersectObject(this.nodePoints, false)
             .filter((hit) => hit.distance <= surfaceDistance + occlusionTolerance);
@@ -825,7 +831,7 @@ export class Algebraic3DBoard {
 
     homeCameraPosition() {
         const topology = this.game?.topology?.name;
-        if (topology === 'cylinder') return new THREE.Vector3(0, 4.8, 9.2);
+        if (topology === 'cylinder') return new THREE.Vector3(0, 0, 9.2);
         if (topology === 'torus') return new THREE.Vector3(0, 5.7, 9.9);
         if (topology === 'sphere_latitude') return new THREE.Vector3(0, 2.2, 9.6);
         return new THREE.Vector3(8.2, 7.6, 8.6);

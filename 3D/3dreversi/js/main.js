@@ -14,6 +14,8 @@ import {
 } from '../../../js/time/PieceAgeClock.js';
 
 const TWO_PI = Math.PI * 2;
+const CYLINDER_RADIUS = 2.38;
+const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.05;
 const MOBIUS_BAND_HALF_WIDTH = 1.18;
 const R3_LIKE_TOPOLOGIES = new Set([
@@ -143,6 +145,8 @@ class Reversi3DRenderer {
             this.buildFlatNonOrientable(topology.width, topology.height, topology.topology);
         }
         else this.buildSphere(topology.width, topology.height);
+        this.controls.minPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : 0;
+        this.controls.maxPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : Math.PI;
 
         this.resetCamera();
     }
@@ -242,7 +246,7 @@ class Reversi3DRenderer {
 
     buildCylinder(width, height) {
         const surface = new THREE.Mesh(
-            new THREE.CylinderGeometry(3.16, 3.16, 5.8, 128, 1, true),
+            new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
                 color: 0x6f8e56,
                 roughness: 0.58,
@@ -838,7 +842,7 @@ class Reversi3DRenderer {
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
-            if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) {
+            if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) {
                 const pose = mode === REVERSI_TOPOLOGIES.T2
                     ? this.torusPosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.07)
                     : mode === REVERSI_TOPOLOGIES.CYLINDER
@@ -866,6 +870,7 @@ class Reversi3DRenderer {
         const logic = this.app.logic;
         const mode = logic?.topology?.topology;
         if (!hit || ![REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.KLEIN, REVERSI_TOPOLOGIES.MOBIUS].includes(mode)) return Boolean(hit);
+        if (mode === REVERSI_TOPOLOGIES.CYLINDER) return true;
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = mode === REVERSI_TOPOLOGIES.T2
@@ -989,8 +994,8 @@ class Reversi3DRenderer {
 
     cylinderPose(coord, width, height, lift = 0, lattice = 'square') {
         const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const radius = 3.16 + lift;
-        const y = (0.5 - uv.band) * 5.8;
+        const radius = CYLINDER_RADIUS + lift;
+        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
         const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
         const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
@@ -1124,7 +1129,7 @@ class Reversi3DRenderer {
     resetCamera() {
         const mode = this.app?.logic?.topology?.topology || 'r3';
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
-        else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 4.8, 9.2);
+        else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(6.4, 4.8, 7.4);
         else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(9.4, 6.2, 12.4);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);

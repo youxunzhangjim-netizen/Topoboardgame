@@ -56,6 +56,8 @@ const RP2_CELL_SIZE = 0.72;
 const RP2_CELL_GAP = 0.035;
 const RP2_EDGE_GAP = 0.84;
 const RP2_BOARD_LIFT = 0.02;
+const CYLINDER_RADIUS = 2.38;
+const CYLINDER_HEIGHT = 5.8;
 
 function isR3LikeTopology(topology) {
     return R3_LIKE_TOPOLOGIES.has(topology);
@@ -357,6 +359,8 @@ class Go3DRenderer {
         this.view = view;
         this.sliceSignature = sliceSignature;
         this.controls.enableRotate = !(logic.topology === SPHERE_GO_TOPOLOGY && view === '2d');
+        this.controls.minPolarAngle = logic.topology === CYLINDER_GO_TOPOLOGY ? Math.PI / 2 : 0;
+        this.controls.maxPolarAngle = logic.topology === CYLINDER_GO_TOPOLOGY ? Math.PI / 2 : Math.PI;
         this.clearGroup(this.boardGroup);
         this.clearGroup(this.hoverGroup);
         this.pointCoords = [];
@@ -970,7 +974,7 @@ class Go3DRenderer {
         const width = logic.width;
         const height = logic.height;
         const surface = new THREE.Mesh(
-            new THREE.CylinderGeometry(3.16, 3.16, 5.8, 128, 1, true),
+            new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
                 color: 0x6f8e56,
                 roughness: 0.58,
@@ -1313,7 +1317,7 @@ class Go3DRenderer {
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
-            if (['t2', CYLINDER_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic.topology)) {
+            if (['t2', SPHERE_GO_TOPOLOGY].includes(logic.topology)) {
                 const pose = logic.topology === 't2'
                     ? this.torusPosition(coord, logic.size, 0.055)
                     : logic.topology === CYLINDER_GO_TOPOLOGY
@@ -1340,6 +1344,7 @@ class Go3DRenderer {
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
         if (!hit || !logic || !['t2', CYLINDER_GO_TOPOLOGY, KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
+        if (logic.topology === CYLINDER_GO_TOPOLOGY) return true;
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
@@ -1590,8 +1595,8 @@ class Go3DRenderer {
 
     cylinderPosition(coord, width, height, lift = 0, lattice = SQUARE_LATTICE) {
         const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const radius = 3.16 + lift;
-        const y = (0.5 - uv.band) * 5.8;
+        const radius = CYLINDER_RADIUS + lift;
+        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
         const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
         const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
@@ -1703,7 +1708,7 @@ class Go3DRenderer {
             this.camera.position.set(0, 5.6, 9.8);
             this.controls.target.set(0, 0, 0);
         } else if (this.app?.logic?.topology === CYLINDER_GO_TOPOLOGY) {
-            this.camera.position.set(0, 4.8, 9.2);
+            this.camera.position.set(0, 0, 9.2);
             this.controls.target.set(0, 0, 0);
         } else if (this.app?.logic?.topology === MOBIUS_GO_TOPOLOGY) {
             this.camera.position.set(6.4, 4.8, 7.4);
