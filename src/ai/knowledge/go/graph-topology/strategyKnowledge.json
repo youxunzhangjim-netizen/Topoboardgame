@@ -1,7 +1,7 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
+  "generatedAt": "2026-06-22T03:10:21.070Z",
+  "game": "go",
   "boardFamily": "graph-topology",
   "manifest": [
     {
@@ -197,38 +197,38 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
+      "id": "go-graph-topology-liberty-region",
+      "game": "go",
       "phase": "all",
       "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "description": "For topology Go boards, count liberties and territories with graph flood-fill over the actual adjacency, replacing corner/side concepts with region boundary size and graph cut value.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "graphLiberties",
+        "regionBoundarySize",
+        "graphCutValue",
+        "territoryFloodFill"
       ],
-      "weight": 1.9,
+      "weight": 1.5,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "katago-official"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
+      "id": "go-graph-topology-opening-transfer-limit",
+      "game": "go",
+      "phase": "opening",
       "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "description": "Do not copy normal joseki or fuseki onto torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; learn topology-specific books from self-play and use only abstract shape and liberty features.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "openingBookDisabled",
+        "shapeStability",
+        "graphLiberties",
+        "selfplayBook"
       ],
-      "weight": 1.6,
+      "weight": 1.65,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "katago-official",
+        "cwi-go-games"
       ]
     }
   ],
@@ -236,7 +236,7 @@
   "endgameBook": [],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: KataGo score/ownership and yose heuristics; no exact full-board tablebase",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

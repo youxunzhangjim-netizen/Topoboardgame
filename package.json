@@ -71,6 +71,7 @@
     "ai:edax": "node --experimental-strip-types scripts/ai/ingest/analyzeReversiWithEdax.ts",
     "ai:book:jump": "node --experimental-strip-types scripts/ai/ingest/buildChineseCheckersStrategyRules.ts",
     "ai:knowledge:build": "node --experimental-strip-types scripts/ai/ingest/buildStrategyKnowledge.ts",
+    "ai:knowledge:build-all": "node --experimental-strip-types scripts/ai/ingest/buildAllStrategyKnowledge.ts",
     "ai:selfplay:chess": "node --experimental-strip-types scripts/ai/train/selfPlayChess.ts",
     "ai:selfplay:go": "node --experimental-strip-types scripts/ai/train/selfPlayGo.ts",
     "ai:selfplay:reversi": "node --experimental-strip-types scripts/ai/train/selfPlayReversi.ts",

@@ -1,0 +1,8 @@
+{
+  "schema": "topoboardgame.ai.seed_endgame_stats.v1",
+  "entries": [
+    { "positionHash": "reversi-endgame-exact-solver", "move": "solve-exact", "count": 1, "policyPrior": 0.5 },
+    { "positionHash": "reversi-endgame-parity-region", "move": "preserve-parity", "count": 1, "policyPrior": 0.3 },
+    { "positionHash": "reversi-endgame-forced-flip", "move": "force-sequence", "count": 1, "policyPrior": 0.2 }
+  ]
+}

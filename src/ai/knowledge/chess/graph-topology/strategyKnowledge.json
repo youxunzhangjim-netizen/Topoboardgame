@@ -1,7 +1,7 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
+  "generatedAt": "2026-06-22T03:10:21.064Z",
+  "game": "chess",
   "boardFamily": "graph-topology",
   "manifest": [
     {
@@ -197,38 +197,39 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
+      "id": "chess-graph-topology-distance-development",
+      "game": "chess",
       "phase": "all",
       "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "description": "For nonstandard chess boards, replace fixed center and edge assumptions with graph centrality, shortest-path mobility, king escape regions, and topology-aware attack maps.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "graphCentrality",
+        "shortestPathMobility",
+        "kingEscapeRegion",
+        "topologyAttackMap"
       ],
-      "weight": 1.9,
+      "weight": 1.25,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "stockfish-official"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
+      "id": "chess-graph-topology-opening-transfer-limit",
+      "game": "chess",
+      "phase": "opening",
       "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "description": "Do not apply standard PGN openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; transfer only activity, safety, material, and graph-distance features.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "openingBookDisabled",
+        "pieceActivity",
+        "kingSafety",
+        "graphDistance",
+        "material"
       ],
       "weight": 1.6,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "lichess-open-database",
+        "stockfish-official"
       ]
     }
   ],
@@ -236,7 +237,7 @@
   "endgameBook": [],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: Syzygy if LOCAL_SYZYGY_PATH exists and piece count <= 7; else Stockfish/local search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

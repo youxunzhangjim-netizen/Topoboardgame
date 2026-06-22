@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "id": "chess-graph-topology-distance-development",
+      "game": "chess",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For nonstandard chess boards, replace fixed center and edge assumptions with graph centrality, shortest-path mobility, king escape regions, and topology-aware attack maps.",
+      "features": ["graphCentrality", "shortestPathMobility", "kingEscapeRegion", "topologyAttackMap"],
+      "weight": 1.25,
+      "sourceIds": ["stockfish-official"]
+    },
+    {
+      "id": "chess-graph-topology-opening-transfer-limit",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "Do not apply standard PGN openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; transfer only activity, safety, material, and graph-distance features.",
+      "features": ["openingBookDisabled", "pieceActivity", "kingSafety", "graphDistance", "material"],
+      "weight": 1.6,
+      "sourceIds": ["lichess-open-database", "stockfish-official"]
+    }
+  ]
+}

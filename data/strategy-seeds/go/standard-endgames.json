@@ -1,0 +1,8 @@
+{
+  "schema": "topoboardgame.ai.seed_endgame_stats.v1",
+  "entries": [
+    { "positionHash": "go-yose-sente-boundary", "move": "largest-sente-yose", "count": 1, "policyPrior": 0.45 },
+    { "positionHash": "go-yose-gote-boundary", "move": "largest-gote-yose", "count": 1, "policyPrior": 0.30 },
+    { "positionHash": "go-endgame-pass-check", "move": "territory-pass-evaluate", "count": 1, "policyPrior": 0.25 }
+  ]
+}

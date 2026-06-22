@@ -1,8 +1,8 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
-  "boardFamily": "graph-topology",
+  "generatedAt": "2026-06-22T03:10:21.073Z",
+  "game": "reversi",
+  "boardFamily": "standard",
   "manifest": [
     {
       "id": "User-provided chess PGN folder",
@@ -197,46 +197,154 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "id": "reversi-standard-opening-mobility",
+      "game": "reversi",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "mobility",
+        "compactShape",
+        "frontierDiscs",
+        "unstableEdgePenalty"
       ],
-      "weight": 1.9,
+      "weight": 1.35,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "edax-official",
+        "wthor-ffo"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "id": "reversi-standard-middlegame-stability",
+      "game": "reversi",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame search values legal move differential, stable discs, access to corners, X/C-square risk, and opponent mobility restriction.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "mobility",
+        "stableDiscs",
+        "cornerAccess",
+        "xSquareRisk",
+        "cSquareRisk",
+        "opponentMobilityRestriction"
       ],
-      "weight": 1.6,
+      "weight": 1.55,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "edax-official",
+        "wthor-ffo"
+      ]
+    },
+    {
+      "id": "reversi-standard-endgame-parity",
+      "game": "reversi",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Endgame play prioritizes exact solver results when possible, parity, region control, forced sequences, and final disc count rather than early material greed.",
+      "features": [
+        "exactSolver",
+        "parity",
+        "regionControl",
+        "forcedSequence",
+        "finalDiscCount"
+      ],
+      "weight": 1.65,
+      "sourceIds": [
+        "edax-official",
+        "wthor-ffo"
       ]
     }
   ],
-  "openingBook": [],
-  "endgameBook": [],
+  "openingBook": [
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "c4",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "d3",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "e6",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "f5",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-endgame-exact-solver",
+      "move": "solve-exact",
+      "count": 1,
+      "policyPrior": 0.5
+    },
+    {
+      "positionHash": "reversi-endgame-parity-region",
+      "move": "preserve-parity",
+      "count": 1,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "reversi-endgame-forced-flip",
+      "move": "force-sequence",
+      "count": 1,
+      "policyPrior": 0.2
+    }
+  ],
+  "endgameBook": [
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "c4",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "d3",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "e6",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-standard-start",
+      "move": "f5",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "reversi-endgame-exact-solver",
+      "move": "solve-exact",
+      "count": 1,
+      "policyPrior": 0.5
+    },
+    {
+      "positionHash": "reversi-endgame-parity-region",
+      "move": "preserve-parity",
+      "count": 1,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "reversi-endgame-forced-flip",
+      "move": "force-sequence",
+      "count": 1,
+      "policyPrior": 0.2
+    }
+  ],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: exact alpha-beta if empty squares <= threshold; else Edax/local search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

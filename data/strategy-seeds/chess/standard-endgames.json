@@ -1,0 +1,8 @@
+{
+  "schema": "topoboardgame.ai.seed_endgame_stats.v1",
+  "entries": [
+    { "positionHash": "chess-endgame-king-pawn-race", "move": "activate-king", "count": 1, "policyPrior": 0.4 },
+    { "positionHash": "chess-endgame-rook-active", "move": "activate-rook", "count": 1, "policyPrior": 0.35 },
+    { "positionHash": "chess-endgame-passed-pawn", "move": "support-passer", "count": 1, "policyPrior": 0.25 }
+  ]
+}

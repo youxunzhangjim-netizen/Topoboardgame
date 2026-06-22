@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.seed_opening_stats.v1",
+  "entries": [
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "candidates": [
+        { "move": "advance-rear-home-piece", "count": 35, "policyPrior": 0.35 },
+        { "move": "create-center-lane", "count": 30, "policyPrior": 0.30 },
+        { "move": "prepare-jump-ladder", "count": 25, "policyPrior": 0.25 },
+        { "move": "avoid-goal-block", "count": 10, "policyPrior": 0.10 }
+      ]
+    }
+  ]
+}

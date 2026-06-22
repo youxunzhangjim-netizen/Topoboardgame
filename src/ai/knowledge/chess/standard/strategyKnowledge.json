@@ -1,8 +1,8 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
-  "boardFamily": "graph-topology",
+  "generatedAt": "2026-06-22T03:10:21.056Z",
+  "game": "chess",
+  "boardFamily": "standard",
   "manifest": [
     {
       "id": "User-provided chess PGN folder",
@@ -197,46 +197,171 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "id": "chess-standard-opening-center-development",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening play prefers central pawn control, fast minor-piece development, king safety, and avoiding repeated piece moves before development is complete.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "centerControl",
+        "developmentTempo",
+        "kingSafety",
+        "pieceCoordination"
       ],
-      "weight": 1.9,
+      "weight": 1.45,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "stockfish-official",
+        "lichess-open-database",
+        "lichess-chess-openings"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "id": "chess-standard-opening-castle-readiness",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Increase move scores that preserve castling rights, complete kingside development, and reduce early queen exposure unless tactics are concrete.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "castleReadiness",
+        "kingSafety",
+        "queenExposurePenalty",
+        "tacticalOverride"
       ],
-      "weight": 1.6,
+      "weight": 1.2,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "stockfish-official",
+        "lichess-open-database"
+      ]
+    },
+    {
+      "id": "chess-standard-middlegame-king-pressure",
+      "game": "chess",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame search emphasizes king pressure, forcing moves, piece activity, pawn breaks, and conversion of static advantages into active threats.",
+      "features": [
+        "kingPressure",
+        "forcingMove",
+        "pieceActivity",
+        "pawnBreak",
+        "initiative"
+      ],
+      "weight": 1.35,
+      "sourceIds": [
+        "stockfish-official"
+      ]
+    },
+    {
+      "id": "chess-standard-endgame-king-activity",
+      "game": "chess",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Endgame play values active king position, passed pawn creation, opposition-like distance features, rook activity, and exact tablebase results when available.",
+      "features": [
+        "kingActivity",
+        "passedPawn",
+        "rookActivity",
+        "tablebaseProbe",
+        "materialConversion"
+      ],
+      "weight": 1.55,
+      "sourceIds": [
+        "stockfish-official",
+        "local-syzygy"
       ]
     }
   ],
-  "openingBook": [],
-  "endgameBook": [],
+  "openingBook": [
+    {
+      "positionHash": "chess-standard-start",
+      "move": "e2e4",
+      "count": 35,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "d2d4",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "g1f3",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "c2c4",
+      "count": 15,
+      "policyPrior": 0.15
+    },
+    {
+      "positionHash": "chess-endgame-king-pawn-race",
+      "move": "activate-king",
+      "count": 1,
+      "policyPrior": 0.4
+    },
+    {
+      "positionHash": "chess-endgame-rook-active",
+      "move": "activate-rook",
+      "count": 1,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "chess-endgame-passed-pawn",
+      "move": "support-passer",
+      "count": 1,
+      "policyPrior": 0.25
+    }
+  ],
+  "endgameBook": [
+    {
+      "positionHash": "chess-standard-start",
+      "move": "e2e4",
+      "count": 35,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "d2d4",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "g1f3",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "chess-standard-start",
+      "move": "c2c4",
+      "count": 15,
+      "policyPrior": 0.15
+    },
+    {
+      "positionHash": "chess-endgame-king-pawn-race",
+      "move": "activate-king",
+      "count": 1,
+      "policyPrior": 0.4
+    },
+    {
+      "positionHash": "chess-endgame-rook-active",
+      "move": "activate-rook",
+      "count": 1,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "chess-endgame-passed-pawn",
+      "move": "support-passer",
+      "count": 1,
+      "policyPrior": 0.25
+    }
+  ],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: Syzygy if LOCAL_SYZYGY_PATH exists and piece count <= 7; else Stockfish/local search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

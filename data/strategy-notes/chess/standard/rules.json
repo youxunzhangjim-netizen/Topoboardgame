@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "id": "chess-standard-opening-center-development",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening play prefers central pawn control, fast minor-piece development, king safety, and avoiding repeated piece moves before development is complete.",
+      "features": ["centerControl", "developmentTempo", "kingSafety", "pieceCoordination"],
+      "weight": 1.45,
+      "sourceIds": ["stockfish-official", "lichess-open-database", "lichess-chess-openings"]
+    },
+    {
+      "id": "chess-standard-opening-castle-readiness",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Increase move scores that preserve castling rights, complete kingside development, and reduce early queen exposure unless tactics are concrete.",
+      "features": ["castleReadiness", "kingSafety", "queenExposurePenalty", "tacticalOverride"],
+      "weight": 1.2,
+      "sourceIds": ["stockfish-official", "lichess-open-database"]
+    },
+    {
+      "id": "chess-standard-middlegame-king-pressure",
+      "game": "chess",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame search emphasizes king pressure, forcing moves, piece activity, pawn breaks, and conversion of static advantages into active threats.",
+      "features": ["kingPressure", "forcingMove", "pieceActivity", "pawnBreak", "initiative"],
+      "weight": 1.35,
+      "sourceIds": ["stockfish-official"]
+    },
+    {
+      "id": "chess-standard-endgame-king-activity",
+      "game": "chess",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Endgame play values active king position, passed pawn creation, opposition-like distance features, rook activity, and exact tablebase results when available.",
+      "features": ["kingActivity", "passedPawn", "rookActivity", "tablebaseProbe", "materialConversion"],
+      "weight": 1.55,
+      "sourceIds": ["stockfish-official", "local-syzygy"]
+    }
+  ]
+}

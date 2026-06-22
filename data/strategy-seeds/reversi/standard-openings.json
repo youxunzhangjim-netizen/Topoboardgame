@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.seed_opening_stats.v1",
+  "entries": [
+    {
+      "positionHash": "reversi-standard-start",
+      "candidates": [
+        { "move": "c4", "count": 25, "policyPrior": 0.25 },
+        { "move": "d3", "count": 25, "policyPrior": 0.25 },
+        { "move": "e6", "count": 25, "policyPrior": 0.25 },
+        { "move": "f5", "count": 25, "policyPrior": 0.25 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "checkers-standard-opening-all-pieces-forward",
+      "game": "chinese-checkers",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening play should move all home-camp pieces into productive lanes, avoiding repeated movement of only the front pieces while rear pieces remain trapped.",
+      "features": ["piecesStillInStartingCamp", "homeExitCoverage", "laneProgress", "repeatPiecePenalty"],
+      "weight": 1.75,
+      "sourceIds": ["pettingzoo-chinese-checkers", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "checkers-standard-jump-chain-progress",
+      "game": "chinese-checkers",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Prefer jump chains that reduce shortest-path distance to the target camp, create future jump ladders, and keep pieces connected without opening strong opponent jumps.",
+      "features": ["longestAvailableJumpChain", "graphDistanceToGoal", "futureJumpPotential", "pieceConnectivity", "opponentJumpOpportunity"],
+      "weight": 1.8,
+      "sourceIds": ["pettingzoo-chinese-checkers", "zedrichu-chinese-checkers"]
+    },
+    {
+      "id": "checkers-standard-endgame-goal-unblock",
+      "game": "chinese-checkers",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "In the target camp, rearrange already-arrived pieces to fill deep target sites and unblock entry lanes for remaining pieces before moving settled pieces sideways.",
+      "features": ["ownGoalBlockingPenalty", "deepGoalFill", "targetEntryLane", "remainingPieceDistance", "settledPiecePenalty"],
+      "weight": 2.1,
+      "sourceIds": ["topoboardgame-local-notes"]
+    }
+  ]
+}

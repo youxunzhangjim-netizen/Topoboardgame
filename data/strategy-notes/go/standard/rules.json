@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "go-standard-opening-corner-side-center",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it.",
+      "features": ["cornerEfficiency", "sideExtension", "shapeStability", "influenceBalance"],
+      "weight": 1.3,
+      "sourceIds": ["katago-official", "cwi-go-games"]
+    },
+    {
+      "id": "go-standard-middlegame-group-safety",
+      "game": "go",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame move scores emphasize group safety, liberties, cutting points, connection value, sente, and large-scale territory versus influence tradeoffs.",
+      "features": ["groupSafety", "liberties", "cuttingPoint", "connectionValue", "sente", "territoryInfluenceBalance"],
+      "weight": 1.45,
+      "sourceIds": ["katago-official"]
+    },
+    {
+      "id": "go-standard-endgame-yose",
+      "game": "go",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Yose play uses score lead, ownership estimate, local sente/gote value, boundary reduction, ko risk, and pass timing from territory calculation.",
+      "features": ["scoreLead", "ownershipMap", "senteGoteValue", "boundaryReduction", "koRisk", "passTiming"],
+      "weight": 1.55,
+      "sourceIds": ["katago-official"]
+    }
+  ]
+}

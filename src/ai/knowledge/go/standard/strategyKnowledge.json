@@ -1,8 +1,8 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
-  "boardFamily": "graph-topology",
+  "generatedAt": "2026-06-22T03:10:21.067Z",
+  "game": "go",
+  "boardFamily": "standard",
   "manifest": [
     {
       "id": "User-provided chess PGN folder",
@@ -197,46 +197,153 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "id": "go-standard-opening-corner-side-center",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "cornerEfficiency",
+        "sideExtension",
+        "shapeStability",
+        "influenceBalance"
       ],
-      "weight": 1.9,
+      "weight": 1.3,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "katago-official",
+        "cwi-go-games"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "id": "go-standard-middlegame-group-safety",
+      "game": "go",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame move scores emphasize group safety, liberties, cutting points, connection value, sente, and large-scale territory versus influence tradeoffs.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "groupSafety",
+        "liberties",
+        "cuttingPoint",
+        "connectionValue",
+        "sente",
+        "territoryInfluenceBalance"
       ],
-      "weight": 1.6,
+      "weight": 1.45,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "katago-official"
+      ]
+    },
+    {
+      "id": "go-standard-endgame-yose",
+      "game": "go",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Yose play uses score lead, ownership estimate, local sente/gote value, boundary reduction, ko risk, and pass timing from territory calculation.",
+      "features": [
+        "scoreLead",
+        "ownershipMap",
+        "senteGoteValue",
+        "boundaryReduction",
+        "koRisk",
+        "passTiming"
+      ],
+      "weight": 1.55,
+      "sourceIds": [
+        "katago-official"
       ]
     }
   ],
-  "openingBook": [],
-  "endgameBook": [],
+  "openingBook": [
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "Q16",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "D16",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "Q4",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "D4",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "go-yose-sente-boundary",
+      "move": "largest-sente-yose",
+      "count": 1,
+      "policyPrior": 0.45
+    },
+    {
+      "positionHash": "go-yose-gote-boundary",
+      "move": "largest-gote-yose",
+      "count": 1,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-endgame-pass-check",
+      "move": "territory-pass-evaluate",
+      "count": 1,
+      "policyPrior": 0.25
+    }
+  ],
+  "endgameBook": [
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "Q16",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "D16",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "Q4",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "move": "D4",
+      "count": 20,
+      "policyPrior": 0.2
+    },
+    {
+      "positionHash": "go-yose-sente-boundary",
+      "move": "largest-sente-yose",
+      "count": 1,
+      "policyPrior": 0.45
+    },
+    {
+      "positionHash": "go-yose-gote-boundary",
+      "move": "largest-gote-yose",
+      "count": 1,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "go-endgame-pass-check",
+      "move": "territory-pass-evaluate",
+      "count": 1,
+      "policyPrior": 0.25
+    }
+  ],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: KataGo score/ownership and yose heuristics; no exact full-board tablebase",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

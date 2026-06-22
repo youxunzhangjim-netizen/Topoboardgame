@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "id": "checkers-graph-topology-distance-race",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "features": ["graphDistanceToGoal", "futureJumpPotential", "laneCongestion", "ownGoalBlockingPenalty"],
+      "weight": 1.9,
+      "sourceIds": ["pettingzoo-chinese-checkers", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "checkers-graph-topology-multiagent-targets",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "features": ["multiAgentUtility", "assignedTargetCamp", "graphDistanceToGoal", "opponentProgress"],
+      "weight": 1.6,
+      "sourceIds": ["pettingzoo-chinese-checkers"]
+    }
+  ]
+}

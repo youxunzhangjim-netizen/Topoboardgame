@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.seed_opening_stats.v1",
+  "entries": [
+    {
+      "positionHash": "chess-standard-start",
+      "candidates": [
+        { "move": "e2e4", "count": 35, "policyPrior": 0.35 },
+        { "move": "d2d4", "count": 30, "policyPrior": 0.30 },
+        { "move": "g1f3", "count": 20, "policyPrior": 0.20 },
+        { "move": "c2c4", "count": 15, "policyPrior": 0.15 }
+      ]
+    }
+  ]
+}

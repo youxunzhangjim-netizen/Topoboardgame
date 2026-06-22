@@ -139,7 +139,11 @@ export class StrategyKnowledgeBuilder {
         if (file.endsWith('.json')) {
           const parsed = JSON.parse(readFileSync(path, 'utf8'));
           const incoming = Array.isArray(parsed) ? parsed : parsed.rules;
-          if (Array.isArray(incoming)) rules.push(...incoming.map((rule, index) => normalizeRule(rule, this.options, `notes-${file}-${index}`)));
+          if (Array.isArray(incoming)) {
+            rules.push(...incoming
+              .map((rule, index) => normalizeRule(rule, this.options, `notes-${file}-${index}`))
+              .filter((rule) => rule.game === this.options.game && rule.boardFamily === this.options.boardFamily));
+          }
         } else if (file.endsWith('.txt') || file.endsWith('.md')) {
           const text = readFileSync(path, 'utf8')
             .split(/\r?\n/)

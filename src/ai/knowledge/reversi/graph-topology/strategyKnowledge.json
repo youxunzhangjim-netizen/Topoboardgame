@@ -1,7 +1,7 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
-  "game": "chinese-checkers",
+  "generatedAt": "2026-06-22T03:10:21.075Z",
+  "game": "reversi",
   "boardFamily": "graph-topology",
   "manifest": [
     {
@@ -197,38 +197,40 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
-      "game": "chinese-checkers",
+      "id": "reversi-graph-topology-anchor-stability",
+      "game": "reversi",
       "phase": "all",
       "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "description": "For topology Reversi, replace fixed corner/X-square concepts with graph anchors, low-degree regions, stable rays, frontier exposure, and mobility on the actual adjacency graph.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "graphAnchors",
+        "lowDegreeRegion",
+        "stableRays",
+        "frontierDiscs",
+        "graphMobility"
       ],
-      "weight": 1.9,
+      "weight": 1.5,
       "sourceIds": [
-        "pettingzoo-chinese-checkers",
-        "topoboardgame-local-notes"
+        "edax-official"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
-      "game": "chinese-checkers",
-      "phase": "all",
+      "id": "reversi-graph-topology-opening-transfer-limit",
+      "game": "reversi",
+      "phase": "opening",
       "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "description": "Do not apply WTHOR standard-board openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; use self-play books and transfer mobility, frontier, stability, and parity features only.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
-        "graphDistanceToGoal",
-        "opponentProgress"
+        "openingBookDisabled",
+        "graphMobility",
+        "frontierDiscs",
+        "stableRays",
+        "parity"
       ],
-      "weight": 1.6,
+      "weight": 1.65,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "wthor-ffo",
+        "edax-official"
       ]
     }
   ],
@@ -236,7 +238,7 @@
   "endgameBook": [],
   "decisionStack": [
     "terminal",
-    "endgame: graph-distance race, goal blocking, and jump-chain heuristic",
+    "endgame: exact alpha-beta if empty squares <= threshold; else Edax/local search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

@@ -1,0 +1,14 @@
+{
+  "schema": "topoboardgame.ai.seed_opening_stats.v1",
+  "entries": [
+    {
+      "positionHash": "go-standard-empty-board-19",
+      "candidates": [
+        { "move": "Q16", "count": 30, "policyPrior": 0.30 },
+        { "move": "D16", "count": 30, "policyPrior": 0.30 },
+        { "move": "Q4", "count": 20, "policyPrior": 0.20 },
+        { "move": "D4", "count": 20, "policyPrior": 0.20 }
+      ]
+    }
+  ]
+}

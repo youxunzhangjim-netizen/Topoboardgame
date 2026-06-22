@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "id": "go-graph-topology-liberty-region",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For topology Go boards, count liberties and territories with graph flood-fill over the actual adjacency, replacing corner/side concepts with region boundary size and graph cut value.",
+      "features": ["graphLiberties", "regionBoundarySize", "graphCutValue", "territoryFloodFill"],
+      "weight": 1.5,
+      "sourceIds": ["katago-official"]
+    },
+    {
+      "id": "go-graph-topology-opening-transfer-limit",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "Do not copy normal joseki or fuseki onto torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; learn topology-specific books from self-play and use only abstract shape and liberty features.",
+      "features": ["openingBookDisabled", "shapeStability", "graphLiberties", "selfplayBook"],
+      "weight": 1.65,
+      "sourceIds": ["katago-official", "cwi-go-games"]
+    }
+  ]
+}

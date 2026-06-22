@@ -1,8 +1,8 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.080Z",
+  "generatedAt": "2026-06-22T03:10:21.078Z",
   "game": "chinese-checkers",
-  "boardFamily": "graph-topology",
+  "boardFamily": "standard",
   "manifest": [
     {
       "id": "User-provided chess PGN folder",
@@ -197,43 +197,113 @@
   ],
   "rules": [
     {
-      "id": "checkers-graph-topology-distance-race",
+      "id": "checkers-standard-opening-all-pieces-forward",
       "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For graph and topology Jump boards, evaluate progress by shortest-path distance to assigned target camps, future jump-chain potential, lane congestion, and target-camp unblocking.",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening play should move all home-camp pieces into productive lanes, avoiding repeated movement of only the front pieces while rear pieces remain trapped.",
       "features": [
-        "graphDistanceToGoal",
-        "futureJumpPotential",
-        "laneCongestion",
-        "ownGoalBlockingPenalty"
+        "piecesStillInStartingCamp",
+        "homeExitCoverage",
+        "laneProgress",
+        "repeatPiecePenalty"
       ],
-      "weight": 1.9,
+      "weight": 1.75,
       "sourceIds": [
         "pettingzoo-chinese-checkers",
         "topoboardgame-local-notes"
       ]
     },
     {
-      "id": "checkers-graph-topology-multiagent-targets",
+      "id": "checkers-standard-jump-chain-progress",
       "game": "chinese-checkers",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For three-player and multi-agent Jump, score each robot independently against its assigned target camp and use MaxN-style utility rather than assuming a single opposite color.",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Prefer jump chains that reduce shortest-path distance to the target camp, create future jump ladders, and keep pieces connected without opening strong opponent jumps.",
       "features": [
-        "multiAgentUtility",
-        "assignedTargetCamp",
+        "longestAvailableJumpChain",
         "graphDistanceToGoal",
-        "opponentProgress"
+        "futureJumpPotential",
+        "pieceConnectivity",
+        "opponentJumpOpportunity"
       ],
-      "weight": 1.6,
+      "weight": 1.8,
       "sourceIds": [
-        "pettingzoo-chinese-checkers"
+        "pettingzoo-chinese-checkers",
+        "zedrichu-chinese-checkers"
+      ]
+    },
+    {
+      "id": "checkers-standard-endgame-goal-unblock",
+      "game": "chinese-checkers",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "In the target camp, rearrange already-arrived pieces to fill deep target sites and unblock entry lanes for remaining pieces before moving settled pieces sideways.",
+      "features": [
+        "ownGoalBlockingPenalty",
+        "deepGoalFill",
+        "targetEntryLane",
+        "remainingPieceDistance",
+        "settledPiecePenalty"
+      ],
+      "weight": 2.1,
+      "sourceIds": [
+        "topoboardgame-local-notes"
       ]
     }
   ],
-  "openingBook": [],
-  "endgameBook": [],
+  "openingBook": [
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "advance-rear-home-piece",
+      "count": 35,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "create-center-lane",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "prepare-jump-ladder",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "avoid-goal-block",
+      "count": 10,
+      "policyPrior": 0.1
+    }
+  ],
+  "endgameBook": [
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "advance-rear-home-piece",
+      "count": 35,
+      "policyPrior": 0.35
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "create-center-lane",
+      "count": 30,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "prepare-jump-ladder",
+      "count": 25,
+      "policyPrior": 0.25
+    },
+    {
+      "positionHash": "jump-standard-diamond-start",
+      "move": "avoid-goal-block",
+      "count": 10,
+      "policyPrior": 0.1
+    }
+  ],
   "decisionStack": [
     "terminal",
     "endgame: graph-distance race, goal blocking, and jump-chain heuristic",

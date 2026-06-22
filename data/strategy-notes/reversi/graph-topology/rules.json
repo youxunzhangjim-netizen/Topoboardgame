@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "id": "reversi-graph-topology-anchor-stability",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For topology Reversi, replace fixed corner/X-square concepts with graph anchors, low-degree regions, stable rays, frontier exposure, and mobility on the actual adjacency graph.",
+      "features": ["graphAnchors", "lowDegreeRegion", "stableRays", "frontierDiscs", "graphMobility"],
+      "weight": 1.5,
+      "sourceIds": ["edax-official"]
+    },
+    {
+      "id": "reversi-graph-topology-opening-transfer-limit",
+      "game": "reversi",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "Do not apply WTHOR standard-board openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; use self-play books and transfer mobility, frontier, stability, and parity features only.",
+      "features": ["openingBookDisabled", "graphMobility", "frontierDiscs", "stableRays", "parity"],
+      "weight": 1.65,
+      "sourceIds": ["wthor-ffo", "edax-official"]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "reversi-standard-opening-mobility",
+      "game": "reversi",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments.",
+      "features": ["mobility", "compactShape", "frontierDiscs", "unstableEdgePenalty"],
+      "weight": 1.35,
+      "sourceIds": ["edax-official", "wthor-ffo"]
+    },
+    {
+      "id": "reversi-standard-middlegame-stability",
+      "game": "reversi",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Middlegame search values legal move differential, stable discs, access to corners, X/C-square risk, and opponent mobility restriction.",
+      "features": ["mobility", "stableDiscs", "cornerAccess", "xSquareRisk", "cSquareRisk", "opponentMobilityRestriction"],
+      "weight": 1.55,
+      "sourceIds": ["edax-official", "wthor-ffo"]
+    },
+    {
+      "id": "reversi-standard-endgame-parity",
+      "game": "reversi",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Endgame play prioritizes exact solver results when possible, parity, region control, forced sequences, and final disc count rather than early material greed.",
+      "features": ["exactSolver", "parity", "regionControl", "forcedSequence", "finalDiscCount"],
+      "weight": 1.65,
+      "sourceIds": ["edax-official", "wthor-ffo"]
+    }
+  ]
+}
