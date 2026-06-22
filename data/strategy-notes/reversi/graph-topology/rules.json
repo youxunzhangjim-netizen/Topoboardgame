@@ -19,6 +19,26 @@
       "features": ["openingBookDisabled", "graphMobility", "frontierDiscs", "stableRays", "parity"],
       "weight": 1.65,
       "sourceIds": ["wthor-ffo", "edax-official"]
+    },
+    {
+      "id": "reversi-graph-topology-cycle-stability",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "On no-boundary boards, stable structure can come from complete wrap cycles, closed rings, low-frontier regions, and mutually protected rays rather than ordinary corners.",
+      "features": ["completeTopologyCycle", "closedRing", "lowFrontierRegion", "mutualStableRays", "graphAnchor"],
+      "weight": 1.75,
+      "sourceIds": ["edax-official"]
+    },
+    {
+      "id": "reversi-graph-topology-overflip-control",
+      "game": "reversi",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "For torus, cylinder, Klein, RP2, 3D, and 4D boards, penalize early moves that flip many discs into exposed frontier regions unless they create anchors, cycles, or forced mobility loss for the opponent.",
+      "features": ["earlyOverflipPenalty", "frontierExposure", "graphAnchor", "completeTopologyCycle", "opponentMobilityRestriction"],
+      "weight": 1.45,
+      "sourceIds": ["edax-official"]
     }
   ]
 }

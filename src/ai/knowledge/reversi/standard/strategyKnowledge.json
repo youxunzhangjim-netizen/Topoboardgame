@@ -1,6 +1,6 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:10:21.073Z",
+  "generatedAt": "2026-06-22T03:54:33.186Z",
   "game": "reversi",
   "boardFamily": "standard",
   "manifest": [
@@ -85,114 +85,58 @@
       "notes": ""
     },
     {
-      "id": "stockfish-official",
-      "name": "Stockfish official project and UCI documentation",
+      "id": "stockfish",
+      "name": "Stockfish chess engine",
       "url": "https://stockfishchess.org/",
-      "localPath": "process.env.STOCKFISH_PATH",
-      "license": "GPL-3.0-or-later for the engine; executable is configured locally and not bundled here.",
+      "license": "GPL-3.0-or-later. Use as a local external engine unless GPL obligations are intentionally handled.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Used as a local teacher/baseline through UCI for normal 2D chess and derived engine-analysis features."
+      "notes": "Metadata only. The repository does not download or bundle Stockfish."
     },
     {
-      "id": "lichess-open-database",
-      "name": "Lichess open chess database",
-      "url": "https://database.lichess.org/",
-      "localPath": "data/chess/pgn/",
-      "license": "Lichess database pages list standard rated games as CC0; broadcasts are CC BY-SA 4.0. User must keep source class separated when importing.",
-      "redistributionAllowed": true,
-      "dataType": "PGN",
-      "notes": "Use only user-downloaded local PGN files to build derived opening statistics."
-    },
-    {
-      "id": "lichess-chess-openings",
-      "name": "lichess-org/chess-openings",
-      "url": "https://github.com/lichess-org/chess-openings",
-      "localPath": "data/chess/openings/",
-      "license": "CC0-1.0 according to the project repository.",
-      "redistributionAllowed": true,
-      "dataType": "JSON",
-      "notes": "Opening names/facts can annotate local opening books, but move statistics still come from local PGN/engine data."
-    },
-    {
-      "id": "local-syzygy",
-      "name": "Local Syzygy tablebases",
-      "url": "local:LOCAL_SYZYGY_PATH",
-      "localPath": "process.env.LOCAL_SYZYGY_PATH",
-      "license": "User-provided local tablebase files; not bundled or redistributed.",
-      "redistributionAllowed": false,
-      "dataType": "TABLEBASE",
-      "notes": "Use for exact chess endgame probing when available and piece count is within the configured tablebase limit."
-    },
-    {
-      "id": "katago-official",
-      "name": "KataGo official project",
+      "id": "katago",
+      "name": "KataGo Go engine",
       "url": "https://github.com/lightvector/KataGo",
-      "localPath": "process.env.KATAGO_PATH",
-      "license": "Open-source project; executable and neural net are configured locally and not bundled by this repository.",
+      "license": "MIT license for engine source; neural network/model files may have their own terms.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Use as a local Go teacher/baseline through GTP or analysis JSON for normal boards and derived features."
+      "notes": "Metadata only. Configure a local KATAGO_PATH for analysis."
     },
     {
-      "id": "cwi-go-games",
-      "name": "CWI Database of Go Games",
-      "url": "https://homepages.cwi.nl/~aeb/go/games/",
-      "localPath": "data/go/sgf/",
-      "license": "Public web collection; redistribution rights must be checked by the user before bundling any SGF files.",
-      "redistributionAllowed": false,
-      "dataType": "SGF",
-      "notes": "Metadata-only source. User may place locally approved SGF files in data/go/sgf for derived joseki/fuseki stats."
-    },
-    {
-      "id": "edax-official",
-      "name": "Edax Reversi official project",
-      "url": "https://sensuikan1973.github.io/edax-reversi/",
-      "localPath": "process.env.EDAX_PATH",
-      "license": "GPL-2.0-or-later according to the project license text; executable is configured locally and not bundled here.",
+      "id": "edax",
+      "name": "Edax Reversi engine",
+      "url": "https://github.com/abulmo/edax-reversi",
+      "license": "Verify upstream license before redistribution.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Use as a local Reversi teacher/baseline for normal 8x8 boards and derived engine-analysis features."
+      "notes": "Metadata only. Configure a local EDAX_PATH for analysis."
     },
     {
-      "id": "wthor-ffo",
-      "name": "French Othello Federation WTHOR database",
+      "id": "wthor",
+      "name": "WTHOR Reversi game files",
       "url": "https://www.ffothello.org/informatique/la-base-wthor/",
-      "localPath": "data/reversi/wthor/",
-      "license": "User must verify terms before redistribution; this repository stores only derived statistics.",
+      "license": "Verify data license before redistribution.",
       "redistributionAllowed": false,
       "dataType": "WTHOR",
-      "notes": "Use locally downloaded WTHOR files to derive Reversi opening statistics."
+      "notes": "User-provided local files only; derived opening statistics can be regenerated locally."
     },
     {
       "id": "pettingzoo-chinese-checkers",
-      "name": "PettingZoo Chinese Checkers environment",
+      "name": "PettingZoo Chinese Checkers research environment",
       "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
-      "localPath": "models/external/pettingzoo-chinese-checkers/",
-      "license": "Check repository license before bundling code. Use as a research reference and optional local environment.",
+      "license": "Verify repository license before code reuse.",
       "redistributionAllowed": false,
       "dataType": "JSON",
-      "notes": "Reference for multi-agent Chinese Checkers training with chaining jumps and parameter sharing."
+      "notes": "Metadata reference for multi-agent training ideas; do not copy code without license review."
     },
     {
-      "id": "zedrichu-chinese-checkers",
-      "name": "Zedrichu Chinese Checkers minimax reference",
-      "url": "https://github.com/zedrichu/chinese-checkers",
-      "localPath": "models/external/zedrichu-chinese-checkers/",
-      "license": "Check repository license before bundling code. Use only if local copy is approved.",
+      "id": "scid",
+      "name": "Scid chess database tool",
+      "url": "https://scid.sourceforge.net/",
+      "license": "GPL software; bundled sample databases may have separate terms.",
       "redistributionAllowed": false,
-      "dataType": "JSON",
-      "notes": "Reference for two-player minimax-style Chinese Checkers ideas."
-    },
-    {
-      "id": "topoboardgame-local-notes",
-      "name": "Topoboardgame local strategy notes",
-      "url": "local:data/strategy-notes/",
-      "localPath": "data/strategy-notes/",
-      "license": "User-authored derived feature notes for this repository.",
-      "redistributionAllowed": true,
-      "dataType": "NOTES",
-      "notes": "Compact feature rules only; do not paste copyrighted strategy article text here."
+      "dataType": "PGN",
+      "notes": "Metadata reference for PGN/database tooling, not a bundled data source."
     }
   ],
   "rules": [
@@ -201,14 +145,15 @@
       "game": "reversi",
       "phase": "opening",
       "boardFamily": "standard",
-      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments.",
+      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments. Early moves should not chase large flip counts unless they also improve stability.",
       "features": [
         "mobility",
         "compactShape",
         "frontierDiscs",
-        "unstableEdgePenalty"
+        "unstableEdgePenalty",
+        "earlyOverflipPenalty"
       ],
-      "weight": 1.35,
+      "weight": 1.5,
       "sourceIds": [
         "edax-official",
         "wthor-ffo"
@@ -229,6 +174,25 @@
         "opponentMobilityRestriction"
       ],
       "weight": 1.55,
+      "sourceIds": [
+        "edax-official",
+        "wthor-ffo"
+      ]
+    },
+    {
+      "id": "reversi-standard-stable-edge-extension",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Corner ownership and connected edge extensions create discs that are hard or impossible to flip. Prefer stable extensions and avoid giving the opponent access to the corner through X/C-square weaknesses.",
+      "features": [
+        "cornerOwnership",
+        "stableEdgeExtension",
+        "xSquareRisk",
+        "cSquareRisk",
+        "opponentCornerAccess"
+      ],
+      "weight": 1.7,
       "sourceIds": [
         "edax-official",
         "wthor-ffo"

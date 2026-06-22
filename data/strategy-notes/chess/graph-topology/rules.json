@@ -19,6 +19,16 @@
       "features": ["openingBookDisabled", "pieceActivity", "kingSafety", "graphDistance", "material"],
       "weight": 1.6,
       "sourceIds": ["lichess-open-database", "stockfish-official"]
+    },
+    {
+      "id": "chess-graph-topology-protection-network",
+      "game": "chess",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For topology chess, build attack and defense maps on the actual graph. Protected valuable pieces, safe trades, and king escape regions transfer better than ordinary standard-board opening memorization.",
+      "features": ["topologyAttackMap", "defendedPiece", "hangingPiecePenalty", "safeTrade", "kingEscapeRegion"],
+      "weight": 1.55,
+      "sourceIds": ["stockfish-official"]
     }
   ]
 }

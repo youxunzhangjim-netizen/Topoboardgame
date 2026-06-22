@@ -15,10 +15,30 @@
       "game": "chess",
       "phase": "opening",
       "boardFamily": "standard",
-      "description": "Increase move scores that preserve castling rights, complete kingside development, and reduce early queen exposure unless tactics are concrete.",
-      "features": ["castleReadiness", "kingSafety", "queenExposurePenalty", "tacticalOverride"],
-      "weight": 1.2,
+      "description": "Increase move scores that preserve castling rights, complete kingside development, and reduce early queen exposure unless tactics are concrete. Castling is a strategic move, not only a king move.",
+      "features": ["castleReadiness", "castlingMovePriority", "kingSafety", "queenExposurePenalty", "tacticalOverride"],
+      "weight": 1.35,
       "sourceIds": ["stockfish-official", "lichess-open-database"]
+    },
+    {
+      "id": "chess-standard-protected-piece-network",
+      "game": "chess",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Maintain a protection network: valuable pieces should be defended by friendly pieces, hanging pieces are urgent liabilities, and unfavorable trades against cheaper attackers must be avoided unless compensation is found.",
+      "features": ["defendedPiece", "hangingPiecePenalty", "cheapAttackerRisk", "tradeSafety", "pieceCoordination"],
+      "weight": 1.6,
+      "sourceIds": ["stockfish-official"]
+    },
+    {
+      "id": "chess-standard-opening-family-solutions",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Use local PGN and engine analysis to learn named opening families, common replies, and solution branches; do not guess a fixed answer when the opening book lacks samples.",
+      "features": ["openingBookLookup", "candidateReplyStats", "engineEval", "sampleCount", "transpositionHash"],
+      "weight": 1.45,
+      "sourceIds": ["lichess-open-database", "lichess-chess-openings", "stockfish-official"]
     },
     {
       "id": "chess-standard-middlegame-king-pressure",

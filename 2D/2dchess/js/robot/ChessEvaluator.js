@@ -43,6 +43,8 @@ export function evaluateState(state, player) {
         + mobilityScore(state, player) - mobilityScore(state, opponent)
         + kingSafetyScore(state, player) - kingSafetyScore(state, opponent)
         + attackDefenseScore(state, player) - attackDefenseScore(state, opponent)
+        + pieceProtectionScore(state, player) - pieceProtectionScore(state, opponent)
+        + openingDevelopmentScore(state, player) - openingDevelopmentScore(state, opponent)
         + pawnStructureScore(state, player) - pawnStructureScore(state, opponent)
         + topologyScore(state, player) - topologyScore(state, opponent)
     );
@@ -119,6 +121,77 @@ export function attackDefenseScore(state, player) {
             else score += 0.04 * value;
         }
     });
+    return score;
+}
+
+export function pieceProtectionScore(state, player) {
+    const enemy = opponentOf(player);
+    let score = 0;
+    forEachPiece(state, (piece, r, c) => {
+        if (piece.color !== player || piece.type === 'K') return;
+        const value = PIECE_VALUES[piece.type] || 0;
+        const defenders = attackersToSquare(state, r, c, player)
+            .filter((item) => !(item.r === r && item.c === c));
+        const attackers = attackersToSquare(state, r, c, enemy);
+        const defended = defenders.length > 0;
+        if (defended) {
+            score += Math.min(44, 0.045 * value + 8 * Math.min(3, defenders.length));
+        } else {
+            score -= Math.min(80, 0.07 * value);
+        }
+        if (!attackers.length) return;
+        const cheapestAttacker = Math.min(...attackers.map((item) => PIECE_VALUES[item.piece.type] || 0));
+        const cheapestDefender = defenders.length
+            ? Math.min(...defenders.map((item) => PIECE_VALUES[item.piece.type] || 0))
+            : Infinity;
+        const unfavorableTrade = value - cheapestAttacker;
+        if (!defended) {
+            score -= Math.max(90, 0.42 * value);
+        } else if (unfavorableTrade > 80 && cheapestDefender > cheapestAttacker) {
+            score -= Math.min(220, 0.22 * unfavorableTrade);
+        } else {
+            score -= Math.min(55, 0.05 * value);
+        }
+        if (['Q', 'R'].includes(piece.type) && cheapestAttacker <= 330) score -= defended ? 70 : 150;
+    });
+    return score;
+}
+
+export function openingDevelopmentScore(state, player) {
+    const ownPieces = countPieces(state, player);
+    const enemyPieces = countPieces(state, opponentOf(player));
+    if (ownPieces + enemyPieces < 22) return 0;
+    const backRank = player === 'white' ? 7 : 0;
+    const pawnRank = player === 'white' ? 6 : 1;
+    const king = findKing(state, player);
+    let score = 0;
+    const minors = [
+        getPiece(state, backRank, 1),
+        getPiece(state, backRank, 2),
+        getPiece(state, backRank, 5),
+        getPiece(state, backRank, 6)
+    ];
+    for (const piece of minors) {
+        if (piece?.color === player) score -= 18;
+        else score += 18;
+    }
+    const centerFiles = [3, 4];
+    for (const c of centerFiles) {
+        const pawn = getPiece(state, pawnRank, c);
+        if (pawn?.color === player && pawn.type === 'P') score -= 10;
+        else score += 10;
+    }
+    if (king) {
+        if (king.piece.hasMoved || king.c !== 4) score += 18;
+        const legalCastles = getLegalMovesForPiece(state, king.r, king.c, player).filter((move) => move.castling);
+        if (legalCastles.length) score += 75;
+        if (king.piece.hasMoved && [2, 6].includes(king.c)) score += 110;
+        if (!king.piece.hasMoved && ownPieces + enemyPieces >= 26) score -= 35;
+    }
+    for (const rookCol of [0, 7]) {
+        const rook = getPiece(state, backRank, rookCol);
+        if (rook?.color === player && rook.type === 'R' && !rook.hasMoved) score += 8;
+    }
     return score;
 }
 
@@ -351,6 +424,15 @@ function enemyLongRangeMobilityNearKing(state, player, king) {
 }
 
 function pieceReason(state, piece, r, c, mobility) {
+    const enemy = opponentOf(piece.color);
+    const attackers = attackersToSquare(state, r, c, enemy);
+    const defenders = attackersToSquare(state, r, c, piece.color).filter((item) => !(item.r === r && item.c === c));
+    if (attackers.length && !defenders.length && piece.type !== 'K') {
+        return `${piece.type} is hanging: attacked and not protected by another piece`;
+    }
+    if (attackers.length && defenders.length && piece.type !== 'K') {
+        return `${piece.type} is contested but protected by ${defenders.length} friendly piece${defenders.length === 1 ? '' : 's'}`;
+    }
     if (state.boundaryCondition === 'periodic' && ['R', 'B', 'Q'].includes(piece.type)) {
         return 'long-range mobility and wrapping-side pressure matter strongly here';
     }
@@ -367,6 +449,22 @@ function pieceReason(state, piece, r, c, mobility) {
         return '2D RBC value follows actual legal mobility/capture access';
     }
     return `${mobility} legal move${mobility === 1 ? '' : 's'} plus base material value`;
+}
+
+function attackersToSquare(state, row, col, byColor) {
+    const attackers = [];
+    forEachPiece(state, (piece, r, c) => {
+        if (piece.color !== byColor) return;
+        const pseudo = getPseudoMovesForPiece(state, r, c, true);
+        if (pseudo.some((move) => move.r === row && move.c === col)) attackers.push({ piece, r, c });
+    });
+    return attackers;
+}
+
+function countPieces(state, player) {
+    let count = 0;
+    forEachPiece(state, (piece) => { if (piece.color === player) count += 1; });
+    return count;
 }
 
 function forEachPiece(state, callback) {

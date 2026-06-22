@@ -5,9 +5,9 @@
       "game": "reversi",
       "phase": "opening",
       "boardFamily": "standard",
-      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments.",
-      "features": ["mobility", "compactShape", "frontierDiscs", "unstableEdgePenalty"],
-      "weight": 1.35,
+      "description": "Opening choices prefer mobility, compact disc shape, low frontier exposure, and avoidance of early unstable edge commitments. Early moves should not chase large flip counts unless they also improve stability.",
+      "features": ["mobility", "compactShape", "frontierDiscs", "unstableEdgePenalty", "earlyOverflipPenalty"],
+      "weight": 1.5,
       "sourceIds": ["edax-official", "wthor-ffo"]
     },
     {
@@ -18,6 +18,16 @@
       "description": "Middlegame search values legal move differential, stable discs, access to corners, X/C-square risk, and opponent mobility restriction.",
       "features": ["mobility", "stableDiscs", "cornerAccess", "xSquareRisk", "cSquareRisk", "opponentMobilityRestriction"],
       "weight": 1.55,
+      "sourceIds": ["edax-official", "wthor-ffo"]
+    },
+    {
+      "id": "reversi-standard-stable-edge-extension",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Corner ownership and connected edge extensions create discs that are hard or impossible to flip. Prefer stable extensions and avoid giving the opponent access to the corner through X/C-square weaknesses.",
+      "features": ["cornerOwnership", "stableEdgeExtension", "xSquareRisk", "cSquareRisk", "opponentCornerAccess"],
+      "weight": 1.7,
       "sourceIds": ["edax-official", "wthor-ffo"]
     },
     {

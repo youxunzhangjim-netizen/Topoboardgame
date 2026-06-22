@@ -238,7 +238,10 @@ function moveOrderingScore(move, state, player, context = null, ply = 0, preferr
         score += 10000 + 10 * (PIECE_VALUES[move.capturedPiece.type] || 0) - (PIECE_VALUES[move.piece?.type] || 0);
     }
     if (move.promotion) score += 9000 + (PIECE_VALUES[move.promotion] || 0);
-    if (move.castling) score += 500;
+    if (move.castling) score += 2600;
+    if (move.piece?.type === 'P' && [3, 4].includes(move.from?.c) && Math.abs((move.to?.r ?? 0) - (move.from?.r ?? 0)) >= 1) score += 240;
+    if (['B', 'N'].includes(move.piece?.type) && isHomeMinor(move)) score += 520;
+    if (move.piece?.type === 'Q' && isEarlyPosition(state) && !move.capture) score -= 360;
     if (move.suicide) score += move.piece?.type === 'K' ? -100000 : -450;
     if (context) {
         const key = moveKey(move);
@@ -246,6 +249,20 @@ function moveOrderingScore(move, state, player, context = null, ply = 0, preferr
         if ((context.killers[ply] || []).some((killer) => sameMove(killer, move))) score += 1800;
     }
     return score;
+}
+
+function isHomeMinor(move) {
+    if (!move?.from || !move?.piece) return false;
+    const homeRank = move.piece.color === 'white' ? 7 : 0;
+    return move.from.r === homeRank && [1, 2, 5, 6].includes(move.from.c);
+}
+
+function isEarlyPosition(state) {
+    let pieces = 0;
+    for (const row of state.board || []) {
+        for (const piece of row) if (piece) pieces += 1;
+    }
+    return pieces >= 26;
 }
 
 function rememberCutoff(context, ply, move, depth) {

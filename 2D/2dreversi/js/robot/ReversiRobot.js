@@ -267,13 +267,18 @@ function negamax(logic, depth, alpha, beta, player, rootPlayer, context, ply = 0
 function orderMoves(moves, logic, player) { return moves.slice().sort((a, b) => quickMoveScore(b, logic, player) - quickMoveScore(a, logic, player)); }
 function quickMoveScore(move, logic, player) {
     let score = 0;
-    score += 7 * (move.flips?.length || 0);
+    const counts = logic.counts();
+    const emptyRatio = counts.empty / Math.max(1, logic.topology.totalVertices);
+    const flipCount = move.flips?.length || 0;
+    const flipWeight = emptyRatio > 0.62 ? -2.5 : emptyRatio > 0.28 ? 2.5 : 8.5;
+    score += flipWeight * flipCount;
     score += anchorBonus(logic, move.coord) * 2.4;
     if (isXSquareDanger(logic, move.coord)) score -= 55;
     if (isFrontierCoord(logic, move.coord)) score -= 10;
     const clone = cloneReversi(logic);
     const play = clone.play(move.coord, player);
     if (!play.ok) return -INF;
+    score += stabilityMoveBonus(logic, clone, move, player);
     score += 5 * (clone.legalMoves(player).length - logic.legalMoves(player).length);
     score -= 7 * clone.legalMoves(otherReversiColor(player)).length;
     return score;
@@ -321,14 +326,84 @@ function stableLikeCount(logic, player) {
     let count = 0;
     for (const coord of anchorCoords(logic)) {
         if (logic.get(coord)?.color !== player) continue;
-        count += 1;
+        count += stableCoordScore(logic, coord, player);
         for (const direction of logic.topology.directionsFor(coord).slice(0, 8)) {
             let next = logic.topology.step(coord, direction);
             let guard = 0;
-            while (next && logic.get(next)?.color === player && guard < Math.max(logic.topology.width, logic.topology.height)) { count += 0.35; next = logic.topology.step(next, direction); guard += 1; }
+            while (next && logic.get(next)?.color === player && guard < Math.max(logic.topology.width, logic.topology.height)) { count += stableCoordScore(logic, next, player) * 0.28; next = logic.topology.step(next, direction); guard += 1; }
         }
     }
+    count += topologyCycleStability(logic, player);
     return count;
+}
+
+function stabilityMoveBonus(before, after, move, player) {
+    const opponent = otherReversiColor(player);
+    const beforeStable = stableLikeCount(before, player) - stableLikeCount(before, opponent);
+    const afterStable = stableLikeCount(after, player) - stableLikeCount(after, opponent);
+    let score = 18 * (afterStable - beforeStable);
+    const frontierDelta = frontierCount(after, player) - frontierCount(before, player);
+    if (frontierDelta > 0) score -= 5 * frontierDelta;
+    const gainedAnchor = anchorBonus(before, move.coord) > 0;
+    if (gainedAnchor) score += 70;
+    if (isStableExtension(after, move.coord, player)) score += 36;
+    if (createsTopologyCycle(after, move.coord, player)) score += 55;
+    return score;
+}
+
+function stableCoordScore(logic, coord, player) {
+    let score = 1;
+    const [x, y] = coord;
+    const edgeCount = Number(x === 0) + Number(y === 0) + Number(x === logic.topology.width - 1) + Number(y === logic.topology.height - 1);
+    if (edgeCount) score += 0.45 * edgeCount;
+    if (anchorBonus(logic, coord) > 0) score += 2.2;
+    const friendly = logic.topology.directionsFor(coord)
+        .map((direction) => logic.topology.step(coord, direction))
+        .filter((next) => next && logic.get(next)?.color === player).length;
+    return score + Math.min(1.6, friendly * 0.18);
+}
+
+function isStableExtension(logic, coord, player) {
+    if (anchorBonus(logic, coord) > 0) return true;
+    return logic.topology.directionsFor(coord).slice(0, 8).some((direction) => {
+        let next = logic.topology.step(coord, direction);
+        let guard = 0;
+        while (next && guard < Math.max(logic.topology.width, logic.topology.height)) {
+            if (anchorBonus(logic, next) > 0 && logic.get(next)?.color === player) return true;
+            if (logic.get(next)?.color !== player) return false;
+            next = logic.topology.step(next, direction);
+            guard += 1;
+        }
+        return false;
+    });
+}
+
+function topologyCycleStability(logic, player) {
+    if (!['pbc', 'cylinder', 'klein'].includes(logic.topology.topology)) return 0;
+    let score = 0;
+    for (let y = 0; y < logic.topology.height; y += 1) {
+        let owned = 0;
+        for (let x = 0; x < logic.topology.width; x += 1) if (logic.get([x, y])?.color === player) owned += 1;
+        if (owned === logic.topology.width) score += logic.topology.width * 0.9;
+        else if (owned >= logic.topology.width - 1) score += logic.topology.width * 0.35;
+    }
+    for (let x = 0; x < logic.topology.width; x += 1) {
+        let owned = 0;
+        for (let y = 0; y < logic.topology.height; y += 1) if (logic.get([x, y])?.color === player) owned += 1;
+        if (owned === logic.topology.height) score += logic.topology.height * 0.9;
+        else if (owned >= logic.topology.height - 1) score += logic.topology.height * 0.35;
+    }
+    return score;
+}
+
+function createsTopologyCycle(logic, coord, player) {
+    if (!['pbc', 'cylinder', 'klein'].includes(logic.topology.topology)) return false;
+    const [x, y] = coord;
+    let rowOwned = 0;
+    for (let cx = 0; cx < logic.topology.width; cx += 1) if (logic.get([cx, y])?.color === player) rowOwned += 1;
+    let colOwned = 0;
+    for (let cy = 0; cy < logic.topology.height; cy += 1) if (logic.get([x, cy])?.color === player) colOwned += 1;
+    return rowOwned >= logic.topology.width - 1 || colOwned >= logic.topology.height - 1;
 }
 function isXSquareDanger(logic, coord) {
     if (logic.topology.topology !== 'open2d') return false;
