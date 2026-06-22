@@ -1,7 +1,7 @@
 export const FEATURE_SCHEMA_VERSION = 'topoboardgame.ml.features.v1';
 
 const PIECE_VALUES = Object.freeze({ p: 1, n: 3.2, b: 3.3, r: 5, q: 9, k: 0 });
-const KNOWN_GAMES = ['2dchess', '2dgo', '2dreversi', '3dgo', '3dreversi'];
+const KNOWN_GAMES = ['2dchess', '3dchess', '2dgo', '3dgo', '2dreversi', '3dreversi', '2djump', '3djump', '4djump'];
 
 export function buildExample({ game, options = {}, player = '', state = null, move = null, legalCount = 0, label = null, source = null }) {
   return {
@@ -92,6 +92,7 @@ function addStateFeatures(f, { game, state, player }) {
   if (String(game).includes('chess')) return addChessStateFeatures(f, state, player);
   if (String(game).includes('go')) return addGoStateFeatures(f, state, player);
   if (String(game).includes('reversi')) return addReversiStateFeatures(f, state, player);
+  if (String(game).includes('jump')) return addJumpStateFeatures(f, state, player);
 }
 
 function addChessStateFeatures(f, state, player) {
@@ -160,6 +161,20 @@ function addReversiStateFeatures(f, state, player) {
   add(f, 'reversi_endgame_phase', Math.min(1, total / 64));
 }
 
+function addJumpStateFeatures(f, state, player) {
+  const pieces = Array.isArray(state.pieces) ? state.pieces : [];
+  let own = 0;
+  let opp = 0;
+  for (const entry of pieces) {
+    const owner = Array.isArray(entry) ? entry[1] : entry?.player || entry?.owner;
+    if (String(owner) === String(player)) own += 1;
+    else if (owner) opp += 1;
+  }
+  const total = Math.max(1, own + opp);
+  add(f, 'jump_piece_balance', (own - opp) / total);
+  add(f, 'jump_player_count', Number(state.playerCount || 2) / 3);
+}
+
 function addMoveFeatures(f, { game, options, state, move }) {
   if (!move || typeof move !== 'object') return;
   add(f, 'move_bias', 1);
@@ -168,7 +183,10 @@ function addMoveFeatures(f, { game, options, state, move }) {
   add(f, 'move_capture_count', captureCount(move) / 10);
   add(f, 'move_flips_count', flipCount(move) / 20);
   add(f, 'move_promotion', move.promotion ? 1 : 0);
+  add(f, 'move_castling', move.castling ? 1 : 0);
   add(f, 'move_check', move.givesCheck || move.isCheck ? 1 : 0);
+  add(f, 'move_is_jump', move.type === 'jump' ? 1 : 0);
+  add(f, 'move_is_step', move.type === 'step' ? 1 : 0);
 
   const coord = Array.isArray(move.coord) ? move.coord : move.to ? pointToCoord(move.to) : null;
   if (coord) addCoordFeatures(f, coord, Number(options.size || state?.size || 8), Number(options.dimension || state?.dimension || coord.length));
@@ -176,6 +194,8 @@ function addMoveFeatures(f, { game, options, state, move }) {
   if (move.piece?.type) add(f, `move_piece:${move.piece.type}`, 1);
   if (move.capturedPiece?.type) add(f, `move_captures_piece:${move.capturedPiece.type}`, 1);
   if (String(game).includes('chess') && move.from && move.to) addChessDeltaFeatures(f, move.from, move.to);
+  if (String(game).includes('jump') && move.from && move.to) addJumpDeltaFeatures(f, move.from, move.to, move);
+  if (String(game).includes('reversi') && coord) addReversiMoveShapeFeatures(f, coord, Number(options.size || state?.size || 8), String(options.topology || options.boundary || state?.topology || state?.boundary || ''));
 }
 
 function addCrossFeatures(f, { game, options, move }) {
@@ -215,6 +235,27 @@ function addChessDeltaFeatures(f, from, to) {
   const dz = Math.abs((b[2] || 0) - (a[2] || 0));
   add(f, 'move_distance_manhattan', Math.min(1, (dx + dy + dz) / 8));
   add(f, 'move_is_long_range', dx + dy + dz >= 3 ? 1 : 0);
+}
+
+function addJumpDeltaFeatures(f, from, to, move) {
+  const a = pointToCoord(from);
+  const b = pointToCoord(to);
+  if (!a || !b) return;
+  const distance = b.reduce((sum, v, i) => sum + Math.abs(v - (a[i] || 0)), 0);
+  add(f, 'jump_move_distance', Math.min(1, distance / 12));
+  add(f, 'jump_uses_bridge', move.over ? 1 : 0);
+  add(f, 'jump_chain_flag', move.chain || move.continueJump ? 1 : 0);
+}
+
+function addReversiMoveShapeFeatures(f, coord, size, topology) {
+  const lowerTopology = String(topology || '').toLowerCase();
+  const n = Math.max(2, Number(size) || 8);
+  const isNoBoundary = /pbc|torus|t2|t3|klein|mobius|rp2|sphere|cylinder/.test(lowerTopology);
+  const nearCorner = coord.every((v) => Number(v) <= 1 || Number(v) >= n - 2);
+  const anchor = coord.every((v) => Number(v) === 0 || Number(v) === n - 1);
+  add(f, 'reversi_anchor_move', anchor ? 1 : 0);
+  add(f, 'reversi_near_anchor_risk', !anchor && nearCorner && !isNoBoundary ? 1 : 0);
+  add(f, 'reversi_topology_cycle_candidate', isNoBoundary && coord.some((v) => Number(v) === 0 || Number(v) === n - 1) ? 1 : 0);
 }
 
 function captureCount(move) {

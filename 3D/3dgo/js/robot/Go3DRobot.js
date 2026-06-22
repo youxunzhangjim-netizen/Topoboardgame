@@ -92,7 +92,7 @@ function evaluate(logic, player = logic.currentPlayer) {
   try { area = logic.computeAreaScore?.() || area; } catch {}
   const areaDiff = (area[player] || 0) - (area[opponent] || 0);
   const captureDiff = (logic.captures[player] || 0) - (logic.captures[opponent] || 0);
-  return 13 * areaDiff + 9 * captureDiff + groupValue(logic, groupStats(logic, player)) - groupValue(logic, groupStats(logic, opponent)) + topologyValue(logic, player) - topologyValue(logic, opponent) + 1.3 * (mobility(logic, player) - mobility(logic, opponent));
+  return 13 * areaDiff + 9 * captureDiff + groupValue(logic, groupStats(logic, player)) - groupValue(logic, groupStats(logic, opponent)) + topologyValue(logic, player) - topologyValue(logic, opponent) + territorySecurityScore(logic, player) - territorySecurityScore(logic, opponent) + 1.3 * (mobility(logic, player) - mobility(logic, opponent));
 }
 function movePrior(logic, move, player) {
   if (move.type === 'pass') return passPrior(logic, player);
@@ -105,6 +105,7 @@ function movePrior(logic, move, player) {
   if (move.opponentTerritoryInvasion) score += Math.min(14, Math.max(0, Number(move.regionSize) || 0));
   if (move.neutralRegion) score += Math.min(8, Math.max(0, Number(move.regionSize) || 0) * 0.25);
   score += basicShapeScore(logic, move, player);
+  score += territoryProtectionMoveScore(logic, move, player);
   const idx = trial.indexFromCoord(move.coord);
   if (idx >= 0) {
     const group = trial.getGroupAndLiberties(trial.board, idx);
@@ -134,8 +135,10 @@ function basicShapeScore(logic, move, player) {
     else if (group.liberties === 2) score += 18 + group.size;
   }
   const eye = localEyeInfo(logic, index, player);
-  if (eye.ownEye) score -= move.ownTerritoryFill ? 62 : 22;
-  if (eye.falseEyeRisk) score -= 20;
+  if (eye.ownEye) score -= move.ownTerritoryFill ? 88 : 32;
+  if (eye.falseEyeRisk) score -= 42;
+  if (eye.fakeEye) score -= 62;
+  if (eye.cutsNearby >= 2 && ownGroups.length) score += 20;
   if (move.neutralRegion && ownGroups.length && enemyGroups.length === 0) score += 12;
   return score;
 }
@@ -157,19 +160,26 @@ function localEyeInfo(logic, index, player) {
   const ownValue = player === 'black' ? COLORS.black : COLORS.white;
   const enemyValue = player === 'black' ? COLORS.white : COLORS.black;
   const neighbors = logic.neighborsFromIndex(index).filter((next) => typeof logic.isPlayableIndex !== 'function' || logic.isPlayableIndex(next));
-  if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, friendlyRatio: 0 };
+  if (!neighbors.length) return { ownEye: false, falseEyeRisk: false, fakeEye: false, friendlyRatio: 0, cutsNearby: 0 };
   let own = 0;
   let enemy = 0;
   let empty = 0;
+  let weakFriendly = 0;
   for (const next of neighbors) {
-    if (logic.board[next] === ownValue) own += 1;
+    if (logic.board[next] === ownValue) {
+      own += 1;
+      const group = logic.getGroupAndLiberties(logic.board, next);
+      if (group.liberties.size <= 2) weakFriendly += 1;
+    }
     else if (logic.board[next] === enemyValue) enemy += 1;
     else empty += 1;
   }
   const friendlyRatio = own / neighbors.length;
   const ownEye = enemy === 0 && empty <= 1 && friendlyRatio >= 0.62;
   const falseEyeRisk = ownEye && adjacentGroupInfos(logic, index, player).some((group) => group.liberties <= 2);
-  return { ownEye, falseEyeRisk, friendlyRatio };
+  const cutsNearby = empty + weakFriendly;
+  const fakeEye = ownEye && (weakFriendly >= 2 || cutsNearby >= 3);
+  return { ownEye, falseEyeRisk, fakeEye, friendlyRatio, cutsNearby };
 }
 
 function groupEyePotential(logic, groupInfo) {
@@ -181,13 +191,75 @@ function groupEyePotential(logic, groupInfo) {
   let potential = 0;
   for (const liberty of group.liberties) {
     const eye = localEyeInfo(logic, liberty, color);
-    if (eye.ownEye && !eye.falseEyeRisk) potential += 1;
+    if (eye.ownEye && !eye.falseEyeRisk && !eye.fakeEye) potential += 1;
     else if (eye.friendlyRatio >= 0.5) potential += 0.3;
     const region = emptyRegionInfo(logic, liberty);
     if (region.owner === color && region.size >= 2) potential += Math.min(1.4, region.size / 5);
   }
   if (groupInfo.size >= 5 && groupInfo.liberties >= 4) potential += 0.3;
   return Math.min(2.5, potential);
+}
+
+function territoryProtectionMoveScore(logic, move, player) {
+  if (!move?.coord) return 0;
+  const index = logic.indexFromCoord(move.coord);
+  const ownGroups = adjacentGroupInfos(logic, index, player);
+  const enemyGroups = adjacentGroupInfos(logic, index, otherColor(player));
+  let score = 0;
+  const region = emptyRegionInfo(logic, index);
+  if (region.owner === player) {
+    const security = territoryRegionSecurity(logic, index, player);
+    if (security.borderWeakness > 0 && !move.ownTerritoryFill) score += 18 * security.borderWeakness;
+    if (move.ownTerritoryFill && security.borderWeakness <= 0) score -= 70;
+  }
+  if (ownGroups.length >= 2 && enemyGroups.length === 0) score += 24;
+  if (ownGroups.some((group) => group.liberties <= 2) && enemyGroups.length) score += 16;
+  return score;
+}
+
+function territorySecurityScore(logic, player) {
+  let score = 0;
+  const visited = new Set();
+  for (let index = 0; index < logic.board.length; index += 1) {
+    if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index)) continue;
+    if (logic.board[index] !== COLORS.empty || visited.has(index)) continue;
+    const region = emptyRegionInfo(logic, index, visited);
+    if (region.owner !== player) continue;
+    const security = territoryRegionSecurity(logic, index, player);
+    score += Math.min(28, region.size * 1.5);
+    score += 16 * security.safeBorders;
+    score -= 30 * security.borderWeakness;
+    if (region.size >= 5 && security.safeBorders >= 2) score += 18;
+  }
+  return score;
+}
+
+function territoryRegionSecurity(logic, startIndex, player) {
+  const ownValue = player === 'black' ? COLORS.black : COLORS.white;
+  const visited = new Set([startIndex]);
+  const stack = [startIndex];
+  const borderGroups = new Map();
+  while (stack.length) {
+    const index = stack.pop();
+    for (const next of logic.neighborsFromIndex(index)) {
+      if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(next)) continue;
+      if (logic.board[next] === COLORS.empty && !visited.has(next)) {
+        visited.add(next);
+        stack.push(next);
+      } else if (logic.board[next] === ownValue) {
+        const group = logic.getGroupAndLiberties(logic.board, next);
+        const anchor = [...group.group][0];
+        borderGroups.set(anchor, group.liberties.size);
+      }
+    }
+  }
+  let safeBorders = 0;
+  let borderWeakness = 0;
+  for (const liberties of borderGroups.values()) {
+    if (liberties >= 4) safeBorders += 1;
+    else if (liberties <= 2) borderWeakness += 1;
+  }
+  return { safeBorders, borderWeakness };
 }
 
 function passPrior(logic, player) {

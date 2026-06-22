@@ -205,6 +205,46 @@ function pieceDynamicValue(game, state, entry) {
 function materialScore(game, state, color) {
   return allPieces(game, state, color).reduce((sum, entry) => sum + pieceDynamicValue(game, state, entry), 0);
 }
+function attackedBy(game, state, coord, color, clearTarget = false) {
+  const probe = clearTarget ? cloneState({ ...game, board: state.board, currentPlayer: state.currentPlayer, gameOver: state.gameOver, capturedPieces: state.capturedPieces, enPassantTarget: state.enPassantTarget }) : state;
+  if (clearTarget) setPieceAtBoard(game, probe.board, coord, null);
+  return legalMovesFor(game, probe, color).filter((move) => sameCoord(move.to, coord));
+}
+function protectionScore(game, state, color) {
+  const enemy = other(color);
+  let score = 0;
+  for (const entry of allPieces(game, state, color)) {
+    if (entry.piece.type === 'K') continue;
+    const coord = { x: entry.x, y: entry.y, ...(entry.z !== undefined ? { z: entry.z } : { sheet: entry.sheet ?? 0 }) };
+    const value = PIECE_VALUES[entry.piece.type] || 0;
+    const defenders = attackedBy(game, state, coord, color, true).filter((move) => !sameCoord(move.from, coord));
+    const attackers = attackedBy(game, state, coord, enemy);
+    if (defenders.length) score += Math.min(70, 0.055 * value + 10 * Math.min(4, defenders.length));
+    else score -= Math.min(140, 0.10 * value);
+    if (!attackers.length) continue;
+    const cheapestAttacker = Math.min(...attackers.map((move) => PIECE_VALUES[move.piece?.type] || 0));
+    if (!defenders.length) score -= Math.max(110, 0.55 * value);
+    else if (value > cheapestAttacker + 80) score -= Math.min(300, 0.30 * (value - cheapestAttacker));
+    if (['Q', 'R'].includes(entry.piece.type) && cheapestAttacker <= 330) score -= defenders.length ? 90 : 210;
+  }
+  return score;
+}
+function castlingDevelopmentScore(game, state, color) {
+  const pieces = allPieces(game, state, color);
+  const enemyPieces = allPieces(game, state, other(color));
+  if (pieces.length + enemyPieces.length < 22) return 0;
+  const king = pieces.find((entry) => entry.piece.type === 'K');
+  if (!king) return 0;
+  const legalCastles = legalMovesFor(game, state, color).filter((move) => move.castling);
+  let score = 0;
+  if (legalCastles.length) score += 105;
+  if (king.piece.hasMoved && (king.x === 2 || king.x === 6)) score += 135;
+  else if (king.piece.hasMoved) score -= 110;
+  for (const rook of pieces.filter((entry) => entry.piece.type === 'R')) {
+    if (rook.piece.hasMoved && king && !(king.x === 2 || king.x === 6)) score -= 35;
+  }
+  return score;
+}
 function kingSafety(game, state, color) {
   const king = allPieces(game, state, color).find((entry) => entry.piece.type === 'K');
   if (!king) return -999999;
@@ -219,6 +259,8 @@ function evaluate(game, state, color) {
   score += materialScore(game, state, color) - materialScore(game, state, opponent);
   score += mobility(game, state, color) - mobility(game, state, opponent);
   score += kingSafety(game, state, color) - kingSafety(game, state, opponent);
+  score += protectionScore(game, state, color) - protectionScore(game, state, opponent);
+  score += castlingDevelopmentScore(game, state, color) - castlingDevelopmentScore(game, state, opponent);
   if (withState(game, state, () => game.isInCheck?.(opponent))) score += 90;
   if (withState(game, state, () => game.isInCheck?.(color))) score -= 140;
   return score;
@@ -227,7 +269,9 @@ function moveOrderingScore(move) {
   let score = 0;
   if (move.capturedPiece) score += 10 * (PIECE_VALUES[move.capturedPiece.type] || 0) - (PIECE_VALUES[move.piece?.type] || 0);
   if (move.promotion) score += 850;
-  if (move.castling) score += 60;
+  if (move.castling) score += 1800;
+  if (move.piece?.type === 'K' && !move.castling) score -= 650;
+  if (move.piece?.type === 'R' && !move.capturedPiece) score -= 260;
   return score;
 }
 function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
