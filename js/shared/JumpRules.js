@@ -784,6 +784,25 @@ function jumpGraphDistance(game, a, b) {
     const raw = Math.abs((a[1] || 0) - (b[1] || 0));
     return ring + Math.min(raw, sectors - raw);
   }
+  if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(game.topologyName)) {
+    const size = Math.max(1, game.size || 1);
+    const dxRaw = Math.abs((a[0] || 0) - (b[0] || 0));
+    const dx = Math.min(dxRaw, size - dxRaw);
+    let rest = 0;
+    for (let axis = 1; axis < game.dimension; axis += 1) {
+      rest = Math.max(rest, Math.abs((a[axis] || 0) - (b[axis] || 0)));
+    }
+    return Math.max(dx, rest);
+  }
+  if (['torus', 'pbc', 't3', '4d-torus', 'torus4d'].includes(game.topologyName)) {
+    const size = Math.max(1, game.size || 1);
+    let best = 0;
+    for (let axis = 0; axis < game.dimension; axis += 1) {
+      const raw = Math.abs((a[axis] || 0) - (b[axis] || 0));
+      best = Math.max(best, Math.min(raw, size - raw));
+    }
+    return best;
+  }
   if (game.lattice === 'triangular' && game.dimension === 2) {
     const dx = (a[0] || 0) - (b[0] || 0);
     const dy = (a[1] || 0) - (b[1] || 0);

@@ -67,7 +67,8 @@ function topologyValue(logic, color) {
     if (!logic.isPlayableIndex(i) || logic.board[i] !== value) continue;
     const coord = logic.coordFromIndex(i);
     const nearEdge = coord.some((v, axis) => v === 0 || v === (logic.dimension === 3 ? logic.size : axis === 0 ? logic.width : logic.height) - 1);
-    if (nearEdge && TOPOLOGY_INFLUENCE.has(logic.topology)) score += 1.6;
+    if (logic.topology === 'cylinder' && coord[0] === 0) score += 2.8;
+    else if (nearEdge && TOPOLOGY_INFLUENCE.has(logic.topology)) score += 1.6;
     const degree = logic.neighborsFromIndex(i).length;
     if (logic.lattice === 'bcc' || logic.lattice === 'fcc' || logic.lattice === 'hcp') score += 0.25 * degree;
   }
@@ -113,7 +114,8 @@ function movePrior(logic, move, player) {
     if (group.liberties.size <= 1) score -= 40;
   }
   const coord = move.coord;
-  if (coord && coord.some((v, axis) => v === 0 || v === (logic.dimension === 3 ? logic.size : axis === 0 ? logic.width : logic.height) - 1) && TOPOLOGY_INFLUENCE.has(logic.topology)) score += 10;
+  if (coord && logic.topology === 'cylinder' && (coord[0] === 0 || coord[0] === logic.width - 1)) score += 14;
+  else if (coord && coord.some((v, axis) => v === 0 || v === (logic.dimension === 3 ? logic.size : axis === 0 ? logic.width : logic.height) - 1) && TOPOLOGY_INFLUENCE.has(logic.topology)) score += 10;
   if (logic.lattice !== 'sc' && logic.lattice !== 'square') score += 0.7 * (idx >= 0 ? trial.neighborsFromIndex(idx).length : 0);
   return score;
 }
@@ -412,7 +414,8 @@ function moveReason(logic, move, beforeScore, afterScore) {
   const tmp = cloneLogic(logic); tmp.tryPlay(move.coord, logic.currentPlayer); const idx = tmp.indexFromCoord(move.coord);
   if (idx >= 0) { const group = tmp.getGroupAndLiberties(tmp.board, idx); if (group.liberties.size <= 1) reasons.push('danger: played group has one liberty'); else reasons.push(`creates ${group.liberties.size} liberties`); }
   if (afterScore > beforeScore + 10) reasons.push('improves estimated area/group value');
-  if (logic.topology === 't3' || logic.topology === 't2') reasons.push('checks periodic wrap influence');
+  if (logic.topology === 'cylinder') reasons.push('uses the 2D PBC robot strategy on the cylinder wrap');
+  else if (logic.topology === 't3' || logic.topology === 't2') reasons.push('checks periodic wrap influence');
   if (logic.topology === 'r3_random') reasons.push('uses fixed 3D RBC neighbor graph');
   if (logic.topology === 'sphere_latitude_ring') reasons.push('uses sphere latitude-ring topology');
   if (logic.topology === 'klein_bottle') reasons.push('checks Klein bottle flipped wrap');

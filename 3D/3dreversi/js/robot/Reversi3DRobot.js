@@ -12,8 +12,19 @@ function clampDepth(value) { return Math.max(1, Math.min(4, Math.floor(Number(va
 function cloneLogic(logic) { const copy = new ReversiGame(); copy.importState(logic.exportState()); return copy; }
 function coordLabel(coord) { return `(${coord.join(',')})`; }
 function dimensions(logic) { return [logic.topology.width, logic.topology.height, logic.topology.depth || 1]; }
+function periodicAxes(logic) {
+  const topology = logic.topology.topology;
+  if (topology === 'cylinder') return [0];
+  if (topology === 't2' || topology === 'pbc') return [0, 1];
+  if (topology === 't3') return [0, 1, 2];
+  return [];
+}
 function isBoundaryCoord(logic, coord) { const dims = dimensions(logic); return coord.some((v, axis) => v === 0 || v === dims[axis] - 1); }
 function isAnchorCoord(logic, coord) { const dims = dimensions(logic); return coord.every((v, axis) => v === 0 || v === dims[axis] - 1); }
+function isPeriodicSeamCoord(logic, coord) {
+  const dims = dimensions(logic);
+  return periodicAxes(logic).some((axis) => coord[axis] === 0 || coord[axis] === dims[axis] - 1);
+}
 function frontierCoord(logic, coord) { return logic.topology.directionsFor(coord).some(d => { const n = logic.topology.step(coord, d); return n && !logic.get(n); }); }
 function context(depth, analysis = false) { const d = clampDepth(depth); const start = now(); return { nodes: 0, deadline: start + (analysis ? 1.35 : 1) * (TIME_MS[d] || 300), nodeLimit: NODE_LIMIT[d] || 25000, tt: new Map(), truncated: false, timeUp(){ if (now() >= this.deadline || this.nodes >= this.nodeLimit) { this.truncated = true; return true; } return false; } }; }
 
@@ -32,8 +43,8 @@ function evaluate(logic, player = logic.currentPlayer) {
     const emptyNeighbor = frontierCoord(logic, coord);
     const isAnchor = isAnchorCoord(logic, coord);
     const add = stone.color === player;
-    if (add) { if (isAnchor) anchors++; if (emptyNeighbor) frontier++; if (nearEdge && topological(logic)) topo++; if (isAnchor || stableFromAnchor(logic, coord, player)) stable++; }
-    else { if (isAnchor) oppAnchors++; if (emptyNeighbor) oppFrontier++; if (nearEdge && topological(logic)) oppTopo++; if (isAnchor || stableFromAnchor(logic, coord, opponent)) oppStable++; }
+    if (add) { if (isAnchor) anchors++; if (emptyNeighbor) frontier++; if (nearEdge && topological(logic)) topo++; if (isPeriodicSeamCoord(logic, coord)) topo += 0.8; if (isAnchor || stableFromAnchor(logic, coord, player)) stable++; }
+    else { if (isAnchor) oppAnchors++; if (emptyNeighbor) oppFrontier++; if (nearEdge && topological(logic)) oppTopo++; if (isPeriodicSeamCoord(logic, coord)) oppTopo += 0.8; if (isAnchor || stableFromAnchor(logic, coord, opponent)) oppStable++; }
   }
   cycles = topologyCycleStability(logic, player);
   oppCycles = topologyCycleStability(logic, opponent);
@@ -56,6 +67,7 @@ function moveScoreFast(logic, move, player) {
   const flipWeight = emptyRatio > 0.62 ? -2.2 : emptyRatio > 0.28 ? 2.8 : 8.5;
   let score = flipWeight * (move.flips?.length || 0);
   if (isAnchorCoord(logic, move.coord)) score += 150;
+  else if (isPeriodicSeamCoord(logic, move.coord)) score += 34;
   else if (isBoundaryCoord(logic, move.coord)) score += topological(logic) ? 16 : 7;
   if (frontierCoord(logic, move.coord)) score -= 8;
   const clone = cloneLogic(logic); const result = clone.play(move.coord, player);
@@ -82,7 +94,7 @@ function topologyCycleStability(logic, player) {
   if (!topological(logic)) return 0;
   const dims = dimensions(logic);
   let score = 0;
-  for (let axis = 0; axis < dims.length; axis += 1) {
+  for (const axis of periodicAxes(logic)) {
     const otherAxes = dims.map((_, i) => i).filter((i) => i !== axis);
     for (let a = 0; a < dims[otherAxes[0]]; a += 1) {
       for (let b = 0; b < dims[otherAxes[1] || otherAxes[0]]; b += 1) {
@@ -105,7 +117,8 @@ function topologyCycleStability(logic, player) {
 function createsTopologyCycle(logic, coord, player) {
   if (!topological(logic)) return false;
   const dims = dimensions(logic);
-  return dims.some((length, axis) => {
+  return periodicAxes(logic).some((axis) => {
+    const length = dims[axis];
     let owned = 0;
     for (let t = 0; t < length; t += 1) {
       const c = coord.slice();
@@ -173,7 +186,8 @@ function reason(logic, move, before, after) {
   else if (isBoundaryCoord(logic, coord)) reasons.push('takes boundary/surface control');
   if (after > before + 10) reasons.push('improves mobility/position score');
   if (frontierCoord(logic, coord)) reasons.push('frontier/surface exposure is checked');
-  if (logic.topology.topology === 't3' || logic.topology.topology === 't2') reasons.push('checks periodic bracket lines');
+  if (logic.topology.topology === 'cylinder') reasons.push('uses the 2D PBC robot strategy on the cylinder wrap');
+  else if (logic.topology.topology === 't3' || logic.topology.topology === 't2') reasons.push('checks periodic bracket lines');
   if (logic.topology.topology === 'r3_random') reasons.push('uses fixed 3D RBC boundary map');
   if (logic.topology.lattice === 'hcp') reasons.push('uses HCP bracket directions');
   if (logic.topology.topology === 'sphere') reasons.push('uses sphere embedded graph');

@@ -178,6 +178,10 @@ function topologyName(game) {
   const b = doc?.getElementById?.('boundarySelect')?.value || game.boundaryCondition || game.variant || '';
   return `${v}:${b}`;
 }
+function uses2DPeriodicRobotStrategy(game) {
+  const topo = topologyName(game).toLowerCase();
+  return topo.includes('periodic') || topo.includes('torus') || topo.includes('t3') || topo.includes('sphere') || topo.includes('cylinder');
+}
 function pieceDynamicValue(game, state, entry) {
   const piece = entry.piece;
   let value = PIECE_VALUES[piece.type] || 0;
@@ -188,7 +192,7 @@ function pieceDynamicValue(game, state, entry) {
   const distance = Math.abs(entry.x - center.x) + Math.abs(entry.y - center.y) + Math.abs(z - center.z);
   value += Math.max(0, 40 - 5 * distance);
   const topo = topologyName(game);
-  if (topo.includes('periodic') || topo.includes('torus') || topo.includes('t3')) {
+  if (uses2DPeriodicRobotStrategy(game)) {
     if (piece.type === 'R' || piece.type === 'Q') value += 35 + 4 * moves;
     if (piece.type === 'B') value += 20 + 3 * moves;
   }
@@ -196,7 +200,7 @@ function pieceDynamicValue(game, state, entry) {
     if (piece.type === 'R') value -= 45; // reflection does not give rook extra movement; user correction.
     if (piece.type === 'B' || piece.type === 'Q') value += 15;
   }
-  if (topo.includes('sphere') || topo.includes('rp2') || topo.includes('mobius') || topo.includes('klein')) {
+  if (topo.includes('rp2') || topo.includes('mobius') || topo.includes('klein')) {
     value += 3 * moves;
     if (piece.type === 'K' && moves < 4) value -= 120;
   }
@@ -320,10 +324,11 @@ function explainMove(game, before, move, scoreBefore, scoreAfter) {
   if (move.castling) reasons.push('castles for king safety');
   if (scoreAfter > scoreBefore + 80) reasons.push('improves engine score');
   const topo = topologyName(game);
-  if (topo.includes('periodic') || topo.includes('torus') || topo.includes('t3')) reasons.push('evaluates wrap-cycle mobility');
+  if (topo.includes('sphere') || topo.includes('cylinder')) reasons.push('uses the 2D PBC robot strategy on the cylinder wrap');
+  else if (topo.includes('periodic') || topo.includes('torus') || topo.includes('t3')) reasons.push('evaluates wrap-cycle mobility');
   if (topo.includes('reflection')) reasons.push(move.piece?.type === 'R' ? 'rook is not boosted in reflection mode' : 'checks reflection-boundary pressure');
   if (topo.includes('random')) reasons.push('uses actual random-boundary legal graph');
-  if (topo.includes('sphere') || topo.includes('rp2') || topo.includes('mobius') || topo.includes('klein')) reasons.push('uses the embedded surface legal moves');
+  if (topo.includes('rp2') || topo.includes('mobius') || topo.includes('klein')) reasons.push('uses the embedded surface legal moves');
   return reasons.length ? reasons : ['best searched legal move'];
 }
 function analyze(game, depth = 3) {
