@@ -314,6 +314,12 @@ const els = {
     virasoroRules: document.querySelector('[data-rules-mode="virasoro"]'),
     cftReversiRules: document.querySelector('[data-rules-mode="cft-reversi"]'),
     clusterRules: document.querySelector('[data-rules-mode="physical-cluster-go"]'),
+    isingRules: document.querySelector('[data-rules-mode="ising-domain"]'),
+    twoPhaseRules: document.querySelector('[data-rules-mode="two-phase"]'),
+    jumpParticleRules: document.querySelector('[data-rules-mode="physical-jump-particles"]'),
+    spinIceRules: document.querySelector('[data-rules-mode="spin-ice"]'),
+    z2GaugeRules: document.querySelector('[data-rules-mode="z2-gauge"]'),
+    rulesSections: [...document.querySelectorAll('[data-rules-mode]')],
     cftObservablePanel: document.querySelector('#cftObservablePanel'),
     cftObservableModel: document.querySelector('#cftObservableModel'),
     cftObservableCharge: document.querySelector('#cftObservableCharge'),
@@ -1238,23 +1244,36 @@ function syncModeControls() {
     if (els.blackBraidCard) els.blackBraidCard.hidden = !usesObservableCards;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !usesObservableCards;
     if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
-    if (els.cliffordRules) els.cliffordRules.hidden = !isStandardClifford && !isIsing && !isTwoPhase && !isJumpParticles && !isSpinIce && !isZ2Gauge;
-    if (els.physicalCliffordRules) els.physicalCliffordRules.hidden = !isPhysicalClifford;
-    if (els.anyonRules) els.anyonRules.hidden = !isAnyon && !isAnyonReversi;
-    if (els.virasoroRules) els.virasoroRules.hidden = !isVirasoroGo && !isVirasoroJump;
-    if (els.cftReversiRules) els.cftReversiRules.hidden = !isCFTReversi;
-    if (els.clusterRules) els.clusterRules.hidden = !isCluster;
+    const rulesMode = isIsing ? 'ising-domain'
+        : isTwoPhase ? 'two-phase'
+        : isCluster ? 'physical-cluster-go'
+        : isJumpParticles ? 'physical-jump-particles'
+        : isSpinIce ? 'spin-ice'
+        : isZ2Gauge ? 'z2-gauge'
+        : isPhysicalClifford ? 'physical-clifford'
+        : isCFTReversi ? 'cft-reversi'
+        : isVirasoroGo || isVirasoroJump ? 'virasoro'
+        : isAnyon || isAnyonReversi ? 'anyon'
+        : 'clifford';
+    for (const section of els.rulesSections || []) {
+        section.hidden = section.dataset.rulesMode !== rulesMode;
+    }
     if (els.rulesIntroButton) {
-        const introLabel = isVirasoroGo
-            ? 'CFT Field Graph Intro'
-            : isVirasoroJump ? 'Virasoro Worldline Intro'
-            : isCFTReversi ? 'CFT Local OPE Intro'
+        const introLabel = isIsing ? 'Spin Domain Intro'
+            : isTwoPhase ? 'Two-Phase Intro'
             : isCluster ? 'Cluster Field Intro'
             : isJumpParticles ? 'Particle Hopping Intro'
+            : isSpinIce ? 'Spin Ice Intro'
+            : isZ2Gauge ? 'Z2 Gauge Intro'
+            : isPhysicalClifford ? 'Stabilizer Intro'
+            : isVirasoroGo ? 'CFT Field Graph Intro'
+            : isVirasoroJump ? 'Virasoro Worldline Intro'
+            : isCFTReversi ? 'CFT Local OPE Intro'
             : isAnyon || isAnyonReversi ? 'Anyon Intro'
-            : isCliffordJump ? 'Clifford Worldline Intro' : 'Clifford Intro';
+            : isCliffordJump ? 'Clifford Worldline Intro'
+            : 'Clifford Intro';
         els.rulesIntroButton.textContent = introLabel;
-        if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = introLabel.replace('Intro', 'Introduction');
+        if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = introLabel.replace(/ Intro$/, ' Introduction');
     }
     document.title = `${MODE_LABELS[mode]} - Topological Labs`;
     return mode;

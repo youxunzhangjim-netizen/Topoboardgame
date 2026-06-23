@@ -1023,6 +1023,7 @@
                         <p><strong>3D boards:</strong> R3 uses a rotatable cubic graph, T2 uses a solid torus, and S2 uses a latitude-ring sphere. Click graph vertices to place stones; drag to rotate and wheel to zoom. The same topology-aware Clifford rules remain active on these surfaces.</p>
                         <p><strong>Move rule:</strong> place a Pauli-labelled stone on an empty vertex only when it brackets at least one opponent chain along a topology-aware ray. Rays use the selected topology, so 2D RBC, torus, Klein bottle, RP2, S2 latitude, and 4D grid boards use their graph normalization instead of flat boundary assumptions.</p>
                         <p><strong>Local operator choice:</strong> Clifford Insertion Field opens a small operator palette at the clicked site, so X/Y/Z are chosen where the insertion happens. The side Pauli selector remains a default for exports and keyboard-style operation.</p>
+                        <p><strong>Worldline mode:</strong> Clifford Worldline Operators use X, Z, and Y tokens moving on the graph. Their labels propagate through hops and exchanges so you can compare operator transport on the same topology.</p>
                         <p><strong>Flip rule:</strong> each locally coupled opponent operator is transformed by the selected Clifford generator, and twisted seams apply their transport while the graph ray is resolved.</p>
                         <p><strong>Pauli math:</strong> I=(0,0), X=(1,0), Z=(0,1), Y=(1,1). The symplectic product is x1*z2 + z1*x2 mod 2. Labels anticommute when this value is 1.</p>
                         <p><strong>H and S:</strong> without phase signs, H swaps X and Z and leaves Y as Y; S maps X to Y, Y to X, and Z to Z. With Phase / Sign Display on, H maps Y to -Y and S maps Y to -X, so flipped stones display +X, -Y, etc.</p>
@@ -1066,6 +1067,82 @@
                         <p><strong>Topology:</strong> all neighbors come from topology.neighbors(vertex), so torus, Klein, Mobius, RP2, sphere, random boundary, R3, and 4D graphs do not assume rectangular edges.</p>
                         <p><strong>Answer:</strong> export summarizes which species percolated, survival/extinction time, cluster-size exponent estimate when enough cluster statistics exist, and topology-wrapping probability.</p>
                     </div>
+
+                    <div data-rules-mode="ising-domain" hidden>
+                        <h2>Spin &amp; Phase Domain Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black is spin up s=+1 and white is spin down s=-1. Empty vertices are unoccupied or undecided graph sites when the selected initial state leaves gaps.</p>
+                        <p><strong>Physical problem / goal:</strong> build, move, and stabilize domain walls while checking how topology and lattice geometry change energy, magnetization, and coarsening.</p>
+                        <div class="rules-mini-diagram" aria-label="Spin domain flow">
+                            <span>Spin seed</span>
+                            <span>Local update</span>
+                            <span>Domain wall</span>
+                            <span>Phase answer</span>
+                        </div>
+                        <p><strong>Actions:</strong> place or flip one spin, flip a connected domain, rewrite a line interval, pass, or enable Metropolis acceptance for temperature-driven trials.</p>
+                        <p><strong>Observables:</strong> every move records energy, magnetization, domain-wall length, domain-wall density, up/down domain counts, accepted or rejected updates, and the final phase.</p>
+                        <p><strong>Topology:</strong> neighbors, domains, and walls use the selected graph, so torus, Klein, Mobius, RP2, S2, R3, 4D, square, honeycomb, and triangular boards can produce different wall loops.</p>
+                        <p><strong>Answer:</strong> export summarizes whether the position ordered, stayed mixed, formed stable walls, or kept topology-winding interfaces.</p>
+                    </div>
+                    <div data-rules-mode="two-phase" hidden>
+                        <h2>Two-Phase Competition Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black is phase A, white is phase B, and empty vertices are metastable substrate that can nucleate or be converted.</p>
+                        <p><strong>Physical problem / goal:</strong> compare how two competing phases invade, coarsen, pin interfaces, or wrap through the selected topology.</p>
+                        <div class="rules-mini-diagram" aria-label="Two-phase competition flow">
+                            <span>Nucleate</span>
+                            <span>Grow domain</span>
+                            <span>Interface cost</span>
+                            <span>Winner answer</span>
+                        </div>
+                        <p><strong>Actions:</strong> nucleate a phase on empty substrate, grow from a neighboring same-phase domain, flip an interface when the energy allows it, pass, or add optional droplet noise.</p>
+                        <p><strong>Observables:</strong> every move records energy, interface length, area fractions A and B, domain count, nucleation count, coarsening events, and topology-wrapping interfaces.</p>
+                        <p><strong>Topology:</strong> the same phase rule uses graph neighbors, so boundary seams and lattice geometry can change which phase connects or gets trapped.</p>
+                        <p><strong>Answer:</strong> export reports the winning phase, whether an interface is stable, and whether either phase forms a noncontractible connected region.</p>
+                    </div>
+                    <div data-rules-mode="physical-jump-particles" hidden>
+                        <h2>Particle Hopping / Reaction Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> black and white are two particle species or charge signs. Empty vertices are available sites on the selected graph.</p>
+                        <p><strong>Physical problem / goal:</strong> study local hopping, exchange scattering, recombination, and path parity on different topologies and lattices.</p>
+                        <div class="rules-mini-diagram" aria-label="Particle hopping flow">
+                            <span>Particle seed</span>
+                            <span>Hop / scatter</span>
+                            <span>Recombine</span>
+                            <span>Path answer</span>
+                        </div>
+                        <p><strong>Actions:</strong> hop to an adjacent empty vertex, exchange across an occupied interaction particle, follow a multi-step scattering path, recombine adjacent opposite charges, or measure path parity.</p>
+                        <p><strong>Observables:</strong> every move records particle count, recombination count, exchange events, braid-like parity, average path length, energy recovered, and the final reaction state.</p>
+                        <p><strong>Topology:</strong> hop, exchange, and scattering paths use graph adjacency, so twisted seams and higher-dimensional boards change which reactions are locally reachable.</p>
+                        <p><strong>Answer:</strong> export reports whether charges recombined, remained separated, formed a persistent scattering path, or changed the parity sector.</p>
+                    </div>
+                    <div data-rules-mode="spin-ice" hidden>
+                        <h2>Spin Ice Vertex Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> variables live on graph edges, not vertices. Black arrows follow the chosen edge orientation and white arrows point opposite that orientation.</p>
+                        <p><strong>Physical problem / goal:</strong> create, move, and annihilate monopole defects while testing how string and loop excitations depend on topology.</p>
+                        <div class="rules-mini-diagram" aria-label="Spin ice vertex flow">
+                            <span>Edge arrows</span>
+                            <span>Ice rule</span>
+                            <span>String / loop</span>
+                            <span>Monopole answer</span>
+                        </div>
+                        <p><strong>Actions:</strong> flip one arrow, flip a connected string, flip a closed loop, move a monopole along an edge path, annihilate a monopole pair, or pass.</p>
+                        <p><strong>Observables:</strong> every move records energy, ice-rule violations, monopole count, string length, closed-loop count, loop winding, and defect density.</p>
+                        <p><strong>Topology:</strong> edge paths, closed loops, and winding sectors come from the selected graph, so noncontractible loops can exist on wrapped spaces but not on ordinary open boards.</p>
+                        <p><strong>Answer:</strong> export reports the monopole sector, string/loop sector, energy trend, and whether the board returned to an ice-rule vacuum.</p>
+                    </div>
+                    <div data-rules-mode="z2-gauge" hidden>
+                        <h2>Z2 Gauge Loop Introduction and Observables</h2>
+                        <p><strong>Physical meaning:</strong> variables live on graph edges with Ue=+1 or Ue=-1. Star checks multiply adjacent edge values, and plaquette checks multiply values around local faces or cycles.</p>
+                        <p><strong>Physical problem / goal:</strong> create, measure, repair, and compare Z2 charge, flux, Wilson-loop, and logical-memory sectors on topology-aware graphs.</p>
+                        <div class="rules-mini-diagram" aria-label="Z2 gauge loop flow">
+                            <span>Edge field</span>
+                            <span>Star / flux</span>
+                            <span>Loop update</span>
+                            <span>Logical sector</span>
+                        </div>
+                        <p><strong>Actions:</strong> flip one edge, flip an open path, flip a closed loop, measure a star check, measure a plaquette check, enable noisy edge flips, or run the simple decoder.</p>
+                        <p><strong>Observables:</strong> every move records syndrome weight, star violations, plaquette flux violations, logical sector, Wilson-loop values, decoder actions, and memory status.</p>
+                        <p><strong>Topology:</strong> open strings create charge endpoints, closed loops preserve local constraints, and noncontractible loops can change the logical sector when the board supports cycles.</p>
+                        <p><strong>Answer:</strong> export reports whether the gauge state stayed in the vacuum sector, accumulated a logical loop error, or was repaired by decoder/recovery moves.</p>
+                    </div>
                     <div data-rules-mode="cft-reversi" hidden>
                         <h2>CFT Local OPE Operators Introduction and Observables</h2>
                         <p><strong>Physical meaning:</strong> black is the + source/domain sign and white is the - source/domain sign. A stone is a primary field or spin/domain insertion. Nearby occupied graph rays form a discrete OPE interaction interval; local OPE propagation updates channels and phase transport without requiring an enclosing boardgame bracket.</p>
@@ -1084,7 +1161,7 @@
                         <p><strong>Estimator note:</strong> CFT correlations, conformal blocks, entropy, and stress are discrete graph estimators for gameplay and are not exact continuum CFT values.</p>
                         <p><strong>Answer:</strong> export summarizes final dominant OPE channel, final domain-wall length, whether a stable topological/twisted sector appears, entropy growth, anomaly count, and final CFT sector.</p>
                     </div>
-                    <div data-rules-mode="anyon">
+                    <div data-rules-mode="anyon" hidden>
                         <h2>Anyon Introduction and Observables</h2>
                         <p><strong>Physical problem / goal:</strong> create mobile topological charges, braid or unbraid their worldlines, then test whether fusion and logical memory return to the intended vacuum or sector.</p>
                         <div class="rules-mini-diagram" aria-label="Anyon memory flow">
@@ -1111,7 +1188,7 @@
                         <p><strong>Dynamics choices:</strong> Anyon noise can create pairs or flip e/m on configured noisy places. Time evolution ages particles on the selected clock; entanglement range, recombination, and measurement settings control the excitation dynamics.</p>
                         <p><strong>Observables and results:</strong> the QEC panel reports total fusion charge, logical sector, memory alive/lost, vacuum recovery, average and maximum braid word length, and successful or failed unbraids. Research export keeps worldlines, braid tokens, fusion outcomes, logical-sector history, energy history, memory lifetime, logical-error rate, unbraid success rate, and final physical answer.</p>
                     </div>
-                    <div data-rules-mode="virasoro">
+                    <div data-rules-mode="virasoro" hidden>
                         <h2>CFT Field Insertion Graph Introduction and Observables</h2>
                         <p><strong>Physical system:</strong> the board is a discretized Riemann surface / graph manifold. Empty vertices are identity operators, stones are primary-field insertions, black and white are source sign or player control, and primaryType stores the physical field.</p>
                         <p><strong>Physical problem / goal:</strong> insert primary fields and use local graph/OPE contact updates, then measure which conformal block, correlation pattern, entropy growth, or anomaly response dominates.</p>

@@ -303,6 +303,7 @@
                             </dl>
                             <details class="lab-advanced">
                                 <summary data-i18n="labs.info">Info</summary>
+                                <p data-i18n="labs.cards.spinPhase.info">Start here for phase-ordering play: Ising spins, two-phase growth, and cluster fields share local graph rules so topology changes which domains survive.</p>
                             </details>
                             <div class="lab-presets" aria-label="Spin and phase presets">
                                 <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed" data-i18n="labs.presets.domainWall">Domain Wall</a>
@@ -328,6 +329,7 @@
                             </dl>
                             <details class="lab-advanced">
                                 <summary data-i18n="labs.info">Info</summary>
+                                <p data-i18n="labs.cards.quantumInfo.info">Use this lab for Pauli-frame and stabilizer recovery: make local corrections, measure syndromes, and check whether the logical sector stays correct.</p>
                             </details>
                             <div class="lab-presets" aria-label="Quantum information presets">
                                 <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery" data-i18n="labs.presets.pauliRecovery">Pauli Correction</a>
@@ -353,6 +355,7 @@
                             </dl>
                             <details class="lab-advanced">
                                 <summary data-i18n="labs.info">Info</summary>
+                                <p data-i18n="labs.cards.anyonMemory.info">Use this lab for anyons and topological memory: create particles, braid or unbraid worldlines, fuse charges, and check whether memory remains in the vacuum or target sector.</p>
                             </details>
                             <div class="lab-presets" aria-label="Anyon and topological memory presets">
                                 <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump" data-i18n="labs.presets.toricAnyons">Toric Anyons</a>
@@ -378,6 +381,7 @@
                             </dl>
                             <details class="lab-advanced">
                                 <summary data-i18n="labs.info">Info</summary>
+                                <p data-i18n="labs.cards.cftField.info">Use this lab for discrete CFT graph models: insert primary fields, update OPE channels, and measure correlations, conformal blocks, entropy, and anomaly response.</p>
                             </details>
                             <div class="lab-presets" aria-label="CFT and field theory presets">
                                 <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables" data-i18n="labs.presets.fourSigma">Four-Sigma</a>
@@ -403,6 +407,7 @@
                             </dl>
                             <details class="lab-advanced">
                                 <summary data-i18n="labs.info">Info</summary>
+                                <p data-i18n="labs.cards.sandbox.info">Open the full engine controls and raw exports for advanced comparisons between modes, topologies, lattices, and physical problems.</p>
                             </details>
                             <div class="lab-presets single-preset" aria-label="Advanced algebra sandbox">
                                 <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi" data-i18n="labs.presets.openSandbox">Open Sandbox</a>
@@ -574,6 +579,7 @@
                         cards: {
                             spinPhase: {
                                 title: 'Spin & Phase Lab',
+                                info: 'Start here for phase-ordering play: Ising spins, two-phase growth, and cluster fields share local graph rules so topology changes which domains survive.',
                                 blackWhite: 'Spin up/down or phase A/B.',
                                 objects: 'Local spins, domains, droplets, and interfaces.',
                                 goal: 'Order, coarsen, stabilize, or compare topology-driven domain walls.',
@@ -582,6 +588,7 @@
                             },
                             quantumInfo: {
                                 title: 'Quantum Information Lab',
+                                info: 'Use this lab for Pauli-frame and stabilizer recovery: make local corrections, measure syndromes, and check whether the logical sector stays correct.',
                                 blackWhite: 'Positive/negative stabilizer or Pauli-frame signs.',
                                 objects: 'Pauli labels, ancilla sites, stabilizer checks, and logical sectors.',
                                 goal: 'Recover errors or benchmark Clifford/Pauli dynamics.',
@@ -590,6 +597,7 @@
                             },
                             anyonMemory: {
                                 title: 'Anyon & Topological Memory Lab',
+                                info: 'Use this lab for anyons and topological memory: create particles, braid or unbraid worldlines, fuse charges, and check whether memory remains in the vacuum or target sector.',
                                 blackWhite: 'Particle owners, charge signs, or competing anyon sectors.',
                                 objects: 'Anyons, worldlines, fusion channels, gauge loops, and memory strings.',
                                 goal: 'Create, braid, fuse, unbraid, or preserve topological memory.',
@@ -598,6 +606,7 @@
                             },
                             cftField: {
                                 title: 'CFT / Field Theory Lab',
+                                info: 'Use this lab for discrete CFT graph models: insert primary fields, update OPE channels, and measure correlations, conformal blocks, entropy, and anomaly response.',
                                 blackWhite: 'Source sign, domain sign, or player control of insertions.',
                                 objects: 'Primary fields, OPE intervals, conformal blocks, and Virasoro actions.',
                                 goal: 'Measure correlations, select OPE channels, and test anomaly/stress response.',
@@ -606,6 +615,7 @@
                             },
                             sandbox: {
                                 title: 'Advanced Algebra Sandbox',
+                                info: 'Open the full engine controls and raw exports for advanced comparisons between modes, topologies, lattices, and physical problems.',
                                 blackWhite: 'Defined by the selected engine and physical problem.',
                                 objects: 'Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.',
                                 goal: 'Expose the full research workbench without hiding internal controls.',
@@ -764,6 +774,7 @@
                         cards: {
                             spinPhase: {
                                 title: '自旋與相位實驗室',
+                                info: '從相變排序開始：Ising 自旋、兩相生長與團簇場共用局部圖規則，因此拓撲會改變哪些疇能存活。',
                                 blackWhite: '自旋上 / 下，或相位 A / B。',
                                 objects: '局部自旋、疇、液滴與介面。',
                                 goal: '排序、粗化、穩定，或比較由拓撲驅動的域牆。',
@@ -772,6 +783,7 @@
                             },
                             quantumInfo: {
                                 title: '量子資訊實驗室',
+                                info: '用來練習 Pauli-frame 與 stabilizer 糾錯：下局部修復、量測 syndrome，觀察邏輯扇區是否保持正確。',
                                 blackWhite: '正 / 負穩定子，或 Pauli frame 符號。',
                                 objects: 'Pauli 標記、輔助位點、穩定子檢查與邏輯扇區。',
                                 goal: '復原錯誤，或基準測試 Clifford / Pauli 動力學。',
@@ -780,6 +792,7 @@
                             },
                             anyonMemory: {
                                 title: '任意子與拓撲記憶實驗室',
+                                info: '用來研究任意子與拓撲記憶：建立粒子、編織或解編織世界線、融合電荷，檢查記憶是否仍在真空或目標扇區。',
                                 blackWhite: '粒子所有者、電荷符號，或競爭中的任意子扇區。',
                                 objects: '任意子、世界線、融合通道、規範迴圈與記憶弦。',
                                 goal: '產生、編織、融合、解編織，或保存拓撲記憶。',
@@ -788,6 +801,7 @@
                             },
                             cftField: {
                                 title: 'CFT / 場論實驗室',
+                                info: '用來玩離散 CFT 圖模型：插入 primary fields、更新 OPE 通道，量測關聯、共形塊、熵與異常反應。',
                                 blackWhite: '源符號、疇符號，或玩家控制插入點。',
                                 objects: '主場、OPE 區間、共形區塊與 Virasoro 作用。',
                                 goal: '量測關聯、選擇 OPE 通道，並測試反常 / 應力反應。',
@@ -796,6 +810,7 @@
                             },
                             sandbox: {
                                 title: '高階代數沙盒',
+                                info: '開放完整引擎控制與原始匯出，適合想直接比較模式、拓撲、晶格與物理問題的進階玩家。',
                                 blackWhite: '由所選引擎與物理問題定義。',
                                 objects: '棋子、粒子、Pauli frame、主場、規範邊、自旋或疇。',
                                 goal: '開放完整研究工作台，不隱藏內部控制。',
