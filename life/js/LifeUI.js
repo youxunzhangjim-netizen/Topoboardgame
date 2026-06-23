@@ -936,16 +936,31 @@ export class LifeUI {
         originY: (height - boardHeight) / 2 + (Number(this.camera.panY) || 0)
       };
     }
-    const sx = (width / columns) * zoom;
-    const sy = (height / rows) * zoom;
-    const boardWidth = sx * columns;
-    const boardHeight = sy * rows;
+    if (this.engine.dimension === 1) {
+      const sx = (width / columns) * zoom;
+      const boardWidth = sx * columns;
+      const boardHeight = Math.max(42, Math.min(height, height * 0.24) * zoom);
+      return {
+        columns,
+        rows,
+        zoom,
+        sx,
+        sy: boardHeight,
+        boardWidth,
+        boardHeight,
+        originX: (width - boardWidth) / 2 + (Number(this.camera.panX) || 0),
+        originY: (height - boardHeight) / 2 + (Number(this.camera.panY) || 0)
+      };
+    }
+    const cellSide = Math.max(1, Math.min(width / columns, height / rows) * zoom);
+    const boardWidth = cellSide * columns;
+    const boardHeight = cellSide * rows;
     return {
       columns,
       rows,
       zoom,
-      sx,
-      sy,
+      sx: cellSide,
+      sy: cellSide,
       boardWidth,
       boardHeight,
       originX: (width - boardWidth) / 2 + (Number(this.camera.panX) || 0),
@@ -985,10 +1000,7 @@ export class LifeUI {
   eventToPosition(event) {
     const point = this.canvasPointFromEvent(event);
     if (!point) return null;
-    if (this.isProjectedDrawingView()) {
-      const projected = this.projectedPointToPosition(point);
-      if (projected) return projected;
-    }
+    if (this.isProjectedDrawingView()) return this.projectedPointToPosition(point);
     const view = this.flatViewTransform();
     if (this.engine.dimension === 2 && this.flatLatticeKind() !== 'square') {
       return this.flatLatticePositionFromPoint(point, view);
@@ -1101,28 +1113,51 @@ export class LifeUI {
     return nearest && nearest.distance <= maxDistance ? nearest.position : null;
   }
 
-  projectedPointToPosition(point) {
-    const width = this.canvas.width;
-    const height = this.canvas.height;
+  projectedSurfaceCellPolygon(x, y, width, height) {
+    const points = [
+      this.surfaceRawPoint(x, y),
+      this.surfaceRawPoint(x + 1, y),
+      this.surfaceRawPoint(x + 1, y + 1),
+      this.surfaceRawPoint(x, y + 1)
+    ].map((raw) => this.projectPoint(raw, width, height, 0.82));
+    return points.map((projected) => [projected.x, projected.y]);
+  }
+
+  projectedSurfacePointToPosition(point, width, height) {
+    let best = null;
+    const limitX = this.engine.size[0];
+    const limitY = this.engine.size[1] || 1;
+    for (let y = 0; y < limitY; y += 1) {
+      for (let x = 0; x < limitX; x += 1) {
+        const polygon = this.projectedSurfaceCellPolygon(x, y, width, height);
+        if (!this.pointInPolygon(point, polygon)) continue;
+        const center = this.projectPoint(this.surfaceRawPoint(x + 0.5, y + 0.5), width, height, 0.82);
+        const distance = Math.hypot(point.x - center.x, point.y - center.y);
+        const candidate = { distance, depth: center.z, position: [x, y] };
+        if (!best || candidate.depth > best.depth + 0.035 || (Math.abs(candidate.depth - best.depth) <= 0.035 && candidate.distance < best.distance)) {
+          best = candidate;
+        }
+      }
+    }
+    return best?.position || null;
+  }
+
+  projectedVolumePointToPosition(point, width, height) {
     let best = null;
     const limitX = this.engine.size[0];
     const limitY = this.engine.dimension >= 2 ? this.engine.size[1] : 1;
-    const depth = this.engine.dimension >= 3 || this.viewModeSelect.value === 'volume'
-      ? Math.max(1, this.engine.size[2] || 1)
-      : 1;
-    const cellScale = Math.max(10, Math.min(width / Math.max(1, limitX), height / Math.max(1, limitY)) * this.camera.zoom * 2);
+    const depth = Math.max(1, this.engine.size[2] || 1);
+    const baseScale = Math.min(width / Math.max(1, limitX), height / Math.max(1, limitY));
+    const cellScale = Math.max(4, baseScale * this.camera.zoom * 0.52);
     for (let z = 0; z < depth; z += 1) {
       for (let y = 0; y < limitY; y += 1) {
         for (let x = 0; x < limitX; x += 1) {
-          const raw = this.engine.dimension >= 3 || this.viewModeSelect.value === 'volume'
-            ? this.volumeRawPoint(x, y, z)
-            : this.surfaceRawPoint(x + 0.5, y + 0.5);
-          const projected = this.projectPoint(raw, width, height, this.engine.dimension >= 3 ? 0.86 : 0.82);
+          const raw = this.volumeRawPoint(x, y, z);
+          const projected = this.projectPoint(raw, width, height, 0.86);
+          const radius = cellScale * Math.max(0.4, projected.perspective || 1);
           const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
-          if (distance > cellScale) continue;
-          const position = this.engine.dimension >= 3
-            ? (this.engine.dimension === 4 ? [x, y, z, 0] : [x, y, z])
-            : [x, y];
+          if (distance > radius) continue;
+          const position = this.engine.dimension === 4 ? [x, y, z, 0] : [x, y, z];
           const candidate = { distance, depth: projected.z, position };
           if (!best || candidate.depth > best.depth + 0.04 || (Math.abs(candidate.depth - best.depth) <= 0.04 && candidate.distance < best.distance)) {
             best = candidate;
@@ -1131,6 +1166,15 @@ export class LifeUI {
       }
     }
     return best?.position || null;
+  }
+
+  projectedPointToPosition(point) {
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    if (this.engine.dimension === 2 && this.viewModeSelect.value === 'surface3d') {
+      return this.projectedSurfacePointToPosition(point, width, height);
+    }
+    return this.projectedVolumePointToPosition(point, width, height);
   }
 
   afterStateChange() {

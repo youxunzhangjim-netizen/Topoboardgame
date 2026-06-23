@@ -11,7 +11,7 @@
   <main class="life-player-shell">
     <nav class="life-topbar" aria-label="Life player navigation">
       <div class="life-player-title">
-        <p class="eyebrow">Life &amp; Evolution Worlds</p>
+        <p class="eyebrow" data-life-i18n="lifeWorldsTitle">Life &amp; Evolution Worlds</p>
         <h1 id="lifeModeTitle">Life World</h1>
       </div>
       <a href="./" class="ghost-button" data-life-i18n="navBack">← Life Worlds</a>
@@ -89,15 +89,15 @@
             <select id="activePlayerSelect">
               <option value="1" data-life-i18n="playerA">Player A / Blue</option>
               <option value="2" data-life-i18n="playerB">Player B / Red</option>
-              <option value="3">Species 3 / Green</option>
+              <option value="3" data-life-i18n="species3Green">Species 3 / Green</option>
             </select>
           </div>
           <div class="control-row">
             <label for="speciesSelect" data-life-i18n="species">Species</label>
             <select id="speciesSelect">
-              <option value="1">1 species</option>
-              <option value="2">2 species</option>
-              <option value="3">3 species</option>
+              <option value="1" data-life-i18n="oneSpecies">1 species</option>
+              <option value="2" data-life-i18n="twoSpecies">2 species</option>
+              <option value="3" data-life-i18n="threeSpecies">3 species</option>
             </select>
           </div>
           <div class="control-row life-density-control">
@@ -149,56 +149,56 @@
             <div class="control-row">
               <label for="boardGeometrySelect" data-life-i18n="boardGeometry">Board geometry</label>
               <select id="boardGeometrySelect">
-                <option value="r2">R2 Standard Life</option>
-                <option value="t2">T2 Torus Life</option>
-                <option value="cylinder">Cylinder Life</option>
-                <option value="mobius">Möbius Strip Life</option>
-                <option value="klein">Klein Bottle Life</option>
-                <option value="sphere">S2 Sphere Life</option>
-                <option value="rp2">RP2 Projective Life</option>
-                <option value="r3">R3 Voxel Life</option>
-                <option value="t3">T3 Periodic Voxel Life</option>
-                <option value="r3_random">3D RBC Life</option>
-                <option value="reflective">Reflective 3D Life</option>
+                <option value="r2" data-life-i18n="r2StandardLife">R2 Standard Life</option>
+                <option value="t2" data-life-i18n="t2TorusLife">T2 Torus Life</option>
+                <option value="cylinder" data-life-i18n="cylinderLife">Cylinder Life</option>
+                <option value="mobius" data-life-i18n="mobiusStripLife">Mobius Strip Life</option>
+                <option value="klein" data-life-i18n="kleinBottleLife">Klein Bottle Life</option>
+                <option value="sphere" data-life-i18n="s2SphereLife">S2 Sphere Life</option>
+                <option value="rp2" data-life-i18n="rp2ProjectiveLife">RP2 Projective Life</option>
+                <option value="r3" data-life-i18n="r3VoxelLife">R3 Voxel Life</option>
+                <option value="t3" data-life-i18n="t3PeriodicVoxelLife">T3 Periodic Voxel Life</option>
+                <option value="r3_random" data-life-i18n="rbc3DLife">3D RBC Life</option>
+                <option value="reflective" data-life-i18n="reflective3DLife">Reflective 3D Life</option>
               </select>
             </div>
             <div class="control-row">
               <label for="latticeSelect" data-life-i18n="lattice">Lattice</label>
               <select id="latticeSelect">
-                <option value="square">Square</option>
-                <option value="triangular">Triangular</option>
-                <option value="honeycomb">Honeycomb</option>
+                <option value="square" data-life-i18n="squareLattice">Square</option>
+                <option value="triangular" data-life-i18n="triangularLattice">Triangular</option>
+                <option value="honeycomb" data-life-i18n="honeycombLattice">Honeycomb</option>
               </select>
             </div>
             <div class="control-row">
               <label for="viewModeSelect" data-life-i18n="viewMode">View mode</label>
               <select id="viewModeSelect">
-                <option value="flat">2D cut-open board</option>
-                <option value="surface3d">Projected 3D surface</option>
-                <option value="volume">Layered 3D volume</option>
+                <option value="flat" data-life-i18n="flatCutOpenBoard">2D cut-open board</option>
+                <option value="surface3d" data-life-i18n="projected3DSurface">Projected 3D surface</option>
+                <option value="volume" data-life-i18n="layered3DVolume">Layered 3D volume</option>
               </select>
             </div>
             <div class="control-row">
               <label for="dimensionSelect" data-life-i18n="dimension">Dimension</label>
               <select id="dimensionSelect">
-                <option value="1">1D</option>
-                <option value="2" selected>2D</option>
-                <option value="3">3D</option>
-                <option value="4">4D abstract</option>
+                <option value="1" data-life-i18n="dim1D">1D</option>
+                <option value="2" selected data-life-i18n="dim2D">2D</option>
+                <option value="3" data-life-i18n="dim3D">3D</option>
+                <option value="4" data-life-i18n="dim4DAbstract">4D abstract</option>
               </select>
             </div>
             <div class="control-row legacy-topology-control" aria-hidden="true">
               <label for="topologySelect" data-life-i18n="topology">Topology</label>
               <select id="topologySelect" tabindex="-1">
-                <option value="open">R2/R3 open</option>
-                <option value="torus">T2/T3 periodic</option>
-                <option value="cylinder">Cylinder x-wrap</option>
-                <option value="mobius">Mobius</option>
-                <option value="klein">Klein</option>
-                <option value="sphere">S2 sphere</option>
-                <option value="projective">RP2 projective</option>
-                <option value="random">RBC random</option>
-                <option value="reflective">Reflective</option>
+                <option value="open" data-life-i18n="topologyOpen">R2/R3 open</option>
+                <option value="torus" data-life-i18n="topologyPeriodic">T2/T3 periodic</option>
+                <option value="cylinder" data-life-i18n="topologyCylinder">Cylinder x-wrap</option>
+                <option value="mobius" data-life-i18n="topologyMobius">Mobius</option>
+                <option value="klein" data-life-i18n="topologyKlein">Klein</option>
+                <option value="sphere" data-life-i18n="topologySphere">S2 sphere</option>
+                <option value="projective" data-life-i18n="topologyProjective">RP2 projective</option>
+                <option value="random" data-life-i18n="topologyRandom">RBC random</option>
+                <option value="reflective" data-life-i18n="topologyReflective">Reflective</option>
               </select>
             </div>
             <div class="control-row">
@@ -208,9 +208,9 @@
             <div class="control-row">
               <label for="neighborhoodSelect" data-life-i18n="neighborhood">Neighborhood</label>
               <select id="neighborhoodSelect">
-                <option value="nearest">1D nearest</option>
-                <option value="moore">Moore</option>
-                <option value="von_neumann">Von Neumann</option>
+                <option value="nearest" data-life-i18n="nearest1D">1D nearest</option>
+                <option value="moore" data-life-i18n="mooreNeighborhood">Moore</option>
+                <option value="von_neumann" data-life-i18n="vonNeumannNeighborhood">Von Neumann</option>
               </select>
             </div>
             <div class="control-row">
@@ -266,13 +266,13 @@
         </details>
 
         <details class="settings-panel">
-          <summary>Pattern JSON</summary>
+          <summary data-life-i18n="patternJson">Pattern JSON</summary>
           <div class="pattern-tools">
             <div class="life-button-row">
               <button class="life-button" id="exportButton" type="button" data-life-i18n="exportPattern">Export pattern JSON</button>
               <button class="life-button" id="importButton" type="button" data-life-i18n="importPattern">Import pattern JSON</button>
             </div>
-            <textarea id="patternJson" rows="6" spellcheck="false" placeholder="Exported/imported pattern JSON"></textarea>
+            <textarea id="patternJson" rows="6" spellcheck="false" placeholder="Exported/imported pattern JSON" data-life-i18n-placeholder="patternJsonPlaceholder"></textarea>
           </div>
         </details>
       </aside>
@@ -287,7 +287,7 @@
           <p data-life-i18n="playerInfo">For players: This mode turns simple local rules into survival, invasion, collapse, and pattern-building challenges.</p>
         </details>
         <details>
-          <summary>Research</summary>
+          <summary data-life-i18n="researchInfo">Research</summary>
           <p data-life-i18n="researcherInfo">For researchers: This mode is a playable cellular-automaton model for studying how topology, locality, noise, age structure, and competition affect emergent dynamics.</p>
         </details>
       </div>
@@ -297,15 +297,15 @@
       <div class="research-heading">
         <div>
           <p class="eyebrow" data-life-i18n="research">Research Observables</p>
-          <h2 id="researchPanelTitle">Live system readout</h2>
+          <h2 id="researchPanelTitle" data-life-i18n="liveSystemReadout">Live system readout</h2>
         </div>
-        <p id="challengeStatus" class="challenge-status">Status: running</p>
+        <p id="challengeStatus" class="challenge-status"><span data-life-i18n="status">Status</span>: <span data-life-i18n="running">running</span></p>
       </div>
 
       <div class="score-panel two-player-only">
         <article><strong data-life-i18n="playerA">Player A / Blue</strong><span id="scoreA">0</span></article>
         <article><strong data-life-i18n="playerB">Player B / Red</strong><span id="scoreB">0</span></article>
-        <article><strong data-life-i18n="score">Score</strong><span id="scoreFormula">living + territory + stability + diversity − penalties</span></article>
+        <article><strong data-life-i18n="score">Score</strong><span id="scoreFormula" data-life-i18n="scoreFormula">living + territory + stability + diversity - penalties</span></article>
       </div>
 
       <div class="observable-grid">
@@ -329,11 +329,11 @@
 
       <div class="plot-grid">
         <article>
-          <h3>Population</h3>
+          <h3 data-life-i18n="populationPlot">Population</h3>
           <canvas id="populationPlot" width="640" height="180"></canvas>
         </article>
         <article>
-          <h3>Species</h3>
+          <h3 data-life-i18n="speciesPlot">Species</h3>
           <canvas id="speciesPlot" width="640" height="180"></canvas>
         </article>
       </div>
