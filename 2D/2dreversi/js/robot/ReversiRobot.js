@@ -174,18 +174,17 @@ export function estimateReversiWinRates(logic) {
 export function chooseReversiRobotMove(logic, depth = 3) {
     const player = logic.currentPlayer;
     const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
-    if (opening) {
-        return {
-            move: { ...opening.move, label: coordLabel(opening.move.coord) },
-            score: evaluateReversi(logic, player) + opening.score,
-            nodes: 0,
-            truncated: false,
-            openingBook: opening.name,
-            openingPly: opening.ply
-        };
-    }
     const search = searchRoot(logic, depth, false);
-    return { move: search.best?.move || null, score: search.best?.score ?? search.currentScore, nodes: search.nodes, truncated: search.truncated };
+    const choseBookMove = opening && sameReversiMove(search.best?.move, opening.move);
+    return {
+        move: search.best?.move || null,
+        score: search.best?.score ?? search.currentScore,
+        nodes: search.nodes,
+        truncated: search.truncated,
+        openingBook: choseBookMove ? opening.name : undefined,
+        openingPly: choseBookMove ? opening.ply : undefined,
+        bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined
+    };
 }
 
 export function analyzeReversiPosition(logic, depth = 3) {
@@ -194,17 +193,13 @@ export function analyzeReversiPosition(logic, depth = 3) {
     const player = logic.currentPlayer;
     const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
     if (opening) {
-        const score = search.currentScore + opening.score;
-        const key = coordLabel(opening.move.coord);
-        const existing = results.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
-        if (existing >= 0) results.splice(existing, 1);
-        results.unshift({
-            move: { ...opening.move, label: key },
-            score,
-            scoreText: formatScore(score),
-            winRate: scoreToWinRate(score),
-            reasons: ['Opening book: ' + opening.name]
-        });
+        const row = results.find((item) => sameReversiMove(item.move, opening.move));
+        if (row) {
+            row.openingBook = opening.name;
+            row.openingPly = opening.ply;
+            row.reasons = [`Opening book considered: ${opening.name}`, ...row.reasons.filter((reason) => !String(reason).startsWith('Opening book'))];
+        }
+        results.sort((a, b) => b.score - a.score);
     }
     return {
         player: logic.currentPlayer,
@@ -226,7 +221,9 @@ function searchRoot(logic, depth = 3, analysisMode = false) {
     const player = logic.currentPlayer;
     const maxDepth = adjustedDepth(logic, depth);
     const currentScore = evaluateReversi(logic, player);
-    const ordered = orderMoves(logic.legalMoves(player), logic, player).slice(0, ROOT_CAP_BY_DEPTH[clampDepth(depth)] || 28);
+    let ordered = orderMoves(logic.legalMoves(player), logic, player).slice(0, ROOT_CAP_BY_DEPTH[clampDepth(depth)] || 28);
+    const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
+    if (opening && !ordered.some((move) => sameReversiMove(move, opening.move))) ordered = [opening.move, ...ordered];
     const context = makeContext(depth, analysisMode);
     if (!ordered.length) return { best: null, results: [], currentScore, nodes: 0, completedDepth: 0, truncated: false };
     let best = null;
@@ -250,6 +247,10 @@ function searchRoot(logic, depth = 3, analysisMode = false) {
         if (context.truncated || !analysisMode && context.timeUp()) break;
     }
     return { best, results: finalResults, currentScore, nodes: context.nodes, completedDepth, truncated: context.truncated || completedDepth < maxDepth };
+}
+
+function sameReversiMove(a, b) {
+    return Array.isArray(a?.coord) && Array.isArray(b?.coord) && a.coord.length === b.coord.length && a.coord.every((value, index) => Number(value) === Number(b.coord[index]));
 }
 
 function makeContext(depth, analysisMode) {

@@ -594,15 +594,12 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer, trainedSc
   if (!moves.length) return null;
   const memory = robotMoveMemory(game, player);
   const opening = chooseJumpOpeningBookMove(game, moves, player);
-  if (opening) {
-    opening.move.robotScore = opening.score;
-    if (options.remember !== false) rememberRobotMove(memory, opening.move);
-    return opening.move;
-  }
   const ranked = [];
   for (const move of moves) {
-    const score = scoreJumpMove(game, move, player) - repeatedMovePenalty(memory, move);
+    const bookPrior = opening && sameJumpMove(move, opening.move) ? Math.max(-18, Math.min(18, opening.score / 6)) : 0;
+    const score = scoreJumpMove(game, move, player) - repeatedMovePenalty(memory, move) + bookPrior;
     move.robotScore = score;
+    if (bookPrior) move.openingBook = opening.name;
     ranked.push({ move, score });
   }
   ranked.sort((a, b) => b.score - a.score);
@@ -621,6 +618,12 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer, trainedSc
   if (game.chainFrom && best?.score <= 0) return null;
   if (options.remember !== false) rememberRobotMove(memory, best?.move);
   return best?.move || moves[0];
+}
+
+function sameJumpMove(a, b) {
+  if (!a || !b) return false;
+  if (a.id && b.id && a.id === b.id) return true;
+  return coordKey(a.from) === coordKey(b.from) && coordKey(a.to) === coordKey(b.to);
 }
 
 function robotMoveMemory(game, player) {

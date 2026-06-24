@@ -225,19 +225,18 @@ export function estimateGoWinRates(logic) {
 export function chooseGoRobotMove(logic, depth = 3) {
     const player = logic.currentPlayer;
     const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
-    if (opening) {
-        return {
-            move: opening.move,
-            score: evaluateGo(logic, player) + opening.score,
-            nodes: 0,
-            truncated: false,
-            openingBook: opening.name,
-            openingPly: opening.ply
-        };
-    }
     const analysis = analyzeGoPosition(logic, depth, { moveOnly: true });
     const best = analysis.topMoves[0] || null;
-    return { move: best?.move || null, score: best?.score ?? analysis.currentScore, nodes: analysis.nodes, truncated: analysis.truncated };
+    const choseBookMove = opening && sameGoMove(best?.move, opening.move);
+    return {
+        move: best?.move || null,
+        score: best?.score ?? analysis.currentScore,
+        nodes: analysis.nodes,
+        truncated: analysis.truncated,
+        openingBook: choseBookMove ? opening.name : undefined,
+        openingPly: choseBookMove ? opening.ply : undefined,
+        bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined
+    };
 }
 
 export function analyzeGoPosition(logic, depth = 3) {
@@ -246,10 +245,18 @@ export function analyzeGoPosition(logic, depth = 3) {
     const baseScore = evaluateGo(logic, player);
     const start = now();
     const deadline = start + (TIME_BY_LEVEL_MS[level] || 430);
+    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
     const candidates = rankCandidateMoves(logic, player, level).slice(0, CANDIDATE_LIMIT_BY_LEVEL[level] || 24);
+    if (opening && !candidates.some((move) => sameGoMove(move, opening.move))) candidates.unshift(opening.move);
     if (!candidates.length) candidates.push({ type: 'pass', label: 'Pass', prior: -30 });
 
-    const stats = candidates.map((move) => ({ move, visits: 0, total: 0, best: -Infinity, prior: quickMoveScore(logic, move, player) }));
+    const stats = candidates.map((move) => ({
+        move,
+        visits: 0,
+        total: 0,
+        best: -Infinity,
+        prior: quickMoveScore(logic, move, player) + (opening && sameGoMove(move, opening.move) ? Math.max(-12, Math.min(12, opening.score / 12)) : 0)
+    }));
     const budget = MCTS_BUDGET_BY_LEVEL[level] || 220;
     let simulations = 0;
 
@@ -281,20 +288,14 @@ export function analyzeGoPosition(logic, depth = 3) {
         const after = previewAfterMove(logic, item.move, player);
         return { move: item.move, score, scoreText: formatScore(score), winRate: scoreToWinRate(score), visits: item.visits, reasons: explainGoMove(logic, after || logic, item.move, player, score) };
     }).sort((a, b) => b.score - a.score);
-    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
     if (opening) {
-        const score = baseScore + opening.score;
-        const key = coordLabel(opening.move.coord);
-        const existing = results.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
-        if (existing >= 0) results.splice(existing, 1);
-        results.unshift({
-            move: opening.move,
-            score,
-            scoreText: formatScore(score),
-            winRate: scoreToWinRate(score),
-            visits: 0,
-            reasons: ['Opening book: ' + opening.name]
-        });
+        const row = results.find((item) => sameGoMove(item.move, opening.move));
+        if (row) {
+            row.openingBook = opening.name;
+            row.openingPly = opening.ply;
+            row.reasons = [`Opening book considered: ${opening.name}`, ...row.reasons.filter((reason) => !String(reason).startsWith('Opening book'))];
+        }
+        results.sort((a, b) => b.score - a.score);
     }
 
     return {
@@ -310,6 +311,12 @@ export function analyzeGoPosition(logic, depth = 3) {
         badMoves: results.slice(-5).reverse(),
         groupValues: evaluateGroups(logic, player).slice(0, 8)
     };
+}
+
+function sameGoMove(a, b) {
+    if (!a || !b) return false;
+    if (a.type === 'pass' || b.type === 'pass') return a.type === b.type;
+    return Array.isArray(a.coord) && Array.isArray(b.coord) && a.coord.length === b.coord.length && a.coord.every((value, index) => Number(value) === Number(b.coord[index]));
 }
 
 function evaluateCandidateByPlayout(logic, move, rootPlayer, level) {

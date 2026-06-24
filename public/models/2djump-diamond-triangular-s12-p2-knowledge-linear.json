@@ -1,211 +1,83 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-06-22T08:42:34.859Z",
+  "createdAt": "2026-06-24T03:29:43.418Z",
   "modelType": "linear-logistic-policy-value",
-  "weights": {
-    "bias": 0.025176105804482617,
-    "board_size": 0.015900699727888996,
-    "boundary:diamond": 0.025176105804482617,
-    "coord_0": 0.31216577084376357,
-    "coord_1": 0.027067512368370857,
-    "cross:2djump:diamond": 0.025176105804482617,
-    "cross:2djump:diamond:triangular": 0.025176105804482617,
-    "cross:edge:diamond": -0.0749719780466579,
-    "dimension": 0.01678407892835708,
-    "game:2djump": 0.025176105804482617,
-    "lattice:triangular": 0.025176105804482617,
-    "legal_count_log": 0.04385614010105743,
-    "move_bias": 0.025176105804482617,
-    "move_center_closeness": -0.09274319947856792,
-    "move_corner_or_anchor": -0.004434877747907982,
-    "move_edge": -0.0749719780466579,
-    "move_near_edge": 0.10336467964188603,
-    "move_type:jump": 0.2197158926332942,
-    "move_type:step": -0.2092019355377968,
-    "player:A": 0.5104511806397914,
-    "player:B": -0.49202114544335845,
-    "topology:diamond": 0.025176105804482617
-  },
+  "weights": {},
   "training": {
-    "examples": 16358,
-    "epochs": 10,
+    "examples": 3000,
+    "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
     "history": [
       {
         "epoch": 1,
-        "loss": 0.704626,
-        "examples": 16358,
-        "accuracy": 0.5024,
-        "logLoss": 0.803848,
-        "brier": 0.292482
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 2,
-        "loss": 0.704247,
-        "examples": 16358,
-        "accuracy": 0.6195,
-        "logLoss": 0.673494,
-        "brier": 0.239848
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 3,
-        "loss": 0.704369,
-        "examples": 16358,
-        "accuracy": 0.6195,
-        "logLoss": 0.672284,
-        "brier": 0.239487
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 4,
-        "loss": 0.704522,
-        "examples": 16358,
-        "accuracy": 0.4981,
-        "logLoss": 0.758437,
-        "brier": 0.274242
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 5,
-        "loss": 0.701526,
-        "examples": 16358,
-        "accuracy": 0.6209,
-        "logLoss": 0.668181,
-        "brier": 0.237409
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 6,
-        "loss": 0.70446,
-        "examples": 16358,
-        "accuracy": 0.6209,
-        "logLoss": 0.667607,
-        "brier": 0.237229
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 7,
-        "loss": 0.701963,
-        "examples": 16358,
-        "accuracy": 0.5276,
-        "logLoss": 0.683628,
-        "brier": 0.245147
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       },
       {
         "epoch": 8,
-        "loss": 0.705542,
-        "examples": 16358,
-        "accuracy": 0.5603,
-        "logLoss": 0.694784,
-        "brier": 0.249422
-      },
-      {
-        "epoch": 9,
-        "loss": 0.703715,
-        "examples": 16358,
-        "accuracy": 0.4981,
-        "logLoss": 0.737027,
-        "brier": 0.268296
-      },
-      {
-        "epoch": 10,
-        "loss": 0.702309,
-        "examples": 16358,
-        "accuracy": 0.6046,
-        "logLoss": 0.678719,
-        "brier": 0.242241
+        "loss": 0.693147,
+        "examples": 3000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
       }
     ],
-    "featureCount": 22,
-    "input": "local-data/selfplay/2djump-diamond-triangular-s12-p2-knowledge-100.jsonl",
+    "featureCount": 28,
+    "input": "local-data/selfplay/2djump-diamond-triangular-s12-p2-books-100.jsonl",
     "gameFilter": "2djump",
     "modeFilter": "",
-    "topWeights": [
-      {
-        "feature": "player:A",
-        "weight": 0.510451
-      },
-      {
-        "feature": "player:B",
-        "weight": -0.492021
-      },
-      {
-        "feature": "coord_0",
-        "weight": 0.312166
-      },
-      {
-        "feature": "move_type:jump",
-        "weight": 0.219716
-      },
-      {
-        "feature": "move_type:step",
-        "weight": -0.209202
-      },
-      {
-        "feature": "move_near_edge",
-        "weight": 0.103365
-      },
-      {
-        "feature": "move_center_closeness",
-        "weight": -0.092743
-      },
-      {
-        "feature": "cross:edge:diamond",
-        "weight": -0.074972
-      },
-      {
-        "feature": "move_edge",
-        "weight": -0.074972
-      },
-      {
-        "feature": "legal_count_log",
-        "weight": 0.043856
-      },
-      {
-        "feature": "coord_1",
-        "weight": 0.027068
-      },
-      {
-        "feature": "bias",
-        "weight": 0.025176
-      },
-      {
-        "feature": "boundary:diamond",
-        "weight": 0.025176
-      },
-      {
-        "feature": "cross:2djump:diamond",
-        "weight": 0.025176
-      },
-      {
-        "feature": "cross:2djump:diamond:triangular",
-        "weight": 0.025176
-      },
-      {
-        "feature": "game:2djump",
-        "weight": 0.025176
-      },
-      {
-        "feature": "lattice:triangular",
-        "weight": 0.025176
-      },
-      {
-        "feature": "move_bias",
-        "weight": 0.025176
-      },
-      {
-        "feature": "topology:diamond",
-        "weight": 0.025176
-      },
-      {
-        "feature": "dimension",
-        "weight": 0.016784
-      },
-      {
-        "feature": "board_size",
-        "weight": 0.015901
-      },
-      {
-        "feature": "move_corner_or_anchor",
-        "weight": -0.004435
-      }
-    ]
+    "topWeights": []
   }
 }

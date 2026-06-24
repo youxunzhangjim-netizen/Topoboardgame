@@ -32,26 +32,12 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
     const state = normalizeState(inputState);
     const player = state.currentPlayer;
     const maxDepth = clampDepth(depth);
-    const legal = orderMoves(getAllLegalMoves(state, player), state, player).slice(0, ROOT_CAP_BY_DEPTH[maxDepth] || 30);
+    const allLegal = orderMoves(getAllLegalMoves(state, player), state, player);
+    const legal = allLegal.slice(0, ROOT_CAP_BY_DEPTH[maxDepth] || 30);
     const currentScore = evaluateState(state, player);
     if (!legal.length) return { move: null, score: currentScore, scoreText: formatScore(currentScore), winRate: scoreToWinRate(currentScore), depth: 0, nodes: 0, truncated: false, completedDepth: 0 };
 
-    const opening = chooseChessOpeningBookMove(state, legal, player);
-    if (opening) {
-        const score = currentScore + opening.score;
-        return {
-            move: opening.move,
-            score,
-            scoreText: formatScore(score),
-            winRate: scoreToWinRate(score),
-            depth: maxDepth,
-            completedDepth: 0,
-            nodes: 0,
-            truncated: false,
-            openingBook: opening.name,
-            openingPly: opening.ply
-        };
-    }
+    const opening = chooseChessOpeningBookMove(state, allLegal, player);
 
     const context = makeSearchContext(maxDepth, DEFAULT_NODE_LIMIT + maxDepth * 22000, TIME_BY_DEPTH_MS[maxDepth] || 420);
     let best = { move: legal[0], score: -INF };
@@ -59,7 +45,7 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
 
     for (let d = 1; d <= maxDepth; d += 1) {
         context.iterationDepth = d;
-        const result = negamax(state, d, -INF, INF, player, context, 0, best.move);
+        const result = negamax(state, d, -INF, INF, player, context, 0, opening?.move || best.move);
         if (result.move && !context.hardTruncated) {
             best = result;
             completedDepth = d;
@@ -73,6 +59,7 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
         best = onePlyFallback(state, player, legal);
     }
 
+    const choseBookMove = opening && sameMove(best.move, opening.move);
     return {
         move: best.move,
         score: best.score,
@@ -81,7 +68,10 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
         depth: maxDepth,
         completedDepth,
         nodes: context.nodes,
-        truncated: context.truncated || completedDepth < maxDepth
+        truncated: context.truncated || completedDepth < maxDepth,
+        openingBook: choseBookMove ? opening.name : undefined,
+        openingPly: choseBookMove ? opening.ply : undefined,
+        bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined
     };
 }
 
@@ -136,16 +126,23 @@ export function analyzePositionFromState(inputState, depth = 3) {
     results.sort((a, b) => b.score - a.score);
     const opening = chooseChessOpeningBookMove(state, allMoves, player);
     if (opening) {
-        const score = currentScore + opening.score;
-        const existing = results.findIndex((row) => row.move?.id === opening.move?.id);
-        if (existing >= 0) results.splice(existing, 1);
-        results.unshift({
-            move: opening.move,
-            score,
-            scoreText: formatScore(score),
-            winRate: scoreToWinRate(score),
-            reasons: ['Opening book: ' + opening.name]
-        });
+        let row = results.find((item) => sameMove(item.move, opening.move));
+        if (!row) {
+            const next = applyMoveToState(state, opening.move);
+            const score = evaluateState(next, player);
+            row = {
+                move: opening.move,
+                score,
+                scoreText: formatScore(score),
+                winRate: scoreToWinRate(score),
+                reasons: explainMove(state, next, opening.move, player, score)
+            };
+            results.push(row);
+        }
+        row.openingBook = opening.name;
+        row.openingPly = opening.ply;
+        row.reasons = [`Opening book considered: ${opening.name}`, ...row.reasons.filter((reason) => !String(reason).startsWith('Opening book'))];
+        results.sort((a, b) => b.score - a.score);
     }
 
     return {
