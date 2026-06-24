@@ -222,9 +222,30 @@ export function estimateGoWinRates(logic) {
     return { blackWinRate, whiteWinRate: 1 - blackWinRate, score: blackScore };
 }
 
+function searchProfile(logic, level) {
+    const points = playablePointCount(logic);
+    const large = points > 121;
+    const huge = points > 225;
+    const budgetScale = huge ? 0.36 : large ? 0.62 : 1;
+    const timeScale = huge ? 0.58 : large ? 0.76 : 1;
+    const baseCandidateLimit = CANDIDATE_LIMIT_BY_LEVEL[level] || 24;
+    return {
+        points,
+        fullScan: !large,
+        rawCandidateLimit: huge ? 108 : large ? 86 : Infinity,
+        candidateLimit: large ? Math.max(14, Math.round(baseCandidateLimit * (huge ? 0.55 : 0.72))) : baseCandidateLimit,
+        budget: Math.max(36, Math.round((MCTS_BUDGET_BY_LEVEL[level] || 220) * budgetScale)),
+        timeMs: Math.max(110, Math.round((TIME_BY_LEVEL_MS[level] || 430) * timeScale)),
+        playoutDepth: Math.max(2, (PLAYOUT_DEPTH_BY_LEVEL[level] || 5) - (huge ? 4 : large ? 2 : 0)),
+        replyLimit: huge ? 5 : large ? 6 : 8
+    };
+}
+
 export function chooseGoRobotMove(logic, depth = 3) {
     const player = logic.currentPlayer;
-    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
+    const level = clampLevel(depth);
+    const profile = searchProfile(logic, level);
+    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player, { profile, opening: true }), player);
     const analysis = analyzeGoPosition(logic, depth, { moveOnly: true });
     const best = analysis.topMoves[0] || null;
     const choseBookMove = opening && sameGoMove(best?.move, opening.move);
@@ -239,14 +260,15 @@ export function chooseGoRobotMove(logic, depth = 3) {
     };
 }
 
-export function analyzeGoPosition(logic, depth = 3) {
+export function analyzeGoPosition(logic, depth = 3, options = {}) {
     const level = clampLevel(depth);
+    const profile = options.profile || searchProfile(logic, level);
     const player = logic.currentPlayer;
     const baseScore = evaluateGo(logic, player);
     const start = now();
-    const deadline = start + (TIME_BY_LEVEL_MS[level] || 430);
-    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
-    const candidates = rankCandidateMoves(logic, player, level).slice(0, CANDIDATE_LIMIT_BY_LEVEL[level] || 24);
+    const deadline = start + profile.timeMs;
+    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player, { profile, opening: true }), player);
+    const candidates = rankCandidateMoves(logic, player, level, { profile }).slice(0, profile.candidateLimit);
     if (opening && !candidates.some((move) => sameGoMove(move, opening.move))) candidates.unshift(opening.move);
     if (!candidates.length) candidates.push({ type: 'pass', label: 'Pass', prior: -30 });
 
@@ -255,14 +277,14 @@ export function analyzeGoPosition(logic, depth = 3) {
         visits: 0,
         total: 0,
         best: -Infinity,
-        prior: quickMoveScore(logic, move, player) + (opening && sameGoMove(move, opening.move) ? Math.max(-12, Math.min(12, opening.score / 12)) : 0)
+        prior: (Number(move.prior) || quickMoveScore(logic, move, player)) + (opening && sameGoMove(move, opening.move) ? Math.max(-12, Math.min(12, opening.score / 12)) : 0)
     }));
-    const budget = MCTS_BUDGET_BY_LEVEL[level] || 220;
+    const budget = profile.budget;
     let simulations = 0;
 
     // Give every candidate at least one static/short rollout evaluation.
     for (const item of stats) {
-        const score = evaluateCandidateByPlayout(logic, item.move, player, level);
+        const score = evaluateCandidateByPlayout(logic, item.move, player, level, profile);
         item.visits += 1; item.total += score; item.best = Math.max(item.best, score); simulations += 1;
         if (now() >= deadline) break;
     }
@@ -278,7 +300,7 @@ export function analyzeGoPosition(logic, depth = 3) {
             const ucb = mean + explore * 18 + prior;
             if (ucb > chosenValue) { chosenValue = ucb; chosen = item; }
         }
-        const score = evaluateCandidateByPlayout(logic, chosen.move, player, level);
+        const score = evaluateCandidateByPlayout(logic, chosen.move, player, level, profile);
         chosen.visits += 1; chosen.total += score; chosen.best = Math.max(chosen.best, score); simulations += 1;
     }
 
@@ -305,6 +327,7 @@ export function analyzeGoPosition(logic, depth = 3) {
         depth: level,
         nodes: simulations,
         truncated: simulations < budget,
+        searchProfile: { points: profile.points, candidates: candidates.length, budget, largeBoard: !profile.fullScan },
         currentScore: baseScore,
         currentWinRate: scoreToWinRate(baseScore),
         topMoves: results.slice(0, 5),
@@ -319,15 +342,16 @@ function sameGoMove(a, b) {
     return Array.isArray(a.coord) && Array.isArray(b.coord) && a.coord.length === b.coord.length && a.coord.every((value, index) => Number(value) === Number(b.coord[index]));
 }
 
-function evaluateCandidateByPlayout(logic, move, rootPlayer, level) {
+function evaluateCandidateByPlayout(logic, move, rootPlayer, level, profile = searchProfile(logic, level)) {
     const clone = cloneGoLogic(logic);
     const applied = applyGoMove(clone, move, rootPlayer);
     if (!applied?.ok && move.type !== 'pass') return -100000;
     let score = evaluateGo(clone, rootPlayer);
-    const plies = PLAYOUT_DEPTH_BY_LEVEL[level] || 5;
+    const plies = profile.playoutDepth;
     for (let ply = 0; ply < plies && !clone.gameOver && !clone.scoringPending; ply += 1) {
         const color = clone.currentPlayer;
-        const moves = rankCandidateMoves(clone, color, Math.min(level, 2)).slice(0, 8);
+        const replyProfile = searchProfile(clone, Math.min(level, 2));
+        const moves = rankCandidateMoves(clone, color, Math.min(level, 2), { profile: replyProfile, playout: true }).slice(0, profile.replyLimit);
         if (!moves.length) { clone.pass(color); continue; }
         const picked = weightedPick(moves, clone, color, ply);
         applyGoMove(clone, picked, color);
@@ -349,11 +373,12 @@ function weightedPick(moves, logic, player, ply) {
     return sorted[0];
 }
 
-function rankCandidateMoves(logic, player, depth = 3) {
-    const legal = getLegalPlayCandidates(logic, player);
+function rankCandidateMoves(logic, player, depth = 3, options = {}) {
+    const profile = options.profile || searchProfile(logic, clampLevel(depth));
+    const legal = getLegalPlayCandidates(logic, player, { profile, playout: options.playout });
     const ranked = legal.map((move) => ({ ...move, prior: quickMoveScore(logic, move, player) })).sort((a, b) => b.prior - a.prior);
     const level = clampLevel(depth);
-    const limit = Math.min(ranked.length, Math.max(10, CANDIDATE_LIMIT_BY_LEVEL[level] || 24));
+    const limit = Math.min(ranked.length, Math.max(10, options.playout ? profile.replyLimit : profile.candidateLimit));
     const picked = ranked.slice(0, limit);
     const pass = ranked.find((move) => move.type === 'pass');
     if (pass && !picked.some((move) => move.type === 'pass')) picked[picked.length - 1] = pass;
@@ -366,12 +391,185 @@ function playableCoords(logic) {
     return [];
 }
 
-function getLegalPlayCandidates(logic, player) {
+function playablePointCount(logic) {
+    try {
+        if (typeof logic.playableCoords === 'function') return logic.playableCoords().length;
+        if (typeof logic.allCoords === 'function') return logic.allCoords().length;
+    } catch {
+        // Fall through to the board length fallback.
+    }
+    return logic.board?.length || 0;
+}
+
+function coordKey(coord) {
+    return Array.isArray(coord) ? coord.join(',') : String(coord);
+}
+
+function isPlayableIndex(logic, index) {
+    if (!Number.isInteger(Number(index)) || index < 0 || index >= (logic.board?.length || 0)) return false;
+    if (typeof logic.isPlayableIndex === 'function') return logic.isPlayableIndex(index);
+    if (typeof logic.coordFromIndex === 'function' && typeof logic.containsCoord === 'function') return logic.containsCoord(logic.coordFromIndex(index));
+    return true;
+}
+
+function createEmptyRegionLookup(logic) {
+    const cache = new Map();
+    return function regionFor(startIndex) {
+        if (!isPlayableIndex(logic, startIndex) || logic.board[startIndex] !== COLORS.empty) return { owner: '', size: 0 };
+        if (cache.has(startIndex)) return cache.get(startIndex);
+        const visited = new Set([startIndex]);
+        const region = [];
+        const borders = new Set();
+        const stack = [startIndex];
+        while (stack.length) {
+            const index = stack.pop();
+            region.push(index);
+            for (const next of logic.neighborsFromIndex(index)) {
+                if (!isPlayableIndex(logic, next)) continue;
+                const value = logic.board[next];
+                if (value === COLORS.empty) {
+                    if (!visited.has(next)) {
+                        visited.add(next);
+                        stack.push(next);
+                    }
+                } else {
+                    const color = valueToColor(value);
+                    if (color) borders.add(color);
+                }
+            }
+        }
+        const info = { owner: borders.size === 1 ? [...borders][0] : '', size: region.length };
+        for (const index of region) cache.set(index, info);
+        return info;
+    };
+}
+
+function tacticalCandidateCoords(logic, player, { limit = 86 } = {}) {
+    const all = playableCoords(logic);
+    const cap = Number.isFinite(limit) ? Math.max(18, Math.floor(limit)) : Infinity;
+    if (!all.length) return [];
+    if (all.length <= 121) return all;
+
+    const candidates = new Map();
+    const addCoord = (coord, priority = 0) => {
+        if (!Array.isArray(coord) || !logic.containsCoord(coord)) return;
+        const index = logic.indexFromCoord(coord);
+        if (!isPlayableIndex(logic, index) || logic.board[index] !== COLORS.empty) return;
+        const key = coordKey(coord);
+        const previous = candidates.get(key);
+        if (!previous || previous.priority < priority) candidates.set(key, { coord: [...coord], priority });
+    };
+    const addIndex = (index, priority = 0) => {
+        if (!isPlayableIndex(logic, index) || logic.board[index] !== COLORS.empty) return;
+        addCoord(logic.coordFromIndex(index), priority);
+    };
+
+    addStrategicAnchors(logic, addCoord);
+    addRecentLocalMoves(logic, addIndex);
+
+    const visited = new Set();
+    for (let index = 0; index < logic.board.length; index += 1) {
+        if (!isPlayableIndex(logic, index) || visited.has(index)) continue;
+        const color = valueToColor(logic.board[index]);
+        if (!color) continue;
+        const group = logic.getGroupAndLiberties(logic.board, index);
+        for (const stone of group.group) visited.add(stone);
+        const friendly = color === player;
+        const liberties = group.liberties.size;
+        const urgent = liberties <= 1 ? 150 : liberties === 2 ? 118 : liberties === 3 ? 86 : 55;
+        for (const liberty of group.liberties) {
+            addIndex(liberty, urgent + (friendly ? 8 : 18) + Math.min(18, group.group.size));
+        }
+        const shellPriority = friendly ? 42 : 50;
+        for (const stone of group.group) {
+            for (const next of logic.neighborsFromIndex(stone)) {
+                if (!isPlayableIndex(logic, next)) continue;
+                if (logic.board[next] === COLORS.empty) addIndex(next, shellPriority);
+                else {
+                    for (const next2 of logic.neighborsFromIndex(next)) addIndex(next2, shellPriority - 18);
+                }
+            }
+        }
+    }
+
+    if (candidates.size < Math.min(24, cap * 0.45)) addSpacedGridAnchors(logic, addCoord, cap);
+    if (!candidates.size) {
+        for (const coord of all) {
+            addCoord(coord, 1);
+            if (candidates.size >= cap) break;
+        }
+    }
+    return [...candidates.values()]
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, cap)
+        .map((entry) => entry.coord);
+}
+
+function addStrategicAnchors(logic, addCoord) {
+    const size = Math.max(1, Number(logic.size) || Math.round(Math.sqrt(logic.board?.length || 1)));
+    if (logic.topology === 'polar') {
+        addCoord([0, 0], 84);
+        const rings = uniqueNumbers([Math.floor(size * 0.3), Math.floor(size * 0.55), Math.floor(size * 0.8)]).filter((ring) => ring > 0 && ring < size);
+        const stride = Math.max(1, Math.floor(size / 8));
+        for (const ring of rings) {
+            for (let sector = 0; sector < size; sector += stride) addCoord([ring, sector], 58);
+        }
+        return;
+    }
+    const low = size >= 15 ? 3 : size >= 11 ? 3 : 2;
+    const high = size - 1 - low;
+    const mid = Math.floor((size - 1) / 2);
+    const anchors = uniqueNumbers([low, mid, high]).filter((value) => value >= 0 && value < size);
+    for (const y of anchors) for (const x of anchors) addCoord([x, y], x === mid && y === mid ? 72 : 62);
+    for (const value of uniqueNumbers([1, size - 2, low, high]).filter((v) => v >= 0 && v < size)) {
+        addCoord([value, value], 38);
+        addCoord([value, size - 1 - value], 38);
+    }
+    if (['pbc', 'cylinder', 'klein', 'random'].includes(logic.topology)) {
+        const stride = Math.max(1, Math.floor(size / 7));
+        for (let i = 0; i < size; i += stride) {
+            addCoord([0, i], 48);
+            addCoord([size - 1, i], 48);
+            addCoord([i, 0], logic.topology === 'cylinder' ? 30 : 48);
+            addCoord([i, size - 1], logic.topology === 'cylinder' ? 30 : 48);
+        }
+    }
+}
+
+function addRecentLocalMoves(logic, addIndex) {
+    const history = Array.isArray(logic.moveHistory) ? logic.moveHistory : [];
+    for (const entry of history.slice(0, 8)) {
+        if (entry?.type !== 'play' || !Array.isArray(entry.coord)) continue;
+        const index = logic.indexFromCoord(entry.coord);
+        if (!isPlayableIndex(logic, index)) continue;
+        for (const next of logic.neighborsFromIndex(index)) {
+            addIndex(next, 78);
+            for (const next2 of logic.neighborsFromIndex(next)) addIndex(next2, 46);
+        }
+    }
+}
+
+function addSpacedGridAnchors(logic, addCoord, cap) {
+    const all = playableCoords(logic);
+    const stride = Math.max(2, Math.floor(Math.sqrt(all.length / Math.max(1, cap * 0.55))));
+    for (let i = 0; i < all.length; i += stride) addCoord(all[i], 18);
+}
+
+function uniqueNumbers(values) {
+    return [...new Set(values.map((value) => Math.round(Number(value))).filter(Number.isFinite))];
+}
+
+function getLegalPlayCandidates(logic, player, options = {}) {
+    const profile = options.profile || searchProfile(logic, 2);
+    const coords = profile.fullScan && !options.opening
+        ? playableCoords(logic)
+        : tacticalCandidateCoords(logic, player, { limit: options.opening ? Math.max(36, Math.min(72, profile.rawCandidateLimit || 72)) : profile.rawCandidateLimit });
+    const regionInfo = createEmptyRegionLookup(logic);
     const moves = [];
-    for (const coord of playableCoords(logic)) {
+    for (const coord of coords) {
         const preview = previewLegalPlay(logic, coord, player);
         if (preview.ok) {
-            const region = emptyRegionInfo(logic, logic.indexFromCoord(coord));
+            const region = regionInfo(logic.indexFromCoord(coord));
             moves.push({
                 type: 'play',
                 coord,
@@ -392,20 +590,16 @@ function getLegalPlayCandidates(logic, player) {
 function chooseSafeRobotMove(logic, preferred) {
     if (logic.gameOver || logic.scoringPending) return null;
     const player = logic.currentPlayer;
-    const legal = getLegalPlayCandidates(logic, player);
-    const legalPlays = legal.filter((move) => move.type === 'play');
     if (preferred?.type === 'play') {
-        const key = coordLabel(preferred.coord);
-        const matched = legalPlays.find((move) => coordLabel(move.coord) === key);
-        if (matched) return matched;
+        const preview = previewLegalPlay(logic, preferred.coord, player);
+        if (preview.ok) return { ...preferred, captured: preview.captured, liberties: preview.liberties, label: coordLabel(preferred.coord) };
     }
-    if (preferred?.type === 'pass' && legal.some((move) => move.type === 'pass')) return legal.find((move) => move.type === 'pass');
-    return legalPlays[0] || legal.find((move) => move.type === 'pass') || null;
+    if (preferred?.type === 'pass') return { type: 'pass', label: 'Pass', captured: 0, liberties: 0 };
+    return rankCandidateMoves(logic, player, 1).find((move) => move.type === 'play') || { type: 'pass', label: 'Pass', captured: 0, liberties: 0 };
 }
 
 function previewLegalPlay(logic, coord, color) {
     if (logic.gameOver || logic.scoringPending) return { ok: false };
-    if (color !== logic.currentPlayer) return { ok: false };
     if (!logic.containsCoord(coord)) return { ok: false };
     const index = logic.indexFromCoord(coord);
     if (index < 0 || logic.board[index] !== COLORS.empty) return { ok: false };
@@ -665,9 +859,30 @@ function evaluateGo(logic, player) {
     const captureDiff = (logic.captures[player] || 0) - (logic.captures[opponent] || 0);
     const groupDiff = groupScore(logic, player) - groupScore(logic, opponent);
     const topologyDiff = topologyScore(logic, player) - topologyScore(logic, opponent);
-    const mobilityDiff = getLegalPlayCandidates(logic, player).length - getLegalPlayCandidates(logic, opponent).length;
+    const mobilityDiff = fastMobility(logic, player) - fastMobility(logic, opponent);
     const territoryDiff = territorySecurityScore(logic, player) - territorySecurityScore(logic, opponent);
     return 15 * areaDiff + 10 * captureDiff + groupDiff + topologyDiff + territoryDiff + 1.8 * mobilityDiff;
+}
+
+function fastMobility(logic, player) {
+    const friendly = player === 'black' ? COLORS.black : COLORS.white;
+    const enemy = player === 'black' ? COLORS.white : COLORS.black;
+    const visited = new Set();
+    const liberties = new Set();
+    let openShape = 0;
+    for (let index = 0; index < logic.board.length; index += 1) {
+        if (visited.has(index)) continue;
+        const value = logic.board[index];
+        if (value !== friendly && value !== enemy) continue;
+        const group = logic.getGroupAndLiberties(logic.board, index);
+        for (const stone of group.group) visited.add(stone);
+        const isAttack = value === enemy;
+        const groupWeight = isAttack && group.liberties.size <= 3 ? 1.2 : value === friendly ? 1 : 0.35;
+        for (const liberty of group.liberties) liberties.add(liberty);
+        openShape += groupWeight * Math.min(6, group.liberties.size);
+    }
+    if (!visited.size) return Math.min(12, playablePointCount(logic));
+    return liberties.size + openShape;
 }
 
 function groupScore(logic, player) {

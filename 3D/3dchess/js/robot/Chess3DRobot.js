@@ -86,14 +86,36 @@ async function maybeYield(stats) {
   stats.lastYield = nowMs();
 }
 function nowMs() { return globalThis.performance?.now?.() ?? Date.now(); }
-function makeStats(depth = 3, analysis = false) {
-  const time = (analysis ? 1.4 : 1) * ({ 1: 90, 2: 260, 3: 620, 4: 1100 }[Math.max(1, Math.min(4, Number(depth) || 3))] || 420);
-  return { nodes: 0, nodeLimit: analysis ? 90000 : 52000, deadline: nowMs() + time, lastYield: nowMs(), tt: new Map(), truncated: false };
+function makeStats(depth = 3, analysis = false, complexity = 1) {
+  const level = Math.max(1, Math.min(4, Number(depth) || 3));
+  const scale = complexity >= 4 ? 0.55 : complexity >= 2.3 ? 0.72 : complexity >= 1.5 ? 0.85 : 1;
+  const time = (analysis ? 1.4 : 1) * ({ 1: 90, 2: 260, 3: 620, 4: 1100 }[level] || 420) * scale;
+  const baseLimit = analysis ? 90000 : 52000;
+  return { nodes: 0, nodeLimit: Math.max(9000, Math.round(baseLimit * scale)), deadline: nowMs() + time, lastYield: nowMs(), tt: new Map(), truncated: false, complexity };
 }
 function timeUp(stats) {
   if (!stats) return false;
   if (stats.nodes >= (stats.nodeLimit || Infinity) || nowMs() >= (stats.deadline || Infinity)) { stats.truncated = true; return true; }
   return false;
+}
+
+function boardVolume(state) {
+  const layers = state.board?.length || 1;
+  const rows = state.board?.[0]?.length || 1;
+  const cols = state.board?.[0]?.[0]?.length || 1;
+  return layers * rows * cols;
+}
+
+function searchComplexity(state, legalCount = 0) {
+  return Math.max(1, legalCount / 72, boardVolume(state) / 192);
+}
+
+function searchMoveCap(depth, legalCount, analysis = false, complexity = 1) {
+  const level = Math.max(1, Math.min(4, Number(depth) || 3));
+  const base = analysis ? (level >= 3 ? 80 : 180) : (level >= 3 ? 34 : 90);
+  const countScale = legalCount > 220 ? 0.42 : legalCount > 140 ? 0.55 : legalCount > 90 ? 0.72 : 1;
+  const complexityScale = complexity >= 4 ? 0.72 : complexity >= 2.3 ? 0.84 : 1;
+  return Math.max(analysis ? 22 : 14, Math.min(legalCount, Math.round(base * countScale * complexityScale)));
 }
 
 function allPieces(game, state, color = null) {
@@ -270,8 +292,14 @@ function evaluate(game, state, color) {
   if (withState(game, state, () => game.isInCheck?.(color))) score -= 140;
   return score;
 }
-function moveOrderingScore(move) {
+function sameChessMove(a, b) {
+  if (!a || !b) return false;
+  return moveId(a) === moveId(b);
+}
+
+function moveOrderingScore(move, preferred = null) {
   let score = 0;
+  if (preferred && sameChessMove(move, preferred)) score += 2600;
   if (move.capturedPiece) score += 10 * (PIECE_VALUES[move.capturedPiece.type] || 0) - (PIECE_VALUES[move.piece?.type] || 0);
   if (move.promotion) score += 850;
   if (move.castling) score += 1800;
@@ -279,15 +307,21 @@ function moveOrderingScore(move) {
   if (move.piece?.type === 'R' && !move.capturedPiece) score -= 260;
   return score;
 }
+
+function openingBias(move, opening) {
+  if (!opening || !sameChessMove(move, opening.move)) return 0;
+  return Math.max(-45, Math.min(45, Number(opening.score) / 3 || 0));
+}
 function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
   stats.nodes += 1;
   if (timeUp(stats)) return { score: evaluate(game, state, rootColor), move: null };
   if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
   if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
+  const cap = searchMoveCap(depth, moves.length, false, stats.complexity || 1);
   let bestMove = moves[0];
   let bestScore = -Infinity;
-  for (const move of moves.slice(0, depth >= 3 ? 34 : 90)) {
+  for (const move of moves.slice(0, cap)) {
     const next = simulateMove(game, state, move);
     const result = negamax(game, next, depth - 1, -beta, -alpha, other(color), rootColor, stats);
     const score = -result.score;
@@ -305,9 +339,10 @@ async function negamaxAsync(game, state, depth, alpha, beta, color, rootColor, s
   if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
   if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
+  const cap = searchMoveCap(depth, moves.length, false, stats.complexity || 1);
   let bestMove = moves[0];
   let bestScore = -Infinity;
-  for (const move of moves.slice(0, depth >= 3 ? 34 : 90)) {
+  for (const move of moves.slice(0, cap)) {
     const next = simulateMove(game, state, move);
     const result = await negamaxAsync(game, next, depth - 1, -beta, -alpha, other(color), rootColor, stats);
     const score = -result.score;
@@ -336,68 +371,82 @@ function analyze(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const scoreBefore = evaluate(game, state, player);
-  const moves = legalMovesFor(game, state, player).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a)).slice(0, depth >= 3 ? 80 : 180);
+  const allMoves = legalMovesFor(game, state, player);
+  const opening = chooseChessOpeningBookMove(state, allMoves, player);
+  const complexity = searchComplexity(state, allMoves.length);
+  const cap = searchMoveCap(depth, allMoves.length, true, complexity);
+  const moves = allMoves.sort((a, b) => moveOrderingScore(b, opening?.move) - moveOrderingScore(a, opening?.move)).slice(0, cap);
+  if (opening && !moves.some((move) => sameChessMove(move, opening.move))) moves.unshift(opening.move);
   const rows = [];
   let nodes = 0;
   for (const move of moves) {
     const next = simulateMove(game, state, move);
-    const stats = makeStats(depth, true);
+    const stats = makeStats(depth, true, complexity);
     const result = depth <= 1 ? { score: evaluate(game, next, player) } : negamax(game, next, depth - 1, -Infinity, Infinity, other(player), player, stats);
     nodes += stats.nodes;
-    const score = -result.score;
+    const score = -result.score + openingBias(move, opening);
     rows.push({ move, score, winRate: sigmoid(score), reasons: explainMove(game, state, move, scoreBefore, score) });
   }
+  annotateOpeningRows(rows, opening);
   rows.sort((a, b) => b.score - a.score);
   const pieces = allPieces(game, state, player).map((entry) => ({ label: `${entry.piece.type} ${formatCoord(entry)}`, value: pieceDynamicValue(game, state, entry) })).sort((a, b) => b.value - a.value).slice(0, 12);
-  return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
+  return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes, searchProfile: { legalMoves: allMoves.length, searchedMoves: moves.length, complexity } };
 }
 
 export async function analyze3DChessPosition(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
   const scoreBefore = evaluate(game, state, player);
-  const moves = legalMovesFor(game, state, player).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a)).slice(0, depth >= 3 ? 80 : 180);
+  const allMoves = legalMovesFor(game, state, player);
+  const opening = chooseChessOpeningBookMove(state, allMoves, player);
+  const complexity = searchComplexity(state, allMoves.length);
+  const cap = searchMoveCap(depth, allMoves.length, true, complexity);
+  const moves = allMoves.sort((a, b) => moveOrderingScore(b, opening?.move) - moveOrderingScore(a, opening?.move)).slice(0, cap);
+  if (opening && !moves.some((move) => sameChessMove(move, opening.move))) moves.unshift(opening.move);
   const rows = [];
   let nodes = 0;
-  const yieldStats = makeStats(depth, true);
+  const yieldStats = makeStats(depth, true, complexity);
   for (const move of moves) {
     await maybeYield(yieldStats);
     const next = simulateMove(game, state, move);
-    const stats = makeStats(depth, true);
+    const stats = makeStats(depth, true, complexity);
     stats.lastYield = yieldStats.lastYield;
     const result = depth <= 1 ? { score: evaluate(game, next, player) } : await negamaxAsync(game, next, depth - 1, -Infinity, Infinity, other(player), player, stats);
     yieldStats.lastYield = stats.lastYield;
     nodes += stats.nodes;
-    const score = -result.score;
+    const score = -result.score + openingBias(move, opening);
     rows.push({ move, score, winRate: sigmoid(score), reasons: explainMove(game, state, move, scoreBefore, score) });
   }
+  annotateOpeningRows(rows, opening);
   rows.sort((a, b) => b.score - a.score);
   const pieces = allPieces(game, state, player).map((entry) => ({ label: `${entry.piece.type} ${formatCoord(entry)}`, value: pieceDynamicValue(game, state, entry) })).sort((a, b) => b.value - a.value).slice(0, 12);
-  return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes };
+  return { player, depth, currentScore: scoreBefore, currentWinRate: sigmoid(scoreBefore), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), pieces, nodes, searchProfile: { legalMoves: allMoves.length, searchedMoves: moves.length, complexity } };
+}
+
+function annotateOpeningRows(rows, opening) {
+  if (!opening) return;
+  const row = rows.find((item) => sameChessMove(item.move, opening.move));
+  if (!row) return;
+  row.openingBook = opening.name;
+  row.openingPly = opening.ply;
+  row.reasons = [`Opening book considered: ${opening.name}`, ...row.reasons.filter((reason) => !String(reason).startsWith('Opening book'))];
 }
 
 
 export async function choose3DChessRobotMove(game, depth = 3) {
   const state = cloneState(game);
   const player = state.currentPlayer;
-  const stats = makeStats(depth, false);
-  const moves = legalMovesFor(game, state, player)
-    .sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a))
-    .slice(0, depth >= 3 ? 34 : 90);
+  const allMoves = legalMovesFor(game, state, player);
+  const opening = chooseChessOpeningBookMove(state, allMoves, player);
+  const complexity = searchComplexity(state, allMoves.length);
+  const stats = makeStats(depth, false, complexity);
+  const cap = searchMoveCap(depth, allMoves.length, false, complexity);
+  const moves = allMoves
+    .sort((a, b) => moveOrderingScore(b, opening?.move) - moveOrderingScore(a, opening?.move))
+    .slice(0, cap);
+  if (opening && !moves.some((move) => sameChessMove(move, opening.move))) moves.unshift(opening.move);
   const currentScore = evaluate(game, state, player);
   if (!moves.length) return { move: null, score: currentScore, nodes: 0, truncated: false };
-  const opening = chooseChessOpeningBookMove(state, moves, player);
-  if (opening) {
-    return {
-      move: opening.move,
-      score: currentScore + opening.score,
-      nodes: 0,
-      truncated: false,
-      completedDepth: 0,
-      openingBook: opening.name,
-      openingPly: opening.ply
-    };
-  }
   let best = { move: moves[0], score: -Infinity };
   let completedDepth = 0;
   for (let d = 1; d <= Math.max(1, Math.min(4, Number(depth) || 3)); d += 1) {
@@ -407,7 +456,7 @@ export async function choose3DChessRobotMove(game, depth = 3) {
       await maybeYield(stats);
       const next = simulateMove(game, state, move);
       const result = d <= 1 ? { score: evaluate(game, next, player) } : await negamaxAsync(game, next, d - 1, -Infinity, Infinity, other(player), player, stats);
-      const score = -result.score;
+      const score = -result.score + openingBias(move, opening);
       if (!iterationBest || score > iterationBest.score) iterationBest = { move, score };
     }
     if (iterationBest && !stats.truncated) { best = iterationBest; completedDepth = d; }
@@ -418,7 +467,17 @@ export async function choose3DChessRobotMove(game, depth = 3) {
     const next = simulateMove(game, state, move);
     best = { move, score: evaluate(game, next, player) };
   }
-  return { ...best, nodes: stats.nodes, truncated: stats.truncated, completedDepth };
+  const choseBookMove = opening && sameChessMove(best.move, opening.move);
+  return {
+    ...best,
+    nodes: stats.nodes,
+    truncated: stats.truncated,
+    completedDepth,
+    openingBook: choseBookMove ? opening.name : undefined,
+    openingPly: choseBookMove ? opening.ply : undefined,
+    bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined,
+    searchProfile: { legalMoves: allMoves.length, searchedMoves: moves.length, complexity }
+  };
 }
 
 function liveLegalMoveFor(game, move) {
