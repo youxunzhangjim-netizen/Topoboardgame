@@ -736,7 +736,13 @@ export class ReversiGame {
         this.currentPlayer = state.currentPlayer === REVERSI_COLORS.WHITE ? REVERSI_COLORS.WHITE : REVERSI_COLORS.BLACK;
         this.gameOver = Boolean(state.gameOver);
         this.winner = state.winner || null;
-        this.moveHistory = Array.isArray(state.moveHistory) ? state.moveHistory : [];
+        this.moveHistory = Array.isArray(state.moveHistory)
+            ? state.moveHistory.map((entry) => ({
+                ...entry,
+                coord: Array.isArray(entry.coord) ? [...entry.coord] : entry.coord,
+                flippedCoords: Array.isArray(entry.flippedCoords) ? entry.flippedCoords.map((coord) => Array.isArray(coord) ? [...coord] : coord) : entry.flippedCoords
+            }))
+            : [];
         this.lastFlipped = Array.isArray(state.lastFlipped) ? state.lastFlipped : [];
     }
 }

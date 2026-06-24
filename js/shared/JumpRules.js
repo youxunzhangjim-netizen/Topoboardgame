@@ -1,3 +1,5 @@
+import { chooseJumpOpeningBookMove } from './RobotOpeningBook.js';
+
 // Shared engine for Topoboardgame jump-race modes. It is intentionally independent
 // from Reversi/Go/Chess so jumps, target zones, and future lab labels can evolve separately.
 export const DEFAULT_JUMP_OPTIONS = Object.freeze({
@@ -591,6 +593,12 @@ export function chooseJumpRobotMove(game, player = game.currentPlayer, trainedSc
   const moves = game.allLegalMoves(player);
   if (!moves.length) return null;
   const memory = robotMoveMemory(game, player);
+  const opening = chooseJumpOpeningBookMove(game, moves, player);
+  if (opening) {
+    opening.move.robotScore = opening.score;
+    if (options.remember !== false) rememberRobotMove(memory, opening.move);
+    return opening.move;
+  }
   const ranked = [];
   for (const move of moves) {
     const score = scoreJumpMove(game, move, player) - repeatedMovePenalty(memory, move);

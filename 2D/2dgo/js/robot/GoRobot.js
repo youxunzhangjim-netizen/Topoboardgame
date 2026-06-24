@@ -1,5 +1,6 @@
 import { COLORS, GoGameLogic, otherColor, valueToColor } from '../GoGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { chooseGoOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const MCTS_BUDGET_BY_LEVEL = { 1: 90, 2: 220, 3: 520, 4: 900 };
 const TIME_BY_LEVEL_MS = { 1: 180, 2: 430, 3: 850, 4: 1400 };
@@ -222,6 +223,18 @@ export function estimateGoWinRates(logic) {
 }
 
 export function chooseGoRobotMove(logic, depth = 3) {
+    const player = logic.currentPlayer;
+    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
+    if (opening) {
+        return {
+            move: opening.move,
+            score: evaluateGo(logic, player) + opening.score,
+            nodes: 0,
+            truncated: false,
+            openingBook: opening.name,
+            openingPly: opening.ply
+        };
+    }
     const analysis = analyzeGoPosition(logic, depth, { moveOnly: true });
     const best = analysis.topMoves[0] || null;
     return { move: best?.move || null, score: best?.score ?? analysis.currentScore, nodes: analysis.nodes, truncated: analysis.truncated };
@@ -268,6 +281,21 @@ export function analyzeGoPosition(logic, depth = 3) {
         const after = previewAfterMove(logic, item.move, player);
         return { move: item.move, score, scoreText: formatScore(score), winRate: scoreToWinRate(score), visits: item.visits, reasons: explainGoMove(logic, after || logic, item.move, player, score) };
     }).sort((a, b) => b.score - a.score);
+    const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player), player);
+    if (opening) {
+        const score = baseScore + opening.score;
+        const key = coordLabel(opening.move.coord);
+        const existing = results.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
+        if (existing >= 0) results.splice(existing, 1);
+        results.unshift({
+            move: opening.move,
+            score,
+            scoreText: formatScore(score),
+            winRate: scoreToWinRate(score),
+            visits: 0,
+            reasons: ['Opening book: ' + opening.name]
+        });
+    }
 
     return {
         player,

@@ -1,4 +1,5 @@
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { chooseChessOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const PIECE_VALUES = { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 };
 const PROMOTION_TYPES = ['Q', 'R', 'B', 'N'];
@@ -383,7 +384,20 @@ export async function choose3DChessRobotMove(game, depth = 3) {
   const moves = legalMovesFor(game, state, player)
     .sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a))
     .slice(0, depth >= 3 ? 34 : 90);
-  if (!moves.length) return { move: null, score: evaluate(game, state, player), nodes: 0, truncated: false };
+  const currentScore = evaluate(game, state, player);
+  if (!moves.length) return { move: null, score: currentScore, nodes: 0, truncated: false };
+  const opening = chooseChessOpeningBookMove(state, moves, player);
+  if (opening) {
+    return {
+      move: opening.move,
+      score: currentScore + opening.score,
+      nodes: 0,
+      truncated: false,
+      completedDepth: 0,
+      openingBook: opening.name,
+      openingPly: opening.ply
+    };
+  }
   let best = { move: moves[0], score: -Infinity };
   let completedDepth = 0;
   for (let d = 1; d <= Math.max(1, Math.min(4, Number(depth) || 3)); d += 1) {

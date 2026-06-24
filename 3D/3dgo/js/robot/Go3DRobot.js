@@ -1,5 +1,6 @@
 import { GoGameLogic, COLORS, otherColor, valueToColor } from '../GoGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { chooseGoOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const TOPOLOGY_INFLUENCE = new Set(['t3', 'r3_random', 't2', 'cylinder', 'sphere_latitude_ring', 'klein_bottle', 'mobius_strip', 'rp2']);
 const BUDGET = { 1: 80, 2: 200, 3: 420, 4: 760 };
@@ -404,6 +405,14 @@ export function analyzeGo3DPosition(logic, level = 1) {
     const score = 0.82 * (s.total / Math.max(1, s.visits)) + 0.18 * s.best + 0.04 * s.prior;
     return { move: s.move, score, winRate: sigmoid(score), reasons: moveReason(logic, s.move, before, score), visits: s.visits };
   }).sort((a, b) => b.score - a.score);
+  const opening = chooseGoOpeningBookMove(logic, legalMoves(logic, player), player);
+  if (opening) {
+    const key = coordLabel(opening.move.coord);
+    const existing = rows.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
+    if (existing >= 0) rows.splice(existing, 1);
+    const score = before + opening.score;
+    rows.unshift({ move: opening.move, score, winRate: sigmoid(score), reasons: ['Opening book: ' + opening.name], visits: 0 });
+  }
   const groups = groupStats(logic, player).sort((a, b) => (b.size + b.liberties) - (a.size + a.liberties)).slice(0, 8);
   return { player, currentScore: before, currentWinRate: sigmoid(before), topMoves: rows.slice(0, 5), badMoves: rows.slice(-5).reverse(), groups, searched: sims, topology: logic.topology, lattice: logic.lattice, truncated: sims < (BUDGET[level] || 180) };
 }
@@ -429,6 +438,18 @@ function render(panel, a) {
 }
 
 export function chooseGo3DRobotMove(logic, level = 1) {
+  const player = logic.currentPlayer;
+  const opening = chooseGoOpeningBookMove(logic, legalMoves(logic, player), player);
+  if (opening) {
+    return {
+      move: opening.move,
+      score: evaluate(logic, player) + opening.score,
+      nodes: 0,
+      truncated: false,
+      openingBook: opening.name,
+      openingPly: opening.ply
+    };
+  }
   const analysis = analyzeGo3DPosition(logic, level);
   const best = analysis.topMoves[0] || null;
   return {

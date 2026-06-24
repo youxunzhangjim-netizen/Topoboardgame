@@ -1,5 +1,6 @@
 import { ReversiGame, otherReversiColor } from '../../../../js/reversi/ReversiGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { chooseReversiOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const INF = 1e9;
 const TIME_MS = { 1: 80, 2: 220, 3: 520, 4: 900 };
@@ -177,6 +178,14 @@ export function analyzeReversi3DPosition(logic, depth = 3) {
     if (rows.length) { bestRows = rows.slice().sort((a,b)=>b.score-a.score); completedDepth = d; }
     if (ctx.truncated) break;
   }
+  const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
+  if (opening) {
+    const key = coordLabel(opening.move.coord);
+    const existing = bestRows.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
+    if (existing >= 0) bestRows.splice(existing, 1);
+    const score = before + opening.score;
+    bestRows.unshift({ move: opening.move, score, winRate: sigmoid(score), reasons: ['Opening book: ' + opening.name] });
+  }
   return { player, currentScore: before, currentWinRate: sigmoid(before), topMoves: bestRows.slice(0,5), badMoves: bestRows.slice(-5).reverse(), counts: logic.counts(), topology: logic.topology.topology, lattice: logic.topology.lattice, searched: ctx.nodes, completedDepth, truncated: ctx.truncated };
 }
 function reason(logic, move, before, after) {
@@ -201,12 +210,24 @@ function render(panel, a) {
 }
 
 export function chooseReversi3DRobotMove(logic, depth = 3) {
+  const player = logic.currentPlayer;
+  const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
+  if (opening) {
+    return {
+      move: opening.move || null,
+      score: evaluate(logic, player) + opening.score,
+      nodes: 0,
+      truncated: false,
+      openingBook: opening.name,
+      openingPly: opening.ply
+    };
+  }
   const analysis = analyzeReversi3DPosition(logic, depth);
   const best = analysis.topMoves[0] || null;
   return {
     move: best?.move || null,
     score: best?.score ?? analysis.currentScore,
-    nodes: analysis.nodes || 0,
+    nodes: analysis.searched || 0,
     truncated: Boolean(analysis.truncated)
   };
 }

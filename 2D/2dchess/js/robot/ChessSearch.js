@@ -10,6 +10,7 @@ import {
     validateMoveStillLegal
 } from './ChessRobotAdapter.js';
 import { evaluatePieces, evaluateState, formatScore, PIECE_VALUES, scoreToWinRate } from './ChessEvaluator.js';
+import { chooseChessOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const INF = 1000000000;
 const DEFAULT_NODE_LIMIT = 55000;
@@ -34,6 +35,23 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
     const legal = orderMoves(getAllLegalMoves(state, player), state, player).slice(0, ROOT_CAP_BY_DEPTH[maxDepth] || 30);
     const currentScore = evaluateState(state, player);
     if (!legal.length) return { move: null, score: currentScore, scoreText: formatScore(currentScore), winRate: scoreToWinRate(currentScore), depth: 0, nodes: 0, truncated: false, completedDepth: 0 };
+
+    const opening = chooseChessOpeningBookMove(state, legal, player);
+    if (opening) {
+        const score = currentScore + opening.score;
+        return {
+            move: opening.move,
+            score,
+            scoreText: formatScore(score),
+            winRate: scoreToWinRate(score),
+            depth: maxDepth,
+            completedDepth: 0,
+            nodes: 0,
+            truncated: false,
+            openingBook: opening.name,
+            openingPly: opening.ply
+        };
+    }
 
     const context = makeSearchContext(maxDepth, DEFAULT_NODE_LIMIT + maxDepth * 22000, TIME_BY_DEPTH_MS[maxDepth] || 420);
     let best = { move: legal[0], score: -INF };
@@ -116,6 +134,19 @@ export function analyzePositionFromState(inputState, depth = 3) {
     }
 
     results.sort((a, b) => b.score - a.score);
+    const opening = chooseChessOpeningBookMove(state, allMoves, player);
+    if (opening) {
+        const score = currentScore + opening.score;
+        const existing = results.findIndex((row) => row.move?.id === opening.move?.id);
+        if (existing >= 0) results.splice(existing, 1);
+        results.unshift({
+            move: opening.move,
+            score,
+            scoreText: formatScore(score),
+            winRate: scoreToWinRate(score),
+            reasons: ['Opening book: ' + opening.name]
+        });
+    }
 
     return {
         player,

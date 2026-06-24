@@ -1,0 +1,128 @@
+{
+  "schema": "topoboardgame.ai.opening_book.v1",
+  "generatedAt": "2026-06-24T00:00:00.000+08:00",
+  "sourceManifest": "../manifest.json",
+  "localKnowledge": {
+    "standardStrategies": [
+      {
+        "name": "totalGraphDistanceToGoal",
+        "weight": -2.4,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Sum of shortest graph distances from pieces to target camp."
+      },
+      {
+        "name": "piecesInsideGoal",
+        "weight": 5,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Pieces already in target camp."
+      },
+      {
+        "name": "piecesStillInStartingCamp",
+        "weight": -3,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Penalty for pieces left behind."
+      },
+      {
+        "name": "longestAvailableJumpChain",
+        "weight": 1.8,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Best immediate jump-chain length."
+      },
+      {
+        "name": "ownGoalBlockingPenalty",
+        "weight": -2,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Penalty for blocking own incoming pieces in target camp."
+      }
+    ],
+    "graphStrategies": [
+      {
+        "name": "graphDistanceToGoal",
+        "weight": -2.2,
+        "appliesTo": [
+          "topology-transfer"
+        ],
+        "description": "Shortest path distance on the active graph/topology."
+      },
+      {
+        "name": "futureJumpChainPotential",
+        "weight": 1.5,
+        "appliesTo": [
+          "topology-transfer"
+        ],
+        "description": "Potential jump chains after one setup move."
+      },
+      {
+        "name": "pieceConnectivity",
+        "weight": 0.8,
+        "appliesTo": [
+          "topology-transfer"
+        ],
+        "description": "Own pieces that can help form ladders."
+      },
+      {
+        "name": "isolatedPiecePenalty",
+        "weight": -1.2,
+        "appliesTo": [
+          "topology-transfer"
+        ],
+        "description": "Penalty for pieces far from useful jump supports."
+      },
+      {
+        "name": "opponentJumpOpportunityCreated",
+        "weight": -1.8,
+        "appliesTo": [
+          "topology-transfer"
+        ],
+        "description": "Penalty for creating strong opponent jumps."
+      }
+    ]
+  },
+  "entries": [
+    {
+      "key": "local:jump:opening-race",
+      "gameType": "chinese-checkers",
+      "board": "topology-transfer",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "longest-legal-forward-jump-chain",
+          "count": 1,
+          "opportunityScore": 132,
+          "localFeatures": [
+            "longestAvailableJumpChain",
+            "futureJumpChainPotential"
+          ]
+        },
+        {
+          "move": "leave-starting-camp-toward-goal",
+          "count": 1,
+          "opportunityScore": 118,
+          "localFeatures": [
+            "piecesStillInStartingCamp",
+            "graphDistanceToGoal"
+          ]
+        },
+        {
+          "move": "enter-target-camp-with-support",
+          "count": 1,
+          "opportunityScore": 110,
+          "localFeatures": [
+            "piecesInsideGoal",
+            "pieceConnectivity"
+          ]
+        }
+      ]
+    }
+  ]
+}

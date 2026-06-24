@@ -1,5 +1,6 @@
 import { ReversiGame, otherReversiColor } from '../../../../js/reversi/ReversiGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { chooseReversiOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
 
 const INF = 1e9;
 const NODE_LIMIT_BY_DEPTH = { 1: 9000, 2: 22000, 3: 52000, 4: 90000, 5: 130000 };
@@ -171,6 +172,18 @@ export function estimateReversiWinRates(logic) {
 }
 
 export function chooseReversiRobotMove(logic, depth = 3) {
+    const player = logic.currentPlayer;
+    const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
+    if (opening) {
+        return {
+            move: { ...opening.move, label: coordLabel(opening.move.coord) },
+            score: evaluateReversi(logic, player) + opening.score,
+            nodes: 0,
+            truncated: false,
+            openingBook: opening.name,
+            openingPly: opening.ply
+        };
+    }
     const search = searchRoot(logic, depth, false);
     return { move: search.best?.move || null, score: search.best?.score ?? search.currentScore, nodes: search.nodes, truncated: search.truncated };
 }
@@ -178,6 +191,21 @@ export function chooseReversiRobotMove(logic, depth = 3) {
 export function analyzeReversiPosition(logic, depth = 3) {
     const search = searchRoot(logic, depth, true);
     const results = search.results.sort((a, b) => b.score - a.score);
+    const player = logic.currentPlayer;
+    const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
+    if (opening) {
+        const score = search.currentScore + opening.score;
+        const key = coordLabel(opening.move.coord);
+        const existing = results.findIndex((row) => row.move?.coord && coordLabel(row.move.coord) === key);
+        if (existing >= 0) results.splice(existing, 1);
+        results.unshift({
+            move: { ...opening.move, label: key },
+            score,
+            scoreText: formatScore(score),
+            winRate: scoreToWinRate(score),
+            reasons: ['Opening book: ' + opening.name]
+        });
+    }
     return {
         player: logic.currentPlayer,
         topology: logic.topology.topology,

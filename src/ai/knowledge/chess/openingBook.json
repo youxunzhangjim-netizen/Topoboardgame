@@ -1,7 +1,119 @@
 {
   "schema": "topoboardgame.ai.opening_book.v1",
-  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "generatedAt": "2026-06-24T00:00:00.000+08:00",
   "sourceManifest": "../manifest.json",
-  "entries": []
+  "localKnowledge": {
+    "strategies": [
+      {
+        "name": "centerControl",
+        "weight": 1.2,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Derived count of attacked central squares."
+      },
+      {
+        "name": "kingSafety",
+        "weight": 1.5,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Derived shield, exposure, and checking-threat score."
+      },
+      {
+        "name": "development",
+        "weight": 0.9,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Minor-piece development and castling-readiness feature."
+      },
+      {
+        "name": "material",
+        "weight": 3,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Material balance feature."
+      }
+    ],
+    "endgame": {
+      "enabled": true,
+      "maxPieces": 7,
+      "localPathEnv": "LOCAL_SYZYGY_PATH"
+    },
+    "fallback": "engine"
+  },
+  "entries": [
+    {
+      "key": "local:chess:opening-principles",
+      "gameType": "chess",
+      "board": "standard",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "e2e4",
+          "count": 1,
+          "opportunityScore": 150,
+          "localFeatures": [
+            "centerControl",
+            "development"
+          ]
+        },
+        {
+          "move": "d2d4",
+          "count": 1,
+          "opportunityScore": 142,
+          "localFeatures": [
+            "centerControl",
+            "development"
+          ]
+        },
+        {
+          "move": "g1f3",
+          "count": 1,
+          "opportunityScore": 124,
+          "localFeatures": [
+            "development",
+            "kingSafety"
+          ]
+        },
+        {
+          "move": "c2c4",
+          "count": 1,
+          "opportunityScore": 120,
+          "localFeatures": [
+            "centerControl"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "local:chess:endgame-conversion",
+      "gameType": "chess",
+      "board": "standard",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "legal-capture-or-promotion",
+          "count": 1,
+          "opportunityScore": 80,
+          "localFeatures": [
+            "material"
+          ],
+          "endgameMaxPieces": 7
+        },
+        {
+          "move": "centralize-king-when-safe",
+          "count": 1,
+          "opportunityScore": 36,
+          "localFeatures": [
+            "kingSafety"
+          ],
+          "endgameMaxPieces": 7
+        }
+      ]
+    }
+  ]
 }
-

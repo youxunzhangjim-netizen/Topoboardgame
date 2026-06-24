@@ -1,7 +1,125 @@
 {
   "schema": "topoboardgame.ai.opening_book.v1",
-  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "generatedAt": "2026-06-24T00:00:00.000+08:00",
   "sourceManifest": "../manifest.json",
-  "entries": []
+  "localKnowledge": {
+    "strategies": [
+      {
+        "name": "liberties",
+        "weight": 1.1,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Graph liberties of own and opponent groups."
+      },
+      {
+        "name": "territoryPotential",
+        "weight": 1.2,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Empty-region control from graph flood-fill."
+      },
+      {
+        "name": "captureThreat",
+        "weight": 1.5,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Immediate atari/capture opportunity."
+      }
+    ],
+    "endgame": [
+      {
+        "name": "scoreLead",
+        "weight": 2,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Derived KataGo score lead when available."
+      },
+      {
+        "name": "ownershipSwing",
+        "weight": 1.4,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Derived local ownership change estimate."
+      },
+      {
+        "name": "libertyPressure",
+        "weight": 1,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Graph-liberty pressure feature."
+      }
+    ]
+  },
+  "entries": [
+    {
+      "key": "local:go:fuseki-principles",
+      "gameType": "go",
+      "board": "topology-transfer",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "black:4-4-corner",
+          "count": 1,
+          "opportunityScore": 130,
+          "localFeatures": [
+            "territoryPotential",
+            "liberties"
+          ]
+        },
+        {
+          "move": "black:3-4-approach",
+          "count": 1,
+          "opportunityScore": 116,
+          "localFeatures": [
+            "territoryPotential",
+            "ownershipSwing"
+          ]
+        },
+        {
+          "move": "black:center-balance",
+          "count": 1,
+          "opportunityScore": 58,
+          "localFeatures": [
+            "liberties"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "local:go:yose-pressure",
+      "gameType": "go",
+      "board": "topology-transfer",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "legal-capture-threat",
+          "count": 1,
+          "opportunityScore": 90,
+          "localFeatures": [
+            "captureThreat",
+            "libertyPressure"
+          ]
+        },
+        {
+          "move": "legal-ownership-swing",
+          "count": 1,
+          "opportunityScore": 62,
+          "localFeatures": [
+            "ownershipSwing",
+            "territoryPotential"
+          ]
+        }
+      ]
+    }
+  ]
 }
-

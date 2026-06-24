@@ -1,7 +1,101 @@
 {
   "schema": "topoboardgame.ai.opening_book.v1",
-  "generatedAt": "2026-06-22T00:00:00.000+08:00",
+  "generatedAt": "2026-06-24T00:00:00.000+08:00",
   "sourceManifest": "../manifest.json",
-  "entries": []
+  "localKnowledge": {
+    "strategies": [
+      {
+        "name": "mobility",
+        "weight": 1.4,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Legal move differential."
+      },
+      {
+        "name": "frontierDiscs",
+        "weight": -0.8,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Discs adjacent to empty sites."
+      },
+      {
+        "name": "cornerOrAnchor",
+        "weight": 2,
+        "appliesTo": [
+          "standard"
+        ],
+        "description": "Corner and stable-anchor ownership where the topology has corners."
+      },
+      {
+        "name": "parity",
+        "weight": 0.6,
+        "appliesTo": [
+          "standard",
+          "topology-transfer"
+        ],
+        "description": "Endgame parity and region-control feature."
+      }
+    ],
+    "endgame": {
+      "enabled": true,
+      "maxEmptySquares": 10
+    },
+    "fallback": "local-search"
+  },
+  "entries": [
+    {
+      "key": "local:reversi:opening-principles",
+      "gameType": "reversi",
+      "board": "topology-transfer",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "center-shell-low-flip",
+          "count": 1,
+          "opportunityScore": 128,
+          "localFeatures": [
+            "mobility",
+            "frontierDiscs"
+          ]
+        },
+        {
+          "move": "balanced-disc-frontier-safe",
+          "count": 1,
+          "opportunityScore": 92,
+          "localFeatures": [
+            "mobility"
+          ]
+        },
+        {
+          "move": "legal-corner-or-anchor",
+          "count": 1,
+          "opportunityScore": 104,
+          "localFeatures": [
+            "cornerOrAnchor"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "local:reversi:endgame-parity",
+      "gameType": "reversi",
+      "board": "topology-transfer",
+      "sampleCount": 1,
+      "candidates": [
+        {
+          "move": "legal-parity-preserving-move",
+          "count": 1,
+          "opportunityScore": 64,
+          "localFeatures": [
+            "parity"
+          ],
+          "endgameMaxEmptySquares": 10
+        }
+      ]
+    }
+  ]
 }
-
