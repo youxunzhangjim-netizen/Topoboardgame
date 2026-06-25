@@ -28,8 +28,8 @@ export const LIFE_GEOMETRIES = [
   { id: 'cylinder', title: 'Cylinder Surface', zhTitle: 'Cylinder 曲面生命', dimension: 2, topology: 'cylinder', view: 'surface3d', latticeSet: '2d' },
   { id: 't2', title: 'T2 Torus Surface', zhTitle: 'T2 環面曲面', dimension: 2, topology: 'torus', view: 'surface3d', latticeSet: '2d' },
   { id: 'mobius', title: 'Möbius Strip Surface', zhTitle: 'Mobius 帶生命', dimension: 2, topology: 'mobius', view: 'surface3d', latticeSet: '2d' },
-  { id: 'klein_flat', title: 'Klein Bottle Cut-Open Board', zhTitle: 'Klein 瓶 2D 棋盤', dimension: 2, topology: 'klein', view: 'flat', latticeSet: '2d' },
-  { id: 'klein', title: 'Klein Bottle Surface', zhTitle: 'Klein 瓶曲面', dimension: 2, topology: 'klein', view: 'surface3d', latticeSet: '2d' },
+  { id: 'klein', title: 'Klein Bottle 2D Board', zhTitle: 'Klein 瓶 2D 棋盤', dimension: 2, topology: 'klein', view: 'flat', latticeSet: '2d' },
+  { id: 'klein_surface', title: 'Klein Bottle 3D Surface', zhTitle: 'Klein 瓶 3D 曲面', dimension: 2, topology: 'klein', view: 'surface3d', latticeSet: '2d' },
   { id: 'sphere', title: 'S2 Sphere Surface', zhTitle: 'S2 球面生命', dimension: 2, topology: 'sphere', view: 'surface3d', latticeSet: '2d' },
   { id: 'rp2', title: 'RP2 Projective Plane Board', zhTitle: 'RP2 投影平面 2D 棋盤', dimension: 2, topology: 'projective', view: 'flat', latticeSet: '2d' },
   { id: 'r3', title: 'R3 Open Voxel Volume', zhTitle: 'R3 體素生命', dimension: 3, topology: 'open', view: 'volume', latticeSet: '3d' },
@@ -108,7 +108,8 @@ export function findLifeMode(id) {
 }
 
 export function findLifeGeometry(id) {
-  return LIFE_GEOMETRIES.find((geometry) => geometry.id === id) || LIFE_GEOMETRIES[0];
+  const normalized = id === 'klein_flat' ? 'klein' : id;
+  return LIFE_GEOMETRIES.find((geometry) => geometry.id === normalized) || LIFE_GEOMETRIES[0];
 }
 
 export function latticesForGeometry(geometryId) {

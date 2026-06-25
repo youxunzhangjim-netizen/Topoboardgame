@@ -1,5 +1,5 @@
 import { createLifeEngine, isAlive } from './LifeEngine.js';
-import { listRulePresets, getRulePreset } from './presets.js';
+import { listRulePresets, getRulePreset, rulePresetLabel } from './presets.js';
 import {
   LIFE_MODES,
   LIFE_GEOMETRIES,
@@ -18,12 +18,36 @@ import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManage
 
 const COLORS = { 1: '#38bdf8', 2: '#ef4444', 3: '#22c55e', 4: '#f5b647' };
 const SQRT3 = Math.sqrt(3);
+const TAU = Math.PI * 2;
 const LATTICE_RULE_TUNING = Object.freeze({
   triangular: { rule: 'B2/S12', birth: [2], survival: [1, 2], neighborhoodType: 'nearest', latticeNeighborCount: 3 },
   honeycomb: { rule: 'B2/S34', birth: [2], survival: [3, 4], neighborhoodType: 'nearest', latticeNeighborCount: 6 }
 });
 
 function readParams() { return new URLSearchParams(window.location.search); }
+function wrapAngle(angle) {
+  return ((angle % TAU) + TAU) % TAU;
+}
+function kleinBottleSurfacePoint(u, v) {
+  const parameterU = wrapAngle(u);
+  const sinU = Math.sin(parameterU);
+  const cosU = Math.cos(parameterU);
+  const sinV = Math.sin(v);
+  const cosV = Math.cos(v);
+  const tube = 2 * (1 - cosU / 2) * 1.72 / 1.4;
+  const rawX = parameterU < Math.PI
+    ? 3 * cosU * (1 + sinU) + tube * cosU * cosV
+    : 3 * cosU * (1 + sinU) + tube * Math.cos(v + Math.PI);
+  const rawY = -2 * (1 - cosU / 2) * sinV;
+  const rawZ = parameterU < Math.PI
+    ? -8 * sinU - tube * sinU * cosV
+    : -8 * sinU;
+  return {
+    x: rawX * 0.52 * 0.34,
+    y: rawZ * 0.52 * 0.26,
+    z: rawY * 0.52 * 0.55
+  };
+}
 function formatNumber(value, digits = 3) {
   if (value == null || Number.isNaN(Number(value))) return '—';
   const n = Number(value);
@@ -223,7 +247,7 @@ export class LifeUI {
     syncLifeLinks(this.language);
     this.installRangeValueReadouts();
     this.modeSelect.innerHTML = LIFE_MODES.map((mode) => `<option value="${mode.id}">${modeTitle(mode, this.language)}</option>`).join('');
-    this.ruleSelect.innerHTML = listRulePresets().map((rule) => `<option value="${rule.id}">${rule.label}</option>`).join('');
+    this.ruleSelect.innerHTML = listRulePresets().map((rule) => `<option value="${rule.id}">${rulePresetLabel(rule, this.language)}</option>`).join('');
     this.boardGeometrySelect.innerHTML = LIFE_GEOMETRIES.map((geometry) => `<option value="${geometry.id}">${geometryTitle(geometry, this.language)}</option>`).join('');
 
     this.modeSelect.addEventListener('change', () => this.applyMode(findLifeMode(this.modeSelect.value)));
@@ -390,9 +414,10 @@ export class LifeUI {
     const config = modeToEngineConfig(mode);
     const geometry = findLifeGeometry(mode.geometry || (config.dimension === 3 ? 'r3' : 'r2'));
     this.boardGeometrySelect.value = geometry.id;
-    this.dimensionSelect.value = String(config.dimension);
-    this.boardSizeSelect.value = String(config.dimension === 3 ? 40 : 48);
-    this.topologySelect.value = config.boundary;
+    const selectedDimension = geometry.dimension || config.dimension;
+    this.dimensionSelect.value = String(selectedDimension);
+    this.boardSizeSelect.value = String(selectedDimension === 3 ? 40 : 48);
+    this.topologySelect.value = geometry.topology || config.boundary;
     this.viewModeSelect.value = geometry.view;
     this.populateLattices(geometry.id, config.lattice);
     this.speciesSelect.value = String(mode.species || config.rule.speciesCount || 1);
@@ -837,7 +862,7 @@ export class LifeUI {
     if (!position) return;
     if (this.tool === 'inspect') {
       const cell = this.engine.getCell(position);
-      this.challengeStatus.textContent = `${t('status', this.language)}: ${position.join(',')} species=${cell.species || 0} age=${cell.age || 0}`;
+      this.challengeStatus.textContent = `${t('status', this.language)}: ${position.join(',')} ${t('cellSpecies', this.language)}=${cell.species || 0} ${t('cellAge', this.language)}=${cell.age || 0}`;
       return;
     }
     const positions = this.drawing && this.lastDrawPosition
@@ -1233,7 +1258,7 @@ export class LifeUI {
     if (usage === 'zero') { this.challengeStatus.textContent = `${t('status', this.language)}: ${t('running', this.language)}`; return; }
     if (usage === 'two') {
       const scores = this.computeScores(obs);
-      const lead = scores.a === scores.b ? 'Tie' : (scores.a > scores.b ? t('playerA', this.language) : t('playerB', this.language));
+      const lead = scores.a === scores.b ? t('tie', this.language) : (scores.a > scores.b ? t('playerA', this.language) : t('playerB', this.language));
       this.challengeStatus.textContent = `${t('status', this.language)}: ${lead}`; return;
     }
     const goal = this.challengeGoalSelect.value;
@@ -1346,13 +1371,10 @@ export class LifeUI {
       };
     }
 
-    if (geom === 'klein') {
-      const r = 1 + 0.32 * Math.cos(v2);
-      return {
-        x: r * Math.cos(u),
-        y: 0.32 * Math.sin(v2) + 0.18 * Math.sin(2 * u),
-        z: r * Math.sin(u) * 0.72 + 0.18 * Math.cos(2 * u)
-      };
+    if (geom === 'klein_surface') {
+      const surfaceU = vv * TAU;
+      const surfaceV = (latticePoint.x / Math.max(1, nx)) * TAU - Math.PI / 2;
+      return kleinBottleSurfacePoint(surfaceU, surfaceV);
     }
 
     if (geom === 't2') {
@@ -1731,7 +1753,8 @@ export class LifeUI {
           this.drawPolygonPath(ctx, polygon);
           ctx.fill();
         } else {
-          this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, flatView, Math.max(0.8, Math.min(sx, sy) * 0.08)));
+          const fillInset = this.showGrid ? Math.min(0.9, Math.max(0, Math.min(sx, sy) * 0.018)) : 0;
+          this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, flatView, fillInset));
           ctx.fill();
         }
       }
@@ -1770,11 +1793,14 @@ export class LifeUI {
       const payload = JSON.parse(this.patternJson.value); const state = payload.state || payload;
       this.engine.importState(state);
       this.dimensionSelect.value = String(this.engine.dimension); this.boardSizeSelect.value = String(this.engine.size[0]); this.topologySelect.value = this.engine.topology.boundary; this.neighborhoodSelect.value = this.engine.neighborhoodType; this.latticeSelect.value = this.engine.lattice || this.latticeSelect.value;
-      if (payload.geometry) { this.boardGeometrySelect.value = payload.geometry; this.applyGeometrySelection(); }
-      if (payload.viewMode) this.viewModeSelect.value = payload.viewMode;
+      if (payload.geometry) {
+        const geometry = findLifeGeometry(payload.geometry === 'klein' && payload.viewMode === 'surface3d' ? 'klein_surface' : payload.geometry);
+        this.boardGeometrySelect.value = geometry.id;
+        this.applyGeometrySelection();
+      } else if (payload.viewMode) this.viewModeSelect.value = payload.viewMode;
       if (payload.mode) { this.mode = findLifeMode(payload.mode); this.modeSelect.value = this.mode.id; this.title.textContent = modeTitle(this.mode, this.language); this.description.textContent = modeLong(this.mode, this.language); this.tags.textContent = modeTags(this.mode, this.language).join(' · '); }
       this.history = []; this.stateHashes = new Map(); this.extinctionTime = null; this.afterStateChange();
-    } catch (error) { this.challengeStatus.textContent = `Import failed: ${error.message}`; }
+    } catch (error) { this.challengeStatus.textContent = `${t('importFailed', this.language)}: ${error.message}`; }
   }
 }
 

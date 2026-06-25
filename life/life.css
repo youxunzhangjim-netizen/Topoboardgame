@@ -46,7 +46,7 @@ body {
 
 .life-topbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 22px 0 0;
   align-items: center;
@@ -437,8 +437,18 @@ h1 {
 
 @media (max-width: 620px) {
   .life-topbar {
-    align-items: center;
-    gap: 6px;
+    align-items: flex-start;
+    gap: 6px 8px;
+    padding-top: 8px;
+  }
+
+  .life-player-title {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  .life-language-switch.compact-language {
+    margin-left: auto;
   }
 
   .life-topbar .game-title-actions {
@@ -770,6 +780,9 @@ body[data-life-usage="two"] .one-player-only {
 .legacy-topology-control {
   display: none !important;
 }
+.view-mode-control {
+  display: none !important;
+}
 .modifier-note {
   grid-column: 1 / -1;
   margin: 6px 0 -4px;
@@ -801,8 +814,7 @@ body[data-life-usage] #lifeCanvas:active {
 }
 
 .life-help::after {
-  content: "  3D/surface view: use Inspect tool, Shift-drag, right-drag, or mouse wheel to rotate / zoom.";
-  color: rgba(245, 182, 71, 0.92);
+  content: none;
 }
 
 /* Life online room controls share the same room semantics as Go/Reversi. */
@@ -922,5 +934,32 @@ body[data-life-usage] #lifeCanvas:active {
     max-height: calc(100vh - 24px);
     overflow: auto;
     overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 620px) {
+  .life-player-shell,
+  .life-header,
+  .life-shell {
+    width: min(100% - 16px, 1280px);
+  }
+
+  .life-topbar {
+    align-items: flex-start;
+    gap: 6px 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .life-player-title {
+    flex-basis: 100%;
+  }
+
+  .life-board-toolbar {
+    align-items: flex-start;
+  }
+
+  .life-help {
+    flex: 1 1 100%;
   }
 }

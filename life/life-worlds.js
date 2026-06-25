@@ -22,15 +22,23 @@ const TEXT = {
     playersTwo: 'Zero-player or two-player seed-and-watch competition.',
     playersResearch: 'Zero-player, one-player, two-player, and research use.',
     system: 'Topology',
+    speciesUnit: 'species',
+    stochasticNoise: 'stochastic noise',
+    cellAging: 'cell aging',
+    mutation: 'mutation',
     observables: 'population, births, deaths, age distribution, pattern survival, cycle behavior'
   },
   zh: {
     playOpen: '遊玩模式',
-    info: 'Info',
+    info: '資訊',
     playersZero: '零人模擬，可由單人播種與編輯。',
     playersTwo: '零人或雙人播種後觀察競爭。',
     playersResearch: '支援零人、單人、雙人與研究用途。',
     system: '拓撲',
+    speciesUnit: '物種',
+    stochasticNoise: '隨機噪聲',
+    cellAging: '細胞老化',
+    mutation: '突變',
     observables: '族群、出生、死亡、年齡分布、圖樣存活、週期行為'
   }
 };
@@ -57,10 +65,10 @@ function playerLabel(mode) {
 
 function systemLabel(mode) {
   const parts = [`${tr('system')}: ${mode.topology}`];
-  if (mode.species > 1) parts.push(`${mode.species} species`);
-  if (mode.noise) parts.push('stochastic noise');
-  if (mode.maxAge) parts.push('cell aging');
-  if (mode.mutation) parts.push('mutation');
+  if (mode.species > 1) parts.push(`${mode.species} ${tr('speciesUnit')}`);
+  if (mode.noise) parts.push(tr('stochasticNoise'));
+  if (mode.maxAge) parts.push(tr('cellAging'));
+  if (mode.mutation) parts.push(tr('mutation'));
   return parts.join(', ');
 }
 

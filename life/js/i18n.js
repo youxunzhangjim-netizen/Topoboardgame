@@ -32,6 +32,17 @@ export function syncLifeLinks(language = currentLifeLanguage()) {
 export const LIFE_TEXT = {
   en: {
     lifeWorldsTitle: 'Life & Evolution Worlds',
+    lifeWorldsNavigation: 'Life worlds navigation',
+    lifePlayerNavigation: 'Life player navigation',
+    lifeAndEvolutionModes: 'Life and evolution modes',
+    languageOptions: 'Language options',
+    close: 'Close',
+    lifeWorld: 'Life World',
+    players: 'Players',
+    system: 'System',
+    observables: 'Observables',
+    simulation: 'simulation',
+    seedCellsStartEvolution: 'Seed cells and start evolution.',
     species3Green: 'Species 3 / Green',
     oneSpecies: '1 species',
     twoSpecies: '2 species',
@@ -41,6 +52,7 @@ export const LIFE_TEXT = {
     cylinderLife: 'Cylinder Life',
     mobiusStripLife: 'Mobius Strip Life',
     kleinBottleLife: 'Klein Bottle Life',
+    kleinBottleSurfaceLife: 'Klein Bottle 3D Surface Life',
     s2SphereLife: 'S2 Sphere Life',
     rp2ProjectiveLife: 'RP2 Projective Life',
     r3VoxelLife: 'R3 Voxel Life',
@@ -156,7 +168,11 @@ export const LIFE_TEXT = {
     playerA: 'Player A / Blue',
     playerB: 'Player B / Red',
     status: 'Status',
-    canvasHelp: 'Click or drag on the board to draw, erase, or place species seeds.',
+    canvasHelp: 'Click or drag to draw, erase, or inspect. Surface/3D boards use Inspect, Shift-drag, right-drag, or mouse wheel to rotate and zoom.',
+    cellSpecies: 'species',
+    cellAge: 'age',
+    tie: 'Tie',
+    importFailed: 'Import failed',
     connection: 'Connection',
     local: 'Local',
     online: 'Online',
@@ -198,6 +214,17 @@ export const LIFE_TEXT = {
   },
   zh: {
     lifeWorldsTitle: 'Life & Evolution Worlds',
+    lifeWorldsNavigation: 'Life worlds 導覽',
+    lifePlayerNavigation: 'Life player 導覽',
+    lifeAndEvolutionModes: 'Life 與演化模式',
+    languageOptions: '語言選項',
+    close: '關閉',
+    lifeWorld: 'Life World',
+    players: '玩家',
+    system: '系統',
+    observables: '觀測量',
+    simulation: '模擬',
+    seedCellsStartEvolution: '播種細胞並啟動演化。',
     species3Green: '物種 3 / 綠',
     oneSpecies: '1 個物種',
     twoSpecies: '2 個物種',
@@ -207,6 +234,7 @@ export const LIFE_TEXT = {
     cylinderLife: 'Cylinder Life',
     mobiusStripLife: 'Mobius Strip Life',
     kleinBottleLife: 'Klein Bottle Life',
+    kleinBottleSurfaceLife: 'Klein Bottle 3D Surface Life',
     s2SphereLife: 'S2 Sphere Life',
     rp2ProjectiveLife: 'RP2 Projective Life',
     r3VoxelLife: 'R3 體素 Life',
@@ -346,7 +374,11 @@ export const LIFE_TEXT = {
     playerA: '玩家 A / 藍',
     playerB: '玩家 B / 紅',
     status: '狀態',
-    canvasHelp: '在棋盤上點擊或拖曳來畫細胞、擦除或放置不同物種種子。',
+    canvasHelp: '點擊或拖曳可畫細胞、擦除或檢視。曲面/3D 棋盤用 Inspect、Shift 拖曳、右鍵拖曳或滑鼠滾輪旋轉與縮放。',
+    cellSpecies: '物種',
+    cellAge: '年齡',
+    tie: '平手',
+    importFailed: '匯入失敗',
     goalNone: '自由遊玩',
     goalSurvive: '存活 N 個世代',
     goalPopulationBand: '把族群維持在目標範圍',
@@ -378,6 +410,9 @@ export function localizeStaticText(root = document, language = currentLifeLangua
   });
   root.querySelectorAll('[data-life-i18n-placeholder]').forEach((el) => {
     el.setAttribute('placeholder', t(el.dataset.lifeI18nPlaceholder, language));
+  });
+  root.querySelectorAll('[data-life-i18n-title]').forEach((el) => {
+    el.setAttribute('title', t(el.dataset.lifeI18nTitle, language));
   });
   root.querySelectorAll('[data-life-lang]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.lifeLang === language));

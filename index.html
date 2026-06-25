@@ -278,6 +278,39 @@
                 </section>
             </div>
 
+            <section id="basic-game-books" class="basic-game-books" aria-labelledby="basicGameBooksTitle" data-i18n-aria-label="books.choose">
+                <div class="basic-game-books-heading">
+                    <strong id="basicGameBooksTitle" data-i18n="books.title">Basic Game Books</strong>
+                    <small data-i18n="books.desc">Short beginner notes for players who have not played Chess, Go, Reversi, or Jump before. The same basic ideas apply in 2D, 3D, 4D, and spacetime; topology changes the board connections.</small>
+                </div>
+                <div class="basic-game-book-grid">
+                    <details class="basic-game-book-card" open>
+                        <summary data-i18n="books.chess.title">Chess</summary>
+                        <p data-i18n="books.chess.goal">Goal: attack the opponent king so it cannot escape check.</p>
+                        <p data-i18n="books.chess.turn">Turn: move one piece. Each piece has its own movement pattern; captures remove the opponent piece on the destination.</p>
+                        <p data-i18n="books.chess.habit">First habit: protect your king, develop pieces, and control the center or the important topological paths.</p>
+                    </details>
+                    <details class="basic-game-book-card">
+                        <summary data-i18n="books.go.title">Go</summary>
+                        <p data-i18n="books.go.goal">Goal: surround more territory while keeping your stones alive.</p>
+                        <p data-i18n="books.go.turn">Turn: place one stone on an empty point or pass. Connected stones share liberties; a group with no liberties is captured.</p>
+                        <p data-i18n="books.go.habit">First habit: count liberties, connect weak groups, cut the opponent, and make eyes for life.</p>
+                    </details>
+                    <details class="basic-game-book-card">
+                        <summary data-i18n="books.reversi.title">Reversi</summary>
+                        <p data-i18n="books.reversi.goal">Goal: finish with more discs of your color than the opponent.</p>
+                        <p data-i18n="books.reversi.turn">Turn: place a disc so one or more straight lines of opponent discs are bracketed by your discs; bracketed discs flip to your color.</p>
+                        <p data-i18n="books.reversi.habit">First habit: corners and stable edges are powerful. Avoid giving the opponent easy corner moves.</p>
+                    </details>
+                    <details class="basic-game-book-card">
+                        <summary data-i18n="books.jump.title">Jump</summary>
+                        <p data-i18n="books.jump.goal">Goal: race your pieces into the target zone across the board.</p>
+                        <p data-i18n="books.jump.turn">Turn: step to an adjacent empty point or jump over an occupied neighbor into the empty point beyond it. A jump chain may continue.</p>
+                        <p data-i18n="books.jump.habit">First habit: build routes for long chains, keep pieces moving together, and avoid blocking your own exits.</p>
+                    </details>
+                </div>
+            </section>
+
             <div id="strategy-systems-labs" class="launcher-mode-layers physics-algebra-labs" aria-label="Strategy and systems labs" data-i18n-aria-label="labs.choose">
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
@@ -546,6 +579,35 @@
                         desc: 'Explore games where pieces can schedule future actions, optionally age, or in Go-only period mode appear and vanish on a fixed cycle. Labs keep the deeper physical and biological time rules.',
                         play: 'Open Space-Time Games'
                     },
+                    books: {
+                        choose: 'Basic game introduction books',
+                        title: 'Basic Game Books',
+                        desc: 'Short beginner notes for players who have not played Chess, Go, Reversi, or Jump before. The same basic ideas apply in 2D, 3D, 4D, and spacetime; topology changes the board connections.',
+                        chess: {
+                            title: 'Chess',
+                            goal: 'Goal: attack the opponent king so it cannot escape check.',
+                            turn: 'Turn: move one piece. Each piece has its own movement pattern; captures remove the opponent piece on the destination.',
+                            habit: 'First habit: protect your king, develop pieces, and control the center or the important topological paths.'
+                        },
+                        go: {
+                            title: 'Go',
+                            goal: 'Goal: surround more territory while keeping your stones alive.',
+                            turn: 'Turn: place one stone on an empty point or pass. Connected stones share liberties; a group with no liberties is captured.',
+                            habit: 'First habit: count liberties, connect weak groups, cut the opponent, and make eyes for life.'
+                        },
+                        reversi: {
+                            title: 'Reversi',
+                            goal: 'Goal: finish with more discs of your color than the opponent.',
+                            turn: 'Turn: place a disc so one or more straight lines of opponent discs are bracketed by your discs; bracketed discs flip to your color.',
+                            habit: 'First habit: corners and stable edges are powerful. Avoid giving the opponent easy corner moves.'
+                        },
+                        jump: {
+                            title: 'Jump',
+                            goal: 'Goal: race your pieces into the target zone across the board.',
+                            turn: 'Turn: step to an adjacent empty point or jump over an occupied neighbor into the empty point beyond it. A jump chain may continue.',
+                            habit: 'First habit: build routes for long chains, keep pieces moving together, and avoid blocking your own exits.'
+                        }
+                    },
                     labs: {
                         title: 'Strategy & Systems Labs',
                         developing: '(Developing)',
@@ -740,6 +802,35 @@
                         subtitle: '用時間排程、可選年齡、圍棋專用時間週期與動態演化來遊玩。',
                         desc: '探索棋子可以排程未來行動、可選地老化，或在圍棋專用時間週期中固定出現與消失的遊戲。更深的物理與生物時間規則保留在實驗室中。',
                         play: '開啟時空遊戲'
+                    },
+                    books: {
+                        choose: '基礎遊戲介紹書',
+                        title: '基礎遊戲書',
+                        desc: '給還不熟 Chess、Go、Reversi 或 Jump 的玩家看的短介紹。2D、3D、4D 與時空版本都保留同樣核心想法；拓撲會改變棋盤連接方式。',
+                        chess: {
+                            title: 'Chess',
+                            goal: '目標：攻擊對手的 king，使它無法逃離 check。',
+                            turn: '回合：移動一枚棋子。每種棋子有自己的走法；吃子時會移除目的格上的對手棋子。',
+                            habit: '第一個習慣：保護自己的 king、發展棋子，並控制中心或重要的拓撲路徑。'
+                        },
+                        go: {
+                            title: 'Go',
+                            goal: '目標：圍出更多地盤，同時讓自己的棋子活著。',
+                            turn: '回合：在空交點下一顆 stone，或選擇 pass。連在一起的棋子共享 liberties；沒有 liberties 的棋群會被提走。',
+                            habit: '第一個習慣：數 liberties、連接弱棋、切斷對手，並為活棋做眼。'
+                        },
+                        reversi: {
+                            title: 'Reversi',
+                            goal: '目標：終局時讓自己顏色的 discs 比對手多。',
+                            turn: '回合：下一枚 disc，讓一條或多條直線上的對手 discs 被你的 discs 夾住；被夾住的 discs 會翻成你的顏色。',
+                            habit: '第一個習慣：角落與穩定邊很強。避免把容易拿角的位置送給對手。'
+                        },
+                        jump: {
+                            title: 'Jump',
+                            goal: '目標：把自己的棋子賽跑式移進棋盤對面的目標區。',
+                            turn: '回合：走到相鄰空點，或跳過相鄰已佔點到後方空點。跳躍後可以繼續形成連跳。',
+                            habit: '第一個習慣：建立長連跳路線，讓棋子一起前進，並避免堵住自己的出口。'
+                        }
                     },
                     labs: {
                         title: '策略與系統實驗室',
