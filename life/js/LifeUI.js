@@ -1483,6 +1483,7 @@ export class LifeUI {
   }
 
   drawSurfaceBoundary(ctx, width, height) {
+    if (this.boardGeometrySelect.value === 'klein_surface') return;
     const bounds = this.surfaceLatticeBounds();
     const nx = bounds.nx;
     const ny = bounds.ny;
