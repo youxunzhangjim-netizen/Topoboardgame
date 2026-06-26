@@ -23,6 +23,8 @@ const LATTICE_RULE_TUNING = Object.freeze({
   triangular: { rule: 'B2/S12', birth: [2], survival: [1, 2], neighborhoodType: 'nearest', latticeNeighborCount: 3 },
   honeycomb: { rule: 'B2/S34', birth: [2], survival: [3, 4], neighborhoodType: 'nearest', latticeNeighborCount: 6 }
 });
+const BOARD_OPACITY_LEVELS = Object.freeze([1, 0.7, 0.35, 0]);
+const BOARD_OPACITY_KEYS = Object.freeze(['boardOpacity100', 'boardOpacity70', 'boardOpacity35', 'boardOpacity0']);
 
 function readParams() { return new URLSearchParams(window.location.search); }
 function wrapAngle(angle) {
@@ -198,6 +200,7 @@ export class LifeUI {
     this.patternJson = root.getElementById('patternJson');
     this.playButton = root.getElementById('playButton');
     this.gridToggleButton = root.getElementById('lifeGridToggleBtn');
+    this.boardOpacityButton = root.getElementById('boardOpacityButton');
 
     this.lifePlayModeSelect = root.getElementById('lifePlayModeSelect');
     this.lifeCreateRoomBtn = root.getElementById('lifeCreateRoomBtn');
@@ -215,6 +218,7 @@ export class LifeUI {
     this.timer = 0;
     this.tool = 'draw';
     this.showGrid = true;
+    this.boardOpacityIndex = 0;
     this.drawing = false;
     this.lastDrawPosition = null;
     this.camera = {
@@ -269,6 +273,11 @@ export class LifeUI {
     this.root.querySelectorAll('[data-tool]').forEach((button) => button.addEventListener('click', () => this.setTool(button.dataset.tool)));
     this.gridToggleButton?.addEventListener('click', () => {
       this.showGrid = !this.showGrid;
+      this.syncToolButtons();
+      this.draw();
+    });
+    this.boardOpacityButton?.addEventListener('click', () => {
+      this.boardOpacityIndex = (this.boardOpacityIndex + 1) % BOARD_OPACITY_LEVELS.length;
       this.syncToolButtons();
       this.draw();
     });
@@ -330,6 +339,7 @@ export class LifeUI {
     window.addEventListener('resize', () => this.draw());
 
     this.applyMode(this.mode);
+    this.syncToolButtons();
     this.applyUsageMode();
     this.updateOnlineControls();
     this.tryJoinSharedRoomFromUrl();
@@ -546,6 +556,13 @@ export class LifeUI {
       this.gridToggleButton.classList.toggle('active', this.showGrid);
       this.gridToggleButton.setAttribute('aria-pressed', String(this.showGrid));
       this.gridToggleButton.textContent = t(this.showGrid ? 'gridOn' : 'gridOff', this.language);
+    }
+    if (this.boardOpacityButton) {
+      const key = BOARD_OPACITY_KEYS[this.boardOpacityIndex] || BOARD_OPACITY_KEYS[0];
+      const opacity = BOARD_OPACITY_LEVELS[this.boardOpacityIndex] ?? BOARD_OPACITY_LEVELS[0];
+      this.boardOpacityButton.classList.toggle('active', opacity > 0);
+      this.boardOpacityButton.setAttribute('aria-pressed', String(opacity > 0));
+      this.boardOpacityButton.textContent = t(key, this.language);
     }
   }
 
@@ -1049,6 +1066,10 @@ export class LifeUI {
     return this.engine.dimension === 2 ? (this.engine.lattice || this.latticeSelect?.value || 'square') : 'square';
   }
 
+  currentBoardOpacity() {
+    return BOARD_OPACITY_LEVELS[this.boardOpacityIndex] ?? BOARD_OPACITY_LEVELS[0];
+  }
+
   flatCellPolygon(x, y, view, inset = 0) {
     const { sx, sy, originX, originY } = view;
     const left = originX + x * sx + inset;
@@ -1139,13 +1160,23 @@ export class LifeUI {
   }
 
   projectedSurfaceCellPolygon(x, y, width, height) {
-    const points = [
-      this.surfaceRawPoint(x, y),
-      this.surfaceRawPoint(x + 1, y),
-      this.surfaceRawPoint(x + 1, y + 1),
-      this.surfaceRawPoint(x, y + 1)
-    ].map((raw) => this.projectPoint(raw, width, height, 0.82));
-    return points.map((projected) => [projected.x, projected.y]);
+    return this.projectedSurfaceCell(x, y, width, height).polygon;
+  }
+
+  projectedSurfaceCell(x, y, width, height, inset = 0) {
+    const rawPoints = this.surfaceCellLatticePolygon(x, y, inset)
+      .map((latticePoint) => this.surfaceRawFromLatticePoint(latticePoint));
+    const projected = rawPoints.map((raw) => this.projectPoint(raw, width, height, 0.82));
+    const polygon = projected.map((point) => [point.x, point.y]);
+    const depth = projected.reduce((sum, point) => sum + point.z, 0) / Math.max(1, projected.length);
+    const perspective = projected.reduce((sum, point) => sum + point.perspective, 0) / Math.max(1, projected.length);
+    const center = {
+      x: projected.reduce((sum, point) => sum + point.x, 0) / Math.max(1, projected.length),
+      y: projected.reduce((sum, point) => sum + point.y, 0) / Math.max(1, projected.length),
+      z: depth,
+      perspective
+    };
+    return { polygon, projected, rawPoints, depth, center };
   }
 
   projectedSurfacePointToPosition(point, width, height) {
@@ -1154,11 +1185,11 @@ export class LifeUI {
     const limitY = this.engine.size[1] || 1;
     for (let y = 0; y < limitY; y += 1) {
       for (let x = 0; x < limitX; x += 1) {
-        const polygon = this.projectedSurfaceCellPolygon(x, y, width, height);
+        const tile = this.projectedSurfaceCell(x, y, width, height);
+        const polygon = tile.polygon;
         if (!this.pointInPolygon(point, polygon)) continue;
-        const center = this.projectPoint(this.surfaceRawPoint(x + 0.5, y + 0.5), width, height, 0.82);
-        const distance = Math.hypot(point.x - center.x, point.y - center.y);
-        const candidate = { distance, depth: center.z, position: [x, y] };
+        const distance = Math.hypot(point.x - tile.center.x, point.y - tile.center.y);
+        const candidate = { distance, depth: tile.depth, position: [x, y] };
         if (!best || candidate.depth > best.depth + 0.035 || (Math.abs(candidate.depth - best.depth) <= 0.035 && candidate.distance < best.distance)) {
           best = candidate;
         }
@@ -1172,20 +1203,20 @@ export class LifeUI {
     const limitX = this.engine.size[0];
     const limitY = this.engine.dimension >= 2 ? this.engine.size[1] : 1;
     const depth = Math.max(1, this.engine.size[2] || 1);
-    const baseScale = Math.min(width / Math.max(1, limitX), height / Math.max(1, limitY));
-    const cellScale = Math.max(4, baseScale * this.camera.zoom * 0.52);
     for (let z = 0; z < depth; z += 1) {
       for (let y = 0; y < limitY; y += 1) {
         for (let x = 0; x < limitX; x += 1) {
-          const raw = this.volumeRawPoint(x, y, z);
-          const projected = this.projectPoint(raw, width, height, 0.86);
-          const radius = cellScale * Math.max(0.4, projected.perspective || 1);
-          const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
-          if (distance > radius) continue;
-          const position = this.engine.dimension === 4 ? [x, y, z, 0] : [x, y, z];
-          const candidate = { distance, depth: projected.z, position };
-          if (!best || candidate.depth > best.depth + 0.04 || (Math.abs(candidate.depth - best.depth) <= 0.04 && candidate.distance < best.distance)) {
-            best = candidate;
+          const faces = this.projectedVolumeCellFaces(x, y, z, width, height);
+          for (const face of faces) {
+            if (!this.pointInPolygon(point, face.polygon)) continue;
+            const centerX = face.polygon.reduce((sum, item) => sum + item[0], 0) / face.polygon.length;
+            const centerY = face.polygon.reduce((sum, item) => sum + item[1], 0) / face.polygon.length;
+            const distance = Math.hypot(point.x - centerX, point.y - centerY);
+            const position = this.engine.dimension === 4 ? [x, y, z, 0] : [x, y, z];
+            const candidate = { distance, depth: face.depth, position };
+            if (!best || candidate.depth > best.depth + 0.04 || (Math.abs(candidate.depth - best.depth) <= 0.04 && candidate.distance < best.distance)) {
+              best = candidate;
+            }
           }
         }
       }
@@ -1307,37 +1338,29 @@ export class LifeUI {
     };
   }
 
-  surfaceLatticePoint(x, y) {
+  surfaceLatticeBounds() {
     const nx = Math.max(1, this.engine.size[0]);
     const ny = Math.max(1, this.engine.size[1] || 1);
     const lattice = this.flatLatticeKind();
     if (lattice === 'triangular') {
-      const rawX = x + y * 0.5;
-      const rawY = y * SQRT3 / 2;
-      return {
-        x: rawX,
-        y: rawY,
-        nx: nx + ny * 0.5,
-        ny: Math.max(1, ny * SQRT3 / 2)
-      };
+      return { nx: 1 + Math.max(0, nx - 1) * 0.5, ny: Math.max(1, ny * SQRT3 / 2) };
     }
     if (lattice === 'honeycomb') {
-      const columnOffset = Math.floor(x) % 2 ? 0.5 : 0;
-      const rawX = x * SQRT3 / 2;
-      const rawY = y + columnOffset;
       return {
-        x: rawX,
-        y: rawY,
-        nx: Math.max(1, nx * SQRT3 / 2),
-        ny: Math.max(1, ny + 0.5)
+        nx: Math.max(1, SQRT3 * (nx + 0.5)),
+        ny: Math.max(1, ny <= 1 ? 2 : 1.5 * (ny - 1) + 2)
       };
     }
-    return { x, y, nx, ny };
+    return { nx, ny };
   }
 
-  surfaceRawPoint(x, y) {
+  surfaceLatticePoint(x, y) {
+    const bounds = this.surfaceLatticeBounds();
+    return { x, y, nx: bounds.nx, ny: bounds.ny };
+  }
+
+  surfaceRawFromLatticePoint(latticePoint) {
     const geom = this.boardGeometrySelect.value;
-    const latticePoint = this.surfaceLatticePoint(x, y);
     const nx = latticePoint.nx;
     const ny = latticePoint.ny;
     const u = (latticePoint.x / nx) * Math.PI * 2;
@@ -1394,6 +1417,49 @@ export class LifeUI {
     };
   }
 
+  surfaceRawPoint(x, y) {
+    return this.surfaceRawFromLatticePoint(this.surfaceLatticePoint(x, y));
+  }
+
+  surfaceCellLatticePolygon(x, y, inset = 0) {
+    const bounds = this.surfaceLatticeBounds();
+    const lattice = this.flatLatticeKind();
+    if (lattice === 'triangular') {
+      const height = SQRT3 / 2;
+      const left = x * 0.5;
+      const top = y * height;
+      const points = ((x + y) % 2 === 0)
+        ? [[left + 0.5, top], [left + 1, top + height], [left, top + height]]
+        : [[left, top], [left + 1, top], [left + 0.5, top + height]];
+      return this.insetLatticePolygon(points, inset).map(([px, py]) => ({ x: px, y: py, ...bounds }));
+    }
+    if (lattice === 'honeycomb') {
+      const radius = 1;
+      const centerX = (x + 0.5 + (y % 2 ? 0.5 : 0)) * SQRT3;
+      const centerY = 1 + y * 1.5;
+      const points = Array.from({ length: 6 }, (_, index) => {
+        const angle = -Math.PI / 2 + index * Math.PI / 3;
+        return [centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius];
+      });
+      return this.insetLatticePolygon(points, inset).map(([px, py]) => ({ x: px, y: py, ...bounds }));
+    }
+    const points = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
+    return this.insetLatticePolygon(points, inset).map(([px, py]) => ({ x: px, y: py, ...bounds }));
+  }
+
+  insetLatticePolygon(points, inset = 0) {
+    if (!inset) return points;
+    const cx = points.reduce((sum, point) => sum + point[0], 0) / points.length;
+    const cy = points.reduce((sum, point) => sum + point[1], 0) / points.length;
+    return points.map(([px, py]) => {
+      const dx = px - cx;
+      const dy = py - cy;
+      const length = Math.max(1e-6, Math.hypot(dx, dy));
+      const nextLength = Math.max(0, length - inset);
+      return [cx + (dx / length) * nextLength, cy + (dy / length) * nextLength];
+    });
+  }
+
   volumeRawPoint(x, y, z) {
     const nx = Math.max(1, this.engine.size[0] - 1);
     const ny = Math.max(1, (this.engine.size[1] || 1) - 1);
@@ -1417,31 +1483,44 @@ export class LifeUI {
   }
 
   drawSurfaceBoundary(ctx, width, height) {
-    const nx = Math.max(1, this.engine.size[0]);
-    const ny = Math.max(1, this.engine.size[1] || 1);
+    const bounds = this.surfaceLatticeBounds();
+    const nx = bounds.nx;
+    const ny = bounds.ny;
     ctx.save();
     ctx.lineWidth = Math.max(1.2, width / 520);
     ctx.strokeStyle = 'rgba(125, 211, 252, 0.34)';
 
-    const uSteps = Math.min(nx, 64);
-    const vSteps = Math.min(ny, 64);
+    const uSteps = Math.min(Math.max(1, this.engine.size[0]), 64);
+    const vSteps = Math.min(Math.max(1, this.engine.size[1] || 1), 64);
     for (let i = 0; i < uSteps; i += 1) {
       const x = (i / uSteps) * nx;
       const line = [];
-      for (let j = 0; j <= ny; j += 1) line.push(this.surfaceRawPoint(x, j));
+      for (let j = 0; j <= vSteps; j += 1) {
+        const y = (j / vSteps) * ny;
+        line.push(this.surfaceRawFromLatticePoint({ x, y, nx, ny }));
+      }
       this.drawPath3D(ctx, line, width, height, 0.82);
     }
     for (let j = 0; j <= vSteps; j += 1) {
       const y = (j / vSteps) * ny;
       const line = [];
-      for (let i = 0; i <= nx; i += 1) line.push(this.surfaceRawPoint(i, y));
+      for (let i = 0; i <= uSteps; i += 1) {
+        const x = (i / uSteps) * nx;
+        line.push(this.surfaceRawFromLatticePoint({ x, y, nx, ny }));
+      }
       this.drawPath3D(ctx, line, width, height, 0.82);
     }
 
     ctx.strokeStyle = 'rgba(245, 182, 71, 0.88)';
     ctx.lineWidth = Math.max(2.2, width / 360);
-    this.drawPath3D(ctx, Array.from({ length: nx + 1 }, (_, i) => this.surfaceRawPoint(i, 0)), width, height, 0.82);
-    this.drawPath3D(ctx, Array.from({ length: nx + 1 }, (_, i) => this.surfaceRawPoint(i, ny)), width, height, 0.82);
+    this.drawPath3D(ctx, Array.from({ length: uSteps + 1 }, (_, i) => {
+      const x = (i / uSteps) * nx;
+      return this.surfaceRawFromLatticePoint({ x, y: 0, nx, ny });
+    }), width, height, 0.82);
+    this.drawPath3D(ctx, Array.from({ length: uSteps + 1 }, (_, i) => {
+      const x = (i / uSteps) * nx;
+      return this.surfaceRawFromLatticePoint({ x, y: ny, nx, ny });
+    }), width, height, 0.82);
 
     ctx.fillStyle = 'rgba(245, 182, 71, 0.92)';
     ctx.font = `${Math.max(12, width / 48)}px ui-sans-serif, system-ui`;
@@ -1449,60 +1528,135 @@ export class LifeUI {
     ctx.restore();
   }
 
-  projectedMarkerShape(position = []) {
-    const lattice = this.engine.lattice || this.latticeSelect?.value || 'square';
-    if (this.engine.dimension === 2) {
-      if (lattice === 'triangular') return { sides: 3, rotation: ((position[0] + position[1]) % 2 === 0) ? -Math.PI / 2 : Math.PI / 2 };
-      if (lattice === 'honeycomb') return { sides: 6, rotation: Math.PI / 6 };
-      return { sides: 4, rotation: Math.PI / 4 };
-    }
-    if (lattice === 'bcc') return { sides: 4, rotation: Math.PI / 4 };
-    if (lattice === 'fcc') return { sides: 6, rotation: Math.PI / 6 };
-    if (lattice === 'hcp') return { sides: 6, rotation: 0 };
-    return { sides: 4, rotation: 0 };
-  }
-
-  drawProjectedMarker(ctx, projected, radius, position = []) {
-    const shape = this.projectedMarkerShape(position);
-    const sides = Math.max(3, shape.sides || 4);
-    ctx.beginPath();
-    for (let i = 0; i < sides; i += 1) {
-      const angle = shape.rotation + (i / sides) * Math.PI * 2;
-      const x = projected.x + Math.cos(angle) * radius;
-      const y = projected.y + Math.sin(angle) * radius;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fill();
-  }
-
   drawSurfaceCells(ctx, width, height) {
-    const radius = Math.max(1.9, width / this.engine.size[0] * 0.42) * this.camera.zoom;
-    const cells = [];
+    const boardOpacity = this.currentBoardOpacity();
+    const tiles = [];
     for (let y = 0; y < this.engine.size[1]; y += 1) {
       for (let x = 0; x < this.engine.size[0]; x += 1) {
         const cell = this.engine.getCell([x, y]);
-        if (!isAlive(cell)) continue;
-        const raw = this.surfaceRawPoint(x + 0.5, y + 0.5);
-        const rotated = this.rotatePoint(raw);
-        cells.push({ x, y, cell, raw, z: rotated.z });
+        const tile = this.projectedSurfaceCell(x, y, width, height, 0);
+        tiles.push({ x, y, cell, ...tile });
+      }
+    }
+    tiles.sort((a, b) => a.depth - b.depth);
+    ctx.save();
+    for (const item of tiles) {
+      const isFront = item.depth >= 0.02;
+      if (boardOpacity > 0) {
+        ctx.globalAlpha = boardOpacity * (isFront ? 0.94 : 0.78);
+        ctx.fillStyle = '#f8fafc';
+        this.drawPolygonPath(ctx, item.polygon);
+        ctx.fill();
+      }
+      if (isAlive(item.cell)) {
+        const p = item.center;
+        const maxAge = Number(this.ageRange.value) || 0;
+        const ageAlpha = maxAge ? Math.max(0.34, 1 - (item.cell.age || 0) / (maxAge + 6)) : 0.96;
+        const depthAlpha = boardOpacity > 0
+          ? 0.98
+          : item.depth < -0.08 ? 0.34 : item.depth < 0.08 ? 0.58 : 0.92;
+        ctx.globalAlpha = ageAlpha * depthAlpha * (0.68 + 0.32 * Math.max(0, p.perspective));
+        ctx.fillStyle = COLORS[item.cell.species] || COLORS[1];
+        this.drawPolygonPath(ctx, item.polygon);
+        ctx.fill();
+      }
+      if (this.showGrid) {
+        ctx.globalAlpha = item.depth < -0.08 && boardOpacity <= 0 ? 0.26 : 0.62;
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.72)';
+        ctx.lineWidth = Math.max(0.45, Math.min(1.25, width / this.engine.size[0] * 0.045));
+        this.drawPolygonPath(ctx, item.polygon);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  drawVolumeVoxel(ctx, item, width, height, colorAlpha = 1) {
+    const [x, y, z] = item.position;
+    const faces = this.projectedVolumeCellFaces(x, y, z, width, height);
+    faces.sort((a, b) => a.depth - b.depth);
+    for (const face of faces) {
+      ctx.globalAlpha = colorAlpha * (0.62 + 0.38 * Math.max(0, face.normalDepth));
+      this.drawPolygonPath(ctx, face.polygon);
+      ctx.fill();
+      if (this.showGrid) {
+        ctx.globalAlpha = Math.min(0.72, colorAlpha + 0.16);
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        ctx.lineWidth = 0.65;
+        ctx.stroke();
+      }
+    }
+  }
+
+  projectedVolumeCellFaces(x, y, z, width, height) {
+    const corners = [
+      this.volumeRawCornerPoint(x, y, z),
+      this.volumeRawCornerPoint(x + 1, y, z),
+      this.volumeRawCornerPoint(x + 1, y + 1, z),
+      this.volumeRawCornerPoint(x, y + 1, z),
+      this.volumeRawCornerPoint(x, y, z + 1),
+      this.volumeRawCornerPoint(x + 1, y, z + 1),
+      this.volumeRawCornerPoint(x + 1, y + 1, z + 1),
+      this.volumeRawCornerPoint(x, y + 1, z + 1)
+    ].map((raw) => this.projectPoint(raw, width, height, 0.86));
+    const faceIndexes = [
+      [0, 1, 2, 3],
+      [4, 7, 6, 5],
+      [0, 4, 5, 1],
+      [1, 5, 6, 2],
+      [2, 6, 7, 3],
+      [3, 7, 4, 0]
+    ];
+    return faceIndexes.map((indexes) => {
+      const points = indexes.map((index) => corners[index]);
+      const depth = points.reduce((sum, point) => sum + point.z, 0) / points.length;
+      const normalDepth = Math.max(0, depth + 0.65);
+      return {
+        polygon: points.map((point) => [point.x, point.y]),
+        depth,
+        normalDepth
+      };
+    });
+  }
+
+  volumeRawCornerPoint(x, y, z) {
+    const nx = Math.max(1, this.engine.size[0]);
+    const ny = Math.max(1, this.engine.size[1] || 1);
+    const nz = Math.max(1, this.engine.size[2] || 1);
+    return {
+      x: (x / nx - 0.5) * 1.75,
+      y: (y / ny - 0.5) * 1.75,
+      z: (z / nz - 0.5) * 1.75
+    };
+  }
+
+  drawVolumeCells(ctx, width, height) {
+    const depth = this.engine.size[2] || 1;
+    const cells = [];
+    for (let z = 0; z < depth; z += 1) {
+      for (let y = 0; y < this.engine.size[1]; y += 1) {
+        for (let x = 0; x < this.engine.size[0]; x += 1) {
+          const cell = this.engine.getCell([x, y, z]);
+          if (!isAlive(cell)) continue;
+          const raw = this.volumeRawPoint(x, y, z);
+          const rotated = this.rotatePoint(raw);
+          cells.push({ cell, raw, position: [x, y, z], z: rotated.z });
+        }
       }
     }
     cells.sort((a, b) => a.z - b.z);
+    ctx.save();
     for (const item of cells) {
-      const p = this.projectPoint(item.raw, width, height, 0.82);
+      const p = this.projectPoint(item.raw, width, height, 0.86);
       const maxAge = Number(this.ageRange.value) || 0;
-      const ageAlpha = maxAge ? Math.max(0.34, 1 - (item.cell.age || 0) / (maxAge + 6)) : 0.94;
-      const depthAlpha = item.z < -0.08 ? 0.34 : item.z < 0.08 ? 0.58 : 0.92;
-      ctx.globalAlpha = ageAlpha * depthAlpha * (0.58 + 0.42 * Math.max(0, p.perspective));
+      const ageAlpha = maxAge ? Math.max(0.34, 1 - (item.cell.age || 0) / (maxAge + 6)) : 0.92;
+      const depthAlpha = item.z < -0.08 ? 0.46 : item.z < 0.08 ? 0.68 : 0.96;
+      const alpha = ageAlpha * depthAlpha * (0.58 + 0.42 * Math.max(0.22, p.perspective));
       ctx.fillStyle = COLORS[item.cell.species] || COLORS[1];
-      this.drawProjectedMarker(ctx, p, radius * p.perspective, [item.x, item.y]);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
+      this.drawVolumeVoxel(ctx, item, width, height, alpha);
     }
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
@@ -1536,33 +1690,6 @@ export class LifeUI {
     ctx.font = `${Math.max(12, width / 48)}px ui-sans-serif, system-ui`;
     ctx.fillText(`${this.boardGeometrySelect.value.toUpperCase()} volume`, 14, 26);
     ctx.restore();
-  }
-
-  drawVolumeCells(ctx, width, height) {
-    const depth = this.engine.size[2] || 1;
-    const cells = [];
-    for (let z = 0; z < depth; z += 1) {
-      for (let y = 0; y < this.engine.size[1]; y += 1) {
-        for (let x = 0; x < this.engine.size[0]; x += 1) {
-          const cell = this.engine.getCell([x, y, z]);
-          if (!isAlive(cell)) continue;
-          const raw = this.volumeRawPoint(x, y, z);
-          const rotated = this.rotatePoint(raw);
-          cells.push({ cell, raw, position: [x, y, z], z: rotated.z });
-        }
-      }
-    }
-    cells.sort((a, b) => a.z - b.z);
-    const base = Math.max(2.1, width / this.engine.size[0] * 0.55) * this.camera.zoom;
-    for (const item of cells) {
-      const p = this.projectPoint(item.raw, width, height, 0.86);
-      const maxAge = Number(this.ageRange.value) || 0;
-      const ageAlpha = maxAge ? Math.max(0.34, 1 - (item.cell.age || 0) / (maxAge + 6)) : 0.92;
-      ctx.globalAlpha = ageAlpha * (0.42 + 0.58 * Math.max(0.22, p.perspective));
-      ctx.fillStyle = COLORS[item.cell.species] || COLORS[1];
-      this.drawProjectedMarker(ctx, p, base * p.perspective, item.position);
-    }
-    ctx.globalAlpha = 1;
   }
 
   drawFlatLatticeUnits(ctx, width, height, view) {
