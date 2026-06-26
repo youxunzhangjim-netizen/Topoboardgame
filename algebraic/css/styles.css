@@ -526,6 +526,77 @@ h2 {
     color: #ffffff;
 }
 
+.lab-guide-book {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 14px;
+    padding: clamp(14px, 2vw, 20px);
+    border: 1px solid rgba(125, 211, 252, 0.34);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(14, 31, 43, 0.82), rgba(8, 13, 22, 0.86));
+}
+
+.lab-guide-book-header {
+    display: grid;
+    gap: 6px;
+    max-width: 900px;
+}
+
+.lab-guide-book-header span {
+    color: #7dd3fc;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.lab-guide-book-header h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: clamp(20px, 3vw, 30px);
+    line-height: 1.12;
+}
+
+.lab-guide-book-subtitle {
+    color: #cbd5e1;
+    font-size: clamp(14px, 1.4vw, 16px);
+    line-height: 1.5;
+}
+
+.lab-guide-book-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.lab-guide-card {
+    min-width: 0;
+    padding: 13px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    background: rgba(2, 6, 23, 0.32);
+}
+
+.lab-guide-card h4 {
+    margin: 0 0 8px;
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.25;
+}
+
+.lab-guide-card ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #d8e3ec;
+    font-size: clamp(13px, 1.35vw, 15px);
+    line-height: 1.48;
+}
+
+.lab-guide-card li {
+    margin: 0.35rem 0;
+}
+
 .site-action-palette {
     position: fixed;
     z-index: 80;
@@ -1663,6 +1734,19 @@ textarea {
 
     .rules-intro-content > :not([hidden]) {
         grid-template-columns: 1fr;
+    }
+
+    .lab-guide-book {
+        padding: 13px;
+    }
+
+    .lab-guide-book-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lab-guide-card,
+    .lab-guide-book-subtitle {
+        overflow-wrap: anywhere;
     }
 
     .board {

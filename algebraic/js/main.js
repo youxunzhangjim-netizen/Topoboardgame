@@ -379,6 +379,963 @@ const MODE_LABELS = {
     spin_ice_vertex_game: 'Spin Ice Vertex Game',
     z2_gauge_loop_game: 'Z2 Gauge Loop Game'
 };
+const LAB_GUIDE_LABELS = Object.freeze({
+    clifford: { en: 'Clifford Guide Book', zh: 'Clifford 指南書' },
+    'physical-clifford': { en: 'Stabilizer Guide Book', zh: 'Stabilizer 指南書' },
+    'physical-cluster-go': { en: 'Cluster Field Guide Book', zh: 'Cluster Field 指南書' },
+    'ising-domain': { en: 'Spin Domain Guide Book', zh: 'Spin Domain 指南書' },
+    'two-phase': { en: 'Two-Phase Guide Book', zh: 'Two-Phase 指南書' },
+    'physical-jump-particles': { en: 'Particle Jump Guide Book', zh: 'Particle Jump 指南書' },
+    'spin-ice': { en: 'Spin Ice Guide Book', zh: 'Spin Ice 指南書' },
+    'z2-gauge': { en: 'Z2 Gauge Guide Book', zh: 'Z2 Gauge 指南書' },
+    'cft-reversi': { en: 'CFT OPE Guide Book', zh: 'CFT OPE 指南書' },
+    anyon: { en: 'Anyon Guide Book', zh: 'Anyon 指南書' },
+    virasoro: { en: 'Virasoro / CFT Field Guide Book', zh: 'Virasoro / CFT Field 指南書' }
+});
+const LAB_SHARED_DEVICE_GUIDE = Object.freeze({
+    en: {
+        heading: 'Controls on desktop and mobile',
+        items: [
+            'Desktop: click a board site or graph vertex, use the selectors for the active action, drag 3D boards to rotate, and use the wheel or reset button for camera control.',
+            'Mobile: tap the site or vertex, scroll the side controls normally, one-finger drag 3D boards to rotate, and pinch to zoom when the board is dense.',
+            'After changing topology, lattice, board size, initial state, or a physical model, press New Game so the legal moves and observables rebuild from the new graph.'
+        ]
+    },
+    zh: {
+        heading: '桌機與手機操作',
+        items: [
+            '桌機：點棋盤格或 graph vertex，用選單選目前 action；3D 棋盤可拖曳旋轉，並用滾輪或 reset camera 控制視角。',
+            '手機：點擊 site 或 vertex，側邊控制可正常捲動；3D 棋盤用單指拖曳旋轉，棋盤很密時用雙指縮放。',
+            '改變 topology、lattice、棋盤大小、initial state 或 physical model 後，按 New Game 讓合法走法與 observables 依新 graph 重建。'
+        ]
+    }
+});
+const LAB_GUIDE_BOOKS = Object.freeze({
+    clifford: {
+        en: {
+            title: 'Clifford / Pauli Operator Game Guide',
+            subtitle: 'A playable Reversi, insertion, and worldline lab for Pauli labels, Clifford transforms, topology rays, and exports.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black and White take turns controlling Pauli-labelled pieces on the selected topology graph.',
+                        'In Reversi mode the familiar goal is board control: make legal brackets, flip opponent chains, and finish with more controlled sites.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Reversi: click an empty legal vertex that brackets at least one opponent chain along a topology-aware ray; the bracketed chain flips immediately.',
+                        'Clifford Insertion Field: click a legal site, then choose X, Y, or Z from the local palette. Clifford Worldline Operators: select a token and move or exchange it along graph adjacency.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The game ends when neither side has legal moves or both sides pass where passing is enabled. Final ownership counts decide the winner.',
+                        'Exports also preserve the operator labels, topology, lattice, move history, and time/noise events for later study.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'X, Y, and Z are Pauli operators. H and S are Clifford transforms that change labels while preserving Pauli commutation structure.',
+                        'Twisted seams and wrapped boards change which local rays touch, so the same rule can behave differently on flat, torus, Klein, RP2, S2, R3, or 4D graphs.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Use the observables to compare Pauli distribution, symplectic conflicts, phase/sign display, noise response, and topology transport.',
+                        'Use seeded noise and time evolution when you need reproducible operator-spreading samples across geometries.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Clifford / Pauli Operator 遊戲指南',
+            subtitle: '把 Reversi、insertion 與 worldline 放在 Pauli label、Clifford transform、topology ray 與 export 裡一起玩。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑白雙方輪流在選定的 topology graph 上控制帶有 Pauli label 的棋子。',
+                        'Reversi 模式的基本目標是控制棋盤：走合法夾擊、翻轉對方鏈，最後控制更多 site。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Reversi：點一個可以沿 topology-aware ray 夾住至少一串對方棋子的空 vertex；被夾住的鏈會立刻翻轉。',
+                        'Clifford Insertion Field：點合法 site 後，在局部選單選 X、Y 或 Z。Clifford Worldline Operators：選 token，沿 graph adjacency 移動或交換。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '沒有合法走法，或可 pass 的模式中雙方都 pass 時結束；最後依控制 site 數量決定勝負。',
+                        'Export 也會保留 operator label、topology、lattice、move history 與 time/noise event，方便之後研究。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        'X、Y、Z 是 Pauli operator。H 與 S 是 Clifford transform，會改變 label 但保留 Pauli commutation 結構。',
+                        'Twisted seam 與 wrap board 會改變局部 ray 的接觸，所以同一套規則在 flat、torus、Klein、RP2、S2、R3 或 4D graph 上會有不同表現。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '用 observables 比較 Pauli distribution、symplectic conflict、phase/sign display、noise response 與 topology transport。',
+                        '需要可重現的 operator spreading 樣本時，使用 seeded noise 與 time evolution 在不同 geometry 間比較。'
+                    ]
+                }
+            ]
+        }
+    },
+    'physical-clifford': {
+        en: {
+            title: 'Stabilizer / Pauli-Frame Recovery Guide',
+            subtitle: 'A stabilizer recovery game for defects, syndrome checks, ancillas, measurements, and logical-sector tracking.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Treat the board as a damaged quantum memory. Your job is to place or apply local Pauli-frame actions so defects shrink instead of spreading.',
+                        'Black and White are positive and negative sectors. Empty sites are identity I unless the initial state or Custom Setup changes them.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Choose a physical action: apply a Pauli recovery operator, prepare an ancilla, entangle by CNOT or CZ, measure, discard, or apply a phase action.',
+                        'In Custom Setup, click sites to set I/X/Y/Z and sign first, then press Start to begin recovery from the designed board.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'For recovery play, success means lowering syndrome defects and returning toward the intended stabilizer vacuum or logical sector.',
+                        'For board-game counting, use the normal ownership count, but the export records the physical answer as recovery state, logical error, and final sector.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'The mode models stabilizer bookkeeping: local Pauli operators, signs, phases, syndrome checks, ancilla operations, and seeded measurement errors.',
+                        'Logical-cycle parity and global parity show whether local repair accidentally moved the memory into a different logical sector.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Use the syndrome weight, commutation conflicts, logical sector, recovery time, measurement errors, and non-Clifford resource markers as the primary observables.',
+                        'Export the QEC log to compare recovery policies across topology, lattice, error rate, and prepared-circuit starts.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Stabilizer / Pauli-Frame Recovery 指南',
+            subtitle: '用 defect、syndrome check、ancilla、measurement 與 logical-sector tracking 組成的 stabilizer recovery 遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '把棋盤看成受損的 quantum memory。你的目標是放置或套用局部 Pauli-frame action，讓 defect 減少而不是擴散。',
+                        '黑白代表 positive 與 negative sector。空 site 預設是 identity I，除非 initial state 或 Custom Setup 改變它。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        '選一個 physical action：apply Pauli recovery operator、prepare ancilla、用 CNOT 或 CZ entangle、measure、discard，或 apply phase action。',
+                        'Custom Setup 中先點 site 設定 I/X/Y/Z 與正負號，再按 Start 從設計好的棋盤開始 recovery。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        'Recovery play 的成功是降低 syndrome defect，並讓棋盤回到預期的 stabilizer vacuum 或 logical sector。',
+                        '若以 board-game count 結束，仍可看 ownership；但 export 會把 physical answer 記成 recovery state、logical error 與 final sector。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '此模式做 stabilizer bookkeeping：local Pauli operator、sign、phase、syndrome check、ancilla operation 與 seeded measurement error。',
+                        'Logical-cycle parity 與 global parity 顯示局部修復是否不小心把 memory 推到不同 logical sector。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '主要觀察 syndrome weight、commutation conflict、logical sector、recovery time、measurement error 與 non-Clifford resource marker。',
+                        '匯出 QEC log，可比較不同 topology、lattice、error rate 與 prepared-circuit start 下的 recovery policy。'
+                    ]
+                }
+            ]
+        }
+    },
+    'physical-cluster-go': {
+        en: {
+            title: 'Physical Cluster Field Guide',
+            subtitle: 'A Go-like growth and capture lab for species competition, percolation, extinction, and topology-wrapping clusters.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black is species A and White is species B. Empty sites are resources or open growth sites.',
+                        'You try to grow connected clusters, keep them supplied by neighboring empty contacts, and prevent the opponent from percolating through the board.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Click an empty legal site to place a species, or choose a growth action to expand a connected cluster into a neighboring resource site.',
+                        'A connected cluster with zero open contacts can be removed as local extinction, annihilation, or confinement depending on the model.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The practical winner is the species that survives, occupies more area, or forms the stronger topology-wrapping/percolating cluster.',
+                        'Export reports survival or extinction time, largest cluster, wrapping count, and a percolation answer.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'The same rule can represent percolation clusters, reaction-diffusion domains, two-species competition, exciton/hole recombination, or spin-domain growth.',
+                        'Topology changes the neighbor graph, so a cluster that dies on an open board may wrap and survive on a torus or Klein-style board.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track cluster-size distribution, largest cluster, interface length, correlation-length estimate, survival probability, and topology-wrapping count.',
+                        'Use random density and thermal samples to compare repeatable growth statistics across lattice choices.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Physical Cluster Field 指南',
+            subtitle: '類 Go 的 growth/capture Lab，用來觀察 species competition、percolation、extinction 與 topology-wrapping cluster。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑方是 species A，白方是 species B。空 site 是 resource 或可生長位置。',
+                        '你要擴張 connected cluster，讓它保有鄰近空接觸，並阻止對方形成穿過棋盤的 percolating cluster。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        '點合法空 site 放置 species，或選 growth action，把 connected cluster 擴張到相鄰 resource site。',
+                        '若 connected cluster 沒有 open contact，會依模型被視為 local extinction、annihilation 或 confinement 而移除。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '實際勝方是能存活、佔更多面積，或形成較強 topology-wrapping/percolating cluster 的 species。',
+                        'Export 會報告 survival/extinction time、largest cluster、wrapping count 與 percolation answer。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '同一套規則可解讀為 percolation cluster、reaction-diffusion domain、two-species competition、exciton/hole recombination 或 spin-domain growth。',
+                        'Topology 會改變 neighbor graph，因此在 open board 死掉的 cluster，可能在 torus 或 Klein-style board 上包回並存活。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 cluster-size distribution、largest cluster、interface length、correlation-length estimate、survival probability 與 topology-wrapping count。',
+                        '用 random density 與 thermal sample 比較不同 lattice 下可重現的 growth statistics。'
+                    ]
+                }
+            ]
+        }
+    },
+    'ising-domain': {
+        en: {
+            title: 'Spin & Phase Domain Guide',
+            subtitle: 'A spin-domain game for local flips, domain-wall motion, magnetization, energy, and coarsening on topology graphs.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black is spin up s=+1 and White is spin down s=-1. Your moves reshape domains of matching spins.',
+                        'Try to make your spin phase stable, reduce bad interfaces, or create a persistent topology-winding wall.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Use the action selector to place or flip one spin, flip a connected domain, rewrite a line interval, pass, or try Metropolis temperature updates.',
+                        'A legal action is judged by graph neighbors, not by a flat-square assumption, so twisted and wrapped boards can change domain contact.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The readable game result is whether up spins, down spins, or a mixed/walled phase dominates at the end.',
+                        'The export summarizes ordered, mixed, stable-wall, or topology-winding outcomes.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'The board estimates Ising-like energy, magnetization, domain-wall length, and accepted or rejected thermal moves.',
+                        'Topology can stabilize walls that would collapse on a simple open board.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Compare energy, magnetization, wall density, domain count, and coarsening events across topology, lattice, temperature, and seeds.',
+                        'Use the same initial state on different graphs to see whether topology or local lattice degree controls the phase outcome.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Spin & Phase Domain 指南',
+            subtitle: '在 topology graph 上用 local flip、domain-wall motion、magnetization、energy 與 coarsening 組成的 spin-domain 遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑方是 spin up s=+1，白方是 spin down s=-1。你的走法會改變相同 spin 形成的 domain。',
+                        '目標是讓自己的 spin phase 穩定、減少不利 interface，或創造持續存在的 topology-winding wall。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        '用 action selector 選 place/flip one spin、flip connected domain、rewrite line interval、pass，或嘗試 Metropolis temperature update。',
+                        '合法 action 依 graph neighbor 判斷，不假設平面方格；twisted 或 wrapped board 會改變 domain contact。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '直觀結果是結束時 up spin、down spin，或 mixed/walled phase 哪一種佔優勢。',
+                        'Export 會總結 ordered、mixed、stable-wall 或 topology-winding outcome。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '棋盤估計 Ising-like energy、magnetization、domain-wall length，以及 thermal move 的 accepted/rejected 狀態。',
+                        'Topology 可能穩定在普通 open board 上會消失的 wall。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '比較不同 topology、lattice、temperature 與 seed 下的 energy、magnetization、wall density、domain count 與 coarsening event。',
+                        '在不同 graph 上使用相同 initial state，可觀察 phase outcome 主要受 topology 還是 local lattice degree 控制。'
+                    ]
+                }
+            ]
+        }
+    },
+    'two-phase': {
+        en: {
+            title: 'Two-Phase Competition Guide',
+            subtitle: 'A phase-invasion game for nucleation, growth, interface cost, metastability, and wrapped domains.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black is phase A, White is phase B, and empty sites are metastable substrate.',
+                        'You try to nucleate, grow, and protect your phase while pushing or pinning the interface against the other phase.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Auto mode chooses a reasonable nucleate, grow, or flip-interface action. Manual actions let you force one of those move types.',
+                        'A phase grows from neighboring same-phase sites. Interface flips depend on the local graph contacts and energy setting.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The winner is the phase with stronger final area, stable interface control, or a noncontractible wrapped region.',
+                        'Export reports the winning phase, interface stability, area fractions, nucleation count, and wrapping status.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'This is a toy model for nucleation, coarsening, pinning, droplet noise, and phase separation.',
+                        'Different lattices change local interface cost; different topologies change whether an invading phase can trap or wrap.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Compare energy, interface length, domain count, coarsening events, area fraction, and wrapped-interface observables.',
+                        'Use metastable empty or droplet starts to test sensitivity to nucleation seeds.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Two-Phase Competition 指南',
+            subtitle: '用 nucleation、growth、interface cost、metastability 與 wrapped domain 組成的 phase-invasion 遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑方是 phase A，白方是 phase B，空 site 是 metastable substrate。',
+                        '你要 nucleate、grow 並保護自己的 phase，同時推動或釘住和對方 phase 之間的 interface。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Auto mode 會選合理的 nucleate、grow 或 flip-interface action。Manual action 可指定其中一種走法。',
+                        'Phase 會從相鄰 same-phase site 生長。Interface flip 取決於 local graph contact 與 energy setting。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '勝方是 final area 較大、interface control 較穩，或形成 noncontractible wrapped region 的 phase。',
+                        'Export 會報告 winning phase、interface stability、area fraction、nucleation count 與 wrapping status。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '這是 nucleation、coarsening、pinning、droplet noise 與 phase separation 的 toy model。',
+                        '不同 lattice 會改變 local interface cost；不同 topology 會改變入侵 phase 是否能被困住或包回。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '比較 energy、interface length、domain count、coarsening event、area fraction 與 wrapped-interface observable。',
+                        '用 metastable empty 或 droplet start 測試對 nucleation seed 的敏感度。'
+                    ]
+                }
+            ]
+        }
+    },
+    'physical-jump-particles': {
+        en: {
+            title: 'Particle Hopping / Reaction Guide',
+            subtitle: 'A Jump-style particle lab for hops, exchanges, scattering chains, recombination, path parity, and reaction outcomes.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black and White are two particle species or charge signs. Empty vertices are available sites.',
+                        'You move particles through the graph, set up exchanges, and recombine opposite charges when that improves your reaction state.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Hop Adjacent moves one particle to a neighboring empty vertex. Exchange Across Particle jumps over an occupied neighbor into the next reachable empty vertex.',
+                        'Multi-step Scattering follows a legal chain, Recombine Opposite removes or neutralizes adjacent opposite charges, and Measure Path Parity records the path sector.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'A practical win means producing the better final reaction state: recombined charges, separated charges, persistent scattering path, or favorable parity sector.',
+                        'The export states whether recombination, separation, scattering, or parity change dominated the result.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'This mode maps Jump-like local movement to hopping particles, exchange scattering, and reaction-diffusion contact.',
+                        'Topology changes which particles are locally reachable and whether paths can wrap before recombination.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Use particle count, recombination count, exchange events, path length, braid-like parity, and recovered energy to compare reaction models.',
+                        'Run the same seed on different topologies to identify whether scattering is geometry-driven or rule-driven.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Particle Hopping / Reaction 指南',
+            subtitle: '把 Jump-style movement 轉成 hop、exchange、scattering chain、recombination、path parity 與 reaction outcome 的粒子 Lab。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑白代表兩種 particle species 或 charge sign。空 vertex 是可用位置。',
+                        '你要讓粒子沿 graph 移動、設置 exchange，並在有利時讓 opposite charge recombine。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Hop Adjacent 讓粒子移到相鄰空 vertex。Exchange Across Particle 會跳過相鄰 occupied particle，到下一個可達空 vertex。',
+                        'Multi-step Scattering 走合法連鎖；Recombine Opposite 移除或中和相鄰 opposite charge；Measure Path Parity 記錄 path sector。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '實際勝利是得到較好的 final reaction state：recombined charge、separated charge、persistent scattering path 或有利 parity sector。',
+                        'Export 會說明 recombination、separation、scattering 或 parity change 哪一種主導結果。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '此模式把 Jump-like local movement 對應到 hopping particle、exchange scattering 與 reaction-diffusion contact。',
+                        'Topology 會改變哪些粒子局部可達，以及 path 是否能在 recombination 前包回。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '用 particle count、recombination count、exchange event、path length、braid-like parity 與 recovered energy 比較 reaction model。',
+                        '在不同 topology 上跑同一 seed，可判斷 scattering 主要由 geometry 還是 rule 驅動。'
+                    ]
+                }
+            ]
+        }
+    },
+    'spin-ice': {
+        en: {
+            title: 'Spin Ice Vertex Guide',
+            subtitle: 'An edge-arrow game for ice-rule defects, monopoles, strings, loops, winding, and vacuum recovery.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'The pieces live on graph edges. Black arrows follow the chosen edge orientation; White arrows point opposite.',
+                        'Try to reduce ice-rule violations, move monopoles together, or create controlled strings and closed loops.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'You can flip one arrow, flip a connected string, flip a closed loop, move a monopole along an edge path, annihilate a monopole pair, or pass.',
+                        'Closed loops often preserve local constraints, while open strings can leave monopole defects at their endpoints.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The clearest success is returning to an ice-rule vacuum or ending with fewer defects and lower energy than the opponent.',
+                        'Export reports monopole sector, string/loop sector, winding, energy trend, and vacuum recovery status.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'Spin Ice represents constrained edge variables where local vertex rules create emergent monopole-like defects.',
+                        'Noncontractible loops may exist on wrapped spaces and can carry winding information even when local defects vanish.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track energy, ice-rule violations, monopole count, string length, loop count, loop winding, and defect density.',
+                        'Compare loop sectors across torus, Klein, Mobius, RP2, sphere, R3, and 4D graphs.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Spin Ice Vertex 指南',
+            subtitle: '把 edge-arrow、ice-rule defect、monopole、string、loop、winding 與 vacuum recovery 放在一起的遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '棋子活在 graph edge 上。黑箭頭沿選定 edge orientation，白箭頭則反向。',
+                        '目標是減少 ice-rule violation、讓 monopole 互相靠近，或創造可控制的 string 與 closed loop。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        '你可以 flip one arrow、flip connected string、flip closed loop、沿 edge path move monopole、annihilate monopole pair，或 pass。',
+                        'Closed loop 通常保留 local constraint；open string 可能在端點留下 monopole defect。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '最清楚的成功是回到 ice-rule vacuum，或結束時 defect 更少、energy 更低。',
+                        'Export 會報告 monopole sector、string/loop sector、winding、energy trend 與 vacuum recovery status。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        'Spin Ice 是受限 edge variable；local vertex rule 會產生 emergent monopole-like defect。',
+                        'Wrapped space 上可能存在 noncontractible loop，即使 local defect 消失，仍可攜帶 winding information。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 energy、ice-rule violation、monopole count、string length、loop count、loop winding 與 defect density。',
+                        '比較 torus、Klein、Mobius、RP2、sphere、R3 與 4D graph 上的 loop sector。'
+                    ]
+                }
+            ]
+        }
+    },
+    'z2-gauge': {
+        en: {
+            title: 'Z2 Gauge Loop Guide',
+            subtitle: 'An edge-field memory game for star checks, plaquette flux, loop updates, Wilson loops, and decoder repair.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Edges carry Z2 values Ue=+1 or Ue=-1. Your moves flip edges, paths, or loops to create or repair charge and flux defects.',
+                        'Try to keep the gauge state in the vacuum sector or repair it before a logical loop error survives.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Flip One Edge changes one edge. Flip Connected Path creates or moves endpoint charges. Flip Closed Loop changes a loop sector while preserving local endpoints.',
+                        'Measure Star Check and Measure Plaquette Check reveal local violations. Noisy Edge Flip and the decoder let you test recovery.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'Success means no unrepaired charge or flux defects and no unwanted logical loop error at the end.',
+                        'Export reports vacuum sector, logical sector, Wilson-loop values, decoder actions, and memory status.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'Z2 Gauge models discrete gauge fields on edges. Star checks test charge-like violations, and plaquette checks test flux-like violations.',
+                        'Noncontractible closed loops can change logical memory without leaving local defects.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track syndrome weight, star violations, plaquette flux, logical sector, Wilson-loop values, decoder moves, and memory lifetime.',
+                        'Use noisy starts and logical-loop errors to compare decoder behavior on different topologies.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Z2 Gauge Loop 指南',
+            subtitle: '用 edge-field memory、star check、plaquette flux、loop update、Wilson loop 與 decoder repair 組成的遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        'Edge 帶有 Z2 value Ue=+1 或 Ue=-1。你可以翻轉 edge、path 或 loop，來製造或修復 charge/flux defect。',
+                        '目標是讓 gauge state 保持 vacuum sector，或在 logical loop error 存活前把它修復。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Flip One Edge 改變單一 edge。Flip Connected Path 會創造或移動 endpoint charge。Flip Closed Loop 可改變 loop sector 且保留局部端點限制。',
+                        'Measure Star Check 與 Measure Plaquette Check 顯示 local violation。Noisy Edge Flip 與 decoder 可測試 recovery。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '成功是結束時沒有未修復的 charge/flux defect，也沒有不想要的 logical loop error。',
+                        'Export 會報告 vacuum sector、logical sector、Wilson-loop value、decoder action 與 memory status。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        'Z2 Gauge 在 edge 上模擬 discrete gauge field。Star check 測 charge-like violation，plaquette check 測 flux-like violation。',
+                        'Noncontractible closed loop 可以在不留下 local defect 的情況下改變 logical memory。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 syndrome weight、star violation、plaquette flux、logical sector、Wilson-loop value、decoder move 與 memory lifetime。',
+                        '用 noisy start 與 logical-loop error 比較不同 topology 上的 decoder behavior。'
+                    ]
+                }
+            ]
+        }
+    },
+    'cft-reversi': {
+        en: {
+            title: 'CFT Local OPE Operators Guide',
+            subtitle: 'A local CFT board game for primary insertions, OPE channels, domain signs, Virasoro actions, and graph entropy estimates.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'Black and White are source signs or player control for primary/domain insertions on a graph.',
+                        'You place primary fields and use local OPE updates to reorganize nearby signs, channels, and domain walls.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Click a legal site to insert a primary or domain field. This local-OPE mode does not require an ordinary Reversi bracket.',
+                        'Use actions such as L_-1, L0, L1, L_-2, L2, or Measure when enabled. Measurements can reveal OPE channel, interval parity, block, entropy, or stress estimates.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'A playable result is the side or sign with the stronger stable domain, plus the dominant final OPE or CFT sector.',
+                        'Export summarizes dominant channel, domain-wall length, entropy growth, anomaly count, and final CFT sector.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'Primary fields, OPE rules, and Virasoro-style actions are represented as discrete graph estimators for play and comparison.',
+                        'Ising CFT is the default model; the values are not exact continuum CFT calculations.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track primary counts, OPE channel transitions, conformalBlockWeights, dominant block, interval entropy estimate, stress proxy, and anomaly events.',
+                        'Use topology changes to test how graph contacts alter local OPE propagation and domain-wall stability.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'CFT Local OPE Operators 指南',
+            subtitle: '在 graph 上操作 primary insertion、OPE channel、domain sign、Virasoro action 與 graph entropy estimate 的 local CFT 遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '黑白代表 source sign 或玩家對 primary/domain insertion 的控制。',
+                        '你要放置 primary field，並利用 local OPE update 重組附近 sign、channel 與 domain wall。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        '點合法 site 插入 primary 或 domain field。這個 local-OPE 模式不需要普通 Reversi bracket。',
+                        '可用 action 包含啟用時的 L_-1、L0、L1、L_-2、L2 或 Measure。Measurement 可顯示 OPE channel、interval parity、block、entropy 或 stress estimate。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '可玩的結果是比較哪一方或 sign 擁有較穩定 domain，以及最後主導的 OPE/CFT sector。',
+                        'Export 會總結 dominant channel、domain-wall length、entropy growth、anomaly count 與 final CFT sector。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        'Primary field、OPE rule 與 Virasoro-style action 以 discrete graph estimator 表示，供遊戲與比較使用。',
+                        '預設模型是 Ising CFT；這些數值不是精確 continuum CFT calculation。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 primary count、OPE channel transition、conformalBlockWeights、dominant block、interval entropy estimate、stress proxy 與 anomaly event。',
+                        '改變 topology 測試 graph contact 如何改變 local OPE propagation 與 domain-wall stability。'
+                    ]
+                }
+            ]
+        }
+    },
+    anyon: {
+        en: {
+            title: 'Anyon Fusion & Braiding Guide',
+            subtitle: 'A topological memory game for anyon creation, hopping, braiding, unbraiding, fusion, energy, and logical sectors.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'You control mobile anyons on the topology graph. The main skills are moving, braiding, unbraiding, and fusing charges back to a useful sector.',
+                        'In Excitation Energy mode, spend energy to create an anyon and recover energy by recombination or vacuum fusion.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'A token can hop to an adjacent empty vertex or exchange across a neighboring token into the next empty vertex when the graph allows it.',
+                        'Braiding records a word or phase. Unbraiding must follow the reverse inverse sequence; a wrong target adds a new braid instead of removing memory.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'For memory play, success means the intended logical sector remains alive and nontrivial charges fuse back to vacuum when desired.',
+                        'For energy play, success means using creation, movement, recombination, and fusion more efficiently than the opponent.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'Toric Code, Ising, Fibonacci, and Z_n models define different charge labels and fusion rules.',
+                        'Non-Abelian choices store hidden fusion-channel information; finite entanglement distance can decohere that channel when particles separate too far.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track total fusion charge, logical sector, memory alive/lost, vacuum recovery, braid word length, unbraid success, energy history, and logical-error rate.',
+                        'Use exact braid words and seeded noise to compare Abelian and non-Abelian memory behavior across topology.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Anyon Fusion & Braiding 指南',
+            subtitle: '用 anyon creation、hopping、braiding、unbraiding、fusion、energy 與 logical sector 組成的 topological memory 遊戲。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '你在 topology graph 上控制可移動的 anyon。主要技巧是移動、braiding、unbraiding，並把 charge fusion 回有用 sector。',
+                        'Excitation Energy 模式中，花 energy 創造 anyon，並透過 recombination 或 vacuum fusion 回收 energy。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Token 可 hop 到相鄰空 vertex；若 graph 允許，也可 exchange across 相鄰 token 到下一個空 vertex。',
+                        'Braiding 會記錄 word 或 phase。Unbraiding 必須依反向 inverse sequence；點錯 target 會新增 braid，而不是清除 memory。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        'Memory play 的成功是 intended logical sector 仍存活，且 nontrivial charge 能在需要時 fusion 回 vacuum。',
+                        'Energy play 的成功是比對手更有效率地使用 creation、movement、recombination 與 fusion。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        'Toric Code、Ising、Fibonacci 與 Z_n model 定義不同 charge label 與 fusion rule。',
+                        'Non-Abelian 選項會保存 hidden fusion-channel information；finite entanglement distance 會在粒子分太遠時讓 channel decohere。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 total fusion charge、logical sector、memory alive/lost、vacuum recovery、braid word length、unbraid success、energy history 與 logical-error rate。',
+                        '用 exact braid word 與 seeded noise 比較 Abelian 與 non-Abelian memory 在不同 topology 上的表現。'
+                    ]
+                }
+            ]
+        }
+    },
+    virasoro: {
+        en: {
+            title: 'Virasoro / CFT Field Insertion Guide',
+            subtitle: 'A graph-CFT lab for primary fields, OPE contacts, Virasoro actions, block estimates, entropy, stress, and anomaly markers.',
+            sections: [
+                {
+                    heading: 'For players',
+                    items: [
+                        'The board is a graph surface. Empty sites are identity operators; placed stones are primary-field insertions controlled by Black or White.',
+                        'Try to arrange insertions so your source sign, OPE sector, or conformal block becomes dominant.'
+                    ]
+                },
+                {
+                    heading: 'Rules and moves',
+                    items: [
+                        'Insert Field places a primary at a legal site. L_-1, L0, and L1 shift, rescale, or focus local fields. N=2 also enables L_-2 and L2 toy actions.',
+                        'Measure actions estimate two-point or four-point correlators, OPE channel, dominant block, region entropy, or stress proxy.'
+                    ]
+                },
+                {
+                    heading: 'Win or finish',
+                    items: [
+                        'The game result is the final dominant block or OPE sector, plus which side keeps stronger source/domain control.',
+                        'Export records identity/vacuum block dominance, entropy growth, strongest correlations, final OPE sector, and anomaly count.'
+                    ]
+                },
+                {
+                    heading: 'Physics idea',
+                    items: [
+                        'This mode discretizes CFT ideas on a graph, using Ising CFT by default and Free Boson as an alternate estimator.',
+                        'Virasoro actions are playable graph updates, not exact continuum Virasoro algebra computation.'
+                    ]
+                },
+                {
+                    heading: 'For researchers',
+                    items: [
+                        'Track primary counts, OPE channel distribution, two-point estimates, cross-ratio, conformalBlockWeights, stress proxy, entropy, mutual information, and anomaly events.',
+                        'Use the same initial insertion set across topologies to compare contact graph effects on block dominance.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Virasoro / CFT Field Insertion 指南',
+            subtitle: '用 primary field、OPE contact、Virasoro action、block estimate、entropy、stress 與 anomaly marker 組成的 graph-CFT Lab。',
+            sections: [
+                {
+                    heading: '給玩家',
+                    items: [
+                        '棋盤是一個 graph surface。空 site 是 identity operator；放上的 stone 是由黑白控制的 primary-field insertion。',
+                        '你的目標是安排 insertion，讓自己的 source sign、OPE sector 或 conformal block 成為主導。'
+                    ]
+                },
+                {
+                    heading: '規則與走法',
+                    items: [
+                        'Insert Field 在合法 site 放 primary。L_-1、L0、L1 會 shift、rescale 或 focus local field。N=2 也會啟用 L_-2 與 L2 toy action。',
+                        'Measure action 可估計 two-point 或 four-point correlator、OPE channel、dominant block、region entropy 或 stress proxy。'
+                    ]
+                },
+                {
+                    heading: '勝利或結束',
+                    items: [
+                        '遊戲結果看 final dominant block 或 OPE sector，以及哪一方保有較強 source/domain control。',
+                        'Export 會記錄 identity/vacuum block dominance、entropy growth、strongest correlation、final OPE sector 與 anomaly count。'
+                    ]
+                },
+                {
+                    heading: '物理意義',
+                    items: [
+                        '此模式把 CFT idea 離散化到 graph 上，預設使用 Ising CFT，也可用 Free Boson 作 alternate estimator。',
+                        'Virasoro action 是可玩的 graph update，不是精確 continuum Virasoro algebra computation。'
+                    ]
+                },
+                {
+                    heading: '給研究者',
+                    items: [
+                        '觀察 primary count、OPE channel distribution、two-point estimate、cross-ratio、conformalBlockWeights、stress proxy、entropy、mutual information 與 anomaly event。',
+                        '在不同 topology 上使用相同 initial insertion set，比較 contact graph 對 block dominance 的影響。'
+                    ]
+                }
+            ]
+        }
+    }
+});
 const ANYON_SYMBOLS = {
     psi: '\u03c8',
     sigma: '\u03c3',
@@ -465,6 +1422,7 @@ let legalReversiCache = { signature: '', keys: [] };
 let actionPalette = null;
 let actionPaletteOpenedAt = 0;
 let anyonClickTimer = 0;
+let activeRulesMode = 'clifford';
 const algebraic3d = new Algebraic3DBoard({
     canvas: els.algebraic3dBoard,
     resetButton: els.reset3dCameraButton,
@@ -612,6 +1570,99 @@ function normalizeMode(value) {
 
 function selectedMode() {
     return normalizeMode(els.modeSelect.value) || 'clifford_reversi';
+}
+
+function labGuideLanguage() {
+    const queryLanguage = new URLSearchParams(window.location.search).get('lang');
+    const savedLanguage = localStorage.getItem('topological-boardgame:language')
+        || localStorage.getItem('topoboardgame-language')
+        || localStorage.getItem('topoboardgame.lang')
+        || '';
+    const language = queryLanguage || savedLanguage || document.documentElement.lang || navigator.language || 'en';
+    return String(language).toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function labGuideLabel(rulesMode = activeRulesMode) {
+    const language = labGuideLanguage();
+    const labels = LAB_GUIDE_LABELS[rulesMode] || LAB_GUIDE_LABELS.clifford;
+    return labels[language] || labels.en;
+}
+
+function appendLabGuideList(parent, items = []) {
+    const list = document.createElement('ul');
+    for (const text of items) {
+        const item = document.createElement('li');
+        item.textContent = text;
+        list.append(item);
+    }
+    parent.append(list);
+}
+
+function renderLabGuideBook(rulesMode = activeRulesMode) {
+    activeRulesMode = rulesMode || 'clifford';
+    const section = (els.rulesSections || []).find((entry) => entry.dataset.rulesMode === activeRulesMode);
+    if (!section) return;
+    const language = labGuideLanguage();
+    const source = LAB_GUIDE_BOOKS[activeRulesMode] || LAB_GUIDE_BOOKS.clifford;
+    const book = source[language] || source.en;
+    const shared = LAB_SHARED_DEVICE_GUIDE[language] || LAB_SHARED_DEVICE_GUIDE.en;
+    const modeHeading = section.querySelector('h2');
+    if (modeHeading) {
+        modeHeading.dataset.noLocalize = 'true';
+        modeHeading.textContent = book.title;
+        modeHeading.hidden = false;
+    }
+    let guide = [...section.children].find((child) => child.classList?.contains('lab-guide-book'));
+    if (!guide) {
+        guide = document.createElement('section');
+        guide.className = 'lab-guide-book';
+        guide.dataset.noLocalize = 'true';
+        guide.setAttribute('aria-label', book.title);
+        if (modeHeading) modeHeading.insertAdjacentElement('afterend', guide);
+        else section.prepend(guide);
+    }
+    for (const child of [...section.children]) {
+        child.hidden = child !== guide && child !== modeHeading;
+    }
+    guide.setAttribute('aria-label', book.title);
+    guide.replaceChildren();
+
+    const headerLabel = els.rulesIntroPanel?.querySelector('.rules-intro-header span');
+    if (headerLabel) {
+        headerLabel.dataset.noLocalize = 'true';
+        headerLabel.textContent = language === 'zh' ? '指南書' : 'Guide Book';
+    }
+    if (els.rulesIntroCloseButton) {
+        els.rulesIntroCloseButton.dataset.noLocalize = 'true';
+        els.rulesIntroCloseButton.textContent = language === 'zh' ? '關閉' : 'Cancel';
+        els.rulesIntroCloseButton.setAttribute('aria-label', language === 'zh' ? '關閉指南書' : 'Close guide book');
+    }
+
+    const header = document.createElement('div');
+    header.className = 'lab-guide-book-header';
+    const kicker = document.createElement('span');
+    kicker.textContent = language === 'zh' ? '模式指南' : 'Mode Guide';
+    const title = document.createElement('h3');
+    title.textContent = book.title;
+    const subtitle = document.createElement('div');
+    subtitle.className = 'lab-guide-book-subtitle';
+    subtitle.textContent = book.subtitle;
+    header.append(kicker, title, subtitle);
+    guide.append(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'lab-guide-book-grid';
+    const allSections = [...(book.sections || []), shared];
+    for (const entry of allSections) {
+        const card = document.createElement('article');
+        card.className = 'lab-guide-card';
+        const heading = document.createElement('h4');
+        heading.textContent = entry.heading;
+        card.append(heading);
+        appendLabGuideList(card, entry.items);
+        grid.append(card);
+    }
+    guide.append(grid);
 }
 
 function baseMode(mode = selectedMode()) {
@@ -1258,22 +2309,12 @@ function syncModeControls() {
     for (const section of els.rulesSections || []) {
         section.hidden = section.dataset.rulesMode !== rulesMode;
     }
+    activeRulesMode = rulesMode;
+    renderLabGuideBook(rulesMode);
     if (els.rulesIntroButton) {
-        const introLabel = isIsing ? 'Spin Domain Intro'
-            : isTwoPhase ? 'Two-Phase Intro'
-            : isCluster ? 'Cluster Field Intro'
-            : isJumpParticles ? 'Particle Hopping Intro'
-            : isSpinIce ? 'Spin Ice Intro'
-            : isZ2Gauge ? 'Z2 Gauge Intro'
-            : isPhysicalClifford ? 'Stabilizer Intro'
-            : isVirasoroGo ? 'CFT Field Graph Intro'
-            : isVirasoroJump ? 'Virasoro Worldline Intro'
-            : isCFTReversi ? 'CFT Local OPE Intro'
-            : isAnyon || isAnyonReversi ? 'Anyon Intro'
-            : isCliffordJump ? 'Clifford Worldline Intro'
-            : 'Clifford Intro';
-        els.rulesIntroButton.textContent = introLabel;
-        if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = introLabel.replace(/ Intro$/, ' Introduction');
+        const guideLabel = labGuideLabel(rulesMode);
+        els.rulesIntroButton.textContent = guideLabel;
+        if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = guideLabel;
     }
     document.title = `${MODE_LABELS[mode]} - Topological Labs`;
     return mode;
@@ -5195,6 +6236,16 @@ els.rulesIntroPanel.addEventListener('pointerdown', (event) => {
 });
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && rulesIntroIsOpen()) setRulesIntroOpen(false);
+});
+window.addEventListener('languagechange', () => {
+    window.requestAnimationFrame(() => {
+        renderLabGuideBook(activeRulesMode);
+        if (els.rulesIntroButton) {
+            const guideLabel = labGuideLabel(activeRulesMode);
+            els.rulesIntroButton.textContent = guideLabel;
+            if (els.rulesIntroTitle) els.rulesIntroTitle.textContent = guideLabel;
+        }
+    });
 });
 els.playModeSelect.addEventListener('change', async () => {
     const online = els.playModeSelect.value === 'online';

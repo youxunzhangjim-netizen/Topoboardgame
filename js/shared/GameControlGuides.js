@@ -541,7 +541,7 @@ function guideText(text, lang) {
 }
 
 function targetForGuide(type) {
-    if (type === 'labs') return document.querySelector('#rulesIntroPanel .rules-intro-content');
+    if (type === 'labs') return null;
     if (type === 'jump') return document.querySelector('#jumpInfo')?.closest('section');
     if (type === 'life') {
         return document.querySelector('.life-play-invite')
