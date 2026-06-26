@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Algebraic Board Games</title>
+    <title>Topoboard Labs</title>
     <script type="importmap">
         {
             "imports": {
@@ -19,24 +19,54 @@
         <header class="top-bar">
             <a class="home-link" href="../">Home</a>
             <div>
-                <p class="eyebrow">Topological Board Game</p>
-                <h1>Strategy &amp; Systems Labs</h1>
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1>Experimental Platform for Discrete Topological Dynamics</h1>
+            </div>
+            <div class="simple-research-mode-toggle" id="labModeToggle" role="group" aria-label="Workspace detail level">
+                <button id="labSimpleModeButton" type="button" aria-pressed="false">Simple</button>
+                <button id="labResearchModeButton" type="button" aria-pressed="true">Research</button>
             </div>
         </header>
 
-        <section class="control-panel" aria-label="Game controls">
+        <section class="labs-home" aria-labelledby="labsHomeTitle">
+            <div class="labs-home-header">
+                <div>
+                    <p class="eyebrow">Labs Home</p>
+                    <h2 id="labsHomeTitle">Research Navigation</h2>
+                </div>
+                <p>Physics, mathematics, topology, graph dynamics, and information experiments. Topoboard Life remains separate for cellular automata and biological simulation.</p>
+            </div>
+            <div id="labsModelCatalog" class="labs-model-catalog" aria-label="Labs model catalog"></div>
+        </section>
+
+        <section class="lab-model-header" aria-labelledby="labHeaderModelName">
+            <div class="lab-model-heading">
+                <p class="eyebrow">Current Experiment</p>
+                <h2 id="labHeaderModelName">Stabilizer Operator Grid</h2>
+                <p id="labHeaderDescription">An experimental environment for studying how local rules interact with topology.</p>
+            </div>
+            <div class="lab-header-badges" aria-label="Experiment metadata">
+                <span class="validation-level-badge" id="labValidationBadge">estimator</span>
+                <span id="labModelFamilyBadge">Quantum Information</span>
+                <span id="labExperimentHashBadge" title="Current experiment hash">hash pending</span>
+                <span id="labAppVersionBadge">v0.1.0</span>
+            </div>
+        </section>
+
+        <section class="lab-workspace" id="labWorkspace" aria-label="Unified Labs research workspace">
+        <section class="control-panel" aria-label="Experiment configuration controls">
             <div class="control-section section-game">
-                <h2>Game</h2>
+                <h2>Model</h2>
                 <div class="control-fields two-col">
                     <label id="gameLayerControl">
-                        Game Layer
+                        Workspace
                         <select id="gameLayerSelect">
-                            <option value="algebraic" selected>Algebraic Games</option>
-                            <option value="physical">Strategy &amp; Systems Labs</option>
+                            <option value="algebraic" selected>Algebraic Sandboxes</option>
+                            <option value="physical">Research Models</option>
                         </select>
                     </label>
                     <label id="modeControl">
-                        Mode
+                        Model
                         <select id="modeSelect">
                             <optgroup label="Algebraic operator sandboxes - Clifford">
                                 <option value="clifford_reversi" data-layer="algebraic">Stabilizer Operator Grid</option>
@@ -50,34 +80,34 @@
                             <optgroup label="Algebraic operator sandboxes - Virasoro">
                                 <option value="virasoro_jump" data-layer="algebraic">Virasoro Worldline Operators</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Spin / Ising systems">
-                                <option value="ising_domain_game" data-layer="physical">Spin &amp; Phase Domain Game</option>
+                            <optgroup label="Labs - Spin systems">
+                                <option value="ising_domain_game" data-layer="physical">Spin &amp; Phase Domain Experiment</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Two-phase competition">
-                                <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Game</option>
+                            <optgroup label="Labs - Statistical and phase dynamics">
+                                <option value="two_phase_competition_game" data-layer="physical">Two-Phase Competition Experiment</option>
                                 <option value="physical_cluster_go" data-layer="physical">Physical Cluster Field</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Chiral systems">
+                            <optgroup label="Labs - Field theory">
                                 <option value="physical_virasoro_go" data-layer="physical">CFT Field Insertion Graph</option>
                                 <option value="physical_virasoro_reversi" data-layer="physical">CFT Local OPE Operators</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Z2 gauge / toric-code systems">
-                                <option value="z2_gauge_loop_game" data-layer="physical">Z2 Gauge Loop Game</option>
+                            <optgroup label="Labs - Topological matter and gauge systems">
+                                <option value="z2_gauge_loop_game" data-layer="physical">Z2 Gauge Loop Experiment</option>
                                 <option value="physical_anyon_jump" data-layer="physical">Topological Memory Worldlines</option>
                                 <option value="physical_jump_particles" data-layer="physical">Particle Hopping / Reaction System</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Spin ice / vertex models">
-                                <option value="spin_ice_vertex_game" data-layer="physical">Spin Ice Vertex Game</option>
+                            <optgroup label="Labs - Spin ice / vertex models">
+                                <option value="spin_ice_vertex_game" data-layer="physical">Spin Ice Vertex Experiment</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Stabilizer / Pauli-frame systems">
+                            <optgroup label="Labs - Quantum information">
                                 <option value="physical_clifford_reversi" data-layer="physical">Pauli-Frame Recovery Operators</option>
                                 <option value="physical_clifford_go" data-layer="physical">Physical Clifford Insertion Field</option>
                                 <option value="physical_clifford_jump" data-layer="physical">Physical Clifford Worldline Operators</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - Anyon / excitation systems">
+                            <optgroup label="Labs - Anyon / excitation systems">
                                 <option value="physical_anyon_reversi" data-layer="physical">Physical Anyon Charge Fusion Grid</option>
                             </optgroup>
-                            <optgroup label="Strategy & Systems Labs - CFT / Virasoro systems">
+                            <optgroup label="Labs - CFT / Virasoro systems">
                                 <option value="physical_virasoro_jump" data-layer="physical">Physical Virasoro Worldline Operators</option>
                             </optgroup>
                         </select>
@@ -116,7 +146,7 @@
                                 <option value="toric_code_memory_unbraid">Topological Memory</option>
                             </optgroup>
                             <optgroup label="Spin ice / vertex models">
-                                <option value="spin_ice_vertex_observables" disabled>Spin Ice Vertex Observables - built into Spin Ice Vertex Game</option>
+                                <option value="spin_ice_vertex_observables" disabled>Spin Ice Vertex Observables - built into Spin Ice Vertex Experiment</option>
                             </optgroup>
                             <optgroup label="Stabilizer / Pauli-frame systems">
                                 <option value="stabilizer_pauli_recovery">Pauli Error Correction / Recovery</option>
@@ -411,7 +441,7 @@
             </div>
 
             <div class="control-section section-board">
-                <h2>Board</h2>
+                <h2>Topology</h2>
                 <div class="control-fields two-col">
                     <label>
                         Width / Nx
@@ -438,7 +468,7 @@
             </div>
 
             <div class="control-section section-algebra">
-                <h2>Algebra</h2>
+                <h2>Rule Parameters</h2>
                 <div class="control-fields algebra-mode-fields" id="cliffordAlgebraControls" data-controls-mode="clifford">
                     <label id="cliffordAlgebraSetControl">
                         Algebra Set
@@ -911,11 +941,11 @@
             </div>
 
             <div class="control-section section-actions">
-                <h2>Actions</h2>
+                <h2>Experiment Controls</h2>
                 <div class="button-grid">
-                    <button id="newGameButton" type="button">New Game</button>
-                    <button id="passButton" type="button">Pass</button>
-                    <button id="countButton" type="button">Count</button>
+                    <button id="newGameButton" type="button">Reset Experiment</button>
+                    <button id="passButton" type="button">No Update</button>
+                    <button id="countButton" type="button">Summarize</button>
                     <button id="measureButton" type="button">Measure</button>
                     <button id="unbraidHintButton" type="button">Unbraid Hint</button>
                     <button id="manualNoiseButton" type="button">Noise Tick</button>
@@ -925,7 +955,7 @@
             </div>
 
             <div class="control-section section-online">
-                <h2>Play</h2>
+                <h2>Collaboration</h2>
                 <div class="control-fields two-col">
                     <label>
                         Connection
@@ -957,7 +987,7 @@
                         </div>
                     </div>
                 </div>
-                <p class="online-status" id="onlineStatus">Local pass and play.</p>
+                <p class="online-status" id="onlineStatus">Local experiment.</p>
                 <div class="online-chat">
                     <h3>Online Chat</h3>
                     <div id="onlineChatMessages" class="online-chat-messages" aria-live="polite">
@@ -969,6 +999,46 @@
                     </div>
                 </div>
             </div>
+        </section>
+
+        <section class="lab-left-panels" aria-label="State space, rule, and initial condition details">
+            <details class="lab-info-panel" id="stateSpacePanel" open>
+                <summary>State Space</summary>
+                <dl>
+                    <div><dt>Local states</dt><dd id="labStateLocalStates">Loading</dd></div>
+                    <div><dt>Encoding</dt><dd id="labStateEncoding">Loading</dd></div>
+                    <div><dt>Constraints</dt><dd id="labStateConstraints">Loading</dd></div>
+                    <div><dt>Interpretation</dt><dd id="labStateInterpretation">Loading</dd></div>
+                </dl>
+            </details>
+            <details class="lab-info-panel" id="rulePanel" open data-research-only>
+                <summary>Local Rule</summary>
+                <dl>
+                    <div><dt>Rule</dt><dd id="labRuleName">Loading</dd></div>
+                    <div><dt>Neighborhood</dt><dd id="labRuleNeighborhood">Loading</dd></div>
+                    <div><dt>Schedule</dt><dd id="labRuleSchedule">Loading</dd></div>
+                    <div><dt>Determinism</dt><dd id="labRuleDeterminism">Loading</dd></div>
+                    <div><dt>Rule hash</dt><dd id="labRuleHash">Loading</dd></div>
+                </dl>
+            </details>
+            <details class="lab-info-panel" id="initialConditionPanel" open>
+                <summary>Initial Condition</summary>
+                <dl>
+                    <div><dt>Preset</dt><dd id="labInitialPreset">Loading</dd></div>
+                    <div><dt>Seed</dt><dd id="labInitialSeed">Loading</dd></div>
+                    <div><dt>Manual edit</dt><dd id="labManualEditState">Available when supported by this model.</dd></div>
+                    <div><dt>Import / reset</dt><dd>Use import state from exported JSON and Reset Experiment to rebuild from the selected configuration.</dd></div>
+                </dl>
+            </details>
+            <details class="lab-info-panel" id="topologyPanel" open data-research-only>
+                <summary>Topology Summary</summary>
+                <dl>
+                    <div><dt>Dimension</dt><dd id="labTopologyDimension">Loading</dd></div>
+                    <div><dt>Boundary</dt><dd id="labBoundaryCondition">Loading</dd></div>
+                    <div><dt>Invariants</dt><dd id="labTopologyInvariants">Loading</dd></div>
+                    <div><dt>Topology hash</dt><dd id="labTopologyHash">Loading</dd></div>
+                </dl>
+            </details>
         </section>
 
         <section class="layer-panel" id="layerPanel" hidden>
@@ -983,11 +1053,15 @@
             <span id="layerLabel">(z,w) = (0,0)</span>
         </section>
 
-        <section class="game-layout">
+        <section class="game-layout" aria-label="Visualization and observable workspace">
             <div class="board-wrap">
+                <div class="visualization-panel-title">
+                    <span>Visualization Panel</span>
+                    <button id="snapshotButton" type="button">Snapshot</button>
+                </div>
                 <div class="board-header">
                     <div class="turn-card board-turn-card">
-                        <span>Current</span>
+                        <span>Active Sector</span>
                         <strong id="currentPlayer">Black</strong>
                     </div>
                     <div class="board-title">
@@ -1211,7 +1285,7 @@
                 </section>
             </div>
 
-            <aside class="side-panel">
+            <aside class="side-panel" aria-label="Observable panel">
                 <section class="stat-grid">
                     <div>
                         <span id="blackCountLabel">Black</span>
@@ -1299,12 +1373,22 @@
                     <div id="legend" class="legend"></div>
                 </section>
 
+                <section class="research-notes-panel" id="researchNotesPanel" data-research-only>
+                    <h2>Research Notes</h2>
+                    <dl>
+                        <div><dt>Assumptions</dt><dd id="labResearchAssumptions">Loading</dd></div>
+                        <div><dt>Approximation</dt><dd id="labResearchApproximation">Loading</dd></div>
+                        <div><dt>Validation notes</dt><dd id="labResearchValidation">Loading</dd></div>
+                        <div><dt>References</dt><dd id="labResearchReferences">Reference placeholders will be attached as models are benchmarked.</dd></div>
+                    </dl>
+                </section>
+
             </aside>
         </section>
 
         <section class="lab-history-panels" aria-label="Lab move history and logs">
             <section>
-                <h2>Move History</h2>
+                <h2>Event Log</h2>
                 <ol id="historyList" class="history-list"></ol>
             </section>
 
@@ -1322,10 +1406,15 @@
         <section class="lab-export-panel">
             <h2>Research Export</h2>
             <div class="lab-export-actions">
-                <button id="exportButton" type="button">Export JSON</button>
-                <button id="exportCsvButton" type="button">Export CSV</button>
+                <button id="exportConfigButton" type="button">Export Config JSON</button>
+                <button id="exportButton" type="button">Export Result JSON</button>
+                <button id="exportCsvButton" type="button">Export Observable CSV</button>
+                <button id="exportSnapshotButton" type="button">Export Snapshot</button>
+                <button id="copyCitationButton" type="button">Copy Citation</button>
+                <button id="copyExperimentLinkButton" type="button">Copy Experiment Link</button>
             </div>
             <textarea id="exportText" readonly spellcheck="false"></textarea>
+        </section>
         </section>
     </main>
     <script type="module" src="../js/shared/GameControlGuides.js"></script>

@@ -40,6 +40,40 @@ import {
 } from '../../online.js';
 
 const els = {
+    labsModelCatalog: document.querySelector('#labsModelCatalog'),
+    labSimpleModeButton: document.querySelector('#labSimpleModeButton'),
+    labResearchModeButton: document.querySelector('#labResearchModeButton'),
+    labHeaderModelName: document.querySelector('#labHeaderModelName'),
+    labHeaderDescription: document.querySelector('#labHeaderDescription'),
+    labValidationBadge: document.querySelector('#labValidationBadge'),
+    labModelFamilyBadge: document.querySelector('#labModelFamilyBadge'),
+    labExperimentHashBadge: document.querySelector('#labExperimentHashBadge'),
+    labAppVersionBadge: document.querySelector('#labAppVersionBadge'),
+    labStateLocalStates: document.querySelector('#labStateLocalStates'),
+    labStateEncoding: document.querySelector('#labStateEncoding'),
+    labStateConstraints: document.querySelector('#labStateConstraints'),
+    labStateInterpretation: document.querySelector('#labStateInterpretation'),
+    labRuleName: document.querySelector('#labRuleName'),
+    labRuleNeighborhood: document.querySelector('#labRuleNeighborhood'),
+    labRuleSchedule: document.querySelector('#labRuleSchedule'),
+    labRuleDeterminism: document.querySelector('#labRuleDeterminism'),
+    labRuleHash: document.querySelector('#labRuleHash'),
+    labInitialPreset: document.querySelector('#labInitialPreset'),
+    labInitialSeed: document.querySelector('#labInitialSeed'),
+    labManualEditState: document.querySelector('#labManualEditState'),
+    labTopologyDimension: document.querySelector('#labTopologyDimension'),
+    labBoundaryCondition: document.querySelector('#labBoundaryCondition'),
+    labTopologyInvariants: document.querySelector('#labTopologyInvariants'),
+    labTopologyHash: document.querySelector('#labTopologyHash'),
+    labResearchAssumptions: document.querySelector('#labResearchAssumptions'),
+    labResearchApproximation: document.querySelector('#labResearchApproximation'),
+    labResearchValidation: document.querySelector('#labResearchValidation'),
+    labResearchReferences: document.querySelector('#labResearchReferences'),
+    snapshotButton: document.querySelector('#snapshotButton'),
+    exportConfigButton: document.querySelector('#exportConfigButton'),
+    exportSnapshotButton: document.querySelector('#exportSnapshotButton'),
+    copyCitationButton: document.querySelector('#copyCitationButton'),
+    copyExperimentLinkButton: document.querySelector('#copyExperimentLinkButton'),
     gameLayerControl: document.querySelector('#gameLayerControl'),
     gameLayerSelect: document.querySelector('#gameLayerSelect'),
     modeSelect: document.querySelector('#modeSelect'),
@@ -372,13 +406,340 @@ const MODE_LABELS = {
     physical_virasoro_jump: 'Physical Virasoro Worldlines',
     anyon_jump: 'Anyon Fusion & Braiding Worldlines',
     physical_anyon_jump: 'Topological Memory Worldlines',
-    ising_domain_game: 'Spin & Phase Domain Game',
-    two_phase_competition_game: 'Two-Phase Competition Game',
+    ising_domain_game: 'Spin & Phase Domain Experiment',
+    two_phase_competition_game: 'Two-Phase Competition Experiment',
     physical_cluster_go: 'Physical Cluster Field',
     physical_jump_particles: 'Particle Hopping / Reaction System',
-    spin_ice_vertex_game: 'Spin Ice Vertex Game',
-    z2_gauge_loop_game: 'Z2 Gauge Loop Game'
+    spin_ice_vertex_game: 'Spin Ice Vertex Experiment',
+    z2_gauge_loop_game: 'Z2 Gauge Loop Experiment'
 };
+const LAB_APP_VERSION = '0.1.0';
+const LAB_SECTION_ORDER = [
+    'Spin Systems',
+    'Statistical Dynamics',
+    'Quantum Information',
+    'Topological Matter',
+    'Field Theory',
+    'Mathematical Structures'
+];
+const LAB_MODEL_METADATA = Object.freeze({
+    clifford_reversi: {
+        section: 'Quantum Information',
+        family: 'Pauli Algebra',
+        validationLevel: 'toy',
+        description: 'Pauli-labeled local operators on topology-aware graph rays with Clifford frame transforms.',
+        stateSpace: {
+            localStates: 'Empty, Black/White controlled Pauli operators I/X/Y/Z with optional sign and phase.',
+            encoding: 'symbolic Pauli label plus owner sector',
+            constraints: 'Legal updates use graph rays, seam transport, and local Pauli-frame compatibility.',
+            interpretation: 'A discrete operator sandbox for topology-dependent Pauli transport.'
+        },
+        rule: {
+            name: 'Topology-aware Clifford local update',
+            neighborhood: 'Graph rays and adjacent vertices from the selected topology.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Pauli distribution', 'Owner counts', 'Phase/sign distribution', 'Commutation conflicts'],
+        assumptions: 'Educational Pauli/Clifford operator transport on finite graphs.',
+        approximation: 'Toy symbolic algebra; not a calibrated quantum device simulation.',
+        validation: 'Internal consistency and seeded replay checks are the intended baseline.'
+    },
+    clifford_go: {
+        section: 'Quantum Information',
+        family: 'Pauli Algebra',
+        validationLevel: 'toy',
+        description: 'Local Pauli insertions on graph sites for comparing operator labels across topologies.',
+        stateSpace: {
+            localStates: 'Empty graph vertices and inserted X/Y/Z Pauli operators.',
+            encoding: 'symbolic site state',
+            constraints: 'Insertion and local interactions follow graph adjacency.',
+            interpretation: 'Operator insertion field for discrete Pauli labels.'
+        },
+        rule: {
+            name: 'Pauli insertion field update',
+            neighborhood: 'Local graph adjacency and topology seams.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Inserted operators', 'Label distribution', 'Topology contacts'],
+        assumptions: 'Graph insertion model for operator-label exploration.',
+        approximation: 'Toy symbolic estimator.',
+        validation: 'Requires benchmark adapters before research-grade claims.'
+    },
+    clifford_jump: {
+        section: 'Quantum Information',
+        family: 'Pauli Algebra',
+        validationLevel: 'toy',
+        description: 'Worldline-style Pauli operator transport through hops and exchanges on graph topology.',
+        stateSpace: {
+            localStates: 'Mobile X/Y/Z operator tokens and empty graph vertices.',
+            encoding: 'token state plus symbolic Pauli label',
+            constraints: 'Movement follows graph adjacency and selected exchange paths.',
+            interpretation: 'Worldline transport sandbox for local operator labels.'
+        },
+        rule: {
+            name: 'Pauli worldline hop/exchange',
+            neighborhood: 'Adjacent vertices and jump paths in the topology graph.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Token counts', 'Path history', 'Pauli labels', 'Exchange events'],
+        assumptions: 'Worldline visualization for topology-dependent label transport.',
+        approximation: 'Toy transport model.',
+        validation: 'Replay and event-log consistency only.'
+    },
+    physical_clifford_reversi: {
+        section: 'Quantum Information',
+        family: 'Stabilizer Codes',
+        validationLevel: 'estimator',
+        description: 'Pauli-frame recovery workspace for syndrome defects, ancillas, and logical-sector checks.',
+        stateSpace: {
+            localStates: 'I/X/Y/Z qubit-site operators with sign, phase, owner sector, and optional ancilla state.',
+            encoding: 'symbolic Pauli frame with integer phase',
+            constraints: 'Syndrome checks, logical cycle checks, and allowed ancilla actions.',
+            interpretation: 'Discrete stabilizer recovery estimator on a reusable topology graph.'
+        },
+        rule: {
+            name: 'Pauli-frame recovery update',
+            neighborhood: 'Local graph neighborhoods and topology cycles.',
+            schedule: 'Manual recovery actions with optional measurement/noise events',
+            deterministic: 'Seeded stochastic when measurement error or noise is enabled.'
+        },
+        observables: ['Syndrome weight', 'Logical sector', 'Global parity', 'Commutation conflicts', 'Vacuum recovery'],
+        assumptions: 'Stabilizer bookkeeping is discrete and graph-local.',
+        approximation: 'Estimator for recovery behavior, not hardware-calibrated QEC.',
+        validation: 'Benchmarks should compare against known stabilizer examples before upgrade.'
+    },
+    physical_clifford_go: {
+        extends: 'physical_clifford_reversi',
+        description: 'Physical Clifford insertion workspace for graph-local Pauli-frame experiments.'
+    },
+    physical_clifford_jump: {
+        extends: 'physical_clifford_reversi',
+        description: 'Physical Clifford worldline workspace for Pauli-frame transport and recovery events.'
+    },
+    anyon_reversi: {
+        section: 'Topological Matter',
+        family: 'Fusion',
+        validationLevel: 'toy',
+        description: 'Anyon charge placement and fusion on topology-aware graph intervals.',
+        stateSpace: {
+            localStates: 'Vacuum and anyon charge labels from the selected anyon model.',
+            encoding: 'symbolic charge labels',
+            constraints: 'Fusion rules and topology-aware local contacts.',
+            interpretation: 'Discrete topological charge fusion sandbox.'
+        },
+        rule: {
+            name: 'Local charge fusion update',
+            neighborhood: 'Adjacent graph sites and local interval contacts.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Charge counts', 'Fusion outcomes', 'Vacuum recovery'],
+        assumptions: 'Symbolic anyon fusion rules on finite graphs.',
+        approximation: 'Toy topological matter visualization.',
+        validation: 'Requires external benchmark examples for stronger claims.'
+    },
+    anyon_jump: {
+        section: 'Topological Matter',
+        family: 'Braiding',
+        validationLevel: 'toy',
+        description: 'Mobile anyon worldlines for braiding, unbraiding, and fusion-memory experiments.',
+        stateSpace: {
+            localStates: 'Mobile anyon tokens, vacuum vertices, braid words, fusion channels, and energy metadata.',
+            encoding: 'token state plus symbolic charge and braid memory',
+            constraints: 'Graph-local hops, exchanges, inverse unbraiding, and model-specific fusion rules.',
+            interpretation: 'Worldline workspace for topological charge transport.'
+        },
+        rule: {
+            name: 'Anyon hop, braid, unbraid, and fusion update',
+            neighborhood: 'Adjacent vertices, jump paths, and topology cycles.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Seeded stochastic when anyon noise is enabled.'
+        },
+        observables: ['Total fusion charge', 'Braid word length', 'Logical sector', 'Energy history', 'Unbraid success'],
+        assumptions: 'Symbolic braid/fusion memory with graph-local moves.',
+        approximation: 'Toy or estimator depending on model and settings.',
+        validation: 'Replay and known fusion-rule checks are the baseline.'
+    },
+    physical_anyon_jump: {
+        extends: 'anyon_jump',
+        family: 'Topological Memory',
+        validationLevel: 'estimator',
+        description: 'Topological memory experiment for toric-code anyon pairs, logical sectors, braiding, and recovery.'
+    },
+    physical_anyon_reversi: {
+        extends: 'anyon_reversi',
+        description: 'Physical anyon charge grid for local fusion and charge-sector observables.'
+    },
+    physical_virasoro_go: {
+        section: 'Field Theory',
+        family: 'Toy CFT',
+        validationLevel: 'estimator',
+        description: 'Discrete CFT field insertion graph for primary fields, correlations, entropy, and stress proxies.',
+        stateSpace: {
+            localStates: 'Identity background and primary-field insertions such as sigma and epsilon.',
+            encoding: 'symbolic primary field with channel metadata',
+            constraints: 'Graph contact, OPE channel rules, and optional Virasoro truncation.',
+            interpretation: 'Graph estimator for field insertions and CFT-like observables.'
+        },
+        rule: {
+            name: 'Primary insertion and Virasoro graph update',
+            neighborhood: 'Local graph contacts, intervals, and selected generator direction.',
+            schedule: 'Manual insertion, generator, and measurement events',
+            deterministic: 'Seeded stochastic only when measurement/noise options are enabled.'
+        },
+        observables: ['Dominant conformal block', 'OPE channels', 'Entropy estimate', 'Correlation estimate', 'Stress proxy'],
+        assumptions: 'Discrete graph estimators approximate selected CFT concepts.',
+        approximation: 'Estimator, not an exact continuum CFT calculation.',
+        validation: 'Known limitations should remain visible with every export.'
+    },
+    physical_virasoro_reversi: {
+        extends: 'physical_virasoro_go',
+        description: 'Local OPE operator workspace for primary insertions, domain signs, and channel updates.'
+    },
+    virasoro_jump: {
+        extends: 'physical_virasoro_go',
+        description: 'Virasoro worldline operator sandbox for graph-local field transport.'
+    },
+    physical_virasoro_jump: {
+        extends: 'physical_virasoro_go',
+        description: 'Physical Virasoro worldline workspace for graph-local CFT-inspired dynamics.'
+    },
+    ising_domain_game: {
+        section: 'Spin Systems',
+        family: 'Ising / Domain Wall',
+        validationLevel: 'estimator',
+        description: 'Spin-domain experiment for local flips, domain-wall stability, energy, and topology winding.',
+        stateSpace: {
+            localStates: 'Spin up s=+1, spin down s=-1, and optional empty/undecided graph sites.',
+            encoding: 'integer spin sector per site',
+            constraints: 'Graph-neighbor interactions and optional Metropolis acceptance.',
+            interpretation: 'Discrete spin field on a topology-aware lattice graph.'
+        },
+        rule: {
+            name: 'Ising graph energy and domain-wall update',
+            neighborhood: 'Nearest graph neighbors from the selected topology.',
+            schedule: 'Manual local update with optional Metropolis stochastic acceptance',
+            deterministic: 'Seeded stochastic when temperature/Metropolis or noise is enabled.'
+        },
+        observables: ['Energy', 'Magnetization', 'Domain wall length', 'Domain count', 'Topology winding'],
+        assumptions: 'Finite graph Ising-like estimator with selected boundary conditions.',
+        approximation: 'Discrete estimator; not a continuum thermodynamic solver.',
+        validation: 'Benchmarking should compare energy and magnetization against known Ising cases.'
+    },
+    two_phase_competition_game: {
+        section: 'Spin Systems',
+        family: 'Phase Competition',
+        validationLevel: 'estimator',
+        description: 'Two-phase substrate experiment for nucleation, growth, interface cost, and wrapped domains.',
+        stateSpace: {
+            localStates: 'Phase A, phase B, and metastable empty substrate.',
+            encoding: 'enum site state',
+            constraints: 'Growth and interface updates follow graph contacts and energy settings.',
+            interpretation: 'Discrete phase-field competition on a topology graph.'
+        },
+        rule: {
+            name: 'Nucleation, growth, and interface update',
+            neighborhood: 'Adjacent graph sites and interface contacts.',
+            schedule: 'Manual or auto-selected local update',
+            deterministic: 'Seeded stochastic when droplet noise is enabled.'
+        },
+        observables: ['Interface length', 'Area fractions', 'Domain count', 'Energy', 'Wrapped interfaces'],
+        assumptions: 'Toy phase-field energy on a finite graph substrate.',
+        approximation: 'Estimator for qualitative interface behavior.',
+        validation: 'Needs benchmark cases before quantitative use.'
+    },
+    physical_cluster_go: {
+        section: 'Statistical Dynamics',
+        family: 'Cluster Growth',
+        validationLevel: 'estimator',
+        description: 'Cluster growth and percolation workspace for resources, open contacts, and topology wrapping.',
+        stateSpace: {
+            localStates: 'Empty resource sites and occupied cluster sectors A/B.',
+            encoding: 'enum site state with connected-component metadata',
+            constraints: 'Connected clusters require graph-neighbor contacts; zero-contact clusters can be removed.',
+            interpretation: 'Statistical cluster dynamics on finite topology graphs.'
+        },
+        rule: {
+            name: 'Cluster placement, growth, and zero-contact removal',
+            neighborhood: 'Connected graph clusters and nearest-neighbor resource contacts.',
+            schedule: 'Manual or auto local update with optional diffusion/noise',
+            deterministic: 'Seeded stochastic when cluster noise is enabled.'
+        },
+        observables: ['Largest cluster', 'Cluster-size distribution', 'Interface length', 'Percolation probability', 'Wrapping clusters'],
+        assumptions: 'Statistical dynamics interpretation only; biological species language belongs in Topoboard Life.',
+        approximation: 'Estimator for graph percolation and cluster growth.',
+        validation: 'Percolation benchmarks should be added for known lattices.'
+    },
+    physical_jump_particles: {
+        section: 'Statistical Dynamics',
+        family: 'Reaction-Diffusion',
+        validationLevel: 'toy',
+        description: 'Particle hopping, exchange scattering, recombination, and path parity on topology graphs.',
+        stateSpace: {
+            localStates: 'Empty vertices and mobile particle species/charge signs.',
+            encoding: 'token or site occupancy state',
+            constraints: 'Hops, exchanges, scattering paths, and recombination follow graph reachability.',
+            interpretation: 'Discrete particle transport and reaction sandbox.'
+        },
+        rule: {
+            name: 'Particle hop, exchange, scatter, and recombine update',
+            neighborhood: 'Adjacent vertices and allowed multi-step scattering paths.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Particle count', 'Exchange events', 'Recombination count', 'Path parity', 'Average path length'],
+        assumptions: 'Qualitative graph reaction-diffusion system.',
+        approximation: 'Toy dynamics, not calibrated chemistry.',
+        validation: 'Replay and graph-reachability checks only.'
+    },
+    spin_ice_vertex_game: {
+        section: 'Spin Systems',
+        family: 'Spin Ice',
+        validationLevel: 'estimator',
+        description: 'Edge-arrow spin ice workspace for vertex constraints, monopoles, strings, loops, and winding.',
+        stateSpace: {
+            localStates: 'Edge arrows aligned or anti-aligned with graph orientation.',
+            encoding: 'signed edge state',
+            constraints: 'Vertex ice-rule checks and allowed string/loop flips.',
+            interpretation: 'Discrete constrained edge system with monopole-like defects.'
+        },
+        rule: {
+            name: 'Edge-arrow flip, string, loop, and monopole update',
+            neighborhood: 'Incident edges, vertex checks, paths, and cycles.',
+            schedule: 'Manual event-driven update',
+            deterministic: 'Deterministic unless noise controls are enabled.'
+        },
+        observables: ['Ice-rule violations', 'Monopole count', 'String length', 'Loop winding', 'Energy'],
+        assumptions: 'Finite graph vertex-model estimator.',
+        approximation: 'Estimator for constrained edge dynamics.',
+        validation: 'Compare small graph sectors before stronger claims.'
+    },
+    z2_gauge_loop_game: {
+        section: 'Topological Matter',
+        family: 'Wilson Loops',
+        validationLevel: 'estimator',
+        description: 'Z2 gauge edge-field workspace for star checks, plaquette flux, Wilson loops, and logical sectors.',
+        stateSpace: {
+            localStates: 'Edge field Ue=+1 or Ue=-1 with optional charge/flux syndrome metadata.',
+            encoding: 'signed edge state',
+            constraints: 'Star checks, plaquette/cycle checks, and topology-cycle logical sectors.',
+            interpretation: 'Discrete Z2 lattice gauge and memory estimator.'
+        },
+        rule: {
+            name: 'Edge, path, loop, check, and decoder update',
+            neighborhood: 'Incident edges, open paths, closed loops, local faces, and cycles.',
+            schedule: 'Manual event-driven update with optional decoder/noise',
+            deterministic: 'Seeded stochastic when noisy edge flips are enabled.'
+        },
+        observables: ['Syndrome weight', 'Star violations', 'Plaquette flux', 'Wilson loops', 'Logical sector'],
+        assumptions: 'Discrete Z2 gauge toy/estimator on graph topology.',
+        approximation: 'Estimator; face definitions depend on available graph cell structure.',
+        validation: 'Small-code and known-loop tests should be benchmarked.'
+    }
+});
 const LAB_GUIDE_LABELS = Object.freeze({
     clifford: { en: 'Clifford Guide Book', zh: 'Clifford 指南書' },
     'physical-clifford': { en: 'Stabilizer Guide Book', zh: 'Stabilizer 指南書' },
@@ -398,7 +759,7 @@ const LAB_SHARED_DEVICE_GUIDE = Object.freeze({
         items: [
             'Desktop: click a board site or graph vertex, use the selectors for the active action, drag 3D boards to rotate, and use the wheel or reset button for camera control.',
             'Mobile: tap the site or vertex, scroll the side controls normally, one-finger drag 3D boards to rotate, and pinch to zoom when the board is dense.',
-            'After changing topology, lattice, board size, initial state, or a physical model, press New Game so the legal moves and observables rebuild from the new graph.'
+            'After changing topology, lattice, board size, initial state, or a physical model, press Reset Experiment so the legal moves and observables rebuild from the new graph.'
         ]
     },
     zh: {
@@ -406,7 +767,7 @@ const LAB_SHARED_DEVICE_GUIDE = Object.freeze({
         items: [
             '桌機：點棋盤格或 graph vertex，用選單選目前 action；3D 棋盤可拖曳旋轉，並用滾輪或 reset camera 控制視角。',
             '手機：點擊 site 或 vertex，側邊控制可正常捲動；3D 棋盤用單指拖曳旋轉，棋盤很密時用雙指縮放。',
-            '改變 topology、lattice、棋盤大小、initial state 或 physical model 後，按 New Game 讓合法走法與 observables 依新 graph 重建。'
+            '改變 topology、lattice、棋盤大小、initial state 或 physical model 後，按 Reset Experiment 讓合法走法與 observables 依新 graph 重建。'
         ]
     }
 });
@@ -1663,6 +2024,405 @@ function renderLabGuideBook(rulesMode = activeRulesMode) {
         grid.append(card);
     }
     guide.append(grid);
+}
+
+function stableStringify(value) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+    return `{${Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`)
+        .join(',')}}`;
+}
+
+function labHash(value, prefix = 'lab') {
+    const text = typeof value === 'string' ? value : stableStringify(value);
+    let hash = 0x811c9dc5;
+    for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return `${prefix}:${hash.toString(16).padStart(8, '0')}`;
+}
+
+function resolvedLabMetadata(mode = selectedMode()) {
+    const direct = LAB_MODEL_METADATA[mode] || LAB_MODEL_METADATA[baseMode(mode)] || LAB_MODEL_METADATA.clifford_reversi;
+    if (!direct.extends) return direct;
+    return {
+        ...resolvedLabMetadata(direct.extends),
+        ...direct,
+        stateSpace: {
+            ...resolvedLabMetadata(direct.extends).stateSpace,
+            ...(direct.stateSpace || {})
+        },
+        rule: {
+            ...resolvedLabMetadata(direct.extends).rule,
+            ...(direct.rule || {})
+        },
+        observables: direct.observables || resolvedLabMetadata(direct.extends).observables
+    };
+}
+
+function selectedOptionText(select) {
+    return select?.selectedOptions?.[0]?.textContent?.trim() || select?.value || 'Not configured';
+}
+
+function visibleValueText(element) {
+    return element && !element.closest('[hidden]') && !element.hidden
+        ? selectedOptionText(element.tagName === 'SELECT' ? element : element.querySelector?.('select, input'))
+        : '';
+}
+
+function currentInitialConditionText(mode = selectedMode()) {
+    if (isIsingDomainMode(mode)) return selectedOptionText(els.isingInitialStateSelect);
+    if (isTwoPhaseCompetitionMode(mode)) return selectedOptionText(els.twoPhaseInitialStateSelect);
+    if (isPhysicalClusterGoMode(mode)) return selectedOptionText(els.clusterInitialStateSelect);
+    if (isSpinIceVertexMode(mode)) return selectedOptionText(els.spinIceInitialStateSelect);
+    if (isZ2GaugeLoopMode(mode)) return selectedOptionText(els.z2GaugeInitialStateSelect);
+    if (isPhysicalJumpParticlesMode(mode)) return selectedOptionText(els.jumpParticleModelSelect);
+    if (isCFTMode(mode)) return selectedOptionText(els.cftInitialStateSelect);
+    if (baseMode(mode) === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical') {
+        return selectedOptionText(els.physicalInitialStateSelect);
+    }
+    if (isJumpMode(mode)) return selectedOptionText(els.anyonSetupSelect) || 'Standard worldline seed';
+    return 'Standard seeded configuration';
+}
+
+function currentActionText(mode = selectedMode()) {
+    if (isIsingDomainMode(mode)) return selectedOptionText(els.isingActionSelect);
+    if (isTwoPhaseCompetitionMode(mode)) return selectedOptionText(els.twoPhaseActionSelect);
+    if (isPhysicalClusterGoMode(mode)) return selectedOptionText(els.clusterActionSelect);
+    if (isSpinIceVertexMode(mode)) return selectedOptionText(els.spinIceActionSelect);
+    if (isZ2GaugeLoopMode(mode)) return selectedOptionText(els.z2GaugeActionSelect);
+    if (isPhysicalJumpParticlesMode(mode)) return selectedOptionText(els.jumpParticleActionSelect);
+    if (isCFTMode(mode)) return selectedOptionText(els.cftActionSelect);
+    if (baseMode(mode) === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical') {
+        return selectedOptionText(els.physicalActionSelect);
+    }
+    if (isJumpMode(mode)) return selectedOptionText(els.anyonActionSelect) || 'Move / braid';
+    return selectedOptionText(els.transformSelect) || 'Local update';
+}
+
+function topologyIdentity() {
+    const config = topologyConfig();
+    const topology = game?.topology || {};
+    const topologyName = topology.name || config.topology;
+    const dimension = topology.dimensions || (config.topology === 'flat_4d_grid' ? 4 : config.topology === 'r3' ? 3 : 2);
+    const boundaryMap = {
+        flat: 'open',
+        r3: 'open',
+        cylinder: 'periodic x / open y',
+        torus: 'periodic x,y',
+        klein_bottle: 'periodic x / twisted y',
+        mobius: 'twisted x / open y',
+        rp2: 'projective edge identification',
+        sphere_latitude: 'closed sphere with poles',
+        random_boundary: 'fixed random boundary condition',
+        flat_4d_grid: 'open 4D grid'
+    };
+    const data = {
+        topology: topologyName,
+        lattice: config.lattice,
+        dimension,
+        width: config.width,
+        height: config.height,
+        depth: config.depth,
+        nw: config.nw,
+        boundary: boundaryMap[topologyName] || boundaryMap[config.topology] || 'custom',
+        seam: topology.seamSummary?.() || ''
+    };
+    return {
+        ...data,
+        hash: labHash(data, 'topology')
+    };
+}
+
+function experimentParameters(mode = selectedMode()) {
+    return {
+        topology: topologyIdentity(),
+        initialCondition: currentInitialConditionText(mode),
+        action: currentActionText(mode),
+        noise: selectedOptionText(els.noiseModeSelect),
+        timeEvolution: selectedOptionText(els.timeUpdateSelect),
+        seed: els.noiseSeedInput?.value || 'topology-seed',
+        modelControls: {
+            physicalProblem: selectedOptionText(els.physicalProblemSelect),
+            algebraSet: selectedOptionText(els.cliffordAlgebraSetSelect),
+            anyonModel: selectedOptionText(els.anyonModelSelect),
+            cftModel: selectedOptionText(els.cftModelSelect)
+        }
+    };
+}
+
+function currentExperimentHash(mode = selectedMode()) {
+    const metadata = resolvedLabMetadata(mode);
+    return labHash({
+        appVersion: LAB_APP_VERSION,
+        mode,
+        section: metadata.section,
+        family: metadata.family,
+        parameters: experimentParameters(mode)
+    }, 'experiment');
+}
+
+function currentRuleHash(mode = selectedMode()) {
+    const metadata = resolvedLabMetadata(mode);
+    return labHash({
+        mode,
+        rule: metadata.rule,
+        action: currentActionText(mode),
+        noise: selectedOptionText(els.noiseModeSelect),
+        time: selectedOptionText(els.timeUpdateSelect)
+    }, 'rule');
+}
+
+function collectObservableSamples(mode = selectedMode()) {
+    const metadata = resolvedLabMetadata(mode);
+    const samples = [
+        { id: 'active-sector-a', name: els.blackCountLabel?.textContent || 'Sector A', value: els.blackCount?.textContent || '0', units: 'count' },
+        { id: 'active-sector-b', name: els.whiteCountLabel?.textContent || 'Sector B', value: els.whiteCount?.textContent || '0', units: 'count' }
+    ];
+    if (!els.blackBraidCard?.hidden) {
+        samples.push(
+            { id: 'braid-a', name: els.blackBraidLabel?.textContent || 'Braid A', value: els.blackBraid?.textContent || '0', units: 'events' },
+            { id: 'braid-b', name: els.whiteBraidLabel?.textContent || 'Braid B', value: els.whiteBraid?.textContent || '0', units: 'events' }
+        );
+    }
+    if (!els.cftObservablePanel?.hidden) {
+        samples.push(
+            { id: 'cft-dominant-block', name: 'Dominant Block', value: els.cftObservableDominant.textContent, units: 'symbolic' },
+            { id: 'cft-entropy', name: 'Entropy', value: els.cftObservableEntropy.textContent, units: 'estimator' },
+            { id: 'cft-anomalies', name: 'Anomaly Events', value: els.cftObservableAnomalies.textContent, units: 'count' }
+        );
+    }
+    if (!els.qecObservablePanel?.hidden) {
+        samples.push(
+            { id: 'qec-total-charge', name: 'Total Charge', value: els.qecTotalCharge.textContent, units: 'symbolic' },
+            { id: 'qec-logical-sector', name: 'Logical Sector', value: els.qecLogicalSector.textContent, units: 'symbolic' },
+            { id: 'qec-memory', name: 'Memory', value: els.qecMemoryState.textContent, units: 'state' }
+        );
+    }
+    if (!els.stabilizerObservablePanel?.hidden) {
+        samples.push(
+            { id: 'stabilizer-syndrome', name: 'Syndrome Weight', value: els.stabilizerSyndromeWeight.textContent, units: 'count' },
+            { id: 'stabilizer-logical-sector', name: 'Logical Sector', value: els.stabilizerLogicalSector.textContent, units: 'symbolic' },
+            { id: 'stabilizer-vacuum', name: 'Vacuum', value: els.stabilizerVacuumState.textContent, units: 'state' }
+        );
+    }
+    return samples.map((sample, index) => ({
+        definition: metadata.observables[index] || sample.name,
+        limitation: metadata.approximation,
+        ...sample
+    }));
+}
+
+function buildLabExperimentConfig() {
+    const mode = selectedMode();
+    const metadata = resolvedLabMetadata(mode);
+    const topology = topologyIdentity();
+    return {
+        experimentId: currentExperimentHash(mode),
+        modelId: mode,
+        modelName: MODE_LABELS[mode],
+        modelFamily: metadata.family,
+        section: metadata.section,
+        validationLevel: metadata.validationLevel,
+        topologyId: `${topology.topology}:${topology.lattice}:${topology.width}x${topology.height}`,
+        stateSpaceId: `${mode}:state-space`,
+        localRuleId: `${mode}:local-rule`,
+        initialConditionId: currentInitialConditionText(mode),
+        parameters: experimentParameters(mode),
+        seed: els.noiseSeedInput?.value || 'topology-seed',
+        steps: Number(game?.moveNumber ?? game?.go?.moveNumber ?? 0) || 0,
+        observables: collectObservableSamples(mode).map((sample) => sample.id),
+        exportOptions: {
+            json: true,
+            csv: true,
+            includeTopology: true,
+            includeStateSpace: true,
+            includeSnapshots: true,
+            includeEventLog: true,
+            includeObservableTimeSeries: true
+        },
+        appVersion: LAB_APP_VERSION,
+        createdAt: new Date().toISOString(),
+        experimentHash: currentExperimentHash(mode)
+    };
+}
+
+function buildLabExperimentResult() {
+    const state = game?.exportState?.() || {};
+    const samples = collectObservableSamples();
+    const eventLog = [
+        ...(Array.isArray(game?.history) ? game.history : []),
+        ...(Array.isArray(game?.braidEventLog) ? game.braidEventLog : []),
+        ...(Array.isArray(game?.probability?.randomEvents) ? game.probability.randomEvents : [])
+    ];
+    const config = buildLabExperimentConfig();
+    const finalStateHash = labHash(state, 'state');
+    const result = {
+        config,
+        finalState: {
+            topologyId: config.topologyId,
+            stateSpaceId: config.stateSpaceId,
+            step: config.steps,
+            time: config.steps,
+            legacyState: state,
+            stateHash: finalStateHash
+        },
+        observableTimeSeries: Object.fromEntries(samples.map((sample) => [
+            sample.id,
+            [{
+                step: config.steps,
+                time: config.steps,
+                value: sample.value,
+                units: sample.units,
+                definition: sample.definition,
+                limitation: sample.limitation,
+                sampleHash: labHash(sample, 'sample')
+            }]
+        ])),
+        eventLog,
+        snapshots: [{
+            id: `${config.experimentId}:snapshot:${config.steps}`,
+            step: config.steps,
+            time: config.steps,
+            stateHash: finalStateHash,
+            preview: {
+                mode: config.modelName,
+                topology: config.parameters.topology.topology,
+                observables: samples.slice(0, 5)
+            },
+            snapshotHash: labHash({ stateHash: finalStateHash, step: config.steps }, 'snapshot')
+        }],
+        summary: {
+            status: 'complete',
+            finalStep: config.steps,
+            finalTime: config.steps,
+            observableSummary: Object.fromEntries(samples.map((sample) => [sample.id, sample.value])),
+            interpretation: resolvedLabMetadata(selectedMode()).description,
+            limitations: [resolvedLabMetadata(selectedMode()).approximation]
+        },
+        warnings: [resolvedLabMetadata(selectedMode()).validation],
+        resultHash: ''
+    };
+    return { ...result, resultHash: labHash(result, 'result') };
+}
+
+function observableCsv() {
+    const result = buildLabExperimentResult();
+    const rows = ['experimentHash,step,time,observableId,name,value,units,definition,limitation'];
+    for (const sample of collectObservableSamples()) {
+        rows.push([
+            result.config.experimentHash,
+            result.config.steps,
+            result.config.steps,
+            sample.id,
+            sample.name,
+            sample.value,
+            sample.units,
+            sample.definition,
+            sample.limitation
+        ].map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','));
+    }
+    return rows.join('\n');
+}
+
+function setLabUIMode(mode) {
+    const next = mode === 'simple' ? 'simple' : 'research';
+    document.body.dataset.labUiMode = next;
+    localStorage.setItem('topoboard-labs-ui-mode', next);
+    if (els.labSimpleModeButton) els.labSimpleModeButton.setAttribute('aria-pressed', String(next === 'simple'));
+    if (els.labResearchModeButton) els.labResearchModeButton.setAttribute('aria-pressed', String(next === 'research'));
+}
+
+function renderLabsModelCatalog() {
+    if (!els.labsModelCatalog || els.labsModelCatalog.dataset.rendered === 'true') return;
+    els.labsModelCatalog.dataset.rendered = 'true';
+    for (const section of LAB_SECTION_ORDER) {
+        const sectionModes = Object.entries(MODE_LABELS)
+            .filter(([mode]) => resolvedLabMetadata(mode).section === section);
+        if (!sectionModes.length) continue;
+        for (const [mode, label] of sectionModes) {
+            const metadata = resolvedLabMetadata(mode);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'labs-model-card';
+            button.dataset.labMode = mode;
+            button.innerHTML = `
+                <span>${metadata.section}</span>
+                <strong>${label}</strong>
+                <small>${metadata.description}</small>
+                <span class="labs-card-meta">
+                    <em>${metadata.validationLevel}</em>
+                    <em>${metadata.family}</em>
+                    <em>${metadata.observables.length} observables</em>
+                    <em>${metadata.validationLevel === 'toy' ? 'beginner-friendly' : 'research-focused'}</em>
+                </span>
+                <small>Topologies: flat, torus, Klein, Mobius, RP2, S2, R3, 4D where supported.</small>
+            `;
+            button.addEventListener('click', () => {
+                const layer = modeLayerForMode(mode);
+                if (els.gameLayerSelect) els.gameLayerSelect.value = layer;
+                syncModeCatalogForLayer({ chooseFirst: false });
+                els.modeSelect.value = mode;
+                createGame();
+            });
+            els.labsModelCatalog.append(button);
+        }
+    }
+}
+
+function updateLabWorkspace() {
+    const mode = selectedMode();
+    const metadata = resolvedLabMetadata(mode);
+    const topology = topologyIdentity();
+    const experimentHash = currentExperimentHash(mode);
+    if (els.labHeaderModelName) els.labHeaderModelName.textContent = MODE_LABELS[mode];
+    if (els.labHeaderDescription) els.labHeaderDescription.textContent = metadata.description;
+    if (els.labValidationBadge) {
+        els.labValidationBadge.textContent = metadata.validationLevel;
+        els.labValidationBadge.dataset.level = metadata.validationLevel;
+    }
+    if (els.labModelFamilyBadge) els.labModelFamilyBadge.textContent = `${metadata.section} / ${metadata.family}`;
+    if (els.labExperimentHashBadge) els.labExperimentHashBadge.textContent = experimentHash;
+    if (els.labAppVersionBadge) els.labAppVersionBadge.textContent = `v${LAB_APP_VERSION}`;
+    if (els.labStateLocalStates) els.labStateLocalStates.textContent = metadata.stateSpace.localStates;
+    if (els.labStateEncoding) els.labStateEncoding.textContent = metadata.stateSpace.encoding;
+    if (els.labStateConstraints) els.labStateConstraints.textContent = metadata.stateSpace.constraints;
+    if (els.labStateInterpretation) els.labStateInterpretation.textContent = metadata.stateSpace.interpretation;
+    if (els.labRuleName) els.labRuleName.textContent = metadata.rule.name;
+    if (els.labRuleNeighborhood) els.labRuleNeighborhood.textContent = metadata.rule.neighborhood;
+    if (els.labRuleSchedule) els.labRuleSchedule.textContent = metadata.rule.schedule;
+    if (els.labRuleDeterminism) els.labRuleDeterminism.textContent = metadata.rule.deterministic;
+    if (els.labRuleHash) els.labRuleHash.textContent = currentRuleHash(mode);
+    if (els.labInitialPreset) els.labInitialPreset.textContent = currentInitialConditionText(mode);
+    if (els.labInitialSeed) els.labInitialSeed.textContent = els.noiseSeedInput?.value || 'topology-seed';
+    if (els.labManualEditState) {
+        els.labManualEditState.textContent = els.physicalInitialStateSelect?.value === 'custom_setup'
+            ? 'Custom Pauli setup is active; edit sites, then press Start.'
+            : 'Manual edit is available where the selected model exposes a local palette or custom setup.';
+    }
+    if (els.labTopologyDimension) els.labTopologyDimension.textContent = `${topology.dimension}D`;
+    if (els.labBoundaryCondition) els.labBoundaryCondition.textContent = topology.boundary;
+    if (els.labTopologyInvariants) {
+        els.labTopologyInvariants.textContent = topology.topology === 'torus'
+            ? 'orientable, periodic cycles'
+            : topology.topology === 'klein_bottle'
+                ? 'non-orientable, twisted cycle'
+                : topology.topology === 'sphere_latitude'
+                    ? 'closed surface with poles'
+                    : 'computed from graph adjacency when adapter data is available';
+    }
+    if (els.labTopologyHash) els.labTopologyHash.textContent = topology.hash;
+    if (els.labResearchAssumptions) els.labResearchAssumptions.textContent = metadata.assumptions;
+    if (els.labResearchApproximation) els.labResearchApproximation.textContent = metadata.approximation;
+    if (els.labResearchValidation) els.labResearchValidation.textContent = metadata.validation;
+    if (els.labResearchReferences) els.labResearchReferences.textContent = 'References placeholder; attach benchmark notes before raising validation level.';
+    document.querySelectorAll('.labs-model-card').forEach((card) => {
+        card.classList.toggle('is-active', card.dataset.labMode === mode);
+    });
 }
 
 function baseMode(mode = selectedMode()) {
@@ -2967,7 +3727,7 @@ function syncOnlineRoomTurn(room) {
 function syncOnlineModeVisibility() {
     const online = els.playModeSelect.value === 'online';
     els.onlineButtonGrid.hidden = !online;
-    if (online && !els.onlineStatus.dataset.color && els.onlineStatus.textContent === 'Local pass and play.') {
+    if (online && !els.onlineStatus.dataset.color && els.onlineStatus.textContent === 'Local experiment.') {
         els.onlineStatus.textContent = 'Online mode selected.';
     }
 }
@@ -3317,6 +4077,7 @@ function render() {
     renderBraidEventLog();
     renderStochasticLog();
     renderExport();
+    updateLabWorkspace();
     maybeSyncOnlineState();
 }
 
@@ -5916,40 +6677,78 @@ function renderBraidEventLog() {
 }
 
 function renderExport() {
-    els.exportText.value = JSON.stringify(game.exportState(), null, 2);
+    els.exportText.value = JSON.stringify(buildLabExperimentResult(), null, 2);
+}
+
+function downloadText(filename, data, type = 'application/json') {
+    const blob = new Blob([data], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportConfigJson() {
+    downloadText(
+        `${game.mode}-${game.topology.name}-experiment-config.json`,
+        JSON.stringify(buildLabExperimentConfig(), null, 2)
+    );
 }
 
 function exportJson() {
-    const data = JSON.stringify(game.exportState(), null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${game.mode}-${game.topology.name}-history.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadText(
+        `${game.mode}-${game.topology.name}-experiment-result.json`,
+        JSON.stringify(buildLabExperimentResult(), null, 2)
+    );
 }
 
 function exportCsv() {
-    const csv = typeof game.exportPhysicalHistoryCSV === 'function'
-        ? game.exportPhysicalHistoryCSV()
-        : [
-            'number,player,type,coord,event',
-            ...(Array.isArray(game.history) ? game.history : []).map((event) => [
-                event.number ?? event.tick ?? '',
-                event.player ?? '',
-                event.type ?? event.kind ?? event.action ?? '',
-                event.coord ? event.coord.join('|') : event.to ? event.to.join('|') : '',
-                JSON.stringify(event ?? {}).replaceAll('"', '""')
-            ].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
-        ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${game.mode}-${game.topology.name}-physics-history.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadText(
+        `${game.mode}-${game.topology.name}-observable-series.csv`,
+        observableCsv(),
+        'text/csv'
+    );
+}
+
+function exportSnapshotJson() {
+    const result = buildLabExperimentResult();
+    downloadText(
+        `${game.mode}-${game.topology.name}-snapshot-${result.config.steps}.json`,
+        JSON.stringify(result.snapshots[0], null, 2)
+    );
+}
+
+async function copyLabText(text, status = 'Copied to clipboard.') {
+    try {
+        await navigator.clipboard.writeText(text);
+        els.statusText.textContent = status;
+    } catch {
+        els.exportText.value = text;
+        els.exportText.select();
+        document.execCommand?.('copy');
+        els.statusText.textContent = status;
+    }
+}
+
+function copyCitationText() {
+    const config = buildLabExperimentConfig();
+    const citation = `Topoboard Labs ${LAB_APP_VERSION}: ${config.modelName}, ${config.modelFamily}, ${config.topologyId}, seed ${config.seed}, experiment ${config.experimentHash}.`;
+    copyLabText(citation, 'Citation text copied.');
+}
+
+function copyExperimentLink() {
+    const config = buildLabExperimentConfig();
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', selectedMode());
+    url.searchParams.set('topology', els.topologySelect.value);
+    url.searchParams.set('lattice', els.latticeSelect.value);
+    url.searchParams.set('width', els.widthInput.value);
+    url.searchParams.set('height', els.heightInput.value);
+    url.searchParams.set('seed', String(config.seed));
+    url.searchParams.set('experiment', config.experimentHash);
+    copyLabText(url.toString(), 'Reproducible experiment link copied.');
 }
 
 function pauliDisplay(stone) {
@@ -6257,7 +7056,7 @@ els.playModeSelect.addEventListener('change', async () => {
         await leaveRoom();
         setOnlineConfigurationLocked(false);
         updateOnlineConnectionUI();
-        els.onlineStatus.textContent = 'Local pass and play.';
+        els.onlineStatus.textContent = 'Local experiment.';
     }
 });
 els.onlineCreateButton.addEventListener('click', async () => {
@@ -6316,7 +7115,14 @@ els.passButton.addEventListener('click', () => {
     }
 });
 els.exportButton.addEventListener('click', exportJson);
+els.exportConfigButton?.addEventListener('click', exportConfigJson);
 els.exportCsvButton?.addEventListener('click', exportCsv);
+els.exportSnapshotButton?.addEventListener('click', exportSnapshotJson);
+els.snapshotButton?.addEventListener('click', exportSnapshotJson);
+els.copyCitationButton?.addEventListener('click', copyCitationText);
+els.copyExperimentLinkButton?.addEventListener('click', copyExperimentLink);
+els.labSimpleModeButton?.addEventListener('click', () => setLabUIMode('simple'));
+els.labResearchModeButton?.addEventListener('click', () => setLabUIMode('research'));
 window.addEventListener('pageshow', () => {
     syncOnlineModeVisibility();
     if (!game) createGame();
@@ -6324,6 +7130,8 @@ window.addEventListener('pageshow', () => {
     else render();
 });
 
+renderLabsModelCatalog();
+setLabUIMode(localStorage.getItem('topoboard-labs-ui-mode') || 'research');
 createGame();
 syncOnlineModeVisibility();
 
