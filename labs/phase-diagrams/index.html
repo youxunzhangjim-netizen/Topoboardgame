@@ -11,7 +11,29 @@
     <main class="experiment-shell phase-shell">
         <header class="experiment-topbar">
             <nav class="topbar-actions" aria-label="Labs navigation">
-                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../" data-i18n="home">Labs Home</a>
+                <div class="labs-language" data-labs-language>
+                    <select id="languageSelect" aria-label="Language">
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                    </select>
+                    <button id="labsLanguageButton" class="labs-language-button" type="button" aria-expanded="false" aria-controls="labsLanguageMenu" aria-label="Change language" title="Change language">
+                        <svg aria-hidden="true" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M3 12h18"></path>
+                            <path d="M12 3a14 14 0 0 1 0 18"></path>
+                            <path d="M12 3a14 14 0 0 0 0 18"></path>
+                        </svg>
+                        <span data-labs-language-current>En</span>
+                    </button>
+                    <div id="labsLanguageMenu" class="labs-language-menu" hidden>
+                        <span data-labs-language-label>Language</span>
+                        <div class="labs-language-options" aria-label="Language options">
+                            <button type="button" data-labs-lang="en" aria-pressed="true">English</button>
+                            <button type="button" data-labs-lang="zh" aria-pressed="false">中文</button>
+                        </div>
+                    </div>
+                </div>
                 <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
                 <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
                 <a class="nav-link" href="../validation/" data-i18n="validationSuite">Validation & Reproducibility</a>
@@ -22,9 +44,9 @@
                 <h1 data-i18n="pageTitle">Phase Diagram Generator</h1>
                 <p data-i18n="subtitle">Generate reproducible regime maps from batch experiments on reusable topologies.</p>
             </div>
-            <label class="language-select">
+            <label class="language-select legacy-language-select" hidden>
                 <span data-i18n="language">Language</span>
-                <select id="languageSelect">
+                <select id="legacyLanguageSelect">
                     <option value="en">English</option>
                     <option value="zh">中文</option>
                 </select>

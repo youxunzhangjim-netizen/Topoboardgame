@@ -20,6 +20,7 @@ import {
     validationLevelCards
 } from './LabValidationCore.js';
 import { getLanguage, modelById, stableStringify, text, uiText } from '../experiments/LabExperimentRegistry.js';
+import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
 
 const I18N = {
     en: {
@@ -240,6 +241,7 @@ function setLanguage(nextLanguage) {
     localStorage.setItem('topoboard-labs-language', language);
     localStorage.setItem('topological-boardgame:language', language);
     els.languageSelect.value = language;
+    syncLabLanguageMenu(language);
     for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
     renderAll();
 }
@@ -614,6 +616,7 @@ function install() {
     setValidationMode(validationMode);
     setLanguage(language);
     els.languageSelect.addEventListener('change', () => setLanguage(els.languageSelect.value));
+    installLabLanguageMenu({ select: els.languageSelect, setLanguage });
     els.guidedModeButton.addEventListener('click', () => setValidationMode('guided'));
     els.researchModeButton.addEventListener('click', () => setValidationMode('research'));
     els.loadSampleButton.addEventListener('click', () => loadObject(createSampleExperiment().object, 'sample'));

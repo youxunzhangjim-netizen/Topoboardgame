@@ -16,6 +16,7 @@ import {
     rowsForTable,
     toCsv
 } from './LabPublicationCore.js';
+import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
 
 const TEXT = {
     en: {
@@ -239,6 +240,7 @@ function setLanguage(nextLanguage) {
     language = String(nextLanguage || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en';
     document.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
     els.languageSelect.value = language;
+    syncLabLanguageMenu(language);
     localStorage.setItem('topoboard-labs-language', language);
     localStorage.setItem('topological-boardgame:language', language);
     document.querySelectorAll('[data-i18n]').forEach((node) => {
@@ -565,6 +567,7 @@ function loadPastedOrLink() {
 
 function setupEvents() {
     els.languageSelect.addEventListener('change', () => setLanguage(els.languageSelect.value));
+    installLabLanguageMenu({ select: els.languageSelect, setLanguage });
     els.shareModeButton.addEventListener('click', () => setMode('guided'));
     els.researchModeButton.addEventListener('click', () => setMode('research'));
     els.generateBundleButton.addEventListener('click', generateBundle);

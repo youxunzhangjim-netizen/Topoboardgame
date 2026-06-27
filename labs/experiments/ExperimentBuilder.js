@@ -26,6 +26,7 @@ import {
     toCsv
 } from './LabBatchCore.js';
 import { runBatchSequential } from './LabBatchRunner.js';
+import { installLabLanguageMenu, syncLabLanguageMenu } from './LabLanguageMenu.js';
 
 const els = {
     languageSelect: document.querySelector('#languageSelect'),
@@ -150,6 +151,7 @@ function setLanguage(nextLanguage) {
     localStorage.setItem('topoboard-labs-language', language);
     localStorage.setItem('topological-boardgame:language', language);
     els.languageSelect.value = language;
+    syncLabLanguageMenu(language);
     for (const node of document.querySelectorAll('[data-i18n]')) {
         node.textContent = uiText(node.dataset.i18n, language);
     }
@@ -973,6 +975,7 @@ async function copyConfig() {
 
 function bindEvents() {
     els.languageSelect.addEventListener('change', () => setLanguage(els.languageSelect.value));
+    installLabLanguageMenu({ select: els.languageSelect, setLanguage });
     els.researchBatchMode.addEventListener('click', () => setBuilderMode('research'));
     els.compareTopologiesMode.addEventListener('click', () => setBuilderMode('compare'));
     els.mobileCompareButton.addEventListener('click', () => {

@@ -34,12 +34,14 @@
     .topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap: 12px;
       margin-bottom: 42px;
+      position: relative;
     }
     .topbar a,
-    .lang button {
+    .language-button,
+    .language-menu button {
       border: 1px solid rgba(88, 197, 255, 0.34);
       border-radius: 999px;
       background: rgba(5, 10, 17, 0.62);
@@ -49,12 +51,57 @@
       font-weight: 850;
     }
     .lang {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
     }
-    .lang button[aria-pressed="true"] {
+    .language-button {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+    .language-button svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .language-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 20;
+      min-width: 210px;
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(88, 197, 255, 0.3);
+      border-radius: 12px;
+      background: rgba(5, 10, 17, 0.96);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    }
+    .language-menu[hidden] {
+      display: none;
+    }
+    .language-menu span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .language-menu button {
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .language-menu button[aria-pressed="true"] {
       border-color: rgba(245, 200, 91, 0.7);
       color: var(--gold);
     }
@@ -122,9 +169,10 @@
       text-transform: uppercase;
     }
     @media (max-width: 860px) {
-      .topbar { align-items: flex-start; flex-direction: column; }
+      .topbar { align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
       .workflow-grid { grid-template-columns: 1fr; }
       .workflow-card { min-height: 150px; }
+      .language-menu { left: auto; right: 0; }
     }
   </style>
 </head>
@@ -132,9 +180,21 @@
   <main>
     <nav class="topbar" aria-label="Labs navigation">
       <a href="../index.html" data-i18n="home">Home</a>
-      <div class="lang" aria-label="Language">
-        <button type="button" data-lang="en" aria-pressed="true">English</button>
-        <button type="button" data-lang="zh" aria-pressed="false">Traditional Chinese</button>
+      <div class="lang" data-labs-language>
+        <button id="labsHomeLanguageButton" class="language-button" type="button" aria-expanded="false" aria-controls="labsHomeLanguageMenu" aria-label="Change language" title="Change language">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M3 12h18"></path>
+            <path d="M12 3a14 14 0 0 1 0 18"></path>
+            <path d="M12 3a14 14 0 0 0 0 18"></path>
+          </svg>
+          <span id="labsHomeLanguageCurrent">En</span>
+        </button>
+        <div id="labsHomeLanguageMenu" class="language-menu" hidden>
+          <span id="labsHomeLanguageLabel">Language</span>
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="zh" aria-pressed="false">&#20013;&#25991;</button>
+        </div>
       </div>
     </nav>
     <section class="hero">
@@ -183,7 +243,8 @@
         validationDesc: 'Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.',
         publicationTitle: 'Publication & Dataset Export',
         publicationDesc: 'Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.',
-        open: 'Open'
+        open: 'Open',
+        language: 'Language'
       },
       zh: {
         home: '\u9996\u9801',
@@ -200,7 +261,8 @@
         validationDesc: '\u7a3d\u6838\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u4e2d\u7e7c\u8cc7\u6599\u3001\u62d3\u64b2\u4e0d\u8b8a\u91cf\u3001\u57fa\u6e96\u7bc4\u570d\u8207\u8b66\u544a\u3002',
         publicationTitle: '\u51fa\u7248\u8207\u8cc7\u6599\u96c6\u532f\u51fa',
         publicationDesc: '\u5c01\u88dd\u53ef\u5be9\u67e5 bundle\uff0c\u5305\u542b README\u3001\u8cc7\u6599\u5b57\u5178\u3001\u65b9\u6cd5\u3001\u5f15\u7528\u3001\u6821\u9a57\u78bc\u8207\u4f86\u6e90\u7d00\u9304\u3002',
-        open: '\u958b\u555f'
+        open: '\u958b\u555f',
+        language: '\u8a9e\u8a00'
       }
     };
     function normalizeLanguage(value) {
@@ -220,12 +282,44 @@
       document.querySelectorAll('[data-lang]').forEach((button) => {
         button.setAttribute('aria-pressed', String(button.dataset.lang === language));
       });
+      const current = document.querySelector('#labsHomeLanguageCurrent');
+      const label = document.querySelector('#labsHomeLanguageLabel');
+      const button = document.querySelector('#labsHomeLanguageButton');
+      if (current) current.textContent = language === 'zh' ? '\u4e2d' : 'En';
+      if (label) label.textContent = TEXT[language].language;
+      if (button) {
+        const title = language === 'zh' ? '\u5207\u63db\u8a9e\u8a00' : 'Change language';
+        button.setAttribute('aria-label', title);
+        button.setAttribute('title', title);
+      }
+    }
+    const languageButton = document.querySelector('#labsHomeLanguageButton');
+    const languageMenu = document.querySelector('#labsHomeLanguageMenu');
+    function closeLanguageMenu() {
+      if (!languageMenu || !languageButton) return;
+      languageMenu.hidden = true;
+      languageButton.setAttribute('aria-expanded', 'false');
+    }
+    if (languageButton && languageMenu) {
+      languageButton.addEventListener('click', () => {
+        const nextOpen = languageMenu.hidden;
+        languageMenu.hidden = !nextOpen;
+        languageButton.setAttribute('aria-expanded', String(nextOpen));
+      });
+      document.addEventListener('click', (event) => {
+        if (languageMenu.hidden || event.target.closest('[data-labs-language]')) return;
+        closeLanguageMenu();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeLanguageMenu();
+      });
     }
     document.querySelectorAll('[data-lang]').forEach((button) => {
       button.addEventListener('click', () => {
         const language = normalizeLanguage(button.dataset.lang);
         try { localStorage.setItem(STORAGE_KEY, language); } catch {}
         applyLanguage(language);
+        closeLanguageMenu();
       });
     });
     applyLanguage(currentLanguage());

@@ -36,6 +36,7 @@ import {
     modelTopologyFeatureSummary,
     topologySiteCount
 } from './LabTopologyCompareCore.js';
+import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
 
 const I18N = {
     en: {
@@ -329,6 +330,7 @@ function setLanguage(nextLanguage) {
     localStorage.setItem('topoboard-labs-language', language);
     localStorage.setItem('topological-boardgame:language', language);
     els.languageSelect.value = language;
+    syncLabLanguageMenu(language);
     for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
     renderModelSelect();
     renderAll();
@@ -1108,6 +1110,7 @@ function installPanelCollapsers() {
 
 function bindEvents() {
     els.languageSelect.addEventListener('change', () => setLanguage(els.languageSelect.value));
+    installLabLanguageMenu({ select: els.languageSelect, setLanguage });
     els.researchModeButton.addEventListener('click', () => setCompareMode('research'));
     els.guidedModeButton.addEventListener('click', () => setCompareMode('guided'));
     els.guidedDefaultsButton.addEventListener('click', applyGuidedDefaults);

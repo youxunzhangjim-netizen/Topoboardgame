@@ -23,6 +23,7 @@
 body {
     margin: 0;
     min-height: 100vh;
+    overflow-x: hidden;
     color: var(--text);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background:
@@ -42,10 +43,12 @@ button, select, input, textarea {
 
 .app-shell {
     width: min(1440px, 100%);
+    max-width: 100vw;
     margin: 0 auto;
     padding: clamp(14px, 2.4vw, 30px);
     display: grid;
     gap: 16px;
+    overflow-x: clip;
 }
 
 .top-bar {
@@ -257,9 +260,10 @@ h2 {
 
 .lab-workspace {
     display: grid;
-    grid-template-columns: minmax(300px, 390px) minmax(560px, 1fr) minmax(310px, 390px);
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.2fr) minmax(0, 0.78fr);
     gap: 16px;
     align-items: start;
+    min-width: 0;
 }
 
 .lab-left-panels {
@@ -957,6 +961,7 @@ h2 {
 }
 
 .board-wrap, .side-panel {
+    min-width: 0;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: rgba(15, 20, 27, 0.9);
@@ -1033,7 +1038,9 @@ h2 {
 .interactive-board-shell {
     position: relative;
     width: 100%;
+    max-width: 100%;
     min-height: 520px;
+    overflow: clip;
 }
 
 .algebraic-3d-board {
@@ -2148,7 +2155,7 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
 
 @media (min-width: 1500px) {
     .app-shell {
-        grid-template-columns: minmax(760px, 1fr) minmax(420px, 500px);
+        grid-template-columns: 1fr;
     }
 }
 
@@ -2219,8 +2226,9 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
         grid-column: 2 / 4;
         grid-row: 2;
         display: grid;
-        grid-template-columns: minmax(560px, 1fr) minmax(310px, 390px);
+        grid-template-columns: minmax(0, 1fr) clamp(280px, 28vw, 390px);
         align-items: start;
+        min-width: 0;
     }
 
     .game-layout > .board-wrap {
@@ -2342,7 +2350,7 @@ body[data-lab-ui-mode="simple"] .labs-home {
 }
 
 body[data-lab-ui-mode="simple"] .lab-workspace {
-    grid-template-columns: minmax(280px, 360px) minmax(560px, 1fr) minmax(270px, 330px);
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.25fr) minmax(0, 0.72fr);
 }
 
 body[data-lab-ui-mode="simple"] .lab-left-panels {
@@ -2407,9 +2415,12 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
 
     .lab-workspace {
         display: grid;
-        grid-template-columns: minmax(720px, 1fr) minmax(420px, 520px);
+        grid-template-columns: minmax(0, 1fr) clamp(320px, 30vw, 480px);
         gap: 16px;
         align-items: start;
+        width: 100%;
+        max-width: 100%;
+        overflow: clip;
     }
 
     .lab-workspace > .game-layout {
@@ -2469,7 +2480,7 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     }
 
     body[data-lab-ui-mode="simple"] .lab-workspace {
-        grid-template-columns: minmax(760px, 1fr) minmax(360px, 460px);
+        grid-template-columns: minmax(0, 1fr) clamp(300px, 30vw, 440px);
     }
 
     body[data-lab-ui-mode="simple"] .lab-workspace > .control-panel {
@@ -2495,6 +2506,20 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
 
     .lab-workspace > .control-panel {
         order: 2;
+    }
+
+    .lab-workspace,
+    .lab-workspace > .game-layout,
+    .board-wrap,
+    .side-panel,
+    .control-panel,
+    .layer-panel,
+    .lab-left-panels,
+    .lab-history-panels,
+    .lab-export-panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 }
 
@@ -2541,6 +2566,15 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     .board-wrap {
         min-height: auto;
         padding: 10px;
+    }
+
+    .interactive-board-shell {
+        min-height: min(92vw, 420px);
+    }
+
+    .algebraic-3d-board {
+        min-height: 360px;
+        height: min(72vh, 520px);
     }
 }
 
@@ -2595,8 +2629,14 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
 .lab-workspace,
 .lab-workspace > .game-layout,
 .board-wrap,
-.control-panel {
+.side-panel,
+.control-panel,
+.layer-panel,
+.lab-left-panels,
+.lab-history-panels,
+.lab-export-panel {
     min-width: 0;
+    max-width: 100%;
 }
 
 @media (max-width: 980px) {
