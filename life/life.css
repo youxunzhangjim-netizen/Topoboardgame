@@ -373,6 +373,46 @@ h1 {
   padding: 16px;
 }
 
+.life-control-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(3, 8, 14, 0.58);
+}
+
+.life-tab-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(226, 236, 238, 0.76);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.life-tab-button.active,
+.life-tab-button[aria-selected="true"] {
+  background: rgba(245, 182, 71, 0.17);
+  color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(245, 182, 71, 0.45);
+}
+
+.life-tab-button:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.7);
+  outline-offset: 2px;
+}
+
+.life-control-panel[data-life-active-view="play"] [data-life-control-view="research"],
+body[data-life-active-view="play"] .research-panel[data-life-control-view="research"],
+.life-control-panel[data-life-active-view="research"] [data-life-control-view="play"] {
+  display: none !important;
+}
+
 .control-row {
   display: grid;
   gap: 7px;
@@ -400,6 +440,117 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.tool-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-row {
+  grid-template-columns: 1fr;
+}
+
+.compact-section-heading h3,
+.neighborhood-lab-heading h3 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.pattern-library-panel,
+.neighborhood-lab,
+.geometry-info-card {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 12px;
+  background: rgba(2, 6, 12, 0.32);
+}
+
+.pattern-description,
+.pattern-warning,
+.neighborhood-warning,
+.geometry-info-card p {
+  margin: 0;
+  color: rgba(226, 236, 238, 0.74);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pattern-warning,
+.neighborhood-warning {
+  min-height: 1.35em;
+  color: #fde68a;
+  font-weight: 850;
+}
+
+.pattern-warning.is-error,
+.neighborhood-warning.is-error {
+  color: #fecaca;
+}
+
+.geometry-info-title,
+.neighborhood-lab-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.geometry-info-title strong {
+  color: var(--gold);
+  font-size: 13px;
+}
+
+.geometry-info-title span,
+#neighborCountDisplay {
+  padding: 4px 8px;
+  border: 1px solid rgba(245, 182, 71, 0.25);
+  border-radius: 999px;
+  background: rgba(245, 182, 71, 0.08);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.geometry-info-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.geometry-info-list div {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.7fr) minmax(0, 1.3fr);
+  gap: 8px;
+}
+
+.geometry-info-list dt,
+.geometry-info-list dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.geometry-info-list dt {
+  color: rgba(245, 182, 71, 0.86);
+  font-weight: 900;
+}
+
+.geometry-info-list dd {
+  color: rgba(226, 236, 238, 0.84);
+}
+
+#neighborhoodPreviewCanvas {
+  width: 132px;
+  height: 132px;
+  justify-self: center;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 10px;
+  background: rgba(3, 8, 14, 0.78);
 }
 
 .life-stats {
@@ -617,6 +768,82 @@ h1 {
   margin-top: 14px;
 }
 
+.custom-rule-designer {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 12px;
+  background: rgba(2, 6, 12, 0.36);
+  padding: 10px;
+}
+
+.custom-rule-designer summary {
+  cursor: pointer;
+  color: rgba(226, 236, 238, 0.92);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.custom-rule-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.custom-rule-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.custom-rule-presets .life-button {
+  min-height: 36px;
+  padding: 0 9px;
+  font-size: 12px;
+  white-space: normal;
+}
+
+.custom-rule-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(245, 182, 71, 0.2);
+  border-radius: 10px;
+  background: rgba(245, 182, 71, 0.08);
+  color: rgba(255, 239, 204, 0.88);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.custom-rule-preview strong {
+  color: var(--gold);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.custom-rule-help,
+.custom-rule-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.custom-rule-help {
+  color: rgba(226, 236, 238, 0.72);
+}
+
+.custom-rule-error {
+  min-height: 1.4em;
+  color: #fecaca;
+  font-weight: 850;
+}
+
+.custom-rule-error.is-success {
+  color: #bbf7d0;
+}
+
 .pattern-tools {
   display: grid;
   gap: 10px;
@@ -773,6 +1000,32 @@ body[data-life-usage="two"] .one-player-only {
   .life-toolbar-group,
   .life-button-row {
     grid-template-columns: 1fr;
+  }
+
+  .life-control-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  .custom-rule-presets {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-rule-preview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .geometry-info-title,
+  .neighborhood-lab-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .geometry-info-list div {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }
 

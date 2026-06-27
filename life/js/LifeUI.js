@@ -11,7 +11,8 @@ import {
   modeLong,
   modeTags,
   geometryTitle,
-  latticeTitle
+  latticeTitle,
+  geometryInfo
 } from '../life-data.js';
 import { currentLifeLanguage, localizeStaticText, syncLifeLinks, t } from './i18n.js';
 import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManager.js';
@@ -25,8 +26,299 @@ const LATTICE_RULE_TUNING = Object.freeze({
 });
 const BOARD_OPACITY_LEVELS = Object.freeze([1, 0.7, 0.35, 0]);
 const BOARD_OPACITY_KEYS = Object.freeze(['boardOpacity100', 'boardOpacity70', 'boardOpacity35', 'boardOpacity0']);
+const LIFE_CONTROL_TAB_STORAGE_KEY = 'topoboard-life-world-control-view';
+const LATTICE_NEIGHBOR_COUNTS = Object.freeze({
+  square: 4,
+  triangular: 3,
+  honeycomb: 6,
+  sc: 6,
+  bcc: 8,
+  fcc: 12,
+  hcp: 12
+});
+const NEIGHBORHOOD_METRIC_TO_TYPE = Object.freeze({
+  chebyshev: 'moore',
+  manhattan: 'von_neumann',
+  euclidean: 'euclidean',
+  lattice: 'nearest'
+});
+const NEIGHBORHOOD_TYPE_TO_METRIC = Object.freeze({
+  moore: 'chebyshev',
+  nearest: 'lattice',
+  lattice: 'lattice',
+  von_neumann: 'manhattan',
+  vonneumann: 'manhattan',
+  'von-neumann': 'manhattan',
+  euclidean: 'euclidean'
+});
+const LIFE_PATTERN_LIBRARY = Object.freeze([
+  {
+    id: 'single-cell',
+    nameKey: 'patternSingleCell',
+    descriptionKey: 'patternSingleCellDesc',
+    dimensions: [1, 2, 3, 4],
+    neighborhoods: ['any'],
+    offsets: [[0, 0, 0, 0]]
+  },
+  {
+    id: 'block',
+    nameKey: 'patternBlock',
+    descriptionKey: 'patternBlockDesc',
+    dimensions: [2],
+    neighborhoods: ['moore'],
+    offsets: [[0, 0], [1, 0], [0, 1], [1, 1]]
+  },
+  {
+    id: 'blinker',
+    nameKey: 'patternBlinker',
+    descriptionKey: 'patternBlinkerDesc',
+    dimensions: [2],
+    neighborhoods: ['moore'],
+    offsets: [[-1, 0], [0, 0], [1, 0]]
+  },
+  {
+    id: 'glider',
+    nameKey: 'patternGlider',
+    descriptionKey: 'patternGliderDesc',
+    dimensions: [2],
+    neighborhoods: ['moore'],
+    offsets: [[1, -1], [2, 0], [0, 1], [1, 1], [2, 1]]
+  },
+  {
+    id: 'lwss',
+    nameKey: 'patternLwss',
+    descriptionKey: 'patternLwssDesc',
+    dimensions: [2],
+    neighborhoods: ['moore'],
+    offsets: [[-2, -1], [1, -1], [-3, 0], [-3, 1], [1, 1], [-3, 2], [-2, 2], [-1, 2], [0, 2]]
+  },
+  {
+    id: 'random-cloud',
+    nameKey: 'patternRandomCloud',
+    descriptionKey: 'patternRandomCloudDesc',
+    dimensions: [1, 2, 3, 4],
+    neighborhoods: ['any'],
+    randomCloud: true
+  },
+  {
+    id: 'two-species-battle',
+    nameKey: 'patternTwoSpeciesBattle',
+    descriptionKey: 'patternTwoSpeciesBattleDesc',
+    dimensions: [2],
+    neighborhoods: ['any'],
+    offsets: [
+      [-3, -1, 1], [-2, -1, 1], [-3, 0, 1], [-2, 0, 1], [-3, 1, 1],
+      [2, -1, 2], [3, -1, 2], [2, 0, 2], [3, 0, 2], [3, 1, 2]
+    ]
+  }
+]);
+const LIFE_WORLD_EXTRA_I18N = Object.freeze({
+  en: {
+    controlTabsLabel: 'Life World control views',
+    playTab: 'Play',
+    researchTab: 'Research',
+    customRuleDesigner: 'Custom Rule Designer',
+    customRulePresetsLabel: 'Custom rule presets',
+    presetConway: 'Conway Life B3/S23',
+    presetHighLife: 'HighLife B36/S23',
+    presetSeeds: 'Seeds B2/S',
+    presetDayNight: 'Day & Night B3678/S34678',
+    presetCustom: 'Custom',
+    birthCounts: 'Birth counts',
+    survivalCounts: 'Survival counts',
+    ruleString: 'Rule',
+    customRuleHelp: 'Use counts from the current neighborhood. Commas, spaces, ranges, or compact digits are accepted.',
+    applyCustomRule: 'Apply custom rule',
+    customRuleMax: 'Current neighborhood supports neighbor counts 0 to {max}.',
+    customRuleApplied: 'Custom rule applied: {rule}',
+    customRuleErrorSyntax: 'Use B/S notation such as B3/S23.',
+    customRuleErrorToken: '{field} contains an invalid count: {token}.',
+    customRuleErrorRange: '{field} counts must be between 0 and {max} for this neighborhood.',
+    customRuleErrorEmpty: 'Enter at least one birth or survival count.',
+    birthField: 'Birth',
+    survivalField: 'Survival',
+    patternLibrary: 'Pattern Library',
+    pattern: 'Pattern',
+    patternSingleCell: 'Single cell',
+    patternSingleCellDesc: 'Place one live cell using the active species.',
+    patternBlock: 'Block',
+    patternBlockDesc: 'A small 2x2 still-life for classic 2D Moore Life.',
+    patternBlinker: 'Blinker',
+    patternBlinkerDesc: 'A three-cell oscillator that flips every generation in classic Moore Life.',
+    patternGlider: 'Glider',
+    patternGliderDesc: 'A five-cell moving pattern for Conway-style Moore Life.',
+    patternLwss: 'Lightweight spaceship',
+    patternLwssDesc: 'A larger moving spaceship pattern; shown only where classic 2D Moore behavior is available.',
+    patternRandomCloud: 'Random cloud',
+    patternRandomCloudDesc: 'Scatter a small local patch of random cells around the clicked location.',
+    patternTwoSpeciesBattle: 'Two-species seed battle',
+    patternTwoSpeciesBattleDesc: 'Place blue and red starter colonies facing each other.',
+    patternDisabledSummary: 'Disabled here: {patterns}.',
+    patternDisabledReason: 'This pattern needs {dimension} and {neighborhood}.',
+    pattern2DMoore: '2D Moore/Chebyshev radius 1',
+    pattern2D: '2D',
+    patternAnyNeighborhood: 'any neighborhood',
+    geometryTopology: 'Topology',
+    geometryBoundary: 'Boundary',
+    geometryRecommended: 'Recommended neighborhood',
+    neighborhoodLab: 'Neighborhood Laboratory',
+    neighborhoodPreviewLabel: 'Neighborhood preview',
+    radius: 'Radius',
+    metric: 'Metric',
+    metricChebyshev: 'Moore / Chebyshev',
+    metricManhattan: 'Von Neumann / Manhattan',
+    metricEuclidean: 'Euclidean disk',
+    metricLattice: 'Lattice nearest',
+    neighborCount: 'Neighbor count: {count}',
+    neighborhoodFallbackLattice: 'This lattice uses native nearest neighbors here, so the metric was changed to Lattice nearest.',
+    neighborhoodFallbackRadius: 'Lattice nearest is fixed at radius 1, so radius was reset to 1.',
+    neighborhoodPreviewUnavailable: 'Preview is shown for 2D neighborhoods; the engine still uses the listed neighbor count.'
+  },
+  zh: {
+    controlTabsLabel: '生命世界控制分頁',
+    playTab: '遊玩',
+    researchTab: '研究',
+    customRuleDesigner: '自訂規則設計器',
+    customRulePresetsLabel: '自訂規則預設',
+    presetConway: 'Conway Life B3/S23',
+    presetHighLife: 'HighLife B36/S23',
+    presetSeeds: 'Seeds B2/S',
+    presetDayNight: 'Day & Night B3678/S34678',
+    presetCustom: '自訂',
+    birthCounts: '誕生鄰居數',
+    survivalCounts: '存活鄰居數',
+    ruleString: '規則',
+    customRuleHelp: '依照目前鄰域輸入鄰居數；可用逗號、空格、範圍或連續數字。',
+    applyCustomRule: '套用自訂規則',
+    customRuleMax: '目前鄰域可使用的鄰居數是 0 到 {max}。',
+    customRuleApplied: '已套用自訂規則：{rule}',
+    customRuleErrorSyntax: '請使用 B/S 記法，例如 B3/S23。',
+    customRuleErrorToken: '{field} 包含無效數字：{token}。',
+    customRuleErrorRange: '{field} 的鄰居數必須在 0 到 {max} 之間。',
+    customRuleErrorEmpty: '請至少輸入一個誕生或存活鄰居數。',
+    birthField: '誕生',
+    survivalField: '存活',
+    patternLibrary: '圖樣庫',
+    pattern: '圖樣',
+    patternSingleCell: '單一細胞',
+    patternSingleCellDesc: '用目前物種放置一個活細胞。',
+    patternBlock: '方塊',
+    patternBlockDesc: '經典 2D Moore Life 的 2x2 靜態圖樣。',
+    patternBlinker: '閃爍器',
+    patternBlinkerDesc: '在經典 Moore Life 中每代翻轉的三細胞振盪器。',
+    patternGlider: '滑翔機',
+    patternGliderDesc: 'Conway 風格 Moore Life 的五細胞移動圖樣。',
+    patternLwss: '輕量太空船',
+    patternLwssDesc: '較大的移動太空船圖樣；只在經典 2D Moore 行為可用時顯示。',
+    patternRandomCloud: '隨機雲',
+    patternRandomCloudDesc: '在點擊位置附近撒下一小片隨機細胞。',
+    patternTwoSpeciesBattle: '雙物種種子戰',
+    patternTwoSpeciesBattleDesc: '放置藍色與紅色起始群落，讓它們面對彼此。',
+    patternDisabledSummary: '此處停用：{patterns}。',
+    patternDisabledReason: '此圖樣需要 {dimension} 與 {neighborhood}。',
+    pattern2DMoore: '2D Moore/Chebyshev 半徑 1',
+    pattern2D: '2D',
+    patternAnyNeighborhood: '任意鄰域',
+    geometryTopology: '拓撲',
+    geometryBoundary: '邊界',
+    geometryRecommended: '建議鄰域',
+    neighborhoodLab: '鄰域實驗室',
+    neighborhoodPreviewLabel: '鄰域預覽',
+    radius: '半徑',
+    metric: '距離',
+    metricChebyshev: 'Moore / Chebyshev',
+    metricManhattan: 'Von Neumann / Manhattan',
+    metricEuclidean: 'Euclidean disk',
+    metricLattice: 'Lattice nearest',
+    neighborCount: '鄰居數：{count}',
+    neighborhoodFallbackLattice: '此格點在這裡使用原生最近鄰，因此距離已改為 Lattice nearest。',
+    neighborhoodFallbackRadius: 'Lattice nearest 固定為半徑 1，因此半徑已重設為 1。',
+    neighborhoodPreviewUnavailable: '預覽只顯示 2D 鄰域；引擎仍會使用列出的鄰居數。'
+  }
+});
 
 function readParams() { return new URLSearchParams(window.location.search); }
+function lifeWorldText(key, language = 'en', replacements = {}) {
+  const table = LIFE_WORLD_EXTRA_I18N[language === 'zh' ? 'zh' : 'en'] || LIFE_WORLD_EXTRA_I18N.en;
+  const fallback = LIFE_WORLD_EXTRA_I18N.en[key] || key;
+  return Object.entries(replacements).reduce(
+    (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+    table[key] || fallback
+  );
+}
+function normalizeRuleCounts(counts = []) {
+  return [...new Set((counts || [])
+    .map((count) => Number(count))
+    .filter((count) => Number.isInteger(count) && count >= 0))]
+    .sort((a, b) => a - b);
+}
+function formatRuleCounts(counts = []) {
+  const normalized = normalizeRuleCounts(counts);
+  if (normalized.every((count) => count <= 9)) return normalized.join('');
+  return normalized.join(',');
+}
+function parseCountListInput(value = '', maxNeighbors = 8, field = 'Count', language = 'en') {
+  const text = String(value ?? '').trim();
+  if (!text) return [];
+  const compactNumber = /^\d+$/.test(text) ? Number(text) : NaN;
+  const tokens = /[,\s]/.test(text)
+    ? text.split(/[,\s]+/).filter(Boolean)
+    : (/^\d+$/.test(text) && (maxNeighbors <= 9 || compactNumber > maxNeighbors) ? text.split('') : [text]);
+  const counts = [];
+  for (const token of tokens) {
+    const rangeMatch = token.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) {
+      const start = Number(rangeMatch[1]);
+      const end = Number(rangeMatch[2]);
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) {
+        throw new Error(lifeWorldText('customRuleErrorToken', language, { field, token }));
+      }
+      for (let count = start; count <= end; count += 1) counts.push(count);
+      continue;
+    }
+    const count = Number(token);
+    if (!Number.isInteger(count)) {
+      throw new Error(lifeWorldText('customRuleErrorToken', language, { field, token }));
+    }
+    counts.push(count);
+  }
+  const normalized = normalizeRuleCounts(counts);
+  if (normalized.some((count) => count > maxNeighbors)) {
+    throw new Error(lifeWorldText('customRuleErrorRange', language, { field, max: maxNeighbors }));
+  }
+  return normalized;
+}
+export function parseLifeBSRule(ruleText = 'B3/S23', maxNeighbors = 8, language = 'en', birthField = 'Birth', survivalField = 'Survival') {
+  const normalized = String(ruleText || '').toUpperCase().replace(/\s+/g, '');
+  const birthIndex = normalized.indexOf('B');
+  const survivalIndex = normalized.indexOf('S');
+  if (birthIndex < 0 || survivalIndex < 0 || birthIndex > survivalIndex) {
+    throw new Error(lifeWorldText('customRuleErrorSyntax', language));
+  }
+  const birthText = normalized.slice(birthIndex + 1, survivalIndex).replaceAll('/', '');
+  const survivalText = normalized.slice(survivalIndex + 1).replaceAll('/', '');
+  return {
+    birth: parseCountListInput(birthText, maxNeighbors, birthField, language),
+    survival: parseCountListInput(survivalText, maxNeighbors, survivalField, language)
+  };
+}
+export function serializeLifeBSRule(rule = {}) {
+  return `B${formatRuleCounts(rule.birth)}/S${formatRuleCounts(rule.survival)}`;
+}
+export function runLifeRuleDesignerSelfTest() {
+  const cases = [
+    ['B3/S23', 'B3/S23'],
+    ['B36/S23', 'B36/S23'],
+    ['B2/S', 'B2/S'],
+    ['B4-6/S5,6,7', 'B456/S567'],
+    ['B10,12/S11', 'B10,12/S11', 26]
+  ];
+  for (const [input, expected, max = 8] of cases) {
+    const serialized = serializeLifeBSRule(parseLifeBSRule(input, max));
+    if (serialized !== expected) throw new Error(`Rule designer self-test failed for ${input}: ${serialized}`);
+  }
+  return { ok: true, cases: cases.length };
+}
 function wrapAngle(angle) {
   return ((angle % TAU) + TAU) % TAU;
 }
@@ -161,6 +453,9 @@ export class LifeUI {
     this.canvas = root.getElementById('lifeCanvas');
     this.context = this.canvas.getContext('2d');
 
+    this.controlPanel = root.querySelector('.life-control-panel');
+    this.playTabButton = root.getElementById('lifePlayTab');
+    this.researchTabButton = root.getElementById('lifeResearchTab');
     this.modeSelect = root.getElementById('modeSelect');
     this.usageModeSelect = root.getElementById('usageModeSelect');
     this.twoPlayerModeSelect = root.getElementById('twoPlayerModeSelect');
@@ -187,6 +482,30 @@ export class LifeUI {
     this.youngBirthBonusRange = root.getElementById('youngBirthBonusRange');
     this.oldAgePenaltyRange = root.getElementById('oldAgePenaltyRange');
     this.maxGenerationInput = root.getElementById('maxGenerationInput');
+    this.customRuleDesigner = root.querySelector('.custom-rule-designer');
+    this.birthCountsInput = root.getElementById('birthCountsInput');
+    this.survivalCountsInput = root.getElementById('survivalCountsInput');
+    this.customRuleString = root.getElementById('customRuleString');
+    this.customRuleHelp = root.getElementById('customRuleHelp');
+    this.customRuleError = root.getElementById('customRuleError');
+    this.applyCustomRuleButton = root.getElementById('applyCustomRuleButton');
+    this.customRulePresetButtons = [...root.querySelectorAll('[data-custom-rule]')];
+    this.patternSelect = root.getElementById('patternSelect');
+    this.patternDescription = root.getElementById('patternDescription');
+    this.patternWarning = root.getElementById('patternWarning');
+    this.geometryInfoCard = root.getElementById('geometryInfoCard');
+    this.geometryInfoTitle = root.getElementById('geometryInfoTitle');
+    this.geometryInfoDimension = root.getElementById('geometryInfoDimension');
+    this.geometryInfoTopology = root.getElementById('geometryInfoTopology');
+    this.geometryInfoBoundary = root.getElementById('geometryInfoBoundary');
+    this.geometryInfoRecommended = root.getElementById('geometryInfoRecommended');
+    this.geometryInfoPlayer = root.getElementById('geometryInfoPlayer');
+    this.geometryInfoResearch = root.getElementById('geometryInfoResearch');
+    this.neighborCountDisplay = root.getElementById('neighborCountDisplay');
+    this.neighborhoodPreviewCanvas = root.getElementById('neighborhoodPreviewCanvas');
+    this.neighborhoodRadiusSelect = root.getElementById('neighborhoodRadiusSelect');
+    this.neighborhoodMetricSelect = root.getElementById('neighborhoodMetricSelect');
+    this.neighborhoodWarning = root.getElementById('neighborhoodWarning');
 
     this.title = root.getElementById('lifeModeTitle');
     this.description = root.getElementById('lifeModeDescription');
@@ -243,13 +562,21 @@ export class LifeUI {
     this.nextOnlineTurn = '';
     this.myColor = null;
     this.network = null;
+    this.customRuleActive = false;
+    this.customRuleBirth = [3];
+    this.customRuleSurvival = [2, 3];
+    this.syncingNeighborhoodControls = false;
+    this.pendingNeighborhoodWarnings = [];
+    this.lastNeighborhoodWarning = '';
     this.engine = createLifeEngine(modeToEngineConfig(this.mode));
   }
 
   install() {
     localizeStaticText(document, this.language);
+    this.localizeLifeWorldAdditions();
     syncLifeLinks(this.language);
     this.installRangeValueReadouts();
+    this.installControlTabs();
     this.modeSelect.innerHTML = LIFE_MODES.map((mode) => `<option value="${mode.id}">${modeTitle(mode, this.language)}</option>`).join('');
     this.ruleSelect.innerHTML = listRulePresets().map((rule) => `<option value="${rule.id}">${rulePresetLabel(rule, this.language)}</option>`).join('');
     this.boardGeometrySelect.innerHTML = LIFE_GEOMETRIES.map((geometry) => `<option value="${geometry.id}">${geometryTitle(geometry, this.language)}</option>`).join('');
@@ -262,7 +589,7 @@ export class LifeUI {
     this.boardGeometrySelect.addEventListener('change', () => this.applyGeometrySelection());
 
     [this.dimensionSelect, this.boardSizeSelect, this.latticeSelect, this.viewModeSelect, this.topologySelect,
-      this.speciesSelect, this.ruleSelect, this.neighborhoodSelect, this.birthNoiseRange, this.deathNoiseRange,
+      this.speciesSelect, this.ruleSelect, this.neighborhoodSelect, this.neighborhoodRadiusSelect, this.neighborhoodMetricSelect, this.birthNoiseRange, this.deathNoiseRange,
       this.environmentNoiseRange, this.ruleNoiseRange, this.topologyDefectNoiseRange, this.mutationRange,
       this.ageRange, this.agingDeathRateRange, this.youngBirthBonusRange, this.oldAgePenaltyRange].forEach((control) => {
       if (!control) return;
@@ -287,6 +614,9 @@ export class LifeUI {
     this.playButton.addEventListener('click', () => this.togglePlay());
     this.root.getElementById('exportButton').addEventListener('click', () => this.exportPattern());
     this.root.getElementById('importButton').addEventListener('click', () => this.importPattern());
+    this.installCustomRuleDesigner();
+    this.installNeighborhoodLaboratory();
+    this.installPatternLibrary();
     this.installOnlineControls();
 
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
@@ -345,6 +675,469 @@ export class LifeUI {
     this.tryJoinSharedRoomFromUrl();
   }
 
+  localizeLifeWorldAdditions() {
+    this.root.querySelectorAll('[data-life-extra-i18n]').forEach((element) => {
+      element.textContent = lifeWorldText(element.dataset.lifeExtraI18n, this.language);
+    });
+    this.root.querySelectorAll('[data-life-extra-i18n-label]').forEach((element) => {
+      element.setAttribute('aria-label', lifeWorldText(element.dataset.lifeExtraI18nLabel, this.language));
+    });
+  }
+
+  installControlTabs() {
+    this.playTabButton?.addEventListener('click', () => this.setControlView('play'));
+    this.researchTabButton?.addEventListener('click', () => this.setControlView('research'));
+    let saved = 'play';
+    try { saved = localStorage.getItem(LIFE_CONTROL_TAB_STORAGE_KEY) || 'play'; } catch {}
+    this.setControlView(saved === 'research' ? 'research' : 'play', { persist: false });
+  }
+
+  setControlView(view = 'play', options = {}) {
+    const activeView = view === 'research' ? 'research' : 'play';
+    this.controlPanel?.setAttribute('data-life-active-view', activeView);
+    document.body.dataset.lifeActiveView = activeView;
+    [
+      ['play', this.playTabButton],
+      ['research', this.researchTabButton]
+    ].forEach(([tab, button]) => {
+      if (!button) return;
+      const active = tab === activeView;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+      button.tabIndex = active ? 0 : -1;
+    });
+    if (options.persist !== false) {
+      try { localStorage.setItem(LIFE_CONTROL_TAB_STORAGE_KEY, activeView); } catch {}
+    }
+  }
+
+  installCustomRuleDesigner() {
+    if (!this.applyCustomRuleButton) return;
+    this.applyCustomRuleButton.addEventListener('click', () => this.applyCustomRuleFromDesigner());
+    [this.birthCountsInput, this.survivalCountsInput].forEach((input) => {
+      input?.addEventListener('input', () => this.updateCustomRulePreview({ clearMessage: true }));
+      input?.addEventListener('change', () => this.updateCustomRulePreview({ clearMessage: true }));
+    });
+    [this.neighborhoodSelect, this.dimensionSelect, this.latticeSelect].forEach((control) => {
+      control?.addEventListener('change', () => this.updateCustomRulePreview({ clearMessage: true }));
+    });
+    this.customRulePresetButtons.forEach((button) => {
+      button.addEventListener('click', () => this.applyCustomRulePreset(button.dataset.customRule));
+    });
+    this.syncCustomRuleDesignerFromRule(getRulePreset(this.ruleSelect.value || 'conway'));
+  }
+
+  installNeighborhoodLaboratory() {
+    this.syncNeighborhoodMetricFromType();
+    this.updateGeometryInfoCard();
+    this.updateNeighborhoodLaboratory();
+  }
+
+  neighborhoodMetricFromType(type = this.neighborhoodSelect?.value || 'moore') {
+    return NEIGHBORHOOD_TYPE_TO_METRIC[String(type || 'moore').toLowerCase()] || 'chebyshev';
+  }
+
+  neighborhoodTypeFromMetric(metric = this.neighborhoodMetricSelect?.value || 'chebyshev') {
+    return NEIGHBORHOOD_METRIC_TO_TYPE[String(metric || 'chebyshev').toLowerCase()] || 'moore';
+  }
+
+  syncNeighborhoodMetricFromType() {
+    if (!this.neighborhoodMetricSelect || this.syncingNeighborhoodControls) return;
+    this.syncingNeighborhoodControls = true;
+    this.neighborhoodMetricSelect.value = this.neighborhoodMetricFromType(this.neighborhoodSelect?.value);
+    this.syncingNeighborhoodControls = false;
+  }
+
+  syncNeighborhoodTypeFromMetric() {
+    if (!this.neighborhoodSelect || this.syncingNeighborhoodControls) return;
+    this.syncingNeighborhoodControls = true;
+    const type = this.neighborhoodTypeFromMetric(this.neighborhoodMetricSelect?.value);
+    if (this.neighborhoodSelect.querySelector(`option[value="${type}"]`)) this.neighborhoodSelect.value = type;
+    this.syncingNeighborhoodControls = false;
+  }
+
+  resolveNeighborhoodControls({ applyFallback = true } = {}) {
+    const dimension = Math.max(1, Number(this.dimensionSelect?.value) || this.engine?.dimension || 2);
+    const lattice = String(this.latticeSelect?.value || (dimension >= 3 ? 'sc' : 'square')).toLowerCase();
+    let metric = String(this.neighborhoodMetricSelect?.value || this.neighborhoodMetricFromType()).toLowerCase();
+    let type = this.neighborhoodTypeFromMetric(metric);
+    let radius = Math.max(1, Math.min(2, Number(this.neighborhoodRadiusSelect?.value) || 1));
+    const warnings = [];
+    const nativeLatticeOnly = (dimension === 2 && lattice !== 'square') || (dimension === 3 && lattice !== 'sc');
+
+    if (nativeLatticeOnly && metric !== 'lattice') {
+      metric = 'lattice';
+      type = 'nearest';
+      warnings.push(lifeWorldText('neighborhoodFallbackLattice', this.language));
+    }
+    if (metric === 'lattice' && radius !== 1) {
+      radius = 1;
+      warnings.push(lifeWorldText('neighborhoodFallbackRadius', this.language));
+    }
+
+    if (applyFallback) {
+      this.syncingNeighborhoodControls = true;
+      if (this.neighborhoodMetricSelect) this.neighborhoodMetricSelect.value = metric;
+      if (this.neighborhoodRadiusSelect) this.neighborhoodRadiusSelect.value = String(radius);
+      if (this.neighborhoodSelect?.querySelector(`option[value="${type}"]`)) this.neighborhoodSelect.value = type;
+      this.syncingNeighborhoodControls = false;
+    }
+
+    return { dimension, lattice, metric, type, radius, warnings };
+  }
+
+  estimatedNeighborCount(config = this.resolveNeighborhoodControls({ applyFallback: false })) {
+    if (config.metric === 'lattice') return LATTICE_NEIGHBOR_COUNTS[config.lattice] || config.dimension * 2;
+    let count = 0;
+    const radius = Math.max(1, Number(config.radius) || 1);
+    const deltas = [];
+    function build(axis, prefix) {
+      if (axis === config.dimension) {
+        if (prefix.every((value) => value === 0)) return;
+        const manhattan = prefix.reduce((sum, value) => sum + Math.abs(value), 0);
+        const chebyshev = Math.max(...prefix.map((value) => Math.abs(value)));
+        const squared = prefix.reduce((sum, value) => sum + value * value, 0);
+        if (config.metric === 'manhattan' && manhattan > radius) return;
+        if (config.metric === 'euclidean' && squared > radius * radius) return;
+        if (config.metric === 'chebyshev' && chebyshev > radius) return;
+        deltas.push(prefix.slice());
+        count += 1;
+        return;
+      }
+      for (let delta = -radius; delta <= radius; delta += 1) build(axis + 1, prefix.concat(delta));
+    }
+    build(0, []);
+    return count;
+  }
+
+  updateNeighborhoodLaboratory() {
+    const config = this.resolveNeighborhoodControls();
+    let count = this.estimatedNeighborCount(config);
+    if (this.engine?.getNeighborhoodInfo) {
+      const center = this.engine.size.map((n) => Math.floor(n / 2));
+      count = this.engine.getNeighborhoodInfo(center).count;
+    }
+    if (this.neighborCountDisplay) {
+      this.neighborCountDisplay.textContent = lifeWorldText('neighborCount', this.language, { count });
+      this.neighborCountDisplay.value = String(count);
+    }
+    const warnings = [...(this.pendingNeighborhoodWarnings || []), ...config.warnings];
+    this.pendingNeighborhoodWarnings = [];
+    const directWarning = warnings.join(' ');
+    if (directWarning) this.lastNeighborhoodWarning = directWarning;
+    const warning = config.dimension === 2
+      ? (directWarning || this.lastNeighborhoodWarning || '')
+      : [directWarning || this.lastNeighborhoodWarning || '', lifeWorldText('neighborhoodPreviewUnavailable', this.language)].filter(Boolean).join(' ');
+    if (this.neighborhoodWarning) {
+      this.neighborhoodWarning.textContent = warning;
+      this.neighborhoodWarning.classList.toggle('is-error', false);
+    }
+    this.drawNeighborhoodPreview(config);
+  }
+
+  drawNeighborhoodPreview(config = this.resolveNeighborhoodControls({ applyFallback: false })) {
+    const canvas = this.neighborhoodPreviewCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(3, 8, 14, 0.92)';
+    ctx.fillRect(0, 0, width, height);
+    if (config.dimension !== 2) {
+      ctx.fillStyle = 'rgba(226, 236, 238, 0.7)';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('2D preview', width / 2, height / 2);
+      return;
+    }
+    const extent = Math.max(2, config.radius);
+    const cells = extent * 2 + 1;
+    const pad = 12;
+    const step = (Math.min(width, height) - pad * 2) / cells;
+    const center = this.engine?.size?.length >= 2
+      ? [Math.floor(this.engine.size[0] / 2), Math.floor(this.engine.size[1] / 2)]
+      : [8, 8];
+    const neighbors = this.engine?.getNeighborPositions ? this.engine.getNeighborPositions(center) : [];
+    const neighborKeys = new Set(neighbors.map((position) => {
+      let dx = position[0] - center[0];
+      let dy = position[1] - center[1];
+      const sx = this.engine?.size?.[0] || 999;
+      const sy = this.engine?.size?.[1] || 999;
+      if (Math.abs(dx) > sx / 2) dx += dx > 0 ? -sx : sx;
+      if (Math.abs(dy) > sy / 2) dy += dy > 0 ? -sy : sy;
+      return `${dx},${dy}`;
+    }));
+    for (let y = -extent; y <= extent; y += 1) {
+      for (let x = -extent; x <= extent; x += 1) {
+        const left = pad + (x + extent) * step;
+        const top = pad + (y + extent) * step;
+        const isCenter = x === 0 && y === 0;
+        const isNeighbor = neighborKeys.has(`${x},${y}`);
+        ctx.fillStyle = isCenter
+          ? 'rgba(245, 182, 71, 0.88)'
+          : isNeighbor ? 'rgba(56, 189, 248, 0.72)' : 'rgba(15, 23, 42, 0.72)';
+        ctx.fillRect(left + 2, top + 2, step - 4, step - 4);
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.24)';
+        ctx.strokeRect(left + 2, top + 2, step - 4, step - 4);
+      }
+    }
+  }
+
+  updateGeometryInfoCard() {
+    if (!this.geometryInfoCard) return;
+    const geometry = findLifeGeometry(this.boardGeometrySelect?.value);
+    const info = geometryInfo(geometry.id, this.language);
+    this.geometryInfoTitle.textContent = geometryTitle(geometry, this.language);
+    this.geometryInfoDimension.textContent = info.dimension;
+    this.geometryInfoTopology.textContent = info.topology;
+    this.geometryInfoBoundary.textContent = info.boundary;
+    this.geometryInfoRecommended.textContent = info.recommendedNeighborhood;
+    this.geometryInfoPlayer.textContent = info.player;
+    this.geometryInfoResearch.textContent = info.research;
+  }
+
+  installPatternLibrary() {
+    if (!this.patternSelect) return;
+    this.populatePatternLibrary();
+    this.patternSelect.addEventListener('change', () => this.updatePatternLibrary());
+  }
+
+  patternName(pattern) {
+    return lifeWorldText(pattern.nameKey, this.language);
+  }
+
+  patternDescriptionText(pattern) {
+    return lifeWorldText(pattern.descriptionKey, this.language);
+  }
+
+  patternCompatibility(pattern, config = this.resolveNeighborhoodControls({ applyFallback: false })) {
+    const dimensionOk = pattern.dimensions.includes(config.dimension);
+    const classicMoore = config.dimension === 2 && config.metric === 'chebyshev' && config.radius === 1;
+    const neighborhoodOk = pattern.neighborhoods.includes('any') || (pattern.neighborhoods.includes('moore') && classicMoore);
+    return { ok: dimensionOk && neighborhoodOk, dimensionOk, neighborhoodOk };
+  }
+
+  patternRequirement(pattern) {
+    if (pattern.neighborhoods.includes('moore')) return lifeWorldText('pattern2DMoore', this.language);
+    if (pattern.dimensions.length === 1 && pattern.dimensions[0] === 2) return `${lifeWorldText('pattern2D', this.language)} / ${lifeWorldText('patternAnyNeighborhood', this.language)}`;
+    return lifeWorldText('patternAnyNeighborhood', this.language);
+  }
+
+  populatePatternLibrary() {
+    if (!this.patternSelect) return;
+    const previous = this.patternSelect.value || 'single-cell';
+    const config = this.resolveNeighborhoodControls({ applyFallback: false });
+    this.patternSelect.innerHTML = LIFE_PATTERN_LIBRARY.map((pattern) => {
+      const compatibility = this.patternCompatibility(pattern, config);
+      const disabled = compatibility.ok ? '' : ' disabled';
+      const suffix = compatibility.ok ? '' : ` - ${this.patternRequirement(pattern)}`;
+      return `<option value="${pattern.id}"${disabled}>${this.patternName(pattern)}${suffix}</option>`;
+    }).join('');
+    const previousPattern = LIFE_PATTERN_LIBRARY.find((pattern) => pattern.id === previous);
+    this.patternSelect.value = previousPattern && this.patternCompatibility(previousPattern, config).ok ? previous : 'single-cell';
+    this.updatePatternLibrary();
+  }
+
+  updatePatternLibrary() {
+    if (!this.patternSelect) return;
+    const config = this.resolveNeighborhoodControls({ applyFallback: false });
+    const pattern = LIFE_PATTERN_LIBRARY.find((item) => item.id === this.patternSelect.value) || LIFE_PATTERN_LIBRARY[0];
+    if (this.patternDescription) this.patternDescription.textContent = this.patternDescriptionText(pattern);
+    const disabled = LIFE_PATTERN_LIBRARY
+      .filter((item) => !this.patternCompatibility(item, config).ok)
+      .map((item) => `${this.patternName(item)} (${this.patternRequirement(item)})`);
+    if (this.patternWarning) {
+      this.patternWarning.textContent = disabled.length
+        ? lifeWorldText('patternDisabledSummary', this.language, { patterns: disabled.join(', ') })
+        : '';
+      this.patternWarning.classList.toggle('is-error', false);
+    }
+  }
+
+  selectedPattern() {
+    const pattern = LIFE_PATTERN_LIBRARY.find((item) => item.id === this.patternSelect?.value) || LIFE_PATTERN_LIBRARY[0];
+    return this.patternCompatibility(pattern).ok ? pattern : LIFE_PATTERN_LIBRARY[0];
+  }
+
+  activePlacementSpecies() {
+    return this.usageModeSelect.value === 'two'
+      ? Number(this.activePlayerSelect.value)
+      : Number(this.activePlayerSelect.value || this.speciesSelect.value || 1);
+  }
+
+  placePatternAtPosition(position) {
+    const pattern = this.selectedPattern();
+    if (pattern.id === 'single-cell') {
+      this.applyToolAtPosition(position);
+      return;
+    }
+    if (pattern.id === 'two-species-battle' && Number(this.speciesSelect.value) < 2) {
+      this.speciesSelect.value = '2';
+      this.applyControls(true);
+    }
+    if (pattern.randomCloud) {
+      this.placeRandomCloud(position);
+      return;
+    }
+    const species = this.activePlacementSpecies();
+    for (const offset of pattern.offsets || []) {
+      const speciesOverride = pattern.id === 'two-species-battle' ? offset[2] : null;
+      const deltas = pattern.id === 'two-species-battle' ? offset.slice(0, 2) : offset;
+      const target = position.map((value, axis) => value + Number(deltas[axis] || 0));
+      this.engine.setCell(target, {
+        state: 1,
+        species: speciesOverride || species,
+        age: 1,
+        energy: 1,
+        health: 1
+      });
+    }
+  }
+
+  placeRandomCloud(position) {
+    const dimension = this.engine.dimension;
+    const attempts = dimension === 1 ? 9 : dimension === 2 ? 18 : 26;
+    const radius = 2;
+    const speciesCount = Math.max(1, Number(this.speciesSelect.value) || 1);
+    const seen = new Set();
+    for (let i = 0; i < attempts; i += 1) {
+      const deltas = Array.from({ length: dimension }, () => Math.floor(Math.random() * (radius * 2 + 1)) - radius);
+      if (deltas.every((value) => value === 0) || Math.random() < 0.35) deltas[0] = 0;
+      const target = position.map((value, axis) => value + deltas[axis]);
+      const key = target.join(',');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (Math.random() > 0.62) continue;
+      this.engine.setCell(target, {
+        state: 1,
+        species: 1 + Math.floor(Math.random() * speciesCount),
+        age: 1,
+        energy: 1,
+        health: 1
+      });
+    }
+  }
+
+  maxNeighborCount() {
+    return this.estimatedNeighborCount(this.resolveNeighborhoodControls({ applyFallback: false }));
+  }
+
+  setCustomRuleMessage(message = '', success = false) {
+    if (!this.customRuleError) return;
+    this.customRuleError.textContent = message;
+    this.customRuleError.classList.toggle('is-success', Boolean(success && message));
+  }
+
+  updateCustomRulePreview(options = {}) {
+    const max = this.maxNeighborCount();
+    if (this.customRuleHelp) {
+      this.customRuleHelp.textContent = `${lifeWorldText('customRuleHelp', this.language)} ${lifeWorldText('customRuleMax', this.language, { max })}`;
+    }
+    try {
+      const birth = parseCountListInput(
+        this.birthCountsInput?.value || '',
+        max,
+        lifeWorldText('birthField', this.language),
+        this.language
+      );
+      const survival = parseCountListInput(
+        this.survivalCountsInput?.value || '',
+        max,
+        lifeWorldText('survivalField', this.language),
+        this.language
+      );
+      const ruleString = serializeLifeBSRule({ birth, survival });
+      if (this.customRuleString) this.customRuleString.textContent = ruleString;
+      if (options.clearMessage) this.setCustomRuleMessage('');
+      return { ok: true, birth, survival, ruleString };
+    } catch (error) {
+      if (this.customRuleString) this.customRuleString.textContent = 'B?/S?';
+      this.setCustomRuleMessage(error.message || lifeWorldText('customRuleErrorSyntax', this.language));
+      return { ok: false, error };
+    }
+  }
+
+  syncCustomRuleDesignerFromRule(rule = {}) {
+    if (!this.birthCountsInput || !this.survivalCountsInput) return;
+    let birth = rule.birth || [];
+    let survival = rule.survival || [];
+    if ((!birth.length && !survival.length) && rule.rule) {
+      try {
+        const parsed = parseLifeBSRule(rule.rule, this.maxNeighborCount());
+        birth = parsed.birth;
+        survival = parsed.survival;
+      } catch {}
+    }
+    this.birthCountsInput.value = formatRuleCounts(birth.length || survival.length ? birth : [3]);
+    this.survivalCountsInput.value = formatRuleCounts(birth.length || survival.length ? survival : [2, 3]);
+    this.updateCustomRulePreview({ clearMessage: true });
+  }
+
+  applyCustomRulePreset(ruleString = 'custom') {
+    this.customRuleDesigner.open = true;
+    if (ruleString === 'custom') {
+      this.updateCustomRulePreview({ clearMessage: true });
+      this.birthCountsInput?.focus();
+      return;
+    }
+    try {
+      const parsed = parseLifeBSRule(
+        ruleString,
+        this.maxNeighborCount(),
+        this.language,
+        lifeWorldText('birthField', this.language),
+        lifeWorldText('survivalField', this.language)
+      );
+      this.birthCountsInput.value = formatRuleCounts(parsed.birth);
+      this.survivalCountsInput.value = formatRuleCounts(parsed.survival);
+      this.applyCustomRuleFromDesigner();
+    } catch (error) {
+      this.setCustomRuleMessage(error.message || lifeWorldText('customRuleErrorSyntax', this.language));
+    }
+  }
+
+  applyCustomRuleFromDesigner() {
+    const parsed = this.updateCustomRulePreview();
+    if (!parsed.ok) return false;
+    if (!parsed.birth.length && !parsed.survival.length) {
+      this.setCustomRuleMessage(lifeWorldText('customRuleErrorEmpty', this.language));
+      return false;
+    }
+    this.customRuleActive = true;
+    this.customRuleBirth = parsed.birth;
+    this.customRuleSurvival = parsed.survival;
+    this.setCustomRuleMessage(lifeWorldText('customRuleApplied', this.language, { rule: parsed.ruleString }), true);
+    this.applyControls(true);
+    return true;
+  }
+
+  buildCustomRule(baseRule = {}) {
+    const neighborhood = this.resolveNeighborhoodControls({ applyFallback: false });
+    const max = this.maxNeighborCount();
+    const birth = normalizeRuleCounts(this.customRuleBirth);
+    const survival = normalizeRuleCounts(this.customRuleSurvival);
+    if (!birth.length && !survival.length) return baseRule;
+    if ([...birth, ...survival].some((count) => count > max)) {
+      const field = birth.some((count) => count > max) ? lifeWorldText('birthField', this.language) : lifeWorldText('survivalField', this.language);
+      this.setCustomRuleMessage(lifeWorldText('customRuleErrorRange', this.language, { field, max }));
+      return baseRule;
+    }
+    const ruleString = serializeLifeBSRule({ birth, survival });
+    return {
+      ...baseRule,
+      id: 'custom',
+      label: 'Custom Life',
+      zhLabel: 'Custom Life',
+      type: 'life-like',
+      rule: ruleString,
+      birth,
+      survival,
+      neighborhoodType: neighborhood.type || baseRule.neighborhoodType || 'moore',
+      latticeNeighborCount: max
+    };
+  }
+
   installRangeValueReadouts() {
     this.rangeValueOutputs = [];
     this.root.querySelectorAll('.life-control-panel input[type="range"]').forEach((input) => {
@@ -395,10 +1188,30 @@ export class LifeUI {
     if (!preset) return;
     if (this.ruleSelect?.querySelector(`option[value="${preset}"]`)) this.ruleSelect.value = preset;
     if (this.neighborhoodSelect) this.neighborhoodSelect.value = 'nearest';
+    if (this.neighborhoodMetricSelect) this.neighborhoodMetricSelect.value = 'lattice';
+    if (this.neighborhoodRadiusSelect) this.neighborhoodRadiusSelect.value = '1';
   }
 
   applyControlsFromControl(event) {
-    if (event?.currentTarget === this.latticeSelect) this.applyLatticeDefaults(this.latticeSelect.value);
+    if (event?.currentTarget && event.currentTarget !== this.latticeSelect) this.lastNeighborhoodWarning = '';
+    if (event?.currentTarget === this.neighborhoodSelect) this.syncNeighborhoodMetricFromType();
+    if (event?.currentTarget === this.neighborhoodMetricSelect) this.syncNeighborhoodTypeFromMetric();
+    if (event?.currentTarget === this.ruleSelect) {
+      this.customRuleActive = false;
+      this.syncCustomRuleDesignerFromRule(getRulePreset(this.ruleSelect.value));
+    }
+    if (event?.currentTarget === this.latticeSelect && !this.customRuleActive) {
+      const previousMetric = this.neighborhoodMetricSelect?.value || this.neighborhoodMetricFromType();
+      const previousRadius = this.neighborhoodRadiusSelect?.value || '1';
+      this.applyLatticeDefaults(this.latticeSelect.value);
+      const dimension = Math.max(1, Number(this.dimensionSelect?.value) || 2);
+      const lattice = String(this.latticeSelect?.value || '').toLowerCase();
+      const nativeLatticeOnly = (dimension === 2 && lattice !== 'square') || (dimension === 3 && lattice !== 'sc');
+      if (nativeLatticeOnly && previousMetric !== 'lattice') this.pendingNeighborhoodWarnings.push(lifeWorldText('neighborhoodFallbackLattice', this.language));
+      if (nativeLatticeOnly && previousRadius !== '1') this.pendingNeighborhoodWarnings.push(lifeWorldText('neighborhoodFallbackRadius', this.language));
+      this.syncCustomRuleDesignerFromRule(getRulePreset(this.ruleSelect.value));
+    }
+    this.updateCustomRulePreview({ clearMessage: true });
     this.applyControls(true);
   }
 
@@ -408,10 +1221,13 @@ export class LifeUI {
     this.topologySelect.value = geometry.topology;
     this.viewModeSelect.value = geometry.view;
     this.populateLattices(geometry.id, this.latticeSelect.value || (geometry.dimension === 3 ? 'sc' : 'square'));
-    this.applyLatticeDefaults(this.latticeSelect.value);
+    if (!this.customRuleActive) this.applyLatticeDefaults(this.latticeSelect.value);
     if (this.neighborhoodSelect.value === 'nearest' && geometry.dimension >= 2) {
       this.neighborhoodSelect.value = 'nearest';
     }
+    this.syncNeighborhoodMetricFromType();
+    this.updateGeometryInfoCard();
+    this.updateCustomRulePreview({ clearMessage: true });
     this.applyControls(true);
   }
 
@@ -432,8 +1248,12 @@ export class LifeUI {
     this.populateLattices(geometry.id, config.lattice);
     this.speciesSelect.value = String(mode.species || config.rule.speciesCount || 1);
     this.ruleSelect.value = config.rule.id || 'conway';
+    this.customRuleActive = false;
     this.neighborhoodSelect.value = config.neighborhoodType || 'moore';
+    this.neighborhoodRadiusSelect.value = '1';
+    this.syncNeighborhoodMetricFromType();
     if (config.dimension >= 3 || config.lattice !== 'square') this.applyLatticeDefaults(this.latticeSelect.value);
+    this.syncCustomRuleDesignerFromRule(getRulePreset(this.ruleSelect.value));
     this.birthNoiseRange.value = String(config.rule.birthNoise || 0);
     this.deathNoiseRange.value = String(config.rule.deathNoise || 0);
     this.environmentNoiseRange.value = String(config.rule.environmentNoise || 0);
@@ -486,7 +1306,9 @@ export class LifeUI {
     const speciesCount = Math.max(1, Number(this.speciesSelect.value) || 1);
     const dimension = Number(this.dimensionSelect.value);
     const lattice = this.latticeSelect.value;
+    const neighborhood = this.resolveNeighborhoodControls();
     rule = tuneRuleForLattice(rule, lattice, dimension);
+    if (this.customRuleActive) rule = this.buildCustomRule(rule);
     rule.speciesCount = speciesCount;
     rule.birthNoise = Number(this.birthNoiseRange.value) || 0;
     rule.deathNoise = Number(this.deathNoiseRange.value) || 0;
@@ -503,13 +1325,18 @@ export class LifeUI {
       dimension,
       size: this.currentSize(),
       boundary: this.topologySelect.value,
-      neighborhoodType: rule.neighborhoodType || this.neighborhoodSelect.value,
+      neighborhoodType: neighborhood.type,
+      neighborhoodRadius: neighborhood.radius,
+      neighborhoodMetric: neighborhood.metric,
       lattice,
       rule
     });
     if (!preserve) this.engine.clear();
     this.draw();
     this.updateReadout();
+    this.updateNeighborhoodLaboratory();
+    this.populatePatternLibrary();
+    this.updateGeometryInfoCard();
   }
 
   reset() {
@@ -624,8 +1451,10 @@ export class LifeUI {
       this.viewModeSelect?.value || 'flat',
       this.dimensionSelect?.value || '2',
       this.boardSizeSelect?.value || '48',
-      this.ruleSelect?.value || 'conway',
+      this.customRuleActive ? `custom:${serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival })}` : (this.ruleSelect?.value || 'conway'),
       this.neighborhoodSelect?.value || 'moore',
+      `rad${this.neighborhoodRadiusSelect?.value || 1}`,
+      this.neighborhoodMetricSelect?.value || 'chebyshev',
       `bn${this.birthNoiseRange?.value || 0}`,
       `dn${this.deathNoiseRange?.value || 0}`,
       `en${this.environmentNoiseRange?.value || 0}`,
@@ -641,7 +1470,8 @@ export class LifeUI {
     const controls = {};
     ['usageModeSelect', 'twoPlayerModeSelect', 'challengeGoalSelect', 'activePlayerSelect', 'boardGeometrySelect',
       'latticeSelect', 'viewModeSelect', 'dimensionSelect', 'boardSizeSelect', 'topologySelect', 'speciesSelect',
-      'ruleSelect', 'neighborhoodSelect', 'speedRange', 'birthNoiseRange', 'deathNoiseRange', 'environmentNoiseRange',
+      'ruleSelect', 'neighborhoodSelect', 'neighborhoodRadiusSelect', 'neighborhoodMetricSelect', 'patternSelect',
+      'speedRange', 'birthNoiseRange', 'deathNoiseRange', 'environmentNoiseRange',
       'ruleNoiseRange', 'topologyDefectNoiseRange', 'mutationRange', 'ageRange', 'agingDeathRateRange',
       'youngBirthBonusRange', 'oldAgePenaltyRange', 'maxGenerationInput'].forEach((key) => {
       if (this[key]) controls[key] = this[key].value;
@@ -693,7 +1523,12 @@ export class LifeUI {
       this.boardSizeSelect.value = String(this.engine.size[0]);
       this.topologySelect.value = this.engine.topology.boundary;
       this.neighborhoodSelect.value = this.engine.neighborhoodType;
+      this.neighborhoodRadiusSelect.value = String(this.engine.neighborhoodRadius || 1);
+      this.neighborhoodMetricSelect.value = this.engine.neighborhoodMetric || this.neighborhoodMetricFromType(this.engine.neighborhoodType);
       this.latticeSelect.value = this.engine.lattice || this.latticeSelect.value;
+      this.updateGeometryInfoCard();
+      this.updateNeighborhoodLaboratory();
+      this.populatePatternLibrary();
       this.history = Array.isArray(payload.history) ? payload.history.slice(-80) : [];
       this.stateHashes = new Map();
       this.extinctionTime = null;
@@ -880,6 +1715,14 @@ export class LifeUI {
     if (this.tool === 'inspect') {
       const cell = this.engine.getCell(position);
       this.challengeStatus.textContent = `${t('status', this.language)}: ${position.join(',')} ${t('cellSpecies', this.language)}=${cell.species || 0} ${t('cellAge', this.language)}=${cell.age || 0}`;
+      return;
+    }
+    const selectedPattern = this.selectedPattern();
+    if (this.tool === 'draw' && selectedPattern.id !== 'single-cell') {
+      if (this.drawing && this.lastDrawPosition) return;
+      this.placePatternAtPosition(position);
+      this.lastDrawPosition = position;
+      this.afterStateChange();
       return;
     }
     const positions = this.drawing && this.lastDrawPosition
@@ -1912,21 +2755,59 @@ export class LifeUI {
   }
 
   exportPattern() {
-    const payload = { version: 2, exportedAt: new Date().toISOString(), mode: this.mode.id, geometry: this.boardGeometrySelect.value, lattice: this.latticeSelect.value, viewMode: this.viewModeSelect.value, usage: this.usageModeSelect.value, twoPlayerMode: this.twoPlayerModeSelect.value, challengeGoal: this.challengeGoalSelect.value, state: this.engine.exportState() };
+    const customRule = this.customRuleActive
+      ? { rule: serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival }), birth: this.customRuleBirth, survival: this.customRuleSurvival }
+      : null;
+    const payload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      mode: this.mode.id,
+      geometry: this.boardGeometrySelect.value,
+      lattice: this.latticeSelect.value,
+      viewMode: this.viewModeSelect.value,
+      usage: this.usageModeSelect.value,
+      twoPlayerMode: this.twoPlayerModeSelect.value,
+      challengeGoal: this.challengeGoalSelect.value,
+      customRule,
+      state: this.engine.exportState()
+    };
     this.patternJson.value = JSON.stringify(payload, null, 2);
   }
 
   importPattern() {
     try {
       const payload = JSON.parse(this.patternJson.value); const state = payload.state || payload;
+      const importedRule = structuredClone(state.rule || {});
       this.engine.importState(state);
-      this.dimensionSelect.value = String(this.engine.dimension); this.boardSizeSelect.value = String(this.engine.size[0]); this.topologySelect.value = this.engine.topology.boundary; this.neighborhoodSelect.value = this.engine.neighborhoodType; this.latticeSelect.value = this.engine.lattice || this.latticeSelect.value;
+      this.dimensionSelect.value = String(this.engine.dimension); this.boardSizeSelect.value = String(this.engine.size[0]); this.topologySelect.value = this.engine.topology.boundary; this.neighborhoodSelect.value = this.engine.neighborhoodType; this.neighborhoodRadiusSelect.value = String(this.engine.neighborhoodRadius || 1); this.neighborhoodMetricSelect.value = this.engine.neighborhoodMetric || this.neighborhoodMetricFromType(this.engine.neighborhoodType); this.latticeSelect.value = this.engine.lattice || this.latticeSelect.value;
       if (payload.geometry) {
         const geometry = findLifeGeometry(payload.geometry === 'klein' && payload.viewMode === 'surface3d' ? 'klein_surface' : payload.geometry);
         this.boardGeometrySelect.value = geometry.id;
         this.applyGeometrySelection();
       } else if (payload.viewMode) this.viewModeSelect.value = payload.viewMode;
       if (payload.mode) { this.mode = findLifeMode(payload.mode); this.modeSelect.value = this.mode.id; this.title.textContent = modeTitle(this.mode, this.language); this.description.textContent = modeLong(this.mode, this.language); this.tags.textContent = modeTags(this.mode, this.language).join(' · '); }
+      const customRule = payload.customRule || (importedRule?.id === 'custom' ? importedRule : null);
+      if (customRule?.birth || customRule?.survival) {
+        this.customRuleActive = true;
+        this.customRuleBirth = normalizeRuleCounts(customRule.birth);
+        this.customRuleSurvival = normalizeRuleCounts(customRule.survival);
+        this.syncCustomRuleDesignerFromRule(customRule);
+        this.engine.rule = structuredClone({
+          ...importedRule,
+          id: 'custom',
+          type: 'life-like',
+          rule: serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival }),
+          birth: this.customRuleBirth,
+          survival: this.customRuleSurvival
+        });
+        this.engine.neighborhoodType = state.neighborhoodType || this.engine.neighborhoodType;
+      } else {
+        this.customRuleActive = false;
+        this.syncCustomRuleDesignerFromRule(getRulePreset(this.ruleSelect.value || 'conway'));
+      }
+      this.updateGeometryInfoCard();
+      this.updateNeighborhoodLaboratory();
+      this.populatePatternLibrary();
       this.history = []; this.stateHashes = new Map(); this.extinctionTime = null; this.afterStateChange();
     } catch (error) { this.challengeStatus.textContent = `${t('importFailed', this.language)}: ${error.message}`; }
   }

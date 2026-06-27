@@ -6,7 +6,7 @@
   <title>Life & Evolution Worlds — Topoboardgame</title>
   <link rel="stylesheet" href="./life.css" />
 </head>
-<body>
+<body data-life-active-view="play">
   <div class="life-bg" aria-hidden="true"></div>
   <main class="life-player-shell">
     <nav class="life-topbar" aria-label="Life player navigation" data-life-i18n-label="lifePlayerNavigation">
@@ -42,13 +42,17 @@
         </div>
       </article>
 
-      <aside class="life-control-panel">
+      <aside class="life-control-panel" data-life-active-view="play">
+        <div class="life-control-tabs" role="tablist" aria-label="Life World controls" data-life-extra-i18n-label="controlTabsLabel">
+          <button class="life-tab-button active" id="lifePlayTab" type="button" role="tab" aria-selected="true" aria-controls="lifePlayControls" data-life-tab="play" data-life-extra-i18n="playTab">Play</button>
+          <button class="life-tab-button" id="lifeResearchTab" type="button" role="tab" aria-selected="false" aria-controls="lifeResearchControls" data-life-tab="research" data-life-extra-i18n="researchTab">Research</button>
+        </div>
         <section class="control-section quick-play-section">
-          <div class="control-row">
+          <div class="control-row" id="lifePlayControls" data-life-control-view="play">
             <label for="modeSelect" data-life-i18n="mode">Mode</label>
             <select id="modeSelect"></select>
           </div>
-          <div class="control-row">
+          <div class="control-row" data-life-control-view="play">
             <label for="usageModeSelect" data-life-i18n="playMode">Usage mode</label>
             <select id="usageModeSelect">
               <option value="zero" data-life-i18n="zeroPlayer">Zero-player simulation</option>
@@ -56,7 +60,7 @@
               <option value="two" data-life-i18n="twoPlayer">Two-player competition</option>
             </select>
           </div>
-          <div class="control-row two-player-only">
+          <div class="control-row two-player-only" data-life-control-view="play">
             <label for="twoPlayerModeSelect" data-life-i18n="twoPlayerMode">Two-player mode</label>
             <select id="twoPlayerModeSelect">
               <option value="seed-war" data-life-i18n="seedWar">Seed War</option>
@@ -66,7 +70,7 @@
               <option value="ecosystem-balance" data-life-i18n="ecosystemBalance">Ecosystem Balance</option>
             </select>
           </div>
-          <div class="control-row one-player-only">
+          <div class="control-row one-player-only" data-life-control-view="play">
             <label for="challengeGoalSelect" data-life-i18n="challengeGoal">Challenge goal</label>
             <select id="challengeGoalSelect">
               <option value="none" data-life-i18n="goalNone">Free play</option>
@@ -79,13 +83,15 @@
               <option value="ecosystem" data-life-i18n="goalEcosystem">Stabilize an ecosystem</option>
             </select>
           </div>
-          <div class="life-button-row tool-row">
+          <div class="life-button-row tool-row" data-life-control-view="play">
             <button class="life-button active" id="drawToolButton" type="button" data-tool="draw" data-life-i18n="drawTool">Draw</button>
             <button class="life-button" id="eraseToolButton" type="button" data-tool="erase" data-life-i18n="eraseTool">Erase</button>
             <button class="life-button" id="inspectToolButton" type="button" data-tool="inspect" data-life-i18n="inspectTool">Inspect</button>
+          </div>
+          <div class="life-button-row grid-row" data-life-control-view="research">
             <button class="life-button active" id="lifeGridToggleBtn" type="button" aria-pressed="true" data-life-i18n="gridOn">Grid On</button>
           </div>
-          <div class="control-row">
+          <div class="control-row" data-life-control-view="play">
             <label for="activePlayerSelect" data-life-i18n="activePlayer">Active player</label>
             <select id="activePlayerSelect">
               <option value="1" data-life-i18n="playerA">Player A / Blue</option>
@@ -93,7 +99,7 @@
               <option value="3" data-life-i18n="species3Green">Species 3 / Green</option>
             </select>
           </div>
-          <div class="control-row">
+          <div class="control-row" data-life-control-view="play">
             <label for="speciesSelect" data-life-i18n="species">Species</label>
             <select id="speciesSelect">
               <option value="1" data-life-i18n="oneSpecies">1 species</option>
@@ -101,7 +107,7 @@
               <option value="3" data-life-i18n="threeSpecies">3 species</option>
             </select>
           </div>
-          <div class="control-row life-density-control">
+          <div class="control-row life-density-control" data-life-control-view="play">
             <label for="boardSizeSelect" data-life-i18n="boardSize">Blocks per side</label>
             <select id="boardSizeSelect">
               <option value="24">24</option>
@@ -114,7 +120,19 @@
             </select>
           </div>
 
-          <section class="life-online-controls" aria-label="Online Life room controls" data-life-i18n-label="onlineLifeRoomControls">
+          <section class="pattern-library-panel" data-life-control-view="play" aria-labelledby="patternLibraryTitle">
+            <div class="compact-section-heading">
+              <h3 id="patternLibraryTitle" data-life-extra-i18n="patternLibrary">Pattern Library</h3>
+            </div>
+            <div class="control-row">
+              <label for="patternSelect" data-life-extra-i18n="pattern">Pattern</label>
+              <select id="patternSelect"></select>
+            </div>
+            <p class="pattern-description" id="patternDescription"></p>
+            <p class="pattern-warning" id="patternWarning" role="status"></p>
+          </section>
+
+          <section class="life-online-controls" aria-label="Online Life room controls" data-life-i18n-label="onlineLifeRoomControls" data-life-control-view="research">
             <div class="control-row">
               <label for="lifePlayModeSelect" data-life-i18n="connection">Connection</label>
               <select id="lifePlayModeSelect">
@@ -144,7 +162,7 @@
           </section>
         </section>
 
-        <details class="settings-panel">
+        <details class="settings-panel" id="lifeResearchControls" data-life-control-view="research" open>
           <summary data-life-i18n="advanced">Advanced / Research Settings</summary>
           <div class="settings-grid">
             <div class="control-row">
@@ -164,6 +182,28 @@
                 <option value="reflective" data-life-i18n="reflective3DLife">Reflective 3D Life</option>
               </select>
             </div>
+            <article class="geometry-info-card" id="geometryInfoCard">
+              <div class="geometry-info-title">
+                <strong id="geometryInfoTitle"></strong>
+                <span id="geometryInfoDimension"></span>
+              </div>
+              <dl class="geometry-info-list">
+                <div>
+                  <dt data-life-extra-i18n="geometryTopology">Topology</dt>
+                  <dd id="geometryInfoTopology"></dd>
+                </div>
+                <div>
+                  <dt data-life-extra-i18n="geometryBoundary">Boundary</dt>
+                  <dd id="geometryInfoBoundary"></dd>
+                </div>
+                <div>
+                  <dt data-life-extra-i18n="geometryRecommended">Recommended neighborhood</dt>
+                  <dd id="geometryInfoRecommended"></dd>
+                </div>
+              </dl>
+              <p id="geometryInfoPlayer"></p>
+              <p id="geometryInfoResearch"></p>
+            </article>
             <div class="control-row">
               <label for="latticeSelect" data-life-i18n="lattice">Lattice</label>
               <select id="latticeSelect">
@@ -207,6 +247,33 @@
               <label for="ruleSelect" data-life-i18n="rulePreset">Rule preset</label>
               <select id="ruleSelect"></select>
             </div>
+            <details class="custom-rule-designer">
+              <summary data-life-extra-i18n="customRuleDesigner">Custom Rule Designer</summary>
+              <div class="custom-rule-grid">
+                <div class="custom-rule-presets" aria-label="Custom rule presets" data-life-extra-i18n-label="customRulePresetsLabel">
+                  <button class="life-button" type="button" data-custom-rule="B3/S23" data-life-extra-i18n="presetConway">Conway Life B3/S23</button>
+                  <button class="life-button" type="button" data-custom-rule="B36/S23" data-life-extra-i18n="presetHighLife">HighLife B36/S23</button>
+                  <button class="life-button" type="button" data-custom-rule="B2/S" data-life-extra-i18n="presetSeeds">Seeds B2/S</button>
+                  <button class="life-button" type="button" data-custom-rule="B3678/S34678" data-life-extra-i18n="presetDayNight">Day & Night B3678/S34678</button>
+                  <button class="life-button" type="button" data-custom-rule="custom" data-life-extra-i18n="presetCustom">Custom</button>
+                </div>
+                <div class="control-row">
+                  <label for="birthCountsInput" data-life-extra-i18n="birthCounts">Birth counts</label>
+                  <input id="birthCountsInput" type="text" value="3" inputmode="numeric" autocomplete="off" />
+                </div>
+                <div class="control-row">
+                  <label for="survivalCountsInput" data-life-extra-i18n="survivalCounts">Survival counts</label>
+                  <input id="survivalCountsInput" type="text" value="2,3" inputmode="numeric" autocomplete="off" />
+                </div>
+                <div class="custom-rule-preview">
+                  <span data-life-extra-i18n="ruleString">Rule</span>
+                  <strong id="customRuleString">B3/S23</strong>
+                </div>
+                <p class="custom-rule-help" id="customRuleHelp" data-life-extra-i18n="customRuleHelp">Use counts from the current neighborhood. Commas, spaces, ranges, or compact digits are accepted.</p>
+                <p class="custom-rule-error" id="customRuleError" role="alert"></p>
+                <button class="life-button primary" id="applyCustomRuleButton" type="button" data-life-extra-i18n="applyCustomRule">Apply custom rule</button>
+              </div>
+            </details>
             <div class="control-row">
               <label for="neighborhoodSelect" data-life-i18n="neighborhood">Neighborhood</label>
               <select id="neighborhoodSelect">
@@ -215,6 +282,30 @@
                 <option value="von_neumann" data-life-i18n="vonNeumannNeighborhood">Von Neumann</option>
               </select>
             </div>
+            <section class="neighborhood-lab" aria-labelledby="neighborhoodLabTitle">
+              <div class="neighborhood-lab-heading">
+                <h3 id="neighborhoodLabTitle" data-life-extra-i18n="neighborhoodLab">Neighborhood Laboratory</h3>
+                <output id="neighborCountDisplay" for="neighborhoodSelect neighborhoodRadiusSelect neighborhoodMetricSelect">8</output>
+              </div>
+              <canvas id="neighborhoodPreviewCanvas" width="132" height="132" aria-label="Neighborhood preview" data-life-extra-i18n-label="neighborhoodPreviewLabel"></canvas>
+              <div class="control-row">
+                <label for="neighborhoodRadiusSelect" data-life-extra-i18n="radius">Radius</label>
+                <select id="neighborhoodRadiusSelect">
+                  <option value="1" selected>1</option>
+                  <option value="2">2</option>
+                </select>
+              </div>
+              <div class="control-row">
+                <label for="neighborhoodMetricSelect" data-life-extra-i18n="metric">Metric</label>
+                <select id="neighborhoodMetricSelect">
+                  <option value="chebyshev" data-life-extra-i18n="metricChebyshev">Moore / Chebyshev</option>
+                  <option value="manhattan" data-life-extra-i18n="metricManhattan">Von Neumann / Manhattan</option>
+                  <option value="euclidean" data-life-extra-i18n="metricEuclidean">Euclidean disk</option>
+                  <option value="lattice" data-life-extra-i18n="metricLattice">Lattice nearest</option>
+                </select>
+              </div>
+              <p class="neighborhood-warning" id="neighborhoodWarning" role="status"></p>
+            </section>
             <div class="control-row">
               <label for="speedRange" data-life-i18n="speed">Speed</label>
               <input id="speedRange" type="range" min="30" max="600" step="10" value="130" />
@@ -267,7 +358,7 @@
           </div>
         </details>
 
-        <details class="settings-panel">
+        <details class="settings-panel" data-life-control-view="research" open>
           <summary data-life-i18n="patternJson">Pattern JSON</summary>
           <div class="pattern-tools">
             <div class="life-button-row">
@@ -295,7 +386,7 @@
       </div>
     </section>
 
-    <section class="research-panel" aria-labelledby="researchPanelTitle">
+    <section class="research-panel" aria-labelledby="researchPanelTitle" data-life-control-view="research">
       <div class="research-heading">
         <div>
           <p class="eyebrow" data-life-i18n="research">Research Observables</p>

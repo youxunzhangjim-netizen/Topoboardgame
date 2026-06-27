@@ -99,49 +99,54 @@ const HCP_DIRECTIONS = [
   [0, 0, 1], [0, 0, -1], [1, 0, 1], [-1, 0, -1], [0, 1, 1], [0, -1, -1]
 ];
 
-export function generateDirections(dimension = 2, neighborhoodType = 'moore', lattice = 'square', position = []) {
-  const dim = normalizeDimension(dimension);
-  const type = String(neighborhoodType || (dim === 1 ? 'nearest' : 'moore')).toLowerCase();
-  const lat = normalizeLattice(lattice, dim);
+export function normalizeNeighborhoodRadius(radius = 1) {
+  return Math.max(1, Math.min(2, Math.floor(Number(radius) || 1)));
+}
 
+export function metricForNeighborhood(neighborhoodType = 'moore', metric = '') {
+  const explicit = String(metric || '').toLowerCase();
+  if (['chebyshev', 'moore'].includes(explicit)) return 'chebyshev';
+  if (['manhattan', 'von_neumann', 'vonneumann', 'von-neumann'].includes(explicit)) return 'manhattan';
+  if (['euclidean', 'euclidean_disk', 'euclidean-disk', 'disk'].includes(explicit)) return 'euclidean';
+  if (['nearest', 'lattice', 'lattice_nearest', 'lattice-nearest'].includes(explicit)) return 'lattice';
+  const type = String(neighborhoodType || '').toLowerCase();
+  if (type === 'nearest' || type === 'lattice') return 'lattice';
+  if (type === 'von_neumann' || type === 'vonneumann' || type === 'von-neumann') return 'manhattan';
+  if (type === 'euclidean' || type === 'euclidean_disk' || type === 'euclidean-disk') return 'euclidean';
+  return 'chebyshev';
+}
+
+function latticeDirections(dim, lat, position) {
   if (dim === 1) return [[-1], [1]];
-
-  if (dim === 2 && (type === 'nearest' || type === 'lattice')) {
+  if (dim === 2) {
     if (lat === 'triangular') return ((position[0] + position[1]) % 2 === 0) ? TRIANGULAR_EVEN : TRIANGULAR_ODD;
     if (lat === 'honeycomb') return HEXAGON_CELL_DIRECTIONS;
     return [[1, 0], [-1, 0], [0, 1], [0, -1]];
   }
-
-  if (dim === 3 && (type === 'nearest' || type === 'lattice')) {
+  if (dim === 3) {
     if (lat === 'bcc') return BCC_DIRECTIONS;
     if (lat === 'fcc') return FCC_DIRECTIONS;
     if (lat === 'hcp') return HCP_DIRECTIONS;
     return [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
   }
+  return null;
+}
 
-  if (dim === 2) {
-    if (lat === 'triangular') return ((position[0] + position[1]) % 2 === 0) ? TRIANGULAR_EVEN : TRIANGULAR_ODD;
-    if (lat === 'honeycomb') return HEXAGON_CELL_DIRECTIONS;
-  }
-
-  if (dim === 3) {
-    if (lat === 'bcc') return BCC_DIRECTIONS;
-    if (lat === 'fcc') return FCC_DIRECTIONS;
-    if (lat === 'hcp') return HCP_DIRECTIONS;
-  }
-
+function metricDirections(dim, metric, radius) {
   const directions = [];
   function build(prefix, axis) {
     if (axis === dim) {
       if (prefix.every((v) => v === 0)) return;
-      if (type === 'von_neumann' || type === 'vonneumann' || type === 'von-neumann') {
-        const manhattan = prefix.reduce((sum, v) => sum + Math.abs(v), 0);
-        if (manhattan !== 1) return;
-      }
+      const manhattan = prefix.reduce((sum, v) => sum + Math.abs(v), 0);
+      const chebyshev = Math.max(...prefix.map((v) => Math.abs(v)));
+      const squared = prefix.reduce((sum, v) => sum + (v * v), 0);
+      if (metric === 'manhattan' && manhattan > radius) return;
+      if (metric === 'euclidean' && squared > radius * radius) return;
+      if (metric === 'chebyshev' && chebyshev > radius) return;
       directions.push(prefix.slice());
       return;
     }
-    for (const delta of [-1, 0, 1]) {
+    for (let delta = -radius; delta <= radius; delta += 1) {
       prefix.push(delta);
       build(prefix, axis + 1);
       prefix.pop();
@@ -149,6 +154,24 @@ export function generateDirections(dimension = 2, neighborhoodType = 'moore', la
   }
   build([], 0);
   return directions;
+}
+
+export function generateDirections(dimension = 2, neighborhoodType = 'moore', lattice = 'square', position = [], options = {}) {
+  const dim = normalizeDimension(dimension);
+  const type = String(neighborhoodType || (dim === 1 ? 'nearest' : 'moore')).toLowerCase();
+  const lat = normalizeLattice(lattice, dim);
+  const radius = normalizeNeighborhoodRadius(options.radius ?? options.neighborhoodRadius ?? 1);
+  const explicitMetric = Boolean(options.metric || options.neighborhoodMetric);
+  const metric = metricForNeighborhood(type, options.metric || options.neighborhoodMetric);
+
+  if (metric === 'lattice') return latticeDirections(dim, lat, position) || metricDirections(dim, 'manhattan', 1);
+
+  if (!explicitMetric && radius === 1) {
+    const oldLattice = latticeDirections(dim, lat, position);
+    if ((dim === 2 && lat !== 'square') || (dim === 3 && lat !== 'sc')) return oldLattice;
+  }
+
+  return metricDirections(dim, metric, radius);
 }
 
 function wrap(value, size) {
@@ -307,10 +330,10 @@ export class LifeTopology {
     return this.map(next);
   }
 
-  getNeighbors(position, dimension = this.dimension, neighborhoodType = 'moore', lattice = 'square') {
+  getNeighbors(position, dimension = this.dimension, neighborhoodType = 'moore', lattice = 'square', options = {}) {
     const seen = new Set();
     const neighbors = [];
-    for (const direction of generateDirections(dimension, neighborhoodType, lattice, position)) {
+    for (const direction of generateDirections(dimension, neighborhoodType, lattice, position, options)) {
       const mapped = this.step(position, direction);
       if (!mapped) continue;
       const key = positionKey(mapped);

@@ -1,4 +1,12 @@
-import { createTopology, normalizeDimension, normalizeSize, normalizeLattice, positionKey } from './topologies.js';
+import {
+  createTopology,
+  normalizeDimension,
+  normalizeSize,
+  normalizeLattice,
+  normalizeNeighborhoodRadius,
+  metricForNeighborhood,
+  positionKey
+} from './topologies.js';
 import { applyRule, createCell, emptyCell, cloneCell, isAlive } from './rules.js';
 import { getRulePreset } from './presets.js';
 import { computeObservables } from './observables.js';
@@ -25,6 +33,8 @@ export class LifeEngine {
       boundary: options.boundary ?? 'open'
     });
     this.neighborhoodType = options.neighborhoodType || (this.dimension === 1 ? 'nearest' : 'moore');
+    this.neighborhoodRadius = normalizeNeighborhoodRadius(options.neighborhoodRadius ?? options.radius ?? 1);
+    this.neighborhoodMetric = options.neighborhoodMetric || options.metric || metricForNeighborhood(this.neighborhoodType);
     this.lattice = normalizeLattice(options.lattice || (this.dimension >= 3 ? 'sc' : 'square'), this.dimension);
     this.rule = options.rule ? structuredClone(options.rule) : getRulePreset(options.preset || 'conway');
     this.rng = options.rng || Math.random;
@@ -106,6 +116,8 @@ export class LifeEngine {
       size: this.size,
       boundary: this.topology.boundary,
       neighborhoodType: this.neighborhoodType,
+      neighborhoodRadius: this.neighborhoodRadius,
+      neighborhoodMetric: this.neighborhoodMetric,
       lattice: this.lattice,
       rule: this.rule,
       rng: this.rng
@@ -150,6 +162,10 @@ export class LifeEngine {
     }
 
     if (options.neighborhoodType) this.neighborhoodType = options.neighborhoodType;
+    if (options.neighborhoodRadius || options.radius) this.neighborhoodRadius = normalizeNeighborhoodRadius(options.neighborhoodRadius ?? options.radius);
+    if (options.neighborhoodMetric || options.metric || options.neighborhoodType) {
+      this.neighborhoodMetric = options.neighborhoodMetric || options.metric || metricForNeighborhood(this.neighborhoodType);
+    }
     if (options.lattice || options.dimension) this.lattice = normalizeLattice(options.lattice || this.lattice, this.dimension);
     if (options.rule) this.rule = structuredClone(options.rule);
     if (options.preset) this.rule = getRulePreset(options.preset);
@@ -157,8 +173,28 @@ export class LifeEngine {
   }
 
   countNeighborCells(position) {
-    const neighbors = this.topology.getNeighbors(position, this.dimension, this.neighborhoodType, this.lattice);
-    return neighbors.map((neighbor) => this.getCell(neighbor));
+    return this.getNeighborPositions(position).map((neighbor) => this.getCell(neighbor));
+  }
+
+  getNeighborPositions(position) {
+    return this.topology.getNeighbors(position, this.dimension, this.neighborhoodType, this.lattice, {
+      radius: this.neighborhoodRadius,
+      metric: this.neighborhoodMetric
+    });
+  }
+
+  getNeighborhoodInfo(position = null) {
+    const center = position || this.size.map((n) => Math.floor(n / 2));
+    const neighbors = this.getNeighborPositions(center);
+    return {
+      dimension: this.dimension,
+      neighborhoodType: this.neighborhoodType,
+      neighborhoodRadius: this.neighborhoodRadius,
+      neighborhoodMetric: this.neighborhoodMetric,
+      lattice: this.lattice,
+      count: neighbors.length,
+      neighbors
+    };
   }
 
   step() {
@@ -238,6 +274,8 @@ export class LifeEngine {
       size: this.size.slice(),
       boundary: this.topology.boundary,
       neighborhoodType: this.neighborhoodType,
+      neighborhoodRadius: this.neighborhoodRadius,
+      neighborhoodMetric: this.neighborhoodMetric,
       lattice: this.lattice,
       rule: structuredClone(this.rule),
       generation: this.generation,
@@ -250,6 +288,8 @@ export class LifeEngine {
     this.size = normalizeSize(state.size, this.dimension);
     this.topology = createTopology({ size: this.size, dimension: this.dimension, boundary: state.boundary });
     this.neighborhoodType = state.neighborhoodType || 'moore';
+    this.neighborhoodRadius = normalizeNeighborhoodRadius(state.neighborhoodRadius ?? state.radius ?? 1);
+    this.neighborhoodMetric = state.neighborhoodMetric || state.metric || metricForNeighborhood(this.neighborhoodType);
     this.lattice = normalizeLattice(state.lattice || (this.dimension >= 3 ? 'sc' : 'square'), this.dimension);
     this.rule = structuredClone(state.rule || getRulePreset('conway'));
     this.generation = Number(state.generation || 0);

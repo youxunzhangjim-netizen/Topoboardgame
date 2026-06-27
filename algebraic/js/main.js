@@ -2024,6 +2024,24 @@ function renderLabGuideBook(rulesMode = activeRulesMode) {
         grid.append(card);
     }
     guide.append(grid);
+
+    const actions = document.createElement('div');
+    actions.className = 'lab-guide-actions';
+    const mode = selectedMode();
+    const languageQuery = `lang=${encodeURIComponent(language)}`;
+    const modelQuery = `model=${encodeURIComponent(mode)}`;
+    const builderLink = document.createElement('a');
+    builderLink.href = `../labs/experiments/?${modelQuery}&${languageQuery}`;
+    builderLink.textContent = language === 'zh' ? '打開實驗建構器' : 'Open Experiment Builder';
+    const compareLink = document.createElement('a');
+    compareLink.href = `../labs/experiments/?mode=compare-topologies&${modelQuery}&${languageQuery}`;
+    compareLink.textContent = language === 'zh' ? '比較拓撲' : 'Compare Topologies';
+    const note = document.createElement('p');
+    note.textContent = language === 'zh'
+        ? '用相同種子在多個拓撲上重跑此模型，並匯出可重現資料集。'
+        : 'Rerun this model across topologies with stored seeds and export reproducible datasets.';
+    actions.append(builderLink, compareLink, note);
+    guide.append(actions);
 }
 
 function stableStringify(value) {
