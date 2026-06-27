@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publication & Dataset Export - Topoboard Labs</title>
+    <link rel="stylesheet" href="../experiments/styles.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-publication-mode="research">
+    <main class="experiment-shell publication-shell">
+        <header class="experiment-topbar publication-topbar">
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
+                <a class="nav-link" href="../phase-diagrams/" data-i18n="phaseDiagramGenerator">Phase Diagram Generator</a>
+                <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
+                <a class="nav-link" href="../validation/" data-i18n="validationSuite">Validation & Reproducibility</a>
+            </nav>
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Publication & Dataset Export</h1>
+                <p data-i18n="subtitle">Package reproducible Topoboard Labs experiments into shareable research artifacts.</p>
+            </div>
+            <label class="language-select">
+                <span data-i18n="language">Language</span>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </header>
+
+        <section class="mode-strip publication-mode-strip" aria-label="Publication export mode">
+            <button id="shareModeButton" type="button" aria-pressed="false" data-i18n="shareMode">Share My Experiment</button>
+            <button id="researchModeButton" type="button" aria-pressed="true" data-i18n="researchMode">Research Bundle</button>
+        </section>
+
+        <section class="publication-purpose-panel">
+            <div>
+                <p class="eyebrow" data-i18n="purposeEyebrow">Export workflow</p>
+                <h2 data-i18n="purposeTitle">Structured artifacts, cautious labels, reproducible metadata.</h2>
+                <p data-i18n="purposeText">Generate configs, results, data tables, documentation, provenance, checksums, citation metadata, and review warnings without uploading anything.</p>
+            </div>
+            <div class="run-actions">
+                <button id="generateBundleButton" type="button" data-i18n="generateBundle">Generate Bundle</button>
+                <button id="downloadBundleButton" type="button" data-i18n="downloadBundle">Download Bundle JSON</button>
+            </div>
+        </section>
+
+        <section class="phase-compact-summary publication-summary-strip" aria-live="polite">
+            <div><dt data-i18n="readiness">Readiness</dt><dd id="summaryReadiness">exploratory</dd></div>
+            <div><dt data-i18n="sourceType">Source type</dt><dd id="summarySourceType">none</dd></div>
+            <div><dt data-i18n="fileCount">Files</dt><dd id="summaryFileCount">0</dd></div>
+            <div><dt data-i18n="warningCount">Warnings</dt><dd id="summaryWarningCount">0</dd></div>
+        </section>
+
+        <section class="builder-grid publication-load-grid">
+            <section class="panel" aria-labelledby="sourceTitle">
+                <div class="panel-heading">
+                    <span>A</span>
+                    <h2 id="sourceTitle" data-i18n="sourceSelection">Source Selection Panel</h2>
+                </div>
+                <div id="storedSourceList" class="publication-card-list"></div>
+                <div class="publication-source-tools">
+                    <label>
+                        <span data-i18n="uploadJson">Upload JSON</span>
+                        <input id="jsonFileInput" type="file" accept="application/json,.json">
+                    </label>
+                    <label>
+                        <span data-i18n="pasteJson">Paste JSON</span>
+                        <textarea id="pasteJsonInput" placeholder="{...}"></textarea>
+                    </label>
+                    <label>
+                        <span data-i18n="shareLink">Shareable experiment link</span>
+                        <input id="linkInput" placeholder="https://.../labs/publication/?data=...">
+                    </label>
+                    <div class="run-actions">
+                        <button id="loadPastedButton" type="button" data-i18n="loadPasted">Load pasted / link</button>
+                        <button id="loadSampleButton" type="button" data-i18n="loadSample">Load sample Ising config</button>
+                    </div>
+                </div>
+                <div id="sourceMetadata" class="metadata-grid"></div>
+            </section>
+
+            <section class="panel readiness-panel" aria-labelledby="readinessTitle">
+                <div class="panel-heading">
+                    <span>B</span>
+                    <h2 id="readinessTitle" data-i18n="readinessPanel">Publication Readiness Panel</h2>
+                </div>
+                <div id="readinessCards" class="publication-readiness-grid"></div>
+                <div id="publicationWarnings" class="warning-list"></div>
+            </section>
+        </section>
+
+        <section class="builder-grid publication-work-grid">
+            <section class="panel" aria-labelledby="artifactTitle">
+                <div class="panel-heading">
+                    <span>C</span>
+                    <h2 id="artifactTitle" data-i18n="artifactSelection">Artifact Selection Panel</h2>
+                </div>
+                <label>
+                    <span data-i18n="exportPurpose">Export purpose</span>
+                    <select id="purposeSelect"></select>
+                </label>
+                <div id="artifactGroups" class="artifact-groups"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="figureTitle">
+                <div class="panel-heading">
+                    <span>D</span>
+                    <h2 id="figureTitle" data-i18n="figureBuilder">Figure Builder Panel</h2>
+                </div>
+                <div class="control-fields two-col">
+                    <label><span data-i18n="figureType">Figure type</span><select id="figureTypeSelect"></select></label>
+                    <label><span data-i18n="figureFormat">Format</span><select id="figureFormatSelect"><option value="svg">SVG + metadata</option><option value="metadata">metadata only</option></select></label>
+                </div>
+                <label><span data-i18n="figureTitleLabel">Title</span><input id="figureTitleInput" value="Observable comparison"></label>
+                <label><span data-i18n="figureCaption">Caption</span><textarea id="figureCaptionInput"></textarea></label>
+                <div id="figurePreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="tableTitle">
+                <div class="panel-heading">
+                    <span>E</span>
+                    <h2 id="tableTitle" data-i18n="tableBuilder">Table Builder Panel</h2>
+                </div>
+                <div class="control-fields two-col">
+                    <label><span data-i18n="tableType">Table type</span><select id="tableTypeSelect"></select></label>
+                    <label><span data-i18n="tableFormat">Format</span><select id="tableFormatSelect"><option value="csv">CSV</option><option value="markdown">Markdown</option><option value="json">JSON</option></select></label>
+                </div>
+                <label><span data-i18n="tableTitleLabel">Title</span><input id="tableTitleInput" value="Experiment configuration table"></label>
+                <div id="tablePreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="docsTitle">
+                <div class="panel-heading">
+                    <span>F</span>
+                    <h2 id="docsTitle" data-i18n="documentationPanel">Documentation Panel</h2>
+                </div>
+                <div id="documentationPreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="citationTitle">
+                <div class="panel-heading">
+                    <span>G</span>
+                    <h2 id="citationTitle" data-i18n="citationPanel">Citation Panel</h2>
+                </div>
+                <label><span data-i18n="citationDatasetTitle">Dataset title</span><input id="citationTitleInput"></label>
+                <label><span data-i18n="creators">Creators</span><textarea id="creatorsInput" placeholder="One creator per line. Do not leave placeholders in a real release."></textarea></label>
+                <div class="control-fields two-col">
+                    <label><span data-i18n="projectUrl">Project URL</span><input id="projectUrlInput" value="https://youxunzhangjim-netizen.github.io/Topoboardgame/"></label>
+                    <label><span data-i18n="repositoryUrl">Repository URL</span><input id="repositoryUrlInput" value="https://github.com/youxunzhangjim-netizen/Topoboardgame"></label>
+                    <label><span data-i18n="license">License</span><select id="licenseSelect"></select></label>
+                    <label><span data-i18n="keywords">Keywords</span><input id="keywordsInput" value="Topoboard Labs, topology, discrete dynamics"></label>
+                </div>
+                <label id="customLicenseLabel" hidden><span data-i18n="customLicense">Custom license text</span><textarea id="customLicenseInput"></textarea></label>
+                <div id="citationPreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="provenanceTitle">
+                <div class="panel-heading">
+                    <span>H</span>
+                    <h2 id="provenanceTitle" data-i18n="provenancePanel">Provenance Panel</h2>
+                </div>
+                <div id="provenancePreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="reviewTitle">
+                <div class="panel-heading">
+                    <span>I</span>
+                    <h2 id="reviewTitle" data-i18n="finalReview">Final Review Panel</h2>
+                </div>
+                <div id="manifestPreview" class="publication-preview-card"></div>
+            </section>
+
+            <section class="panel export-panel" aria-labelledby="exportTitle">
+                <div class="panel-heading">
+                    <span>J</span>
+                    <h2 id="exportTitle" data-i18n="exportPanel">Export Panel</h2>
+                </div>
+                <p data-i18n="exportHelp">This browser build downloads a structured JSON bundle with folder paths and checksums. Nothing is uploaded.</p>
+                <div class="run-actions">
+                    <button id="downloadManifestButton" type="button" data-i18n="downloadManifest">Download Manifest</button>
+                    <button id="downloadReadmeButton" type="button" data-i18n="downloadReadme">Download README</button>
+                    <button id="downloadCsvButton" type="button" data-i18n="downloadCsv">Download Observable CSV</button>
+                    <button id="copyCitationButton" type="button" data-i18n="copyCitation">Copy Citation</button>
+                </div>
+                <textarea id="bundleText" readonly spellcheck="false"></textarea>
+            </section>
+        </section>
+    </main>
+    <script type="module" src="./Publication.js"></script>
+</body>
+</html>

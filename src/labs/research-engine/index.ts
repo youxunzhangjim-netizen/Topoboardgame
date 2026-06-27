@@ -136,3 +136,27 @@ export type {
   LabValidationReport,
   LabValidationReportStatus
 } from './reproducibility';
+
+export type {
+  LabCitationCreator,
+  LabCitationMetadata,
+  LabDataDictionary,
+  LabDataDictionaryField,
+  LabDataDictionaryFile,
+  LabFigureSpec,
+  LabLicenseMetadata,
+  LabMethodsSummary,
+  LabProvenanceRecord,
+  LabProvenanceTransformation,
+  LabPublicationArtifactSelection,
+  LabPublicationExportFile,
+  LabPublicationExportManifest,
+  LabPublicationExportPurpose,
+  LabPublicationPackageConfig,
+  LabPublicationPackageResult,
+  LabPublicationReadinessLevel,
+  LabPublicationSourceSummary,
+  LabPublicationWarning,
+  LabPublicationWarningSeverity,
+  LabTableSpec
+} from './publication';

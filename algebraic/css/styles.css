@@ -2352,3 +2352,269 @@ body[data-lab-ui-mode="simple"] .lab-left-panels {
 body[data-lab-ui-mode="simple"] .lab-export-actions {
     grid-template-columns: 1fr;
 }
+
+/* Final responsive Lab shell pass: keep headings and mode buttons at the top, avoid
+   narrow desktop controls, and give Simple mode a player-first layout. */
+.top-bar {
+    padding: 12px;
+    border: 1px solid rgba(218, 232, 224, 0.13);
+    border-radius: 8px;
+    background: rgba(11, 16, 24, 0.88);
+}
+
+.top-bar h1 {
+    max-width: 980px;
+    font-size: clamp(26px, 3.6vw, 48px);
+    line-height: 1.06;
+}
+
+.simple-research-mode-toggle {
+    align-self: start;
+    justify-self: end;
+    min-width: min(100%, 220px);
+}
+
+.lab-export-actions {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    justify-content: stretch;
+}
+
+.lab-export-actions button {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+body[data-lab-ui-mode="simple"] .lab-export-panel {
+    display: none !important;
+}
+
+@media (min-width: 1180px) {
+    .app-shell {
+        width: min(1720px, 100%);
+        grid-template-columns: 1fr;
+    }
+
+    .top-bar,
+    .labs-home,
+    .lab-model-header,
+    .lab-workspace,
+    .lab-history-panels,
+    .lab-export-panel {
+        grid-column: 1;
+    }
+
+    .lab-workspace {
+        display: grid;
+        grid-template-columns: minmax(720px, 1fr) minmax(420px, 520px);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .lab-workspace > .game-layout {
+        grid-column: 1;
+        grid-row: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    .lab-workspace > .control-panel {
+        grid-column: 2;
+        grid-row: 1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: none;
+        overflow: visible;
+        align-self: start;
+    }
+
+    .lab-workspace > .layer-panel,
+    .lab-workspace > .lab-left-panels,
+    .lab-workspace > .lab-history-panels,
+    .lab-workspace > .lab-export-panel {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+
+    .lab-workspace > .game-layout > .side-panel {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .section-game,
+    .section-board,
+    .section-actions,
+    .section-dynamics,
+    .section-algebra,
+    .section-online {
+        grid-column: 1 / -1;
+        border-right: 0;
+        padding-right: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(218, 232, 224, 0.1);
+    }
+
+    .section-actions .button-grid,
+    .section-board .control-fields.two-col,
+    .section-game .control-fields.two-col,
+    .section-game .control-fields.three-col,
+    .section-dynamics .control-fields,
+    .section-online .control-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .section-algebra > .algebra-mode-fields {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace {
+        grid-template-columns: minmax(760px, 1fr) minmax(360px, 460px);
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .control-panel {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout {
+        grid-column: 1;
+        grid-row: 1;
+    }
+}
+
+@media (max-width: 1179px) {
+    .top-bar {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: start;
+    }
+
+    .lab-workspace > .game-layout > .board-wrap {
+        order: 1;
+    }
+
+    .lab-workspace > .control-panel {
+        order: 2;
+    }
+}
+
+@media (max-width: 760px) {
+    .app-shell {
+        padding: 10px;
+        gap: 12px;
+    }
+
+    .top-bar {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .home-link,
+    .simple-research-mode-toggle {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .top-bar h1 {
+        font-size: 28px;
+        line-height: 1.1;
+    }
+
+    .lab-model-header,
+    .labs-home-header {
+        grid-template-columns: 1fr;
+    }
+
+    .control-panel,
+    .layer-panel {
+        padding: 10px;
+    }
+
+    .control-fields.two-col,
+    .control-fields.three-col,
+    .section-algebra > .algebra-mode-fields,
+    .button-grid,
+    .section-actions .button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .board-wrap {
+        min-height: auto;
+        padding: 10px;
+    }
+}
+
+/* Last-resort ordering and overflow guard for older rules above. */
+.app-shell > .top-bar {
+    order: -20 !important;
+    display: grid !important;
+}
+
+.simple-research-mode-toggle {
+    min-width: 0 !important;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.lab-workspace,
+.lab-workspace > .game-layout,
+.board-wrap,
+.control-panel {
+    min-width: 0;
+}
+
+@media (min-width: 1180px) {
+    body[data-lab-ui-mode="simple"] .lab-workspace {
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 460px) !important;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .control-panel {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .board-wrap,
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .side-panel {
+        grid-column: 1 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .board-wrap {
+        grid-row: 1 !important;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .side-panel {
+        grid-row: 2 !important;
+    }
+}
+
+@media (max-width: 1179px) {
+    body[data-lab-ui-mode="simple"] .lab-workspace {
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout {
+        display: contents !important;
+    }
+
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .board-wrap,
+    body[data-lab-ui-mode="simple"] .lab-workspace > .control-panel,
+    body[data-lab-ui-mode="simple"] .lab-workspace > .game-layout > .side-panel,
+    body[data-lab-ui-mode="simple"] .lab-workspace > .lab-left-panels,
+    body[data-lab-ui-mode="simple"] .lab-workspace > .layer-panel {
+        grid-column: 1 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+}

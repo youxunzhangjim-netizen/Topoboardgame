@@ -37,6 +37,15 @@ import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
 const roomsPath = 'rooms';
 const usersPath = 'users';
 const authLogPrefix = '[Topoboardgame Firebase/Auth]';
+const requiredFirebaseEnvNames = [
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID',
+    'VITE_FIREBASE_STORAGE_BUCKET',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    'VITE_FIREBASE_APP_ID'
+];
+let missingFirebaseConfigLogged = false;
 
 function authLog(step, payload = undefined) {
     try {
@@ -364,8 +373,18 @@ function installAccountObserver() {
 async function ensureFirebaseCore() {
     authLog('ensureFirebaseCore: entered', { hasConfig: hasFirebaseConfig(), hasAuth: Boolean(auth), hasDb: Boolean(db) });
     if (!hasFirebaseConfig()) {
-        authWarn('ensureFirebaseCore: missing firebaseConfig.js values');
-        return { ok: false, configured: false, error: 'Online service is not configured in this build.' };
+        if (!missingFirebaseConfigLogged) {
+            missingFirebaseConfigLogged = true;
+            authLog('Firebase config is not present in this local preview; online login and rooms stay disabled until VITE_FIREBASE_* values are provided.', {
+                required: requiredFirebaseEnvNames,
+                optional: ['VITE_FIREBASE_MEASUREMENT_ID']
+            });
+        }
+        return {
+            ok: false,
+            configured: false,
+            error: `Online service is not configured in this build. Set ${requiredFirebaseEnvNames.join(', ')} in Vercel or .env.local.`
+        };
     }
     const app = getFirebaseAppInstance();
     if (!auth) {

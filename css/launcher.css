@@ -1881,55 +1881,43 @@ h1 {
     margin-bottom: 8px;
 }
 
-/* Balanced Strategy & Systems lab cards, especially Spin & Phase Lab controls. */
+/* Current Topoboard Labs tool entries. */
 #strategy-systems-labs .lab-card-grid {
     align-items: stretch;
 }
-#strategy-systems-labs .lab-card {
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    align-content: start;
-    gap: 12px;
+#strategy-systems-labs .current-lab-card {
+    min-height: 168px;
+    align-items: stretch;
+    color: inherit;
+    text-decoration: none;
 }
-#strategy-systems-labs .lab-card-head {
-    align-items: start;
-    min-height: 0;
-}
-#strategy-systems-labs .lab-presets {
+#strategy-systems-labs .current-lab-card .extra-mode-copy {
     display: grid;
-    grid-template-columns: 1fr;
     gap: 10px;
-    align-content: start;
 }
-#strategy-systems-labs .lab-presets a {
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
+#strategy-systems-labs .current-lab-card strong {
+    color: #f8fbff;
+    font-size: clamp(24px, 2.6vw, 36px);
+    line-height: 1.08;
 }
-#strategy-systems-labs .lab-advanced {
-    margin: 0 0 2px;
-    align-self: start;
+#strategy-systems-labs .current-lab-card small {
+    color: #b8c6d8;
+    font-size: 0.96rem;
+    line-height: 1.45;
 }
 
 .lab-card.is-collapsible:not([data-expanded="true"]) .lab-facts,
 .lab-card.is-collapsible:not([data-expanded="true"]) .lab-advanced,
-.lab-card.is-collapsible:not([data-expanded="true"]) .lab-presets,
-#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-facts,
-#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-advanced,
-#strategy-systems-labs .lab-card.is-collapsible:not([data-expanded="true"]) .lab-presets {
+.lab-card.is-collapsible:not([data-expanded="true"]) .lab-presets {
     display: none;
 }
 
 .lab-card.is-collapsible[data-expanded="true"] .lab-advanced,
-.lab-card.is-collapsible[data-expanded="true"] .lab-presets,
-#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"] .lab-advanced,
-#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"] .lab-presets {
+.lab-card.is-collapsible[data-expanded="true"] .lab-presets {
     display: grid;
 }
 
-.lab-card.is-collapsible[data-expanded="true"]:has(.lab-advanced[open]) .lab-facts,
-#strategy-systems-labs .lab-card.is-collapsible[data-expanded="true"]:has(.lab-advanced[open]) .lab-facts {
+.lab-card.is-collapsible[data-expanded="true"]:has(.lab-advanced[open]) .lab-facts {
     display: grid;
 }
 .jump-mode-stack{display:grid;gap:.55rem;margin-top:.55rem}.jump-option-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.jump-option-card em{display:block;margin-top:.35rem;color:#8fc7ff;font-size:.76rem;font-style:normal}.jump-card-actions{display:flex;gap:.4rem;align-items:center}.jump-card-actions .lab-preset{padding:.48rem .7rem;min-width:auto}.jump-lab-card .extra-mode-copy small{display:block;color:#b8c6d8;margin-top:.25rem}@media(max-width:760px){.jump-option-card{grid-template-columns:1fr}.jump-card-actions{margin-top:.5rem}}

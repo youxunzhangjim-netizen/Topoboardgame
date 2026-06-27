@@ -34,6 +34,7 @@ const PHASE_I18N = {
     en: {
         experimentBuilder: 'Experiment Builder',
         validationSuite: 'Validation & Reproducibility',
+        publicationExport: 'Publication & Dataset Export',
         pageTitle: 'Phase Diagram Generator',
         subtitle: 'Generate reproducible regime maps from batch experiments on reusable topologies.',
         modeResearch: 'Research Scan',
@@ -124,6 +125,7 @@ const PHASE_I18N = {
     zh: {
         experimentBuilder: '實驗建構器',
         validationSuite: '驗證與可重現性',
+        publicationExport: '出版與資料集匯出',
         pageTitle: '相圖產生器',
         subtitle: '從可重現批次實驗產生 regime map，並保留可重用拓撲資料。',
         modeResearch: '研究掃描',

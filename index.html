@@ -190,6 +190,12 @@
                                 <small data-i18n="audience.researchers.validationDesc">Check replay, hashes, benchmarks, topology invariants, and export bundles.</small>
                             </span>
                         </a>
+                        <a class="game-option" href="./labs/publication/?mode=guided">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.researchers.publication">Publication & Dataset Export</strong>
+                                <small data-i18n="audience.researchers.publicationDesc">Package validated experiments into README, data tables, checksums, provenance, and citation metadata.</small>
+                            </span>
+                        </a>
                     </section>
                 </div>
             </section>
@@ -341,137 +347,39 @@
                 <section class="algebraic-mode-panel launcher-mode-panel" aria-labelledby="physicsAlgebraLabsTitle">
                     <div class="algebraic-mode-heading">
                         <strong id="physicsAlgebraLabsTitle" data-i18n="labs.title">Strategy &amp; Systems Labs</strong>
-                        <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
                         <small data-i18n="labs.desc">Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.</small>
                     </div>
                     <div class="lab-card-grid">
-                        <article class="extra-mode-card lab-card">
-                            <div class="lab-card-head">
-                                <span class="extra-mode-copy">
-                                    <strong data-i18n="labs.cards.spinPhase.title">Spin &amp; Phase Lab</strong>
-                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-group="game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go" aria-label="Online activity"></span>
-                            </div>
-                            <dl class="lab-facts">
-                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.spinPhase.blackWhite">Spin up/down or phase A/B.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.spinPhase.objects">Local spins, domains, droplets, and interfaces.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.spinPhase.goal">Order, coarsen, stabilize, or compare topology-driven domain walls.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.spinPhase.observables">Energy, magnetization, wall length, domain count, area fractions.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.spinPhase.recommendedUsers">Players learning phase competition and researchers testing topology effects.</dd></div>
-                            </dl>
-                            <details class="lab-advanced">
-                                <summary data-i18n="labs.info">Info</summary>
-                                <p data-i18n="labs.cards.spinPhase.info">Start here for phase-ordering play: Ising spins, two-phase growth, and cluster fields share local graph rules so topology changes which domains survive.</p>
-                            </details>
-                            <div class="lab-presets" aria-label="Spin and phase presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=domain_wall_seed" data-i18n="labs.presets.domainWall">Domain Wall</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=ising_domain_game&physicalInitialState=thermal_sample" data-i18n="labs.presets.thermalSpin">Thermal Spin</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=clifford_reversi&physicalProblem=ising_domain_wall_topology" data-i18n="labs.presets.topologyCompare">Topology Compare</a>
-                            </div>
-                        </article>
-
-                        <article class="extra-mode-card lab-card">
-                            <div class="lab-card-head">
-                                <span class="extra-mode-copy">
-                                    <strong data-i18n="labs.cards.quantumInfo.title">Quantum Information Lab</strong>
-                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-group="game-physical_clifford_reversi game-clifford_reversi game-physical_clifford_go game-physical_clifford_jump" aria-label="Online activity"></span>
-                            </div>
-                            <dl class="lab-facts">
-                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.quantumInfo.blackWhite">Positive/negative stabilizer or Pauli-frame signs.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.quantumInfo.objects">Pauli labels, ancilla sites, stabilizer checks, and logical sectors.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.quantumInfo.goal">Recover errors or benchmark Clifford/Pauli dynamics.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.quantumInfo.observables">Syndrome weight, logical sector, measurement errors, recovery status.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.quantumInfo.recommendedUsers">Quantum information learners, QEC toy-model users, and stabilizer researchers.</dd></div>
-                            </dl>
-                            <details class="lab-advanced">
-                                <summary data-i18n="labs.info">Info</summary>
-                                <p data-i18n="labs.cards.quantumInfo.info">Use this lab for Pauli-frame and stabilizer recovery: make local corrections, measure syndromes, and check whether the logical sector stays correct.</p>
-                            </details>
-                            <div class="lab-presets" aria-label="Quantum information presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery" data-i18n="labs.presets.pauliRecovery">Pauli Correction</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_clifford_reversi&physicalProblem=stabilizer_pauli_recovery&measurement=local_pauli" data-i18n="labs.presets.stabilizerCheck">Stabilizer Check</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi&algebraSet=clifford" data-i18n="labs.presets.cliffordToy">Clifford Toy</a>
-                            </div>
-                        </article>
-
-                        <article class="extra-mode-card lab-card">
-                            <div class="lab-card-head">
-                                <span class="extra-mode-copy">
-                                    <strong data-i18n="labs.cards.anyonMemory.title">Anyon &amp; Topological Memory Lab</strong>
-                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-group="game-anyon_jump game-physical_anyon_jump game-physical_anyon_reversi game-z2_gauge_loop_game game-physical_jump_particles" aria-label="Online activity"></span>
-                            </div>
-                            <dl class="lab-facts">
-                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.anyonMemory.blackWhite">Particle owners, charge signs, or competing anyon sectors.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.anyonMemory.objects">Anyons, worldlines, fusion channels, gauge loops, and memory strings.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.anyonMemory.goal">Create, braid, fuse, unbraid, or preserve topological memory.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.anyonMemory.observables">Fusion result, braid parity, charge, Wilson sector, memory alive.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.anyonMemory.recommendedUsers">Players exploring particle strategy and researchers testing topological memory.</dd></div>
-                            </dl>
-                            <details class="lab-advanced">
-                                <summary data-i18n="labs.info">Info</summary>
-                                <p data-i18n="labs.cards.anyonMemory.info">Use this lab for anyons and topological memory: create particles, braid or unbraid worldlines, fuse charges, and check whether memory remains in the vacuum or target sector.</p>
-                            </details>
-                            <div class="lab-presets" aria-label="Anyon and topological memory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_anyon_jump" data-i18n="labs.presets.toricAnyons">Toric Anyons</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=algebraic&mode=anyon_jump&physicalProblem=toric_code_memory_unbraid" data-i18n="labs.presets.braidMemory">Braid Memory</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=anyon_jump&excitationEnergy=1" data-i18n="labs.presets.energyExcite">Energy Excite</a>
-                            </div>
-                        </article>
-
-                        <article class="extra-mode-card lab-card">
-                            <div class="lab-card-head">
-                                <span class="extra-mode-copy">
-                                    <strong data-i18n="labs.cards.cftField.title">CFT / Field Theory Lab</strong>
-                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-group="game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump game-virasoro_jump" aria-label="Online activity"></span>
-                            </div>
-                            <dl class="lab-facts">
-                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.cftField.blackWhite">Source sign, domain sign, or player control of insertions.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.cftField.objects">Primary fields, OPE intervals, conformal blocks, and Virasoro actions.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.cftField.goal">Measure correlations, select OPE channels, and test anomaly/stress response.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.cftField.observables">Primary counts, cross-ratio, block weights, entropy, anomaly events.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.cftField.recommendedUsers">CFT learners, mathematical-physics players, and field-theory researchers.</dd></div>
-                            </dl>
-                            <details class="lab-advanced">
-                                <summary data-i18n="labs.info">Info</summary>
-                                <p data-i18n="labs.cards.cftField.info">Use this lab for discrete CFT graph models: insert primary fields, update OPE channels, and measure correlations, conformal blocks, entropy, and anomaly response.</p>
-                            </details>
-                            <div class="lab-presets" aria-label="CFT and field theory presets">
-                                <a class="lab-preset beginner" href="./algebraic/?layer=physical&mode=physical_virasoro_go&physicalProblem=cft_conformal_block_observables" data-i18n="labs.presets.fourSigma">Four-Sigma</a>
-                                <a class="lab-preset intermediate" href="./algebraic/?layer=physical&mode=physical_virasoro_go" data-i18n="labs.presets.correlator">Correlator</a>
-                                <a class="lab-preset advanced" href="./algebraic/?layer=physical&mode=physical_virasoro_reversi&virasoroN=2" data-i18n="labs.presets.virasoroToy">Virasoro Toy</a>
-                            </div>
-                        </article>
-
-                        <article class="extra-mode-card lab-card advanced-sandbox-card">
-                            <div class="lab-card-head">
-                                <span class="extra-mode-copy">
-                                    <strong data-i18n="labs.cards.sandbox.title">Advanced Algebra Sandbox</strong>
-                                    <small class="developing-label" data-i18n="labs.developing">(Developing)</small>
-                                </span>
-                                <span class="game-count-badge" data-popularity-group="game-clifford_reversi game-clifford_go game-clifford_jump game-anyon_reversi game-anyon_jump game-virasoro_jump game-ising_domain_game game-two_phase_competition_game game-physical_cluster_go game-physical_jump_particles game-spin_ice_vertex_game game-z2_gauge_loop_game game-physical_anyon_jump game-physical_anyon_reversi game-physical_clifford_reversi game-physical_clifford_go game-physical_clifford_jump game-physical_virasoro_go game-physical_virasoro_reversi game-physical_virasoro_jump" aria-label="Online activity"></span>
-                            </div>
-                            <dl class="lab-facts">
-                                <div><dt data-i18n="labs.factLabels.blackWhite">Black / white</dt><dd data-i18n="labs.cards.sandbox.blackWhite">Defined by the selected engine and physical problem.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.objects">Objects</dt><dd data-i18n="labs.cards.sandbox.objects">Stones, particles, Pauli frames, primary fields, gauge edges, spins, or domains.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.goal">Goal</dt><dd data-i18n="labs.cards.sandbox.goal">Expose the full research workbench without hiding internal controls.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.observables">Observables</dt><dd data-i18n="labs.cards.sandbox.observables">Every engine export, history trace, physical answer, and raw diagnostic.</dd></div>
-                                <div><dt data-i18n="labs.factLabels.recommendedUsers">Recommended users</dt><dd data-i18n="labs.cards.sandbox.recommendedUsers">Advanced users who want direct access to the full engine and option set.</dd></div>
-                            </dl>
-                            <details class="lab-advanced">
-                                <summary data-i18n="labs.info">Info</summary>
-                                <p data-i18n="labs.cards.sandbox.info">Open the full engine controls and raw exports for advanced comparisons between modes, topologies, lattices, and physical problems.</p>
-                            </details>
-                            <div class="lab-presets single-preset" aria-label="Advanced algebra sandbox">
-                                <a class="lab-preset advanced" href="./algebraic/?layer=algebraic&mode=clifford_reversi" data-i18n="labs.presets.openSandbox">Open Sandbox</a>
-                            </div>
-                        </article>
+                        <a class="extra-mode-card current-lab-card" href="./labs/experiments/">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="labs.current.experiments.title">Experiment Builder</strong>
+                                <small data-i18n="labs.current.experiments.desc">Configure models, topology, seeds, observables, batch runs, and reproducible exports.</small>
+                            </span>
+                        </a>
+                        <a class="extra-mode-card current-lab-card" href="./labs/phase-diagrams/">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="labs.current.phase.title">Phase / Regime Scan</strong>
+                                <small data-i18n="labs.current.phase.desc">Generate cautious finite-size regime maps from existing Labs models and observables.</small>
+                            </span>
+                        </a>
+                        <a class="extra-mode-card current-lab-card" href="./labs/topology-compare/">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="labs.current.topology.title">Topology Comparison</strong>
+                                <small data-i18n="labs.current.topology.desc">Run the same local rule across different spaces and compare topology-sensitive observables.</small>
+                            </span>
+                        </a>
+                        <a class="extra-mode-card current-lab-card" href="./labs/validation/">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="labs.current.validation.title">Validation & Reproducibility</strong>
+                                <small data-i18n="labs.current.validation.desc">Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.</small>
+                            </span>
+                        </a>
+                        <a class="extra-mode-card current-lab-card" href="./labs/publication/">
+                            <span class="extra-mode-copy">
+                                <strong data-i18n="labs.current.publication.title">Publication & Dataset Export</strong>
+                                <small data-i18n="labs.current.publication.desc">Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.</small>
+                            </span>
+                        </a>
                     </div>
                 </section>
             </div>
@@ -570,7 +478,9 @@
                             experiments: 'Experiment Builder',
                             experimentsDesc: 'Build seed-stored batches, exports, and topology comparisons for research.',
                             validation: 'Validation & Reproducibility',
-                            validationDesc: 'Check replay, hashes, benchmarks, topology invariants, and export bundles.'
+                            validationDesc: 'Check replay, hashes, benchmarks, topology invariants, and export bundles.',
+                            publication: 'Publication & Dataset Export',
+                            publicationDesc: 'Package validated experiments into README, data tables, checksums, provenance, and citation metadata.'
                         }
                     },
                     dimension: {
@@ -629,11 +539,33 @@
                         play: 'Open Space-Time Games'
                     },
                     labs: {
-                        title: 'Strategy & Systems Labs',
+                        title: 'Topoboard Labs Research Tools',
                         developing: '(Developing)',
-                        desc: 'Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.',
-                        choose: 'Strategy and systems labs',
+                        desc: 'Choose a reproducible research workflow for discrete topological dynamics. Build experiments, compare topology, validate reproducibility, and package shareable datasets.',
+                        choose: 'Topoboard Labs research tools',
                         info: 'Info',
+                        current: {
+                            experiments: {
+                                title: 'Experiment Builder',
+                                desc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.'
+                            },
+                            phase: {
+                                title: 'Phase / Regime Scan',
+                                desc: 'Generate cautious finite-size regime maps from existing Labs models and observables.'
+                            },
+                            topology: {
+                                title: 'Topology Comparison',
+                                desc: 'Run the same local rule across different spaces and compare topology-sensitive observables.'
+                            },
+                            validation: {
+                                title: 'Validation & Reproducibility',
+                                desc: 'Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.'
+                            },
+                            publication: {
+                                title: 'Publication & Dataset Export',
+                                desc: 'Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.'
+                            }
+                        },
                         factLabels: {
                             blackWhite: 'Black / white',
                             objects: 'Objects',
@@ -710,7 +642,7 @@
                         main: 'Main sections',
                         boardWorlds: 'Board Worlds',
                         lifeWorlds: 'Life & Evolution Worlds',
-                        systemsLabs: 'Strategy & Systems Labs'
+                        systemsLabs: 'Topoboard Labs'
                     },
                     life: {
                         title: 'Life & Evolution Worlds',
@@ -788,7 +720,9 @@
                             experiments: '實驗建構器',
                             experimentsDesc: '建立儲存種子的批次、匯出資料與研究用拓撲比較。',
                             validation: '驗證與可重現性',
-                            validationDesc: '檢查重播、雜湊、基準測試、拓撲不變量與匯出 bundle。'
+                            validationDesc: '檢查重播、雜湊、基準測試、拓撲不變量與匯出 bundle。',
+                            publication: '出版與資料集匯出',
+                            publicationDesc: '把已驗證實驗整理成 README、資料表、校驗碼、來源紀錄與引用資料。'
                         }
                     },
                     dimension: {
@@ -847,11 +781,33 @@
                         play: '開啟時空遊戲'
                     },
                     labs: {
-                        title: '策略與系統實驗室',
+                        title: 'Topoboard Labs 研究工具',
                         developing: '（開發中）',
-                        desc: '選擇一個可玩的實驗世界，探索新規則、隱藏結構與策略模式。打開資訊了解這個系統代表什麼、它如何改變遊戲，以及你能透過遊玩觀察什麼。',
-                        choose: '策略與系統實驗室',
+                        desc: '選擇離散拓撲動力學的可重現研究流程：建構實驗、比較拓撲、驗證可重現性，並封裝可分享資料集。',
+                        choose: 'Topoboard Labs 研究工具',
                         info: '資訊',
+                        current: {
+                            experiments: {
+                                title: '實驗建構器',
+                                desc: '設定模型、拓撲、種子、觀測量、批次執行與可重現匯出。'
+                            },
+                            phase: {
+                                title: '相圖 / 區域掃描',
+                                desc: '用既有 Labs 模型與觀測量產生謹慎標示的有限尺寸 regime map。'
+                            },
+                            topology: {
+                                title: '拓撲比較',
+                                desc: '在不同空間執行相同局部規則，並比較拓撲敏感的觀測量。'
+                            },
+                            validation: {
+                                title: '驗證與可重現性',
+                                desc: '稽核種子、雜湊、重播中繼資料、拓撲不變量、基準範圍與警告。'
+                            },
+                            publication: {
+                                title: '出版與資料集匯出',
+                                desc: '封裝可審查 bundle，包含 README、資料字典、方法、引用、校驗碼與來源紀錄。'
+                            }
+                        },
                         factLabels: {
                             blackWhite: '黑 / 白',
                             objects: '物件',
@@ -928,7 +884,7 @@
                         main: '主要區域',
                         boardWorlds: '棋盤世界',
                         lifeWorlds: '生命與演化世界',
-                        systemsLabs: '策略與系統實驗室'
+                        systemsLabs: 'Topoboard Labs'
                     },
                     life: {
                         title: '生命與演化世界',
