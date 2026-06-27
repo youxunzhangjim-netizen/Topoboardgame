@@ -624,6 +624,8 @@ export class LifeUI {
     this.phaseScanExportCsvButton = root.getElementById('phaseScanExportCsvButton');
     this.phaseScannerStatus = root.getElementById('phaseScannerStatus');
     this.phaseScannerGrid = root.getElementById('phaseScannerGrid');
+    this.performanceReadout = root.getElementById('obsPerformance');
+    this.performanceBenchmarkButton = root.getElementById('performanceBenchmarkButton');
     this.topologyCompareGeometryList = root.getElementById('topologyCompareGeometryList');
     this.topologyCompareBoardSizeInput = root.getElementById('topologyCompareBoardSizeInput');
     this.topologyCompareDensityInput = root.getElementById('topologyCompareDensityInput');
@@ -697,7 +699,11 @@ export class LifeUI {
     this.pendingNeighborhoodWarnings = [];
     this.lastNeighborhoodWarning = '';
     this.phaseScannerWorker = null;
+    this.phaseScanFallbackActive = false;
     this.phaseScanResult = null;
+    this.performanceBenchmarkWorker = null;
+    this.performanceBenchmarkFallbackActive = false;
+    this.performanceBenchmarkResult = null;
     this.topologyCompareResult = null;
     this.experimentNotebookEntries = [];
     this.engine = createLifeEngine(modeToEngineConfig(this.mode));
@@ -749,6 +755,7 @@ export class LifeUI {
     this.exportTimeSeriesCsvButton?.addEventListener('click', () => this.exportTimeSeriesCsv());
     this.exportExperimentJsonButton?.addEventListener('click', () => this.exportExperimentJson());
     this.installPhaseScanner();
+    this.installPerformanceBenchmark();
     this.installTopologyCompare();
     this.installExperimentNotebook();
     this.installCustomRuleDesigner();
@@ -2983,6 +2990,137 @@ export class LifeUI {
     );
   }
 
+  installPerformanceBenchmark() {
+    if (!this.performanceBenchmarkButton || !this.performanceReadout) return;
+    this.performanceBenchmarkButton.addEventListener('click', () => this.startPerformanceBenchmark());
+    this.updatePerformanceReadout('performanceIdle');
+  }
+
+  updatePerformanceReadout(key, replacements = {}) {
+    if (!this.performanceReadout) return;
+    this.performanceReadout.textContent = this.uiText(key, replacements);
+  }
+
+  setPerformanceBenchmarkRunning(running) {
+    if (this.performanceBenchmarkButton) this.performanceBenchmarkButton.disabled = Boolean(running);
+  }
+
+  readPerformanceBenchmarkConfig() {
+    const maxGenerations = Math.round(Number(this.maxGenerationInput?.value) || 120);
+    const generations = Math.max(10, Math.min(80, maxGenerations));
+    const safeAxis = this.engine.dimension >= 3 ? 16 : 32;
+    const safeSize = this.engine.size.map((axis) => Math.max(4, Math.min(safeAxis, Number(axis) || safeAxis)));
+    return {
+      dimension: this.engine.dimension,
+      size: safeSize,
+      boardSize: safeSize[0] || safeAxis,
+      boundary: this.engine.topology?.boundary || 'open',
+      lattice: this.engine.lattice,
+      neighborhoodType: this.engine.neighborhoodType,
+      neighborhoodRadius: this.engine.neighborhoodRadius,
+      neighborhoodMetric: this.engine.neighborhoodMetric,
+      rule: structuredClone(this.engine.rule),
+      seedDensity: Math.max(0.01, Math.min(0.8, Number(this.topologyCompareDensityInput?.value) || 0.18)),
+      speciesCount: Math.max(1, Number(this.speciesSelect?.value) || this.engine.rule?.speciesCount || 1),
+      baseSeed: Math.max(1, Math.round(Number(this.topologyCompareSeedInput?.value) || 20260627)),
+      generations,
+      trials: 2
+    };
+  }
+
+  startPerformanceBenchmark() {
+    if (!this.performanceBenchmarkButton) return;
+    this.cancelPerformanceBenchmark({ silent: true });
+    const config = this.readPerformanceBenchmarkConfig();
+    this.performanceBenchmarkResult = null;
+    this.setPerformanceBenchmarkRunning(true);
+    this.updatePerformanceReadout('performanceRunning');
+
+    if (typeof window !== 'undefined' && window.Worker) {
+      try {
+        const worker = new Worker(new URL('./LifeBenchmarkWorker.js', import.meta.url), { type: 'module' });
+        this.performanceBenchmarkWorker = worker;
+        worker.addEventListener('message', (event) => this.handlePerformanceBenchmarkMessage(event.data));
+        worker.addEventListener('error', (event) => {
+          this.handlePerformanceBenchmarkMessage({ type: 'error', message: event.message || 'Worker error' });
+        });
+        worker.postMessage({ type: 'benchmark', config });
+        return;
+      } catch {
+        this.performanceBenchmarkWorker = null;
+      }
+    }
+
+    this.runPerformanceBenchmarkFallback(config);
+  }
+
+  async runPerformanceBenchmarkFallback(config) {
+    this.performanceBenchmarkFallbackActive = true;
+    this.updatePerformanceReadout('performanceFallback');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+      const { runBenchmark } = await import('./LifeWorkerTasks.js');
+      const payload = runBenchmark(config, {
+        onProgress: (progress) => this.handlePerformanceBenchmarkMessage({ type: 'progress', ...progress }),
+        shouldCancel: () => !this.performanceBenchmarkFallbackActive
+      });
+      if (this.performanceBenchmarkFallbackActive) {
+        this.handlePerformanceBenchmarkMessage({ type: 'complete', payload });
+      }
+    } catch (error) {
+      if (!this.performanceBenchmarkFallbackActive || error?.message === 'cancelled') {
+        this.updatePerformanceReadout('performanceCancelled');
+      } else {
+        this.handlePerformanceBenchmarkMessage({ type: 'error', message: error?.message || String(error) });
+      }
+    } finally {
+      this.performanceBenchmarkFallbackActive = false;
+      this.setPerformanceBenchmarkRunning(false);
+    }
+  }
+
+  cancelPerformanceBenchmark(options = {}) {
+    if (this.performanceBenchmarkWorker) {
+      this.performanceBenchmarkWorker.terminate();
+      this.performanceBenchmarkWorker = null;
+    }
+    this.performanceBenchmarkFallbackActive = false;
+    this.setPerformanceBenchmarkRunning(false);
+    if (!options.silent) this.updatePerformanceReadout('performanceCancelled');
+  }
+
+  handlePerformanceBenchmarkMessage(message = {}) {
+    if (message.type === 'progress') {
+      this.updatePerformanceReadout('performanceProgress', {
+        done: message.completedRuns || 0,
+        total: message.totalRuns || 0
+      });
+      return;
+    }
+    if (message.type === 'complete') {
+      this.performanceBenchmarkWorker?.terminate();
+      this.performanceBenchmarkWorker = null;
+      this.performanceBenchmarkFallbackActive = false;
+      this.performanceBenchmarkResult = message.payload;
+      this.setPerformanceBenchmarkRunning(false);
+      const summary = this.performanceBenchmarkResult?.summary || {};
+      this.updatePerformanceReadout('performanceReadoutValue', {
+        gps: formatNumber(summary.generationsPerSecond, 1),
+        size: summary.boardSize || '-',
+        dim: summary.dimension || '-',
+        active: formatNumber(summary.activeCellCount, 0)
+      });
+      return;
+    }
+    if (message.type === 'error') {
+      this.performanceBenchmarkWorker?.terminate();
+      this.performanceBenchmarkWorker = null;
+      this.performanceBenchmarkFallbackActive = false;
+      this.setPerformanceBenchmarkRunning(false);
+      this.updatePerformanceReadout('performanceError', { message: message.message || 'unknown error' });
+    }
+  }
+
   installPhaseScanner() {
     if (!this.phaseScanStartButton || !this.phaseScannerGrid) return;
     this.syncPhaseScannerOptions();
@@ -3074,10 +3212,10 @@ export class LifeUI {
     this.renderPhaseScannerGrid();
     this.updatePhaseScannerStatus('phaseScannerStarting');
     this.setPhaseScannerRunning(true);
+    const config = this.readPhaseScanConfig();
 
-    if (!window.Worker) {
-      this.setPhaseScannerRunning(false);
-      this.updatePhaseScannerStatus('phaseScannerWorkerUnavailable');
+    if (typeof window === 'undefined' || !window.Worker) {
+      this.runPhaseScanFallback(config);
       return;
     }
 
@@ -3088,11 +3226,35 @@ export class LifeUI {
       worker.addEventListener('error', (event) => {
         this.handlePhaseScannerMessage({ type: 'error', message: event.message || 'Worker error' });
       });
-      worker.postMessage({ type: 'scan', config: this.readPhaseScanConfig() });
+      worker.postMessage({ type: 'scan', config });
     } catch (error) {
       this.phaseScannerWorker = null;
+      this.runPhaseScanFallback(config, error);
+    }
+  }
+
+  async runPhaseScanFallback(config, workerError = null) {
+    this.phaseScanFallbackActive = true;
+    this.updatePhaseScannerStatus(workerError ? 'phaseScannerFallbackAfterWorkerError' : 'phaseScannerFallback');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+      const { runPhaseScan } = await import('./LifeWorkerTasks.js');
+      const payload = runPhaseScan(config, {
+        onProgress: (progress) => this.handlePhaseScannerMessage({ type: 'progress', ...progress }),
+        shouldCancel: () => !this.phaseScanFallbackActive
+      });
+      if (this.phaseScanFallbackActive) {
+        this.handlePhaseScannerMessage({ type: 'complete', payload });
+      }
+    } catch (error) {
+      if (!this.phaseScanFallbackActive || error?.message === 'cancelled') {
+        this.updatePhaseScannerStatus('phaseScannerCancelled');
+      } else {
+        this.handlePhaseScannerMessage({ type: 'error', message: error?.message || String(error) });
+      }
+    } finally {
+      this.phaseScanFallbackActive = false;
       this.setPhaseScannerRunning(false);
-      this.updatePhaseScannerStatus('phaseScannerError', { message: error?.message || String(error) });
     }
   }
 
@@ -3101,6 +3263,7 @@ export class LifeUI {
       this.phaseScannerWorker.terminate();
       this.phaseScannerWorker = null;
     }
+    this.phaseScanFallbackActive = false;
     this.setPhaseScannerRunning(false);
     if (!options.silent) this.updatePhaseScannerStatus('phaseScannerCancelled');
   }
@@ -3116,6 +3279,7 @@ export class LifeUI {
     if (message.type === 'complete') {
       this.phaseScannerWorker?.terminate();
       this.phaseScannerWorker = null;
+      this.phaseScanFallbackActive = false;
       this.phaseScanResult = message.payload;
       this.renderPhaseScannerGrid(this.phaseScanResult);
       const runs = (this.phaseScanResult?.results || []).reduce((sum, result) => sum + (result.runs?.length || 0), 0);
@@ -3129,6 +3293,7 @@ export class LifeUI {
     if (message.type === 'error') {
       this.phaseScannerWorker?.terminate();
       this.phaseScannerWorker = null;
+      this.phaseScanFallbackActive = false;
       this.setPhaseScannerRunning(false);
       this.updatePhaseScannerStatus('phaseScannerError', { message: message.message || 'unknown error' });
     }

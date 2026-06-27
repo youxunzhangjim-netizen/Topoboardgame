@@ -407,6 +407,12 @@
         <article><strong data-life-i18n="score">Score</strong><span id="scoreFormula" data-life-i18n="scoreFormula">living + territory + stability + diversity - penalties</span></article>
       </div>
 
+      <details class="life-research-help">
+        <summary data-life-i18n="researchHelpTitle">Research help</summary>
+        <p data-life-i18n="researchHelpText">Use this view to measure how a rule changes when topology, lattice, neighborhood, noise, age, mutation, and random seed are held or varied.</p>
+        <p data-life-i18n="researchHelpPerformanceText">Phase scans and benchmark runs use a background Worker when available, with a safe small fallback if Workers are blocked.</p>
+      </details>
+
       <div class="observable-grid">
         <article><span data-life-i18n="generation">Generation</span><strong id="obsGeneration">0</strong></article>
         <article><span data-life-i18n="population">Population N(t)</span><strong id="obsPopulation">0</strong></article>
@@ -431,6 +437,11 @@
         <article><span data-life-i18n="recurrencePeriodEstimate">Recurrence hash period estimate</span><strong id="obsRecurrencePeriodEstimate">—</strong></article>
         <article><span data-life-i18n="frontVelocity">Front velocity</span><strong id="obsFrontVelocity">0</strong></article>
         <article><span data-life-i18n="compressionRatioProxy">Compression ratio proxy</span><strong id="obsCompressionRatioProxy">0</strong></article>
+        <article class="observable-wide performance-readout">
+          <span data-life-i18n="performanceReadout">Performance benchmark</span>
+          <strong id="obsPerformance" data-life-i18n="performanceIdle">Run a small benchmark for gen/s.</strong>
+          <button class="life-mini-button" id="performanceBenchmarkButton" type="button" data-life-i18n="runBenchmark">Run benchmark</button>
+        </article>
         <article class="observable-wide"><span data-life-i18n="detectedStructures">Detected structures</span><strong id="obsDetectedStructures">chaotic / not classified</strong></article>
       </div>
 

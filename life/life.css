@@ -68,6 +68,7 @@ body {
 
 .ghost-button,
 .life-button,
+.life-mini-button,
 .info-button {
   min-height: 40px;
   display: inline-flex;
@@ -87,13 +88,23 @@ body {
 
 .ghost-button:hover,
 .life-button:hover,
+.life-mini-button:hover,
 .info-button:hover,
 .ghost-button:focus-visible,
 .life-button:focus-visible,
+.life-mini-button:focus-visible,
 .info-button:focus-visible {
   border-color: rgba(245, 182, 71, 0.72);
   background: rgba(17, 28, 42, 0.92);
   outline: none;
+}
+
+.life-mini-button {
+  min-height: 32px;
+  width: fit-content;
+  padding: 0 10px;
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .life-topbar a.ghost-button[data-life-i18n="home"] {
@@ -908,6 +919,28 @@ body[data-life-usage="two"] .one-player-only {
   font-weight: 900;
 }
 
+.life-research-help {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(5, 10, 17, 0.42);
+  padding: 10px 12px;
+}
+
+.life-research-help summary {
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.life-research-help p {
+  margin: 8px 0 0;
+  color: rgba(203, 213, 225, 0.84);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .life-detected-card {
   display: grid;
   gap: 5px;
@@ -965,6 +998,22 @@ body[data-life-usage="two"] .one-player-only {
   color: var(--text);
   font-size: 18px;
   word-break: break-word;
+}
+
+.performance-readout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.performance-readout span {
+  grid-column: 1 / -1;
+}
+
+.performance-readout strong {
+  margin-top: 0;
+  font-size: 15px;
 }
 
 .phase-scanner-panel {
@@ -1538,6 +1587,14 @@ body[data-life-usage="two"] .one-player-only {
     width: 100%;
     max-width: none;
     border-radius: 10px;
+  }
+
+  .performance-readout {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-readout .life-mini-button {
+    width: 100%;
   }
 
   .phase-scanner-controls,

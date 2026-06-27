@@ -1,9 +1,9 @@
-import { runPhaseScan } from './LifeWorkerTasks.js';
+import { runBenchmark } from './LifeWorkerTasks.js';
 
 self.addEventListener('message', (event) => {
-  if (event.data?.type !== 'scan') return;
+  if (event.data?.type !== 'benchmark') return;
   try {
-    const payload = runPhaseScan(event.data.config || {}, {
+    const payload = runBenchmark(event.data.config || {}, {
       onProgress: (progress) => self.postMessage({ type: 'progress', ...progress })
     });
     self.postMessage({ type: 'complete', payload });
