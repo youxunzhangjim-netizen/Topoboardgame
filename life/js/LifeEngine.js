@@ -231,6 +231,48 @@ export class LifeEngine {
     return computeObservables(this, this.lastStep);
   }
 
+  getExperimentMetadata() {
+    const neighborhood = this.getNeighborhoodInfo();
+    return {
+      topology: {
+        dimension: this.dimension,
+        size: this.size.slice(),
+        topologyType: this.topology.boundary,
+        boundaryCondition: this.topology.boundary,
+        latticeType: this.lattice,
+        siteCount: this.volume()
+      },
+      neighborhood: {
+        type: this.neighborhoodType,
+        radius: this.neighborhoodRadius,
+        metric: this.neighborhoodMetric,
+        lattice: this.lattice,
+        neighborCount: neighborhood.count
+      },
+      rule: {
+        id: this.rule?.id || 'custom',
+        name: this.rule?.name || this.rule?.rule || 'Custom rule',
+        type: this.rule?.type || 'life-like',
+        ruleString: this.rule?.rule || null,
+        birth: Array.isArray(this.rule?.birth) ? this.rule.birth.slice() : [],
+        survival: Array.isArray(this.rule?.survival) ? this.rule.survival.slice() : [],
+        speciesCount: this.rule?.speciesCount || 1,
+        modifiers: {
+          birthNoise: this.rule?.birthNoise || 0,
+          deathNoise: this.rule?.deathNoise || 0,
+          environmentNoise: this.rule?.environmentNoise || 0,
+          ruleNoise: this.rule?.ruleNoise || 0,
+          topologyDefectNoise: this.rule?.topologyDefectNoise || 0,
+          mutationRate: this.rule?.mutationRate || 0,
+          maxAge: this.rule?.maxAge || 0,
+          agingDeathRate: this.rule?.agingDeathRate || 0,
+          youngBirthBonus: this.rule?.youngBirthBonus || 0,
+          oldAgePenalty: this.rule?.oldAgePenalty || 0
+        }
+      }
+    };
+  }
+
   randomSeed({
     density = 0.18,
     speciesCount = this.rule.speciesCount || 1,
@@ -279,6 +321,7 @@ export class LifeEngine {
       lattice: this.lattice,
       rule: structuredClone(this.rule),
       generation: this.generation,
+      metadata: this.getExperimentMetadata(),
       cells: this.cells.map(cloneCell)
     };
   }

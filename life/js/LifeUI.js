@@ -353,6 +353,41 @@ function compactObject(object = {}, digits = 2) {
   if (!entries.length) return '—';
   return entries.map(([key, value]) => `${key}:${formatNumber(value, digits)}`).join(' ');
 }
+function compactVector(values, digits = 2) {
+  if (!Array.isArray(values) || !values.length) return '—';
+  return `(${values.map((value) => formatNumber(value, digits)).join(', ')})`;
+}
+function compactBoundingBox(box, measure = 0) {
+  if (!box?.min || !box?.max) return '—';
+  const axes = ['x', 'y', 'z', 'w'];
+  const ranges = box.min.map((value, axis) => `${axes[axis] || `a${axis}`}:${value}-${box.max[axis]}`);
+  return `${ranges.join(' ')} | ${formatNumber(measure, 0)}`;
+}
+function formatPercent(value, digits = 1) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  const percent = Number(value) * 100;
+  const prefix = percent > 0 ? '+' : '';
+  return `${prefix}${formatNumber(percent, digits)}%`;
+}
+function csvEscape(value) {
+  if (value == null) return '';
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+function downloadTextFile(filename, text, mimeType) {
+  const blob = new Blob([text], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+function exportTimestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
 function hashAliveCells(engine) {
   const parts = [];
   for (let i = 0; i < engine.cells.length; i += 1) {
@@ -361,6 +396,44 @@ function hashAliveCells(engine) {
     parts.push(`${i}:${cell.species || 1}`);
   }
   return parts.join('|');
+}
+function aliveShapeSignature2D(engine) {
+  if (engine.dimension !== 2 || engine.topology?.boundary !== 'open') return null;
+  const points = [];
+  for (let i = 0; i < engine.cells.length; i += 1) {
+    const cell = engine.cells[i];
+    if (!isAlive(cell)) continue;
+    const [x, y] = engine.positionFromIndex(i);
+    points.push({ x, y, species: cell.species || 1 });
+  }
+  if (!points.length) return null;
+  const minX = Math.min(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const maxY = Math.max(...points.map((point) => point.y));
+  const hash = points
+    .map((point) => `${point.x - minX},${point.y - minY}:${point.species}`)
+    .sort()
+    .join('|');
+  return {
+    hash,
+    min: [minX, minY],
+    max: [maxX, maxY],
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    population: points.length
+  };
+}
+function lifeRuleHasRandomness(rule = {}) {
+  return [
+    rule.birthNoise,
+    rule.deathNoise,
+    rule.environmentNoise,
+    rule.ruleNoise,
+    rule.topologyDefectNoise,
+    rule.mutationRate,
+    rule.agingDeathRate
+  ].some((value) => Number(value || 0) > 0);
 }
 function centerOfMass(engine) {
   let total = 0;
@@ -511,12 +584,21 @@ export class LifeUI {
     this.description = root.getElementById('lifeModeDescription');
     this.tags = root.getElementById('lifeModeTags');
     this.challengeStatus = root.getElementById('challengeStatus');
+    this.detectedStructuresSummary = root.getElementById('detectedStructuresSummary');
     this.populationPlot = root.getElementById('populationPlot');
     this.speciesPlot = root.getElementById('speciesPlot');
-    this.obs = Object.fromEntries(['Generation', 'Population', 'Density', 'BirthRate', 'DeathRate', 'SpeciesFractions', 'MeanAge', 'AgeDistribution', 'ClusterCount', 'LargestCluster', 'Entropy', 'Correlation', 'ExtinctionTime', 'SurvivalTime', 'Oscillation', 'FrontVelocity'].map((name) => [name, root.getElementById(`obs${name}`)]));
+    this.obs = Object.fromEntries([
+      'Generation', 'Population', 'Density', 'PopulationGrowthRate', 'BirthRate', 'DeathRate', 'SpeciesFractions',
+      'MeanAge', 'AgeDistribution', 'ClusterCount', 'LargestCluster', 'ComponentSizeDistribution',
+      'Entropy', 'Correlation', 'CenterOfMass', 'RadiusOfActivity', 'BoundingBoxMeasure',
+      'ExtinctionTime', 'SurvivalTime', 'Oscillation', 'RecurrencePeriodEstimate', 'FrontVelocity',
+      'CompressionRatioProxy', 'DetectedStructures'
+    ].map((name) => [name, root.getElementById(`obs${name}`)]));
     this.scoreA = root.getElementById('scoreA');
     this.scoreB = root.getElementById('scoreB');
     this.patternJson = root.getElementById('patternJson');
+    this.exportTimeSeriesCsvButton = root.getElementById('exportTimeSeriesCsvButton');
+    this.exportExperimentJsonButton = root.getElementById('exportExperimentJsonButton');
     this.playButton = root.getElementById('playButton');
     this.gridToggleButton = root.getElementById('lifeGridToggleBtn');
     this.boardOpacityButton = root.getElementById('boardOpacityButton');
@@ -614,6 +696,8 @@ export class LifeUI {
     this.playButton.addEventListener('click', () => this.togglePlay());
     this.root.getElementById('exportButton').addEventListener('click', () => this.exportPattern());
     this.root.getElementById('importButton').addEventListener('click', () => this.importPattern());
+    this.exportTimeSeriesCsvButton?.addEventListener('click', () => this.exportTimeSeriesCsv());
+    this.exportExperimentJsonButton?.addEventListener('click', () => this.exportExperimentJson());
     this.installCustomRuleDesigner();
     this.installNeighborhoodLaboratory();
     this.installPatternLibrary();
@@ -2076,15 +2160,89 @@ export class LifeUI {
     return this.projectedVolumePointToPosition(point, width, height);
   }
 
+  checkStillLife(currentHash, population) {
+    if (!population || lifeRuleHasRandomness(this.engine.rule)) return false;
+    const probe = this.engine.clone();
+    probe.step();
+    return hashAliveCells(probe) === currentHash;
+  }
+
+  detectMovingCandidate(shapeSignature, currentHash, currentGeneration) {
+    if (!shapeSignature || !currentHash) return null;
+    const recent = this.history.slice(-24).reverse();
+    for (const sample of recent) {
+      if (!sample?.shapeHash2D || sample.shapeHash2D !== shapeSignature.hash) continue;
+      if (!sample.shapeBox2D?.min || sample.stateHash === currentHash) continue;
+      const dx = shapeSignature.min[0] - sample.shapeBox2D.min[0];
+      const dy = shapeSignature.min[1] - sample.shapeBox2D.min[1];
+      const period = currentGeneration - sample.generation;
+      if (period > 0 && (dx !== 0 || dy !== 0)) {
+        return {
+          period,
+          translation: [dx, dy],
+          matchedGeneration: sample.generation,
+          confidence: 'candidate'
+        };
+      }
+    }
+    return null;
+  }
+
+  classifyDetectedStructures(obs, currentHash, shapeSignature) {
+    const movingCandidate = this.detectMovingCandidate(shapeSignature, currentHash, obs.generation);
+    const stable = this.checkStillLife(currentHash, obs.population);
+    const period = Number(obs.recurrenceHashPeriodEstimate || obs.oscillationPeriod || 0);
+
+    if (obs.population === 0) {
+      return { kind: 'extinct', labelKey: 'structureExtinct', confidence: 'exact' };
+    }
+    if (stable) {
+      return { kind: 'stable', labelKey: 'structureStable', confidence: 'next-step' };
+    }
+    if (period > 1) {
+      return { kind: 'oscillator', labelKey: 'structureOscillatorPeriod', period, confidence: 'hash-recurrence' };
+    }
+    if (movingCandidate) {
+      return { kind: 'moving_candidate', labelKey: 'structureMovingCandidate', ...movingCandidate };
+    }
+    return { kind: 'chaotic', labelKey: 'structureChaotic', confidence: 'not-classified' };
+  }
+
+  formatDetectedStructures(detection = {}) {
+    const key = detection.labelKey || 'structureChaotic';
+    const period = detection.period ?? '—';
+    const [dx = 0, dy = 0] = detection.translation || [];
+    return t(key, this.language)
+      .replace('{period}', period)
+      .replace('{dx}', dx)
+      .replace('{dy}', dy);
+  }
+
   afterStateChange() {
     const obs = this.engine.getObservables();
     const hash = hashAliveCells(this.engine);
-    const center = centerOfMass(this.engine);
+    const shapeSignature = aliveShapeSignature2D(this.engine);
+    const center = obs.centerOfMass || centerOfMass(this.engine);
+    const previous = this.history.length ? this.history[this.history.length - 1] : null;
     if (obs.population === 0 && this.extinctionTime == null) this.extinctionTime = obs.generation;
     if (!this.initialCenter && center) this.initialCenter = center;
-    if (hash && this.stateHashes.has(hash)) obs.oscillationPeriod = obs.generation - this.stateHashes.get(hash);
+    obs.populationGrowthRate = previous?.population ? (obs.population - previous.population) / previous.population : 0;
+    obs.stateHash = hash;
+    if (hash && this.stateHashes.has(hash)) {
+      obs.recurrenceHashPeriodEstimate = obs.generation - this.stateHashes.get(hash);
+      obs.oscillationPeriod = obs.recurrenceHashPeriodEstimate;
+      this.stateHashes.set(hash, obs.generation);
+    }
     else if (hash) this.stateHashes.set(hash, obs.generation);
+    if (!obs.recurrenceHashPeriodEstimate) obs.recurrenceHashPeriodEstimate = null;
     obs.frontVelocity = this.initialCenter && center && obs.generation > 0 ? distance(this.initialCenter, center) / obs.generation : 0;
+    obs.extinctionTime = this.extinctionTime;
+    obs.survivalTime = obs.generation;
+    obs.shapeHash2D = shapeSignature?.hash || null;
+    obs.shapeBox2D = shapeSignature
+      ? { min: shapeSignature.min, max: shapeSignature.max, width: shapeSignature.width, height: shapeSignature.height }
+      : null;
+    obs.detectedStructures = this.classifyDetectedStructures(obs, hash, shapeSignature);
     this.history.push(structuredClone(obs));
     if (this.history.length > 220) this.history.shift();
     this.draw(); this.updateReadout(obs); this.updateChallengeStatus(obs); this.drawPlots();
@@ -2095,6 +2253,7 @@ export class LifeUI {
     this.obs.Generation.textContent = String(obs.generation);
     this.obs.Population.textContent = String(obs.population);
     this.obs.Density.textContent = formatNumber(obs.density);
+    this.obs.PopulationGrowthRate.textContent = formatPercent(obs.populationGrowthRate || 0);
     this.obs.BirthRate.textContent = formatNumber(obs.birthRate);
     this.obs.DeathRate.textContent = formatNumber(obs.deathRate);
     this.obs.SpeciesFractions.textContent = compactObject(obs.speciesFractions);
@@ -2102,12 +2261,21 @@ export class LifeUI {
     this.obs.AgeDistribution.textContent = compactObject(obs.ageDistribution, 0);
     this.obs.ClusterCount.textContent = String(obs.clusterCount || 0);
     this.obs.LargestCluster.textContent = String(obs.largestClusterSize || 0);
+    this.obs.ComponentSizeDistribution.textContent = compactObject(obs.connectedComponentSizeDistribution, 0);
     this.obs.Entropy.textContent = formatNumber(obs.entropy);
     this.obs.Correlation.textContent = formatNumber(obs.spatialCorrelation);
+    this.obs.CenterOfMass.textContent = compactVector(obs.centerOfMass, 2);
+    this.obs.RadiusOfActivity.textContent = formatNumber(obs.radiusOfActivity || 0);
+    this.obs.BoundingBoxMeasure.textContent = compactBoundingBox(obs.boundingBox, obs.boundingBoxMeasure);
     this.obs.ExtinctionTime.textContent = this.extinctionTime == null ? '—' : String(this.extinctionTime);
     this.obs.SurvivalTime.textContent = String(obs.generation);
     this.obs.Oscillation.textContent = obs.oscillationPeriod ? `${t('detected', this.language)} P=${obs.oscillationPeriod}` : t('notYet', this.language);
+    this.obs.RecurrencePeriodEstimate.textContent = obs.recurrenceHashPeriodEstimate ? `P=${obs.recurrenceHashPeriodEstimate}` : t('notYet', this.language);
     this.obs.FrontVelocity.textContent = formatNumber(obs.frontVelocity || 0);
+    this.obs.CompressionRatioProxy.textContent = formatNumber(obs.compressionRatioProxy || 0, 4);
+    const structureLabel = this.formatDetectedStructures(obs.detectedStructures);
+    if (this.detectedStructuresSummary) this.detectedStructuresSummary.textContent = structureLabel;
+    if (this.obs.DetectedStructures) this.obs.DetectedStructures.textContent = structureLabel;
     const scores = this.computeScores(obs);
     this.scoreA.textContent = formatNumber(scores.a, 1);
     this.scoreB.textContent = formatNumber(scores.b, 1);
@@ -2754,6 +2922,96 @@ export class LifeUI {
     [1, 2, 3].forEach((species) => { const values = this.history.map((item) => item.speciesFractions?.[species] || 0); if (values.length < 2) return; ctx.strokeStyle = COLORS[species]; ctx.lineWidth = 2; ctx.beginPath(); values.forEach((value, i) => { const x = (i / Math.max(1, values.length - 1)) * width; const y = height - value * (height - 12) - 6; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); });
   }
 
+  currentObservableSample() {
+    return this.history.length ? this.history[this.history.length - 1] : this.engine.getObservables();
+  }
+
+  buildTimeSeriesCsv() {
+    const rows = this.history.length ? this.history : [this.currentObservableSample()];
+    const columns = [
+      'generation',
+      'population',
+      'density',
+      'populationGrowthRate',
+      'births',
+      'deaths',
+      'birthRate',
+      'deathRate',
+      'speciesCounts',
+      'speciesFractions',
+      'meanAge',
+      'ageDistribution',
+      'clusterCount',
+      'largestClusterSize',
+      'connectedComponentSizeDistribution',
+      'entropy',
+      'spatialCorrelation',
+      'speciesSpatialCorrelation',
+      'centerOfMass',
+      'radiusOfActivity',
+      'boundingBox',
+      'boundingBoxMeasure',
+      'recurrenceHashPeriodEstimate',
+      'oscillationPeriod',
+      'frontVelocity',
+      'compressionRatioProxy',
+      'extinctionTime',
+      'survivalTime',
+      'stateHash',
+      'shapeHash2D',
+      'shapeBox2D',
+      'detectedStructures'
+    ];
+    return [
+      columns.join(','),
+      ...rows.map((row) => columns.map((column) => csvEscape(row?.[column])).join(','))
+    ].join('\n');
+  }
+
+  buildExperimentExportPayload() {
+    const metadata = this.engine.getExperimentMetadata();
+    return {
+      schema: 'topoboard-life-world-experiment',
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      module: 'life/world',
+      mode: {
+        id: this.mode.id,
+        title: modeTitle(this.mode, this.language),
+        usage: this.usageModeSelect.value,
+        twoPlayerMode: this.twoPlayerModeSelect.value,
+        challengeGoal: this.challengeGoalSelect.value
+      },
+      controls: this.readControlValues(),
+      metadata,
+      currentObservables: this.currentObservableSample(),
+      observableTimeSeries: this.history.map((item) => structuredClone(item)),
+      experiment: {
+        generation: this.engine.generation,
+        historyLength: this.history.length,
+        extinctionTime: this.extinctionTime,
+        initialCenter: this.initialCenter,
+        stateHashesTracked: this.stateHashes.size
+      },
+      state: this.engine.exportState()
+    };
+  }
+
+  exportTimeSeriesCsv() {
+    const csv = this.buildTimeSeriesCsv();
+    this.patternJson.value = csv;
+    downloadTextFile(`topoboard-life-timeseries-${exportTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
+    this.challengeStatus.textContent = `${t('status', this.language)}: ${t('timeSeriesCsvExported', this.language)}`;
+  }
+
+  exportExperimentJson() {
+    const payload = this.buildExperimentExportPayload();
+    const json = JSON.stringify(payload, null, 2);
+    this.patternJson.value = json;
+    downloadTextFile(`topoboard-life-experiment-${exportTimestamp()}.json`, json, 'application/json;charset=utf-8');
+    this.challengeStatus.textContent = `${t('status', this.language)}: ${t('experimentJsonExported', this.language)}`;
+  }
+
   exportPattern() {
     const customRule = this.customRuleActive
       ? { rule: serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival }), birth: this.customRuleBirth, survival: this.customRuleSurvival }
@@ -2769,6 +3027,11 @@ export class LifeUI {
       twoPlayerMode: this.twoPlayerModeSelect.value,
       challengeGoal: this.challengeGoalSelect.value,
       customRule,
+      metadata: this.engine.getExperimentMetadata(),
+      observables: {
+        current: this.currentObservableSample(),
+        historyLength: this.history.length
+      },
       state: this.engine.exportState()
     };
     this.patternJson.value = JSON.stringify(payload, null, 2);
