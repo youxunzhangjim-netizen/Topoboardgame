@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Topoboard Labs</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070d16;
+      --panel: rgba(10, 17, 27, 0.82);
+      --line: rgba(148, 163, 184, 0.22);
+      --text: #f3f8ff;
+      --muted: #aab8c8;
+      --gold: #f5c85b;
+      --blue: #58c5ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 18% 10%, rgba(88, 197, 255, 0.14), transparent 34%),
+        radial-gradient(circle at 82% 18%, rgba(245, 200, 91, 0.1), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 42px;
+    }
+    .topbar a,
+    .lang button {
+      border: 1px solid rgba(88, 197, 255, 0.34);
+      border-radius: 999px;
+      background: rgba(5, 10, 17, 0.62);
+      color: var(--text);
+      padding: 9px 13px;
+      text-decoration: none;
+      font-weight: 850;
+    }
+    .lang {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .lang button[aria-pressed="true"] {
+      border-color: rgba(245, 200, 91, 0.7);
+      color: var(--gold);
+    }
+    .hero {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      margin: 0;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(42px, 7vw, 86px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 860px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 22px);
+      line-height: 1.55;
+    }
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+    .workflow-card {
+      min-height: 190px;
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 20px;
+      text-decoration: none;
+    }
+    .workflow-card strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.15;
+    }
+    .workflow-card small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .workflow-card span:last-child {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+    @media (max-width: 860px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .workflow-grid { grid-template-columns: 1fr; }
+      .workflow-card { min-height: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="topbar" aria-label="Labs navigation">
+      <a href="../index.html" data-i18n="home">Home</a>
+      <div class="lang" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="zh" aria-pressed="false">Traditional Chinese</button>
+      </div>
+    </nav>
+    <section class="hero">
+      <p class="eyebrow" data-i18n="eyebrow">Topoboard Labs</p>
+      <h1 data-i18n="title">Experimental Platform for Discrete Topological Dynamics</h1>
+      <p class="lead" data-i18n="lead">Start from the Labs home page, then choose a reproducible workflow for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.</p>
+    </section>
+    <section class="workflow-grid" aria-label="Labs workflows">
+      <a class="workflow-card" href="./experiments/">
+        <span><strong data-i18n="experimentsTitle">Experiment Builder</strong><small data-i18n="experimentsDesc">Configure models, topology, seeds, observables, batch runs, and reproducible exports.</small></span>
+        <span data-i18n="open">Open</span>
+      </a>
+      <a class="workflow-card" href="./phase-diagrams/">
+        <span><strong data-i18n="phaseTitle">Phase / Regime Scan</strong><small data-i18n="phaseDesc">Generate cautious finite-size regime maps from existing Labs models and observables.</small></span>
+        <span data-i18n="open">Open</span>
+      </a>
+      <a class="workflow-card" href="./topology-compare/">
+        <span><strong data-i18n="topologyTitle">Topology Comparison</strong><small data-i18n="topologyDesc">Run the same local rule across different spaces and compare topology-sensitive observables.</small></span>
+        <span data-i18n="open">Open</span>
+      </a>
+      <a class="workflow-card" href="./validation/">
+        <span><strong data-i18n="validationTitle">Validation & Reproducibility</strong><small data-i18n="validationDesc">Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.</small></span>
+        <span data-i18n="open">Open</span>
+      </a>
+      <a class="workflow-card" href="./publication/">
+        <span><strong data-i18n="publicationTitle">Publication & Dataset Export</strong><small data-i18n="publicationDesc">Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.</small></span>
+        <span data-i18n="open">Open</span>
+      </a>
+    </section>
+  </main>
+  <script>
+    const STORAGE_KEY = 'topological-boardgame:language';
+    const TEXT = {
+      en: {
+        home: 'Home',
+        eyebrow: 'Topoboard Labs',
+        title: 'Experimental Platform for Discrete Topological Dynamics',
+        lead: 'Start from the Labs home page, then choose a reproducible workflow for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.',
+        experimentsTitle: 'Experiment Builder',
+        experimentsDesc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.',
+        phaseTitle: 'Phase / Regime Scan',
+        phaseDesc: 'Generate cautious finite-size regime maps from existing Labs models and observables.',
+        topologyTitle: 'Topology Comparison',
+        topologyDesc: 'Run the same local rule across different spaces and compare topology-sensitive observables.',
+        validationTitle: 'Validation & Reproducibility',
+        validationDesc: 'Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.',
+        publicationTitle: 'Publication & Dataset Export',
+        publicationDesc: 'Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.',
+        open: 'Open'
+      },
+      zh: {
+        home: '\u9996\u9801',
+        eyebrow: 'Topoboard Labs',
+        title: '\u96e2\u6563\u62d3\u64b2\u52d5\u529b\u5b78\u5be6\u9a57\u5e73\u53f0',
+        lead: '\u5f9e Labs \u9996\u9801\u958b\u59cb\uff0c\u518d\u9078\u64c7\u5be6\u9a57\u5efa\u69cb\u3001\u76f8\u5716\u6383\u63cf\u3001\u62d3\u64b2\u6bd4\u8f03\u3001\u9a57\u8b49\uff0c\u6216\u53ef\u51fa\u7248\u8cc7\u6599\u96c6\u532f\u51fa\u7684\u53ef\u91cd\u73fe\u5de5\u4f5c\u6d41\u7a0b\u3002',
+        experimentsTitle: '\u5be6\u9a57\u5efa\u69cb\u5668',
+        experimentsDesc: '\u8a2d\u5b9a\u6a21\u578b\u3001\u62d3\u64b2\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u3001\u6279\u6b21\u57f7\u884c\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u3002',
+        phaseTitle: '\u76f8\u5716 / \u5340\u57df\u6383\u63cf',
+        phaseDesc: '\u7528\u65e2\u6709 Labs \u6a21\u578b\u8207\u89c0\u6e2c\u91cf\u7522\u751f\u8b39\u614e\u6a19\u793a\u7684\u6709\u9650\u5c3a\u5bf8\u5340\u57df\u5716\u3002',
+        topologyTitle: '\u62d3\u64b2\u6bd4\u8f03',
+        topologyDesc: '\u5728\u4e0d\u540c\u7a7a\u9593\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u4e26\u6bd4\u8f03\u62d3\u64b2\u654f\u611f\u7684\u89c0\u6e2c\u91cf\u3002',
+        validationTitle: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
+        validationDesc: '\u7a3d\u6838\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u4e2d\u7e7c\u8cc7\u6599\u3001\u62d3\u64b2\u4e0d\u8b8a\u91cf\u3001\u57fa\u6e96\u7bc4\u570d\u8207\u8b66\u544a\u3002',
+        publicationTitle: '\u51fa\u7248\u8207\u8cc7\u6599\u96c6\u532f\u51fa',
+        publicationDesc: '\u5c01\u88dd\u53ef\u5be9\u67e5 bundle\uff0c\u5305\u542b README\u3001\u8cc7\u6599\u5b57\u5178\u3001\u65b9\u6cd5\u3001\u5f15\u7528\u3001\u6821\u9a57\u78bc\u8207\u4f86\u6e90\u7d00\u9304\u3002',
+        open: '\u958b\u555f'
+      }
+    };
+    function normalizeLanguage(value) {
+      const language = String(value || '').toLowerCase();
+      return language === 'zh' || language === 'zh-hant' || language === 'zh_tw' ? 'zh' : 'en';
+    }
+    function currentLanguage() {
+      const params = new URLSearchParams(location.search);
+      if (params.get('lang')) return normalizeLanguage(params.get('lang'));
+      try { return normalizeLanguage(localStorage.getItem(STORAGE_KEY) || navigator.language); } catch { return 'en'; }
+    }
+    function applyLanguage(language) {
+      document.documentElement.lang = language === 'zh' ? 'zh-Hant' : 'en';
+      document.querySelectorAll('[data-i18n]').forEach((element) => {
+        element.textContent = TEXT[language][element.dataset.i18n] || TEXT.en[element.dataset.i18n] || element.textContent;
+      });
+      document.querySelectorAll('[data-lang]').forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.lang === language));
+      });
+    }
+    document.querySelectorAll('[data-lang]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const language = normalizeLanguage(button.dataset.lang);
+        try { localStorage.setItem(STORAGE_KEY, language); } catch {}
+        applyLanguage(language);
+      });
+    });
+    applyLanguage(currentLanguage());
+  </script>
+</body>
+</html>

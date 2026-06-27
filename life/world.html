@@ -434,6 +434,120 @@
         <article class="observable-wide"><span data-life-i18n="detectedStructures">Detected structures</span><strong id="obsDetectedStructures">chaotic / not classified</strong></article>
       </div>
 
+      <section class="phase-scanner-panel" aria-labelledby="phaseScannerTitle">
+        <div class="phase-scanner-heading">
+          <div>
+            <p class="eyebrow" data-life-i18n="phaseScannerEyebrow">Rule-space scan</p>
+            <h3 id="phaseScannerTitle" data-life-i18n="phaseScannerTitle">Phase Diagram Scanner</h3>
+          </div>
+          <p id="phaseScannerStatus" class="phase-scanner-status" data-life-i18n="phaseScannerIdle">Ready for a small safe scan.</p>
+        </div>
+        <div class="phase-scanner-controls">
+          <label>
+            <span data-life-i18n="phaseScannerGeometry">Fixed geometry</span>
+            <select id="phaseScanGeometrySelect">
+              <option value="open" selected>R2 open plane</option>
+              <option value="torus">T2 torus</option>
+              <option value="cylinder">Cylinder</option>
+              <option value="mobius">Mobius strip</option>
+              <option value="klein">Klein bottle</option>
+              <option value="projective">RP2 projective plane</option>
+            </select>
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerLattice">Fixed lattice</span>
+            <select id="phaseScanLatticeSelect">
+              <option value="square" selected>Square</option>
+              <option value="triangular">Triangular</option>
+              <option value="honeycomb">Honeycomb</option>
+            </select>
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerNeighborhood">Fixed neighborhood</span>
+            <select id="phaseScanNeighborhoodSelect">
+              <option value="moore" selected>Moore / Chebyshev</option>
+              <option value="von_neumann">Von Neumann / Manhattan</option>
+              <option value="nearest">Lattice nearest</option>
+            </select>
+          </label>
+          <label>
+            <span data-life-i18n="boardSize">Board size</span>
+            <input id="phaseScanBoardSizeInput" type="number" min="12" max="80" step="4" value="32" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerDensity">Seed density</span>
+            <input id="phaseScanDensityInput" type="number" min="0.01" max="0.8" step="0.01" value="0.22" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerSeeds">Random seeds per rule</span>
+            <input id="phaseScanSeedsInput" type="number" min="1" max="12" step="1" value="3" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerGenerations">Generations per run</span>
+            <input id="phaseScanGenerationsInput" type="number" min="5" max="300" step="5" value="80" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerBirthSets">Birth subsets</span>
+            <input id="phaseScanBirthSetsInput" type="text" value="3;36;2;34" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerSurvivalSets">Survival subsets</span>
+            <input id="phaseScanSurvivalSetsInput" type="text" value="23;34;2;34678" />
+          </label>
+        </div>
+        <p class="phase-scanner-note" data-life-i18n="phaseScannerNote">Defaults scan a small 4x4 subset of 2D Life-like B/S rules. Use semicolons to add more subsets carefully.</p>
+        <div class="life-button-row phase-scanner-actions">
+          <button class="life-button" id="phaseScanStartButton" type="button" data-life-i18n="phaseScannerStart">Start scan</button>
+          <button class="life-button" id="phaseScanCancelButton" type="button" data-life-i18n="phaseScannerCancel" disabled>Cancel scan</button>
+          <button class="life-button" id="phaseScanExportJsonButton" type="button" data-life-i18n="phaseScannerExportJson" disabled>Export scan JSON</button>
+          <button class="life-button" id="phaseScanExportCsvButton" type="button" data-life-i18n="phaseScannerExportCsv" disabled>Export scan CSV</button>
+        </div>
+        <div id="phaseScannerGrid" class="phase-scanner-grid" aria-live="polite"></div>
+        <div class="phase-scanner-legend" aria-label="Phase scanner legend" data-life-i18n-label="phaseScannerLegend">
+          <span data-phase-class="extinction" data-life-i18n="phaseClassExtinction">extinction</span>
+          <span data-phase-class="stable" data-life-i18n="phaseClassStable">stable/frozen</span>
+          <span data-phase-class="oscillator" data-life-i18n="phaseClassOscillator">oscillator</span>
+          <span data-phase-class="growing" data-life-i18n="phaseClassGrowing">growing</span>
+          <span data-phase-class="active" data-life-i18n="phaseClassActive">chaotic/active</span>
+        </div>
+      </section>
+
+      <section class="topology-compare-panel" aria-labelledby="topologyCompareTitle">
+        <div class="topology-compare-heading">
+          <div>
+            <p class="eyebrow" data-life-i18n="topologyCompareEyebrow">Same seed, different spaces</p>
+            <h3 id="topologyCompareTitle" data-life-i18n="topologyCompareTitle">Topology Compare</h3>
+          </div>
+          <p id="topologyCompareStatus" class="topology-compare-status" data-life-i18n="topologyCompareIdle">Choose 2-4 geometries and run a synchronized comparison.</p>
+        </div>
+        <p class="topology-compare-note" data-life-i18n="topologyCompareNote">Uses the current rule preset, lattice, neighborhood, and modifiers without changing the main board.</p>
+        <div class="topology-compare-geometries" id="topologyCompareGeometryList" aria-label="Topology compare geometries" data-life-i18n-label="topologyCompareGeometryChoices"></div>
+        <div class="topology-compare-controls">
+          <label>
+            <span data-life-i18n="boardSize">Board size</span>
+            <input id="topologyCompareBoardSizeInput" type="number" min="12" max="80" step="4" value="32" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerDensity">Seed density</span>
+            <input id="topologyCompareDensityInput" type="number" min="0.01" max="0.8" step="0.01" value="0.22" />
+          </label>
+          <label>
+            <span data-life-i18n="topologyCompareSeed">Initial random seed</span>
+            <input id="topologyCompareSeedInput" type="number" min="1" step="1" value="20260627" />
+          </label>
+          <label>
+            <span data-life-i18n="phaseScannerGenerations">Generations per run</span>
+            <input id="topologyCompareGenerationsInput" type="number" min="5" max="300" step="5" value="80" />
+          </label>
+        </div>
+        <p id="topologyCompareRuleSummary" class="topology-compare-rule"></p>
+        <div class="life-button-row topology-compare-actions">
+          <button class="life-button" id="topologyCompareRunButton" type="button" data-life-i18n="topologyCompareRun">Run comparison</button>
+          <button class="life-button" id="topologyCompareExportJsonButton" type="button" data-life-i18n="topologyCompareExportJson" disabled>Export comparison JSON</button>
+        </div>
+        <div id="topologyCompareResults" class="topology-compare-results" aria-live="polite"></div>
+      </section>
+
       <div class="plot-grid">
         <article>
           <h3 data-life-i18n="populationPlot">Population</h3>

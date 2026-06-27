@@ -112,6 +112,8 @@ const LIFE_PATTERN_LIBRARY = Object.freeze([
     ]
   }
 ]);
+const TOPOLOGY_COMPARE_GEOMETRY_IDS = Object.freeze(['r2', 't2_flat', 'cylinder', 't2', 'mobius', 'klein', 'klein_surface', 'sphere', 'rp2']);
+const TOPOLOGY_COMPARE_DEFAULT_GEOMETRIES = Object.freeze(['r2', 't2_flat', 'cylinder', 'mobius']);
 const LIFE_WORLD_EXTRA_I18N = Object.freeze({
   en: {
     controlTabsLabel: 'Life World control views',
@@ -388,6 +390,13 @@ function downloadTextFile(filename, text, mimeType) {
 function exportTimestamp() {
   return new Date().toISOString().replace(/[:.]/g, '-');
 }
+function createDeterministicRng(seed = 1) {
+  let state = (Number(seed) >>> 0) || 1;
+  return () => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
 function hashAliveCells(engine) {
   const parts = [];
   for (let i = 0; i < engine.cells.length; i += 1) {
@@ -599,6 +608,31 @@ export class LifeUI {
     this.patternJson = root.getElementById('patternJson');
     this.exportTimeSeriesCsvButton = root.getElementById('exportTimeSeriesCsvButton');
     this.exportExperimentJsonButton = root.getElementById('exportExperimentJsonButton');
+    this.phaseScanGeometrySelect = root.getElementById('phaseScanGeometrySelect');
+    this.phaseScanLatticeSelect = root.getElementById('phaseScanLatticeSelect');
+    this.phaseScanNeighborhoodSelect = root.getElementById('phaseScanNeighborhoodSelect');
+    this.phaseScanBoardSizeInput = root.getElementById('phaseScanBoardSizeInput');
+    this.phaseScanDensityInput = root.getElementById('phaseScanDensityInput');
+    this.phaseScanSeedsInput = root.getElementById('phaseScanSeedsInput');
+    this.phaseScanGenerationsInput = root.getElementById('phaseScanGenerationsInput');
+    this.phaseScanBirthSetsInput = root.getElementById('phaseScanBirthSetsInput');
+    this.phaseScanSurvivalSetsInput = root.getElementById('phaseScanSurvivalSetsInput');
+    this.phaseScanStartButton = root.getElementById('phaseScanStartButton');
+    this.phaseScanCancelButton = root.getElementById('phaseScanCancelButton');
+    this.phaseScanExportJsonButton = root.getElementById('phaseScanExportJsonButton');
+    this.phaseScanExportCsvButton = root.getElementById('phaseScanExportCsvButton');
+    this.phaseScannerStatus = root.getElementById('phaseScannerStatus');
+    this.phaseScannerGrid = root.getElementById('phaseScannerGrid');
+    this.topologyCompareGeometryList = root.getElementById('topologyCompareGeometryList');
+    this.topologyCompareBoardSizeInput = root.getElementById('topologyCompareBoardSizeInput');
+    this.topologyCompareDensityInput = root.getElementById('topologyCompareDensityInput');
+    this.topologyCompareSeedInput = root.getElementById('topologyCompareSeedInput');
+    this.topologyCompareGenerationsInput = root.getElementById('topologyCompareGenerationsInput');
+    this.topologyCompareRuleSummary = root.getElementById('topologyCompareRuleSummary');
+    this.topologyCompareRunButton = root.getElementById('topologyCompareRunButton');
+    this.topologyCompareExportJsonButton = root.getElementById('topologyCompareExportJsonButton');
+    this.topologyCompareStatus = root.getElementById('topologyCompareStatus');
+    this.topologyCompareResults = root.getElementById('topologyCompareResults');
     this.playButton = root.getElementById('playButton');
     this.gridToggleButton = root.getElementById('lifeGridToggleBtn');
     this.boardOpacityButton = root.getElementById('boardOpacityButton');
@@ -650,6 +684,9 @@ export class LifeUI {
     this.syncingNeighborhoodControls = false;
     this.pendingNeighborhoodWarnings = [];
     this.lastNeighborhoodWarning = '';
+    this.phaseScannerWorker = null;
+    this.phaseScanResult = null;
+    this.topologyCompareResult = null;
     this.engine = createLifeEngine(modeToEngineConfig(this.mode));
   }
 
@@ -698,6 +735,8 @@ export class LifeUI {
     this.root.getElementById('importButton').addEventListener('click', () => this.importPattern());
     this.exportTimeSeriesCsvButton?.addEventListener('click', () => this.exportTimeSeriesCsv());
     this.exportExperimentJsonButton?.addEventListener('click', () => this.exportExperimentJson());
+    this.installPhaseScanner();
+    this.installTopologyCompare();
     this.installCustomRuleDesigner();
     this.installNeighborhoodLaboratory();
     this.installPatternLibrary();
@@ -1421,6 +1460,7 @@ export class LifeUI {
     this.updateNeighborhoodLaboratory();
     this.populatePatternLibrary();
     this.updateGeometryInfoCard();
+    this.updateTopologyCompareRuleSummary();
   }
 
   reset() {
@@ -2920,6 +2960,634 @@ export class LifeUI {
     const canvas = this.speciesPlot; const ctx = canvas.getContext('2d'); const width = canvas.width; const height = canvas.height;
     ctx.clearRect(0, 0, width, height); ctx.fillStyle = 'rgba(5,10,18,0.82)'; ctx.fillRect(0, 0, width, height);
     [1, 2, 3].forEach((species) => { const values = this.history.map((item) => item.speciesFractions?.[species] || 0); if (values.length < 2) return; ctx.strokeStyle = COLORS[species]; ctx.lineWidth = 2; ctx.beginPath(); values.forEach((value, i) => { const x = (i / Math.max(1, values.length - 1)) * width; const y = height - value * (height - 12) - 6; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); });
+  }
+
+  uiText(key, replacements = {}) {
+    return Object.entries(replacements).reduce(
+      (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+      t(key, this.language)
+    );
+  }
+
+  installPhaseScanner() {
+    if (!this.phaseScanStartButton || !this.phaseScannerGrid) return;
+    this.syncPhaseScannerOptions();
+    this.phaseScanStartButton.addEventListener('click', () => this.startPhaseScan());
+    this.phaseScanCancelButton?.addEventListener('click', () => this.cancelPhaseScan());
+    this.phaseScanExportJsonButton?.addEventListener('click', () => this.exportPhaseScanJson());
+    this.phaseScanExportCsvButton?.addEventListener('click', () => this.exportPhaseScanCsv());
+    this.renderPhaseScannerGrid();
+    this.setPhaseScannerRunning(false);
+  }
+
+  syncPhaseScannerOptions() {
+    const setOptions = (select, options, fallback) => {
+      if (!select) return;
+      const previous = select.value || fallback;
+      select.replaceChildren(...options.map(({ value, label }) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }));
+      select.value = options.some((option) => option.value === previous) ? previous : fallback;
+    };
+
+    setOptions(this.phaseScanGeometrySelect, [
+      { value: 'open', label: t('phaseGeometryOpen', this.language) },
+      { value: 'torus', label: t('phaseGeometryTorus', this.language) },
+      { value: 'cylinder', label: t('phaseGeometryCylinder', this.language) },
+      { value: 'mobius', label: t('phaseGeometryMobius', this.language) },
+      { value: 'klein', label: t('phaseGeometryKlein', this.language) },
+      { value: 'projective', label: t('phaseGeometryProjective', this.language) }
+    ], 'open');
+    setOptions(this.phaseScanLatticeSelect, [
+      { value: 'square', label: t('squareLattice', this.language) },
+      { value: 'triangular', label: t('triangularLattice', this.language) },
+      { value: 'honeycomb', label: t('honeycombLattice', this.language) }
+    ], 'square');
+    setOptions(this.phaseScanNeighborhoodSelect, [
+      { value: 'moore', label: t('phaseNeighborhoodMoore', this.language) },
+      { value: 'von_neumann', label: t('phaseNeighborhoodVonNeumann', this.language) },
+      { value: 'nearest', label: t('phaseNeighborhoodNearest', this.language) }
+    ], 'moore');
+  }
+
+  readPhaseScanConfig() {
+    return {
+      boundary: this.phaseScanGeometrySelect?.value || 'open',
+      lattice: this.phaseScanLatticeSelect?.value || 'square',
+      neighborhood: this.phaseScanNeighborhoodSelect?.value || 'moore',
+      boardSize: Number(this.phaseScanBoardSizeInput?.value || 32),
+      seedDensity: Number(this.phaseScanDensityInput?.value || 0.22),
+      seedsPerRule: Number(this.phaseScanSeedsInput?.value || 3),
+      generations: Number(this.phaseScanGenerationsInput?.value || 80),
+      birthSets: this.phaseScanBirthSetsInput?.value || '3;36;2;34',
+      survivalSets: this.phaseScanSurvivalSetsInput?.value || '23;34;2;34678',
+      baseSeed: 20260627
+    };
+  }
+
+  setPhaseScannerRunning(running) {
+    const controls = [
+      this.phaseScanGeometrySelect,
+      this.phaseScanLatticeSelect,
+      this.phaseScanNeighborhoodSelect,
+      this.phaseScanBoardSizeInput,
+      this.phaseScanDensityInput,
+      this.phaseScanSeedsInput,
+      this.phaseScanGenerationsInput,
+      this.phaseScanBirthSetsInput,
+      this.phaseScanSurvivalSetsInput
+    ];
+    controls.forEach((control) => { if (control) control.disabled = Boolean(running); });
+    if (this.phaseScanStartButton) this.phaseScanStartButton.disabled = Boolean(running);
+    if (this.phaseScanCancelButton) this.phaseScanCancelButton.disabled = !running;
+    const canExport = !running && Boolean(this.phaseScanResult);
+    if (this.phaseScanExportJsonButton) this.phaseScanExportJsonButton.disabled = !canExport;
+    if (this.phaseScanExportCsvButton) this.phaseScanExportCsvButton.disabled = !canExport;
+  }
+
+  updatePhaseScannerStatus(key, replacements = {}) {
+    if (!this.phaseScannerStatus) return;
+    this.phaseScannerStatus.textContent = this.uiText(key, replacements);
+  }
+
+  startPhaseScan() {
+    if (!this.phaseScanStartButton) return;
+    this.cancelPhaseScan({ silent: true });
+    this.phaseScanResult = null;
+    this.renderPhaseScannerGrid();
+    this.updatePhaseScannerStatus('phaseScannerStarting');
+    this.setPhaseScannerRunning(true);
+
+    if (!window.Worker) {
+      this.setPhaseScannerRunning(false);
+      this.updatePhaseScannerStatus('phaseScannerWorkerUnavailable');
+      return;
+    }
+
+    try {
+      const worker = new Worker(new URL('./PhaseScannerWorker.js', import.meta.url), { type: 'module' });
+      this.phaseScannerWorker = worker;
+      worker.addEventListener('message', (event) => this.handlePhaseScannerMessage(event.data));
+      worker.addEventListener('error', (event) => {
+        this.handlePhaseScannerMessage({ type: 'error', message: event.message || 'Worker error' });
+      });
+      worker.postMessage({ type: 'scan', config: this.readPhaseScanConfig() });
+    } catch (error) {
+      this.phaseScannerWorker = null;
+      this.setPhaseScannerRunning(false);
+      this.updatePhaseScannerStatus('phaseScannerError', { message: error?.message || String(error) });
+    }
+  }
+
+  cancelPhaseScan(options = {}) {
+    if (this.phaseScannerWorker) {
+      this.phaseScannerWorker.terminate();
+      this.phaseScannerWorker = null;
+    }
+    this.setPhaseScannerRunning(false);
+    if (!options.silent) this.updatePhaseScannerStatus('phaseScannerCancelled');
+  }
+
+  handlePhaseScannerMessage(message = {}) {
+    if (message.type === 'progress') {
+      this.updatePhaseScannerStatus('phaseScannerRunning', {
+        done: message.completedRuns || 0,
+        total: message.totalRuns || 0
+      });
+      return;
+    }
+    if (message.type === 'complete') {
+      this.phaseScannerWorker?.terminate();
+      this.phaseScannerWorker = null;
+      this.phaseScanResult = message.payload;
+      this.renderPhaseScannerGrid(this.phaseScanResult);
+      const runs = (this.phaseScanResult?.results || []).reduce((sum, result) => sum + (result.runs?.length || 0), 0);
+      this.setPhaseScannerRunning(false);
+      this.updatePhaseScannerStatus('phaseScannerComplete', {
+        rules: this.phaseScanResult?.results?.length || 0,
+        runs
+      });
+      return;
+    }
+    if (message.type === 'error') {
+      this.phaseScannerWorker?.terminate();
+      this.phaseScannerWorker = null;
+      this.setPhaseScannerRunning(false);
+      this.updatePhaseScannerStatus('phaseScannerError', { message: message.message || 'unknown error' });
+    }
+  }
+
+  phaseClassLabel(kind = 'active') {
+    const key = {
+      extinction: 'phaseClassExtinction',
+      stable: 'phaseClassStable',
+      oscillator: 'phaseClassOscillator',
+      growing: 'phaseClassGrowing',
+      active: 'phaseClassActive'
+    }[kind] || 'phaseClassActive';
+    return t(key, this.language);
+  }
+
+  renderPhaseScannerGrid(result = this.phaseScanResult) {
+    if (!this.phaseScannerGrid) return;
+    this.phaseScannerGrid.replaceChildren();
+    if (!result) {
+      const empty = document.createElement('p');
+      empty.className = 'phase-scanner-empty';
+      empty.textContent = t('phaseScannerNoResults', this.language);
+      this.phaseScannerGrid.append(empty);
+      return;
+    }
+
+    const birthSets = result.config?.birthSets || [];
+    const survivalSets = result.config?.survivalSets || [];
+    const byRule = new Map((result.results || []).map((entry) => [`${entry.birth}/${entry.survival}`, entry]));
+    this.phaseScannerGrid.style.setProperty('--phase-columns', String(Math.max(1, birthSets.length)));
+
+    const makeAxis = (text) => {
+      const axis = document.createElement('div');
+      axis.className = 'phase-scanner-axis';
+      axis.textContent = text;
+      return axis;
+    };
+
+    const header = document.createElement('div');
+    header.className = 'phase-scanner-row phase-scanner-row-head';
+    header.append(makeAxis('S \\ B'));
+    birthSets.forEach((birth) => header.append(makeAxis(`B${birth || '-'}`)));
+    this.phaseScannerGrid.append(header);
+
+    survivalSets.forEach((survival) => {
+      const row = document.createElement('div');
+      row.className = 'phase-scanner-row';
+      row.append(makeAxis(`S${survival || '-'}`));
+      birthSets.forEach((birth) => {
+        const entry = byRule.get(`${birth}/${survival}`);
+        const cell = document.createElement('article');
+        cell.className = 'phase-scanner-cell';
+        cell.dataset.phaseClass = entry?.classification || 'active';
+        if (!entry) {
+          cell.textContent = '-';
+        } else {
+          const label = this.phaseClassLabel(entry.classification);
+          const rule = document.createElement('strong');
+          rule.textContent = entry.rule;
+          const classification = document.createElement('span');
+          classification.textContent = label;
+          const density = document.createElement('small');
+          density.textContent = `${t('phaseMeanDensity', this.language)} ${formatNumber(entry.meanFinalDensity, 3)}`;
+          const counts = document.createElement('small');
+          counts.textContent = Object.entries(entry.classCounts || {})
+            .filter(([, count]) => count)
+            .map(([kind, count]) => `${this.phaseClassLabel(kind)}:${count}`)
+            .join(' ');
+          cell.title = `${entry.rule}: ${label}`;
+          cell.append(rule, classification, density, counts);
+        }
+        row.append(cell);
+      });
+      this.phaseScannerGrid.append(row);
+    });
+  }
+
+  buildPhaseScanCsv() {
+    if (!this.phaseScanResult) return '';
+    const config = this.phaseScanResult.config || {};
+    const columns = [
+      'createdAt',
+      'boundary',
+      'lattice',
+      'neighborhood',
+      'boardSize',
+      'seedDensity',
+      'seedsPerRule',
+      'generations',
+      'rule',
+      'birth',
+      'survival',
+      'classification',
+      'extinction',
+      'stable',
+      'oscillator',
+      'growing',
+      'active',
+      'meanFinalPopulation',
+      'meanFinalDensity',
+      'recurrencePeriods'
+    ];
+    const rows = (this.phaseScanResult.results || []).map((entry) => ({
+      createdAt: this.phaseScanResult.createdAt,
+      boundary: config.boundary,
+      lattice: config.lattice,
+      neighborhood: config.neighborhood,
+      boardSize: config.boardSize,
+      seedDensity: config.seedDensity,
+      seedsPerRule: config.seedsPerRule,
+      generations: config.generations,
+      rule: entry.rule,
+      birth: entry.birth,
+      survival: entry.survival,
+      classification: entry.classification,
+      extinction: entry.classCounts?.extinction || 0,
+      stable: entry.classCounts?.stable || 0,
+      oscillator: entry.classCounts?.oscillator || 0,
+      growing: entry.classCounts?.growing || 0,
+      active: entry.classCounts?.active || 0,
+      meanFinalPopulation: entry.meanFinalPopulation,
+      meanFinalDensity: entry.meanFinalDensity,
+      recurrencePeriods: entry.recurrencePeriods
+    }));
+    return [
+      columns.join(','),
+      ...rows.map((row) => columns.map((column) => csvEscape(row[column])).join(','))
+    ].join('\n');
+  }
+
+  exportPhaseScanJson() {
+    if (!this.phaseScanResult) return;
+    const json = JSON.stringify(this.phaseScanResult, null, 2);
+    if (this.patternJson) this.patternJson.value = json;
+    downloadTextFile(`topoboard-life-phase-scan-${exportTimestamp()}.json`, json, 'application/json;charset=utf-8');
+    this.updatePhaseScannerStatus('phaseScannerJsonExported');
+  }
+
+  exportPhaseScanCsv() {
+    if (!this.phaseScanResult) return;
+    const csv = this.buildPhaseScanCsv();
+    if (this.patternJson) this.patternJson.value = csv;
+    downloadTextFile(`topoboard-life-phase-scan-${exportTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
+    this.updatePhaseScannerStatus('phaseScannerCsvExported');
+  }
+
+  installTopologyCompare() {
+    if (!this.topologyCompareRunButton || !this.topologyCompareResults) return;
+    this.syncTopologyCompareOptions();
+    this.topologyCompareRunButton.addEventListener('click', () => this.runTopologyCompare());
+    this.topologyCompareExportJsonButton?.addEventListener('click', () => this.exportTopologyCompareJson());
+    [
+      this.topologyCompareBoardSizeInput,
+      this.topologyCompareDensityInput,
+      this.topologyCompareSeedInput,
+      this.topologyCompareGenerationsInput
+    ].forEach((input) => input?.addEventListener('input', () => this.updateTopologyCompareRuleSummary()));
+    this.updateTopologyCompareRuleSummary();
+    this.renderTopologyCompareResults();
+  }
+
+  syncTopologyCompareOptions() {
+    if (!this.topologyCompareGeometryList) return;
+    this.topologyCompareGeometryList.replaceChildren();
+    TOPOLOGY_COMPARE_GEOMETRY_IDS.forEach((geometryId) => {
+      const geometry = findLifeGeometry(geometryId);
+      const label = document.createElement('label');
+      label.className = 'topology-compare-choice';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = geometry.id;
+      input.checked = TOPOLOGY_COMPARE_DEFAULT_GEOMETRIES.includes(geometry.id);
+      input.addEventListener('change', () => this.validateTopologyCompareSelection(input));
+      const text = document.createElement('span');
+      text.textContent = geometryTitle(geometry, this.language);
+      label.append(input, text);
+      this.topologyCompareGeometryList.append(label);
+    });
+  }
+
+  selectedTopologyCompareGeometryIds() {
+    if (!this.topologyCompareGeometryList) return [];
+    return [...this.topologyCompareGeometryList.querySelectorAll('input[type="checkbox"]:checked')]
+      .map((input) => input.value)
+      .slice(0, 4);
+  }
+
+  validateTopologyCompareSelection(changedInput = null) {
+    const checked = [...(this.topologyCompareGeometryList?.querySelectorAll('input[type="checkbox"]:checked') || [])];
+    if (checked.length > 4 && changedInput) {
+      changedInput.checked = false;
+      this.updateTopologyCompareStatus('topologyCompareTooMany');
+      return false;
+    }
+    this.updateTopologyCompareRuleSummary();
+    return checked.length >= 2 && checked.length <= 4;
+  }
+
+  updateTopologyCompareStatus(key, replacements = {}) {
+    if (!this.topologyCompareStatus) return;
+    this.topologyCompareStatus.textContent = this.uiText(key, replacements);
+  }
+
+  topologyCompareLattice() {
+    const lattice = this.latticeSelect?.value || 'square';
+    return ['square', 'triangular', 'honeycomb'].includes(lattice) ? lattice : 'square';
+  }
+
+  topologyCompareRuleConfig(lattice = this.topologyCompareLattice()) {
+    const neighborhood = this.resolveNeighborhoodControls({ applyFallback: false });
+    const speciesCount = Math.max(1, Number(this.speciesSelect?.value) || 1);
+    let rule = tuneRuleForLattice(getRulePreset(this.ruleSelect?.value || 'conway'), lattice, 2);
+    if (this.customRuleActive) {
+      const birth = normalizeRuleCounts(this.customRuleBirth);
+      const survival = normalizeRuleCounts(this.customRuleSurvival);
+      rule = {
+        ...rule,
+        id: 'custom',
+        label: 'Custom Life',
+        type: 'life-like',
+        rule: serializeLifeBSRule({ birth, survival }),
+        birth,
+        survival,
+        neighborhoodType: neighborhood.type || rule.neighborhoodType || 'moore',
+        latticeNeighborCount: this.maxNeighborCount()
+      };
+    }
+    return {
+      ...rule,
+      speciesCount,
+      birthNoise: Number(this.birthNoiseRange?.value) || 0,
+      deathNoise: Number(this.deathNoiseRange?.value) || 0,
+      environmentNoise: Number(this.environmentNoiseRange?.value) || 0,
+      ruleNoise: Number(this.ruleNoiseRange?.value) || 0,
+      topologyDefectNoise: Number(this.topologyDefectNoiseRange?.value) || 0,
+      mutationRate: Number(this.mutationRange?.value) || 0,
+      maxAge: Number(this.ageRange?.value) || undefined,
+      agingDeathRate: Number(this.agingDeathRateRange?.value) || 0,
+      youngBirthBonus: Number(this.youngBirthBonusRange?.value) || 0,
+      oldAgePenalty: Number(this.oldAgePenaltyRange?.value) || 0
+    };
+  }
+
+  updateTopologyCompareRuleSummary() {
+    if (!this.topologyCompareRuleSummary) return;
+    const lattice = this.topologyCompareLattice();
+    const latticeOption = latticesForGeometry('r2').find((item) => item.id === lattice) || { title: lattice, zhTitle: lattice };
+    const rule = this.topologyCompareRuleConfig(lattice);
+    const neighborhoodLabel = this.neighborhoodSelect?.selectedOptions?.[0]?.textContent || this.neighborhoodSelect?.value || 'moore';
+    this.topologyCompareRuleSummary.textContent = this.uiText('topologyCompareRuleSummary', {
+      rule: rule.rule || rule.label || rule.id,
+      neighborhood: neighborhoodLabel,
+      lattice: latticeTitle(latticeOption, this.language)
+    });
+  }
+
+  readTopologyCompareConfig() {
+    const boardSize = Math.round(Math.max(12, Math.min(80, Number(this.topologyCompareBoardSizeInput?.value) || 32)));
+    const generations = Math.round(Math.max(5, Math.min(300, Number(this.topologyCompareGenerationsInput?.value) || 80)));
+    const seedDensity = Math.max(0.01, Math.min(0.8, Number(this.topologyCompareDensityInput?.value) || 0.22));
+    const seed = Math.max(1, Math.round(Number(this.topologyCompareSeedInput?.value) || 20260627));
+    const lattice = this.topologyCompareLattice();
+    const neighborhood = this.resolveNeighborhoodControls({ applyFallback: false });
+    return {
+      geometryIds: this.selectedTopologyCompareGeometryIds(),
+      boardSize,
+      seedDensity,
+      seed,
+      generations,
+      lattice,
+      neighborhoodType: neighborhood.type || this.neighborhoodSelect?.value || 'moore',
+      neighborhoodRadius: neighborhood.radius || 1,
+      neighborhoodMetric: neighborhood.metric || this.neighborhoodMetricFromType(this.neighborhoodSelect?.value),
+      rule: this.topologyCompareRuleConfig(lattice)
+    };
+  }
+
+  runTopologyCompare() {
+    const config = this.readTopologyCompareConfig();
+    if (config.geometryIds.length < 2 || config.geometryIds.length > 4) {
+      this.updateTopologyCompareStatus('topologyCompareSelectRange');
+      return;
+    }
+    this.updateTopologyCompareStatus('topologyCompareRunning');
+    this.topologyCompareResult = {
+      schema: 'topoboard-life-topology-compare',
+      version: 1,
+      createdAt: new Date().toISOString(),
+      config: {
+        ...config,
+        rule: {
+          id: config.rule.id || 'custom',
+          label: config.rule.label || config.rule.name || config.rule.rule || 'Life rule',
+          rule: config.rule.rule || null,
+          birth: Array.isArray(config.rule.birth) ? [...config.rule.birth] : [],
+          survival: Array.isArray(config.rule.survival) ? [...config.rule.survival] : [],
+          speciesCount: config.rule.speciesCount || 1
+        }
+      },
+      results: config.geometryIds.map((geometryId) => this.runTopologyComparisonForGeometry(geometryId, config))
+    };
+    this.renderTopologyCompareResults(this.topologyCompareResult);
+    if (this.topologyCompareExportJsonButton) this.topologyCompareExportJsonButton.disabled = false;
+    this.updateTopologyCompareStatus('topologyCompareComplete', { count: this.topologyCompareResult.results.length });
+  }
+
+  runTopologyComparisonForGeometry(geometryId, config) {
+    const geometry = findLifeGeometry(geometryId);
+    const engine = createLifeEngine({
+      dimension: 2,
+      size: [config.boardSize, config.boardSize],
+      boundary: geometry.topology,
+      lattice: config.lattice,
+      neighborhoodType: config.neighborhoodType,
+      neighborhoodRadius: config.neighborhoodRadius,
+      neighborhoodMetric: config.neighborhoodMetric,
+      rule: config.rule,
+      rng: createDeterministicRng(config.seed)
+    });
+    engine.randomSeed({
+      density: config.seedDensity,
+      speciesCount: config.rule.speciesCount || 1,
+      resetGeneration: true
+    });
+
+    const seen = new Map();
+    const samples = [];
+    let extinctionTime = null;
+    let oscillationPeriod = null;
+
+    for (let generation = 0; generation <= config.generations; generation += 1) {
+      const hash = hashAliveCells(engine);
+      const observables = engine.getObservables();
+      if (observables.population === 0 && extinctionTime == null) extinctionTime = generation;
+      if (hash && seen.has(hash) && oscillationPeriod == null) oscillationPeriod = generation - seen.get(hash);
+      if (hash && !seen.has(hash)) seen.set(hash, generation);
+      samples.push({
+        generation,
+        population: observables.population,
+        entropy: observables.entropy,
+        largestClusterSize: observables.largestClusterSize
+      });
+      if (generation < config.generations) engine.step();
+    }
+
+    const finalObservables = engine.getObservables();
+    finalObservables.oscillationPeriod = oscillationPeriod;
+    finalObservables.extinctionTime = extinctionTime;
+    finalObservables.survivalTime = extinctionTime ?? config.generations;
+    const status = finalObservables.population > 0 ? 'survival' : 'extinction';
+
+    return {
+      geometryId: geometry.id,
+      geometryTitle: geometryTitle(geometry, this.language),
+      topology: geometry.topology,
+      status,
+      finalPopulation: finalObservables.population,
+      survivalTime: finalObservables.survivalTime,
+      oscillationPeriod,
+      entropy: finalObservables.entropy,
+      largestClusterSize: finalObservables.largestClusterSize,
+      finalDensity: finalObservables.density,
+      finalObservables,
+      samples,
+      preview: this.snapshotAliveCells(engine)
+    };
+  }
+
+  snapshotAliveCells(engine) {
+    const cells = [];
+    for (let i = 0; i < engine.cells.length; i += 1) {
+      const cell = engine.cells[i];
+      if (!isAlive(cell)) continue;
+      const [x = 0, y = 0] = engine.positionFromIndex(i);
+      cells.push({ x, y, species: cell.species || 1 });
+    }
+    return {
+      dimension: engine.dimension,
+      size: engine.size.slice(),
+      cells
+    };
+  }
+
+  renderTopologyCompareResults(result = this.topologyCompareResult) {
+    if (!this.topologyCompareResults) return;
+    this.topologyCompareResults.replaceChildren();
+    if (!result) {
+      const empty = document.createElement('p');
+      empty.className = 'topology-compare-empty';
+      empty.textContent = t('topologyCompareNoResults', this.language);
+      this.topologyCompareResults.append(empty);
+      if (this.topologyCompareExportJsonButton) this.topologyCompareExportJsonButton.disabled = true;
+      return;
+    }
+
+    result.results.forEach((entry) => {
+      const card = document.createElement('article');
+      card.className = 'topology-compare-card';
+      card.dataset.compareStatus = entry.status;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 180;
+      canvas.height = 140;
+
+      const title = document.createElement('h4');
+      title.textContent = entry.geometryTitle;
+      const state = document.createElement('strong');
+      state.textContent = t(entry.status === 'survival' ? 'topologyCompareSurvival' : 'topologyCompareExtinction', this.language);
+
+      const metrics = document.createElement('dl');
+      [
+        ['population', entry.finalPopulation],
+        ['survivalTime', entry.survivalTime],
+        ['oscillation', entry.oscillationPeriod ? `P=${entry.oscillationPeriod}` : t('notYet', this.language)],
+        ['entropy', formatNumber(entry.entropy)],
+        ['largestCluster', entry.largestClusterSize]
+      ].forEach(([key, value]) => {
+        const dt = document.createElement('dt');
+        dt.textContent = t(key, this.language);
+        const dd = document.createElement('dd');
+        dd.textContent = String(value);
+        metrics.append(dt, dd);
+      });
+
+      card.append(canvas, title, state, metrics);
+      this.topologyCompareResults.append(card);
+      this.drawTopologyComparePreview(canvas, entry.preview);
+    });
+  }
+
+  drawTopologyComparePreview(canvas, preview = {}) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(3, 8, 14, 0.88)';
+    ctx.fillRect(0, 0, width, height);
+    const [sx = 1, sy = 1] = preview.size || [1, 1];
+    const scale = Math.min(width / sx, height / sy);
+    const offsetX = (width - sx * scale) / 2;
+    const offsetY = (height - sy * scale) / 2;
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= sx; x += Math.max(1, Math.ceil(sx / 12))) {
+      ctx.beginPath();
+      ctx.moveTo(offsetX + x * scale, offsetY);
+      ctx.lineTo(offsetX + x * scale, offsetY + sy * scale);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= sy; y += Math.max(1, Math.ceil(sy / 12))) {
+      ctx.beginPath();
+      ctx.moveTo(offsetX, offsetY + y * scale);
+      ctx.lineTo(offsetX + sx * scale, offsetY + y * scale);
+      ctx.stroke();
+    }
+    for (const cell of preview.cells || []) {
+      ctx.fillStyle = COLORS[cell.species] || COLORS[1];
+      ctx.fillRect(
+        offsetX + cell.x * scale,
+        offsetY + cell.y * scale,
+        Math.max(1, scale * 0.82),
+        Math.max(1, scale * 0.82)
+      );
+    }
+  }
+
+  exportTopologyCompareJson() {
+    if (!this.topologyCompareResult) return;
+    const json = JSON.stringify(this.topologyCompareResult, null, 2);
+    if (this.patternJson) this.patternJson.value = json;
+    downloadTextFile(`topoboard-life-topology-compare-${exportTimestamp()}.json`, json, 'application/json;charset=utf-8');
+    this.updateTopologyCompareStatus('topologyCompareJsonExported');
   }
 
   currentObservableSample() {
