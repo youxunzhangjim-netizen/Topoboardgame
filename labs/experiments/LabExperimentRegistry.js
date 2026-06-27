@@ -1,4 +1,10 @@
 export const LAB_APP_VERSION = '0.1.0';
+export const LAB_SCHEMA_VERSION = '1.0.0';
+export const LAB_HASH_VERSION = 'topoboard-canonical-v1';
+export const LAB_ENGINE_VERSION = 'labs-research-engine-0.1.0';
+export const LAB_TOPOLOGY_REGISTRY_VERSION = 'topology-registry-0.1.0';
+export const LAB_OBSERVABLE_REGISTRY_VERSION = 'observable-registry-0.1.0';
+export const LAB_RULE_REGISTRY_VERSION = 'rule-registry-0.1.0';
 
 export const LAB_SECTIONS = [
     'Spin Systems',
@@ -81,6 +87,7 @@ export const BUILDER_I18N = {
         mobileRunButton: 'Run',
         phaseDiagramGenerator: 'Phase Diagram Generator',
         topologyComparison: 'Topology Comparison',
+        validationSuite: 'Validation & Reproducibility',
         collapse: 'Collapse',
         expand: 'Expand',
         seedValueLabel: 'Seed / List / Start',
@@ -196,6 +203,7 @@ export const BUILDER_I18N = {
         mobileRunButton: '執行',
         phaseDiagramGenerator: '相圖產生器',
         topologyComparison: '拓撲比較',
+        validationSuite: '驗證與可重現性',
         collapse: '收合',
         expand: '展開',
         seedValueLabel: '種子 / 列表 / 起點',
@@ -280,6 +288,69 @@ export function labHash(value, prefix = 'lab') {
         hash = Math.imul(hash, 0x01000193) >>> 0;
     }
     return `${prefix}:${hash.toString(16).padStart(8, '0')}`;
+}
+
+export function platformInfo() {
+    const navigatorRef = typeof navigator === 'undefined' ? null : navigator;
+    const timezone = typeof Intl !== 'undefined'
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : undefined;
+    return {
+        userAgent: navigatorRef?.userAgent || 'unknown',
+        language: navigatorRef?.language || 'unknown',
+        timezone: timezone || 'unknown',
+        hardwareConcurrency: navigatorRef?.hardwareConcurrency || 0,
+        platform: navigatorRef?.platform || 'unknown',
+        rendererRelevant: false
+    };
+}
+
+export function buildBasicReproducibilityMetadata({
+    schemaName = 'TopoboardLabsObject',
+    modelId = 'unknown',
+    modelVersion = '',
+    rngAlgorithm = 'mulberry32',
+    rngSeed = null,
+    seedPlan = null,
+    configHash = '',
+    stateHashInitial = '',
+    stateHashFinal = '',
+    eventLogHash = '',
+    resultHash = '',
+    exportManifestHash = '',
+    deterministicReplaySupported = true,
+    knownNonDeterministicComponents = [],
+    warnings = [],
+    createdAt = new Date().toISOString()
+} = {}) {
+    const missingWarnings = [];
+    if (!rngSeed && !seedPlan) missingWarnings.push('Missing stored seed or seed plan.');
+    if (!modelVersion) missingWarnings.push('Missing model version; using registry app version fallback.');
+    if (!configHash) missingWarnings.push('Missing config hash.');
+    return {
+        schemaName,
+        schemaVersion: LAB_SCHEMA_VERSION,
+        appVersion: LAB_APP_VERSION,
+        modelVersion: modelVersion || `${modelId}@${LAB_APP_VERSION}`,
+        engineVersion: LAB_ENGINE_VERSION,
+        topologyRegistryVersion: LAB_TOPOLOGY_REGISTRY_VERSION,
+        observableRegistryVersion: LAB_OBSERVABLE_REGISTRY_VERSION,
+        ruleRegistryVersion: LAB_RULE_REGISTRY_VERSION,
+        rngAlgorithm,
+        rngSeed,
+        seedPlan,
+        platformInfo: platformInfo(),
+        createdAt,
+        configHash,
+        stateHashInitial: stateHashInitial || undefined,
+        stateHashFinal: stateHashFinal || undefined,
+        eventLogHash: eventLogHash || undefined,
+        resultHash: resultHash || undefined,
+        exportManifestHash: exportManifestHash || undefined,
+        deterministicReplaySupported,
+        knownNonDeterministicComponents,
+        warnings: [...missingWarnings, ...warnings]
+    };
 }
 
 export const TOPOLOGY_REGISTRY = [

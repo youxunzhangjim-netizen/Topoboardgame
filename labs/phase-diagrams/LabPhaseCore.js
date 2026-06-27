@@ -1,4 +1,9 @@
-import { labHash, stableStringify } from '../experiments/LabExperimentRegistry.js';
+import {
+    LAB_SCHEMA_VERSION,
+    buildBasicReproducibilityMetadata,
+    labHash,
+    stableStringify
+} from '../experiments/LabExperimentRegistry.js';
 
 export const REGIME_LABELS = [
     'stable',
@@ -311,6 +316,8 @@ export function buildPhaseScanResult({
     });
 
     const manifest = {
+        schemaName: 'LabPhaseExportManifest',
+        schemaVersion: LAB_SCHEMA_VERSION,
         phaseScanId: phaseConfig.phaseScanId,
         phaseScanHash: phaseConfig.experimentHash,
         batchHash: batchConfig.batchHash,
@@ -331,13 +338,16 @@ export function buildPhaseScanResult({
             ...warnings
         ]
     };
+    manifest.manifestHash = labHash({ ...manifest, manifestHash: '' }, 'phase-manifest');
     const resultPayload = {
         phaseConfig,
         batchHash: batchConfig.batchHash,
         classifications,
         failedRuns
     };
-    return {
+    const result = {
+        schemaName: 'LabPhaseScanResult',
+        schemaVersion: LAB_SCHEMA_VERSION,
         config: phaseConfig,
         batchConfig,
         batchRunMatrix: batchConfig.runMatrix,
@@ -358,6 +368,19 @@ export function buildPhaseScanResult({
                 : 'regime map'
         }
     };
+    result.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabPhaseScanResult',
+        modelId: phaseConfig.modelId,
+        modelVersion: `${phaseConfig.modelId}@${phaseConfig.appVersion}`,
+        rngSeed: phaseConfig.seedPlan?.seeds?.[0] ?? null,
+        seedPlan: phaseConfig.seedPlan,
+        configHash: phaseConfig.experimentHash,
+        resultHash: result.resultHash,
+        exportManifestHash: manifest.manifestHash,
+        deterministicReplaySupported: true,
+        createdAt: phaseConfig.createdAt
+    });
+    return result;
 }
 
 function buildObservableCurves(runResults, observableIds) {

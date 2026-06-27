@@ -1,8 +1,10 @@
 import {
     LAB_APP_VERSION,
+    LAB_SCHEMA_VERSION,
     LAB_SECTIONS,
     MODEL_REGISTRY,
     TOPOLOGY_REGISTRY,
+    buildBasicReproducibilityMetadata,
     getLanguage,
     initialConditionOptions,
     isTopologyCompatible,
@@ -68,6 +70,22 @@ const els = {
     copyConfigButton: document.querySelector('#copyConfigButton'),
     exportPreview: document.querySelector('#exportPreview')
 };
+
+function storeValidationCandidate(type, envelope) {
+    if (!envelope) return;
+    try {
+        const payload = {
+            type,
+            storedAt: new Date().toISOString(),
+            sourceRoute: '/labs/experiments/',
+            envelope
+        };
+        localStorage.setItem('topoboard-labs:last-validation-object', JSON.stringify(payload));
+        localStorage.setItem(`topoboard-labs:last-${type}`, JSON.stringify(payload));
+    } catch {
+        // Browser storage may be unavailable or full; exports still work without it.
+    }
+}
 
 let language = getLanguage();
 let builderMode = new URLSearchParams(window.location.search).get('mode') === 'compare-topologies'
@@ -623,6 +641,8 @@ function assembleBatchResult(batchConfig, runResults, failedRuns, cancelled = fa
     const preliminaryHash = labHash({ batchHash: batchConfig.batchHash, runResults, failedRuns, warnings }, 'batch-result');
     const exportManifest = buildExportManifest(batchConfig, preliminaryHash);
     const result = {
+        schemaName: 'LabBatchExperimentResult',
+        schemaVersion: LAB_SCHEMA_VERSION,
         batchConfig,
         runResults,
         failedRuns,
@@ -637,6 +657,17 @@ function assembleBatchResult(batchConfig, runResults, failedRuns, cancelled = fa
     };
     result.batchResultHash = labHash(result, 'batch-result');
     result.exportManifest.batchResultHash = result.batchResultHash;
+    result.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabBatchExperimentResult',
+        modelId: batchConfig.selectedModelIds?.[0] || 'unknown',
+        rngSeed: batchConfig.seedPlan?.resolvedSeeds?.[0] ?? null,
+        seedPlan: batchConfig.seedPlan,
+        configHash: batchConfig.batchHash,
+        resultHash: result.batchResultHash,
+        exportManifestHash: result.exportManifest.manifestHash || '',
+        deterministicReplaySupported: true,
+        createdAt: batchConfig.createdAt
+    });
     return result;
 }
 
@@ -904,6 +935,7 @@ function eventRows() {
 
 function updateExportPreview() {
     const envelope = datasetEnvelope();
+    storeValidationCandidate('batch-dataset', envelope);
     els.exportPreview.value = envelope
         ? JSON.stringify(envelope, null, 2).slice(0, 20000)
         : uiText('noIncomplete', language);

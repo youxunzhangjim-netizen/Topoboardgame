@@ -1,4 +1,9 @@
-import { labHash, stableStringify } from '../experiments/LabExperimentRegistry.js';
+import {
+    LAB_SCHEMA_VERSION,
+    buildBasicReproducibilityMetadata,
+    labHash,
+    stableStringify
+} from '../experiments/LabExperimentRegistry.js';
 
 export const INITIAL_MAPPING_METHODS = [
     {
@@ -524,6 +529,8 @@ export function buildTopologyComparisonResult({ comparisonConfig, batchConfig, r
     const observableComparisons = buildObservableComparisons(comparisonConfig, runResults);
     const divergenceScores = buildDivergenceScores(comparisonConfig, runResults, topologySensitiveEvents);
     const exportManifest = {
+        schemaName: 'LabTopologyComparisonExportManifest',
+        schemaVersion: LAB_SCHEMA_VERSION,
         comparisonId: comparisonConfig.comparisonId,
         comparisonHash: comparisonConfig.comparisonHash,
         batchHash: batchConfig.batchHash,
@@ -549,8 +556,11 @@ export function buildTopologyComparisonResult({ comparisonConfig, batchConfig, r
             ...warnings
         ]
     };
+    exportManifest.manifestHash = labHash({ ...exportManifest, manifestHash: '' }, 'topology-comparison-manifest');
     const payload = { comparisonConfig, batchHash: batchConfig.batchHash, topologyInvariants, topologySensitiveEvents, divergenceScores, failedRuns };
-    return {
+    const result = {
+        schemaName: 'LabTopologyComparisonResult',
+        schemaVersion: LAB_SCHEMA_VERSION,
         comparisonConfig,
         batchConfig,
         topologyInvariants,
@@ -567,6 +577,19 @@ export function buildTopologyComparisonResult({ comparisonConfig, batchConfig, r
             languageSafeguard: 'finite-size same-rule comparison; no proof or universal metric claimed'
         }
     };
+    result.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabTopologyComparisonResult',
+        modelId: comparisonConfig.modelId,
+        modelVersion: `${comparisonConfig.modelId}@${comparisonConfig.appVersion}`,
+        rngSeed: comparisonConfig.seedPlan?.resolvedSeeds?.[0] ?? null,
+        seedPlan: comparisonConfig.seedPlan,
+        configHash: comparisonConfig.comparisonHash,
+        resultHash: result.comparisonResultHash,
+        exportManifestHash: exportManifest.manifestHash,
+        deterministicReplaySupported: true,
+        createdAt: comparisonConfig.createdAt
+    });
+    return result;
 }
 
 export function invariantRows(result) {

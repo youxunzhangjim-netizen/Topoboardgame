@@ -1,8 +1,10 @@
 import {
     LAB_APP_VERSION,
+    LAB_SCHEMA_VERSION,
     LAB_SECTIONS,
     MODEL_REGISTRY,
     TOPOLOGY_REGISTRY,
+    buildBasicReproducibilityMetadata,
     getLanguage,
     initialConditionOptions,
     isTopologyCompatible,
@@ -31,6 +33,7 @@ import {
 const PHASE_I18N = {
     en: {
         experimentBuilder: 'Experiment Builder',
+        validationSuite: 'Validation & Reproducibility',
         pageTitle: 'Phase Diagram Generator',
         subtitle: 'Generate reproducible regime maps from batch experiments on reusable topologies.',
         modeResearch: 'Research Scan',
@@ -120,6 +123,7 @@ const PHASE_I18N = {
     },
     zh: {
         experimentBuilder: '實驗建構器',
+        validationSuite: '驗證與可重現性',
         pageTitle: '相圖產生器',
         subtitle: '從可重現批次實驗產生 regime map，並保留可重用拓撲資料。',
         modeResearch: '研究掃描',
@@ -276,6 +280,22 @@ let currentPhaseResult = null;
 let activeWorker = null;
 let fallbackController = null;
 let selectedCellHash = null;
+
+function storeValidationCandidate(type, envelope) {
+    if (!envelope) return;
+    try {
+        const payload = {
+            type,
+            storedAt: new Date().toISOString(),
+            sourceRoute: '/labs/phase-diagrams/',
+            envelope
+        };
+        localStorage.setItem('topoboard-labs:last-validation-object', JSON.stringify(payload));
+        localStorage.setItem(`topoboard-labs:last-${type}`, JSON.stringify(payload));
+    } catch {
+        // Validation can still load pasted/uploaded JSON when browser storage is unavailable.
+    }
+}
 
 function t(key) {
     return PHASE_I18N[language]?.[key] || PHASE_I18N.en[key] || uiText(key, language);
@@ -607,8 +627,23 @@ function generateScan() {
     const createdAt = new Date().toISOString();
     const auxiliaryObservableIds = selectedAuxObservableIds().filter((id) => id !== primaryObservable);
     const observableIds = [...new Set([primaryObservable, ...auxiliaryObservableIds])];
+    const phaseIdPayload = {
+        modelId: model.id,
+        topologyIds,
+        xAxis,
+        yAxis,
+        seeds: seedValues(),
+        repeatsPerCell: Math.max(1, Math.min(50, Number(els.repeatsInput.value) || 1)),
+        steps: Math.max(1, Math.floor(Number(els.stepsInput.value) || 1)),
+        initialConditionId: els.initialConditionSelect.value,
+        primaryObservable,
+        auxiliaryObservableIds,
+        createdAt
+    };
     const phaseConfig = {
-        phaseScanId: `phase.${labHash(`${model.id}:${createdAt}:${Math.random()}`, 'id').replace(':', '.')}`,
+        schemaName: 'LabPhaseScanConfig',
+        schemaVersion: LAB_SCHEMA_VERSION,
+        phaseScanId: `phase.${labHash(phaseIdPayload, 'id').replace(':', '.')}`,
         title: `${text(model.name, language)} ${xAxis.label} / ${yAxis.label}`,
         modelId: model.id,
         topologyIds,
@@ -656,7 +691,17 @@ function generateScan() {
             })
         }
     };
-    phaseConfig.experimentHash = labHash(phaseConfig, 'phase-scan');
+    phaseConfig.experimentHash = labHash({ ...phaseConfig, experimentHash: '', reproducibilityMetadata: undefined }, 'phase-scan');
+    phaseConfig.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabPhaseScanConfig',
+        modelId: model.id,
+        modelVersion: `${model.id}@${LAB_APP_VERSION}`,
+        rngSeed: phaseConfig.seedPlan.seeds[0] ?? null,
+        seedPlan: phaseConfig.seedPlan,
+        configHash: phaseConfig.experimentHash,
+        deterministicReplaySupported: true,
+        createdAt
+    });
     const matrixResult = buildRunMatrix({
         batchName: phaseConfig.title,
         selectedModelIds: [model.id],
@@ -1025,6 +1070,7 @@ function exportEnvelope() {
 
 function updateExportPreview() {
     const envelope = exportEnvelope();
+    storeValidationCandidate('phase-scan', envelope);
     els.exportPreview.value = envelope ? JSON.stringify(envelope, null, 2).slice(0, 20000) : t('noResult');
 }
 

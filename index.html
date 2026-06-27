@@ -184,6 +184,12 @@
                                 <small data-i18n="audience.researchers.experimentsDesc">Build seed-stored batches, exports, and topology comparisons for research.</small>
                             </span>
                         </a>
+                        <a class="game-option" href="./labs/validation/?mode=guided">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.researchers.validation">Validation & Reproducibility</strong>
+                                <small data-i18n="audience.researchers.validationDesc">Check replay, hashes, benchmarks, topology invariants, and export bundles.</small>
+                            </span>
+                        </a>
                     </section>
                 </div>
             </section>
@@ -562,7 +568,9 @@
                             sameRule: 'Same Rule, Different Space',
                             sameRuleDesc: 'Compare one local rule across torus, cylinder, Mobius strip, and other topologies.',
                             experiments: 'Experiment Builder',
-                            experimentsDesc: 'Build seed-stored batches, exports, and topology comparisons for research.'
+                            experimentsDesc: 'Build seed-stored batches, exports, and topology comparisons for research.',
+                            validation: 'Validation & Reproducibility',
+                            validationDesc: 'Check replay, hashes, benchmarks, topology invariants, and export bundles.'
                         }
                     },
                     dimension: {
@@ -778,7 +786,9 @@
                             sameRule: '相同規則，不同空間',
                             sameRuleDesc: '比較同一局部規則在環面、圓柱、Mobius 帶與其他拓撲上的差異。',
                             experiments: '實驗建構器',
-                            experimentsDesc: '建立儲存種子的批次、匯出資料與研究用拓撲比較。'
+                            experimentsDesc: '建立儲存種子的批次、匯出資料與研究用拓撲比較。',
+                            validation: '驗證與可重現性',
+                            validationDesc: '檢查重播、雜湊、基準測試、拓撲不變量與匯出 bundle。'
                         }
                     },
                     dimension: {
@@ -1150,11 +1160,12 @@
                     const trigger = selector ? card.querySelector(selector) : card;
                     if (!trigger) return;
                     card.classList.add('is-collapsible');
-                    card.dataset.expanded = 'false';
+                    const initiallyExpanded = card.dataset.expanded === 'true' || card.classList.contains('audience-card');
+                    card.dataset.expanded = String(initiallyExpanded);
                     trigger.classList.add('launcher-expand-trigger');
                     trigger.setAttribute('role', 'button');
                     trigger.setAttribute('tabindex', '0');
-                    trigger.setAttribute('aria-expanded', 'false');
+                    trigger.setAttribute('aria-expanded', String(initiallyExpanded));
                     const setExpanded = (expanded) => {
                         card.dataset.expanded = String(expanded);
                         trigger.setAttribute('aria-expanded', String(expanded));

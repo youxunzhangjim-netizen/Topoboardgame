@@ -1,8 +1,10 @@
 import {
     LAB_APP_VERSION,
+    LAB_SCHEMA_VERSION,
     LAB_SECTIONS,
     MODEL_REGISTRY,
     TOPOLOGY_REGISTRY,
+    buildBasicReproducibilityMetadata,
     getLanguage,
     initialConditionOptions,
     isTopologyCompatible,
@@ -38,6 +40,7 @@ import {
 const I18N = {
     en: {
         experimentBuilder: 'Experiment Builder',
+        validationSuite: 'Validation & Reproducibility',
         phaseDiagrams: 'Phase Diagrams',
         pageTitle: 'Topology Comparison',
         subtitle: 'Same local rule. Different underlying space.',
@@ -134,6 +137,7 @@ const I18N = {
     },
     zh: {
         experimentBuilder: '實驗建構器',
+        validationSuite: '驗證與可重現性',
         phaseDiagrams: '相圖',
         pageTitle: '拓撲比較',
         subtitle: '相同局部規則。不同底層空間。',
@@ -290,6 +294,22 @@ let currentBatchConfig = null;
 let currentComparisonResult = null;
 let activeWorker = null;
 let fallbackController = null;
+
+function storeValidationCandidate(type, envelope) {
+    if (!envelope) return;
+    try {
+        const payload = {
+            type,
+            storedAt: new Date().toISOString(),
+            sourceRoute: '/labs/topology-compare/',
+            envelope
+        };
+        localStorage.setItem('topoboard-labs:last-validation-object', JSON.stringify(payload));
+        localStorage.setItem(`topoboard-labs:last-${type}`, JSON.stringify(payload));
+    } catch {
+        // Validation can still load pasted/uploaded JSON when browser storage is unavailable.
+    }
+}
 
 function t(key) {
     return I18N[language]?.[key] || I18N.en[key] || uiText(key, language);
@@ -637,8 +657,23 @@ function generateComparison() {
     const allTopologyIds = [referenceTopologyId, ...comparisonTopologyIds];
     const fixedParameters = collectFixedParameters();
     const comparisonMode = resolvedSeeds().length > 1 ? 'multi_seed_statistical' : 'synchronized_single_seed';
+    const comparisonIdPayload = {
+        modelId: model.id,
+        referenceTopologyId,
+        comparisonTopologyIds,
+        initialConditionId: els.initialConditionSelect.value,
+        mappingMethod: els.mappingMethodSelect.value,
+        fixedParameters,
+        seedPlan: seedPlanObject(),
+        steps: Math.max(1, Math.floor(Number(els.stepsInput.value) || 1)),
+        selectedObservableIds: selectedObservableIds(),
+        selectedEventDetectorIds: selectedDetectorIds(),
+        createdAt
+    };
     const comparisonConfig = {
-        comparisonId: `topologyComparison.${labHash(`${model.id}:${createdAt}:${Math.random()}`, 'id').replace(':', '.')}`,
+        schemaName: 'LabTopologyComparisonConfig',
+        schemaVersion: LAB_SCHEMA_VERSION,
+        comparisonId: `topologyComparison.${labHash(comparisonIdPayload, 'id').replace(':', '.')}`,
         name: `${text(model.name, language)} same-rule topology comparison`,
         modelId: model.id,
         referenceTopologyId,
@@ -663,7 +698,17 @@ function generateComparison() {
             scientificLanguage: 'finite-size same-rule comparison; exploratory divergence score'
         }
     };
-    comparisonConfig.comparisonHash = labHash(comparisonConfig, 'topology-comparison');
+    comparisonConfig.comparisonHash = labHash({ ...comparisonConfig, comparisonHash: '', reproducibilityMetadata: undefined }, 'topology-comparison');
+    comparisonConfig.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabTopologyComparisonConfig',
+        modelId: model.id,
+        modelVersion: `${model.id}@${LAB_APP_VERSION}`,
+        rngSeed: comparisonConfig.seedPlan.resolvedSeeds?.[0] ?? null,
+        seedPlan: comparisonConfig.seedPlan,
+        configHash: comparisonConfig.comparisonHash,
+        deterministicReplaySupported: true,
+        createdAt
+    });
     const parameterSweep = model.parameters.map((parameter) => ({
         parameterId: parameter.id,
         label: parameter.label,
@@ -972,6 +1017,7 @@ function exportEnvelope() {
 
 function updateExportPreview() {
     const envelope = exportEnvelope();
+    storeValidationCandidate('topology-comparison', envelope);
     els.exportPreview.value = envelope ? JSON.stringify(envelope, null, 2).slice(0, 22000) : t('noResult');
 }
 

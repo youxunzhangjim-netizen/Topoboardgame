@@ -1,5 +1,7 @@
 import {
     LAB_APP_VERSION,
+    LAB_SCHEMA_VERSION,
+    buildBasicReproducibilityMetadata,
     costRank,
     labHash,
     modelById,
@@ -156,6 +158,8 @@ export function createExperimentConfig({
     const topology = topologyById(topologyId);
     const experimentId = `${batchId}.run-${String(matrixIndex + 1).padStart(4, '0')}.repeat-${repeatIndex + 1}`;
     const config = {
+        schemaName: 'LabExperimentConfig',
+        schemaVersion: LAB_SCHEMA_VERSION,
         experimentId,
         modelId: model.id,
         topologyId,
@@ -195,7 +199,17 @@ export function createExperimentConfig({
             repeatIndex
         }
     };
-    config.experimentHash = labHash(config, 'experiment');
+    config.experimentHash = labHash({ ...config, experimentHash: '', reproducibilityMetadata: undefined }, 'experiment');
+    config.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabExperimentConfig',
+        modelId: model.id,
+        modelVersion: `${model.id}@${LAB_APP_VERSION}`,
+        rngSeed: seed,
+        seedPlan: { mode: 'single', singleSeed: seed, resolvedSeeds: [seed] },
+        configHash: config.experimentHash,
+        deterministicReplaySupported: true,
+        createdAt
+    });
     return config;
 }
 
@@ -223,7 +237,19 @@ export function buildRunMatrix({
     if (!stepCounts.length) errors.push('Choose at least one step count.');
     if (errors.length) return { ok: false, errors, config: null };
 
-    const batchId = `batch.${labHash(`${batchName}:${createdAt}:${Math.random()}`, 'id').replace(':', '.')}`;
+    const batchIdPayload = {
+        batchName,
+        selectedModelIds,
+        selectedTopologyIds,
+        selectedInitialConditionIds,
+        parameterSweep,
+        seedPlan,
+        stepPlan,
+        selectedObservableIds,
+        repeatCount,
+        createdAt
+    };
+    const batchId = `batch.${labHash(batchIdPayload, 'id').replace(':', '.')}`;
     const sweepEntries = parameterSweep.map((sweep) => [sweep.parameterId, expandSweep(sweep, batchId)]);
     const parameterRows = sweepEntries.length ? cartesian(sweepEntries) : [{}];
     const repeatTotal = Math.max(1, Math.min(1000, Math.floor(Number(repeatCount) || 1)));
@@ -282,6 +308,8 @@ export function buildRunMatrix({
     const selectedObservables = selectedModel.observables.filter((observable) => selectedObservableIds.includes(observable.id));
     const estimate = estimateBatch(runMatrix.length, selectedObservables, Math.max(...stepCounts));
     const config = {
+        schemaName: 'LabBatchExperimentConfig',
+        schemaVersion: LAB_SCHEMA_VERSION,
         batchId,
         batchName: batchName || 'Topoboard Labs batch',
         selectedModelIds,
@@ -310,7 +338,17 @@ export function buildRunMatrix({
             ]
         }
     };
-    config.batchHash = labHash(config, 'batch');
+    config.batchHash = labHash({ ...config, batchHash: '', reproducibilityMetadata: undefined }, 'batch');
+    config.reproducibilityMetadata = buildBasicReproducibilityMetadata({
+        schemaName: 'LabBatchExperimentConfig',
+        modelId: selectedModel.id,
+        modelVersion: `${selectedModel.id}@${LAB_APP_VERSION}`,
+        rngSeed: seeds[0] ?? null,
+        seedPlan: config.seedPlan,
+        configHash: config.batchHash,
+        deterministicReplaySupported: true,
+        createdAt
+    });
     return { ok: true, errors: [], config, estimate };
 }
 
@@ -357,7 +395,9 @@ export function resultsToSummaryStatistics(batchConfig, runResults, failedRuns, 
 
 export function buildExportManifest(batchConfig, batchResultHash = '') {
     const exportedAt = new Date().toISOString();
-    return {
+    const manifest = {
+        schemaName: 'LabBatchExportManifest',
+        schemaVersion: LAB_SCHEMA_VERSION,
         batchId: batchConfig.batchId,
         batchHash: batchConfig.batchHash,
         batchResultHash,
@@ -377,6 +417,8 @@ export function buildExportManifest(batchConfig, batchResultHash = '') {
         reproducibilityNotes: batchConfig.metadata?.reproducibilityNotes || [],
         validationWarnings: batchConfig.metadata?.estimate?.warnings || []
     };
+    manifest.manifestHash = labHash({ ...manifest, manifestHash: '' }, 'manifest');
+    return manifest;
 }
 
 export function escapeCsv(value) {

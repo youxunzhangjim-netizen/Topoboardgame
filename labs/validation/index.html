@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation & Reproducibility - Topoboard Labs</title>
+    <link rel="stylesheet" href="../experiments/styles.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-validation-mode="research">
+    <main class="experiment-shell validation-shell">
+        <header class="experiment-topbar">
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
+                <a class="nav-link" href="../phase-diagrams/" data-i18n="phaseDiagrams">Phase Diagrams</a>
+                <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
+            </nav>
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Validation & Reproducibility</h1>
+                <p data-i18n="subtitle">Check, replay, benchmark, and verify Topoboard Labs experiments.</p>
+            </div>
+            <label class="language-select">
+                <span data-i18n="language">Language</span>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </header>
+
+        <section class="mode-strip validation-mode-strip" aria-label="Validation mode">
+            <button id="guidedModeButton" type="button" aria-pressed="false" data-i18n="guidedMode">Can I Replay This?</button>
+            <button id="researchModeButton" type="button" aria-pressed="true" data-i18n="researchMode">Research Audit</button>
+        </section>
+
+        <section class="validation-purpose-panel">
+            <div>
+                <p class="eyebrow" data-i18n="purposeEyebrow">Purpose</p>
+                <h2 data-i18n="purposeTitle">Trust the experiment without overclaiming it</h2>
+                <p data-i18n="purposeText">Audit stored configs, seeds, hashes, event logs, topology invariants, observable consistency, benchmark scope, and export manifests.</p>
+            </div>
+            <div class="run-actions">
+                <button id="loadSampleButton" type="button" data-i18n="loadSample">Load sample</button>
+                <button id="quickReplayButton" type="button" data-i18n="quickReplay">Check replay</button>
+                <button id="runAllButton" type="button" data-i18n="runAll">Run validation suite</button>
+            </div>
+        </section>
+
+        <section class="phase-compact-summary validation-summary-strip" aria-live="polite">
+            <div><dt data-i18n="loadedType">Loaded type</dt><dd id="loadedTypeText">-</dd></div>
+            <div><dt data-i18n="replayStatus">Replay status</dt><dd id="replayStatusText">-</dd></div>
+            <div><dt data-i18n="benchmarkStatus">Benchmarks</dt><dd id="benchmarkStatusText">-</dd></div>
+            <div><dt data-i18n="reportStatus">Report</dt><dd id="reportStatusText">-</dd></div>
+        </section>
+
+        <section class="panel guided-answer-panel" id="guidedAnswerPanel" aria-labelledby="guidedAnswerTitle">
+            <div class="panel-heading">
+                <span>?</span>
+                <h2 id="guidedAnswerTitle" data-i18n="guidedAnswerTitle">Can I replay this?</h2>
+            </div>
+            <p id="guidedAnswerText" class="guided-answer-text" data-i18n="guidedAnswerEmpty">Load an experiment, then run the replay check.</p>
+            <div id="guidedChecklist" class="checklist-grid"></div>
+        </section>
+
+        <section class="builder-grid validation-load-grid">
+            <section class="panel" aria-labelledby="loadTitle">
+                <div class="panel-heading">
+                    <span>A</span>
+                    <h2 id="loadTitle" data-i18n="loadExperiment">Load Experiment</h2>
+                </div>
+                <div class="load-actions">
+                    <button id="loadCurrentButton" type="button" data-i18n="loadCurrent">Load current active</button>
+                    <button id="loadStoredButton" type="button" data-i18n="loadStored">Load browser stored</button>
+                    <label class="file-load-button">
+                        <span data-i18n="uploadJson">Upload JSON</span>
+                        <input id="fileInput" type="file" accept=".json,application/json">
+                    </label>
+                </div>
+                <label class="field-label">
+                    <span data-i18n="shareLink">Shareable experiment link or encoded JSON</span>
+                    <input id="linkInput" placeholder="https://.../labs/validation/?data=...">
+                </label>
+                <textarea id="pasteInput" spellcheck="false" placeholder="{...}"></textarea>
+                <div class="run-actions">
+                    <button id="loadLinkButton" type="button" data-i18n="loadLink">Load link</button>
+                    <button id="loadPasteButton" type="button" data-i18n="loadPaste">Load pasted JSON</button>
+                </div>
+                <div id="storedList" class="stored-list"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="inspectTitle">
+                <div class="panel-heading">
+                    <span>B</span>
+                    <h2 id="inspectTitle" data-i18n="inspectConfig">Inspect Config</h2>
+                </div>
+                <div id="inspectGrid" class="metadata-grid"></div>
+                <div id="validationLevelCards" class="validation-level-grid"></div>
+            </section>
+        </section>
+
+        <section class="builder-grid validation-core-grid">
+            <section class="panel" aria-labelledby="reproTitle">
+                <div class="panel-heading">
+                    <span>C</span>
+                    <h2 id="reproTitle" data-i18n="reproSummary">Reproducibility Summary</h2>
+                </div>
+                <div id="reproGrid" class="metadata-grid"></div>
+                <div id="warningList" class="warning-list"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="replayTitle">
+                <div class="panel-heading">
+                    <span>D</span>
+                    <h2 id="replayTitle" data-i18n="replayPanel">Replay Panel</h2>
+                </div>
+                <div class="run-actions">
+                    <button id="replayConfigButton" type="button" data-i18n="replayConfig">Replay from config + seed</button>
+                    <button id="replayEventButton" type="button" data-i18n="replayEvent">Replay from event log</button>
+                    <button id="strictReplayButton" type="button" data-i18n="strictReplay">Strict replay</button>
+                    <button id="compareReplayButton" type="button" data-i18n="compareOriginal">Compare with original</button>
+                </div>
+                <div id="replayResultPanel" class="result-card"></div>
+            </section>
+        </section>
+
+        <section class="panel" aria-labelledby="benchmarkTitle">
+            <div class="panel-heading">
+                <span>E</span>
+                <h2 id="benchmarkTitle" data-i18n="benchmarks">Benchmark Panel</h2>
+            </div>
+            <div class="benchmark-filter-grid">
+                <label><input type="checkbox" value="engine" checked> <span data-i18n="engine">engine</span></label>
+                <label><input type="checkbox" value="topology" checked> <span data-i18n="topology">topology</span></label>
+                <label><input type="checkbox" value="model" checked> <span data-i18n="model">model</span></label>
+                <label><input type="checkbox" value="observable" checked> <span data-i18n="observable">observable</span></label>
+                <label><input type="checkbox" value="export" checked> <span data-i18n="export">export</span></label>
+                <label><input type="checkbox" value="replay" checked> <span data-i18n="replay">replay</span></label>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="benchmark">Benchmark</th>
+                            <th data-i18n="category">Category</th>
+                            <th data-i18n="status">Status</th>
+                            <th data-i18n="method">Method</th>
+                            <th data-i18n="limitations">Limitations</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmarkBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="builder-grid lower-grid">
+            <section class="panel" aria-labelledby="observableTitle">
+                <div class="panel-heading">
+                    <span>F</span>
+                    <h2 id="observableTitle" data-i18n="observableChecks">Observable Consistency Panel</h2>
+                </div>
+                <div id="observableChecks" class="validation-card-list"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="topologyTitle">
+                <div class="panel-heading">
+                    <span>G</span>
+                    <h2 id="topologyTitle" data-i18n="topologyChecks">Topology Invariant Check Panel</h2>
+                </div>
+                <div id="topologyChecks" class="validation-card-list"></div>
+            </section>
+        </section>
+
+        <section class="panel" aria-labelledby="hashTitle">
+            <div class="panel-heading">
+                <span>H</span>
+                <h2 id="hashTitle" data-i18n="hashAudit">Hash Audit Panel</h2>
+            </div>
+            <div id="hashAuditGrid" class="hash-audit-grid"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="reportTitle">
+            <div class="panel-heading">
+                <span>I</span>
+                <h2 id="reportTitle" data-i18n="validationReport">Validation Report Panel</h2>
+            </div>
+            <div id="reportPanel" class="report-panel"></div>
+        </section>
+
+        <section class="panel export-panel" aria-labelledby="bundleTitle">
+            <div class="panel-heading">
+                <span>J</span>
+                <h2 id="bundleTitle" data-i18n="exportBundle">Export Reproducibility Bundle</h2>
+            </div>
+            <p data-i18n="bundleHelp">The bundle includes config, result when available, topology metadata, observables, event logs, RNG metadata, benchmarks, validation report, manifest, and README. It is JSON in this browser build.</p>
+            <div class="run-actions">
+                <button id="exportReportButton" type="button" data-i18n="exportReport">Export report JSON</button>
+                <button id="exportBundleButton" type="button" data-i18n="exportBundleJson">Export bundle JSON</button>
+                <button id="copyBundleButton" type="button" data-i18n="copyBundle">Copy bundle</button>
+            </div>
+            <textarea id="bundlePreview" readonly spellcheck="false"></textarea>
+        </section>
+    </main>
+
+    <script type="module" src="./Validation.js"></script>
+</body>
+</html>
