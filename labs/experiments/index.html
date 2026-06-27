@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiment Builder - Topoboard Labs</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main class="experiment-shell">
+        <header class="experiment-topbar">
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../phase-diagrams/" data-i18n="phaseDiagramGenerator">Phase Diagram Generator</a>
+                <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
+            </nav>
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Experiment Builder</h1>
+                <p data-i18n="subtitle">Build parameter sweeps and reproducible batch experiments for discrete topological dynamics.</p>
+            </div>
+            <label class="language-select">
+                <span data-i18n="language">Language</span>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </header>
+
+        <section class="mode-strip" aria-label="Experiment mode">
+            <button id="researchBatchMode" type="button" aria-pressed="true" data-i18n="modeResearch">Research Batch</button>
+            <button id="compareTopologiesMode" type="button" aria-pressed="false" data-i18n="modeCompare">Compare Topologies</button>
+        </section>
+
+        <section class="mobile-player-panel" aria-labelledby="mobilePlayerTitle">
+            <div>
+                <p class="eyebrow">Simple</p>
+                <h2 id="mobilePlayerTitle" data-i18n="mobilePlayerTitle">Player Quick Compare</h2>
+                <p data-i18n="mobilePlayerText">On phones, start with Compare Topologies: choose a model, two boards, one observable, then run the same seed.</p>
+            </div>
+            <div class="mobile-player-actions">
+                <button id="mobileCompareButton" type="button" data-i18n="mobileCompareButton">Use Compare</button>
+                <button id="mobileMatrixButton" type="button" data-i18n="mobileMatrixButton">Review Matrix</button>
+                <button id="mobileRunButton" type="button" data-i18n="mobileRunButton">Run</button>
+            </div>
+        </section>
+
+        <section class="workflow-map" id="workflowMap" aria-label="Experiment workflow"></section>
+
+        <section class="builder-grid">
+            <div class="builder-column">
+                <section class="panel" aria-labelledby="modelTitle">
+                    <div class="panel-heading">
+                        <span>1</span>
+                        <h2 id="modelTitle" data-i18n="selectModel">Select Model</h2>
+                    </div>
+                    <select id="modelSelect"></select>
+                    <div id="modelMetadata" class="metadata-grid"></div>
+                    <div id="modelWarnings" class="warning-list"></div>
+                </section>
+
+                <section class="panel" aria-labelledby="topologyTitle">
+                    <div class="panel-heading">
+                        <span>2</span>
+                        <h2 id="topologyTitle" data-i18n="selectTopologies">Select Topologies</h2>
+                    </div>
+                    <div id="topologyList" class="topology-list"></div>
+                </section>
+
+                <section class="panel" aria-labelledby="initialTitle">
+                    <div class="panel-heading">
+                        <span>3</span>
+                        <h2 id="initialTitle" data-i18n="initialConditions">State Space / Initial Conditions</h2>
+                    </div>
+                    <div id="initialConditionList" class="choice-grid"></div>
+                    <p id="compareHelp" class="help-text" data-i18n="compareHelp" hidden>Choose one model, one initial condition, at least two topologies, one observable, and the same seed across all topologies.</p>
+                </section>
+            </div>
+
+            <div class="builder-column">
+                <section class="panel" aria-labelledby="parameterTitle">
+                    <div class="panel-heading">
+                        <span>4</span>
+                        <h2 id="parameterTitle" data-i18n="parameters">Local Rule Parameters</h2>
+                    </div>
+                    <div id="parameterSweepList" class="sweep-list"></div>
+                </section>
+
+                <section class="panel" aria-labelledby="seedTitle">
+                    <div class="panel-heading">
+                        <span>5</span>
+                        <h2 id="seedTitle" data-i18n="seedsSteps">Seeds and Step Count</h2>
+                    </div>
+                    <div class="form-grid">
+                        <label>
+                            <span data-i18n="seedMode">Seed Mode</span>
+                            <select id="seedModeSelect">
+                                <option value="single">single seed</option>
+                                <option value="list">list of seeds</option>
+                                <option value="range">seed range</option>
+                                <option value="generated">random generated seeds</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span data-i18n="seedValueLabel">Seed / List / Start</span>
+                            <input id="seedValueInput" value="topoboard-seed-1">
+                        </label>
+                        <label>
+                            <span data-i18n="seedEndLabel">End / Count</span>
+                            <input id="seedEndInput" value="3">
+                        </label>
+                        <label>
+                            <span data-i18n="steps">Steps</span>
+                            <select id="stepModeSelect">
+                                <option value="fixed">fixed number</option>
+                                <option value="list">list of step counts</option>
+                                <option value="checkpoints">checkpoints</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span data-i18n="stepValues">Step values</span>
+                            <input id="stepValueInput" value="24">
+                        </label>
+                        <label>
+                            <span data-i18n="repeats">Repeats</span>
+                            <input id="repeatCountInput" type="number" min="1" max="100" value="1">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="panel" aria-labelledby="observableTitle">
+                    <div class="panel-heading">
+                        <span>6</span>
+                        <h2 id="observableTitle" data-i18n="observables">Observables</h2>
+                    </div>
+                    <div id="observableList" class="observable-list"></div>
+                </section>
+            </div>
+        </section>
+
+        <section class="panel review-panel" aria-labelledby="reviewTitle">
+            <div class="panel-heading">
+                <span>7</span>
+                <h2 id="reviewTitle" data-i18n="review">Review Experiment Matrix</h2>
+            </div>
+            <div class="review-actions">
+                <label>
+                    <span data-i18n="batchName">Batch name</span>
+                    <input id="batchNameInput" value="Topoboard Labs topology batch">
+                </label>
+                <button id="generateMatrixButton" type="button" data-i18n="generateMatrix">Generate Matrix</button>
+                <span id="matrixStatus" class="status-pill" data-i18n="statusReady">Configure the experiment matrix before running.</span>
+            </div>
+            <div id="matrixEstimate" class="estimate-grid"></div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="runId">runId</th>
+                            <th data-i18n="model">model</th>
+                            <th data-i18n="topology">topology</th>
+                            <th data-i18n="initialCondition">initialCondition</th>
+                            <th data-i18n="parameterValues">parameters</th>
+                            <th data-i18n="seed">seed</th>
+                            <th data-i18n="steps">steps</th>
+                            <th data-i18n="observableCount">observables</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixPreviewBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="builder-grid lower-grid">
+            <section class="panel" aria-labelledby="runTitle">
+                <div class="panel-heading">
+                    <span>8</span>
+                    <h2 id="runTitle" data-i18n="runBatch">Run Batch</h2>
+                </div>
+                <div class="run-actions">
+                    <button id="startBatchButton" type="button" data-i18n="start">Start</button>
+                    <button id="pauseBatchButton" type="button" data-i18n="pause" disabled>Pause</button>
+                    <button id="resumeBatchButton" type="button" data-i18n="resume" disabled>Resume</button>
+                    <button id="cancelBatchButton" type="button" data-i18n="cancel" disabled>Cancel</button>
+                </div>
+                <progress id="runProgress" value="0" max="1"></progress>
+                <dl class="run-status">
+                    <div><dt data-i18n="worker">Worker</dt><dd id="workerStatus">pending</dd></div>
+                    <div><dt data-i18n="currentRun">Current Run</dt><dd id="currentRunText">-</dd></div>
+                    <div><dt data-i18n="progress">Progress</dt><dd id="progressText">0 / 0</dd></div>
+                </dl>
+                <ol id="runLog" class="run-log"></ol>
+            </section>
+
+            <section class="panel" aria-labelledby="compareTitle">
+                <div class="panel-heading">
+                    <span>9</span>
+                    <h2 id="compareTitle" data-i18n="compareResults">Compare Results</h2>
+                </div>
+                <div id="comparisonDashboard" class="comparison-dashboard"></div>
+            </section>
+        </section>
+
+        <section class="panel export-panel" aria-labelledby="exportTitle">
+            <div class="panel-heading">
+                <span>10</span>
+                <h2 id="exportTitle" data-i18n="exportDataset">Export Dataset</h2>
+            </div>
+            <p data-i18n="exportNotes">Exports include app version, model version, hashes, timestamps, seeds, warnings, configs, results, event logs, topology adjacency, and reproducibility notes.</p>
+            <div class="run-actions">
+                <button id="exportConfigButton" type="button" data-i18n="exportJson">Export JSON</button>
+                <button id="exportCsvButton" type="button" data-i18n="exportCsv">Export CSV</button>
+                <button id="exportManifestButton" type="button" data-i18n="exportManifest">Export Manifest</button>
+                <button id="copyConfigButton" type="button" data-i18n="copyConfig">Copy Config</button>
+            </div>
+            <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        </section>
+    </main>
+
+    <script type="module" src="./ExperimentBuilder.js"></script>
+</body>
+</html>

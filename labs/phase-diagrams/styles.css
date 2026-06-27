@@ -1,0 +1,212 @@
+.phase-shell {
+    width: min(1640px, 100%);
+}
+
+.phase-mode-strip {
+    width: min(100%, 620px);
+}
+
+.phase-guided-note {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(73, 199, 184, 0.26);
+    border-radius: 8px;
+    background: rgba(12, 18, 20, 0.78);
+}
+
+.phase-guided-note h2,
+.phase-guided-note p {
+    margin: 0;
+}
+
+.phase-guided-note p:not(.eyebrow) {
+    margin-top: 6px;
+    color: var(--muted);
+    line-height: 1.42;
+}
+
+.phase-compact-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 8px;
+}
+
+.phase-compact-summary div {
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid rgba(225, 232, 225, 0.12);
+    border-radius: 8px;
+    background: rgba(13, 16, 20, 0.82);
+}
+
+.phase-compact-summary dt {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.phase-compact-summary dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.phase-config-grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.field-label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.field-label input,
+.field-label select {
+    width: 100%;
+    padding: 7px 9px;
+}
+
+.phase-axis-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 12px;
+}
+
+.axis-card {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgba(225, 232, 225, 0.12);
+    border-radius: 8px;
+    background: rgba(9, 11, 14, 0.42);
+}
+
+.axis-card h3 {
+    color: var(--accent);
+    font-size: 15px;
+}
+
+.axis-range {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    gap: 8px;
+}
+
+.compact-observable-list {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.phase-visual-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(260px, 1fr));
+    gap: 10px;
+}
+
+.phase-canvas-card {
+    min-height: 330px;
+}
+
+.phase-canvas-card canvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1.35;
+    max-height: 420px;
+    margin-top: 10px;
+    border: 1px solid rgba(225, 232, 225, 0.12);
+    border-radius: 7px;
+    background: #07090b;
+}
+
+.selected-cell-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.selected-cell-panel:empty {
+    display: none;
+}
+
+.phase-cell-card {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(225, 232, 225, 0.12);
+    border-radius: 8px;
+    background: rgba(9, 11, 14, 0.45);
+}
+
+.phase-cell-card h3 {
+    color: var(--accent);
+    font-size: 14px;
+}
+
+.phase-cell-card p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.42;
+}
+
+.topology-card input:disabled + span,
+.observable-card input:disabled + span {
+    color: var(--muted);
+}
+
+body[data-phase-mode="guided"] .advanced-field {
+    display: none;
+}
+
+body[data-phase-mode="guided"] .phase-axis-grid {
+    grid-template-columns: 1fr;
+}
+
+body[data-phase-mode="guided"] .axis-card[data-axis="y"] {
+    display: none;
+}
+
+body[data-phase-mode="guided"] .phase-guided-note {
+    border-color: rgba(215, 180, 93, 0.44);
+}
+
+@media (max-width: 1180px) {
+    .phase-config-grid,
+    .phase-axis-grid,
+    .phase-visual-grid,
+    .phase-guided-note,
+    .phase-compact-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .phase-guided-note,
+    .phase-config-grid,
+    .phase-axis-grid,
+    .axis-range,
+    .phase-visual-grid,
+    .phase-compact-summary,
+    body[data-phase-mode="guided"] .phase-axis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .phase-canvas-card {
+        min-height: 250px;
+    }
+
+    .phase-canvas-card canvas {
+        aspect-ratio: 1.08;
+    }
+
+    .phase-guided-note {
+        display: grid;
+    }
+}

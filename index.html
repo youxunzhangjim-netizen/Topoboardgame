@@ -135,6 +135,59 @@
                 <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a>
             </div>
 
+            <section class="audience-entry-panel" aria-labelledby="audienceEntryTitle">
+                <div class="audience-entry-heading">
+                    <p class="eyebrow" data-i18n="audience.eyebrow">Choose entry</p>
+                    <h2 id="audienceEntryTitle" data-i18n="audience.title">Two ways into Topoboard</h2>
+                    <p data-i18n="audience.desc">Use the same visual style and controls, then enter either a player-friendly arrangement or a research workspace.</p>
+                </div>
+                <div class="audience-entry-grid">
+                    <section class="dimension-card audience-card audience-player" aria-labelledby="audiencePlayersTitle">
+                        <span class="dimension-visual audience-visual player-visual" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span>
+                        </span>
+                        <span class="dimension-copy">
+                            <strong id="audiencePlayersTitle" data-i18n="audience.players.title">Players</strong>
+                            <small data-i18n="audience.players.desc">Simple play, clear rules, local robots, online rooms, Life World play, and game guides.</small>
+                        </span>
+                        <a class="game-option" href="#board-worlds">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.players.boardWorlds">Board Worlds</strong>
+                                <small data-i18n="audience.players.boardWorldsDesc">Choose Chess, Go, Reversi, or Chinese Checkers-style Jump.</small>
+                            </span>
+                        </a>
+                        <a class="game-option" href="./life/world.html?view=play">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.players.life">Life World Play</strong>
+                                <small data-i18n="audience.players.lifeDesc">Play cellular automata and species challenges with beginner controls.</small>
+                            </span>
+                        </a>
+                    </section>
+
+                    <section class="dimension-card audience-card audience-research" aria-labelledby="audienceResearchersTitle">
+                        <span class="dimension-visual audience-visual research-visual" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span>
+                        </span>
+                        <span class="dimension-copy">
+                            <strong id="audienceResearchersTitle" data-i18n="audience.researchers.title">Researchers</strong>
+                            <small data-i18n="audience.researchers.desc">Reproducible Labs workflows for topology, observables, batch runs, regime maps, and same-rule comparisons.</small>
+                        </span>
+                        <a class="game-option" href="./labs/topology-compare/?mode=guided">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.researchers.sameRule">Same Rule, Different Space</strong>
+                                <small data-i18n="audience.researchers.sameRuleDesc">Compare one local rule across torus, cylinder, Mobius, and other topologies.</small>
+                            </span>
+                        </a>
+                        <a class="game-option" href="./labs/experiments/">
+                            <span class="game-option-copy">
+                                <strong data-i18n="audience.researchers.experiments">Experiment Builder</strong>
+                                <small data-i18n="audience.researchers.experimentsDesc">Build seed-stored batches, exports, and topology comparisons for research.</small>
+                            </span>
+                        </a>
+                    </section>
+                </div>
+            </section>
+
             <div id="board-worlds" class="dimension-grid" aria-label="Choose board dimension" data-i18n-aria-label="dimension.choose">
                 <section class="dimension-card dimension-2d" aria-labelledby="dimension2dTitle">
                     <span class="popularity-badge" data-popularity-key="dimension-2d" aria-label="Online activity"></span>
@@ -491,6 +544,27 @@
                         spiritBodyResearch: 'For researchers, it becomes a visual and playable laboratory for studying how information, locality, symmetry, competition, and physical behavior change when the underlying space changes.',
                         spiritBody3: 'A move is never just a move here. It is a test of the space itself.'
                     },
+                    audience: {
+                        eyebrow: 'Choose entry',
+                        title: 'Two ways into Topoboard',
+                        desc: 'Use the same visual style and controls, then enter either a player-friendly arrangement or a research workspace.',
+                        players: {
+                            title: 'Players',
+                            desc: 'Simple play, clear rules, local robots, online rooms, Life World play, and game guides.',
+                            boardWorlds: 'Board Worlds',
+                            boardWorldsDesc: 'Choose Chess, Go, Reversi, or Chinese Checkers (Jump).',
+                            life: 'Life World Play',
+                            lifeDesc: 'Play cellular automata and species challenges with beginner controls.'
+                        },
+                        researchers: {
+                            title: 'Researchers',
+                            desc: 'Reproducible Labs workflows for topology, observables, batch runs, regime maps, and same-rule comparisons.',
+                            sameRule: 'Same Rule, Different Space',
+                            sameRuleDesc: 'Compare one local rule across torus, cylinder, Mobius strip, and other topologies.',
+                            experiments: 'Experiment Builder',
+                            experimentsDesc: 'Build seed-stored batches, exports, and topology comparisons for research.'
+                        }
+                    },
                     dimension: {
                         choose: 'Choose board dimension',
                         '2d': 'Games embedded in 2D space',
@@ -685,6 +759,27 @@
                         spiritBody2: '對玩家而言，它把熟悉規則轉化成新的策略世界：容易進入、玩法出人意料，也足夠深入來挑戰認真的競技者。',
                         spiritBodyResearch: '對研究者而言，它是一個可視化、可遊玩的實驗室，用來研究資訊、局域性、對稱性、競爭與物理行為如何隨底層空間改變。',
                         spiritBody3: '在這裡，一步棋不只是一步棋。它也是對空間本身的測試。'
+                    },
+                    audience: {
+                        eyebrow: '選擇入口',
+                        title: 'Topoboard 的兩種入口',
+                        desc: '保留相同視覺風格與控制形式，再進入玩家友善排列或研究工作區。',
+                        players: {
+                            title: '玩家',
+                            desc: '簡化遊玩、清楚規則、本機機器人、線上房間、Life World 遊玩與遊戲指南。',
+                            boardWorlds: '棋盤世界',
+                            boardWorldsDesc: '選擇 Chess、Go、Reversi，或中國跳棋（Jump）。',
+                            life: 'Life World 遊玩',
+                            lifeDesc: '用入門控制遊玩細胞自動機與物種挑戰。'
+                        },
+                        researchers: {
+                            title: '研究者',
+                            desc: '可重現的 Labs 工作流程，用於拓撲、可觀測量、批次執行、相圖區域與相同規則比較。',
+                            sameRule: '相同規則，不同空間',
+                            sameRuleDesc: '比較同一局部規則在環面、圓柱、Mobius 帶與其他拓撲上的差異。',
+                            experiments: '實驗建構器',
+                            experimentsDesc: '建立儲存種子的批次、匯出資料與研究用拓撲比較。'
+                        }
                     },
                     dimension: {
                         choose: '選擇棋盤維度',

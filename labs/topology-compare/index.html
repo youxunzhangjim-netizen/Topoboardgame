@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topology Comparison - Topoboard Labs</title>
+    <link rel="stylesheet" href="../experiments/styles.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-compare-mode="research">
+    <main class="experiment-shell topology-shell">
+        <header class="experiment-topbar">
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
+                <a class="nav-link" href="../phase-diagrams/" data-i18n="phaseDiagrams">Phase Diagrams</a>
+            </nav>
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Topology Comparison</h1>
+                <p data-i18n="subtitle">Same local rule. Different underlying space.</p>
+            </div>
+            <label class="language-select">
+                <span data-i18n="language">Language</span>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </header>
+
+        <section class="mode-strip topology-mode-strip" aria-label="Comparison mode">
+            <button id="researchModeButton" type="button" aria-pressed="true" data-i18n="modeResearch">Research Comparison</button>
+            <button id="guidedModeButton" type="button" aria-pressed="false" data-i18n="modeGuided">Same Rule, Different Space</button>
+        </section>
+
+        <section class="topology-purpose-panel">
+            <div>
+                <p class="eyebrow" data-i18n="purposeEyebrow">Purpose</p>
+                <h2 data-i18n="purposeTitle">What changes when topology changes?</h2>
+                <p data-i18n="purposeText">Compare discrete topological dynamics across spaces while preserving the model, local rule, fixed parameters, seed plan, initial-condition family, and observable set.</p>
+            </div>
+            <div class="run-actions">
+                <button id="guidedDefaultsButton" type="button" data-i18n="guidedDefaults">Use guided defaults</button>
+                <button id="guidedRunButton" type="button" data-i18n="guidedRun">Run guided comparison</button>
+            </div>
+        </section>
+
+        <section class="phase-compact-summary topology-summary-strip" aria-live="polite">
+            <div><dt data-i18n="comparisonMode">Comparison mode</dt><dd id="comparisonModeText">synchronized</dd></div>
+            <div><dt data-i18n="totalRuns">Total runs</dt><dd id="totalRunsText">0</dd></div>
+            <div><dt data-i18n="worker">Worker</dt><dd id="workerStatus">pending</dd></div>
+            <div><dt data-i18n="currentRun">Current Run</dt><dd id="currentRunText">-</dd></div>
+        </section>
+
+        <section class="builder-grid topology-config-grid">
+            <section class="panel" aria-labelledby="modelTitle">
+                <div class="panel-heading">
+                    <span>1</span>
+                    <h2 id="modelTitle" data-i18n="selectModel">Select model</h2>
+                </div>
+                <label class="field-label">
+                    <span data-i18n="model">Model</span>
+                    <select id="modelSelect"></select>
+                </label>
+                <div id="modelMetadata" class="metadata-grid"></div>
+                <div id="modelCards" class="model-card-grid"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="topologyTitle">
+                <div class="panel-heading">
+                    <span>2</span>
+                    <h2 id="topologyTitle" data-i18n="selectTopologies">Reference and comparison topologies</h2>
+                </div>
+                <p class="help-text" data-i18n="topologyHelp">Choose one reference topology and one or more comparison topologies. Incompatible entries are disabled with a reason.</p>
+                <div id="topologyCards" class="topology-list"></div>
+            </section>
+        </section>
+
+        <section class="builder-grid topology-config-grid">
+            <section class="panel" aria-labelledby="mappingTitle">
+                <div class="panel-heading">
+                    <span>3</span>
+                    <h2 id="mappingTitle" data-i18n="mapping">Initial condition mapping</h2>
+                </div>
+                <div class="form-grid">
+                    <label>
+                        <span data-i18n="initialCondition">Initial condition</span>
+                        <select id="initialConditionSelect"></select>
+                    </label>
+                    <label>
+                        <span data-i18n="mappingMethod">Mapping method</span>
+                        <select id="mappingMethodSelect"></select>
+                    </label>
+                    <label class="advanced-field">
+                        <span data-i18n="manualMapping">Manual mapping table</span>
+                        <input id="manualMappingInput" placeholder="siteA:siteB, siteC:siteD">
+                    </label>
+                </div>
+                <p id="mappingWarning" class="help-text"></p>
+            </section>
+
+            <section class="panel" aria-labelledby="ruleTitle">
+                <div class="panel-heading">
+                    <span>4</span>
+                    <h2 id="ruleTitle" data-i18n="localRule">Local rule and fixed parameters</h2>
+                </div>
+                <p class="help-text" data-i18n="ruleHelp">Same local rule means the same rule function is applied to each topology's local adjacency structure.</p>
+                <div id="parameterList" class="sweep-list"></div>
+                <div id="ruleMetadata" class="metadata-grid"></div>
+            </section>
+        </section>
+
+        <section class="builder-grid topology-config-grid">
+            <section class="panel" aria-labelledby="seedTitle">
+                <div class="panel-heading">
+                    <span>5</span>
+                    <h2 id="seedTitle" data-i18n="seedPlan">Seed plan</h2>
+                </div>
+                <div class="form-grid">
+                    <label>
+                        <span data-i18n="seedMode">Seed mode</span>
+                        <select id="seedModeSelect">
+                            <option value="single" data-i18n="singleSeed">Single seed</option>
+                            <option value="list" data-i18n="seedList">Seed list</option>
+                            <option value="range" data-i18n="seedRange">Seed range</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span data-i18n="seeds">Seeds</span>
+                        <input id="seedValueInput" value="topology-seed-1">
+                    </label>
+                    <label>
+                        <span data-i18n="seedEnd">Seed end / count</span>
+                        <input id="seedEndInput" value="3">
+                    </label>
+                    <label>
+                        <span data-i18n="repeats">Repeats per topology</span>
+                        <input id="repeatInput" type="number" min="1" max="50" value="1">
+                    </label>
+                    <label>
+                        <span data-i18n="steps">Steps</span>
+                        <input id="stepsInput" type="number" min="1" max="5000" value="24">
+                    </label>
+                </div>
+                <p id="resolvedSeedsText" class="help-text"></p>
+            </section>
+
+            <section class="panel" aria-labelledby="observableTitle">
+                <div class="panel-heading">
+                    <span>6</span>
+                    <h2 id="observableTitle" data-i18n="observables">Observables and detectors</h2>
+                </div>
+                <p class="help-text" data-i18n="observableHelp">Select standard model observables and topology-sensitive event detectors. Detector outputs are labeled by exactness and confidence.</p>
+                <div id="observableList" class="observable-list compact-observable-list"></div>
+                <h3 class="subheading" data-i18n="eventDetectors">Topology-sensitive event detectors</h3>
+                <div id="detectorList" class="observable-list compact-observable-list"></div>
+            </section>
+        </section>
+
+        <section class="panel" aria-labelledby="runTitle">
+            <div class="panel-heading">
+                <span>7</span>
+                <h2 id="runTitle" data-i18n="runComparison">Run synchronized comparison</h2>
+            </div>
+            <div class="run-actions">
+                <button id="generateButton" type="button" data-i18n="generate">Generate comparison</button>
+                <button id="startButton" type="button" data-i18n="start">Start</button>
+                <button id="pauseButton" type="button" data-i18n="pause" disabled>Pause</button>
+                <button id="resumeButton" type="button" data-i18n="resume" disabled>Resume</button>
+                <button id="cancelButton" type="button" data-i18n="cancel" disabled>Cancel</button>
+            </div>
+            <span id="comparisonStatus" class="status-pill" data-i18n="statusReady">Configure the comparison before running.</span>
+            <progress id="runProgress" value="0" max="1"></progress>
+            <ol id="runLog" class="run-log"></ol>
+        </section>
+
+        <section class="panel" aria-labelledby="dashboardTitle">
+            <div class="panel-heading">
+                <span>8</span>
+                <h2 id="dashboardTitle" data-i18n="dashboard">Comparison dashboard</h2>
+            </div>
+            <div class="comparison-grid" id="sideBySidePanel"></div>
+            <div class="topology-visual-grid">
+                <article class="viz-card">
+                    <h3 data-i18n="observableComparison">Observable comparison</h3>
+                    <div id="observableChart" class="topology-mini-chart"></div>
+                </article>
+                <article class="viz-card">
+                    <h3 data-i18n="differenceView">Difference view</h3>
+                    <div id="differencePanel" class="difference-list"></div>
+                </article>
+                <article class="viz-card">
+                    <h3 data-i18n="seamOverlay">Seam and cycle overlay</h3>
+                    <div id="cyclePanel" class="difference-list"></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="builder-grid lower-grid">
+            <section class="panel" aria-labelledby="invariantTitle">
+                <div class="panel-heading">
+                    <span>9</span>
+                    <h2 id="invariantTitle" data-i18n="invariants">Topology invariant table</h2>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-i18n="topology">Topology</th>
+                                <th data-i18n="invariant">Invariant</th>
+                                <th data-i18n="value">Value</th>
+                                <th data-i18n="exactness">Exactness</th>
+                                <th data-i18n="method">Method</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invariantTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="eventTitle">
+                <div class="panel-heading">
+                    <span>10</span>
+                    <h2 id="eventTitle" data-i18n="eventTimeline">Event timeline</h2>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-i18n="step">Step</th>
+                                <th data-i18n="topology">Topology</th>
+                                <th data-i18n="eventType">Event type</th>
+                                <th data-i18n="confidence">Confidence</th>
+                                <th data-i18n="exactness">Exactness</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+
+        <section class="panel" aria-labelledby="divergenceTitle">
+            <div class="panel-heading">
+                <span>11</span>
+                <h2 id="divergenceTitle" data-i18n="divergence">Topology-sensitive divergence score</h2>
+            </div>
+            <p class="help-text" data-i18n="divergenceHelp">A normalized difference between observable time series under the same model, rule, seed plan, and mapping method. It is exploratory and not a universal physical invariant.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="reference">Reference</th>
+                            <th data-i18n="comparison">Comparison</th>
+                            <th data-i18n="observable">Observable</th>
+                            <th data-i18n="distanceMethod">Distance method</th>
+                            <th data-i18n="value">Value</th>
+                            <th data-i18n="confidence">Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="divergenceTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel export-panel" aria-labelledby="exportTitle">
+            <div class="panel-heading">
+                <span>12</span>
+                <h2 id="exportTitle" data-i18n="exportDataset">Export comparison dataset</h2>
+            </div>
+            <p data-i18n="exportNotes">Exports include app version, topology hashes, fixed parameters, mapping method, seeds, observables, event detectors, exactness labels, warnings, and reproducibility notes.</p>
+            <div class="run-actions">
+                <button id="exportJsonButton" type="button" data-i18n="exportJson">Export JSON</button>
+                <button id="exportInvariantCsvButton" type="button" data-i18n="exportInvariantCsv">Export invariants CSV</button>
+                <button id="exportEventCsvButton" type="button" data-i18n="exportEventCsv">Export events CSV</button>
+                <button id="exportDivergenceCsvButton" type="button" data-i18n="exportDivergenceCsv">Export divergence CSV</button>
+                <button id="exportManifestButton" type="button" data-i18n="exportManifest">Export Manifest</button>
+            </div>
+            <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        </section>
+    </main>
+
+    <script type="module" src="./TopologyCompare.js"></script>
+</body>
+</html>

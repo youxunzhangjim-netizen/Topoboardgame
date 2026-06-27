@@ -1,0 +1,226 @@
+.topology-shell {
+    width: min(1660px, 100%);
+}
+
+.topology-mode-strip {
+    width: min(100%, 760px);
+}
+
+.topology-purpose-panel,
+.topology-summary-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(73, 199, 184, 0.28);
+    border-radius: 8px;
+    background: rgba(12, 18, 20, 0.78);
+}
+
+.topology-purpose-panel h2,
+.topology-purpose-panel p {
+    margin: 0;
+}
+
+.topology-purpose-panel p:not(.eyebrow) {
+    margin-top: 6px;
+    color: var(--muted);
+    line-height: 1.42;
+}
+
+.topology-summary-strip {
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.topology-summary-strip div {
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid rgba(225, 232, 225, 0.12);
+    border-radius: 8px;
+    background: rgba(13, 16, 20, 0.82);
+}
+
+.topology-summary-strip dt {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.topology-summary-strip dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.topology-config-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+}
+
+.field-label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.field-label input,
+.field-label select {
+    width: 100%;
+    padding: 7px 9px;
+}
+
+.model-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.model-info-card,
+.topology-choice-card {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(225, 232, 225, 0.13);
+    border-radius: 8px;
+    background: rgba(9, 11, 14, 0.45);
+}
+
+.model-info-card h3,
+.subheading {
+    margin: 0;
+    color: var(--accent);
+    font-size: 13px;
+}
+
+.model-info-card p,
+.topology-choice-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.38;
+}
+
+.topology-choice-card.is-disabled {
+    opacity: 0.48;
+}
+
+.topology-choice-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: start;
+}
+
+.topology-choice-head label {
+    display: inline-grid;
+    grid-auto-flow: column;
+    gap: 5px;
+    align-items: center;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.exactness-pill {
+    display: inline-flex;
+    width: fit-content;
+    min-height: 22px;
+    align-items: center;
+    padding: 3px 7px;
+    border: 1px solid rgba(215, 180, 93, 0.34);
+    border-radius: 999px;
+    background: rgba(215, 180, 93, 0.1);
+    color: #ffe7ac;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.compact-observable-list {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.topology-visual-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.topology-mini-chart {
+    display: flex;
+    align-items: end;
+    gap: 5px;
+    min-height: 130px;
+    margin-top: 10px;
+}
+
+.topology-mini-chart span {
+    flex: 1;
+    min-width: 8px;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--accent), rgba(73, 199, 184, 0.15));
+}
+
+.difference-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.difference-list p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.side-card-badge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+body[data-compare-mode="guided"] .advanced-field,
+body[data-compare-mode="guided"] #modelCards,
+body[data-compare-mode="guided"] #ruleMetadata {
+    display: none;
+}
+
+body[data-compare-mode="guided"] .topology-purpose-panel {
+    border-color: rgba(215, 180, 93, 0.44);
+}
+
+@media (max-width: 1180px) {
+    .topology-purpose-panel,
+    .topology-config-grid,
+    .topology-summary-strip,
+    .topology-visual-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .topology-purpose-panel,
+    .topology-config-grid,
+    .topology-summary-strip,
+    .topology-visual-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .topology-purpose-panel .run-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .topology-choice-head {
+        grid-template-columns: 1fr;
+    }
+}

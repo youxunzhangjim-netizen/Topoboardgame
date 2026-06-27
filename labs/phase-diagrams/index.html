@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase Diagram Generator - Topoboard Labs</title>
+    <link rel="stylesheet" href="../experiments/styles.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-phase-mode="research">
+    <main class="experiment-shell phase-shell">
+        <header class="experiment-topbar">
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../../algebraic/" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
+                <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
+            </nav>
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Phase Diagram Generator</h1>
+                <p data-i18n="subtitle">Generate reproducible regime maps from batch experiments on reusable topologies.</p>
+            </div>
+            <label class="language-select">
+                <span data-i18n="language">Language</span>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </header>
+
+        <section class="mode-strip phase-mode-strip" aria-label="Phase scan mode">
+            <button id="researchModeButton" type="button" aria-pressed="true" data-i18n="modeResearch">Research Scan</button>
+            <button id="guidedModeButton" type="button" aria-pressed="false" data-i18n="modeGuided">Find the Boundary</button>
+        </section>
+
+        <section class="mobile-player-panel phase-guided-note" aria-labelledby="guidedTitle">
+            <div>
+                <p class="eyebrow" data-i18n="guidedEyebrow">Guided</p>
+                <h2 id="guidedTitle" data-i18n="guidedTitle">Find the Boundary</h2>
+                <p data-i18n="guidedText">Choose one model, one topology, two parameters, and one observable. The scan marks transition-like mixed regions without claiming a continuum phase transition.</p>
+            </div>
+            <div class="mobile-player-actions">
+                <button id="guidedDefaultsButton" type="button" data-i18n="guidedDefaults">Use safe defaults</button>
+                <button id="guidedRunButton" type="button" data-i18n="guidedRun">Run small scan</button>
+            </div>
+        </section>
+
+        <section class="phase-compact-summary" aria-live="polite">
+            <div><dt data-i18n="mapTerm">Map term</dt><dd id="mapTermValue">regime map</dd></div>
+            <div><dt data-i18n="totalRuns">Total runs</dt><dd id="totalRunsText">0</dd></div>
+            <div><dt data-i18n="worker">Worker</dt><dd id="workerStatus">pending</dd></div>
+            <div><dt data-i18n="currentRun">Current Run</dt><dd id="currentRunText">-</dd></div>
+        </section>
+
+        <section class="builder-grid phase-config-grid">
+            <section class="panel" aria-labelledby="modelTitle">
+                <div class="panel-heading">
+                    <span>1</span>
+                    <h2 id="modelTitle" data-i18n="modelSetup">Model</h2>
+                </div>
+                <label class="field-label">
+                    <span data-i18n="selectModel">Select model</span>
+                    <select id="modelSelect"></select>
+                </label>
+                <div id="modelMetadata" class="metadata-grid"></div>
+                <div id="modelStatus" class="warning-list"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="topologyTitle">
+                <div class="panel-heading">
+                    <span>2</span>
+                    <h2 id="topologyTitle" data-i18n="topologySet">Topology set</h2>
+                </div>
+                <div id="topologyCards" class="topology-list"></div>
+            </section>
+        </section>
+
+        <section class="panel phase-axis-panel" aria-labelledby="axesTitle">
+            <div class="panel-heading">
+                <span>3</span>
+                <h2 id="axesTitle" data-i18n="sweepAxes">Sweep axes</h2>
+            </div>
+            <div class="phase-axis-grid">
+                <article class="axis-card" data-axis="x">
+                    <h3 data-i18n="xAxis">X axis</h3>
+                    <label class="field-label">
+                        <span data-i18n="parameter">Parameter</span>
+                        <select id="xParameterSelect"></select>
+                    </label>
+                    <label class="field-label advanced-field">
+                        <span data-i18n="axisInputType">Input type</span>
+                        <select id="xInputType">
+                            <option value="numeric_range" data-i18n="numericRange">Numeric range</option>
+                            <option value="numeric_list" data-i18n="numericList">Numeric list</option>
+                            <option value="log_range" data-i18n="logRange">Log range</option>
+                            <option value="integer_range" data-i18n="integerRange">Integer range</option>
+                        </select>
+                    </label>
+                    <div class="axis-range">
+                        <label class="field-label">
+                            <span data-i18n="min">Min</span>
+                            <input id="xMinInput" type="number" step="any">
+                        </label>
+                        <label class="field-label">
+                            <span data-i18n="max">Max</span>
+                            <input id="xMaxInput" type="number" step="any">
+                        </label>
+                        <label class="field-label">
+                            <span data-i18n="count">Count</span>
+                            <input id="xCountInput" type="number" min="1" max="80" value="5">
+                        </label>
+                    </div>
+                    <label class="field-label advanced-field">
+                        <span data-i18n="listValues">List values</span>
+                        <input id="xListInput" value="">
+                    </label>
+                    <p id="xAxisPreview" class="help-text"></p>
+                </article>
+
+                <article class="axis-card" data-axis="y">
+                    <h3 data-i18n="yAxis">Y axis</h3>
+                    <label class="field-label">
+                        <span data-i18n="parameter">Parameter</span>
+                        <select id="yParameterSelect"></select>
+                    </label>
+                    <label class="field-label advanced-field">
+                        <span data-i18n="axisInputType">Input type</span>
+                        <select id="yInputType">
+                            <option value="numeric_range" data-i18n="numericRange">Numeric range</option>
+                            <option value="numeric_list" data-i18n="numericList">Numeric list</option>
+                            <option value="log_range" data-i18n="logRange">Log range</option>
+                            <option value="integer_range" data-i18n="integerRange">Integer range</option>
+                        </select>
+                    </label>
+                    <div class="axis-range">
+                        <label class="field-label">
+                            <span data-i18n="min">Min</span>
+                            <input id="yMinInput" type="number" step="any">
+                        </label>
+                        <label class="field-label">
+                            <span data-i18n="max">Max</span>
+                            <input id="yMaxInput" type="number" step="any">
+                        </label>
+                        <label class="field-label">
+                            <span data-i18n="count">Count</span>
+                            <input id="yCountInput" type="number" min="1" max="80" value="5">
+                        </label>
+                    </div>
+                    <label class="field-label advanced-field">
+                        <span data-i18n="listValues">List values</span>
+                        <input id="yListInput" value="">
+                    </label>
+                    <p id="yAxisPreview" class="help-text"></p>
+                </article>
+            </div>
+        </section>
+
+        <section class="builder-grid phase-config-grid">
+            <section class="panel" aria-labelledby="classificationTitle">
+                <div class="panel-heading">
+                    <span>4</span>
+                    <h2 id="classificationTitle" data-i18n="classification">Classification</h2>
+                </div>
+                <div class="form-grid">
+                    <label>
+                        <span data-i18n="classificationObservable">Classification observable</span>
+                        <select id="classificationObservableSelect"></select>
+                    </label>
+                    <label>
+                        <span data-i18n="method">Method</span>
+                        <select id="classificationMethodSelect">
+                            <option value="threshold" data-i18n="threshold">Threshold</option>
+                            <option value="binning" data-i18n="binning">Binning</option>
+                            <option value="variance" data-i18n="variance">Variance</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span data-i18n="lowerThreshold">Lower threshold</span>
+                        <input id="lowerThresholdInput" type="number" step="any" value="0.33">
+                    </label>
+                    <label>
+                        <span data-i18n="upperThreshold">Upper threshold</span>
+                        <input id="upperThresholdInput" type="number" step="any" value="0.66">
+                    </label>
+                </div>
+                <div>
+                    <p class="help-text" data-i18n="auxObservables">Auxiliary observables</p>
+                    <div id="auxObservableList" class="observable-list compact-observable-list"></div>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="runSetupTitle">
+                <div class="panel-heading">
+                    <span>5</span>
+                    <h2 id="runSetupTitle" data-i18n="runSetup">Run setup</h2>
+                </div>
+                <div class="form-grid">
+                    <label>
+                        <span data-i18n="seedList">Seeds</span>
+                        <input id="seedListInput" value="phase-seed-1, phase-seed-2">
+                    </label>
+                    <label>
+                        <span data-i18n="repeats">Repeats per cell</span>
+                        <input id="repeatsInput" type="number" min="1" max="50" value="1">
+                    </label>
+                    <label>
+                        <span data-i18n="simulationSteps">Simulation steps</span>
+                        <input id="stepsInput" type="number" min="1" max="5000" value="24">
+                    </label>
+                    <label>
+                        <span data-i18n="initialCondition">Initial condition</span>
+                        <select id="initialConditionSelect"></select>
+                    </label>
+                </div>
+                <div class="run-actions">
+                    <button id="generateScanButton" type="button" data-i18n="generateScan">Generate scan</button>
+                    <button id="startScanButton" type="button" data-i18n="start">Start</button>
+                    <button id="pauseScanButton" type="button" data-i18n="pause" disabled>Pause</button>
+                    <button id="resumeScanButton" type="button" data-i18n="resume" disabled>Resume</button>
+                    <button id="cancelScanButton" type="button" data-i18n="cancel" disabled>Cancel</button>
+                </div>
+                <span id="scanStatus" class="status-pill" data-i18n="statusReady">Configure the scan before running.</span>
+                <progress id="scanProgress" value="0" max="1"></progress>
+                <ol id="runLog" class="run-log"></ol>
+            </section>
+        </section>
+
+        <section class="panel" aria-labelledby="visualTitle">
+            <div class="panel-heading">
+                <span>6</span>
+                <h2 id="visualTitle" data-i18n="visualizations">Visualizations</h2>
+            </div>
+            <div class="phase-visual-grid">
+                <article class="viz-card phase-canvas-card">
+                    <h3 id="regimeMapTitle" data-i18n="regimeMap">Regime map</h3>
+                    <canvas id="regimeCanvas" width="640" height="420"></canvas>
+                </article>
+                <article class="viz-card phase-canvas-card">
+                    <h3 data-i18n="heatmap">Heatmap</h3>
+                    <canvas id="heatmapCanvas" width="640" height="420"></canvas>
+                </article>
+                <article class="viz-card phase-canvas-card">
+                    <h3 data-i18n="uncertaintyMap">Uncertainty map</h3>
+                    <canvas id="uncertaintyCanvas" width="640" height="420"></canvas>
+                </article>
+            </div>
+            <div id="selectedCellPanel" class="selected-cell-panel"></div>
+            <div id="topologyComparisonPanel" class="comparison-grid"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="tableTitle">
+            <div class="panel-heading">
+                <span>7</span>
+                <h2 id="tableTitle" data-i18n="results">Results</h2>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="topology">topology</th>
+                            <th data-i18n="xValue">x</th>
+                            <th data-i18n="yValue">y</th>
+                            <th data-i18n="regime">regime</th>
+                            <th data-i18n="meanValue">mean</th>
+                            <th data-i18n="confidence">confidence</th>
+                            <th data-i18n="failedRuns">failed</th>
+                        </tr>
+                    </thead>
+                    <tbody id="phaseTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel export-panel" aria-labelledby="exportTitle">
+            <div class="panel-heading">
+                <span>8</span>
+                <h2 id="exportTitle" data-i18n="exportDataset">Export Dataset</h2>
+            </div>
+            <p data-i18n="exportNotes">Exports include scan config, batch config, topology hashes, resolved seeds, classifications, warnings, and reproducibility notes.</p>
+            <div class="run-actions">
+                <button id="exportJsonButton" type="button" data-i18n="exportJson">Export JSON</button>
+                <button id="exportGridCsvButton" type="button" data-i18n="exportGridCsv">Export grid CSV</button>
+                <button id="exportClassCsvButton" type="button" data-i18n="exportClassCsv">Export classifications CSV</button>
+                <button id="exportManifestButton" type="button" data-i18n="exportManifest">Export Manifest</button>
+            </div>
+            <textarea id="exportPreview" readonly spellcheck="false"></textarea>
+        </section>
+    </main>
+
+    <script type="module" src="./PhaseDiagramGenerator.js"></script>
+</body>
+</html>

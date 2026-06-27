@@ -47,3 +47,53 @@ export type {
   LabUpdateSchedule,
   LabValidationLevel
 } from './types';
+
+export type {
+  LabBatchDistributionType,
+  LabBatchEstimate,
+  LabBatchExperimentConfig,
+  LabBatchExperimentResult,
+  LabBatchExportFile,
+  LabBatchExportManifest,
+  LabBatchFailedRun,
+  LabBatchParameterSweep,
+  LabBatchRunConfig,
+  LabBatchRunStatus,
+  LabBatchRuntimeCategory,
+  LabBatchSeedMode,
+  LabBatchSeedPlan,
+  LabBatchStepMode,
+  LabBatchStepPlan,
+  LabBatchSummaryStatistics,
+  LabBatchSweepMode
+} from './batch';
+
+export type {
+  LabPhaseAxisInputType,
+  LabPhaseClassificationMethod,
+  LabPhaseGridCellResult,
+  LabPhaseScanConfig,
+  LabPhaseScanResult,
+  LabPhaseSeedPlan,
+  LabPhaseSweepAxis,
+  LabPhaseTopologyComparison,
+  LabPhaseVisualizationMode,
+  LabRegimeClassification,
+  LabRegimeLabel
+} from './phase';
+
+export type {
+  LabInitialConditionMappingMethod,
+  LabTopologyComparisonConfig,
+  LabTopologyComparisonMode,
+  LabTopologyComparisonResult,
+  LabTopologyCycleData,
+  LabTopologyDivergenceDistanceMethod,
+  LabTopologyDivergenceScore,
+  LabTopologyInvariant,
+  LabTopologyInvariantCategory,
+  LabTopologyInvariantExactness,
+  LabTopologyObservableComparison,
+  LabTopologySensitiveEvent,
+  LabTopologySensitiveEventExactness
+} from './topology-comparison';
