@@ -2431,6 +2431,20 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
         gap: 16px;
     }
 
+    .lab-workspace > .game-layout > .board-wrap {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .lab-workspace > .game-layout > .side-panel {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+
     .lab-workspace > .control-panel {
         grid-column: 2;
         grid-row: 1;

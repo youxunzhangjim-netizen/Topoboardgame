@@ -521,7 +521,7 @@ function modeToEngineConfig(mode) {
   if (mode.mutation != null) rule.mutationRate = mode.mutation;
   return {
     dimension: geometry.dimension,
-    size: geometry.dimension === 3 ? [40, 40, 10] : [48, 48],
+    size: geometry.dimension === 3 ? [32, 32, 5] : [32, 32],
     boundary: geometry.boundary,
     lattice: mode.lattice || (geometry.dimension === 3 ? 'sc' : 'square'),
     neighborhoodType: mode.neighborhoodType || (geometry.dimension === 3 ? 'von_neumann' : 'moore'),
@@ -1386,7 +1386,7 @@ export class LifeUI {
     this.boardGeometrySelect.value = geometry.id;
     const selectedDimension = geometry.dimension || config.dimension;
     this.dimensionSelect.value = String(selectedDimension);
-    this.boardSizeSelect.value = String(selectedDimension === 3 ? 40 : 48);
+    this.boardSizeSelect.value = '32';
     this.topologySelect.value = geometry.topology || config.boundary;
     this.viewModeSelect.value = geometry.view;
     this.populateLattices(geometry.id, config.lattice);
@@ -1437,7 +1437,7 @@ export class LifeUI {
   }
 
   currentSize() {
-    const n = Math.max(8, Number(this.boardSizeSelect.value) || 48);
+    const n = Math.max(8, Number(this.boardSizeSelect.value) || 32);
     const dimension = Math.max(1, Number(this.dimensionSelect.value) || 2);
     if (dimension === 1) return [n];
     if (dimension === 2) return [n, n];
@@ -1595,7 +1595,7 @@ export class LifeUI {
       this.latticeSelect?.value || 'square',
       this.viewModeSelect?.value || 'flat',
       this.dimensionSelect?.value || '2',
-      this.boardSizeSelect?.value || '48',
+      this.boardSizeSelect?.value || '32',
       this.customRuleActive ? `custom:${serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival })}` : (this.ruleSelect?.value || 'conway'),
       this.neighborhoodSelect?.value || 'moore',
       `rad${this.neighborhoodRadiusSelect?.value || 1}`,
@@ -2765,6 +2765,31 @@ export class LifeUI {
     ctx.restore();
   }
 
+  drawFlatBoardBackground(ctx, width, height, view) {
+    const boardOpacity = this.currentBoardOpacity();
+    if (boardOpacity <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = boardOpacity;
+    ctx.fillStyle = '#f8fafc';
+    if (this.engine.dimension === 2 && this.flatLatticeKind() !== 'square') {
+      const startX = Math.max(0, Math.floor((0 - view.originX) / Math.max(1, view.sx)) - 2);
+      const endX = Math.min(this.engine.size[0] - 1, Math.ceil((width - view.originX) / Math.max(1, view.sx)) + 2);
+      const startY = Math.max(0, Math.floor((0 - view.originY) / Math.max(1, view.sy)) - 2);
+      const endY = Math.min(this.engine.size[1] - 1, Math.ceil((height - view.originY) / Math.max(1, view.sy)) + 2);
+      const inset = this.showGrid ? Math.min(0.35, Math.max(0, Math.min(view.sx, view.sy) * 0.006)) : 0;
+      for (let y = startY; y <= endY; y += 1) {
+        for (let x = startX; x <= endX; x += 1) {
+          this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, view, inset));
+          ctx.fill();
+        }
+      }
+    } else {
+      ctx.fillRect(view.originX, view.originY, view.boardWidth, view.boardHeight);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   drawFlatLatticeUnits(ctx, width, height, view) {
     const minCell = Math.min(view.sx, view.sy);
     if (minCell < 3) return;
@@ -2774,9 +2799,9 @@ export class LifeUI {
     const endY = Math.min(this.engine.size[1] - 1, Math.ceil((height - view.originY) / view.sy) + 1);
     ctx.save();
     ctx.strokeStyle = this.flatLatticeKind() === 'triangular'
-      ? 'rgba(2, 6, 12, 0.78)'
-      : 'rgba(2, 6, 12, 0.7)';
-    ctx.lineWidth = Math.max(0.5, Math.min(1.05, minCell * 0.04));
+      ? 'rgba(2, 6, 12, 0.62)'
+      : 'rgba(2, 6, 12, 0.56)';
+    ctx.lineWidth = Math.max(0.35, Math.min(0.85, minCell * 0.03));
     for (let y = startY; y <= endY; y += 1) {
       for (let x = startX; x <= endX; x += 1) {
         this.drawPolygonPath(ctx, this.flatCellPolygon(x, y, view, 0));
@@ -2793,8 +2818,8 @@ export class LifeUI {
     }
     const { sx, sy, originX, originY } = view;
     ctx.save();
-    ctx.strokeStyle = 'rgba(8, 14, 24, 0.64)';
-    ctx.lineWidth = Math.max(0.7, Math.min(1.25, Math.min(sx, sy) * 0.045));
+    ctx.strokeStyle = 'rgba(8, 14, 24, 0.54)';
+    ctx.lineWidth = Math.max(0.35, Math.min(0.85, Math.min(sx, sy) * 0.032));
     for (let x = 0; x <= this.engine.size[0]; x += 1) {
       const px = originX + x * sx;
       if (px < -2 || px > width + 2) continue;
@@ -2814,8 +2839,8 @@ export class LifeUI {
       }
     }
     if (Math.min(sx, sy) >= 14) {
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.34)';
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+      ctx.lineWidth = 0.35;
       for (let x = 0.5; x < this.engine.size[0]; x += 1) {
         const px = originX + x * sx;
         if (px < -2 || px > width + 2) continue;
@@ -2882,7 +2907,7 @@ export class LifeUI {
   drawFlatBoundary(ctx, width, height, view) {
     ctx.save();
     ctx.strokeStyle = 'rgba(245, 182, 71, 0.84)';
-    ctx.lineWidth = Math.max(2.2, width / 320);
+    ctx.lineWidth = Math.max(1.8, width / 380);
     ctx.strokeRect(view.originX + 1, view.originY + 1, view.boardWidth - 2, view.boardHeight - 2);
     ctx.fillStyle = 'rgba(245, 182, 71, 0.92)';
     ctx.font = `${Math.max(12, width / 48)}px ui-sans-serif, system-ui`;
@@ -2919,6 +2944,7 @@ export class LifeUI {
     ctx.beginPath();
     ctx.rect(0, 0, width, height);
     ctx.clip();
+    this.drawFlatBoardBackground(ctx, width, height, flatView);
 
     const yLimit = this.engine.dimension === 1 ? 1 : this.engine.size[1];
     for (let y = 0; y < yLimit; y += 1) {
@@ -3933,7 +3959,7 @@ export class LifeUI {
       lattice: String(entry.lattice || 'square'),
       neighborhood: entry.neighborhood && typeof entry.neighborhood === 'object' ? entry.neighborhood : { type: 'moore', radius: 1, metric: 'chebyshev' },
       dimension: Math.max(1, Math.min(4, Number(entry.dimension) || 2)),
-      boardSize: Array.isArray(entry.boardSize) ? entry.boardSize.map(Number).filter(Boolean) : [Number(entry.boardSize) || 48],
+      boardSize: Array.isArray(entry.boardSize) ? entry.boardSize.map(Number).filter(Boolean) : [Number(entry.boardSize) || 32],
       modifiers: entry.modifiers && typeof entry.modifiers === 'object' ? entry.modifiers : {},
       randomSeed: Math.max(1, Math.round(Number(entry.randomSeed) || 20260627)),
       seedDensity: Math.max(0.01, Math.min(0.8, Number(entry.seedDensity) || 0.18)),
@@ -3978,7 +4004,7 @@ export class LifeUI {
     this.boardGeometrySelect.value = geometry.id;
     this.populateLattices(geometry.id, entry.lattice || (geometry.dimension === 3 ? 'sc' : 'square'));
     this.dimensionSelect.value = String(entry.dimension || geometry.dimension);
-    this.boardSizeSelect.value = String(Array.isArray(entry.boardSize) ? entry.boardSize[0] : entry.boardSize || 48);
+    this.boardSizeSelect.value = String(Array.isArray(entry.boardSize) ? entry.boardSize[0] : entry.boardSize || 32);
     this.topologySelect.value = entry.topology || geometry.topology;
     this.viewModeSelect.value = geometry.view;
     if (this.latticeSelect.querySelector(`option[value="${entry.lattice}"]`)) this.latticeSelect.value = entry.lattice;

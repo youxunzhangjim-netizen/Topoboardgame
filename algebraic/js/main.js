@@ -2355,6 +2355,13 @@ function setLabUIMode(mode) {
     if (els.labResearchModeButton) els.labResearchModeButton.setAttribute('aria-pressed', String(next === 'research'));
 }
 
+function initialLabUIMode() {
+    const requested = String(params.get('ui') || params.get('labUi') || params.get('audience') || '').toLowerCase();
+    if (['simple', 'play', 'player', 'players'].includes(requested)) return 'simple';
+    if (['research', 'researcher', 'researchers'].includes(requested)) return 'research';
+    return localStorage.getItem('topoboard-labs-ui-mode') || 'research';
+}
+
 function renderLabsModelCatalog() {
     if (!els.labsModelCatalog || els.labsModelCatalog.dataset.rendered === 'true') return;
     els.labsModelCatalog.dataset.rendered = 'true';
@@ -7149,7 +7156,7 @@ window.addEventListener('pageshow', () => {
 });
 
 renderLabsModelCatalog();
-setLabUIMode(localStorage.getItem('topoboard-labs-ui-mode') || 'research');
+setLabUIMode(initialLabUIMode());
 createGame();
 syncOnlineModeVisibility();
 

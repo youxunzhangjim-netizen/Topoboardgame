@@ -406,12 +406,15 @@ function installStyles() {
     style.id = GUIDE_STYLE_ID;
     style.textContent = `
 .game-control-guide {
-  margin-top: 14px;
+  margin-top: 0;
   padding: 14px 16px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 8px;
   background: rgba(15, 23, 42, 0.52);
   color: inherit;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .game-control-guide h3 {
   margin: 0 0 8px;
@@ -446,6 +449,27 @@ function installStyles() {
 .game-control-guide li {
   margin: 0.35rem 0;
   line-height: 1.45;
+}
+.reference-panels-below-board {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+  align-self: start;
+  min-width: 0;
+  width: 100%;
+  margin-top: 14px;
+}
+.reference-panels-below-board > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.reference-panels-below-board > .game-control-guide,
+.reference-panels-below-board > .game-guide-book {
+  grid-column: 1 / -1;
+}
+.reference-panels-below-board .game-guide-book {
+  padding: 16px 18px;
 }
 @media (max-width: 640px) {
   .game-control-guide {
@@ -540,14 +564,48 @@ function guideText(text, lang) {
         .replace(/\binstant\b/g, '立即');
 }
 
+function findGameShell() {
+    return document.querySelector('.app-shell, .main-content, .jump-shell');
+}
+
+function findMainPlayArea(shell) {
+    return shell?.querySelector(':scope > .play-area, :scope > .board-wrapper, :scope > .jump-board-panel');
+}
+
+function findLastSidebar(shell) {
+    const sidebars = shell?.querySelectorAll(':scope > .sidebar, :scope > aside.sidebar, :scope > .jump-side, :scope > aside.jump-side');
+    return sidebars?.length ? [...sidebars].at(-1) : null;
+}
+
+function referenceContainerBelowGame() {
+    const shell = findGameShell();
+    const playArea = findMainPlayArea(shell);
+    if (!shell || !playArea) return null;
+    let target = shell.querySelector(':scope > .reference-panels-below-board')
+        || playArea.querySelector(':scope > .reference-panels-below-board');
+    const after = findLastSidebar(shell) || playArea;
+    if (!target) {
+        target = document.createElement('section');
+        target.className = 'reference-panels-below-board';
+        target.setAttribute('aria-label', 'Reference panels');
+    }
+    if (target.parentElement !== shell || target.previousElementSibling !== after) {
+        after.insertAdjacentElement('afterend', target);
+    }
+    return target;
+}
+
 function targetForGuide(type) {
     if (type === 'labs') return null;
-    if (type === 'jump') return document.querySelector('#jumpInfo')?.closest('section');
+    if (type === 'jump') return referenceContainerBelowGame()
+        || document.querySelector('#jumpInfo')?.closest('section');
     if (type === 'life') {
         return document.querySelector('.life-play-invite')
             || document.querySelector('.life-hero')
             || document.querySelector('#lifeInfoDialog article');
     }
+    const referenceContainer = referenceContainerBelowGame();
+    if (referenceContainer) return referenceContainer;
     const rulesText = document.querySelector('.rules-text');
     if (rulesText) return rulesText.parentElement || rulesText;
     const sidebar = document.querySelector('.sidebar, aside.sidebar, aside, .jump-side');

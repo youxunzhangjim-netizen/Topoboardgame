@@ -347,6 +347,8 @@ h1 {
   display: grid;
   gap: 12px;
   padding: 14px;
+  justify-items: center;
+  overflow: hidden;
 }
 
 .life-board-toolbar {
@@ -362,13 +364,15 @@ h1 {
 }
 
 .life-canvas-wrap {
-  width: 100%;
+  width: min(100%, 760px, calc(100vh - 190px));
   aspect-ratio: 1 / 1;
-  min-height: 340px;
+  min-width: 0;
+  min-height: 0;
+  justify-self: center;
   border: 1px solid rgba(56, 189, 248, 0.18);
   border-radius: 14px;
   overflow: hidden;
-  background: rgba(2, 6, 12, 0.74);
+  background: #f8fafc;
 }
 
 #lifeCanvas {
@@ -1644,6 +1648,7 @@ body[data-life-usage] #lifeCanvas:active {
 
 .life-canvas-wrap {
   border-color: rgba(245, 182, 71, 0.34);
+  max-width: 100%;
   box-shadow:
     inset 0 0 0 1px rgba(245, 182, 71, 0.16),
     0 18px 42px rgba(0, 0, 0, 0.28);
@@ -1773,6 +1778,12 @@ body[data-life-usage] #lifeCanvas:active {
   }
 }
 
+@media (max-width: 900px) {
+  .life-canvas-wrap {
+    width: min(100%, 680px, calc(100vh - 210px));
+  }
+}
+
 @media (max-width: 620px) {
   .life-player-shell,
   .life-header,
@@ -1793,6 +1804,10 @@ body[data-life-usage] #lifeCanvas:active {
 
   .life-board-toolbar {
     align-items: flex-start;
+  }
+
+  .life-canvas-wrap {
+    width: min(100%, calc(100vw - 36px), 68vh);
   }
 
   .life-help {

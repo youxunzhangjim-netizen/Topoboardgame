@@ -150,6 +150,10 @@
       padding: 20px;
       text-decoration: none;
     }
+    .workflow-card.primary-entry {
+      border-color: rgba(245, 200, 91, 0.52);
+      background: linear-gradient(135deg, rgba(10, 17, 27, 0.94), rgba(16, 36, 52, 0.86));
+    }
     .workflow-card strong {
       display: block;
       font-size: 24px;
@@ -200,9 +204,13 @@
     <section class="hero">
       <p class="eyebrow" data-i18n="eyebrow">Topoboard Labs</p>
       <h1 data-i18n="title">Experimental Platform for Discrete Topological Dynamics</h1>
-      <p class="lead" data-i18n="lead">Start from the Labs home page, then choose a reproducible workflow for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.</p>
+      <p class="lead" data-i18n="lead">Start with the interactive Simple / Research workspace, then use the deeper tools for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.</p>
     </section>
     <section class="workflow-grid" aria-label="Labs workflows">
+      <a class="workflow-card primary-entry" href="../algebraic/?ui=simple">
+        <span><strong data-i18n="interactiveTitle">Simple / Research Interface</strong><small data-i18n="interactiveDesc">Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.</small></span>
+        <span data-i18n="enter">Enter</span>
+      </a>
       <a class="workflow-card" href="./experiments/">
         <span><strong data-i18n="experimentsTitle">Experiment Builder</strong><small data-i18n="experimentsDesc">Configure models, topology, seeds, observables, batch runs, and reproducible exports.</small></span>
         <span data-i18n="open">Open</span>
@@ -232,7 +240,9 @@
         home: 'Home',
         eyebrow: 'Topoboard Labs',
         title: 'Experimental Platform for Discrete Topological Dynamics',
-        lead: 'Start from the Labs home page, then choose a reproducible workflow for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.',
+        lead: 'Start with the interactive Simple / Research workspace, then use the deeper tools for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.',
+        interactiveTitle: 'Simple / Research Interface',
+        interactiveDesc: 'Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.',
         experimentsTitle: 'Experiment Builder',
         experimentsDesc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.',
         phaseTitle: 'Phase / Regime Scan',
@@ -244,13 +254,16 @@
         publicationTitle: 'Publication & Dataset Export',
         publicationDesc: 'Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.',
         open: 'Open',
+        enter: 'Enter',
         language: 'Language'
       },
       zh: {
         home: '\u9996\u9801',
         eyebrow: 'Topoboard Labs',
         title: '\u96e2\u6563\u62d3\u64b2\u52d5\u529b\u5b78\u5be6\u9a57\u5e73\u53f0',
-        lead: '\u5f9e Labs \u9996\u9801\u958b\u59cb\uff0c\u518d\u9078\u64c7\u5be6\u9a57\u5efa\u69cb\u3001\u76f8\u5716\u6383\u63cf\u3001\u62d3\u64b2\u6bd4\u8f03\u3001\u9a57\u8b49\uff0c\u6216\u53ef\u51fa\u7248\u8cc7\u6599\u96c6\u532f\u51fa\u7684\u53ef\u91cd\u73fe\u5de5\u4f5c\u6d41\u7a0b\u3002',
+        lead: '\u5148\u9032\u5165\u53ef\u4e92\u52d5\u7684\u7c21\u55ae / \u7814\u7a76\u5de5\u4f5c\u5340\uff0c\u518d\u4f7f\u7528\u66f4\u6df1\u5165\u7684\u5be6\u9a57\u5efa\u69cb\u3001\u76f8\u5716\u6383\u63cf\u3001\u62d3\u64b2\u6bd4\u8f03\u3001\u9a57\u8b49\u6216\u53ef\u51fa\u7248\u8cc7\u6599\u96c6\u532f\u51fa\u5de5\u5177\u3002',
+        interactiveTitle: '\u7c21\u55ae / \u7814\u7a76\u4ecb\u9762',
+        interactiveDesc: '\u5148\u9032\u5165\u53ef\u904a\u73a9\u7684 Labs \u5de5\u4f5c\u5340\u3002\u4e00\u822c\u73a9\u5bb6\u7528\u7c21\u55ae\u6a21\u5f0f\uff0c\u9700\u8981\u5b8c\u6574\u79d1\u5b78\u63a7\u5236\u6642\u518d\u5728\u9802\u90e8\u5207\u5230\u7814\u7a76\u6a21\u5f0f\u3002',
         experimentsTitle: '\u5be6\u9a57\u5efa\u69cb\u5668',
         experimentsDesc: '\u8a2d\u5b9a\u6a21\u578b\u3001\u62d3\u64b2\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u3001\u6279\u6b21\u57f7\u884c\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u3002',
         phaseTitle: '\u76f8\u5716 / \u5340\u57df\u6383\u63cf',
@@ -262,6 +275,7 @@
         publicationTitle: '\u51fa\u7248\u8207\u8cc7\u6599\u96c6\u532f\u51fa',
         publicationDesc: '\u5c01\u88dd\u53ef\u5be9\u67e5 bundle\uff0c\u5305\u542b README\u3001\u8cc7\u6599\u5b57\u5178\u3001\u65b9\u6cd5\u3001\u5f15\u7528\u3001\u6821\u9a57\u78bc\u8207\u4f86\u6e90\u7d00\u9304\u3002',
         open: '\u958b\u555f',
+        enter: '\u9032\u5165',
         language: '\u8a9e\u8a00'
       }
     };
