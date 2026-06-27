@@ -285,8 +285,9 @@
                         <small data-i18n="labs.desc">Choose a playable lab world to explore new rules, hidden structures, and strategic patterns. Open Info to learn what the system represents, how it changes the game, and what you can observe through play.</small>
                     </div>
                     <div class="lab-card-grid">
-                        <a class="extra-mode-card current-lab-card" href="./algebraic/?ui=simple">
+                        <a class="extra-mode-card current-lab-card labs-primary-entry" href="./algebraic/?ui=simple">
                             <span class="extra-mode-copy">
+                                <span class="labs-primary-badge" data-i18n="labs.current.home.badge">Start here</span>
                                 <strong data-i18n="labs.current.home.title">Simple / Research Interface</strong>
                                 <small data-i18n="labs.current.home.desc">Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for scientific controls.</small>
                             </span>
@@ -487,6 +488,7 @@
                         info: 'Info',
                         current: {
                             home: {
+                                badge: 'Start here',
                                 title: 'Simple / Research Interface',
                                 desc: 'Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for scientific controls.'
                             },
@@ -965,6 +967,7 @@
             let currentLanguage = initialLanguage();
 
             function readTranslation(key) {
+                if (currentLanguage === 'zh' && key === 'labs.current.home.badge') return '從這裡開始';
                 return key.split('.').reduce((node, part) => node?.[part], LAUNCHER_I18N[currentLanguage])
                     ?? key.split('.').reduce((node, part) => node?.[part], LAUNCHER_I18N.en)
                     ?? key;

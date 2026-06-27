@@ -1364,6 +1364,7 @@ export class LifeUI {
     this.dimensionSelect.value = String(geometry.dimension);
     this.topologySelect.value = geometry.topology;
     this.viewModeSelect.value = geometry.view;
+    this.resetInitialCameraScale();
     this.populateLattices(geometry.id, this.latticeSelect.value || (geometry.dimension === 3 ? 'sc' : 'square'));
     if (!this.customRuleActive) this.applyLatticeDefaults(this.latticeSelect.value);
     if (this.neighborhoodSelect.value === 'nearest' && geometry.dimension >= 2) {
@@ -1389,6 +1390,7 @@ export class LifeUI {
     this.boardSizeSelect.value = '32';
     this.topologySelect.value = geometry.topology || config.boundary;
     this.viewModeSelect.value = geometry.view;
+    this.resetInitialCameraScale();
     this.populateLattices(geometry.id, config.lattice);
     this.speciesSelect.value = String(mode.species || config.rule.speciesCount || 1);
     this.ruleSelect.value = config.rule.id || 'conway';
@@ -1443,6 +1445,15 @@ export class LifeUI {
     if (dimension === 2) return [n, n];
     if (dimension === 3) return [Math.min(n, 64), Math.min(n, 64), Math.min(16, Math.max(4, Math.floor(n / 6)))];
     return [Math.min(n, 32), Math.min(n, 32), 4, 4];
+  }
+
+  resetInitialCameraScale() {
+    const dimension = Math.max(1, Number(this.dimensionSelect?.value) || 2);
+    const view = this.viewModeSelect?.value || 'flat';
+    const projectedView = dimension >= 3 || view === 'surface3d' || view === 'volume';
+    this.camera.zoom = projectedView ? 1.12 : 1;
+    this.camera.panX = 0;
+    this.camera.panY = 0;
   }
 
   applyControls(preserve = true) {
@@ -2380,8 +2391,12 @@ export class LifeUI {
   resizeCanvas() {
     const rect = this.canvas.getBoundingClientRect();
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    const size = Math.max(320, Math.floor(Math.min(rect.width, rect.height) * ratio));
-    if (this.canvas.width !== size || this.canvas.height !== size) { this.canvas.width = size; this.canvas.height = size; }
+    const width = Math.max(320, Math.floor(rect.width * ratio));
+    const height = Math.max(320, Math.floor(rect.height * ratio));
+    if (this.canvas.width !== width || this.canvas.height !== height) {
+      this.canvas.width = width;
+      this.canvas.height = height;
+    }
   }
 
 

@@ -142,7 +142,7 @@ h1 {
 
 /* Play page */
 .life-player-shell {
-  width: min(1280px, calc(100% - 24px));
+  width: min(1680px, calc(100% - 24px));
   margin: 0 auto;
   padding: 20px 0 42px;
   position: relative;
@@ -167,7 +167,7 @@ h1 {
   display: grid;
   gap: 12px;
   padding: 14px;
-  justify-items: center;
+  justify-items: stretch;
   overflow: hidden;
 }
 
@@ -184,11 +184,11 @@ h1 {
 }
 
 .life-canvas-wrap {
-  width: min(100%, 760px, calc(100vh - 190px));
-  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: clamp(460px, calc(100vh - 172px), 920px);
   min-width: 0;
-  min-height: 0;
-  justify-self: center;
+  min-height: 360px;
+  justify-self: stretch;
   border: 1px solid rgba(56, 189, 248, 0.18);
   border-radius: 14px;
   overflow: hidden;
@@ -1599,7 +1599,7 @@ body[data-life-usage] #lifeCanvas:active {
 
 @media (max-width: 900px) {
   .life-canvas-wrap {
-    width: min(100%, 680px, calc(100vh - 210px));
+    height: clamp(420px, calc(100vh - 188px), 760px);
   }
 }
 
@@ -1624,7 +1624,8 @@ body[data-life-usage] #lifeCanvas:active {
   }
 
   .life-canvas-wrap {
-    width: min(100%, calc(100vw - 36px), 68vh);
+    height: min(clamp(420px, 64vh, 620px), max(360px, calc(100vh - 300px)));
+    min-height: 360px;
   }
 
   .life-help {
