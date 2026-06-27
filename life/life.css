@@ -1330,6 +1330,121 @@ body[data-life-usage="two"] .one-player-only {
   text-align: right;
 }
 
+.experiment-notebook-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(129, 140, 248, 0.22);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(56, 189, 248, 0.04)),
+    rgba(5, 10, 17, 0.52);
+  padding: 14px;
+}
+
+.experiment-notebook-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+
+.experiment-notebook-heading h3 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.08;
+}
+
+.experiment-notebook-status {
+  flex: 0 0 auto;
+  max-width: min(430px, 44%);
+  margin: 0;
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  border-radius: 999px;
+  background: rgba(67, 56, 202, 0.16);
+  color: rgba(226, 236, 238, 0.94);
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.experiment-notebook-note {
+  margin: 0;
+  color: rgba(203, 213, 225, 0.82);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.experiment-notebook-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.4fr);
+  gap: 10px;
+}
+
+.experiment-notebook-controls label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.experiment-notebook-actions {
+  justify-content: start;
+}
+
+#experimentNotebookJson {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(3, 8, 14, 0.78);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  padding: 10px;
+}
+
+.experiment-notebook-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.experiment-notebook-summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.experiment-notebook-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  background: rgba(3, 8, 14, 0.42);
+  padding: 9px 10px;
+}
+
+.experiment-notebook-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.experiment-notebook-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .score-panel {
   display: grid;
   grid-template-columns: 1fr 1fr 2fr;
@@ -1411,13 +1526,15 @@ body[data-life-usage="two"] .one-player-only {
   .geometry-info-title,
   .neighborhood-lab-heading,
   .phase-scanner-heading,
-  .topology-compare-heading {
+  .topology-compare-heading,
+  .experiment-notebook-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .phase-scanner-status,
-  .topology-compare-status {
+  .topology-compare-status,
+  .experiment-notebook-status {
     width: 100%;
     max-width: none;
     border-radius: 10px;
@@ -1426,7 +1543,9 @@ body[data-life-usage="two"] .one-player-only {
   .phase-scanner-controls,
   .topology-compare-controls,
   .topology-compare-geometries,
-  .topology-compare-results {
+  .topology-compare-results,
+  .experiment-notebook-controls,
+  .experiment-notebook-summary {
     grid-template-columns: 1fr;
   }
 

@@ -548,6 +548,37 @@
         <div id="topologyCompareResults" class="topology-compare-results" aria-live="polite"></div>
       </section>
 
+      <section class="experiment-notebook-panel" aria-labelledby="experimentNotebookTitle">
+        <div class="experiment-notebook-heading">
+          <div>
+            <p class="eyebrow" data-life-i18n="experimentNotebookEyebrow">Local reproducibility</p>
+            <h3 id="experimentNotebookTitle" data-life-i18n="experimentNotebookTitle">Experiment Notebook</h3>
+          </div>
+          <p id="experimentNotebookStatus" class="experiment-notebook-status" data-life-i18n="experimentNotebookIdle">Saved only in this browser.</p>
+        </div>
+        <p class="experiment-notebook-note" data-life-i18n="experimentNotebookNote">Save the current Life configuration, seed, modifiers, and final metrics locally without login.</p>
+        <div class="experiment-notebook-controls">
+          <label>
+            <span data-life-i18n="experimentNotebookEntryTitle">Experiment title</span>
+            <input id="experimentNotebookTitleInput" type="text" value="Life experiment" autocomplete="off" />
+          </label>
+          <label>
+            <span data-life-i18n="experimentNotebookSavedEntries">Saved experiments</span>
+            <select id="experimentNotebookSelect"></select>
+          </label>
+        </div>
+        <div class="life-button-row experiment-notebook-actions">
+          <button class="life-button" id="experimentNotebookSaveButton" type="button" data-life-i18n="experimentNotebookSave">Save current experiment</button>
+          <button class="life-button" id="experimentNotebookLoadButton" type="button" data-life-i18n="experimentNotebookLoad">Load experiment</button>
+          <button class="life-button" id="experimentNotebookDuplicateButton" type="button" data-life-i18n="experimentNotebookDuplicate">Duplicate experiment</button>
+          <button class="life-button" id="experimentNotebookDeleteButton" type="button" data-life-i18n="experimentNotebookDelete">Delete experiment</button>
+          <button class="life-button" id="experimentNotebookExportButton" type="button" data-life-i18n="experimentNotebookExport">Export notebook JSON</button>
+          <button class="life-button" id="experimentNotebookImportButton" type="button" data-life-i18n="experimentNotebookImport">Import notebook JSON</button>
+        </div>
+        <textarea id="experimentNotebookJson" rows="5" spellcheck="false" data-life-i18n-placeholder="experimentNotebookJsonPlaceholder" placeholder="Notebook JSON import/export"></textarea>
+        <div id="experimentNotebookSummary" class="experiment-notebook-summary" aria-live="polite"></div>
+      </section>
+
       <div class="plot-grid">
         <article>
           <h3 data-life-i18n="populationPlot">Population</h3>

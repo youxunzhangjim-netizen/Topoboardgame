@@ -27,6 +27,7 @@ const LATTICE_RULE_TUNING = Object.freeze({
 const BOARD_OPACITY_LEVELS = Object.freeze([1, 0.7, 0.35, 0]);
 const BOARD_OPACITY_KEYS = Object.freeze(['boardOpacity100', 'boardOpacity70', 'boardOpacity35', 'boardOpacity0']);
 const LIFE_CONTROL_TAB_STORAGE_KEY = 'topoboard-life-world-control-view';
+const EXPERIMENT_NOTEBOOK_STORAGE_KEY = 'topoboard-life-world-experiment-notebook';
 const LATTICE_NEIGHBOR_COUNTS = Object.freeze({
   square: 4,
   triangular: 3,
@@ -633,6 +634,17 @@ export class LifeUI {
     this.topologyCompareExportJsonButton = root.getElementById('topologyCompareExportJsonButton');
     this.topologyCompareStatus = root.getElementById('topologyCompareStatus');
     this.topologyCompareResults = root.getElementById('topologyCompareResults');
+    this.experimentNotebookTitleInput = root.getElementById('experimentNotebookTitleInput');
+    this.experimentNotebookSelect = root.getElementById('experimentNotebookSelect');
+    this.experimentNotebookSaveButton = root.getElementById('experimentNotebookSaveButton');
+    this.experimentNotebookLoadButton = root.getElementById('experimentNotebookLoadButton');
+    this.experimentNotebookDuplicateButton = root.getElementById('experimentNotebookDuplicateButton');
+    this.experimentNotebookDeleteButton = root.getElementById('experimentNotebookDeleteButton');
+    this.experimentNotebookExportButton = root.getElementById('experimentNotebookExportButton');
+    this.experimentNotebookImportButton = root.getElementById('experimentNotebookImportButton');
+    this.experimentNotebookJson = root.getElementById('experimentNotebookJson');
+    this.experimentNotebookStatus = root.getElementById('experimentNotebookStatus');
+    this.experimentNotebookSummary = root.getElementById('experimentNotebookSummary');
     this.playButton = root.getElementById('playButton');
     this.gridToggleButton = root.getElementById('lifeGridToggleBtn');
     this.boardOpacityButton = root.getElementById('boardOpacityButton');
@@ -687,6 +699,7 @@ export class LifeUI {
     this.phaseScannerWorker = null;
     this.phaseScanResult = null;
     this.topologyCompareResult = null;
+    this.experimentNotebookEntries = [];
     this.engine = createLifeEngine(modeToEngineConfig(this.mode));
   }
 
@@ -737,6 +750,7 @@ export class LifeUI {
     this.exportExperimentJsonButton?.addEventListener('click', () => this.exportExperimentJson());
     this.installPhaseScanner();
     this.installTopologyCompare();
+    this.installExperimentNotebook();
     this.installCustomRuleDesigner();
     this.installNeighborhoodLaboratory();
     this.installPatternLibrary();
@@ -3588,6 +3602,364 @@ export class LifeUI {
     if (this.patternJson) this.patternJson.value = json;
     downloadTextFile(`topoboard-life-topology-compare-${exportTimestamp()}.json`, json, 'application/json;charset=utf-8');
     this.updateTopologyCompareStatus('topologyCompareJsonExported');
+  }
+
+  installExperimentNotebook() {
+    if (!this.experimentNotebookSaveButton || !this.experimentNotebookSelect) return;
+    this.experimentNotebookEntries = this.readExperimentNotebookEntries();
+    if (this.experimentNotebookTitleInput && !this.experimentNotebookTitleInput.value) {
+      this.experimentNotebookTitleInput.value = modeTitle(this.mode, this.language);
+    }
+    this.experimentNotebookSaveButton.addEventListener('click', () => this.saveCurrentExperimentNotebookEntry());
+    this.experimentNotebookLoadButton?.addEventListener('click', () => this.loadSelectedExperimentNotebookEntry());
+    this.experimentNotebookDuplicateButton?.addEventListener('click', () => this.duplicateSelectedExperimentNotebookEntry());
+    this.experimentNotebookDeleteButton?.addEventListener('click', () => this.deleteSelectedExperimentNotebookEntry());
+    this.experimentNotebookExportButton?.addEventListener('click', () => this.exportExperimentNotebookJson());
+    this.experimentNotebookImportButton?.addEventListener('click', () => this.importExperimentNotebookJson());
+    this.experimentNotebookSelect.addEventListener('change', () => this.renderExperimentNotebookSummary());
+    this.renderExperimentNotebookEntries();
+  }
+
+  experimentNotebookId() {
+    return `life-exp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  readExperimentNotebookEntries() {
+    try {
+      const raw = localStorage.getItem(EXPERIMENT_NOTEBOOK_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry === 'object') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  writeExperimentNotebookEntries(entries = this.experimentNotebookEntries) {
+    this.experimentNotebookEntries = entries.slice(0, 80);
+    try {
+      localStorage.setItem(EXPERIMENT_NOTEBOOK_STORAGE_KEY, JSON.stringify(this.experimentNotebookEntries));
+      return true;
+    } catch {
+      this.updateExperimentNotebookStatus('experimentNotebookStorageError');
+      return false;
+    }
+  }
+
+  updateExperimentNotebookStatus(key, replacements = {}) {
+    if (!this.experimentNotebookStatus) return;
+    this.experimentNotebookStatus.textContent = this.uiText(key, replacements);
+  }
+
+  selectedExperimentNotebookEntry() {
+    const id = this.experimentNotebookSelect?.value;
+    return this.experimentNotebookEntries.find((entry) => entry.id === id) || null;
+  }
+
+  currentNotebookRandomSeed() {
+    return Math.max(1, Math.round(Number(this.topologyCompareSeedInput?.value) || 20260627));
+  }
+
+  currentNotebookSeedDensity() {
+    return Math.max(0.01, Math.min(0.8, Number(this.topologyCompareDensityInput?.value) || 0.18));
+  }
+
+  currentNotebookRuleSummary() {
+    const metadata = this.engine.getExperimentMetadata();
+    return {
+      ...metadata.rule,
+      selectedPreset: this.ruleSelect?.value || 'conway',
+      custom: Boolean(this.customRuleActive),
+      ruleString: metadata.rule?.ruleString || this.engine.rule?.rule || null,
+      birth: Array.isArray(this.engine.rule?.birth) ? [...this.engine.rule.birth] : metadata.rule?.birth || [],
+      survival: Array.isArray(this.engine.rule?.survival) ? [...this.engine.rule.survival] : metadata.rule?.survival || []
+    };
+  }
+
+  currentNotebookFinalMetrics() {
+    const sample = this.currentObservableSample();
+    return {
+      generation: sample.generation || this.engine.generation || 0,
+      population: sample.population || 0,
+      density: sample.density || 0,
+      birthRate: sample.birthRate || 0,
+      deathRate: sample.deathRate || 0,
+      speciesFractions: structuredClone(sample.speciesFractions || {}),
+      meanAge: sample.meanAge || 0,
+      clusterCount: sample.clusterCount || 0,
+      largestClusterSize: sample.largestClusterSize || 0,
+      entropy: sample.entropy || 0,
+      spatialCorrelation: sample.spatialCorrelation || 0,
+      survivalTime: sample.survivalTime || sample.generation || 0,
+      extinctionTime: sample.extinctionTime ?? this.extinctionTime,
+      oscillationPeriod: sample.oscillationPeriod || sample.recurrenceHashPeriodEstimate || null,
+      frontVelocity: sample.frontVelocity || 0,
+      detectedStructures: structuredClone(sample.detectedStructures || null)
+    };
+  }
+
+  buildExperimentNotebookEntry(overrides = {}) {
+    const metadata = this.engine.getExperimentMetadata();
+    const geometry = findLifeGeometry(this.boardGeometrySelect?.value);
+    const neighborhood = metadata.neighborhood || {};
+    const title = (this.experimentNotebookTitleInput?.value || '').trim()
+      || modeTitle(this.mode, this.language)
+      || t('lifeWorld', this.language);
+    return {
+      id: overrides.id || this.experimentNotebookId(),
+      title: overrides.title || title,
+      timestamp: overrides.timestamp || new Date().toISOString(),
+      rule: this.currentNotebookRuleSummary(),
+      geometry: {
+        id: geometry.id,
+        title: geometryTitle(geometry, this.language)
+      },
+      topology: metadata.topology?.topologyType || this.topologySelect?.value || geometry.topology,
+      lattice: metadata.topology?.latticeType || this.latticeSelect?.value || 'square',
+      neighborhood: {
+        type: neighborhood.type || this.neighborhoodSelect?.value || 'moore',
+        radius: neighborhood.radius || Number(this.neighborhoodRadiusSelect?.value) || 1,
+        metric: neighborhood.metric || this.neighborhoodMetricSelect?.value || this.neighborhoodMetricFromType(),
+        neighborCount: neighborhood.neighborCount || 0
+      },
+      dimension: metadata.topology?.dimension || this.engine.dimension,
+      boardSize: metadata.topology?.size || this.engine.size.slice(),
+      modifiers: {
+        birthNoise: Number(this.birthNoiseRange?.value) || 0,
+        deathNoise: Number(this.deathNoiseRange?.value) || 0,
+        environmentNoise: Number(this.environmentNoiseRange?.value) || 0,
+        ruleNoise: Number(this.ruleNoiseRange?.value) || 0,
+        topologyDefectNoise: Number(this.topologyDefectNoiseRange?.value) || 0,
+        mutationRate: Number(this.mutationRange?.value) || 0,
+        maxAge: Number(this.ageRange?.value) || 0,
+        agingDeathRate: Number(this.agingDeathRateRange?.value) || 0,
+        youngBirthBonus: Number(this.youngBirthBonusRange?.value) || 0,
+        oldAgePenalty: Number(this.oldAgePenaltyRange?.value) || 0,
+        maxGenerations: Number(this.maxGenerationInput?.value) || 0
+      },
+      randomSeed: this.currentNotebookRandomSeed(),
+      seedDensity: this.currentNotebookSeedDensity(),
+      finalMetrics: this.currentNotebookFinalMetrics(),
+      mode: {
+        id: this.mode.id,
+        title: modeTitle(this.mode, this.language),
+        usage: this.usageModeSelect?.value || 'zero'
+      },
+      duplicateOf: overrides.duplicateOf || null
+    };
+  }
+
+  saveCurrentExperimentNotebookEntry() {
+    const entry = this.buildExperimentNotebookEntry();
+    const entries = [entry, ...this.experimentNotebookEntries.filter((item) => item.id !== entry.id)];
+    if (!this.writeExperimentNotebookEntries(entries)) return;
+    this.renderExperimentNotebookEntries(entry.id);
+    this.updateExperimentNotebookStatus('experimentNotebookSaved', { title: entry.title });
+  }
+
+  normalizeImportedNotebookEntry(entry = {}) {
+    const normalized = {
+      ...entry,
+      id: String(entry.id || this.experimentNotebookId()),
+      title: String(entry.title || t('experimentNotebookUntitled', this.language)),
+      timestamp: entry.timestamp || new Date().toISOString(),
+      rule: entry.rule && typeof entry.rule === 'object' ? entry.rule : {},
+      geometry: entry.geometry && typeof entry.geometry === 'object' ? entry.geometry : { id: 'r2' },
+      topology: String(entry.topology || entry.geometry?.topology || 'open'),
+      lattice: String(entry.lattice || 'square'),
+      neighborhood: entry.neighborhood && typeof entry.neighborhood === 'object' ? entry.neighborhood : { type: 'moore', radius: 1, metric: 'chebyshev' },
+      dimension: Math.max(1, Math.min(4, Number(entry.dimension) || 2)),
+      boardSize: Array.isArray(entry.boardSize) ? entry.boardSize.map(Number).filter(Boolean) : [Number(entry.boardSize) || 48],
+      modifiers: entry.modifiers && typeof entry.modifiers === 'object' ? entry.modifiers : {},
+      randomSeed: Math.max(1, Math.round(Number(entry.randomSeed) || 20260627)),
+      seedDensity: Math.max(0.01, Math.min(0.8, Number(entry.seedDensity) || 0.18)),
+      finalMetrics: entry.finalMetrics && typeof entry.finalMetrics === 'object' ? entry.finalMetrics : {}
+    };
+    return normalized;
+  }
+
+  duplicateSelectedExperimentNotebookEntry() {
+    const source = this.selectedExperimentNotebookEntry() || this.buildExperimentNotebookEntry();
+    const duplicate = {
+      ...structuredClone(source),
+      id: this.experimentNotebookId(),
+      title: this.uiText('experimentNotebookCopyTitle', { title: source.title || t('experimentNotebookUntitled', this.language) }),
+      timestamp: new Date().toISOString(),
+      duplicateOf: source.id || null
+    };
+    if (!this.writeExperimentNotebookEntries([duplicate, ...this.experimentNotebookEntries])) return;
+    this.renderExperimentNotebookEntries(duplicate.id);
+    this.updateExperimentNotebookStatus('experimentNotebookDuplicated', { title: duplicate.title });
+  }
+
+  deleteSelectedExperimentNotebookEntry() {
+    const entry = this.selectedExperimentNotebookEntry();
+    if (!entry) {
+      this.updateExperimentNotebookStatus('experimentNotebookNoSelection');
+      return;
+    }
+    const entries = this.experimentNotebookEntries.filter((item) => item.id !== entry.id);
+    if (!this.writeExperimentNotebookEntries(entries)) return;
+    this.renderExperimentNotebookEntries();
+    this.updateExperimentNotebookStatus('experimentNotebookDeleted', { title: entry.title });
+  }
+
+  loadSelectedExperimentNotebookEntry() {
+    const entry = this.selectedExperimentNotebookEntry();
+    if (!entry) {
+      this.updateExperimentNotebookStatus('experimentNotebookNoSelection');
+      return;
+    }
+    const geometry = findLifeGeometry(entry.geometry?.id || 'r2');
+    this.boardGeometrySelect.value = geometry.id;
+    this.populateLattices(geometry.id, entry.lattice || (geometry.dimension === 3 ? 'sc' : 'square'));
+    this.dimensionSelect.value = String(entry.dimension || geometry.dimension);
+    this.boardSizeSelect.value = String(Array.isArray(entry.boardSize) ? entry.boardSize[0] : entry.boardSize || 48);
+    this.topologySelect.value = entry.topology || geometry.topology;
+    this.viewModeSelect.value = geometry.view;
+    if (this.latticeSelect.querySelector(`option[value="${entry.lattice}"]`)) this.latticeSelect.value = entry.lattice;
+
+    const rule = entry.rule || {};
+    const presetId = rule.selectedPreset || rule.id || 'conway';
+    if (presetId !== 'custom' && this.ruleSelect.querySelector(`option[value="${presetId}"]`)) {
+      this.ruleSelect.value = presetId;
+      this.customRuleActive = false;
+      this.syncCustomRuleDesignerFromRule(getRulePreset(presetId));
+    } else {
+      this.customRuleActive = true;
+      this.customRuleBirth = normalizeRuleCounts(rule.birth || []);
+      this.customRuleSurvival = normalizeRuleCounts(rule.survival || []);
+      if (this.birthCountsInput) this.birthCountsInput.value = formatRuleCounts(this.customRuleBirth);
+      if (this.survivalCountsInput) this.survivalCountsInput.value = formatRuleCounts(this.customRuleSurvival);
+      this.updateCustomRulePreview({ clearMessage: true });
+    }
+
+    if (this.neighborhoodSelect.querySelector(`option[value="${entry.neighborhood?.type}"]`)) {
+      this.neighborhoodSelect.value = entry.neighborhood.type;
+    }
+    if (this.neighborhoodRadiusSelect) this.neighborhoodRadiusSelect.value = String(entry.neighborhood?.radius || 1);
+    if (this.neighborhoodMetricSelect) this.neighborhoodMetricSelect.value = entry.neighborhood?.metric || this.neighborhoodMetricFromType(entry.neighborhood?.type);
+
+    const modifiers = entry.modifiers || {};
+    if (this.birthNoiseRange) this.birthNoiseRange.value = String(modifiers.birthNoise || 0);
+    if (this.deathNoiseRange) this.deathNoiseRange.value = String(modifiers.deathNoise || 0);
+    if (this.environmentNoiseRange) this.environmentNoiseRange.value = String(modifiers.environmentNoise || 0);
+    if (this.ruleNoiseRange) this.ruleNoiseRange.value = String(modifiers.ruleNoise || 0);
+    if (this.topologyDefectNoiseRange) this.topologyDefectNoiseRange.value = String(modifiers.topologyDefectNoise || 0);
+    if (this.mutationRange) this.mutationRange.value = String(modifiers.mutationRate || 0);
+    if (this.ageRange) this.ageRange.value = String(modifiers.maxAge || 0);
+    if (this.agingDeathRateRange) this.agingDeathRateRange.value = String(modifiers.agingDeathRate || 0);
+    if (this.youngBirthBonusRange) this.youngBirthBonusRange.value = String(modifiers.youngBirthBonus || 0);
+    if (this.oldAgePenaltyRange) this.oldAgePenaltyRange.value = String(modifiers.oldAgePenalty ?? 0);
+    if (this.maxGenerationInput) this.maxGenerationInput.value = String(modifiers.maxGenerations || 0);
+    if (this.topologyCompareSeedInput) this.topologyCompareSeedInput.value = String(entry.randomSeed || 20260627);
+    if (this.topologyCompareDensityInput) this.topologyCompareDensityInput.value = String(entry.seedDensity || 0.18);
+
+    this.syncRangeValueReadouts();
+    this.applyControls(false);
+    this.engine.configure({ rng: createDeterministicRng(entry.randomSeed || 20260627) });
+    this.engine.randomSeed({
+      density: entry.seedDensity || 0.18,
+      speciesCount: entry.rule?.speciesCount || this.engine.rule?.speciesCount || 1,
+      resetGeneration: true
+    });
+    this.history = [];
+    this.stateHashes = new Map();
+    this.extinctionTime = null;
+    this.initialCenter = null;
+    this.afterStateChange();
+    this.updateExperimentNotebookStatus('experimentNotebookLoaded', { title: entry.title });
+  }
+
+  renderExperimentNotebookEntries(selectedId = this.experimentNotebookSelect?.value) {
+    if (!this.experimentNotebookSelect) return;
+    const entries = [...this.experimentNotebookEntries].sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+    this.experimentNotebookSelect.replaceChildren();
+    if (!entries.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = t('experimentNotebookEmpty', this.language);
+      this.experimentNotebookSelect.append(option);
+    } else {
+      entries.forEach((entry) => {
+        const option = document.createElement('option');
+        option.value = entry.id;
+        option.textContent = `${entry.title || t('experimentNotebookUntitled', this.language)} - ${new Date(entry.timestamp || Date.now()).toLocaleString(this.language === 'zh' ? 'zh-TW' : 'en-US')}`;
+        this.experimentNotebookSelect.append(option);
+      });
+      this.experimentNotebookSelect.value = entries.some((entry) => entry.id === selectedId) ? selectedId : entries[0].id;
+    }
+    const hasEntries = Boolean(entries.length);
+    [this.experimentNotebookLoadButton, this.experimentNotebookDuplicateButton, this.experimentNotebookDeleteButton].forEach((button) => {
+      if (button) button.disabled = !hasEntries;
+    });
+    this.renderExperimentNotebookSummary();
+  }
+
+  renderExperimentNotebookSummary() {
+    if (!this.experimentNotebookSummary) return;
+    this.experimentNotebookSummary.replaceChildren();
+    const entry = this.selectedExperimentNotebookEntry();
+    if (!entry) {
+      const empty = document.createElement('p');
+      empty.textContent = t('experimentNotebookNoSaved', this.language);
+      this.experimentNotebookSummary.append(empty);
+      return;
+    }
+    const metrics = entry.finalMetrics || {};
+    const fields = [
+      ['experimentNotebookSavedAt', new Date(entry.timestamp || Date.now()).toLocaleString(this.language === 'zh' ? 'zh-TW' : 'en-US')],
+      ['ruleString', entry.rule?.ruleString || entry.rule?.rule || entry.rule?.name || entry.rule?.id || 'Life'],
+      ['boardGeometry', entry.geometry?.title || entry.geometry?.id || '-'],
+      ['topology', entry.topology || '-'],
+      ['lattice', entry.lattice || '-'],
+      ['neighborhood', entry.neighborhood?.type || '-'],
+      ['population', metrics.population ?? '-'],
+      ['entropy', formatNumber(metrics.entropy)],
+      ['largestCluster', metrics.largestClusterSize ?? '-']
+    ];
+    fields.forEach(([key, value]) => {
+      const item = document.createElement('div');
+      const label = document.createElement('span');
+      label.textContent = t(key, this.language);
+      const data = document.createElement('strong');
+      data.textContent = String(value);
+      item.append(label, data);
+      this.experimentNotebookSummary.append(item);
+    });
+  }
+
+  exportExperimentNotebookJson() {
+    const payload = {
+      schema: 'topoboard-life-experiment-notebook',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      entries: this.experimentNotebookEntries
+    };
+    const json = JSON.stringify(payload, null, 2);
+    if (this.experimentNotebookJson) this.experimentNotebookJson.value = json;
+    downloadTextFile(`topoboard-life-notebook-${exportTimestamp()}.json`, json, 'application/json;charset=utf-8');
+    this.updateExperimentNotebookStatus('experimentNotebookExported', { count: this.experimentNotebookEntries.length });
+  }
+
+  importExperimentNotebookJson() {
+    try {
+      const text = this.experimentNotebookJson?.value || this.patternJson?.value || '';
+      const payload = JSON.parse(text);
+      const imported = Array.isArray(payload) ? payload : payload.entries;
+      if (!Array.isArray(imported)) throw new Error(t('experimentNotebookImportShapeError', this.language));
+      const existingIds = new Set(this.experimentNotebookEntries.map((entry) => entry.id));
+      const normalized = imported.map((entry) => {
+        const next = this.normalizeImportedNotebookEntry(entry);
+        if (existingIds.has(next.id)) next.id = this.experimentNotebookId();
+        existingIds.add(next.id);
+        return next;
+      });
+      if (!this.writeExperimentNotebookEntries([...normalized, ...this.experimentNotebookEntries])) return;
+      this.renderExperimentNotebookEntries(normalized[0]?.id);
+      this.updateExperimentNotebookStatus('experimentNotebookImported', { count: normalized.length });
+    } catch (error) {
+      this.updateExperimentNotebookStatus('experimentNotebookImportError', { message: error?.message || String(error) });
+    }
   }
 
   currentObservableSample() {
