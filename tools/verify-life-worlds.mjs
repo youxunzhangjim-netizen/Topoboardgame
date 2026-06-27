@@ -7,7 +7,6 @@ const required = [
   'life/world.html',
   'life/life.css',
   'life/life-data.js',
-  'life/life-worlds.js',
   'life/life-sim.js',
   'life/js/LifeEngine.js',
   'life/js/topologies.js',
@@ -72,6 +71,33 @@ for (const marker of [
     ok = false;
   } else {
     console.log(`[world] ${marker}`);
+  }
+}
+
+const lifeIndex = fs.readFileSync(path.join(root, 'life/index.html'), 'utf8');
+for (const marker of [
+  './world.html',
+  'location.replace',
+  'Open Life World'
+]) {
+  if (!lifeIndex.includes(marker)) {
+    console.error(`[life index redirect missing] ${marker}`);
+    ok = false;
+  } else {
+    console.log(`[life index redirect] ${marker}`);
+  }
+}
+
+for (const staleMarker of [
+  'lifeModeGrid',
+  'life-worlds.js',
+  'GameControlGuides.js'
+]) {
+  if (lifeIndex.includes(staleMarker)) {
+    console.error(`[life index stale marker] ${staleMarker}`);
+    ok = false;
+  } else {
+    console.log(`[life index cleaned] ${staleMarker}`);
   }
 }
 

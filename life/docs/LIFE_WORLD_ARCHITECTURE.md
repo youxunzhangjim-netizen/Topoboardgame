@@ -4,11 +4,10 @@ This note describes the current Life World module before adding research tools. 
 
 ## 1. Current Files and Responsibilities
 
-- `index.html`: Life landing page, language switch, mode cards container, and info dialog.
+- `index.html`: Compatibility entry for `/life/`. It immediately redirects to `world.html` while preserving query parameters, hash, and stored language when possible.
 - `world.html`: Main Life player page. Defines the canvas, beginner controls, advanced settings, pattern JSON tools, observables, score panel, and plots.
 - `life.css`: All Life layout, responsive UI, canvas, card, dialog, control, observable, and board styling.
 - `life-data.js`: Static mode, geometry, lattice, modifier metadata and bilingual label helpers.
-- `life-worlds.js`: Landing-page controller that renders mode cards and info dialogs.
 - `life-sim.js`: Small bootstrap that installs the main Life UI.
 - `js/i18n.js`: Life-specific language detection, static text localization, link syncing, and translation lookup.
 - `js/LifeEngine.js`: Rendering-independent cellular automaton engine. Owns dimension, size, topology, lattice, rule, cells, generation, stepping, seeding, import/export, and observables access.
@@ -24,7 +23,7 @@ The core simulation is mostly separated:
 
 - `LifeEngine` is DOM-free and delegates topology, rules, presets, and observables to smaller modules.
 - `rules.js`, `topologies.js`, `presets.js`, and `observables.js` are reusable by future tests or research adapters.
-- `life-data.js` is display metadata for mode cards and default mode selection.
+- `life-data.js` is display metadata for modes, geometries, lattices, modifiers, and default mode selection.
 - `i18n.js` keeps Life translation concerns inside `/life`.
 
 The main coupling point is `LifeUI.js`. It combines page state, control synchronization, canvas rendering, pointer picking, online sync, gameplay status, score formulas, chart drawing, and import/export. This is acceptable for the current beginner page, but it is the first area to split before adding research workflows.
@@ -80,11 +79,11 @@ Live observables currently shown in the UI include:
 - Rendering and topology are related but not identical: flat board, projected surface, and volume views can represent the same intrinsic topology differently.
 - Online/robot controls share the same UI class as local simulation. Research batch tools must avoid accidentally sending network state.
 - Some research concepts already exist as advanced controls, but there is not yet a stable adapter boundary for batch runs, reproducibility metadata, or comparison exports.
-- The beginner page relies on public URLs `/life/` and `/life/world.html`; migration must preserve both.
+- Public URLs `/life/` and `/life/world.html` must both continue to work. `/life/` now forwards to the current Life World interface instead of showing an older selector page.
 
 ## 5. Safe Migration Plan
 
-1. Keep `/life/` and `/life/world.html` unchanged as the beginner entry points.
+1. Keep `/life/` and `/life/world.html` working as beginner entry points; `/life/` may remain a compatibility redirect to `world.html`.
 2. Treat `LifeEngine`, `rules.js`, `topologies.js`, `presets.js`, and `observables.js` as the reusable simulation core.
 3. Add tests around engine stepping, topology mapping, import/export, and observable calculations before moving UI behavior.
 4. Extract small non-visual adapters from `LifeUI.js` only when needed:

@@ -3,51 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Life & Evolution Worlds — Topoboardgame</title>
-  <link rel="stylesheet" href="./life.css" />
+  <meta http-equiv="refresh" content="0; url=./world.html" />
+  <link rel="canonical" href="./world.html" />
+  <title>Life World - Topoboardgame</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #08101a;
+      color: #edf4f6;
+    }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(34, 197, 94, 0.16), transparent 34%),
+        radial-gradient(circle at 85% 18%, rgba(56, 189, 248, 0.14), transparent 36%),
+        linear-gradient(135deg, #08101a, #0d1420 62%, #060b13);
+    }
+    main {
+      width: min(620px, 100%);
+      padding: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 14px;
+      background: rgba(13, 20, 29, 0.86);
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.28);
+    }
+    p {
+      margin: 0 0 16px;
+      color: rgba(226, 236, 238, 0.84);
+      line-height: 1.5;
+    }
+    a {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      border-radius: 999px;
+      background: rgba(9, 16, 25, 0.72);
+      color: #edf4f6;
+      font-weight: 900;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="life-bg" aria-hidden="true"></div>
-  <header class="life-header">
-    <nav class="life-topbar" aria-label="Life worlds navigation" data-life-i18n-label="lifeWorldsNavigation">
-      <a href="../" class="ghost-button" data-life-i18n="home">Home</a>
-      <span class="life-language-switch compact-language" aria-label="Language" data-life-i18n-label="languageOptions">
-        <button class="ghost-button language-icon-button" type="button" aria-haspopup="true" title="Language" data-life-i18n-title="languageOptions"><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Zm6.93 9h-3.18a15.8 15.8 0 0 0-1.1-5.02A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.68.98 1.43 3.03 1.7 6.96h-3.4c.27-3.93 1.02-5.98 1.7-6.96ZM4.26 13h3.99c.12 2.02.43 3.78.87 5.08A8.04 8.04 0 0 1 4.26 13Zm3.99-2H4.26a8.04 8.04 0 0 1 4.86-5.08A21.9 21.9 0 0 0 8.25 11ZM12 19.96c-.68-.98-1.43-3.03-1.7-6.96h3.4c-.27 3.93-1.02 5.98-1.7 6.96Zm2.88-1.88c.44-1.3.75-3.06.87-5.08h3.99a8.04 8.04 0 0 1-4.86 5.08ZM15.75 11a21.9 21.9 0 0 0-.87-5.08A8.04 8.04 0 0 1 19.74 11h-3.99Z"/></svg></button>
-        <span class="language-popover" role="menu" aria-label="Language" data-life-i18n-label="languageOptions">
-          <button class="ghost-button" type="button" data-life-lang="en">English</button>
-          <button class="ghost-button" type="button" data-life-lang="zh">繁體中文</button>
-        </span>
-      </span>
-    </nav>
-    <section class="life-hero">
-      <p class="eyebrow">Topoboardgame</p>
-      <h1 data-life-i18n="lifeWorldsTitle">Life &amp; Evolution Worlds</h1>
-      <p class="subtitle" data-life-i18n="lifeSubtitle">Create life, start evolution, and see what survives across different spaces.</p>
-      <p class="description" data-life-i18n="lifeLong">Seed cells, grow patterns, compete for survival, and watch evolution unfold across different topological spaces. Add aging, mutation, noise, and multiple species to explore how life-like systems change when the shape of space changes.</p>
-    </section>
-  </header>
-
-  <main class="life-shell">
-    <section class="life-card-grid" aria-label="Life and evolution modes" data-life-i18n-label="lifeAndEvolutionModes" id="lifeModeGrid"></section>
+  <main>
+    <p>Opening the current Life World interface.</p>
+    <p lang="zh-Hant">&#27491;&#22312;&#38283;&#21855;&#30446;&#21069;&#30340;&#29983;&#21629;&#19990;&#30028;&#30028;&#38754;&#12290;</p>
+    <a id="lifeWorldLink" href="./world.html">Open Life World</a>
   </main>
-
-  <dialog class="life-info-dialog" id="lifeInfoDialog">
-    <form method="dialog">
-      <button class="dialog-close" aria-label="Close" data-life-i18n-label="close">×</button>
-    </form>
-    <article>
-      <p class="eyebrow" id="dialogTags" data-life-i18n="lifeWorld">Life world</p>
-      <h2 id="dialogTitle" data-life-i18n="mode">Mode</h2>
-      <p id="dialogDescription"></p>
-      <dl class="dialog-facts">
-        <div><dt data-life-i18n="players">Players</dt><dd id="dialogPlayers"></dd></div>
-        <div><dt data-life-i18n="system">System</dt><dd id="dialogSystem"></dd></div>
-        <div><dt data-life-i18n="observables">Observables</dt><dd id="dialogObservables"></dd></div>
-      </dl>
-    </article>
-  </dialog>
-
-  <script type="module" src="../js/shared/GameControlGuides.js"></script>
-  <script type="module" src="./life-worlds.js"></script>
+  <script>
+    (() => {
+      const target = new URL('./world.html', window.location.href);
+      const incoming = new URLSearchParams(window.location.search);
+      for (const [key, value] of incoming) target.searchParams.set(key, value);
+      if (!target.searchParams.has('lang')) {
+        try {
+          const stored = localStorage.getItem('topological-boardgame:language');
+          if (stored) target.searchParams.set('lang', String(stored).toLowerCase().startsWith('zh') ? 'zh' : 'en');
+        } catch {
+          // Ignore blocked storage; Life World will choose a language.
+        }
+      }
+      target.hash = window.location.hash;
+      const link = document.getElementById('lifeWorldLink');
+      if (link) link.href = target.pathname + target.search + target.hash;
+      window.location.replace(target.href);
+    })();
+  </script>
 </body>
 </html>

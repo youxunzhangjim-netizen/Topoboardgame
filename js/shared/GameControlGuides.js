@@ -600,9 +600,7 @@ function targetForGuide(type) {
     if (type === 'jump') return referenceContainerBelowGame()
         || document.querySelector('#jumpInfo')?.closest('section');
     if (type === 'life') {
-        return document.querySelector('.life-play-invite')
-            || document.querySelector('.life-hero')
-            || document.querySelector('#lifeInfoDialog article');
+        return document.querySelector('.life-play-invite');
     }
     const referenceContainer = referenceContainerBelowGame();
     if (referenceContainer) return referenceContainer;
