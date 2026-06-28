@@ -23,6 +23,7 @@ import {
     toCsv
 } from '../experiments/LabBatchCore.js';
 import { runBatchSequential } from '../experiments/LabBatchRunner.js';
+import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
 import {
     EVENT_DETECTOR_REGISTRY,
     INITIAL_MAPPING_METHODS,
@@ -135,7 +136,12 @@ const I18N = {
         topology: 'Topology',
         seedMode: 'Seed mode',
         repeats: 'Repeats per topology',
-        steps: 'Steps'
+        steps: 'Steps',
+        chartTitle: 'Observable response by topology and seeded run',
+        chartYAxis: 'Observable value',
+        chartXAxis: 'Topology / seeded run',
+        chartReference: 'Reference topology',
+        chartComparison: 'Comparison topology'
     },
     zh: {
         experimentBuilder: '實驗建構器',
@@ -233,7 +239,12 @@ const I18N = {
         topology: '拓撲',
         seedMode: 'Seed 模式',
         repeats: '每拓撲重複次數',
-        steps: '步數'
+        steps: '步數',
+        chartTitle: '依拓撲與定種子執行比較觀測量反應',
+        chartYAxis: '觀測量數值',
+        chartXAxis: '拓撲 / 定種子執行',
+        chartReference: '參考拓撲',
+        chartComparison: '比較拓撲'
     }
 };
 
@@ -376,9 +387,15 @@ function renderModelSelect() {
 function renderModelMetadata() {
     const model = selectedModel();
     const features = modelTopologyFeatureSummary(model);
+    const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
         metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
         metadataRow(uiText('validation', language), model.validationLevel),
+        metadataRow(research.labels.objective, research.objective),
+        metadataRow(research.labels.model, research.model),
+        metadataRow(research.labels.dynamics, research.dynamics),
+        metadataRow(research.labels.ensemble, research.ensemble),
+        metadataRow(research.labels.scope, research.scope),
         metadataRow(t('availableObservables'), String(model.observables.length)),
         metadataRow(uiText('compatibleTopologies', language), model.compatibleTopologies.join(', '))
     );
@@ -387,7 +404,7 @@ function renderModelMetadata() {
         [t('requiredTopologyFeatures'), features.requiredTopologyFeatures],
         [t('requiredLatticeFeatures'), features.requiredLatticeFeatures],
         [t('topologySensitiveObservables'), features.topologySensitiveObservables.join(', ') || '-'],
-        [t('warningsLimitations'), (model.warnings || []).join(' ') || '-']
+        [t('warningsLimitations'), (model.warnings || []).map((warning) => researchWarning(warning, language)).join(' ') || '-']
     ];
     for (const [title, body] of cards) {
         const card = document.createElement('article');
@@ -947,14 +964,43 @@ function renderChart() {
     els.observableChart.replaceChildren();
     if (!currentComparisonResult) return;
     const observableId = currentComparisonConfig.selectedObservableIds[0];
-    const values = currentComparisonResult.runResults.map((result) => Number(result.summary.observableSummary?.[observableId]) || 0);
+    const displayedResults = currentComparisonResult.runResults.slice(0, 32);
+    const values = displayedResults.map((result) => Number(result.summary.observableSummary?.[observableId]) || 0);
     const max = Math.max(1, ...values.map((value) => Math.abs(value)));
-    for (const value of values.slice(0, 40)) {
+    const chart = document.createElement('figure');
+    chart.className = 'paper-chart';
+    const title = document.createElement('figcaption');
+    title.className = 'paper-chart-title';
+    title.textContent = `${t('chartTitle')}: ${observableId}`;
+    const yAxis = document.createElement('div');
+    yAxis.className = 'paper-chart-y-axis';
+    yAxis.textContent = `${t('chartYAxis')} (${observableId})`;
+    const plot = document.createElement('div');
+    plot.className = 'paper-chart-plot';
+    plot.dataset.yMax = formatValue(max);
+    displayedResults.forEach((result, index) => {
+        const value = values[index];
         const bar = document.createElement('span');
-        bar.style.height = `${Math.max(8, (Math.abs(value) / max) * 120)}px`;
-        bar.title = formatValue(value);
-        els.observableChart.append(bar);
-    }
+        const isReference = result.config.topologyId === currentComparisonConfig.referenceTopologyId;
+        bar.className = `paper-chart-bar ${isReference ? 'is-reference' : 'is-comparison'}`;
+        bar.style.height = `${Math.max(2, (Math.abs(value) / max) * 100)}%`;
+        bar.title = `${result.config.topologyId}; ${observableId}=${formatValue(value)}; seed=${result.config.seed}`;
+        const label = document.createElement('span');
+        label.textContent = result.config.topologyId;
+        bar.append(label);
+        plot.append(bar);
+    });
+    const xAxis = document.createElement('div');
+    xAxis.className = 'paper-chart-x-axis';
+    xAxis.textContent = t('chartXAxis');
+    const legend = document.createElement('div');
+    legend.className = 'paper-chart-legend';
+    legend.innerHTML = `
+        <span><i class="is-reference"></i>${t('chartReference')}</span>
+        <span><i class="is-comparison"></i>${t('chartComparison')}</span>
+    `;
+    chart.append(title, yAxis, plot, xAxis, legend);
+    els.observableChart.append(chart);
 }
 
 function renderDifferencePanel() {

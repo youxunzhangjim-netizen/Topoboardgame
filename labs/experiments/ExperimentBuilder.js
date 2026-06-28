@@ -27,6 +27,7 @@ import {
 } from './LabBatchCore.js';
 import { runBatchSequential } from './LabBatchRunner.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from './LabLanguageMenu.js';
+import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
 
 const els = {
     languageSelect: document.querySelector('#languageSelect'),
@@ -259,10 +260,17 @@ function metadataRow(label, value) {
 
 function renderModelMetadata() {
     const model = selectedModel();
+    const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
         metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
         metadataRow(uiText('validation', language), model.validationLevel),
         metadataRow(uiText('stateSpace', language), text(model.stateSpace, language)),
+        metadataRow(research.labels.objective, research.objective),
+        metadataRow(research.labels.model, research.model),
+        metadataRow(research.labels.dynamics, research.dynamics),
+        metadataRow(research.labels.ensemble, research.ensemble),
+        metadataRow(research.labels.method, research.method),
+        metadataRow(research.labels.scope, research.scope),
         metadataRow(uiText('modelVersion', language), `${model.id}@${LAB_APP_VERSION}`),
         metadataRow(uiText('compatibleTopologies', language), model.compatibleTopologies.join(', ')),
         metadataRow(uiText('observableRegistry', language), `${model.observables.length} ${uiText('observableRegistryValue', language)}`)
@@ -272,7 +280,7 @@ function renderModelMetadata() {
         const item = document.createElement('span');
         item.className = 'warning';
         item.textContent = language === 'zh'
-            ? `${uiText('notePrefix', language)}：${warning}`
+            ? `${uiText('notePrefix', language)}：${researchWarning(warning, language)}`
             : warning;
         els.modelWarnings.append(item);
     }
@@ -786,17 +794,152 @@ function numericValue(value) {
     return Number.isFinite(number) ? number : String(value ?? '').length;
 }
 
-function renderMiniChart(values) {
-    const chart = document.createElement('div');
-    chart.className = 'mini-chart';
-    const numeric = values.map(numericValue);
-    const max = Math.max(1, ...numeric);
-    for (const value of numeric.slice(0, 24)) {
-        const bar = document.createElement('span');
-        bar.style.height = `${Math.max(5, (value / max) * 70)}px`;
-        chart.append(bar);
+function formatChartNumber(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '-';
+    if (Math.abs(number) >= 1000 || (Math.abs(number) > 0 && Math.abs(number) < 0.001)) return number.toExponential(1);
+    return Number(number.toFixed(3)).toString();
+}
+
+function svgElement(name, attributes = {}) {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+    return element;
+}
+
+function addSvgText(svg, value, x, y, attributes = {}) {
+    const textNode = svgElement('text', { x, y, ...attributes });
+    textNode.textContent = value;
+    svg.append(textNode);
+}
+
+function renderMiniChart(values, { kind = 'line', observableId = 'observable' } = {}) {
+    const numeric = values.map(numericValue).slice(0, 40);
+    const isZh = language === 'zh';
+    const distributionLabel = isZh ? '分布' : 'distribution';
+    const runSequenceLabel = isZh ? '定種子執行序列' : 'seeded run sequence';
+    const figure = document.createElement('figure');
+    figure.className = 'paper-svg-chart';
+    const svg = svgElement('svg', {
+        viewBox: '0 0 640 320',
+        role: 'img',
+        'aria-label': `${observableId} ${kind === 'histogram' ? distributionLabel : runSequenceLabel}`
+    });
+    svg.append(svgElement('rect', { x: 0, y: 0, width: 640, height: 320, fill: '#ffffff' }));
+    const margin = { left: 76, right: 24, top: 52, bottom: 62 };
+    const plotWidth = 640 - margin.left - margin.right;
+    const plotHeight = 320 - margin.top - margin.bottom;
+    const minValue = numeric.length ? Math.min(0, ...numeric) : 0;
+    const maxValue = numeric.length ? Math.max(1, ...numeric) : 1;
+    const range = Math.max(1e-9, maxValue - minValue);
+    for (let tick = 0; tick <= 4; tick++) {
+        const y = margin.top + (plotHeight * tick) / 4;
+        svg.append(svgElement('line', {
+            x1: margin.left,
+            y1: y,
+            x2: margin.left + plotWidth,
+            y2: y,
+            stroke: '#d9e1de',
+            'stroke-width': 1
+        }));
+        addSvgText(svg, formatChartNumber(maxValue - (range * tick) / 4), margin.left - 10, y + 4, {
+            fill: '#435851',
+            'font-size': 11,
+            'text-anchor': 'end'
+        });
     }
-    return chart;
+    svg.append(svgElement('line', {
+        x1: margin.left,
+        y1: margin.top,
+        x2: margin.left,
+        y2: margin.top + plotHeight,
+        stroke: '#263b34',
+        'stroke-width': 2
+    }));
+    svg.append(svgElement('line', {
+        x1: margin.left,
+        y1: margin.top + plotHeight,
+        x2: margin.left + plotWidth,
+        y2: margin.top + plotHeight,
+        stroke: '#263b34',
+        'stroke-width': 2
+    }));
+    addSvgText(svg, kind === 'histogram'
+        ? `${observableId} ${distributionLabel}`
+        : `${observableId} / ${runSequenceLabel}`, 320, 24, {
+        fill: '#14201c',
+        'font-size': 16,
+        'font-weight': 750,
+        'text-anchor': 'middle'
+    });
+    addSvgText(svg, kind === 'histogram'
+        ? (isZh ? '觀測量分箱' : 'Observable bin')
+        : (isZh ? '執行索引' : 'Run index'), margin.left + plotWidth / 2, 302, {
+        fill: '#263b34',
+        'font-size': 13,
+        'font-weight': 700,
+        'text-anchor': 'middle'
+    });
+    const yLabel = svgElement('text', {
+        x: 18,
+        y: margin.top + plotHeight / 2,
+        fill: '#263b34',
+        'font-size': 13,
+        'font-weight': 700,
+        'text-anchor': 'middle',
+        transform: `rotate(-90 18 ${margin.top + plotHeight / 2})`
+    });
+    yLabel.textContent = kind === 'histogram'
+        ? (isZh ? '頻數' : 'Frequency')
+        : (isZh ? '觀測量數值' : 'Observable value');
+    svg.append(yLabel);
+    if (kind === 'histogram') {
+        const binCount = Math.min(10, Math.max(4, Math.ceil(Math.sqrt(numeric.length || 1))));
+        const counts = Array(binCount).fill(0);
+        for (const value of numeric) {
+            const index = Math.min(binCount - 1, Math.floor(((value - minValue) / range) * binCount));
+            counts[index]++;
+        }
+        const maxCount = Math.max(1, ...counts);
+        counts.forEach((count, index) => {
+            const width = plotWidth / binCount;
+            const height = (count / maxCount) * plotHeight;
+            svg.append(svgElement('rect', {
+                x: margin.left + index * width + 2,
+                y: margin.top + plotHeight - height,
+                width: Math.max(1, width - 4),
+                height,
+                fill: '#70b7d5',
+                stroke: '#245d77'
+            }));
+        });
+    } else if (numeric.length) {
+        const points = numeric.map((value, index) => {
+            const x = margin.left + (numeric.length === 1 ? plotWidth / 2 : (index / (numeric.length - 1)) * plotWidth);
+            const y = margin.top + plotHeight - ((value - minValue) / range) * plotHeight;
+            return [x, y];
+        });
+        svg.append(svgElement('polyline', {
+            points: points.map(([x, y]) => `${x},${y}`).join(' '),
+            fill: 'none',
+            stroke: '#287fa6',
+            'stroke-width': 3
+        }));
+        for (const [x, y] of points) {
+            svg.append(svgElement('circle', { cx: x, cy: y, r: 3.5, fill: '#ffffff', stroke: '#287fa6', 'stroke-width': 2 }));
+        }
+    }
+    figure.append(svg);
+    const caption = document.createElement('figcaption');
+    caption.textContent = kind === 'histogram'
+        ? (isZh
+            ? `${observableId}：已完成定種子執行的頻數分布。`
+            : `${observableId}: frequency across completed seeded runs.`)
+        : (isZh
+            ? `${observableId}：依完成順序排列的執行；連線僅供描述，不代表連續時間插值。`
+            : `${observableId}: ordered completed runs; connect-the-points line is descriptive, not a continuous-time interpolation.`);
+    figure.append(caption);
+    return figure;
 }
 
 function renderComparison() {
@@ -824,8 +967,10 @@ function renderComparison() {
     for (const [key, body] of cards) {
         const card = document.createElement('article');
         card.className = 'viz-card';
+        card.dataset.visualization = key;
         card.innerHTML = `<h3>${uiText(key, language)}</h3><p>${body}</p>`;
-        if (['lineChart', 'histogram'].includes(key)) card.append(renderMiniChart(values));
+        if (key === 'lineChart') card.append(renderMiniChart(values, { kind: 'line', observableId: firstObservable }));
+        if (key === 'histogram') card.append(renderMiniChart(values, { kind: 'histogram', observableId: firstObservable }));
         grid.append(card);
     }
     els.comparisonDashboard.append(grid);

@@ -36,7 +36,7 @@
                     <p class="eyebrow">Labs Home</p>
                     <h2 id="labsHomeTitle">Research Navigation</h2>
                 </div>
-                <p>Physics, mathematics, topology, graph dynamics, and information experiments. Topoboard Life remains separate for cellular automata and biological simulation.</p>
+                <p>Physics, mathematics, topology, graph dynamics, and information experiments with reproducible configuration, observables, comparison, and export.</p>
             </div>
             <div id="labsModelCatalog" class="labs-model-catalog" aria-label="Labs model catalog"></div>
         </section>
@@ -46,12 +46,40 @@
                 <p class="eyebrow">Current Experiment</p>
                 <h2 id="labHeaderModelName">Stabilizer Operator Grid</h2>
                 <p id="labHeaderDescription">An experimental environment for studying how local rules interact with topology.</p>
+                <button id="labSystemIntroductionButton" class="lab-system-introduction-button" type="button" aria-expanded="false" aria-controls="labSystemIntroductionPanel" data-research-only>
+                    Research System &amp; Method
+                </button>
             </div>
             <div class="lab-header-badges" aria-label="Experiment metadata">
                 <span class="validation-level-badge" id="labValidationBadge">estimator</span>
                 <span id="labModelFamilyBadge">Quantum Information</span>
                 <span id="labExperimentHashBadge" title="Current experiment hash">hash pending</span>
                 <span id="labAppVersionBadge">v0.1.0</span>
+            </div>
+        </section>
+
+        <section class="lab-system-introduction" id="labSystemIntroductionPanel" aria-labelledby="labSystemIntroductionTitle" hidden data-research-only>
+            <div class="lab-system-introduction-heading">
+                <div>
+                    <p class="eyebrow">Research Specification</p>
+                    <h2 id="labSystemIntroductionTitle">Research System &amp; Method</h2>
+                </div>
+                <span id="labScienceScopeBadge">Discrete estimator</span>
+            </div>
+            <dl class="lab-system-definition-grid">
+                <div><dt>System under study</dt><dd id="labScienceSystem">Loading</dd></div>
+                <div><dt>Research objective</dt><dd id="labScienceObjective">Loading</dd></div>
+                <div><dt>Model definition</dt><dd id="labScienceModel">Loading</dd></div>
+                <div><dt>Energy / Hamiltonian</dt><dd id="labScienceHamiltonian">Loading</dd></div>
+                <div><dt>Evolution protocol</dt><dd id="labScienceEvolution">Loading</dd></div>
+                <div><dt>Ensemble / partition function</dt><dd id="labSciencePartition">Loading</dd></div>
+                <div><dt>Reported estimators</dt><dd id="labScienceMeasurements">Loading</dd></div>
+                <div><dt>Numerical implementation</dt><dd id="labScienceImplementation">Loading</dd></div>
+                <div><dt>Validity and scope</dt><dd id="labScienceBoundary">Loading</dd></div>
+            </dl>
+            <div class="lab-science-references">
+                <h3>Research references</h3>
+                <div id="labScienceReferences"></div>
             </div>
         </section>
 

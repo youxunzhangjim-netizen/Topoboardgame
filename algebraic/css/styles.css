@@ -2193,6 +2193,257 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     }
 }
 
+/* Research readability and scientific model hierarchy. */
+.lab-system-introduction-button {
+    width: fit-content;
+    min-height: 40px;
+    margin-top: 12px;
+    padding: 8px 14px;
+    border-color: rgba(242, 196, 100, 0.56);
+    background: rgba(242, 196, 100, 0.1);
+    color: #fff4cd;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.lab-system-introduction {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid rgba(125, 211, 252, 0.3);
+    border-radius: 8px;
+    background: rgba(12, 19, 28, 0.96);
+}
+
+.lab-system-introduction-heading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.lab-system-introduction-heading h2 {
+    color: #f8fafc;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.lab-system-introduction-heading > span {
+    flex: 0 0 auto;
+    padding: 6px 9px;
+    border: 1px solid rgba(125, 211, 252, 0.32);
+    border-radius: 999px;
+    color: #bae6fd;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.lab-system-definition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+}
+
+.lab-system-definition-grid > div {
+    min-width: 0;
+    padding: 13px;
+    border-left: 3px solid rgba(125, 211, 252, 0.46);
+    background: rgba(2, 6, 23, 0.34);
+}
+
+.lab-system-definition-grid dt,
+.lab-science-references h3 {
+    margin: 0 0 6px;
+    color: #f6cf78;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+.lab-system-definition-grid dd {
+    margin: 0;
+    color: #dce7ee;
+    font-size: 15px;
+    line-height: 1.62;
+    overflow-wrap: anywhere;
+}
+
+.lab-science-references {
+    padding-top: 4px;
+    border-top: 1px solid rgba(218, 232, 224, 0.13);
+}
+
+.lab-science-references > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lab-science-references a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 7px 10px;
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    border-radius: 7px;
+    color: #bae6fd;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.lab-science-references a:hover,
+.lab-science-references a:focus-visible {
+    border-color: rgba(242, 196, 100, 0.72);
+    color: #fff4cd;
+    outline: none;
+}
+
+.lab-info-panel summary,
+.visualization-panel-title,
+.turn-card span,
+.stat-grid span,
+.lab-info-panel dt,
+.research-notes-panel dt,
+.eyebrow {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.lab-info-panel dd,
+.research-notes-panel dd,
+.side-panel p,
+.time-status,
+.history-list,
+.legend,
+.board-title span,
+.rules-intro-content p,
+.rules-intro-content li,
+.rules-intro-content summary {
+    font-size: 15px;
+    line-height: 1.58;
+}
+
+.side-panel h2,
+.lab-history-panels h2,
+.lab-export-panel h2 {
+    font-size: 17px;
+    line-height: 1.35;
+}
+
+.control-section h2 {
+    font-size: 16px;
+}
+
+.control-section label,
+.control-section select,
+.control-section input,
+.control-section button,
+.button-grid button,
+.control-details summary {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.labs-model-card small {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.labs-model-card strong {
+    font-size: 18px;
+}
+
+.labs-model-card span,
+.labs-card-meta em,
+.lab-header-badges span,
+.validation-level-badge {
+    font-size: 13px;
+}
+
+.coord {
+    font-size: 10px;
+}
+
+.qec-observable-grid span {
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+@media (max-width: 760px) {
+    .lab-system-introduction {
+        padding: 14px;
+    }
+
+    .lab-system-introduction-heading {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .lab-system-introduction-heading > span {
+        width: fit-content;
+    }
+
+    .lab-system-definition-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lab-system-definition-grid dt,
+    .lab-science-references h3 {
+        font-size: 15px;
+    }
+
+    .lab-system-definition-grid dd,
+    .lab-info-panel dd,
+    .research-notes-panel dd,
+    .side-panel p,
+    .time-status,
+    .history-list,
+    .legend,
+    .board-title span,
+    .rules-intro-content p,
+    .rules-intro-content li,
+    .rules-intro-content summary {
+        font-size: 16px;
+        line-height: 1.62;
+    }
+
+    .control-section label,
+    .control-section select,
+    .control-section input,
+    .control-section button,
+    .button-grid button,
+    .control-details summary {
+        font-size: 16px;
+    }
+
+    .lab-science-references a {
+        width: 100%;
+        font-size: 15px;
+    }
+
+    .coord {
+        font-size: 9px;
+    }
+
+    .qec-observable-grid span {
+        font-size: 14px;
+    }
+}
+
+html[lang="zh-Hant"] .lab-system-definition-grid dd,
+html[lang="zh-Hant"] .lab-info-panel dd,
+html[lang="zh-Hant"] .research-notes-panel dd,
+html[lang="zh-Hant"] .side-panel p,
+html[lang="zh-Hant"] .history-list,
+html[lang="zh-Hant"] .rules-intro-content {
+    line-height: 1.72;
+}
+
 /* Unified Topoboard Labs research workspace. */
 @media (min-width: 1180px) {
     .app-shell {

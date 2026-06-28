@@ -30,6 +30,7 @@ import {
     parseAxisValues
 } from './LabPhaseCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
+import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
 
 const PHASE_I18N = {
     en: {
@@ -121,7 +122,17 @@ const PHASE_I18N = {
         phaseDiagramAllowed: 'Benchmarked/research-grade model: phase diagram wording is allowed.',
         safeDefaultsApplied: 'Safe defaults applied.',
         initialCondition: 'Initial condition',
-        repeats: 'Repeats per cell'
+        repeats: 'Repeats per cell',
+        figureRegimeTitle: 'Finite-size regime classification',
+        figureHeatmapTitle: 'Observable response surface',
+        figureUncertaintyTitle: 'Classification uncertainty',
+        observableValue: 'Observable mean',
+        uncertaintyValue: 'Uncertainty (1 - confidence)',
+        colorScale: 'Color scale',
+        low: 'Low',
+        high: 'High',
+        topologyLabel: 'Topology',
+        finiteGridNote: 'Finite parameter grid; cells summarize repeated seeded runs.'
     },
     zh: {
         experimentBuilder: '實驗建構器',
@@ -212,7 +223,17 @@ const PHASE_I18N = {
         phaseDiagramAllowed: 'Benchmarked/research-grade 模型：可以使用相圖用語。',
         safeDefaultsApplied: '已套用安全預設。',
         initialCondition: '初始條件',
-        repeats: '每格重複次數'
+        repeats: '每格重複次數',
+        figureRegimeTitle: '有限尺寸 regime 分類',
+        figureHeatmapTitle: '觀測量反應曲面',
+        figureUncertaintyTitle: '分類不確定性',
+        observableValue: '觀測量平均值',
+        uncertaintyValue: '不確定性（1 - 信心值）',
+        colorScale: '色階',
+        low: '低',
+        high: '高',
+        topologyLabel: '拓撲',
+        finiteGridNote: '有限參數網格；每格彙整重複的定種子執行。'
     }
 };
 
@@ -369,9 +390,15 @@ function mapTermForModel(model = selectedModel()) {
 function renderModelMetadata() {
     const model = selectedModel();
     const support = phaseSupportForModel(model);
+    const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
         metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
         metadataRow(uiText('validation', language), model.validationLevel),
+        metadataRow(research.labels.objective, research.objective),
+        metadataRow(research.labels.model, research.model),
+        metadataRow(research.labels.dynamics, research.dynamics),
+        metadataRow(research.labels.ensemble, research.ensemble),
+        metadataRow(research.labels.scope, research.scope),
         metadataRow(t('mapTerm'), mapTermForModel(model)),
         metadataRow(uiText('parameters', language), String(support.sweepableParameters.length)),
         metadataRow(uiText('observables', language), String(model.observables.length)),
@@ -389,7 +416,7 @@ function renderModelMetadata() {
     for (const warning of model.warnings || []) {
         const item = document.createElement('span');
         item.className = 'warning';
-        item.textContent = warning;
+        item.textContent = researchWarning(warning, language);
         els.modelStatus.append(item);
     }
 }
@@ -915,21 +942,99 @@ function normalizedValue(value, min, max) {
 
 function colorRamp(tValue) {
     const tSafe = Math.max(0, Math.min(1, tValue));
-    const r = Math.round(30 + tSafe * 210);
-    const g = Math.round(80 + tSafe * 140);
-    const b = Math.round(150 - tSafe * 80);
+    const stops = [
+        [68, 1, 84],
+        [49, 104, 142],
+        [53, 183, 121],
+        [253, 231, 37]
+    ];
+    const scaled = tSafe * (stops.length - 1);
+    const index = Math.min(stops.length - 2, Math.floor(scaled));
+    const local = scaled - index;
+    const start = stops[index];
+    const end = stops[index + 1];
+    const r = Math.round(start[0] + (end[0] - start[0]) * local);
+    const g = Math.round(start[1] + (end[1] - start[1]) * local);
+    const b = Math.round(start[2] + (end[2] - start[2]) * local);
     return `rgb(${r}, ${g}, ${b})`;
+}
+
+function phasePlotLayout(width, height) {
+    const compact = width < 520;
+    const left = compact ? 58 : 76;
+    const right = compact ? 68 : 112;
+    const top = compact ? 76 : 70;
+    const bottom = compact ? 72 : 82;
+    return {
+        left,
+        right,
+        top,
+        bottom,
+        plotWidth: Math.max(80, width - left - right),
+        plotHeight: Math.max(80, height - top - bottom)
+    };
+}
+
+function formatAxisTick(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return String(value);
+    if (Math.abs(number) >= 1000 || (Math.abs(number) > 0 && Math.abs(number) < 0.001)) return number.toExponential(1);
+    return Number(number.toFixed(3)).toString();
+}
+
+function canvasText(context, textValue, x, y, options = {}) {
+    context.save();
+    context.fillStyle = options.color || '#17221e';
+    context.font = `${options.weight || 500} ${options.size || 12}px system-ui`;
+    context.textAlign = options.align || 'left';
+    context.textBaseline = options.baseline || 'alphabetic';
+    if (options.rotate) {
+        context.translate(x, y);
+        context.rotate(options.rotate);
+        context.fillText(String(textValue), 0, 0);
+    } else {
+        context.fillText(String(textValue), x, y);
+    }
+    context.restore();
+}
+
+function drawContinuousLegend(context, mode, x, y, width, height, min, max) {
+    const gradient = context.createLinearGradient(x, y + height, x, y);
+    for (let index = 0; index <= 12; index++) {
+        const fraction = index / 12;
+        gradient.addColorStop(fraction, colorRamp(fraction));
+    }
+    context.fillStyle = gradient;
+    context.fillRect(x, y, width, height);
+    context.strokeStyle = '#40534c';
+    context.lineWidth = 1;
+    context.strokeRect(x, y, width, height);
+    const label = mode === 'uncertainty' ? t('uncertaintyValue') : t('observableValue');
+    canvasText(context, label, x + width / 2, y - 8, { size: 11, weight: 700, align: 'center' });
+    canvasText(context, mode === 'uncertainty' ? '1' : formatAxisTick(max), x + width + 5, y + 4, { size: 10 });
+    canvasText(context, mode === 'uncertainty' ? '0' : formatAxisTick(min), x + width + 5, y + height, { size: 10 });
+}
+
+function drawRegimeLegend(context, cells, x, y) {
+    const labels = [...new Set([...cells.values()].map((cell) => cell.classification.regimeLabel))].slice(0, 8);
+    canvasText(context, t('regime'), x, y, { size: 11, weight: 700 });
+    labels.forEach((label, index) => {
+        const itemY = y + 14 + index * 19;
+        context.fillStyle = regimeColors[label] || regimeColors.unknown;
+        context.fillRect(x, itemY, 12, 12);
+        context.strokeStyle = '#40534c';
+        context.strokeRect(x, itemY, 12, 12);
+        canvasText(context, label, x + 17, itemY + 10, { size: 10 });
+    });
 }
 
 function drawPhaseCanvas(canvas, mode) {
     const { context, width, height } = setupCanvas(canvas);
     context.clearRect(0, 0, width, height);
-    context.fillStyle = '#07090b';
+    context.fillStyle = '#f8faf9';
     context.fillRect(0, 0, width, height);
     if (!currentPhaseResult) {
-        context.fillStyle = '#aeb8b4';
-        context.font = '13px system-ui';
-        context.fillText(t('noResult'), 16, 28);
+        canvasText(context, t('noResult'), 18, 32, { color: '#53635e', size: 13 });
         return;
     }
     const xValues = currentPhaseConfig.xAxis.values;
@@ -939,13 +1044,37 @@ function drawPhaseCanvas(canvas, mode) {
     const values = [...cells.values()].map((cell) => Number(cell.classification.meanValue)).filter(Number.isFinite);
     const min = values.length ? Math.min(...values) : 0;
     const max = values.length ? Math.max(...values) : 1;
-    const cellWidth = width / Math.max(1, xValues.length);
-    const cellHeight = height / Math.max(1, yValues.length);
+    const layout = phasePlotLayout(width, height);
+    const cellWidth = layout.plotWidth / Math.max(1, xValues.length);
+    const cellHeight = layout.plotHeight / Math.max(1, yValues.length);
+    const figureTitle = mode === 'regime'
+        ? t('figureRegimeTitle')
+        : mode === 'heatmap'
+            ? t('figureHeatmapTitle')
+            : t('figureUncertaintyTitle');
+    const model = modelById(currentPhaseConfig.modelId);
+    canvasText(context, figureTitle, width / 2, 23, { size: 15, weight: 750, align: 'center' });
+    canvasText(
+        context,
+        `${text(model?.name || { en: currentPhaseConfig.modelId }, language)} | ${t('topologyLabel')}: ${text(topologyById(topologyId).name, language)}`,
+        width / 2,
+        43,
+        { color: '#52635d', size: 11, align: 'center' }
+    );
+    context.strokeStyle = 'rgba(63, 83, 76, 0.18)';
+    context.lineWidth = 1;
+    for (let index = 0; index <= 4; index++) {
+        const y = layout.top + (layout.plotHeight * index) / 4;
+        context.beginPath();
+        context.moveTo(layout.left, y);
+        context.lineTo(layout.left + layout.plotWidth, y);
+        context.stroke();
+    }
     yValues.forEach((yValue, yIndex) => {
         xValues.forEach((xValue, xIndex) => {
             const cell = cells.get(`${xValue}::${yValue}`);
-            const left = xIndex * cellWidth;
-            const top = (yValues.length - 1 - yIndex) * cellHeight;
+            const left = layout.left + xIndex * cellWidth;
+            const top = layout.top + (yValues.length - 1 - yIndex) * cellHeight;
             let fill = '#172027';
             if (cell) {
                 if (mode === 'regime') fill = regimeColors[cell.classification.regimeLabel] || regimeColors.unknown;
@@ -961,20 +1090,55 @@ function drawPhaseCanvas(canvas, mode) {
             }
         });
     });
-    context.fillStyle = '#dce5e1';
-    context.font = '12px system-ui';
-    context.fillText(`${topologyById(topologyId).name.en} / ${currentPhaseConfig.xAxis.label} x ${currentPhaseConfig.yAxis.label}`, 10, height - 12);
+    context.strokeStyle = '#2d413a';
+    context.lineWidth = 1.5;
+    context.strokeRect(layout.left, layout.top, layout.plotWidth, layout.plotHeight);
+    const xStride = Math.max(1, Math.ceil(xValues.length / 6));
+    xValues.forEach((value, index) => {
+        if (index % xStride && index !== xValues.length - 1) return;
+        canvasText(context, formatAxisTick(value), layout.left + (index + 0.5) * cellWidth, layout.top + layout.plotHeight + 18, {
+            color: '#354a42',
+            size: 10,
+            align: 'center'
+        });
+    });
+    const yStride = Math.max(1, Math.ceil(yValues.length / 6));
+    yValues.forEach((value, index) => {
+        if (index % yStride && index !== yValues.length - 1) return;
+        canvasText(context, formatAxisTick(value), layout.left - 8, layout.top + (yValues.length - index - 0.5) * cellHeight, {
+            color: '#354a42',
+            size: 10,
+            align: 'right',
+            baseline: 'middle'
+        });
+    });
+    canvasText(context, currentPhaseConfig.xAxis.label, layout.left + layout.plotWidth / 2, height - 38, {
+        size: 12,
+        weight: 700,
+        align: 'center'
+    });
+    canvasText(context, currentPhaseConfig.yAxis.label, 19, layout.top + layout.plotHeight / 2, {
+        size: 12,
+        weight: 700,
+        align: 'center',
+        rotate: -Math.PI / 2
+    });
+    if (mode === 'regime') drawRegimeLegend(context, cells, layout.left + layout.plotWidth + 12, layout.top + 4);
+    else drawContinuousLegend(context, mode, layout.left + layout.plotWidth + 18, layout.top + 28, 14, Math.min(150, layout.plotHeight - 50), min, max);
+    canvasText(context, t('finiteGridNote'), layout.left, height - 10, { color: '#5d6d67', size: 10 });
 }
 
 function cellFromCanvasEvent(canvas, event) {
     if (!currentPhaseResult) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const layout = phasePlotLayout(rect.width, rect.height);
+    const x = event.clientX - rect.left - layout.left;
+    const y = event.clientY - rect.top - layout.top;
+    if (x < 0 || y < 0 || x > layout.plotWidth || y > layout.plotHeight) return null;
     const xValues = currentPhaseConfig.xAxis.values;
     const yValues = currentPhaseConfig.yAxis.values;
-    const xIndex = Math.max(0, Math.min(xValues.length - 1, Math.floor((x / rect.width) * xValues.length)));
-    const yIndexFromTop = Math.max(0, Math.min(yValues.length - 1, Math.floor((y / rect.height) * yValues.length)));
+    const xIndex = Math.max(0, Math.min(xValues.length - 1, Math.floor((x / layout.plotWidth) * xValues.length)));
+    const yIndexFromTop = Math.max(0, Math.min(yValues.length - 1, Math.floor((y / layout.plotHeight) * yValues.length)));
     const yIndex = yValues.length - 1 - yIndexFromTop;
     const xValue = xValues[xIndex];
     const yValue = yValues[yIndex];

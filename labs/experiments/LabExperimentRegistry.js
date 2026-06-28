@@ -549,7 +549,7 @@ export const MODEL_REGISTRY = [
             observable('observable.twophase.area-fraction-a', 'Area fraction A', 'order_parameter', 'Fraction occupied by phase A.', 'Winner tendency.'),
             observable('observable.twophase.domain-count', 'Domain count', 'distribution', 'Connected phase-domain count.', 'Coarsening state.')
         ],
-        warnings: ['This is a statistical dynamics model, not biological Life.']
+        warnings: ['Finite statistical-dynamics estimator; benchmark scaling before quantitative percolation claims.']
     },
     {
         id: 'physical_cluster_go',
@@ -576,7 +576,7 @@ export const MODEL_REGISTRY = [
             observable('observable.cluster.survival', 'Survival probability', 'diagnostic', 'Occupied mass relative to initial occupied mass.', 'Persistence estimate.'),
             observable('observable.cluster.wrapping', 'Wrapping clusters', 'topology', 'Number of topology-wrapping components.', 'Noncontractible connectivity.')
         ],
-        warnings: ['Biological interpretation belongs in Topoboard Life; Labs keeps this as statistical dynamics.']
+        warnings: ['Finite graph cluster estimator; benchmark lattice scaling before quantitative percolation claims.']
     },
     {
         id: 'physical_jump_particles',
