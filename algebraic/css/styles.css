@@ -2276,6 +2276,113 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     border-top: 1px solid rgba(218, 232, 224, 0.13);
 }
 
+.lab-observable-methods {
+    display: grid;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(218, 232, 224, 0.13);
+}
+
+.lab-observable-methods-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.lab-observable-methods-heading h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 20px;
+    line-height: 1.3;
+}
+
+.lab-observable-methods-heading label {
+    display: grid;
+    gap: 5px;
+    min-width: min(100%, 290px);
+    color: #f6cf78;
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.lab-observable-methods-heading select {
+    min-height: 40px;
+    padding: 7px 9px;
+    font-size: 15px;
+}
+
+.lab-observable-spec-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.lab-observable-spec {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgba(125, 211, 252, 0.2);
+    background: rgba(2, 6, 23, 0.32);
+    cursor: pointer;
+}
+
+.lab-observable-spec:hover,
+.lab-observable-spec:focus-within {
+    border-color: rgba(242, 196, 100, 0.62);
+}
+
+.lab-observable-spec > div {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.lab-observable-spec strong {
+    color: #dff4fd;
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.lab-observable-spec output {
+    flex: 0 0 auto;
+    color: #f7d783;
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.lab-observable-spec p {
+    margin: 0;
+    color: #cbd9df;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.lab-observable-figure {
+    margin: 0;
+    padding: 10px;
+    border: 1px solid rgba(125, 211, 252, 0.22);
+    background: #f8faf9;
+}
+
+.lab-observable-figure canvas {
+    display: block;
+    width: 100%;
+    min-height: 320px;
+    aspect-ratio: 16 / 7;
+    background: #fff;
+}
+
+.lab-observable-figure figcaption {
+    padding: 7px 8px 2px;
+    color: #40564e;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+}
+
 .lab-science-references > div {
     display: flex;
     flex-wrap: wrap;
@@ -2424,6 +2531,36 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     .lab-science-references a {
         width: 100%;
         font-size: 15px;
+    }
+
+    .lab-observable-methods-heading {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .lab-observable-methods-heading label {
+        min-width: 0;
+    }
+
+    .lab-observable-spec-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lab-observable-spec strong,
+    .lab-observable-spec output,
+    .lab-observable-spec p {
+        font-size: 15px;
+    }
+
+    .lab-observable-figure canvas {
+        min-height: 300px;
+        aspect-ratio: 4 / 3;
+    }
+
+    .lab-observable-figure figcaption {
+        font-size: 15px;
+        line-height: 1.6;
     }
 
     .coord {
@@ -2868,7 +3005,7 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     justify-content: flex-end !important;
     gap: 8px !important;
     min-width: 0 !important;
-    max-width: min(100%, 540px);
+    max-width: min(100%, 700px);
     margin-left: 0 !important;
 }
 
@@ -2880,6 +3017,31 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     flex: 0 0 auto;
 }
 
+.lab-research-builder-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+    min-height: 38px;
+    padding: 7px 11px;
+    border: 1px solid rgba(242, 196, 100, 0.54);
+    border-radius: 7px;
+    background: rgba(242, 196, 100, 0.1);
+    color: #fff1bd;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+}
+
+.lab-research-builder-link:hover,
+.lab-research-builder-link:focus-visible {
+    border-color: rgba(242, 196, 100, 0.88);
+    background: rgba(242, 196, 100, 0.18);
+    outline: none;
+}
+
 .lab-top-actions .shared-game-language {
     flex: 0 0 auto;
     min-height: 34px;
@@ -2889,6 +3051,12 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     min-width: 0 !important;
     max-width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 981px) {
+    .app-shell > .top-bar {
+        grid-template-columns: minmax(360px, 1fr) minmax(570px, auto) !important;
+    }
 }
 
 .lab-workspace,
@@ -2926,14 +3094,27 @@ body[data-lab-ui-mode="simple"] .lab-export-panel {
     }
 
     .lab-top-actions .simple-research-mode-toggle {
+        grid-column: 1 / -1;
         width: 100%;
         min-width: 0 !important;
     }
 
+    .lab-top-actions .lab-research-builder-link {
+        grid-column: 1;
+        width: 100%;
+        min-width: 0;
+        font-size: 15px;
+    }
+
     .lab-top-actions .home-link {
+        grid-column: 2;
         width: auto;
         min-width: 0;
         padding-inline: 10px;
+    }
+
+    .lab-top-actions .shared-game-language {
+        grid-column: 3;
     }
 }
 

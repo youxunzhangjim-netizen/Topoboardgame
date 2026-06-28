@@ -43,6 +43,7 @@ const els = {
     labsModelCatalog: document.querySelector('#labsModelCatalog'),
     labSimpleModeButton: document.querySelector('#labSimpleModeButton'),
     labResearchModeButton: document.querySelector('#labResearchModeButton'),
+    labResearchBuilderLink: document.querySelector('#labResearchBuilderLink'),
     labHeaderModelName: document.querySelector('#labHeaderModelName'),
     labHeaderDescription: document.querySelector('#labHeaderDescription'),
     labValidationBadge: document.querySelector('#labValidationBadge'),
@@ -62,6 +63,10 @@ const els = {
     labScienceImplementation: document.querySelector('#labScienceImplementation'),
     labScienceBoundary: document.querySelector('#labScienceBoundary'),
     labScienceReferences: document.querySelector('#labScienceReferences'),
+    labObservableFigureSelect: document.querySelector('#labObservableFigureSelect'),
+    labObservableSpecGrid: document.querySelector('#labObservableSpecGrid'),
+    labObservableCanvas: document.querySelector('#labObservableCanvas'),
+    labObservableFigureCaption: document.querySelector('#labObservableFigureCaption'),
     labStateLocalStates: document.querySelector('#labStateLocalStates'),
     labStateEncoding: document.querySelector('#labStateEncoding'),
     labStateConstraints: document.querySelector('#labStateConstraints'),
@@ -1202,6 +1207,79 @@ const LAB_RESEARCH_OBJECTIVES = Object.freeze({
         zh: '在匹配的 Z2 圖邊誤差與 decoder 流程下，檢驗局部 syndrome 移除、Wilson loop 扇區、loop 長度統計與邏輯記憶結果的拓撲依賴性。'
     }
 });
+function observableSpec(id, key, name, nameZh, definition, definitionZh, units, meaning, meaningZh) {
+    return {
+        id,
+        key,
+        name: { en: name, zh: nameZh },
+        definition: { en: definition, zh: definitionZh },
+        units,
+        meaning: { en: meaning, zh: meaningZh }
+    };
+}
+
+const LAB_OBSERVABLE_SPECS = Object.freeze({
+    pauli_transport: [
+        observableSpec('occupied', 'occupiedSites', 'Occupied operator sites', '已佔據算符格點', 'Number of graph sites carrying an operator token.', '帶有算符 token 的圖格點數。', 'count', 'Operator support size.', '算符支撐大小。'),
+        observableSpec('sector-a', 'sectorA', 'Sector A operators', '扇區 A 算符', 'Count controlled by sector A / Black.', '由扇區 A／黑方控制的數量。', 'count', 'Control-sector population.', '控制扇區數量。'),
+        observableSpec('sector-b', 'sectorB', 'Sector B operators', '扇區 B 算符', 'Count controlled by sector B / White.', '由扇區 B／白方控制的數量。', 'count', 'Control-sector population.', '控制扇區數量。'),
+        observableSpec('events', 'eventCount', 'Accepted updates', '已接受更新', 'Number of accepted discrete update events.', '已接受離散更新事件數。', 'events', 'Trajectory length.', '軌跡長度。')
+    ],
+    stabilizer_recovery: [
+        observableSpec('syndrome', 'syndromeWeight', 'Syndrome weight', 'Syndrome 權重', 'N_X-violations + N_Z-violations.', 'N_X 違反數 + N_Z 違反數。', 'count', 'Residual local-check burden.', '剩餘局部檢查負擔。'),
+        observableSpec('violations', 'stabilizerViolations', 'Violated checks', '違反檢查數', 'Number of sites whose local X or Z parity differs from its target check.', '局部 X 或 Z parity 與目標檢查不同的格點數。', 'count', 'Spatial extent of recovery defects.', '復原缺陷的空間範圍。'),
+        observableSpec('conflicts', 'commutationConflictCount', 'Commutation conflicts', '對易衝突', 'Number of adjacent occupied Pauli labels that anticommute.', '相鄰已佔據 Pauli 標記中反對易的配對數。', 'count', 'Local algebraic incompatibility.', '局部代數不相容性。'),
+        observableSpec('ancillas', 'numberOfAncillas', 'Ancilla count', 'Ancilla 數量', 'Number of sites currently marked as ancillas.', '目前標記為 ancilla 的格點數。', 'count', 'Measurement/recovery resources in use.', '使用中的測量／復原資源。')
+    ],
+    anyon_dynamics: [
+        observableSpec('particles', 'particleCount', 'Anyon count', 'Anyon 數量', 'Number of non-vacuum mobile charge tokens.', '非真空可移動電荷 token 數。', 'count', 'Excitation population.', '激發數量。'),
+        observableSpec('braids', 'totalBraids', 'Accepted braids', '已接受編織', 'Count of non-skipped braid events.', '未略過的 braid 事件數。', 'events', 'Accumulated exchange history.', '累積交換歷史。'),
+        observableSpec('word-length', 'averageBraidWordLength', 'Mean braid-word length', '平均 braid word 長度', 'Mean number of stored braid generators per token.', '每個 token 儲存的 braid generator 數量平均。', 'generators/token', 'Symbolic braid-memory complexity.', '符號式編織記憶複雜度。'),
+        observableSpec('winding', 'sectorChanges', 'Topology-sector events', '拓撲扇區事件', 'Number of recorded noncontractible winding-sector changes.', '已記錄不可收縮繞行扇區變化數。', 'events', 'Topology-sensitive worldline activity.', '拓撲敏感 worldline 活動。')
+    ],
+    cft_graph: [
+        observableSpec('entropy', 'entanglementEntropyEstimate', 'Entropy estimator', '熵估計量', 'Finite-graph interval estimator returned by the selected CFT rule.', '所選 CFT 規則回傳的有限圖區間估計量。', 'dimensionless estimator', 'Relative interval complexity; not exact continuum entropy.', '相對區間複雜度；不是精確連續熵。'),
+        observableSpec('wall', 'domainWallLength', 'Domain-wall length', 'Domain wall 長度', 'Count of graph edges joining opposite source signs.', '連接相反源正負號的圖邊數。', 'edges', 'Discrete interface geometry.', '離散界面幾何。'),
+        observableSpec('mutual-info', 'mutualInformationEstimate', 'Mutual-information estimator', 'Mutual information 估計量', 'Graph estimator computed from domain and interface data.', '由 domain 與界面資料計算的圖估計量。', 'dimensionless estimator', 'Relative inter-region dependence.', '區域間相依程度。'),
+        observableSpec('anomalies', 'anomalyCount', 'Anomaly events', 'Anomaly 事件', 'Number of recorded central-charge anomaly markers.', '已記錄 central-charge anomaly marker 數。', 'events', 'Overlap events in the truncated N=2 update rule.', '截斷 N=2 更新規則中的重疊事件。')
+    ],
+    ising: [
+        observableSpec('energy', 'energy', 'Energy', '能量', 'E = -J sum_(ij in E) s_i s_j - h sum_i s_i.', 'E = -J sum_(ij in E) s_i s_j - h sum_i s_i。', 'model energy', 'Current finite-graph Ising Hamiltonian value.', '目前有限圖 Ising Hamiltonian 值。'),
+        observableSpec('magnetization', 'magnetization', 'Magnetization', '磁化', 'M = (1/N_occ) sum_i s_i.', 'M = (1/N_occ) sum_i s_i。', 'dimensionless', 'Spin-order parameter.', '自旋序參量。'),
+        observableSpec('wall', 'domainWallLength', 'Domain-wall length', 'Domain wall 長度', 'Count of edges with s_i != s_j.', 's_i != s_j 的圖邊數。', 'edges', 'Interface extent.', '界面範圍。'),
+        observableSpec('correlation', 'correlationEstimate', 'Nearest-neighbor correlation', '最近鄰相關', 'C_1 = mean_(ij in E)(s_i s_j) over occupied pairs.', 'C_1 = mean_(ij in E)(s_i s_j)，只計已佔據配對。', 'dimensionless', 'Local alignment estimator.', '局部對齊估計量。')
+    ],
+    phase_field: [
+        observableSpec('energy', 'energy', 'Phase objective', '相目標能量', 'E = gamma L - b_A A_A - b_B A_B + kappa C.', 'E = gamma L - b_A A_A - b_B A_B + kappa C。', 'model energy', 'Current interface/bias objective.', '目前界面／bias 目標。'),
+        observableSpec('interface', 'interfaceLength', 'Interface length', '界面長度', 'Count of unlike occupied neighbor edges.', '異相已佔據鄰居圖邊數。', 'edges', 'Phase-boundary extent.', '相邊界範圍。'),
+        observableSpec('fraction-a', 'areaFractionA', 'Phase A fraction', 'Phase A 比例', 'A_A / N_sites.', 'A_A / N_sites。', 'fraction', 'Coverage by phase A.', 'Phase A 佔據率。'),
+        observableSpec('domains', 'numberOfDomains', 'Domain count', 'Domain 數量', 'Number of connected same-phase components.', '同相連通分量數。', 'count', 'Coarsening state.', '粗化狀態。')
+    ],
+    cluster: [
+        observableSpec('largest', 'largestCluster', 'Largest cluster', '最大 cluster', 'Maximum occupied connected-component size.', '最大已佔據連通分量大小。', 'sites', 'Dominant connected mass.', '主導連通質量。'),
+        observableSpec('percolation', 'percolationProbability', 'Percolation estimator', 'Percolation 估計量', '1 for detected wrapping; otherwise min(1, 2 S_max/N).', '偵測到繞行時為 1；否則 min(1, 2 S_max/N)。', 'finite-run estimator', 'Finite graph crossing/wrapping tendency.', '有限圖跨越／繞行傾向。'),
+        observableSpec('clusters', 'numberOfClusters', 'Cluster count', 'Cluster 數量', 'Number of occupied connected components.', '已佔據連通分量數。', 'count', 'Fragmentation state.', '碎裂狀態。'),
+        observableSpec('correlation', 'correlationLengthEstimate', 'Correlation-length proxy', '相關長度 proxy', 'sqrt(sum_s s^2 n_s / N_occ).', 'sqrt(sum_s s^2 n_s / N_occ)。', 'sites^0.5', 'Weighted cluster-size scale.', '加權 cluster 大小尺度。')
+    ],
+    particles: [
+        observableSpec('count', 'particleCount', 'Particle count', '粒子數', 'Number of occupied particle vertices.', '已佔據粒子頂點數。', 'count', 'Remaining mobile population.', '剩餘可移動數量。'),
+        observableSpec('path', 'averagePathLength', 'Mean path length', '平均路徑長度', 'Arithmetic mean of stored token path lengths.', 'token 儲存路徑長度的算術平均。', 'graph steps', 'Transport range.', '傳輸範圍。'),
+        observableSpec('recombine', 'recombinationCount', 'Recombination count', '重組數', 'Number of accepted opposite-particle recombination events.', '已接受的相反粒子重組事件數。', 'events', 'Reaction progress.', '反應進度。'),
+        observableSpec('survival', 'survivalFraction', 'Survival fraction', '存活比例', 'N_final / max(1, N_initial).', 'N_final / max(1, N_initial)。', 'fraction', 'Population persistence.', '數量持續性。')
+    ],
+    spin_ice: [
+        observableSpec('energy', 'energy', 'Defect energy', '缺陷能量', 'E = Delta sum_v max(1, |q_v|/2) over violating vertices.', 'E = Delta sum_v max(1, |q_v|/2)，總和遍及違規頂點。', 'model energy', 'Simplified ice-rule defect cost.', '簡化 ice-rule 缺陷成本。'),
+        observableSpec('violations', 'iceRuleViolations', 'Ice-rule violations', 'Ice-rule 違反', 'Number of vertices outside the preferred in/out rule.', '不符合偏好流入／流出規則的頂點數。', 'count', 'Local constraint failure.', '局部 constraint 失敗。'),
+        observableSpec('monopoles', 'monopoleCount', 'Monopole defects', 'Monopole 缺陷', 'Number of violating vertices with q_v != 0.', 'q_v != 0 的違規頂點數。', 'count', 'Charged endpoint defects.', '帶電端點缺陷。'),
+        observableSpec('density', 'defectDensity', 'Defect density', '缺陷密度', 'N_violations / N_vertices.', 'N_violations / N_vertices。', 'fraction', 'Normalized defect burden.', '正規化缺陷負擔。')
+    ],
+    z2_gauge: [
+        observableSpec('energy', 'energy', 'Violation energy', '違反能量', 'E = N_star-violations + N_flux-violations.', 'E = N_star-violations + N_flux-violations。', 'unit penalty', 'Residual gauge/check burden.', '剩餘 gauge／檢查負擔。'),
+        observableSpec('syndrome', 'syndromeWeight', 'Syndrome weight', 'Syndrome 權重', 'N_star-violations + N_flux-violations.', 'N_star-violations + N_flux-violations。', 'count', 'Total local error syndrome.', '局部誤差 syndrome 總量。'),
+        observableSpec('star', 'starViolations', 'Star violations', 'Star 違反', 'Number of vertex-star products in the violating sector.', '位於違反扇區的 vertex-star 乘積數。', 'count', 'Charge-like syndrome.', '類電荷 syndrome。'),
+        observableSpec('flux', 'plaquetteFluxViolations', 'Flux violations', 'Flux 違反', 'Number of available plaquette/cycle products in the violating sector.', '可用 plaquette／cycle 乘積中位於違反扇區的數量。', 'count', 'Flux-like syndrome.', '類 flux syndrome。')
+    ]
+});
 const LAB_GUIDE_LABELS = Object.freeze({
     clifford: { en: 'Clifford Guide Book', zh: 'Clifford 指南書' },
     'physical-clifford': { en: 'Stabilizer Guide Book', zh: 'Stabilizer 指南書' },
@@ -2246,6 +2324,8 @@ let actionPalette = null;
 let actionPaletteOpenedAt = 0;
 let anyonClickTimer = 0;
 let activeRulesMode = 'clifford';
+let labObservableTimeline = [];
+let labObservableTimelineMode = '';
 const algebraic3d = new Algebraic3DBoard({
     canvas: els.algebraic3dBoard,
     resetButton: els.reset3dCameraButton,
@@ -2548,6 +2628,13 @@ function currentLabLanguage() {
     return document.documentElement.lang.toLowerCase().startsWith('zh') ? 'zh' : 'en';
 }
 
+function updateResearchBuilderLink() {
+    if (!els.labResearchBuilderLink) return;
+    const url = new URL('../labs/experiments/', window.location.href);
+    url.searchParams.set('lang', currentLabLanguage());
+    els.labResearchBuilderLink.href = url.href;
+}
+
 function labLocalized(value) {
     if (!value || typeof value !== 'object') return String(value ?? '');
     return value[currentLabLanguage()] || value.en || Object.values(value)[0] || '';
@@ -2594,6 +2681,218 @@ function renderLabScienceIntroduction(mode = selectedMode()) {
     }
 }
 
+function observableProfileId(mode = selectedMode()) {
+    return LAB_SCIENCE_PROFILE_BY_MODE[mode]
+        || LAB_SCIENCE_PROFILE_BY_MODE[baseModeForPhysicalVariant(mode)]
+        || 'pauli_transport';
+}
+
+function labObservableSource(mode = selectedMode()) {
+    try {
+        if (typeof game?.computePhysicalObservables === 'function') return game.computePhysicalObservables();
+        if (typeof game?.computeCFTObservables === 'function') {
+            const source = game.computeCFTObservables();
+            return {
+                ...source,
+                anomalyCount: source.centralChargeAnomalyEvents?.length || 0
+            };
+        }
+    } catch {
+        // The live figure must not interrupt an interactive update.
+    }
+    const counts = typeof game?.counts === 'function' ? game.counts() : {};
+    const source = {
+        occupiedSites: Number(game?.board?.size || game?.tokens?.size || 0),
+        sectorA: Number(counts.black || 0),
+        sectorB: Number(counts.white || 0),
+        eventCount: Number(game?.moveNumber || game?.history?.length || 0)
+    };
+    if (game?.tokens instanceof Map) {
+        const braidStats = typeof game.braidStatistics === 'function' ? game.braidStatistics() : {};
+        Object.assign(source, braidStats, {
+            particleCount: game.tokens.size,
+            sectorChanges: game.topologicalSectors?.length || 0
+        });
+    } else if (String(mode).includes('anyon') && game?.board instanceof Map) {
+        const stones = [...game.board.values()];
+        Object.assign(source, {
+            particleCount: stones.length,
+            totalBraids: stones.reduce((sum, stone) => sum + Number(stone.braidHistory?.length || 0), 0),
+            averageBraidWordLength: stones.length
+                ? stones.reduce((sum, stone) => sum + Number(stone.braidWord?.length || 0), 0) / stones.length
+                : 0,
+            sectorChanges: Number(game.moveNumber || 0)
+        });
+    }
+    return source;
+}
+
+function numericObservableValue(source, key) {
+    const value = source?.[key];
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+}
+
+function formatObservableValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '-';
+    if (Math.abs(number) >= 1000 || (Math.abs(number) > 0 && Math.abs(number) < 0.001)) return number.toExponential(2);
+    return Number(number.toFixed(4)).toString();
+}
+
+function drawLabObservableFigure(spec, points) {
+    const canvas = els.labObservableCanvas;
+    if (!canvas || !spec) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(320, rect.width || 960);
+    const height = Math.max(300, rect.height || 420);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const context = canvas.getContext('2d');
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    const compact = width < 520;
+    const margin = { left: compact ? 58 : 76, right: 24, top: 58, bottom: 66 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const values = points.map((point) => point.value);
+    let min = values.length ? Math.min(...values) : 0;
+    let max = values.length ? Math.max(...values) : 1;
+    if (min === max) {
+        const padding = Math.max(1, Math.abs(min) * 0.1);
+        min -= padding;
+        max += padding;
+    }
+    const range = max - min;
+    const text = (value, x, y, options = {}) => {
+        context.save();
+        context.fillStyle = options.color || '#243b34';
+        context.font = `${options.weight || 500} ${options.size || 12}px system-ui`;
+        context.textAlign = options.align || 'left';
+        context.textBaseline = options.baseline || 'alphabetic';
+        if (options.rotate) {
+            context.translate(x, y);
+            context.rotate(options.rotate);
+            context.fillText(value, 0, 0);
+        } else context.fillText(value, x, y);
+        context.restore();
+    };
+    text(labLocalized(spec.name), width / 2, 24, { size: compact ? 14 : 16, weight: 750, align: 'center' });
+    text(`${labLocalized(spec.definition)} [${spec.units}]`, width / 2, 43, { color: '#52645e', size: compact ? 9 : 11, align: 'center' });
+    for (let tick = 0; tick <= 4; tick++) {
+        const y = margin.top + (plotHeight * tick) / 4;
+        context.strokeStyle = '#d9e2df';
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(margin.left, y);
+        context.lineTo(margin.left + plotWidth, y);
+        context.stroke();
+        text(formatObservableValue(max - (range * tick) / 4), margin.left - 8, y + 4, { size: 10, align: 'right' });
+    }
+    context.strokeStyle = '#29423a';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(margin.left, margin.top);
+    context.lineTo(margin.left, margin.top + plotHeight);
+    context.lineTo(margin.left + plotWidth, margin.top + plotHeight);
+    context.stroke();
+    const xFor = (index) => margin.left + (points.length <= 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
+    const yFor = (value) => margin.top + plotHeight - ((value - min) / range) * plotHeight;
+    if (points.length) {
+        context.strokeStyle = '#287fa6';
+        context.lineWidth = 3;
+        context.beginPath();
+        points.forEach((point, index) => {
+            const x = xFor(index);
+            const y = yFor(point.value);
+            if (index) context.lineTo(x, y);
+            else context.moveTo(x, y);
+        });
+        context.stroke();
+        points.forEach((point, index) => {
+            context.fillStyle = '#ffffff';
+            context.strokeStyle = '#287fa6';
+            context.lineWidth = 2;
+            context.beginPath();
+            context.arc(xFor(index), yFor(point.value), 4, 0, Math.PI * 2);
+            context.fill();
+            context.stroke();
+        });
+        const stride = Math.max(1, Math.ceil(points.length / 6));
+        points.forEach((point, index) => {
+            if (index % stride && index !== points.length - 1) return;
+            text(String(point.step), xFor(index), margin.top + plotHeight + 18, { size: 10, align: 'center' });
+        });
+    }
+    const isZh = currentLabLanguage() === 'zh';
+    text(isZh ? '離散實驗步驟' : 'Discrete experiment step', margin.left + plotWidth / 2, height - 19, {
+        size: 12,
+        weight: 700,
+        align: 'center'
+    });
+    text(`${labLocalized(spec.name)} (${spec.units})`, 17, margin.top + plotHeight / 2, {
+        size: 12,
+        weight: 700,
+        align: 'center',
+        rotate: -Math.PI / 2
+    });
+}
+
+function renderLabObservableMethods(mode = selectedMode()) {
+    const profileId = observableProfileId(mode);
+    const specs = LAB_OBSERVABLE_SPECS[profileId] || LAB_OBSERVABLE_SPECS.pauli_transport;
+    if (!els.labObservableSpecGrid || !els.labObservableFigureSelect) return;
+    if (labObservableTimelineMode !== mode) {
+        labObservableTimelineMode = mode;
+        labObservableTimeline = [];
+    }
+    if (els.labObservableFigureSelect.dataset.profile !== profileId) {
+        els.labObservableFigureSelect.dataset.profile = profileId;
+        els.labObservableFigureSelect.replaceChildren(...specs.map((spec) => new Option(labLocalized(spec.name), spec.id)));
+    } else {
+        [...els.labObservableFigureSelect.options].forEach((option, index) => {
+            option.textContent = labLocalized(specs[index]?.name || option.textContent);
+        });
+    }
+    const source = labObservableSource(mode);
+    const step = Number(game?.moveNumber ?? game?.history?.length ?? 0);
+    const sample = {
+        step,
+        values: Object.fromEntries(specs.map((spec) => [spec.id, numericObservableValue(source, spec.key)]))
+    };
+    const last = labObservableTimeline.at(-1);
+    if (last?.step === step) labObservableTimeline[labObservableTimeline.length - 1] = sample;
+    else labObservableTimeline.push(sample);
+    if (labObservableTimeline.length > 200) labObservableTimeline.shift();
+    els.labObservableSpecGrid.replaceChildren();
+    for (const spec of specs) {
+        const card = document.createElement('article');
+        card.className = 'lab-observable-spec';
+        const value = sample.values[spec.id];
+        card.innerHTML = `
+            <div><strong>${labLocalized(spec.name)}</strong><output>${formatObservableValue(value)} ${spec.units}</output></div>
+            <p><b>${currentLabLanguage() === 'zh' ? '定義' : 'Definition'}:</b> ${labLocalized(spec.definition)}</p>
+            <p><b>${currentLabLanguage() === 'zh' ? '意義' : 'Meaning'}:</b> ${labLocalized(spec.meaning)}</p>
+        `;
+        card.addEventListener('click', () => {
+            els.labObservableFigureSelect.value = spec.id;
+            renderLabObservableMethods(mode);
+        });
+        els.labObservableSpecGrid.append(card);
+    }
+    const selected = specs.find((spec) => spec.id === els.labObservableFigureSelect.value) || specs[0];
+    const points = labObservableTimeline.map((entry) => ({ step: entry.step, value: entry.values[selected.id] }));
+    drawLabObservableFigure(selected, points);
+    if (els.labObservableFigureCaption) {
+        els.labObservableFigureCaption.textContent = currentLabLanguage() === 'zh'
+            ? `${labLocalized(selected.name)} 對離散實驗步驟的有限軌跡。每個點是該步驟後直接由目前組態計算的值；連線只供辨識趨勢。`
+            : `${labLocalized(selected.name)} over discrete experiment steps. Each point is computed directly from the configuration after that step; connecting lines show trend only.`;
+    }
+}
+
 function setLabSystemIntroductionOpen(open) {
     if (!els.labSystemIntroductionPanel || !els.labSystemIntroductionButton) return;
     els.labSystemIntroductionPanel.hidden = !open;
@@ -2601,6 +2900,7 @@ function setLabSystemIntroductionOpen(open) {
     els.labSystemIntroductionButton.textContent = open
         ? (currentLabLanguage() === 'zh' ? '收合研究系統與方法' : 'Close Research System & Method')
         : (currentLabLanguage() === 'zh' ? '研究系統與方法' : 'Research System & Method');
+    if (open) window.requestAnimationFrame(() => renderLabObservableMethods());
 }
 
 function selectedOptionText(select) {
@@ -2968,6 +3268,7 @@ function updateLabWorkspace() {
     if (els.labResearchValidation) els.labResearchValidation.textContent = metadata.validation;
     if (els.labResearchReferences) els.labResearchReferences.textContent = 'References placeholder; attach benchmark notes before raising validation level.';
     renderLabScienceIntroduction(mode);
+    renderLabObservableMethods(mode);
     document.querySelectorAll('.labs-model-card').forEach((card) => {
         card.classList.toggle('is-active', card.dataset.labMode === mode);
     });
@@ -3907,6 +4208,8 @@ function createGame() {
     hoverCoord = null;
     lastCancellation = null;
     lastWrongUnbraid = null;
+    labObservableTimeline = [];
+    labObservableTimelineMode = '';
     legalReversiCache = { signature: '', keys: [] };
     const config = anyonConfig();
     const physicalProblem = physicalProblemConfig(mode);
@@ -7586,6 +7889,7 @@ document.addEventListener('keydown', (event) => {
 });
 window.addEventListener('languagechange', () => {
     window.requestAnimationFrame(() => {
+        updateResearchBuilderLink();
         renderLabGuideBook(activeRulesMode);
         renderLabScienceIntroduction();
         setLabSystemIntroductionOpen(!els.labSystemIntroductionPanel?.hidden);
@@ -7676,6 +7980,10 @@ els.labResearchModeButton?.addEventListener('click', () => setLabUIMode('researc
 els.labSystemIntroductionButton?.addEventListener('click', () => {
     setLabSystemIntroductionOpen(Boolean(els.labSystemIntroductionPanel?.hidden));
 });
+els.labObservableFigureSelect?.addEventListener('change', () => renderLabObservableMethods());
+window.addEventListener('resize', () => {
+    if (!els.labSystemIntroductionPanel?.hidden) renderLabObservableMethods();
+});
 window.addEventListener('pageshow', () => {
     syncOnlineModeVisibility();
     if (!game) createGame();
@@ -7685,6 +7993,7 @@ window.addEventListener('pageshow', () => {
 
 renderLabsModelCatalog();
 setLabUIMode(initialLabUIMode());
+updateResearchBuilderLink();
 createGame();
 syncOnlineModeVisibility();
 

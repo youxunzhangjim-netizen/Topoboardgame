@@ -471,13 +471,27 @@ export const TOPOLOGY_REGISTRY = [
 }));
 
 function observable(id, name, category, definition, physicalMeaning, options = {}) {
+    const normalizedId = String(id).toLowerCase();
+    const inferredUnits = normalizedId.includes('fraction') || normalizedId.includes('probability')
+        ? 'fraction'
+        : normalizedId.includes('length')
+            ? 'graph edges / steps'
+            : normalizedId.includes('count') || normalizedId.includes('violations') || normalizedId.includes('monopole')
+                ? 'count'
+                : category === 'energy'
+                    ? 'model energy'
+                    : category === 'logical' || category === 'fusion'
+                        ? 'symbolic sector'
+                        : category === 'transport'
+                            ? 'graph steps / events'
+                            : 'dimensionless';
     return {
         id,
         name,
         category,
         definition,
         physicalMeaning,
-        units: options.units || 'dimensionless',
+        units: options.units || inferredUnits,
         estimatorType: options.estimatorType || 'graph_estimator',
         validationLevel: options.validationLevel || 'estimator',
         computationalCost: options.computationalCost || 'low',

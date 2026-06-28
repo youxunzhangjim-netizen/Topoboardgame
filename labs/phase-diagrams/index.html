@@ -256,6 +256,25 @@
                 <span>6</span>
                 <h2 id="visualTitle" data-i18n="visualizations">Visualizations</h2>
             </div>
+            <article class="phase-method-card" aria-labelledby="phaseMethodTitle">
+                <div class="phase-method-heading">
+                    <div>
+                        <p class="eyebrow" data-i18n="figureMethodEyebrow">Figure method</p>
+                        <h3 id="phaseMethodTitle" data-i18n="figureMethodTitle">How this scan becomes a figure</h3>
+                    </div>
+                    <span id="phaseMethodValidation">estimator</span>
+                </div>
+                <dl class="phase-method-grid">
+                    <div><dt data-i18n="systemEquation">System equation</dt><dd id="phaseMethodEquation">Configure a supported model.</dd></div>
+                    <div><dt data-i18n="scanParameterMapping">Scan-parameter mapping</dt><dd id="phaseMethodParameters">Choose two numeric parameters.</dd></div>
+                    <div><dt data-i18n="partitionStatus">Partition-function status</dt><dd id="phaseMethodPartition">Not evaluated unless explicitly stated.</dd></div>
+                    <div><dt data-i18n="cellSampling">Sampling in each cell</dt><dd id="phaseMethodSampling">Seeds, repeats, and steps define the finite sample.</dd></div>
+                    <div><dt data-i18n="observableEstimator">Observable estimator</dt><dd id="phaseMethodObservable">Choose a classification observable.</dd></div>
+                    <div><dt data-i18n="classificationDerivation">Classification derivation</dt><dd id="phaseMethodClassification">The cell mean, variance, and thresholds determine the regime label.</dd></div>
+                    <div><dt data-i18n="figureEncoding">Figure encoding</dt><dd id="phaseMethodEncoding">The regime map, response heatmap, and uncertainty map use the same cells.</dd></div>
+                    <div><dt data-i18n="scientificLimit">Scientific limit</dt><dd id="phaseMethodLimit">Finite-size regime estimate; not a thermodynamic-limit phase boundary.</dd></div>
+                </dl>
+            </article>
             <div class="phase-visual-grid">
                 <article class="viz-card phase-canvas-card">
                     <h3 id="regimeMapTitle" data-i18n="regimeMap">Regime map</h3>

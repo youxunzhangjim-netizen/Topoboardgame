@@ -26,6 +26,7 @@
                     <button id="labSimpleModeButton" type="button" aria-pressed="false">Simple</button>
                     <button id="labResearchModeButton" type="button" aria-pressed="true">Research</button>
                 </div>
+                <a id="labResearchBuilderLink" class="lab-research-builder-link" href="../labs/experiments/" title="Open experiment construction and settings">Research Builder</a>
                 <a class="home-link" href="../">Home</a>
             </div>
         </header>
@@ -77,6 +78,23 @@
                 <div><dt>Numerical implementation</dt><dd id="labScienceImplementation">Loading</dd></div>
                 <div><dt>Validity and scope</dt><dd id="labScienceBoundary">Loading</dd></div>
             </dl>
+            <section class="lab-observable-methods" aria-labelledby="labObservableMethodsTitle">
+                <div class="lab-observable-methods-heading">
+                    <div>
+                        <p class="eyebrow">Measured Output</p>
+                        <h3 id="labObservableMethodsTitle">Observable Definitions &amp; Figures</h3>
+                    </div>
+                    <label>
+                        Figure observable
+                        <select id="labObservableFigureSelect"></select>
+                    </label>
+                </div>
+                <div id="labObservableSpecGrid" class="lab-observable-spec-grid"></div>
+                <figure class="lab-observable-figure">
+                    <canvas id="labObservableCanvas" width="960" height="420" aria-label="Selected observable by experiment step"></canvas>
+                    <figcaption id="labObservableFigureCaption">The figure updates from the selected model's recorded finite-step observations.</figcaption>
+                </figure>
+            </section>
             <div class="lab-science-references">
                 <h3>Research references</h3>
                 <div id="labScienceReferences"></div>

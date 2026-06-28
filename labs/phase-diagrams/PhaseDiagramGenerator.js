@@ -132,7 +132,17 @@ const PHASE_I18N = {
         low: 'Low',
         high: 'High',
         topologyLabel: 'Topology',
-        finiteGridNote: 'Finite parameter grid; cells summarize repeated seeded runs.'
+        finiteGridNote: 'Finite parameter grid; cells summarize repeated seeded runs.',
+        figureMethodEyebrow: 'Figure method',
+        figureMethodTitle: 'How this scan becomes a figure',
+        systemEquation: 'System equation',
+        scanParameterMapping: 'Scan-parameter mapping',
+        partitionStatus: 'Partition-function status',
+        cellSampling: 'Sampling in each cell',
+        observableEstimator: 'Observable estimator',
+        classificationDerivation: 'Classification derivation',
+        figureEncoding: 'Figure encoding',
+        scientificLimit: 'Scientific limit'
     },
     zh: {
         experimentBuilder: '實驗建構器',
@@ -233,7 +243,17 @@ const PHASE_I18N = {
         low: '低',
         high: '高',
         topologyLabel: '拓撲',
-        finiteGridNote: '有限參數網格；每格彙整重複的定種子執行。'
+        finiteGridNote: '有限參數網格；每格彙整重複的定種子執行。',
+        figureMethodEyebrow: '圖表方法',
+        figureMethodTitle: '此掃描如何轉換成圖表',
+        systemEquation: '系統方程',
+        scanParameterMapping: '掃描參數映射',
+        partitionStatus: '配分函數狀態',
+        cellSampling: '每格取樣方式',
+        observableEstimator: '觀測量估計器',
+        classificationDerivation: '分類推導',
+        figureEncoding: '圖表編碼',
+        scientificLimit: '科學限制'
     }
 };
 
@@ -286,6 +306,15 @@ const els = {
     regimeCanvas: document.querySelector('#regimeCanvas'),
     heatmapCanvas: document.querySelector('#heatmapCanvas'),
     uncertaintyCanvas: document.querySelector('#uncertaintyCanvas'),
+    phaseMethodValidation: document.querySelector('#phaseMethodValidation'),
+    phaseMethodEquation: document.querySelector('#phaseMethodEquation'),
+    phaseMethodParameters: document.querySelector('#phaseMethodParameters'),
+    phaseMethodPartition: document.querySelector('#phaseMethodPartition'),
+    phaseMethodSampling: document.querySelector('#phaseMethodSampling'),
+    phaseMethodObservable: document.querySelector('#phaseMethodObservable'),
+    phaseMethodClassification: document.querySelector('#phaseMethodClassification'),
+    phaseMethodEncoding: document.querySelector('#phaseMethodEncoding'),
+    phaseMethodLimit: document.querySelector('#phaseMethodLimit'),
     selectedCellPanel: document.querySelector('#selectedCellPanel'),
     topologyComparisonPanel: document.querySelector('#topologyComparisonPanel'),
     phaseTableBody: document.querySelector('#phaseTableBody'),
@@ -595,6 +624,110 @@ function renderObservables() {
     }
 }
 
+function phaseParameterLabel(label) {
+    if (language !== 'zh') return label;
+    return {
+        'Temperature T': '溫度 T',
+        'Coupling J': '耦合 J',
+        'Field h': '外場 h',
+        'Wall Thickness': 'Domain wall 厚度',
+        'Interface Cost': '界面成本',
+        'Bias A': 'Bias A',
+        'Bias B': 'Bias B',
+        'Noise Rate': '噪聲率',
+        'Diffusion Noise Rate': 'Diffusion 噪聲率',
+        'Violation Energy': '違反能量',
+        'String Length': 'String 長度',
+        'Path Length': '路徑長度',
+        'Edge Error p': '圖邊誤差 p',
+        'Measurement Error p': '測量誤差 p',
+        'Error Density': '誤差密度'
+    }[label] || label;
+}
+
+function phasePartitionStatement(modelId, fallback) {
+    const isZh = language === 'zh';
+    const statements = {
+        ising_domain_game: isZh
+            ? '形式配分函數為 Z(T,J,h) = sum_{所有 s_i=+/-1} exp[-H(s)/T]，其中 H(s) 如上且 k_B=1。本掃描只評估有限組態 H 與局部更新；不枚舉 Z、不估計自由能 F=-T log Z。'
+            : 'The formal partition function is Z(T,J,h) = sum over all s_i=+/-1 of exp[-H(s)/T], with H(s) above and k_B=1. This scan evaluates finite-configuration H and local updates only; it does not enumerate Z or estimate F=-T log Z.',
+        two_phase_competition_game: isZh
+            ? '若另行定義平衡溫度，可寫形式 Z = sum_{所有 phi_i in {A,B,empty}} exp[-E(phi)/T]。目前演算法沒有此 Gibbs 取樣與 T，因此不計算 Z；掃描的是事件驅動軌跡。'
+            : 'If an equilibrium temperature were separately defined, a formal Z = sum over phi_i in {A,B,empty} of exp[-E(phi)/T] could be written. The current algorithm has no such Gibbs sampler or T, so Z is not computed; the scan uses event-driven trajectories.',
+        spin_ice_vertex_game: isZh
+            ? '簡化缺陷能量可形式寫成 Z(T,Delta) = sum_{所有 arrow 組態} exp[-E(arrows)/T]。目前不執行此總和或 transfer-matrix 計算。'
+            : 'For the simplified defect energy, one may formally write Z(T,Delta) = sum over all arrow configurations of exp[-E(arrows)/T]. The current code performs neither this sum nor a transfer-matrix calculation.',
+        z2_gauge_loop_game: isZh
+            ? '對目前單位權重懲罰可形式寫成 Z(T) = sum_{所有 U_e=+/-1} exp[-E(U)/T]。本工具不計算此 gauge ensemble、路徑積分或自由能。'
+            : 'For the current unit-weight penalty one may formally write Z(T) = sum over all U_e=+/-1 of exp[-E(U)/T]. This tool does not compute that gauge ensemble, path integral, or free energy.'
+    };
+    return statements[modelId] || fallback;
+}
+
+function renderPlotMethodology() {
+    const model = selectedModel();
+    if (!model) return;
+    const isZh = language === 'zh';
+    const research = researchDescription(model.id, language);
+    const xAxis = collectAxis('x');
+    const yAxis = collectAxis('y');
+    const scanned = new Set([xAxis.parameterId, yAxis.parameterId]);
+    const fixedParameters = model.parameters
+        .filter((parameter) => !scanned.has(parameter.id))
+        .map((parameter) => `${phaseParameterLabel(parameter.label)}=${parameter.defaultValue}`)
+        .join(', ') || (isZh ? '無其他已註冊數值參數' : 'no other registered numeric parameters');
+    const observable = model.observables.find((entry) => entry.id === els.classificationObservableSelect.value)
+        || model.observables[0];
+    const seeds = Math.max(1, seedValues().length);
+    const repeats = Math.max(1, Math.min(50, Number(els.repeatsInput.value) || 1));
+    const steps = Math.max(1, Math.floor(Number(els.stepsInput.value) || 1));
+    const samples = seeds * repeats;
+    const lower = Number(els.lowerThresholdInput.value);
+    const upper = Number(els.upperThresholdInput.value);
+    const method = els.classificationMethodSelect.value;
+    const parameterText = isZh
+        ? `每個網格點設定 ${phaseParameterLabel(xAxis.label)} (${xAxis.parameterId}) 為 X 軸值、${phaseParameterLabel(yAxis.label)} (${yAxis.parameterId}) 為 Y 軸值。其餘參數使用登錄預設：${fixedParameters}。`
+        : `At each grid cell, ${xAxis.label} (${xAxis.parameterId}) takes the X-axis value and ${yAxis.label} (${yAxis.parameterId}) takes the Y-axis value. Other registered parameters use defaults: ${fixedParameters}.`;
+    const samplingText = isZh
+        ? `每格執行 ${seeds} 個明確種子 x ${repeats} 次重複 = ${samples} 個有限樣本；每次執行 ${steps} 個離散步驟。圖格彙整每次執行的最終 observableSummary，不混合不同參數格。`
+        : `Each cell runs ${seeds} explicit seed(s) x ${repeats} repeat(s) = ${samples} finite sample(s), each for ${steps} discrete step(s). The cell aggregates each run's final observableSummary without mixing parameter cells.`;
+    let classificationText = '';
+    if (method === 'variance') {
+        classificationText = isZh
+            ? `計算樣本平均值 mu 與母體變異數 sigma^2 = mean[(x-mu)^2]。若 sigma^2 > ${upper}，標記 fluctuating，否則標記 stable；信心值為 1/(1+sigma^2)。`
+            : `Compute sample mean mu and population variance sigma^2 = mean[(x-mu)^2]. If sigma^2 > ${upper}, label fluctuating; otherwise stable. Confidence is 1/(1+sigma^2).`;
+    } else if (method === 'binning') {
+        classificationText = isZh
+            ? `先計算每格平均值 mu。mu <= ${lower} 使用低值標籤，mu >= ${upper} 使用高值標籤，介於兩者標記 mixed；信心值是 mu 到閾值中點的正規化距離。`
+            : `Compute the cell mean mu. Values mu <= ${lower} receive the low label, mu >= ${upper} receive the high label, and intermediate values are mixed; confidence is normalized distance from the threshold midpoint.`;
+    } else {
+        classificationText = isZh
+            ? `Threshold 法以平均值 mu 對 ${lower} / ${upper} 分類低值、mixed、高值。信心值 max(0.05, 1-sqrt(sigma^2)/(|mu|+1))；失敗執行再乘成功樣本比例。`
+            : `Threshold classification compares mean mu with ${lower} / ${upper} for low, mixed, and high labels. Confidence is max(0.05, 1-sqrt(sigma^2)/(|mu|+1)); failed runs multiply it by the successful-sample fraction.`;
+    }
+    if (els.phaseMethodValidation) els.phaseMethodValidation.textContent = model.validationLevel;
+    if (els.phaseMethodEquation) els.phaseMethodEquation.textContent = research.model;
+    if (els.phaseMethodParameters) els.phaseMethodParameters.textContent = parameterText;
+    if (els.phaseMethodPartition) els.phaseMethodPartition.textContent = phasePartitionStatement(model.id, research.ensemble);
+    if (els.phaseMethodSampling) els.phaseMethodSampling.textContent = samplingText;
+    if (els.phaseMethodObservable) {
+        els.phaseMethodObservable.textContent = observable
+            ? `${observable.name} [${observable.units || 'dimensionless'}]: ${observable.definition} ${observable.physicalMeaning}`
+            : (isZh ? '尚未選擇觀測量。' : 'No observable selected.');
+    }
+    if (els.phaseMethodClassification) els.phaseMethodClassification.textContent = classificationText;
+    if (els.phaseMethodEncoding) {
+        els.phaseMethodEncoding.textContent = isZh
+            ? 'Regime map 顯示分類標籤；Heatmap 以連續色階顯示每格平均值；Uncertainty map 顯示 1-confidence。三圖使用完全相同的 X/Y 網格與樣本。'
+            : 'The regime map encodes categorical labels; the heatmap encodes each cell mean on a continuous color scale; the uncertainty map encodes 1-confidence. All three use the identical X/Y grid and samples.';
+    }
+    if (els.phaseMethodLimit) {
+        els.phaseMethodLimit.textContent = isZh
+            ? '這是有限尺寸、有限步數、有限種子的 regime estimator。除非另有明確實作，程式不計算 Z、自由能導數、熱力學極限、臨界指數或有限尺寸 scaling collapse。'
+            : 'This is a finite-size, finite-step, finite-seed regime estimator. Unless explicitly implemented, it does not calculate Z, free-energy derivatives, the thermodynamic limit, critical exponents, or a finite-size scaling collapse.';
+    }
+}
+
 function renderAll() {
     renderModelMetadata();
     renderTopologies();
@@ -622,6 +755,7 @@ function updateRunEstimate() {
     const repeats = Math.max(1, Number(els.repeatsInput.value) || 1);
     const total = xAxis.values.length * yAxis.values.length * topologies * seeds * repeats;
     els.totalRunsText.textContent = String(total);
+    renderPlotMethodology();
 }
 
 function setStatus(message, kind = '') {
@@ -1370,7 +1504,10 @@ function bindEvents() {
             input.addEventListener('change', () => updateAxisPreview(axis));
         }
     }
-    els.classificationObservableSelect.addEventListener('change', renderObservables);
+    els.classificationObservableSelect.addEventListener('change', () => {
+        renderObservables();
+        updateRunEstimate();
+    });
     for (const input of [
         els.seedListInput,
         els.repeatsInput,
