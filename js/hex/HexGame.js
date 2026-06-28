@@ -11,12 +11,18 @@ const TOPOLOGY_ALIASES = Object.freeze({
     plane: 'open',
     rhombus: 'open',
     r2: 'open',
+    r3: 'open',
+    r4: 'open',
     cube: 'open',
     hypercube: 'open',
     cylinder: 'cylinder',
     cylindrical: 'cylinder',
     torus: 'torus',
     t2: 'torus',
+    t3: 'torus',
+    t4: 'torus',
+    '4d-torus': 'torus',
+    reflective: 'reflective',
     mobius: 'mobius',
     'mobius-strip': 'mobius',
     'möbius': 'mobius',
@@ -77,8 +83,12 @@ export function normalizeHexTopology(topology = 'open', dimension = 2) {
         .replace(/[_\s]+/g, '-');
     const normalized = TOPOLOGY_ALIASES[token] ?? 'open';
 
-    // The identified-surface rules below are defined only for 2D boards.
-    return normalizedDimension === 2 ? normalized : 'open';
+    if (normalizedDimension === 2) {
+        return normalized === 'reflective' ? 'open' : normalized;
+    }
+    return ['open', 'cylinder', 'torus', 'reflective'].includes(normalized)
+        ? normalized
+        : 'open';
 }
 
 function modulo(value, modulus) {
@@ -168,6 +178,28 @@ function normalize2DCoordinate(coordinate, size, topology) {
     return null;
 }
 
+function normalizeHigherDimCoordinate(coordinate, size, topology) {
+    if (topology === 'torus') {
+        return coordinate.map((value, axis) => modulo(value, size[axis]));
+    }
+
+    if (topology === 'cylinder') {
+        const lastAxis = coordinate.length - 1;
+        if (coordinate.some((value, axis) => axis !== lastAxis && (value < 0 || value >= size[axis]))) {
+            return null;
+        }
+        const normalized = [...coordinate];
+        normalized[lastAxis] = modulo(normalized[lastAxis], size[lastAxis]);
+        return normalized;
+    }
+
+    // Nearest-neighbor reflection produces the same simple graph as an open
+    // boundary after self-neighbors are removed, while retaining its UI label.
+    return coordinate.every((value, axis) => value >= 0 && value < size[axis])
+        ? coordinate
+        : null;
+}
+
 function createGoalDefinition(dimension, size, topology, customGoalZones) {
     if (customGoalZones) {
         const normalizeZone = (zone, label) => {
@@ -187,15 +219,19 @@ function createGoalDefinition(dimension, size, topology, customGoalZones) {
         });
     }
 
-    const physicalSides = topology === 'open';
-    const xEnd = physicalSides ? size[0] - 1 : Math.floor(size[0] / 2);
-    const yHasPhysicalSides = topology === 'open' || topology === 'cylinder' || topology === 'mobius';
+    const xHasPhysicalSides = dimension === 2
+        ? topology === 'open'
+        : topology !== 'torus';
+    const yHasPhysicalSides = dimension === 2
+        ? topology === 'open' || topology === 'cylinder' || topology === 'mobius'
+        : topology !== 'torus';
+    const xEnd = xHasPhysicalSides ? size[0] - 1 : Math.floor(size[0] / 2);
     const yEnd = yHasPhysicalSides ? size[1] - 1 : Math.floor(size[1] / 2);
 
     return Object.freeze({
         black: Object.freeze({
-            type: physicalSides ? 'physical-sides' : 'marked-cut-zones',
-            label: physicalSides ? 'x-low / x-high' : 'x cut-seam zones',
+            type: xHasPhysicalSides ? 'physical-sides' : 'marked-cut-zones',
+            label: xHasPhysicalSides ? 'x-low / x-high' : 'x cut-seam zones',
             start: (coordinate) => coordinate[0] === 0,
             end: (coordinate) => coordinate[0] === xEnd
         }),
@@ -237,7 +273,7 @@ export function createHexTopology(options = {}) {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
         if (!parsed) return null;
         if (dimension === 2) return normalize2DCoordinate(parsed, size, topology);
-        return parsed.every((value, axis) => value >= 0 && value < size[axis]) ? parsed : null;
+        return normalizeHigherDimCoordinate(parsed, size, topology);
     };
 
     const neighborOffsets = dimension === 2
@@ -270,7 +306,7 @@ export function createHexTopology(options = {}) {
         dimension,
         size,
         topology,
-        isWrapped: topology !== 'open',
+        isWrapped: ['cylinder', 'torus', 'mobius', 'klein', 'rp2'].includes(topology),
         goalZones,
         normalize,
         neighbors,

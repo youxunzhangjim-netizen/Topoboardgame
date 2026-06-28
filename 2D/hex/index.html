@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Hex</title>
+    <link rel="stylesheet" href="./css/hex.css">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="play-area">
+            <header class="top-bar">
+                <div>
+                    <p class="eyebrow" data-i18n="eyebrow">Connection strategy</p>
+                    <h1 id="pageTitle" data-i18n="title">2D Hex</h1>
+                    <p data-i18n="description">Place stones to build one unbroken path between your two target sides.</p>
+                </div>
+            </header>
+
+            <div class="game-info-bar">
+                <div class="turn-pill" id="playerTurn">Black to play</div>
+                <div class="score-strip">
+                    <div class="score-box black">
+                        <span data-i18n="black">Black</span>
+                        <strong id="blackScore">0</strong>
+                    </div>
+                    <div class="score-box white">
+                        <span data-i18n="white">White</span>
+                        <strong id="whiteScore">0</strong>
+                    </div>
+                    <div class="score-box moves">
+                        <span data-i18n="moves">Moves</span>
+                        <strong id="moveCount">0</strong>
+                    </div>
+                </div>
+                <div class="boundary-display" id="boundaryMode">Standard</div>
+            </div>
+
+            <div class="board-panel">
+                <canvas id="hexBoard" aria-label="2D Hex board" data-i18n-aria="boardAria"></canvas>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 data-i18n="controls">Game Controls</h2>
+                <div class="header-actions">
+                    <a class="space-home-link" id="homeLink" href="../../index.html" data-i18n="home">Home</a>
+                    <button class="language-button" id="languageButton" type="button" aria-label="Switch language">EN / 中</button>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-line" id="gameStatus">Choose an empty Hex cell.</div>
+                <div class="status-line muted" id="moveSummary">No stones placed</div>
+            </div>
+
+            <div class="control-group">
+                <label for="gameModeSelect" data-i18n="gameMode">Game Mode</label>
+                <select id="gameModeSelect">
+                    <option value="local" data-i18n="local">Local</option>
+                    <option value="online" data-i18n="online">Online</option>
+                    <option value="robot" data-i18n="robot">Robot</option>
+                </select>
+            </div>
+
+            <section class="online-controls" id="onlineControls" hidden>
+                <div class="connection-status disconnected" id="connectionStatus" data-i18n="disconnected">Disconnected</div>
+                <button class="online-btn match" id="findMatchBtn" type="button" data-i18n="findMatch">Find Match</button>
+                <div class="divider-text" data-i18n="privateRoom">PRIVATE ROOM</div>
+                <button class="online-btn create" id="createRoomBtn" type="button" data-i18n="createRoom">Create Room</button>
+                <div class="divider-text" data-i18n="or">OR</div>
+                <input id="roomIdInput" type="text" autocomplete="off" data-i18n-placeholder="roomPlaceholder" placeholder="Room code">
+                <button class="online-btn join" id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
+            </section>
+
+            <div class="control-grid">
+                <div class="control-group">
+                    <label for="boardSizeSelect" data-i18n="boardSize">Board Size</label>
+                    <select id="boardSizeSelect">
+                        <option value="7">7 x 7</option>
+                        <option value="9">9 x 9</option>
+                        <option value="11" selected>11 x 11</option>
+                        <option value="13">13 x 13</option>
+                        <option value="15">15 x 15</option>
+                        <option value="custom" data-i18n="custom">Custom</option>
+                    </select>
+                    <input id="customBoardSizeInput" class="custom-size-input" type="number" min="3" max="25" step="1" value="11" hidden>
+                </div>
+
+                <div class="control-group">
+                    <label for="boundarySelect" data-i18n="topology">Boundary / Topology</label>
+                    <select id="boundarySelect">
+                        <option value="open" data-i18n="standard">Standard</option>
+                        <option value="cylinder" data-i18n="cylinder">Cylinder</option>
+                        <option value="torus" data-i18n="torus">Torus</option>
+                        <option value="mobius" data-i18n="mobius">Möbius</option>
+                        <option value="klein" data-i18n="klein">Klein Bottle</option>
+                        <option value="rp2">RP2</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="boundary-info" id="boundaryInfo"></div>
+
+            <button class="primary-button" id="newGameBtn" type="button" data-i18n="newGame">New Game</button>
+
+            <section class="panel target-panel">
+                <h3 data-i18n="targets">Target Sides</h3>
+                <div class="target-legend">
+                    <span><i class="target-swatch black-target"></i><span data-i18n="blackTarget">Black connects left to right</span></span>
+                    <span><i class="target-swatch white-target"></i><span data-i18n="whiteTarget">White connects top to bottom</span></span>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h3 data-i18n="moveHistory">Move History</h3>
+                <div class="move-history" id="moveHistoryList"></div>
+            </section>
+
+            <section class="panel chat-panel">
+                <h3 data-i18n="onlineChat">Online Chat</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-empty" data-i18n="chatEmpty">Connect online to chat.</div>
+                </div>
+                <div class="chat-input-row">
+                    <input id="chatInput" type="text" maxlength="240" data-i18n-placeholder="messagePlaceholder" placeholder="Message opponent">
+                    <button id="chatSendBtn" type="button" data-i18n="send">Send</button>
+                </div>
+            </section>
+        </aside>
+    </main>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
