@@ -38,6 +38,7 @@ const I18N = {
         torus: 'Torus',
         mobius: 'Möbius',
         klein: 'Klein Bottle',
+        kleinQuartic: 'Klein Quartic',
         randomBoundary: 'Random Boundary',
         lattice: 'Lattice',
         hexagonal: 'Honeycomb',
@@ -84,6 +85,7 @@ const I18N = {
             torus: 'Torus wraps both directions. Both colors connect explicit marked cut-seam zones.',
             mobius: 'Möbius identifies left/right with a twist. Black uses marked cut-seam zones.',
             klein: 'Klein Bottle uses one ordinary wrap and one twisted wrap; both goals are marked zones.',
+            klein_quartic: 'Klein Quartic uses a 56-triangle genus-3 fundamental-domain board. Both colors connect explicit marked zones.',
             rp2: 'RP2 identifies opposite edges with reversals; both goals are explicit marked zones.',
             random: 'Random Boundary uses one fixed, invertible boundary pairing for this game. Both goals are marked zones.'
         }
@@ -120,12 +122,13 @@ const I18N = {
         torus: '環面',
         mobius: 'Möbius 帶',
         klein: 'Klein 瓶',
+        kleinQuartic: 'Klein 四次曲線',
         randomBoundary: '隨機邊界',
         lattice: '晶格',
-        hexagonal: '六角形／軸向',
+        hexagonal: '蜂巢晶格',
         triangular: '三角晶格',
-        square: '方格',
-        honeycomb: '蜂巢',
+        square: '方格晶格',
+        honeycomb: '蜂巢晶格',
         boardView: '棋盤視圖',
         zoom: '縮放',
         resetView: '重設視圖',
@@ -166,6 +169,7 @@ const I18N = {
             torus: '環面會包裹兩個方向；雙方都連接明確標示的切縫目標區。',
             mobius: 'Möbius 帶以扭轉方式識別左右邊；黑方使用切縫目標區。',
             klein: 'Klein 瓶包含普通包裹與扭轉包裹；雙方皆使用標示目標區。',
+            klein_quartic: 'Klein 四次曲線使用 56 個三角形組成的 genus-3 基本域棋盤；雙方皆連接明確標示的目標區。',
             rp2: 'RP2 以反轉方式識別相對邊；雙方皆使用明確標示的目標區。',
             random: '隨機邊界在本局使用固定且可逆的邊界配對；雙方皆使用標示目標區。'
         }
@@ -381,6 +385,12 @@ function buildCenters(width, height) {
                     x: offsetX + (q + 0.5) * spacing,
                     y: offsetY + (r + 0.5) * spacing,
                     radius: spacing / 2,
+                    vertices: [
+                        [offsetX + q * spacing, offsetY + r * spacing],
+                        [offsetX + (q + 1) * spacing, offsetY + r * spacing],
+                        [offsetX + (q + 1) * spacing, offsetY + (r + 1) * spacing],
+                        [offsetX + q * spacing, offsetY + (r + 1) * spacing]
+                    ],
                     shape: 'square'
                 });
             }
@@ -453,6 +463,13 @@ function buildCenters(width, height) {
                 x: offsetX + Math.sqrt(3) * radius * (q + r / 2),
                 y: offsetY + 1.5 * radius * r,
                 radius,
+                vertices: Array.from({ length: 6 }, (_, index) => {
+                    const angle = (Math.PI / 180) * (60 * index - 30);
+                    return [
+                        offsetX + Math.sqrt(3) * radius * (q + r / 2) + radius * Math.cos(angle),
+                        offsetY + 1.5 * radius * r + radius * Math.sin(angle)
+                    ];
+                }),
                 shape: 'hex'
             });
         }
@@ -460,6 +477,17 @@ function buildCenters(width, height) {
 }
 
 function traceCell(cell, scale = 0.96) {
+    if (cell.vertices?.length >= 3) {
+        context.beginPath();
+        for (let index = 0; index < cell.vertices.length; index += 1) {
+            const x = cell.x + (cell.vertices[index][0] - cell.x) * scale;
+            const y = cell.y + (cell.vertices[index][1] - cell.y) * scale;
+            if (index === 0) context.moveTo(x, y);
+            else context.lineTo(x, y);
+        }
+        context.closePath();
+        return;
+    }
     if (cell.shape === 'square') {
         const half = cell.radius * scale;
         context.beginPath();
@@ -486,10 +514,12 @@ function buildSpecialCenters(width, height) {
     const coordinates = game.topology.coordinates();
     const positioned = coordinates.map((coordinate) => ({
         coordinate,
-        position: game.topology.position(coordinate)
+        position: game.topology.position(coordinate),
+        vertices: game.topology.cellVertices?.(coordinate) || null
     })).filter((item) => item.position);
-    const xs = positioned.map((item) => item.position[0]);
-    const ys = positioned.map((item) => item.position[1]);
+    const modelPoints = positioned.flatMap((item) => item.vertices?.length ? item.vertices : [item.position]);
+    const xs = modelPoints.map((item) => item[0]);
+    const ys = modelPoints.map((item) => item[1]);
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minY = Math.min(...ys);
@@ -507,14 +537,25 @@ function buildSpecialCenters(width, height) {
     const radius = game.topology.topology === 'klein_quartic'
         ? Math.max(5, Math.min(12, scale * 0.075))
         : Math.max(4, Math.min(9, scale * 0.055));
-    centers = positioned.map(({ coordinate, position }) => ({
-        coordinate,
-        key: game.topology.key(coordinate),
-        x: offsetX + position[0] * scale,
-        y: offsetY + position[1] * scale,
-        radius,
-        shape: game.topology.topology === 'klein_quartic' ? 'triangle' : 'hex'
-    }));
+    centers = positioned.map(({ coordinate, position, vertices }) => {
+        const screenVertices = vertices?.map((vertex) => [
+            offsetX + vertex[0] * scale,
+            offsetY + vertex[1] * scale
+        ]) || null;
+        const center = screenVertices?.length
+            ? screenVertices.reduce((sum, vertex) => [sum[0] + vertex[0], sum[1] + vertex[1]], [0, 0])
+                .map((value) => value / screenVertices.length)
+            : [offsetX + position[0] * scale, offsetY + position[1] * scale];
+        return {
+            coordinate,
+            key: game.topology.key(coordinate),
+            x: center[0],
+            y: center[1],
+            radius,
+            vertices: screenVertices,
+            shape: game.topology.topology === 'klein_quartic' ? 'triangle' : 'hex'
+        };
+    });
 }
 
 function targetFlags(coordinate) {
@@ -540,6 +581,7 @@ function cellFill(cell, blackTarget, whiteTarget) {
 }
 
 function drawSpecialEdges() {
+    if (game.topology.topology === 'klein_quartic') return;
     const centerByKey = new Map(centers.map((cell) => [cell.key, cell]));
     const drawn = new Set();
     const isKlein = game.topology.topology === 'klein_quartic';
@@ -622,7 +664,7 @@ function nearestCell(event) {
     let nearest = null;
     let distance = Infinity;
     for (const cell of centers) {
-        if (cell.shape === 'triangle' && cell.vertices?.length) {
+        if (cell.vertices?.length) {
             if (pointInPolygon(point, cell.vertices)) return cell;
             continue;
         }

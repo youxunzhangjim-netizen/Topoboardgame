@@ -259,6 +259,7 @@ let game;
 let size = 4;
 let axisSizes = [4, 4, 4];
 let projectedSites = [];
+let projectedSurfaceCells = [];
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
 let onlineController = null;
@@ -472,11 +473,7 @@ function surfaceNormal(coordinate, model) {
     return null;
 }
 
-function projectCoordinate(coordinate, width, height) {
-    const midpoint = axisSizes.map((value) => (value - 1) / 2);
-    const model = game.topology.isSpecial
-        ? game.topology.position(coordinate).slice(0, 3)
-        : (game.topology.position?.(coordinate) || coordinate.map((value, axis) => value - (midpoint[axis] || 0)));
+function projectModelPoint(model, width, height, coordinate = null) {
     const rotated = rotatePoint(model);
     const normal = surfaceNormal(coordinate, model);
     const rotatedNormal = normal ? rotatePoint(normal) : null;
@@ -494,6 +491,14 @@ function projectCoordinate(coordinate, width, height) {
         frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08,
         coordinate
     };
+}
+
+function projectCoordinate(coordinate, width, height) {
+    const midpoint = axisSizes.map((value) => (value - 1) / 2);
+    const model = game.topology.isSpecial
+        ? game.topology.position(coordinate).slice(0, 3)
+        : (game.topology.position?.(coordinate) || coordinate.map((value, axis) => value - (midpoint[axis] || 0)));
+    return projectModelPoint(model, width, height, coordinate);
 }
 
 function fitCanvas() {
@@ -631,6 +636,7 @@ function drawSurfacePanels(width, height) {
             panels.push({
                 points,
                 avgDepth,
+                cell,
                 color,
                 blackTarget: unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate)),
                 whiteTarget: unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate))
@@ -657,6 +663,69 @@ function drawSurfacePanels(width, height) {
         context.strokeStyle = topology === 'klein' ? 'rgba(65, 76, 84, 0.36)' : 'rgba(65, 76, 84, 0.58)';
         context.lineWidth = topology === 'klein' ? 0.45 : 0.72;
         context.stroke();
+        if (panel.cell) {
+            projectedSurfaceCells.push({
+                points: panel.points,
+                coordinate: panel.cell,
+                depth: panel.avgDepth
+            });
+        }
+    }
+    context.restore();
+    return filledCells;
+}
+
+function hasSpecialCellPanels() {
+    if (!game?.topology?.isSpecial || typeof game.topology.cellVertices !== 'function') return false;
+    return game.topology.coordinates().some((coordinate) => game.topology.cellVertices(coordinate)?.length >= 3);
+}
+
+function drawSpecialCellPanels(width, height) {
+    const blackZone = game.topology.goalZones.black;
+    const whiteZone = game.topology.goalZones.white;
+    const panels = [];
+    const filledCells = new Set();
+    for (const coordinate of game.topology.coordinates()) {
+        const vertices = game.topology.cellVertices(coordinate);
+        if (!vertices?.length) continue;
+        const points = vertices.map((vertex) => projectModelPoint(vertex.slice(0, 3), width, height, coordinate));
+        const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
+        const color = game.getCell(coordinate);
+        if (color) filledCells.add(coordinate.join(','));
+        panels.push({
+            points,
+            avgDepth,
+            coordinate,
+            color,
+            blackTarget: blackZone.start(coordinate) || blackZone.end(coordinate),
+            whiteTarget: whiteZone.start(coordinate) || whiteZone.end(coordinate)
+        });
+    }
+
+    panels.sort((a, b) => a.avgDepth - b.avgDepth);
+    context.save();
+    for (const panel of panels) {
+        context.beginPath();
+        panel.points.forEach((point, index) => {
+            if (index) context.lineTo(point.x, point.y);
+            else context.moveTo(point.x, point.y);
+        });
+        context.closePath();
+        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = 'rgba(36, 169, 194, 0.92)';
+        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = 'rgba(227, 164, 47, 0.92)';
+        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.76)';
+        else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.86)';
+        else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.86)';
+        else context.fillStyle = 'rgba(224, 231, 228, 0.82)';
+        context.fill();
+        context.strokeStyle = 'rgba(41, 53, 61, 0.52)';
+        context.lineWidth = 0.72;
+        context.stroke();
+        projectedSurfaceCells.push({
+            points: panel.points,
+            coordinate: panel.coordinate,
+            depth: panel.avgDepth
+        });
     }
     context.restore();
     return filledCells;
@@ -668,11 +737,16 @@ function drawBoard() {
     context.clearRect(0, 0, width, height);
     context.fillStyle = '#080d12';
     context.fillRect(0, 0, width, height);
+    projectedSurfaceCells = [];
 
     const special = game.topology.isSpecial === true;
     const surface = isSurfaceTopology();
+    const specialCellPanels = hasSpecialCellPanels();
     if (special || surface) {
-        const positions = game.topology.coordinates().map((coordinate) => game.topology.position(coordinate));
+        const positions = game.topology.coordinates().flatMap((coordinate) => {
+            const vertices = game.topology.cellVertices?.(coordinate);
+            return vertices?.length ? vertices : [game.topology.position(coordinate)];
+        });
         specialModelExtent = Math.max(1, ...positions.flatMap((position) => position.slice(0, 3).map(Math.abs)));
     }
     const blackZone = game.topology.goalZones.black;
@@ -685,7 +759,11 @@ function drawBoard() {
         drawPlane(1, 0, 'rgba(232,180,76,0.07)', 'rgba(232,180,76,0.42)', width, height);
         drawPlane(1, yEnd, 'rgba(232,180,76,0.11)', 'rgba(232,180,76,0.65)', width, height);
     }
-    const surfaceFilledCells = surface ? drawSurfacePanels(width, height) : new Set();
+    const surfaceFilledCells = surface
+        ? drawSurfacePanels(width, height)
+        : specialCellPanels
+            ? drawSpecialCellPanels(width, height)
+            : new Set();
 
     const projectedEntries = game.topology.coordinates()
         .filter(visibleCoordinate)
@@ -696,7 +774,7 @@ function drawBoard() {
     const visibleKeys = new Set(projectedEntries.map(([key]) => key));
     const projected = new Map(projectedEntries);
 
-    if (!surface) {
+    if (!surface && !specialCellPanels) {
         context.lineWidth = 0.75;
         context.strokeStyle = 'rgba(160,184,198,0.2)';
         const drawnEdges = new Set();
@@ -731,7 +809,8 @@ function drawBoard() {
     for (const site of projectedSites) {
         const siteKey = site.coordinate.join(',');
         if (surface && surfaceFilledCells.has(siteKey)) continue;
-        if (surface) continue;
+        if (specialCellPanels && surfaceFilledCells.has(siteKey)) continue;
+        if (surface || specialCellPanels) continue;
         const color = game.getCell(site.coordinate);
         const isBlackTarget = blackZone.start(site.coordinate) || blackZone.end(site.coordinate);
         const isWhiteTarget = whiteZone.start(site.coordinate) || whiteZone.end(site.coordinate);
@@ -765,6 +844,18 @@ function canvasPoint(event) {
 
 function nearestSite(event) {
     const point = canvasPoint(event);
+    for (const cell of [...projectedSurfaceCells].sort((a, b) => b.depth - a.depth)) {
+        if (pointInPolygon(point, cell.points)) {
+            const center = cell.points.reduce((sum, item) => [sum[0] + item.x, sum[1] + item.y], [0, 0])
+                .map((value) => value / cell.points.length);
+            return {
+                x: center[0],
+                y: center[1],
+                depth: cell.depth,
+                coordinate: cell.coordinate
+            };
+        }
+    }
     let nearest = null;
     let best = 32;
     for (const site of [...projectedSites].reverse()) {
@@ -775,6 +866,20 @@ function nearestSite(event) {
         }
     }
     return nearest;
+}
+
+function pointInPolygon(point, vertices) {
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i, i += 1) {
+        const xi = vertices[i].x;
+        const yi = vertices[i].y;
+        const xj = vertices[j].x;
+        const yj = vertices[j].y;
+        const intersects = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < (xj - xi) * (point.y - yi) / ((yj - yi) || 1e-9) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
 }
 
 function playAt(coordinate) {

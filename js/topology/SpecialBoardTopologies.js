@@ -67,6 +67,31 @@ function uniqueCoordinates(coordinates) {
     return [...new Map(coordinates.map((coordinate) => [keyOf(coordinate), coordinate])).values()];
 }
 
+function vectorAdd(left, right) {
+    return left.map((value, index) => value + right[index]);
+}
+
+function vectorScale(vector, scale) {
+    return vector.map((value) => value * scale);
+}
+
+function vectorDot(left, right) {
+    return left.reduce((sum, value, index) => sum + value * right[index], 0);
+}
+
+function vectorCross(left, right) {
+    return [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0]
+    ];
+}
+
+function vectorNormalize(vector, fallback = [1, 0, 0]) {
+    const length = Math.hypot(...vector);
+    return length > 1e-8 ? vector.map((value) => value / length) : [...fallback];
+}
+
 function adjacencyFromEdges(vertexCount, edges) {
     const adjacency = Array.from({ length: vertexCount }, () => []);
     for (const [left, right] of edges) {
@@ -77,58 +102,123 @@ function adjacencyFromEdges(vertexCount, edges) {
 }
 
 const KLEIN_ADJACENCY = Object.freeze(adjacencyFromEdges(56, KLEIN_TRIANGLE_EDGES));
+const KLEIN_QUARTIC_RADII = Object.freeze([0, 0.36, 0.62, 0.82, 1.0]);
 
 function cyclicDistance(value, anchor, modulus) {
     const delta = Math.abs(value - anchor);
     return Math.min(delta, modulus - delta);
 }
 
-function kleinPosition(node) {
-    const order = KLEIN_ORDER_INDEX.get(node) ?? node;
-    const sector = order % 7;
-    const ring = Math.floor(order / 7);
-    const angle = Math.PI * 2 * (sector + ring * 0.36) / 7 - Math.PI / 2;
-    const radius = Math.tanh((ring + 0.72) * 0.32) * 2.85;
+function polarPoint(radius, angle) {
+    const scallop = 1 + 0.035 * radius * Math.cos(7 * angle);
     return [
-        Math.cos(angle) * radius,
-        Math.sin(angle) * radius,
-        0.05 * Math.sin(Math.PI * 2 * sector / 7 + ring * 0.8)
+        Math.cos(angle) * radius * scallop,
+        Math.sin(angle) * radius * scallop
     ];
 }
 
-function kleinEmbeddedPosition(node, layer = 0, interval = 1, second = 0, secondInterval = 1) {
+function kleinFundamentalTriangle(node) {
     const order = KLEIN_ORDER_INDEX.get(node) ?? node;
-    const sector = order % 7;
-    const ring = Math.floor(order / 7);
-    const theta = Math.PI * 2 * (sector + ring * 0.36) / 7;
-    const phi = Math.PI * 2 * (ring + 0.5) / 8;
-    const lobe = 0.22 * Math.cos(7 * theta);
-    const major = 2.05 + lobe + 0.2 * Math.cos(3 * phi);
-    const minor = 0.72 + 0.12 * Math.sin(7 * theta + phi);
-    const shell = [
-        (major + minor * Math.cos(phi)) * Math.cos(theta),
-        (major + minor * Math.cos(phi)) * Math.sin(theta),
-        minor * Math.sin(phi)
-    ];
-    const radial = [Math.cos(theta), Math.sin(theta), 0];
-    const layerOffset = (layer - (interval - 1) / 2) * 0.2;
+    const band = Math.floor(order / 14);
+    const withinBand = order % 14;
+    const split = Math.floor(withinBand / 7);
+    const sector = withinBand % 7;
+    const a0 = Math.PI * 2 * sector / 7 - Math.PI / 2;
+    const a1 = Math.PI * 2 * (sector + 1) / 7 - Math.PI / 2;
+    const am = (a0 + a1) / 2;
+    const r0 = KLEIN_QUARTIC_RADII[band];
+    const r1 = KLEIN_QUARTIC_RADII[band + 1];
+
+    if (band === 0) {
+        return split === 0
+            ? [polarPoint(0, am), polarPoint(r1, a0), polarPoint(r1, am)]
+            : [polarPoint(0, am), polarPoint(r1, am), polarPoint(r1, a1)];
+    }
+
+    return split === 0
+        ? [polarPoint(r0, a0), polarPoint(r1, a0), polarPoint(r1, a1)]
+        : [polarPoint(r0, a0), polarPoint(r1, a1), polarPoint(r0, a1)];
+}
+
+function polygonCentroid(points) {
+    return points.reduce(
+        (sum, point) => point.map((value, index) => value + (sum[index] || 0)),
+        []
+    ).map((value) => value / Math.max(1, points.length));
+}
+
+function kleinPosition(node) {
+    const [x, y] = polygonCentroid(kleinFundamentalTriangle(node));
+    return [x * 3.8, y * 3.8, 0];
+}
+
+function kleinQuarticEmbeddedPoint(point, layer = 0, interval = 1, second = 0, secondInterval = 1) {
+    const [u, v] = point;
+    const radius = Math.min(1.08, Math.hypot(u, v));
+    const angle = Math.atan2(v, u);
+    const tetraPhase = angle + radius * 0.72;
+    const lobe = 0.42 * Math.cos(3 * tetraPhase) * (0.4 + radius);
+    const shell = 2.2 + lobe;
+    const fold = 1.05 * radius;
+    const layerOffset = (layer - (interval - 1) / 2) * 0.18;
     const secondOffset = (second - (secondInterval - 1) / 2) * 0.16;
     return [
-        shell[0] + radial[0] * layerOffset,
-        shell[1] + radial[1] * layerOffset,
-        shell[2] + secondOffset,
+        (shell + 0.48 * radius * Math.cos(2 * tetraPhase)) * Math.cos(tetraPhase) + layerOffset * Math.cos(angle),
+        (shell + 0.48 * radius * Math.cos(2 * tetraPhase)) * Math.sin(tetraPhase) + layerOffset * Math.sin(angle),
+        fold * Math.sin(2 * tetraPhase) + 0.55 * radius * Math.sin(3 * angle) + secondOffset,
         secondOffset
     ];
 }
 
-function trefoilPosition(segment, segmentCount) {
-    const t = Math.PI * 2 * modulo(segment, segmentCount) / segmentCount;
+function kleinEmbeddedPosition(node, layer = 0, interval = 1, second = 0, secondInterval = 1) {
+    return kleinQuarticEmbeddedPoint(
+        polygonCentroid(kleinFundamentalTriangle(node)),
+        layer,
+        interval,
+        second,
+        secondInterval
+    );
+}
+
+function trefoilCenterAt(t) {
     const compact = 0.72;
     return [
         (Math.sin(t) + 2 * Math.sin(2 * t)) * compact,
         (Math.cos(t) - 2 * Math.cos(2 * t)) * compact,
         -Math.sin(3 * t) * 0.82
     ];
+}
+
+function trefoilTangentAt(t) {
+    const compact = 0.72;
+    return vectorNormalize([
+        (Math.cos(t) + 4 * Math.cos(2 * t)) * compact,
+        (-Math.sin(t) + 4 * Math.sin(2 * t)) * compact,
+        -3 * Math.cos(3 * t) * 0.82
+    ]);
+}
+
+function trefoilFrameAt(segment, segmentCount) {
+    const t = Math.PI * 2 * modulo(segment, segmentCount) / segmentCount;
+    const center = trefoilCenterAt(t);
+    const tangent = trefoilTangentAt(t);
+    const radialSeed = vectorNormalize(center, [0, 0, 1]);
+    const projected = vectorAdd(radialSeed, vectorScale(tangent, -vectorDot(radialSeed, tangent)));
+    const normal = vectorNormalize(projected, vectorCross([0, 0, 1], tangent));
+    const binormal = vectorNormalize(vectorCross(tangent, normal), [0, 1, 0]);
+    return { center, tangent, normal, binormal };
+}
+
+function trefoilPosition(segment, segmentCount) {
+    return trefoilFrameAt(segment, segmentCount).center;
+}
+
+function trefoilTubePoint(segment, thetaIndex, segmentCount, thetaCount, radius, interval = 0) {
+    const frame = trefoilFrameAt(segment, segmentCount);
+    const theta = Math.PI * 2 * thetaIndex / thetaCount;
+    const normalPart = vectorScale(frame.normal, Math.cos(theta) * radius);
+    const binormalPart = vectorScale(frame.binormal, Math.sin(theta) * radius);
+    return vectorAdd(vectorAdd(frame.center, normalPart), vectorAdd(binormalPart, [0, 0, interval]));
 }
 
 function createGoalZones({ type, segmentCount = 0, thetaCount = 0 }) {
@@ -182,6 +272,7 @@ function topologyObject({
     coordinates,
     neighbors,
     position,
+    cellVertices,
     goalZones,
     metadata
 }) {
@@ -223,6 +314,11 @@ function topologyObject({
         position(coordinate) {
             const normalized = normalize(coordinate);
             return normalized ? position(normalized) : null;
+        },
+        cellVertices(coordinate) {
+            const normalized = normalize(coordinate);
+            if (!normalized || typeof cellVertices !== 'function') return null;
+            return cellVertices(normalized);
         }
     });
 }
@@ -279,6 +375,19 @@ function createKleinQuarticTopology({ dimension, size, product = false }) {
                 coordinate[2] || 0,
                 secondInterval
             ).slice(0, dimension);
+        },
+        cellVertices(coordinate) {
+            const base = kleinFundamentalTriangle(coordinate[0]);
+            if (dimension === 2 && !product) {
+                return base.map(([x, y]) => [x * 3.8, y * 3.8]);
+            }
+            return base.map((point) => kleinQuarticEmbeddedPoint(
+                point,
+                coordinate[1] || 0,
+                interval,
+                coordinate[2] || 0,
+                secondInterval
+            ).slice(0, dimension));
         },
         goalZones: createGoalZones({ type: id }),
         metadata: {
@@ -369,13 +478,26 @@ function createTrefoilTopology({ type, dimension, size }) {
             if (type === 'trefoil_diagram') return center.slice(0, 2);
             if (type === 'trefoil_track') return center.slice(0, dimension);
             const theta = Math.PI * 2 * coordinate[1] / thetaCount;
-            const radial = type === 'trefoil_tube' ? 0.48 : 0.24 + 0.16 * coordinate[2];
+            const radial = type === 'trefoil_tube' ? 0.56 : 0.18 + 0.16 * coordinate[2];
+            return trefoilTubePoint(
+                coordinate[0],
+                coordinate[1],
+                segmentCount,
+                thetaCount,
+                radial,
+                (coordinate[3] || 0) * 0.16
+            ).slice(0, dimension);
+        },
+        cellVertices(coordinate) {
+            if (type !== 'trefoil_tube') return null;
+            const s = coordinate[0];
+            const theta = coordinate[1];
             return [
-                center[0] + Math.cos(theta) * radial,
-                center[1] + Math.sin(theta) * radial,
-                center[2] + Math.sin(theta) * radial + (coordinate[3] || 0) * 0.16,
-                coordinate[3] || 0
-            ].slice(0, dimension);
+                trefoilTubePoint(s - 0.5, theta - 0.5, segmentCount, thetaCount, 0.56),
+                trefoilTubePoint(s + 0.5, theta - 0.5, segmentCount, thetaCount, 0.56),
+                trefoilTubePoint(s + 0.5, theta + 0.5, segmentCount, thetaCount, 0.56),
+                trefoilTubePoint(s - 0.5, theta + 0.5, segmentCount, thetaCount, 0.56)
+            ].map((point) => point.slice(0, dimension));
         },
         goalZones: createGoalZones({ type, segmentCount, thetaCount }),
         metadata: {

@@ -129,7 +129,9 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
         return 'axis';
     }
     if (normalizedDimension !== 2) return 'axis';
-    if (token === 'square' || token === 'quad' || token === 'honeycomb' || token === 'triangular' || token === 'triangle') return 'hexagonal';
+    if (token === 'square' || token === 'quad') return 'square';
+    if (token === 'triangular' || token === 'triangle') return 'triangular';
+    if (token === 'honeycomb' || token === 'hexagon' || token === 'hexagonal' || token === 'axial') return 'hexagonal';
     return 'hexagonal';
 }
 
