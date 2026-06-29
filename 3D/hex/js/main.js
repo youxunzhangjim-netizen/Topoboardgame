@@ -11,7 +11,7 @@ const I18N = {
         title: isSpaceTime ? '3+1D Hex' : '3D Hex',
         description: isSpaceTime
             ? 'Build a connection through the spatial volume while preserving the selected time-schedule parameters.'
-            : 'Place stones on cubic-lattice sites and connect opposite target planes.',
+            : 'Place stones on volume or embedded-surface boards and connect the active target zones.',
         boardAria: 'Rotatable 3D Hex board',
         controls: 'Game Controls',
         home: 'Home',
@@ -33,9 +33,18 @@ const I18N = {
         boardSize: 'Board Size',
         topology: 'Topology',
         cube: 'R3 / Cube',
-        cylinder: 'Cylinder',
-        torus: 'Torus / T3',
-        reflective: 'Reflective',
+        t3: 'T3 Periodic Volume',
+        r3Random: '3D Random Boundary',
+        reflective: 'Reflective Volume',
+        t2: 'T2 Torus Surface',
+        cylinder: 'Cylinder Surface',
+        sphere: 'S2 Sphere Surface',
+        klein: 'Klein Bottle Surface',
+        mobius: 'Mobius Strip Surface',
+        rp2: 'RP2 Surface',
+        lattice: 'Lattice',
+        axisLattice: 'Standard axis',
+        hcpLattice: 'HCP',
         trefoilTube: 'Trefoil Tube',
         trefoilSolid: 'Trefoil Solid Tube',
         boardView: 'Board View',
@@ -79,9 +88,15 @@ const I18N = {
         onlineUnavailable: 'Connect or join an Online room before placing.',
         topologyInfo: {
             open: 'R3 / Cube uses open boundaries and axis-neighbor cubic adjacency.',
-            cylinder: 'Cylinder wraps the z direction; the x and y target planes remain physical.',
-            torus: 'T3 wraps every axis. Both players connect explicit marked cut-zone planes.',
-            reflective: 'Reflective boundaries retain the finite cubic graph and reflect attempted boundary steps.',
+            torus: 'T3 wraps every volume axis. Goals are explicit marked cut-zone planes inside the periodic volume.',
+            r3_random: '3D RBC uses a seeded random boundary pairing when a move exits the cube.',
+            reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
+            t2: 'T2 is a torus surface embedded in 3D. Both players connect marked cut-seam zones on the surface.',
+            cylinder: 'Cylinder is a 2D surface embedded in 3D. Black uses cut-seam zones; White uses the two rim directions.',
+            sphere: 'S2 is a latitude-ring sphere. Longitude wraps while the polar direction has physical caps.',
+            klein: 'Klein bottle is a non-orientable surface with a twisted seam. Goals use marked surface zones.',
+            mobius: 'Mobius strip is a one-sided twisted strip. Black uses the seam zones; White uses the open sides.',
+            rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
             trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
             trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.'
         }
@@ -91,7 +106,7 @@ const I18N = {
         title: isSpaceTime ? '3+1D Hex' : '3D Hex',
         description: isSpaceTime
             ? '在空間體積中建立連線，並保留所選的時間排程參數。'
-            : '在立方晶格的空點落子，連接自己的一對相對目標平面。',
+            : '在體積或嵌入曲面棋盤上落子，連接目前棋盤的目標區。',
         boardAria: '可旋轉的 3D Hex 棋盤',
         controls: '遊戲控制',
         home: '首頁',
@@ -113,9 +128,18 @@ const I18N = {
         boardSize: '棋盤大小',
         topology: '拓撲',
         cube: 'R3／立方體',
-        cylinder: '圓柱',
-        torus: '環面／T3',
-        reflective: '反射邊界',
+        t3: 'T3 週期體積',
+        r3Random: '3D 隨機邊界',
+        reflective: '反射體積',
+        t2: 'T2 環面曲面',
+        cylinder: '圓柱曲面',
+        sphere: 'S2 球面曲面',
+        klein: 'Klein 瓶曲面',
+        mobius: 'Mobius 帶曲面',
+        rp2: 'RP2 曲面',
+        lattice: '晶格',
+        axisLattice: '標準軸向',
+        hcpLattice: 'HCP',
         trefoilTube: '三葉結管面',
         trefoilSolid: '三葉結實心管',
         boardView: '棋盤視角',
@@ -159,9 +183,15 @@ const I18N = {
         onlineUnavailable: '請先連線或加入線上房間再落子。',
         topologyInfo: {
             open: 'R3／立方體使用開放邊界與立方晶格的軸向相鄰關係。',
-            cylinder: '圓柱會包裹 z 方向；x 與 y 的目標平面仍是實體邊界。',
-            torus: 'T3 會包裹所有座標軸；雙方改為連接明確標示的切面目標區。',
-            reflective: '反射邊界保留有限立方圖，並反射越過邊界的鄰接步。',
+            torus: 'T3 會包裹全部體積座標軸；雙方連接週期體積中的明確切面目標區。',
+            r3_random: '3D RBC 會在行動離開立方體邊界時使用固定種子的隨機邊界配對。',
+            reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
+            t2: 'T2 是嵌入 3D 視圖的環面曲面；雙方連接曲面上的切縫目標區。',
+            cylinder: '圓柱是嵌入 3D 視圖的二維曲面；黑方使用切縫目標區，白方使用兩側邊界。',
+            sphere: 'S2 是緯線球面；經度包回，極向保留實體端點。',
+            klein: 'Klein 瓶是含扭轉縫的非定向曲面；目標使用曲面標示區。',
+            mobius: 'Mobius 帶是一側曲面；黑方使用接縫目標區，白方使用開放邊。',
+            rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
             trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
             trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。'
         }
@@ -186,6 +216,8 @@ const elements = {
     roomId: document.getElementById('roomIdInput'),
     size: document.getElementById('boardSizeSelect'),
     topology: document.getElementById('topologySelect'),
+    latticeGroup: document.getElementById('latticeControlGroup'),
+    lattice: document.getElementById('latticeSelect'),
     topologyInfo: document.getElementById('topologyInfo'),
     blackTargetText: document.getElementById('blackTargetText'),
     whiteTargetText: document.getElementById('whiteTargetText'),
@@ -266,19 +298,35 @@ function newGame() {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
     size = Number(elements.size.value);
-    game = new HexGame({ dimension: 3, size, topology: elements.topology.value });
+    game = new HexGame({ dimension: 3, size, topology: elements.topology.value, lattice: elements.lattice.value });
     statusKey = 'emptyPrompt';
     elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
     elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
     updateTargetText();
+    syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
         filter.max = String(size);
         if (Number(filter.value) > size) filter.value = '';
-        filter.disabled = game.topology.isSpecial === true;
+        filter.disabled = game.topology.isSpecial === true || isSurfaceTopology();
     }
     updateReadout();
     renderHistory();
     drawBoard();
+}
+
+function isVolumeTopology(value = elements.topology.value) {
+    return ['open', 'torus', 'r3_random', 'reflective'].includes(value);
+}
+
+function isSurfaceTopology(value = elements.topology.value) {
+    return ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(value);
+}
+
+function syncLatticeControl() {
+    const volume = isVolumeTopology();
+    elements.latticeGroup.hidden = !volume;
+    elements.lattice.disabled = !volume;
+    if (!volume) elements.lattice.value = 'axis';
 }
 
 function updateReadout() {
@@ -336,10 +384,13 @@ function projectCoordinate(coordinate, width, height) {
     const midpoint = (size - 1) / 2;
     const model = game.topology.isSpecial
         ? game.topology.position(coordinate).slice(0, 3)
-        : coordinate.map((value) => value - midpoint);
+        : (game.topology.position?.(coordinate) || coordinate.map((value) => value - midpoint));
     const rotated = rotatePoint(model);
+    const extent = game.topology.isSpecial || isSurfaceTopology()
+        ? specialModelExtent * 1.2
+        : size - 1;
     const scale = Math.min(width, height) * 0.62 /
-        Math.max(1, game.topology.isSpecial ? specialModelExtent * 1.2 : size - 1) *
+        Math.max(1, extent) *
         Number(elements.zoom.value);
     const perspective = 1 + rotated[2] / Math.max(12, size * 4);
     return {
@@ -369,7 +420,7 @@ function filterValue(input) {
 }
 
 function visibleCoordinate(coordinate) {
-    if (game.topology.isSpecial) return true;
+    if (game.topology.isSpecial || isSurfaceTopology()) return true;
     const filters = [filterValue(elements.filterX), filterValue(elements.filterY), filterValue(elements.filterZ)];
     return filters.every((value, axis) => value === null || coordinate[axis] === value);
 }
@@ -383,6 +434,10 @@ function planeCorners(axis, value) {
         coordinate[otherAxes[1]] = b;
         return coordinate;
     });
+}
+
+function isLocalVisualEdge(a, b) {
+    return a.every((value, axis) => Math.abs(value - b[axis]) <= 1);
 }
 
 function drawPlane(axis, value, fill, stroke, width, height) {
@@ -405,14 +460,16 @@ function drawBoard() {
     context.fillRect(0, 0, width, height);
 
     const special = game.topology.isSpecial === true;
-    if (special) {
+    const surface = isSurfaceTopology();
+    if (special || surface) {
         const positions = game.topology.coordinates().map((coordinate) => game.topology.position(coordinate));
         specialModelExtent = Math.max(1, ...positions.flatMap((position) => position.slice(0, 3).map(Math.abs)));
     }
-    const marked = elements.topology.value === 'torus';
-    const xEnd = marked ? Math.floor(size / 2) : size - 1;
-    const yEnd = marked ? Math.floor(size / 2) : size - 1;
-    if (!special) {
+    const blackZone = game.topology.goalZones.black;
+    const whiteZone = game.topology.goalZones.white;
+    const xEnd = blackZone.type === 'physical-sides' ? size - 1 : Math.floor(size / 2);
+    const yEnd = whiteZone.type === 'physical-sides' ? size - 1 : Math.floor(size / 2);
+    if (!special && !surface) {
         drawPlane(0, 0, 'rgba(66,199,223,0.08)', 'rgba(66,199,223,0.45)', width, height);
         drawPlane(0, xEnd, 'rgba(66,199,223,0.12)', 'rgba(66,199,223,0.68)', width, height);
         drawPlane(1, 0, 'rgba(232,180,76,0.07)', 'rgba(232,180,76,0.42)', width, height);
@@ -429,7 +486,8 @@ function drawBoard() {
     for (const coordinate of visible) {
         const fromKey = coordinate.join(',');
         const from = projected.get(fromKey);
-        const neighbors = special
+        const topologyEdges = special || surface || game.topology.lattice === 'hcp';
+        const neighbors = topologyEdges
             ? game.topology.neighbors(coordinate)
             : Array.from({ length: 3 }, (_, axis) => {
                 const next = [...coordinate];
@@ -437,6 +495,7 @@ function drawBoard() {
                 return next;
             });
         for (const next of neighbors) {
+            if (!special && !surface && !isLocalVisualEdge(coordinate, next)) continue;
             const nextKey = next.join(',');
             if (!visibleKeys.has(nextKey)) continue;
             const edgeKey = [fromKey, nextKey].sort().join('|');
@@ -453,12 +512,8 @@ function drawBoard() {
     projectedSites = [...projected.values()].sort((a, b) => a.depth - b.depth);
     for (const site of projectedSites) {
         const color = game.getCell(site.coordinate);
-        const isBlackTarget = special
-            ? game.topology.goalZones.black.start(site.coordinate) || game.topology.goalZones.black.end(site.coordinate)
-            : site.coordinate[0] === 0 || site.coordinate[0] === xEnd;
-        const isWhiteTarget = special
-            ? game.topology.goalZones.white.start(site.coordinate) || game.topology.goalZones.white.end(site.coordinate)
-            : site.coordinate[1] === 0 || site.coordinate[1] === yEnd;
+        const isBlackTarget = blackZone.start(site.coordinate) || blackZone.end(site.coordinate);
+        const isWhiteTarget = whiteZone.start(site.coordinate) || whiteZone.end(site.coordinate);
         const radius = color ? 7.5 : 3.4;
         context.beginPath();
         context.arc(site.x, site.y, radius, 0, Math.PI * 2);
@@ -625,6 +680,7 @@ elements.resetCamera.addEventListener('click', () => {
 });
 elements.size.addEventListener('change', newGame);
 elements.topology.addEventListener('change', newGame);
+elements.lattice.addEventListener('change', newGame);
 elements.newGame.addEventListener('click', newGame);
 elements.mode.addEventListener('change', () => {
     statusKey = 'emptyPrompt';
@@ -652,11 +708,15 @@ function importHexState(state, messageKey = '') {
     if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
         elements.topology.value = game.topology.topology;
     }
+    if ([...elements.lattice.options].some((option) => option.value === game.lattice)) {
+        elements.lattice.value = game.lattice;
+    }
     elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
     elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
+    syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
         filter.max = String(size);
-        filter.disabled = game.topology.isSpecial === true;
+        filter.disabled = game.topology.isSpecial === true || isSurfaceTopology();
     }
     if (messageKey) statusKey = messageKey;
     updateTargetText();
@@ -706,7 +766,7 @@ window.hexApp = {
         updateReadout();
     },
     onlineGameKey() {
-        return `hex-3d-${elements.topology.value}-${size}`;
+        return `hex-3d-${elements.topology.value}-${elements.lattice.value}-${size}`;
     },
     onlineMatchKey() {
         return isSpaceTime ? 'hex-3p1' : 'hex-3d';

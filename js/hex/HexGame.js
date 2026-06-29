@@ -24,10 +24,15 @@ const TOPOLOGY_ALIASES = Object.freeze({
     cylinder: 'cylinder',
     cylindrical: 'cylinder',
     torus: 'torus',
-    t2: 'torus',
     t3: 'torus',
     t4: 'torus',
     '4d-torus': 'torus',
+    t2: 't2',
+    '2-torus': 't2',
+    'torus-surface': 't2',
+    sphere: 'sphere',
+    s2: 'sphere',
+    'sphere-s2': 'sphere',
     reflective: 'reflective',
     mobius: 'mobius',
     'mobius-strip': 'mobius',
@@ -39,8 +44,14 @@ const TOPOLOGY_ALIASES = Object.freeze({
     'projective-plane': 'rp2',
     random: 'random',
     'random-boundary': 'random',
-    rbc: 'random'
+    rbc: 'random',
+    'r3-random': 'r3_random',
+    r3_random: 'r3_random',
+    '3d-rbc': 'r3_random'
 });
+
+const SURFACE_3D_TOPOLOGIES = new Set(['t2', 'cylinder', 'sphere', 'mobius', 'klein', 'rp2']);
+const VOLUME_3D_TOPOLOGIES = new Set(['open', 'torus', 'reflective', 'r3_random']);
 
 export function otherHexColor(color) {
     if (color === HEX_COLORS.BLACK) return HEX_COLORS.WHITE;
@@ -95,18 +106,29 @@ export function normalizeHexTopology(topology = 'open', dimension = 2) {
     const normalized = TOPOLOGY_ALIASES[token] ?? 'open';
 
     if (normalizedDimension === 2) {
+        if (normalized === 't2') return 'torus';
+        if (normalized === 'r3_random' || normalized === 'sphere') return 'open';
         return normalized === 'reflective' ? 'open' : normalized;
     }
-    return ['open', 'cylinder', 'torus', 'reflective'].includes(normalized)
-        ? normalized
-        : 'open';
+    if (normalizedDimension === 3) {
+        return VOLUME_3D_TOPOLOGIES.has(normalized) || SURFACE_3D_TOPOLOGIES.has(normalized)
+            ? normalized
+            : 'open';
+    }
+    return ['open', 'torus', 'reflective'].includes(normalized) ? normalized : 'open';
 }
 
 export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
-    if (normalizeDimension(dimension) !== 2) return 'axis';
+    const normalizedDimension = normalizeDimension(dimension);
     const token = String(lattice || '').trim().toLowerCase();
-    if (token === 'square') return 'square';
+    if (normalizedDimension === 3) {
+        if (token === 'hcp') return 'hcp';
+        return 'axis';
+    }
+    if (normalizedDimension !== 2) return 'axis';
+    if (token === 'square' || token === 'quad') return 'square';
     if (token === 'honeycomb') return 'honeycomb';
+    if (token === 'triangular' || token === 'triangle') return 'triangular';
     return 'hexagonal';
 }
 
@@ -285,6 +307,20 @@ function normalizeHigherDimCoordinate(coordinate, size, topology) {
         : null;
 }
 
+function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary = null) {
+    const [x, y, z = 0] = coordinate;
+    if (z !== 0) return null;
+    if (topology === 'sphere') {
+        const [width, height] = size;
+        return x >= -1 && x <= width && y >= 0 && y < height
+            ? [modulo(x, width), y, 0]
+            : null;
+    }
+    const mappedTopology = topology === 't2' ? 'torus' : topology;
+    const normalized = normalize2DCoordinate([x, y], [size[0], size[1]], mappedTopology, randomBoundary);
+    return normalized ? [normalized[0], normalized[1], 0] : null;
+}
+
 function createGoalDefinition(dimension, size, topology, customGoalZones) {
     if (customGoalZones) {
         const normalizeZone = (zone, label) => {
@@ -304,11 +340,13 @@ function createGoalDefinition(dimension, size, topology, customGoalZones) {
         });
     }
 
-    const xHasPhysicalSides = dimension === 2
-        ? topology === 'open'
+    const surface3D = dimension === 3 && SURFACE_3D_TOPOLOGIES.has(topology);
+    const surfaceTopology = topology === 't2' ? 'torus' : topology;
+    const xHasPhysicalSides = dimension === 2 || surface3D
+        ? surfaceTopology === 'open'
         : topology !== 'torus';
-    const yHasPhysicalSides = dimension === 2
-        ? topology === 'open' || topology === 'cylinder' || topology === 'mobius'
+    const yHasPhysicalSides = dimension === 2 || surface3D
+        ? surfaceTopology === 'open' || surfaceTopology === 'cylinder' || surfaceTopology === 'mobius' || surfaceTopology === 'sphere'
         : topology !== 'torus';
     const xEnd = xHasPhysicalSides ? size[0] - 1 : Math.floor(size[0] / 2);
     const yEnd = yHasPhysicalSides ? size[1] - 1 : Math.floor(size[1] / 2);
@@ -348,6 +386,85 @@ function enumerateCoordinates(size) {
     return coordinates;
 }
 
+function enumerateSurface3DCoordinates(size) {
+    const coordinates = [];
+    for (let y = 0; y < size[1]; y += 1) {
+        for (let x = 0; x < size[0]; x += 1) {
+            coordinates.push([x, y, 0]);
+        }
+    }
+    return coordinates;
+}
+
+function hcpOffsets(origin) {
+    const parity = modulo((origin?.[0] || 0) + (origin?.[1] || 0) + (origin?.[2] || 0), 2);
+    const layer = parity === 0
+        ? [[0, 0, 1], [-1, 0, 1], [0, -1, 1], [0, 0, -1], [1, 0, -1], [0, 1, -1]]
+        : [[0, 0, 1], [1, 0, 1], [0, 1, 1], [0, 0, -1], [-1, 0, -1], [0, -1, -1]];
+    return [
+        [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0],
+        ...layer
+    ];
+}
+
+function parametricPosition(coordinate, size, topology, lattice = 'axis') {
+    const [x = 0, y = 0, z = 0] = coordinate;
+    const [width, height, depth = 1] = size;
+    const scale = 7.8 / Math.max(1, Math.max(width, height, depth) - 1);
+    if (topology === 'open' || topology === 'torus' || topology === 'reflective' || topology === 'r3_random') {
+        const hcpOffsetX = lattice === 'hcp' ? ((z % 2) * 0.5 + (y % 2) * 0.5) : 0;
+        const hcpOffsetY = lattice === 'hcp' ? z * 0.18 : 0;
+        return [
+            (x + hcpOffsetX - (width - 1) / 2) * scale,
+            (z * (lattice === 'hcp' ? 0.82 : 1) - (depth - 1) / 2 + hcpOffsetY) * scale,
+            ((y - (height - 1) / 2) * (lattice === 'hcp' ? 0.866 : 1)) * scale
+        ];
+    }
+
+    const u = (x / Math.max(1, width)) * Math.PI * 2;
+    const v = (y / Math.max(1, height)) * Math.PI * 2;
+    const band = y / Math.max(1, height - 1);
+    if (topology === 't2') {
+        const major = 3.35;
+        const minor = 1.22;
+        const ring = major + minor * Math.cos(v);
+        return [ring * Math.cos(u), ring * Math.sin(u), minor * Math.sin(v)];
+    }
+    if (topology === 'cylinder') {
+        const radius = 3.25;
+        return [radius * Math.cos(u), (0.5 - band) * 6.0, radius * Math.sin(u)];
+    }
+    if (topology === 'sphere') {
+        const theta = u;
+        const phi = Math.PI * (0.08 + band * 0.84);
+        const radius = 3.45;
+        return [
+            radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.cos(phi),
+            radius * Math.sin(phi) * Math.sin(theta)
+        ];
+    }
+    if (topology === 'mobius') {
+        const t = (band - 0.5) * 1.65;
+        const radius = 2.75 + t * Math.cos(u / 2);
+        return [
+            radius * Math.cos(u),
+            t * Math.sin(u / 2),
+            radius * Math.sin(u)
+        ];
+    }
+    if (topology === 'klein') {
+        const r = 2.2 + Math.cos(u / 2) * Math.sin(v) - Math.sin(u / 2) * Math.sin(2 * v);
+        return [
+            r * Math.cos(u),
+            r * Math.sin(u),
+            Math.sin(u / 2) * Math.sin(v) + Math.cos(u / 2) * Math.sin(2 * v)
+        ].map((value) => value * 1.05);
+    }
+    const flatScale = 7 / Math.max(width - 1, height - 1);
+    return [(x - (width - 1) / 2) * flatScale, (0.5 - band) * 7, 0];
+}
+
 export function createHexTopology(options = {}) {
     const dimension = normalizeDimension(options.dimension ?? 2);
     const size = Object.freeze(normalizeHexSize(options.size, dimension));
@@ -356,6 +473,7 @@ export function createHexTopology(options = {}) {
         return createSpecialBoardTopology({ ...options, dimension, size, topology });
     }
     const lattice = normalizeHexLattice(options.lattice, dimension);
+    const surface3D = dimension === 3 && SURFACE_3D_TOPOLOGIES.has(topology);
     const randomBoundarySeed = topology === 'random'
         ? String(options.randomBoundarySeed || `hex-rbc:${size.join('x')}`)
         : '';
@@ -368,6 +486,7 @@ export function createHexTopology(options = {}) {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
         if (!parsed) return null;
         if (dimension === 2) return normalize2DCoordinate(parsed, size, topology, randomBoundary);
+        if (surface3D) return normalizeSurface3DCoordinate(parsed, size, topology, randomBoundary);
         return normalizeHigherDimCoordinate(parsed, size, topology);
     };
 
@@ -377,6 +496,10 @@ export function createHexTopology(options = {}) {
             : lattice === 'honeycomb'
                 ? null
                 : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
+        : surface3D
+            ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
+            : lattice === 'hcp'
+                ? null
         : Array.from({ length: dimension * 2 }, (_, index) => {
             const offset = Array(dimension).fill(0);
             const axis = Math.floor(index / 2);
@@ -385,20 +508,33 @@ export function createHexTopology(options = {}) {
         });
 
     const offsetsFor = (origin) => neighborOffsets || [
-        [1, 0],
-        [-1, 0],
-        [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]
+        ...(dimension === 3
+            ? hcpOffsets(origin)
+            : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
     ];
 
-    const randomAdjacency = topology === 'random'
+    const coordinateList = surface3D ? enumerateSurface3DCoordinates(size) : enumerateCoordinates(size);
+    const randomAdjacency = topology === 'random' || topology === 'r3_random'
         ? (() => {
-            const adjacency = new Map(enumerateCoordinates(size).map((coordinate) => [coordinateKey(coordinate), new Map()]));
-            for (const origin of enumerateCoordinates(size)) {
+            const adjacency = new Map(coordinateList.map((coordinate) => [coordinateKey(coordinate), new Map()]));
+            const boundary = coordinateList.filter((coordinate) =>
+                coordinate.some((value, axis) => axis < dimension && (value === 0 || value === size[axis] - 1)));
+            const boundaryPermutation = seededPermutation(Math.max(1, boundary.length), randomBoundarySeed || `hex-rbc:${size.join('x')}`);
+            const boundaryTarget = (origin, offset) => {
+                if (!boundary.length) return null;
+                const raw = origin.map((value, axis) => value + offset[axis]);
+                const hash = Math.abs(hashSeed(`${coordinateKey(origin)}:${coordinateKey(offset)}:${coordinateKey(raw)}`));
+                return boundary[boundaryPermutation[hash % boundary.length]];
+            };
+            for (const origin of coordinateList) {
                 const originKey = coordinateKey(origin);
                 for (const offset of offsetsFor(origin)) {
-                    const candidate = normalize(origin.map((value, axis) => value + offset[axis]));
+                    const raw = origin.map((value, axis) => value + offset[axis]);
+                    let candidate = normalize(raw);
+                    if (!candidate && topology === 'r3_random') candidate = boundaryTarget(origin, offset);
                     if (!candidate || coordinatesEqual(candidate, origin)) continue;
                     const candidateKey = coordinateKey(candidate);
+                    if (!adjacency.has(candidateKey)) continue;
                     adjacency.get(originKey).set(candidateKey, candidate);
                     adjacency.get(candidateKey).set(originKey, origin);
                 }
@@ -432,7 +568,7 @@ export function createHexTopology(options = {}) {
         size,
         topology,
         lattice,
-        isWrapped: ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'random'].includes(topology),
+        isWrapped: ['cylinder', 'torus', 't2', 'sphere', 'mobius', 'klein', 'rp2', 'random', 'r3_random'].includes(topology),
         randomBoundarySeed,
         randomBoundary,
         goalZones,
@@ -451,7 +587,11 @@ export function createHexTopology(options = {}) {
             return normalized;
         },
         coordinates() {
-            return enumerateCoordinates(size);
+            return coordinateList.map((coordinate) => [...coordinate]);
+        },
+        position(coordinate) {
+            const normalized = normalize(coordinate);
+            return normalized ? parametricPosition(normalized, size, topology, lattice) : null;
         }
     });
 }

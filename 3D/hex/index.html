@@ -84,16 +84,31 @@
                 <button class="online-btn join" id="joinRoomBtn" type="button" data-i18n="joinRoom">Join Room</button>
             </section>
 
-            <div class="control-group">
-                <label for="topologySelect" data-i18n="topology">Topology</label>
-                <select id="topologySelect">
-                    <option value="open" data-i18n="cube">R3 / Cube</option>
-                    <option value="cylinder" data-i18n="cylinder">Cylinder</option>
-                    <option value="torus" data-i18n="torus">Torus / T3</option>
-                    <option value="reflective" data-i18n="reflective">Reflective</option>
-                    <option value="trefoil_tube" data-i18n="trefoilTube">Trefoil Tube</option>
-                    <option value="trefoil_solid" data-i18n="trefoilSolid">Trefoil Solid Tube</option>
-                </select>
+            <div class="control-grid">
+                <div class="control-group">
+                    <label for="topologySelect" data-i18n="topology">Topology</label>
+                    <select id="topologySelect">
+                        <option value="open" data-i18n="cube">R3 / Cube</option>
+                        <option value="torus" data-i18n="t3">T3 Periodic Volume</option>
+                        <option value="r3_random" data-i18n="r3Random">3D Random Boundary</option>
+                        <option value="reflective" data-i18n="reflective">Reflective Volume</option>
+                        <option value="t2" data-i18n="t2">T2 Torus Surface</option>
+                        <option value="cylinder" data-i18n="cylinder">Cylinder Surface</option>
+                        <option value="sphere" data-i18n="sphere">S2 Sphere Surface</option>
+                        <option value="klein" data-i18n="klein">Klein Bottle Surface</option>
+                        <option value="mobius" data-i18n="mobius">Mobius Strip Surface</option>
+                        <option value="rp2" data-i18n="rp2">RP2 Surface</option>
+                        <option value="trefoil_tube" data-i18n="trefoilTube">Trefoil Tube</option>
+                        <option value="trefoil_solid" data-i18n="trefoilSolid">Trefoil Solid Tube</option>
+                    </select>
+                </div>
+                <div class="control-group" id="latticeControlGroup">
+                    <label for="latticeSelect" data-i18n="lattice">Lattice</label>
+                    <select id="latticeSelect">
+                        <option value="axis" selected data-i18n="axisLattice">Standard axis</option>
+                        <option value="hcp" data-i18n="hcpLattice">HCP</option>
+                    </select>
+                </div>
             </div>
             <div class="boundary-info" id="topologyInfo"></div>
 

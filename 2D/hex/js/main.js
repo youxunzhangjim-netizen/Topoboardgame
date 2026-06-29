@@ -41,6 +41,7 @@ const I18N = {
         randomBoundary: 'Random Boundary',
         lattice: 'Lattice',
         hexagonal: 'Hexagonal / Axial',
+        triangular: 'Triangular',
         square: 'Square',
         honeycomb: 'Honeycomb',
         newGame: 'New Game',
@@ -119,6 +120,7 @@ const I18N = {
         randomBoundary: '隨機邊界',
         lattice: '晶格',
         hexagonal: '六角形／軸向',
+        triangular: '三角晶格',
         square: '方格',
         honeycomb: '蜂巢',
         newGame: '新遊戲',
@@ -373,6 +375,38 @@ function buildCenters(width, height) {
         return;
     }
 
+    const triangular = elements.lattice.value === 'triangular';
+    if (triangular) {
+        const triangleHeight = Math.sqrt(3) / 2;
+        const boardWidthUnits = size + 0.5;
+        const boardHeightUnits = Math.max(1, size * triangleHeight);
+        const side = Math.max(10, Math.min(
+            (width - padding * 2) / boardWidthUnits,
+            (height - padding * 2) / boardHeightUnits
+        ));
+        const heightStep = side * triangleHeight;
+        const boardWidth = boardWidthUnits * side;
+        const boardHeight = boardHeightUnits * side;
+        const offsetX = (width - boardWidth) / 2 + side * 0.5;
+        const offsetY = (height - boardHeight) / 2 + heightStep * 0.5;
+        centers = [];
+        for (let r = 0; r < size; r += 1) {
+            for (let q = 0; q < size; q += 1) {
+                centers.push({
+                    q,
+                    r,
+                    coordinate: [q, r],
+                    key: `${q},${r}`,
+                    x: offsetX + (q + (r % 2 ? 0.5 : 0)) * side,
+                    y: offsetY + r * heightStep,
+                    radius: side / Math.sqrt(3),
+                    shape: 'triangle'
+                });
+            }
+        }
+        return;
+    }
+
     const rawWidthFactor = Math.sqrt(3) * (1.5 * (size - 1) + 1);
     const rawHeightFactor = 1.5 * (size - 1) + 2;
     const radius = Math.max(7, Math.min(
@@ -410,7 +444,7 @@ function traceCell(cell, scale = 0.96) {
     }
     if (cell.shape === 'triangle') {
         const radius = cell.radius * scale;
-        const rotation = cell.coordinate[0] % 2 === 0 ? -Math.PI / 2 : Math.PI / 2;
+        const rotation = (cell.coordinate[0] + cell.coordinate[1]) % 2 === 0 ? -Math.PI / 2 : Math.PI / 2;
         context.beginPath();
         for (let index = 0; index < 3; index += 1) {
             const angle = rotation + index * Math.PI * 2 / 3;

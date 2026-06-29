@@ -6,11 +6,19 @@ const COPY = {
     future: 'Future Mode',
     past: 'Past Mode',
     both: 'Past+Future Mode',
+    ageModeChoice: 'Age Mode',
+    periodModeChoice: 'Time Period Mode',
     futureHelp: 'Schedule actions into future ticks. The original board-game rule is checked when the action resolves.',
     pastHelp: 'Rewrite recent past actions inside a locked time window. The timeline is replayed before the rewrite is applied.',
     bothHelp: 'Schedule future actions and rewrite recent past actions. Later events are replayed and revalidated.',
+    ageHelp: 'Use the original +1D age clock. Pieces show age rings and can disappear after the selected lifetime.',
+    periodHelp: 'Use the original Go +1D time period clock. Stones appear and disappear by the selected period.',
     delay: 'Future Delay',
     actionSlice: 'Next Action Time Slice',
+    chooseSlice: 'Choose time slice',
+    pastSlice: '-{ticks} ticks',
+    pastPreview: 'Past board preview',
+    pastPreviewHelp: 'The board is temporarily showing the selected past slice. Apply the rewrite to replay back to the present.',
     instantSlice: 'Instant',
     futureSlice: '+{ticks} ticks',
     legacyTitle: 'Time period and age settings',
@@ -104,11 +112,19 @@ const COPY = {
     future: '未來模式',
     past: '過去模式',
     both: '過去+未來模式',
+    ageModeChoice: '年齡模式',
+    periodModeChoice: '時間週期模式',
     futureHelp: '將行動排程到未來回合；行動生效時重新套用原棋類規則。',
     pastHelp: '在鎖定的時間窗口內改寫最近的過去行動；套用改寫前會回放時間線。',
     bothHelp: '排程未來行動，並改寫最近的過去行動；後續事件會重新回放與驗證。',
+    ageHelp: '使用原本的 +1D 年齡時鐘；棋子會顯示年齡環，並可在指定壽命後消失。',
+    periodHelp: '使用原本的 Go +1D 時間週期；棋子依設定週期出現與消失。',
     delay: '未來延遲',
     actionSlice: '下一步時間切片',
+    chooseSlice: '選擇時間切片',
+    pastSlice: '-{ticks} 回合',
+    pastPreview: '過去棋盤預覽',
+    pastPreviewHelp: '畫面暫時顯示所選的過去切片；套用改寫後會回放到目前棋盤。',
     instantSlice: '即時',
     futureSlice: '+{ticks} 回合',
     legacyTitle: '時間週期與年齡設定',
@@ -215,6 +231,8 @@ function normalizeMode(value) {
   const mode = String(value || '').toLowerCase().replace(/[+\s-]/g, '_');
   if (mode === 'past') return 'past';
   if (mode === 'past_future' || mode === 'pastfuture' || mode === 'both') return 'past_future';
+  if (mode === 'age' || mode === 'lifetime' || mode === 'decay') return 'age';
+  if (mode === 'periodic' || mode === 'period') return 'periodic';
   // Legacy timeMode=delay and the retired periodic value both map to Future Mode.
   return 'future';
 }
@@ -283,17 +301,17 @@ export function installSpaceTimeTimelineEngine() {
   const storedPeriodMode = stored.periodMode || legacyStored.timeMode;
   const queryPeriodMode = params.get('periodMode') || (normalizePeriodMode(rawTimelineMode) === 'periodic' ? rawTimelineMode : '');
   const settings = {
-    mode: normalizeMode(normalizePeriodMode(rawTimelineMode) === 'periodic' ? (stored.mode || 'future') : (rawTimelineMode || stored.mode || 'future')),
+    mode: normalizeMode(rawTimelineMode || stored.mode || (normalizePeriodMode(storedPeriodMode) === 'periodic' ? 'periodic' : 'future')),
     delay: asInteger(params.get('delay') || stored.delay || legacyStored.delay, 2, 1, 32),
     actionOffset: asInteger(params.get('actionOffset') || stored.actionOffset || stored.delay || legacyStored.delay, 2, 0, 32),
     rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 5, 1, 64),
     customWindow: asInteger(stored.customWindow, 5, 1, 64),
     conflictPolicy: normalizeConflictPolicy(params.get('conflictPolicy') || stored.conflictPolicy),
-    periodMode: family === 'go' ? normalizePeriodMode(queryPeriodMode || storedPeriodMode) : 'off',
+    periodMode: family === 'go' ? normalizePeriodMode(queryPeriodMode || storedPeriodMode || (normalizeMode(rawTimelineMode) === 'periodic' ? 'periodic' : 'off')) : 'off',
     periodOn: asInteger(params.get('periodOn') || stored.periodOn || legacyStored.periodOn, 2, 1, 32),
     periodOff: asInteger(params.get('periodOff') || stored.periodOff || legacyStored.periodOff, 2, 1, 32),
     dt: asInteger(params.get('dt') || stored.dt || legacyStored.dt, 1, 1, 16),
-    ageMode: normalizeAgeMode(params.get('ageMode') || stored.ageMode || legacyStored.ageMode || (rawTimelineMode === 'decay' ? 'lifetime' : 'off')),
+    ageMode: normalizeAgeMode(params.get('ageMode') || stored.ageMode || legacyStored.ageMode || (normalizeMode(rawTimelineMode) === 'age' ? 'lifetime' : 'off')),
     lifetime: asInteger(params.get('lifetime') || stored.lifetime || legacyStored.lifetime, 50, 1, 512),
     oldAge: asInteger(params.get('oldAge') || stored.oldAge || legacyStored.oldAge, 40, 1, 512),
     noiseMode: allowsNoise ? String(params.get('noiseMode') || stored.noiseMode || legacyStored.noiseMode || 'off') : 'off',
@@ -466,6 +484,8 @@ export function installSpaceTimeTimelineEngine() {
       .st-timeline__summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.st-timeline__summary span{border:1px solid rgba(86,190,222,.15);border-radius:6px;background:#0c1723;color:#dceaf3;padding:7px 9px;font-size:.8rem;overflow-wrap:anywhere}
       .st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}
       .st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}
+      .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:6px;min-width:190px;max-width:min(320px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
+      .st-slice-picker strong{font-size:.82rem;color:#f3bd49}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.st-slice-picker button{min-height:32px;padding:6px 7px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:850;cursor:pointer}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
       .st-timeline [hidden]{display:none!important}
       @media(max-width:680px){.st-timeline__head{display:block}.st-timeline__grid,.st-timeline__summary{grid-template-columns:1fr}.st-timeline__actions{display:grid;grid-template-columns:1fr}.st-timeline__event{grid-template-columns:1fr}.st-timeline__event-actions{justify-content:flex-start}.st-timeline button,.st-timeline a{width:100%;text-align:center}}
     `;
@@ -486,6 +506,8 @@ export function installSpaceTimeTimelineEngine() {
               <option value="future"></option>
               <option value="past"></option>
               <option value="past_future"></option>
+              <option value="age"></option>
+              <option value="periodic"></option>
             </select>
           </label>
           <label data-st-future><span data-st-label="delay"></span>
@@ -531,7 +553,7 @@ export function installSpaceTimeTimelineEngine() {
             <label><span data-st-label="dt"></span>
               <input data-st-dt type="number" min="1" max="16" step="1">
             </label>
-            <label><span data-st-label="ageMode"></span>
+            <label data-st-age-choice><span data-st-label="ageMode"></span>
               <select data-st-age-mode><option value="off"></option><option value="lifetime"></option></select>
             </label>
             <label data-st-age-control><span data-st-label="lifetime"></span>
@@ -597,7 +619,11 @@ export function installSpaceTimeTimelineEngine() {
 
   function applyControls() {
     const requestedMode = normalizeMode(panel.querySelector('[data-st-mode]').value);
-    if (requestedMode === 'past_future' && isOnline()) {
+    if (requestedMode === 'periodic' && family !== 'go') {
+      settings.mode = 'future';
+      settings.periodMode = 'off';
+      state.message = text('modeApplied');
+    } else if (requestedMode === 'past_future' && isOnline()) {
       settings.mode = 'future';
       state.message = text('onlineBoth');
     } else if (requestedMode === 'past' && isOnline()) {
@@ -615,11 +641,19 @@ export function installSpaceTimeTimelineEngine() {
       settings.rewriteWindow = selected === 'custom' ? settings.customWindow : asInteger(selected, 5, 1, 64);
       settings.conflictPolicy = normalizeConflictPolicy(panel.querySelector('[data-st-conflict]').value);
     }
-    settings.periodMode = family === 'go' ? normalizePeriodMode(panel.querySelector('[data-st-period-mode]').value) : 'off';
+    if (settings.mode === 'periodic') {
+      settings.periodMode = family === 'go' ? 'periodic' : 'off';
+      settings.ageMode = 'off';
+    } else if (settings.mode === 'age') {
+      settings.periodMode = 'off';
+      settings.ageMode = 'lifetime';
+    } else {
+      settings.periodMode = 'off';
+      settings.ageMode = 'off';
+    }
     settings.periodOn = asInteger(panel.querySelector('[data-st-period-on]').value, 2, 1, 32);
     settings.periodOff = asInteger(panel.querySelector('[data-st-period-off]').value, 2, 1, 32);
     settings.dt = asInteger(panel.querySelector('[data-st-dt]').value, 1, 1, 16);
-    settings.ageMode = normalizeAgeMode(panel.querySelector('[data-st-age-mode]').value);
     settings.lifetime = asInteger(panel.querySelector('[data-st-lifetime]').value, 50, 1, 512);
     settings.oldAge = asInteger(panel.querySelector('[data-st-old-age]').value, 40, 1, 512);
     settings.noiseMode = allowsNoise ? (panel.querySelector('[data-st-noise-mode]').value || 'off') : 'off';
@@ -633,7 +667,11 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function syncConditionalControls(event = null) {
-    const mode = normalizeMode(panel.querySelector('[data-st-mode]').value);
+    let mode = normalizeMode(panel.querySelector('[data-st-mode]').value);
+    if (mode === 'periodic' && family !== 'go') {
+      mode = 'future';
+      panel.querySelector('[data-st-mode]').value = 'future';
+    }
     const hasPast = mode === 'past' || mode === 'past_future';
     panel.querySelector('[data-st-custom]').hidden = !hasPast || panel.querySelector('[data-st-window]').value !== 'custom';
     if (event?.target?.matches?.('[data-st-delay]')) {
@@ -647,11 +685,14 @@ export function installSpaceTimeTimelineEngine() {
       writeURL();
     }
     panel.querySelectorAll('[data-st-period-control]').forEach((node) => {
-      node.hidden = family !== 'go' || normalizePeriodMode(panel.querySelector('[data-st-period-mode]').value) !== 'periodic';
+      node.hidden = family !== 'go' || mode !== 'periodic';
     });
     panel.querySelectorAll('[data-st-age-control]').forEach((node) => {
-      node.hidden = normalizeAgeMode(panel.querySelector('[data-st-age-mode]').value) !== 'lifetime';
+      node.hidden = mode !== 'age';
     });
+    panel.querySelectorAll('[data-st-go-period]').forEach((node) => { node.hidden = true; });
+    panel.querySelectorAll('[data-st-age-choice]').forEach((node) => { node.hidden = true; });
+    panel.querySelector('[data-st-legacy-section]').hidden = !(mode === 'age' || mode === 'periodic');
   }
 
   function populateActionOffsetOptions() {
@@ -937,7 +978,7 @@ export function installSpaceTimeTimelineEngine() {
       if (typeof game.handleSquareClick === 'function') {
         const originalClick = game.handleSquareClick.bind(game);
         game.handleSquareClick = (...coords) => {
-          if (usesFuture()) return handleChessCoordinate(game, coords);
+          if (usesFuture() || usesPast() || state.editingEventId) return true;
           return originalClick(...coords);
         };
       }
@@ -978,14 +1019,14 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function captureBoardAction(app, event) {
-    if (!usesFuture() && !state.editingEventId) return;
+    if (!usesFuture() && !usesPast() && !state.editingEventId) return;
     let handled = false;
     if (family === 'jump') handled = captureJumpAction(app, event);
     else {
       const coord = coordFromEvent(app, event);
       if (!coord) return;
       const raw = { kind: family, player: replacementPlayer() || currentPlayer(app), coord: clone(coord) };
-      handled = state.editingEventId ? submitReplacement(raw) : submitFutureFromBoard(raw);
+      handled = state.editingEventId ? submitReplacement(raw) : submitBoardTimeChoice(raw, event);
     }
     if (handled) {
       event.preventDefault();
@@ -994,21 +1035,21 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function captureChessBoardAction(game, event) {
-    if (!usesFuture() && !state.editingEventId) return;
+    if (!usesFuture() && !usesPast() && !state.editingEventId) return;
     const square = event.target.closest?.('.square');
     const board = document.getElementById('chessboard');
     if (!square || !board) return;
     const index = [...board.querySelectorAll('.square')].indexOf(square);
     if (index < 0) return;
     const coord = { r: Math.floor(index / 8), c: index % 8 };
-    const handled = captureChessCoordinate(game, coord);
+    const handled = captureChessCoordinate(game, coord, event);
     if (handled) {
       event.preventDefault();
       event.stopImmediatePropagation();
     }
   }
 
-  function captureChessCoordinate(game, coords) {
+  function captureChessCoordinate(game, coords, event = null) {
     const coord = Array.isArray(coords)
       ? coords.length >= 3 ? { x: Number(coords[0]), y: Number(coords[1]), z: Number(coords[2]) } : { r: Number(coords[0]), c: Number(coords[1]) }
       : coords;
@@ -1031,7 +1072,7 @@ export function installSpaceTimeTimelineEngine() {
       const action = { kind: 'chess', player: game.currentPlayer, from: clone(game.selectedSquare), to: clone(coord) };
       const legal = findChessMove(game, action.from, action.to);
       if (legal) {
-        void scheduleFutureAction(action);
+        submitBoardTimeChoice(action, event);
         clearChessSelection(game);
         return true;
       }
@@ -1064,7 +1105,7 @@ export function installSpaceTimeTimelineEngine() {
     if (app.selected) {
       const move = app.legal?.find((candidate) => sameCoord(candidate.to, coord));
       if (move) {
-        void scheduleFutureAction({ kind: 'jump', player: app.game.currentPlayer, move: plainMove(move) });
+        submitBoardTimeChoice({ kind: 'jump', player: app.game.currentPlayer, move: plainMove(move) }, event);
         app.selected = null;
         app.legal = [];
         app.render?.();
@@ -1082,6 +1123,127 @@ export function installSpaceTimeTimelineEngine() {
     const action = normalizeFutureDraft(raw);
     if (!action) return true;
     void scheduleFutureAction(action);
+    return true;
+  }
+
+  function submitBoardTimeChoice(raw, event) {
+    if (!usesFuture() && !usesPast()) return false;
+    showSlicePicker(raw, event);
+    return true;
+  }
+
+  function removeSlicePicker() {
+    document.querySelectorAll('.st-slice-picker').forEach((node) => node.remove());
+  }
+
+  function showSlicePicker(raw, event) {
+    removeSlicePicker();
+    const picker = document.createElement('div');
+    picker.className = 'st-slice-picker';
+    picker.innerHTML = `<strong>${escapeHTML(text('chooseSlice'))}</strong><div class="st-slice-picker__grid"></div>`;
+    const grid = picker.querySelector('.st-slice-picker__grid');
+    const offsets = [];
+    if (usesPast()) {
+      for (let offset = -settings.rewriteWindow; offset < 0; offset += 1) offsets.push(offset);
+    }
+    offsets.push(0);
+    if (usesFuture()) {
+      for (let offset = 1; offset <= settings.delay; offset += 1) offsets.push(offset);
+    }
+    offsets.forEach((offset) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = offset < 0 ? 'st-slice-picker__past' : offset === 0 ? 'st-slice-picker__now' : 'st-slice-picker__future';
+      button.textContent = offset < 0
+        ? text('pastSlice', { ticks: Math.abs(offset) })
+        : offset === 0 ? text('instantSlice') : text('futureSlice', { ticks: offset });
+      button.addEventListener('click', () => {
+        removeSlicePicker();
+        void applySliceChoice(raw, offset);
+      });
+      grid.append(button);
+    });
+    document.body.append(picker);
+    const rect = picker.getBoundingClientRect();
+    const anchorX = Number.isFinite(event?.clientX) ? event.clientX : window.innerWidth / 2;
+    const anchorY = Number.isFinite(event?.clientY) ? event.clientY : window.innerHeight / 2;
+    const left = Math.max(12, Math.min(window.innerWidth - rect.width - 12, anchorX + 10));
+    const top = Math.max(12, Math.min(window.innerHeight - rect.height - 12, anchorY + 10));
+    picker.style.left = `${left}px`;
+    picker.style.top = `${top}px`;
+    const close = (closeEvent) => {
+      if (!picker.contains(closeEvent.target)) {
+        removeSlicePicker();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true), 0);
+  }
+
+  async function applySliceChoice(raw, offset) {
+    if (offset < 0) return beginPastSliceReplacement(raw, Math.abs(offset));
+    if (usesFuture()) {
+      const previous = settings.actionOffset;
+      settings.actionOffset = Math.max(0, Math.min(settings.delay, offset));
+      const action = normalizeFutureDraft(raw);
+      if (action) await scheduleFutureAction(action);
+      else {
+        state.message = text('replacementIllegal');
+        refresh();
+      }
+      settings.actionOffset = previous;
+      return true;
+    }
+    return applyInstantActionFromPicker(raw);
+  }
+
+  async function applyInstantActionFromPicker(raw) {
+    const action = normalizeFutureDraft(raw);
+    if (!action) {
+      state.message = text('replacementIllegal');
+      refresh();
+      return false;
+    }
+    const before = captureSnapshot(state.app);
+    state.internalAction = true;
+    const ok = await applyAction(action, { preserveTurn: false });
+    state.internalAction = false;
+    state.tick = Math.max(state.tick + 1, observedTurn(state.app));
+    if (ok) recordTimelineEvent(action, before, captureSnapshot(state.app), state.tick);
+    else {
+      const conflict = makeConflict({
+        eventId: `instant:${Date.now()}`,
+        tick: state.tick,
+        severity: 'soft',
+        reasonCode: 'replacement_illegal',
+        action,
+        resolution: 'mark_event_failed'
+      });
+      state.failures.push({ ...clone(action), status: 'failed', failedTick: state.tick, conflicts: [conflict] });
+      state.conflicts.push(conflict);
+      state.message = `${text('failed')}: ${conflictText(conflict)}`;
+      refresh();
+    }
+    return ok;
+  }
+
+  function beginPastSliceReplacement(raw, age) {
+    if (!usesPast()) return false;
+    const targetTick = currentTick() - age;
+    const event = [...state.timeline].reverse().find((candidate) =>
+      candidate.tick <= targetTick && candidate.player === raw.player && canEdit(candidate));
+    if (!event) {
+      state.message = text('outsideWindow');
+      refresh();
+      return false;
+    }
+    restoreSnapshot(state.app, event.beforeSnapshot);
+    state.editingEventId = event.id;
+    state.replacementSource = null;
+    state.pendingReplacement = null;
+    state.message = `${text('pastPreview')}: ${text('pastPreviewHelp')}`;
+    triggerRender();
+    refresh();
     return true;
   }
 
@@ -1459,6 +1621,9 @@ export function installSpaceTimeTimelineEngine() {
     state.editingEventId = null;
     state.replacementSource = null;
     state.pendingReplacement = null;
+    const rewriteMessage = state.message;
+    consumeSubmissionTurn();
+    state.message = rewriteMessage;
     triggerRender();
     refresh();
   }
@@ -2204,7 +2369,11 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function refresh() {
-    const mode = settings.mode;
+    let mode = settings.mode;
+    if (mode === 'periodic' && family !== 'go') {
+      settings.mode = 'future';
+      mode = 'future';
+    }
     const future = mode === 'future' || mode === 'past_future';
     const past = mode === 'past' || mode === 'past_future';
     panel.querySelector('[data-st-title]').textContent = `${dimensionLabel} ${text('title')}`;
@@ -2214,6 +2383,9 @@ export function installSpaceTimeTimelineEngine() {
     modeSelect.options[0].textContent = text('future');
     modeSelect.options[1].textContent = text('past');
     modeSelect.options[2].textContent = text('both');
+    modeSelect.options[3].textContent = text('ageModeChoice');
+    modeSelect.options[4].textContent = text('periodModeChoice');
+    modeSelect.options[4].hidden = family !== 'go';
     modeSelect.value = settings.mode;
     panel.querySelector('[data-st-period-mode] option[value="off"]').textContent = text('periodOffMode');
     panel.querySelector('[data-st-period-mode] option[value="periodic"]').textContent = text('periodOnMode');
@@ -2243,9 +2415,18 @@ export function installSpaceTimeTimelineEngine() {
         ? (language() === 'zh' ? '自訂' : 'Custom')
         : `${option.value} ${language() === 'zh' ? '回合' : 'ticks'}`;
     }
-    panel.querySelector('[data-st-help]').textContent = text(mode === 'future' ? 'futureHelp' : mode === 'past' ? 'pastHelp' : 'bothHelp');
-    panel.querySelector('[data-st-legacy-title]').textContent = text(family === 'go' ? 'legacyTitle' : 'ageOnlyTitle');
-    panel.querySelector('[data-st-legacy-help]').textContent = text(family === 'go' ? 'legacyHelp' : 'ageOnlyHelp');
+    const helpKey = mode === 'future'
+      ? 'futureHelp'
+      : mode === 'past'
+        ? 'pastHelp'
+        : mode === 'past_future'
+          ? 'bothHelp'
+          : mode === 'age'
+            ? 'ageHelp'
+            : 'periodHelp';
+    panel.querySelector('[data-st-help]').textContent = text(helpKey);
+    panel.querySelector('[data-st-legacy-title]').textContent = text(mode === 'periodic' ? 'legacyTitle' : 'ageOnlyTitle');
+    panel.querySelector('[data-st-legacy-help]').textContent = text(mode === 'periodic' ? 'legacyHelp' : 'ageOnlyHelp');
     panel.querySelector('[data-st-apply]').textContent = text('apply');
     panel.querySelector('[data-st-apply-rewrite]').textContent = text('applyRewrite');
     panel.querySelector('[data-st-cancel-rewrite]').textContent = text('cancelRewrite');
@@ -2255,10 +2436,12 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelectorAll('[data-st-future]').forEach((node) => { node.hidden = !future; });
     panel.querySelectorAll('[data-st-past]').forEach((node) => { node.hidden = !past; });
     panel.querySelector('[data-st-custom]').hidden = !past || panel.querySelector('[data-st-window]').value !== 'custom';
-    panel.querySelectorAll('[data-st-go-period]').forEach((node) => { node.hidden = family !== 'go'; });
-    panel.querySelectorAll('[data-st-period-control]').forEach((node) => { node.hidden = family !== 'go' || settings.periodMode !== 'periodic'; });
-    panel.querySelectorAll('[data-st-age-control]').forEach((node) => { node.hidden = settings.ageMode !== 'lifetime'; });
+    panel.querySelectorAll('[data-st-go-period]').forEach((node) => { node.hidden = true; });
+    panel.querySelectorAll('[data-st-age-choice]').forEach((node) => { node.hidden = true; });
+    panel.querySelectorAll('[data-st-period-control]').forEach((node) => { node.hidden = family !== 'go' || mode !== 'periodic'; });
+    panel.querySelectorAll('[data-st-age-control]').forEach((node) => { node.hidden = mode !== 'age'; });
     panel.querySelectorAll('[data-st-noise]').forEach((node) => { node.hidden = !allowsNoise; });
+    panel.querySelector('[data-st-legacy-section]').hidden = !(mode === 'age' || mode === 'periodic');
     panel.querySelector('[data-st-pending-section]').hidden = !future;
     panel.querySelector('[data-st-history-section]').hidden = false;
     const online = panel.querySelector('[data-st-online]');
