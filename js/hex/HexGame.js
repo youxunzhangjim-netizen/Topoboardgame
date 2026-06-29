@@ -123,6 +123,9 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
     const token = String(lattice || '').trim().toLowerCase();
     if (normalizedDimension === 3) {
         if (token === 'hcp') return 'hcp';
+        if (token === 'bcc') return 'bcc';
+        if (token === 'fcc') return 'fcc';
+        if (token === 'simple-cubic' || token === 'simple_cubic' || token === 'cubic' || token === 'sc') return 'axis';
         return 'axis';
     }
     if (normalizedDimension !== 2) return 'axis';
@@ -407,6 +410,28 @@ function hcpOffsets(origin) {
     ];
 }
 
+function bccOffsets() {
+    const result = [];
+    for (const dx of [-1, 1]) {
+        for (const dy of [-1, 1]) {
+            for (const dz of [-1, 1]) result.push([dx, dy, dz]);
+        }
+    }
+    return result;
+}
+
+function fccOffsets() {
+    const result = [];
+    for (const dx of [-1, 1]) {
+        for (const dy of [-1, 1]) result.push([dx, dy, 0]);
+        for (const dz of [-1, 1]) result.push([dx, 0, dz]);
+    }
+    for (const dy of [-1, 1]) {
+        for (const dz of [-1, 1]) result.push([0, dy, dz]);
+    }
+    return result;
+}
+
 function parametricPosition(coordinate, size, topology, lattice = 'axis') {
     const [x = 0, y = 0, z = 0] = coordinate;
     const [width, height, depth = 1] = size;
@@ -414,10 +439,12 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
     if (topology === 'open' || topology === 'torus' || topology === 'reflective' || topology === 'r3_random') {
         const hcpOffsetX = lattice === 'hcp' ? ((z % 2) * 0.5 + (y % 2) * 0.5) : 0;
         const hcpOffsetY = lattice === 'hcp' ? z * 0.18 : 0;
+        const bccOffset = lattice === 'bcc' && (x + y + z) % 2 ? 0.22 : 0;
+        const fccOffset = lattice === 'fcc' ? ((x + y + z) % 3 - 1) * 0.12 : 0;
         return [
-            (x + hcpOffsetX - (width - 1) / 2) * scale,
-            (z * (lattice === 'hcp' ? 0.82 : 1) - (depth - 1) / 2 + hcpOffsetY) * scale,
-            ((y - (height - 1) / 2) * (lattice === 'hcp' ? 0.866 : 1)) * scale
+            (x + hcpOffsetX + bccOffset - (width - 1) / 2) * scale,
+            (z * (lattice === 'hcp' ? 0.82 : 1) - (depth - 1) / 2 + hcpOffsetY + fccOffset) * scale,
+            ((y - (height - 1) / 2) * (lattice === 'hcp' ? 0.866 : 1) - bccOffset) * scale
         ];
     }
 
@@ -498,7 +525,7 @@ export function createHexTopology(options = {}) {
                 : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
         : surface3D
             ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
-            : lattice === 'hcp'
+            : ['hcp', 'bcc', 'fcc'].includes(lattice)
                 ? null
         : Array.from({ length: dimension * 2 }, (_, index) => {
             const offset = Array(dimension).fill(0);
@@ -509,7 +536,11 @@ export function createHexTopology(options = {}) {
 
     const offsetsFor = (origin) => neighborOffsets || [
         ...(dimension === 3
-            ? hcpOffsets(origin)
+            ? lattice === 'bcc'
+                ? bccOffsets()
+                : lattice === 'fcc'
+                    ? fccOffsets()
+                    : hcpOffsets(origin)
             : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
     ];
 

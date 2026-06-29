@@ -1,5 +1,6 @@
 import { ReversiGame, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import { ReversiRobotController } from './robot/ReversiRobot.js';
 
 const BOARD_THEMES = [
@@ -854,3 +855,4 @@ class Reversi2DApp {
 }
 
 window.reversi2dApp = new Reversi2DApp();
+installGameUILocalizer();

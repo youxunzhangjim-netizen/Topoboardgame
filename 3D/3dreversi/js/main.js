@@ -3,6 +3,7 @@ import { installReversi3DRobot } from './robot/Reversi3DRobot.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ReversiGame, REVERSI_TOPOLOGIES, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import {
     createKleinBottleSurfaceGeometry,
     kleinBottleGraphEdgePoints,
@@ -1156,6 +1157,8 @@ class Reversi3DRenderer {
 class Reversi3DApp {
     constructor() {
         this.modeSelect = document.getElementById('spaceSelect');
+        this.boundaryGroup = document.getElementById('boundaryControlGroup');
+        this.boundarySelect = document.getElementById('boundarySelect');
         this.latticeGroup = document.getElementById('latticeControlGroup');
         this.latticeSelect = document.getElementById('latticeSelect');
         this.sizeSelect = document.getElementById('boardSizeSelect');
@@ -1212,7 +1215,13 @@ class Reversi3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || 'r3');
-        this.modeSelect.value = ['r3', 't3', 'r3_random', 't2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(mode) ? mode : 'r3';
+        if (['r3', 't3', 'r3_random'].includes(mode)) {
+            this.modeSelect.value = 'r3';
+            this.boundarySelect.value = mode;
+        } else {
+            this.modeSelect.value = ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(mode) ? mode : 'r3';
+            this.boundarySelect.value = 'r3';
+        }
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
         const lattice = String(params.get('lattice') || '').toLowerCase();
@@ -1234,7 +1243,7 @@ class Reversi3DApp {
 
     createLogic() {
         return new ReversiGame({
-            topology: this.modeSelect.value,
+            topology: this.activeTopology(),
             lattice: this.currentLattice(),
             size: this.boardSize(),
             maxSize: 19
@@ -1243,6 +1252,7 @@ class Reversi3DApp {
 
     bindEvents() {
         this.modeSelect.addEventListener('change', () => this.resetGame());
+        this.boundarySelect?.addEventListener('change', () => this.resetGame());
         this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.sizeSelect.addEventListener('change', () => {
             this.updateCustomSizeVisibility();
@@ -1295,12 +1305,22 @@ class Reversi3DApp {
         this.layerInfo.textContent = 'Full 3D board';
         this.layerSelect.value = '0';
         const mode = this.modeSelect.value;
-        this.latticeGroup.hidden = !['r3', 't3', 'r3_random'].includes(mode);
-        if (!['r3', 't3', 'r3_random'].includes(mode)) this.latticeSelect.value = 'square';
+        const volumeBoard = mode === 'r3';
+        if (this.boundaryGroup) this.boundaryGroup.hidden = !volumeBoard;
+        if (this.boundarySelect) this.boundarySelect.disabled = !volumeBoard;
+        this.latticeGroup.hidden = !volumeBoard;
+        if (!volumeBoard) {
+            this.boundarySelect.value = 'r3';
+            this.latticeSelect.value = 'square';
+        }
     }
 
     currentLattice() {
-        return ['r3', 't3', 'r3_random'].includes(this.modeSelect.value) && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
+        return this.modeSelect.value === 'r3' && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
+    }
+
+    activeTopology() {
+        return this.modeSelect.value === 'r3' ? (this.boundarySelect?.value || 'r3') : this.modeSelect.value;
     }
 
     sliceInputValue(input) {
@@ -1489,12 +1509,12 @@ class Reversi3DApp {
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : `${this.capitalize(this.logic.currentPlayer)} to play`;
         this.summaryEl.textContent = `${counts.black + counts.white} stones on board, ${counts.empty} empty`;
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
-        const mode = this.modeSelect.value;
+        const mode = this.activeTopology();
         const lattice = this.currentLattice();
         const modeText = {
             r3: lattice === 'hcp' ? 'R3 HCP' : 'R3 Standard',
-            t3: 'T3 PBC',
-            r3_random: '3D RBC',
+            t3: lattice === 'hcp' ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
+            r3_random: lattice === 'hcp' ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
             t2: 'T2',
             cylinder: 'Cylinder',
             sphere: 'S2',
@@ -1506,8 +1526,8 @@ class Reversi3DApp {
             r3: lattice === 'hcp'
                 ? 'R3 HCP uses offset hexagonal close-packed layers with 12 nearest-neighbor bracket directions.'
                 : 'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.',
-            t3: 'T3 PBC wraps x, y, and z, so every cubic axis is periodic.',
-            r3_random: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
+            t3: 'T3 is the all-side periodic boundary condition on the R3 board. It wraps x, y, and z, so every volume axis is periodic.',
+            r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             t2: 'T2 is rendered as a solid rotatable torus. Both board directions wrap on the surface.',
             cylinder: 'Cylinder Reversi wraps left-right around the circumference while top and bottom remain open.',
             sphere: 'S2 is rendered as a rotatable latitude-ring sphere. Horizontal rays wrap by longitude and vertical rays stop at the caps.',
@@ -1602,13 +1622,15 @@ class Reversi3DApp {
     }
 
     onlineMatchKey() {
-        return ['3dreversi', this.modeSelect.value, this.currentLattice(), this.boardSize()].join(':');
+        return ['3dreversi', this.activeTopology(), this.currentLattice(), this.boardSize()].join(':');
     }
 
     exportNetworkState() {
         return {
             logic: this.logic.exportState(),
-            mode: this.modeSelect.value,
+            mode: this.activeTopology(),
+            boardSpace: this.modeSelect.value,
+            boundary: this.boundarySelect?.value || 'r3',
             lattice: this.currentLattice(),
             size: this.boardSize(),
             noiseTick: this.noiseTick,
@@ -1622,7 +1644,14 @@ class Reversi3DApp {
     importNetworkState(state) {
         if (!state?.logic) return;
         this.logic.importState(state.logic);
-        this.modeSelect.value = state.mode || this.logic.topology.topology || this.modeSelect.value;
+        const topology = state.mode || this.logic.topology.topology || this.modeSelect.value;
+        if (['r3', 't3', 'r3_random'].includes(topology)) {
+            this.modeSelect.value = 'r3';
+            if (this.boundarySelect) this.boundarySelect.value = topology;
+        } else {
+            this.modeSelect.value = topology;
+            if (this.boundarySelect) this.boundarySelect.value = 'r3';
+        }
         this.latticeSelect.value = state.lattice || this.currentLattice();
         this.setSizeSelection(state.size || this.logic.topology.width);
         if (this.timeEvolutionSelect) this.timeEvolutionSelect.value = state.timeEvolution || 'off';
@@ -1685,3 +1714,4 @@ try {
 } catch (error) {
     window.drawReversiFallback?.(error);
 }
+installGameUILocalizer();

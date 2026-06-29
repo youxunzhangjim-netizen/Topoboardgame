@@ -483,9 +483,13 @@ const ZH = new Map(Object.entries({
   'Board size': '棋盤大小',
   'Board Scale': '棋盤尺度',
   'Boundary Condition': '邊界條件',
+  'R3 Boundary Condition': 'R3 邊界條件',
   'Topology': '拓撲',
   'Lattice': '晶格',
   'Standard': '標準',
+  'Standard open boundary': '標準開放邊界',
+  'T3 all-side periodic': 'T3 全面週期',
+  '3D random boundary': '3D 隨機邊界',
   'Custom': '自訂',
   'Square': '方格',
   'Honeycomb': '蜂巢格',
@@ -498,6 +502,11 @@ const ZH = new Map(Object.entries({
   'Zoom Layer': '縮放層',
   'Visible R3 z-layer': '可見 R3 z 層',
   'R3 coordinate view filter': 'R3 座標視圖篩選',
+  'R3 Volume': 'R3 體積',
+  'R3 / T3 PBC': 'R3 / T3 週期邊界',
+  'R3 / 3D RBC': 'R3 / 3D 隨機邊界',
+  'R3 HCP / T3 PBC': 'R3 HCP / T3 週期邊界',
+  'R3 HCP / 3D RBC': 'R3 HCP / 3D 隨機邊界',
   'Rotate X': '旋轉 X',
   'Rotate Y': '旋轉 Y',
   'Rotate Z': '旋轉 Z',
@@ -596,6 +605,16 @@ const ZH = new Map(Object.entries({
   'Analyze / Suggest': '分析／建議',
   'Ready': '準備',
   'Reversi Space': 'Reversi 空間',
+  '2D Reversi': '2D Reversi',
+  '3D Reversi': '3D Reversi',
+  'R3 Standard Reversi': 'R3 標準 Reversi',
+  'T2 Torus Reversi': 'T2 環面 Reversi',
+  'Cylinder Reversi': '圓柱 Reversi',
+  'S2 Sphere Reversi': 'S2 球面 Reversi',
+  'Klein Bottle Reversi': 'Klein 瓶 Reversi',
+  'Mobius Strip Reversi': 'Mobius 帶 Reversi',
+  'RP2 Reversi': 'RP2 Reversi',
+  'Common Reversi embedded in rotatable R3, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 boards.': '將 Reversi 嵌入可旋轉的 R3 體積，以及 R3 的 T3 週期邊界、3D 隨機邊界、T2 環面、S2 球面、Klein 瓶、Mobius 帶與 RP2 棋盤。',
   'Go Space': '圍棋空間',
   'Sphere View': '球面視圖',
   '3D Sphere': '3D 球面',
@@ -1388,6 +1407,9 @@ function translateValue(text) {
     .replace(/Endgame starts when both players pass or neither side can play\./g, '當雙方都停手，或雙方都沒有可下位置時進入終局。')
     .replace(/On Polar boards, the true center is useful for connection but the center alone does not claim a whole empty region\./g, '在極座標棋盤上，真正中心點有助於連接，但單靠中心點不會直接佔領整片空區。')
     .replace(/R3 Standard uses ordinary open cubic boundaries\. Reversi brackets can run through all 26 graph ray directions\./g, 'R3 標準使用普通開放立方邊界。Reversi 夾擊可沿 26 個圖射線方向進行。')
+    .replace(/T3 is the all-side periodic boundary condition on the R3 board\. It wraps x, y, and z, so every volume axis is periodic\./g, 'T3 是 R3 棋盤的全面週期邊界條件；x、y、z 都會包回，因此每個體積方向都是週期性的。')
+    .replace(/3D RBC is the random boundary condition on the R3 board\. It uses one fixed seeded random map from each cube-boundary exit to another boundary point\./g, '3D RBC 是 R3 棋盤的隨機邊界條件；每個立方邊界出口會用固定種子的隨機映射連到另一個邊界點。')
+    .replace(/R3 HCP uses offset hexagonal close-packed layers with 12 nearest-neighbor bracket directions\./g, 'R3 HCP 使用錯位的六方最密堆積層，並有 12 個最近鄰夾擊方向。')
     .replace(/R3 Standard uses ordinary open boundaries in x, y, and z\./g, 'R3 標準在 x、y、z 方向都使用普通開放邊界。')
     .replace(/R3 uses open boundaries in x, y, and z\./g, 'R3 在 x、y、z 方向使用開放邊界。')
     .replace(/T2 wraps both directions on the torus board\./g, 'T2 環面會在棋盤兩個方向週期包回。')

@@ -81,14 +81,21 @@
                 <label for="spaceSelect">Reversi Space</label>
                 <select id="spaceSelect">
                     <option value="r3" selected>R3 Standard Reversi</option>
-                    <option value="t3">T3 PBC Reversi</option>
-                    <option value="r3_random">3D RBC Reversi</option>
                     <option value="t2">T2 Torus Reversi</option>
                     <option value="cylinder">Cylinder Reversi</option>
                     <option value="sphere">S2 Sphere Reversi</option>
                     <option value="klein">Klein Bottle Reversi</option>
                     <option value="mobius">Mobius Strip Reversi</option>
                     <option value="rp2">RP2 Reversi</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="boundaryControlGroup">
+                <label for="boundarySelect">R3 Boundary Condition</label>
+                <select id="boundarySelect">
+                    <option value="r3" selected>Standard open boundary</option>
+                    <option value="t3">T3 all-side periodic</option>
+                    <option value="r3_random">3D random boundary</option>
                 </select>
             </div>
 
@@ -122,8 +129,6 @@
             </div>
 
             <div class="boundary-info" id="modeInfo">R3 Standard uses a cubic graph with ordinary open boundaries. Moves can bracket along 26 topology-aware ray directions.</div>
-</div>
-</div>
 
             <div class="control-group r3-filter-control" id="r3FilterControl">
                 <label>R3 coordinate view filter</label>

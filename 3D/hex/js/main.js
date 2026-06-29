@@ -32,10 +32,12 @@ const I18N = {
         joinRoom: 'Join Room',
         boardSize: 'Board Size',
         topology: 'Topology',
-        cube: 'R3 / Cube',
-        t3: 'T3 Periodic Volume',
-        r3Random: '3D Random Boundary',
-        reflective: 'Reflective Volume',
+        cube: 'R3 Volume',
+        boundaryCondition: 'Boundary Condition',
+        standardBoundary: 'Standard',
+        t3Boundary: 'T3 all-side periodic',
+        r3RandomBoundary: '3D random boundary',
+        reflectiveBoundary: 'Reflective',
         t2: 'T2 Torus Surface',
         cylinder: 'Cylinder Surface',
         sphere: 'S2 Sphere Surface',
@@ -43,10 +45,13 @@ const I18N = {
         mobius: 'Mobius Strip Surface',
         rp2: 'RP2 Surface',
         lattice: 'Lattice',
-        axisLattice: 'Standard axis',
+        axisLattice: 'Simple cubic',
+        bccLattice: 'BCC',
+        fccLattice: 'FCC',
         hcpLattice: 'HCP',
         trefoilTube: 'Trefoil Tube',
         trefoilSolid: 'Trefoil Solid Tube',
+        kleinQuartic: 'Klein Quartic x I',
         boardView: 'Board View',
         rotateX: 'Rotate X',
         rotateY: 'Rotate Y',
@@ -87,8 +92,8 @@ const I18N = {
         opponent: 'Opponent',
         onlineUnavailable: 'Connect or join an Online room before placing.',
         topologyInfo: {
-            open: 'R3 / Cube uses open boundaries and axis-neighbor cubic adjacency.',
-            torus: 'T3 wraps every volume axis. Goals are explicit marked cut-zone planes inside the periodic volume.',
+            open: 'R3 volume uses open boundaries and the selected 3D lattice adjacency.',
+            torus: 'T3 is the all-side periodic boundary condition on the R3 volume board. Goals use explicit marked cut-zone planes inside the periodic volume.',
             r3_random: '3D RBC uses a seeded random boundary pairing when a move exits the cube.',
             reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
             t2: 'T2 is a torus surface embedded in 3D. Both players connect marked cut-seam zones on the surface.',
@@ -98,7 +103,8 @@ const I18N = {
             mobius: 'Mobius strip is a one-sided twisted strip. Black uses the seam zones; White uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
             trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
-            trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.'
+            trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.',
+            klein_quartic: 'Klein Quartic x I is a genus-3 cell-complex board extruded through one interval layer for 3D play.'
         }
     },
     zh: {
@@ -127,10 +133,12 @@ const I18N = {
         joinRoom: '加入房間',
         boardSize: '棋盤大小',
         topology: '拓撲',
-        cube: 'R3／立方體',
-        t3: 'T3 週期體積',
-        r3Random: '3D 隨機邊界',
-        reflective: '反射體積',
+        cube: 'R3 體積',
+        boundaryCondition: '邊界條件',
+        standardBoundary: '標準',
+        t3Boundary: 'T3 全面週期',
+        r3RandomBoundary: '3D 隨機邊界',
+        reflectiveBoundary: '反射',
         t2: 'T2 環面曲面',
         cylinder: '圓柱曲面',
         sphere: 'S2 球面曲面',
@@ -138,10 +146,13 @@ const I18N = {
         mobius: 'Mobius 帶曲面',
         rp2: 'RP2 曲面',
         lattice: '晶格',
-        axisLattice: '標準軸向',
+        axisLattice: '簡單立方',
+        bccLattice: 'BCC',
+        fccLattice: 'FCC',
         hcpLattice: 'HCP',
         trefoilTube: '三葉結管面',
         trefoilSolid: '三葉結實心管',
+        kleinQuartic: 'Klein quartic x I',
         boardView: '棋盤視角',
         rotateX: '繞 X 軸旋轉',
         rotateY: '繞 Y 軸旋轉',
@@ -182,8 +193,8 @@ const I18N = {
         opponent: '對手',
         onlineUnavailable: '請先連線或加入線上房間再落子。',
         topologyInfo: {
-            open: 'R3／立方體使用開放邊界與立方晶格的軸向相鄰關係。',
-            torus: 'T3 會包裹全部體積座標軸；雙方連接週期體積中的明確切面目標區。',
+            open: 'R3 體積使用開放邊界，並依所選 3D 晶格產生相鄰關係。',
+            torus: 'T3 是 R3 體積棋盤的全面週期邊界條件；目標使用週期體積中的明確切面標示區。',
             r3_random: '3D RBC 會在行動離開立方體邊界時使用固定種子的隨機邊界配對。',
             reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
             t2: 'T2 是嵌入 3D 視圖的環面曲面；雙方連接曲面上的切縫目標區。',
@@ -193,7 +204,8 @@ const I18N = {
             mobius: 'Mobius 帶是一側曲面；黑方使用接縫目標區，白方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
             trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
-            trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。'
+            trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。',
+            klein_quartic: 'Klein quartic x I 是將 genus-3 胞複形棋盤沿一個區間層擴展後的 3D 棋盤。'
         }
     }
 };
@@ -216,6 +228,8 @@ const elements = {
     roomId: document.getElementById('roomIdInput'),
     size: document.getElementById('boardSizeSelect'),
     topology: document.getElementById('topologySelect'),
+    boundaryGroup: document.getElementById('boundaryControlGroup'),
+    boundary: document.getElementById('boundarySelect'),
     latticeGroup: document.getElementById('latticeControlGroup'),
     lattice: document.getElementById('latticeSelect'),
     topologyInfo: document.getElementById('topologyInfo'),
@@ -280,7 +294,8 @@ function applyLanguage() {
     elements.language.title = text('switchLanguage');
     elements.home.href = `../../index.html?lang=${language}`;
     onlineController?.refreshLabels();
-    elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
+    elements.topologyInfo.textContent = text(`topologyInfo.${selectedTopology()}`);
+    if (game) elements.topologyMode.textContent = selectedTopologyLabel();
     updateTargetText();
     updateReadout();
     renderHistory();
@@ -298,10 +313,11 @@ function newGame() {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
     size = Number(elements.size.value);
-    game = new HexGame({ dimension: 3, size, topology: elements.topology.value, lattice: elements.lattice.value });
+    const topology = selectedTopology();
+    game = new HexGame({ dimension: 3, size, topology, lattice: elements.lattice.value });
     statusKey = 'emptyPrompt';
-    elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
-    elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
+    elements.topologyMode.textContent = selectedTopologyLabel();
+    elements.topologyInfo.textContent = text(`topologyInfo.${topology}`);
     updateTargetText();
     syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
@@ -314,19 +330,36 @@ function newGame() {
     drawBoard();
 }
 
+function selectedTopology() {
+    return elements.topology.value === 'open' ? elements.boundary.value : elements.topology.value;
+}
+
+function selectedTopologyLabel() {
+    if (elements.topology.value !== 'open') {
+        return elements.topology.options[elements.topology.selectedIndex]?.textContent || text(elements.topology.value);
+    }
+    const boundaryText = elements.boundary.options[elements.boundary.selectedIndex]?.textContent || text('standardBoundary');
+    return `${text('cube')} / ${boundaryText}`;
+}
+
 function isVolumeTopology(value = elements.topology.value) {
-    return ['open', 'torus', 'r3_random', 'reflective'].includes(value);
+    return value === 'open';
 }
 
 function isSurfaceTopology(value = elements.topology.value) {
-    return ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(value);
+    return ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2', 'trefoil_tube'].includes(value);
 }
 
 function syncLatticeControl() {
     const volume = isVolumeTopology();
+    elements.boundaryGroup.hidden = !volume;
+    elements.boundary.disabled = !volume;
     elements.latticeGroup.hidden = !volume;
     elements.lattice.disabled = !volume;
-    if (!volume) elements.lattice.value = 'axis';
+    if (!volume) {
+        elements.boundary.value = 'open';
+        elements.lattice.value = 'axis';
+    }
 }
 
 function updateReadout() {
@@ -680,6 +713,7 @@ elements.resetCamera.addEventListener('click', () => {
 });
 elements.size.addEventListener('change', newGame);
 elements.topology.addEventListener('change', newGame);
+elements.boundary.addEventListener('change', newGame);
 elements.lattice.addEventListener('change', newGame);
 elements.newGame.addEventListener('click', newGame);
 elements.mode.addEventListener('change', () => {
@@ -705,13 +739,18 @@ function importHexState(state, messageKey = '') {
     if ([...elements.size.options].some((option) => Number(option.value) === size)) {
         elements.size.value = String(size);
     }
-    if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
-        elements.topology.value = game.topology.topology;
+    const importedTopology = game.topology.topology;
+    if (['open', 'torus', 'r3_random', 'reflective'].includes(importedTopology)) {
+        elements.topology.value = 'open';
+        elements.boundary.value = importedTopology;
+    } else if ([...elements.topology.options].some((option) => option.value === importedTopology)) {
+        elements.topology.value = importedTopology;
+        elements.boundary.value = 'open';
     }
     if ([...elements.lattice.options].some((option) => option.value === game.lattice)) {
         elements.lattice.value = game.lattice;
     }
-    elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
+    elements.topologyMode.textContent = selectedTopologyLabel();
     elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
     syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
@@ -766,7 +805,7 @@ window.hexApp = {
         updateReadout();
     },
     onlineGameKey() {
-        return `hex-3d-${elements.topology.value}-${elements.lattice.value}-${size}`;
+        return `hex-3d-${selectedTopology()}-${elements.lattice.value}-${size}`;
     },
     onlineMatchKey() {
         return isSpaceTime ? 'hex-3p1' : 'hex-3d';
