@@ -256,7 +256,8 @@ const elements = {
 const context = elements.canvas.getContext('2d');
 let language = normalizeLanguage(params.get('lang') || localStorage.getItem(LANGUAGE_KEY));
 let game;
-let size = 6;
+let size = 4;
+let axisSizes = [4, 4, 4];
 let projectedSites = [];
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
@@ -317,15 +318,16 @@ function newGame() {
     const topologySize = expandedBoardSize(topology, requestedSize);
     const lattice = isVolumeTopology() ? elements.lattice.value : 'axis';
     game = new HexGame({ dimension: 3, size: topologySize, topology, lattice });
-    size = game.size[0];
+    syncBoardDimensions();
     statusKey = 'emptyPrompt';
     elements.topologyMode.textContent = selectedTopologyLabel();
     elements.topologyInfo.textContent = text(`topologyInfo.${topology}`);
     updateTargetText();
     syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
-        filter.max = String(size);
-        if (Number(filter.value) > size) filter.value = '';
+        const axis = [elements.filterX, elements.filterY, elements.filterZ].indexOf(filter);
+        filter.max = String(axisSizes[axis] || size);
+        if (Number(filter.value) > (axisSizes[axis] || size)) filter.value = '';
         filter.disabled = game.topology.isSpecial === true || isSurfaceTopology();
     }
     updateReadout();
@@ -336,18 +338,31 @@ function newGame() {
 function expandedBoardSize(topology, baseSize) {
     const base = Math.max(4, Number(baseSize) || 6);
     if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) {
-        return [Math.max(12, base * 2), Math.max(9, base + 3), 1];
+        return [Math.max(12, base * 3), Math.max(8, base * 2), 1];
     }
     if (topology === 'trefoil_tube') {
-        return [Math.max(14, base * 2 + 2), Math.max(8, base + 2), 1];
+        return [Math.max(24, base * 6), Math.max(10, base * 2 + 2), 1];
     }
     if (topology === 'trefoil_solid') {
-        return [Math.max(14, base * 2 + 2), Math.max(8, base + 2), Math.max(3, Math.ceil(base / 2))];
+        return [Math.max(24, base * 6), Math.max(10, base * 2 + 2), Math.max(3, Math.ceil(base / 2))];
     }
     if (topology === 'klein_quartic') {
         return [56, Math.max(4, base), 1];
     }
     return [base, base, base];
+}
+
+function syncBoardDimensions() {
+    axisSizes = [0, 1, 2].map((axis) => Math.max(1, Number(game?.size?.[axis] || game?.size?.[0] || 4)));
+    size = axisSizes[0];
+}
+
+function boardSelectSizeFromGame() {
+    const topology = game?.topology?.topology || selectedTopology();
+    if (topology === 'trefoil_tube' || topology === 'trefoil_solid') return Math.max(4, Math.round(axisSizes[0] / 6));
+    if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) return Math.max(4, Math.round(axisSizes[0] / 3));
+    if (topology === 'klein_quartic' || topology === 'klein_quartic_product') return Math.max(4, axisSizes[1] || 4);
+    return axisSizes[0] || 4;
 }
 
 function selectedTopology() {
@@ -458,20 +473,20 @@ function surfaceNormal(coordinate, model) {
 }
 
 function projectCoordinate(coordinate, width, height) {
-    const midpoint = (size - 1) / 2;
+    const midpoint = axisSizes.map((value) => (value - 1) / 2);
     const model = game.topology.isSpecial
         ? game.topology.position(coordinate).slice(0, 3)
-        : (game.topology.position?.(coordinate) || coordinate.map((value) => value - midpoint));
+        : (game.topology.position?.(coordinate) || coordinate.map((value, axis) => value - (midpoint[axis] || 0)));
     const rotated = rotatePoint(model);
     const normal = surfaceNormal(coordinate, model);
     const rotatedNormal = normal ? rotatePoint(normal) : null;
     const extent = game.topology.isSpecial || isSurfaceTopology()
         ? specialModelExtent * 1.2
-        : size - 1;
+        : Math.max(...axisSizes) - 1;
     const scale = Math.min(width, height) * 0.62 /
         Math.max(1, extent) *
         Number(elements.zoom.value);
-    const perspective = 1 + rotated[2] / Math.max(12, size * 4);
+    const perspective = 1 + rotated[2] / Math.max(12, Math.max(...axisSizes) * 4);
     return {
         x: width / 2 + rotated[0] * scale * perspective,
         y: height / 2 - rotated[1] * scale * perspective,
@@ -496,7 +511,9 @@ function fitCanvas() {
 
 function filterValue(input) {
     const value = Number(input.value);
-    return Number.isInteger(value) && value >= 1 && value <= size ? value - 1 : null;
+    const axis = input === elements.filterY ? 1 : input === elements.filterZ ? 2 : 0;
+    const limit = axisSizes[axis] || size;
+    return Number.isInteger(value) && value >= 1 && value <= limit ? value - 1 : null;
 }
 
 function visibleCoordinate(coordinate) {
@@ -507,7 +524,7 @@ function visibleCoordinate(coordinate) {
 
 function planeCorners(axis, value) {
     const otherAxes = [0, 1, 2].filter((candidate) => candidate !== axis);
-    return [[0, 0], [size - 1, 0], [size - 1, size - 1], [0, size - 1]].map(([a, b]) => {
+    return [[0, 0], [axisSizes[otherAxes[0]] - 1, 0], [axisSizes[otherAxes[0]] - 1, axisSizes[otherAxes[1]] - 1], [0, axisSizes[otherAxes[1]] - 1]].map(([a, b]) => {
         const coordinate = [0, 0, 0];
         coordinate[axis] = value;
         coordinate[otherAxes[0]] = a;
@@ -536,6 +553,24 @@ function surfacePanelCoordinates(x, y) {
     const topology = selectedTopology();
     const [width, height] = game.size;
     const normalize = (coordinate) => game.topology.normalize(coordinate);
+    if (topology === 'trefoil_tube') {
+        const wrap = (value, modulus) => ((value % modulus) + modulus) % modulus;
+        return [
+            normalize([wrap(x, width), wrap(y, height), 0]),
+            normalize([wrap(x + 1, width), wrap(y, height), 0]),
+            normalize([wrap(x + 1, width), wrap(y + 1, height), 0]),
+            normalize([wrap(x, width), wrap(y + 1, height), 0])
+        ].filter(Boolean);
+    }
+    if (topology === 'rp2') {
+        if (x >= width - 1 || y >= height - 1) return [];
+        return [
+            normalize([x, y, 0]),
+            normalize([x + 1, y, 0]),
+            normalize([x + 1, y + 1, 0]),
+            normalize([x, y + 1, 0])
+        ].filter(Boolean);
+    }
     if (topology === 'sphere') {
         if (y === 0) {
             return [
@@ -560,17 +595,28 @@ function surfacePanelCoordinates(x, y) {
     ].filter(Boolean);
 }
 
+function surfacePanelCellCoordinate(x, y) {
+    const [width, height] = game.size;
+    const topology = selectedTopology();
+    if (topology === 'sphere') {
+        if (y === 0) return game.topology.normalize([0, 0, 0]);
+        if (y >= height - 2) return game.topology.normalize([0, height - 1, 0]);
+    }
+    return game.topology.normalize([x, y, 0]);
+}
+
 function drawSurfacePanels(width, height) {
     const topology = selectedTopology();
-    if (!isSurfaceTopology()) return;
+    if (!isSurfaceTopology()) return new Set();
     const [gridWidth, gridHeight] = game.size;
-    const wrapY = topology === 't2' || topology === 'klein' || topology === 'rp2';
+    const wrapY = topology === 't2' || topology === 'klein' || topology === 'trefoil_tube';
     const yLimit = topology === 'sphere'
         ? gridHeight - 1
         : wrapY ? gridHeight : gridHeight - 1;
     const blackZone = game.topology.goalZones.black;
     const whiteZone = game.topology.goalZones.white;
     const panels = [];
+    const filledCells = new Set();
 
     for (let y = 0; y < yLimit; y += 1) {
         for (let x = 0; x < gridWidth; x += 1) {
@@ -578,11 +624,14 @@ function drawSurfacePanels(width, height) {
             const unique = [...new Map(coords.map((coordinate) => [coordinate.join(','), coordinate])).values()];
             if (unique.length < 3) continue;
             const points = unique.map((coordinate) => projectCoordinate(coordinate, width, height));
-            if (points.every((point) => point.frontFacing === false)) continue;
             const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
+            const cell = surfacePanelCellCoordinate(x, y);
+            const color = cell ? game.getCell(cell) : null;
+            if (color && cell) filledCells.add(cell.join(','));
             panels.push({
                 points,
                 avgDepth,
+                color,
                 blackTarget: unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate)),
                 whiteTarget: unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate))
             });
@@ -598,16 +647,19 @@ function drawSurfacePanels(width, height) {
             else context.moveTo(point.x, point.y);
         });
         context.closePath();
-        if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.86)';
+        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = 'rgba(36, 169, 194, 0.9)';
+        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = 'rgba(227, 164, 47, 0.9)';
+        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.78)';
         else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.88)';
         else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.88)';
-        else context.fillStyle = 'rgba(224, 231, 228, 0.84)';
+        else context.fillStyle = topology === 'klein' ? 'rgba(224, 231, 228, 0.7)' : 'rgba(224, 231, 228, 0.84)';
         context.fill();
-        context.strokeStyle = 'rgba(65, 76, 84, 0.68)';
-        context.lineWidth = 0.75;
+        context.strokeStyle = topology === 'klein' ? 'rgba(65, 76, 84, 0.36)' : 'rgba(65, 76, 84, 0.58)';
+        context.lineWidth = topology === 'klein' ? 0.45 : 0.72;
         context.stroke();
     }
     context.restore();
+    return filledCells;
 }
 
 function drawBoard() {
@@ -625,55 +677,60 @@ function drawBoard() {
     }
     const blackZone = game.topology.goalZones.black;
     const whiteZone = game.topology.goalZones.white;
-    const xEnd = blackZone.type === 'physical-sides' ? size - 1 : Math.floor(size / 2);
-    const yEnd = whiteZone.type === 'physical-sides' ? size - 1 : Math.floor(size / 2);
+    const xEnd = blackZone.type === 'physical-sides' ? axisSizes[0] - 1 : Math.floor(axisSizes[0] / 2);
+    const yEnd = whiteZone.type === 'physical-sides' ? axisSizes[1] - 1 : Math.floor(axisSizes[1] / 2);
     if (!special && !surface) {
         drawPlane(0, 0, 'rgba(66,199,223,0.08)', 'rgba(66,199,223,0.45)', width, height);
         drawPlane(0, xEnd, 'rgba(66,199,223,0.12)', 'rgba(66,199,223,0.68)', width, height);
         drawPlane(1, 0, 'rgba(232,180,76,0.07)', 'rgba(232,180,76,0.42)', width, height);
         drawPlane(1, yEnd, 'rgba(232,180,76,0.11)', 'rgba(232,180,76,0.65)', width, height);
     }
-    if (surface) drawSurfacePanels(width, height);
+    const surfaceFilledCells = surface ? drawSurfacePanels(width, height) : new Set();
 
     const projectedEntries = game.topology.coordinates()
         .filter(visibleCoordinate)
         .map((coordinate) => [coordinate.join(','), projectCoordinate(coordinate, width, height)])
-        .filter(([, point]) => !surface || point.frontFacing);
+        .filter(([, point]) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
     const visible = projectedEntries.map(([key]) => key.split(',').map(Number));
     const visibleKeys = new Set(projectedEntries.map(([key]) => key));
     const projected = new Map(projectedEntries);
 
-    context.lineWidth = 0.75;
-    context.strokeStyle = 'rgba(160,184,198,0.2)';
-    const drawnEdges = new Set();
-    for (const coordinate of visible) {
-        const fromKey = coordinate.join(',');
-        const from = projected.get(fromKey);
-        const topologyEdges = special || surface || game.topology.lattice === 'hcp';
-        const neighbors = topologyEdges
-            ? game.topology.neighbors(coordinate)
-            : Array.from({ length: 3 }, (_, axis) => {
-                const next = [...coordinate];
-                next[axis] += 1;
-                return next;
-            });
-        for (const next of neighbors) {
-            if (!special && !surface && !isLocalVisualEdge(coordinate, next)) continue;
-            const nextKey = next.join(',');
-            if (!visibleKeys.has(nextKey)) continue;
-            const edgeKey = [fromKey, nextKey].sort().join('|');
-            if (drawnEdges.has(edgeKey)) continue;
-            drawnEdges.add(edgeKey);
-            const to = projected.get(nextKey);
-            context.beginPath();
-            context.moveTo(from.x, from.y);
-            context.lineTo(to.x, to.y);
-            context.stroke();
+    if (!surface) {
+        context.lineWidth = 0.75;
+        context.strokeStyle = 'rgba(160,184,198,0.2)';
+        const drawnEdges = new Set();
+        for (const coordinate of visible) {
+            const fromKey = coordinate.join(',');
+            const from = projected.get(fromKey);
+            const topologyEdges = special || game.topology.lattice === 'hcp';
+            const neighbors = topologyEdges
+                ? game.topology.neighbors(coordinate)
+                : Array.from({ length: 3 }, (_, axis) => {
+                    const next = [...coordinate];
+                    next[axis] += 1;
+                    return next;
+                });
+            for (const next of neighbors) {
+                if (!special && !isLocalVisualEdge(coordinate, next)) continue;
+                const nextKey = next.join(',');
+                if (!visibleKeys.has(nextKey)) continue;
+                const edgeKey = [fromKey, nextKey].sort().join('|');
+                if (drawnEdges.has(edgeKey)) continue;
+                drawnEdges.add(edgeKey);
+                const to = projected.get(nextKey);
+                context.beginPath();
+                context.moveTo(from.x, from.y);
+                context.lineTo(to.x, to.y);
+                context.stroke();
+            }
         }
     }
 
     projectedSites = [...projected.values()].sort((a, b) => a.depth - b.depth);
     for (const site of projectedSites) {
+        const siteKey = site.coordinate.join(',');
+        if (surface && surfaceFilledCells.has(siteKey)) continue;
+        if (surface) continue;
         const color = game.getCell(site.coordinate);
         const isBlackTarget = blackZone.start(site.coordinate) || blackZone.end(site.coordinate);
         const isWhiteTarget = whiteZone.start(site.coordinate) || whiteZone.end(site.coordinate);
@@ -866,9 +923,10 @@ applyLanguage();
 
 function importHexState(state, messageKey = '') {
     game = HexGame.fromState(state);
-    size = game.size[0];
-    if ([...elements.size.options].some((option) => Number(option.value) === size)) {
-        elements.size.value = String(size);
+    syncBoardDimensions();
+    const importedBaseSize = boardSelectSizeFromGame();
+    if ([...elements.size.options].some((option) => Number(option.value) === importedBaseSize)) {
+        elements.size.value = String(importedBaseSize);
     }
     const importedTopology = game.topology.topology;
     if (['open', 'torus', 'r3_random', 'reflective'].includes(importedTopology)) {
@@ -885,7 +943,8 @@ function importHexState(state, messageKey = '') {
     elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
     syncLatticeControl();
     for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
-        filter.max = String(size);
+        const axis = [elements.filterX, elements.filterY, elements.filterZ].indexOf(filter);
+        filter.max = String(axisSizes[axis] || size);
         filter.disabled = game.topology.isSpecial === true || isSurfaceTopology();
     }
     if (messageKey) statusKey = messageKey;
@@ -936,7 +995,7 @@ window.hexApp = {
         updateReadout();
     },
     onlineGameKey() {
-        return `hex-3d-${selectedTopology()}-${elements.lattice.value}-${size}`;
+        return `hex-3d-${selectedTopology()}-${elements.lattice.value}-${axisSizes.join('x')}`;
     },
     onlineMatchKey() {
         return isSpaceTime ? 'hex-3p1' : 'hex-3d';

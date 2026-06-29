@@ -499,14 +499,14 @@ class Go3DRenderer {
 
     buildKlein(width, height) {
         const surface = new THREE.Mesh(
-            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 96, lift: -0.018 }),
+            createKleinBottleSurfaceGeometry({ uSegments: 180, vSegments: 76, lift: -0.018 }),
             new THREE.MeshPhysicalMaterial({
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
                 opacity: 0.68,
-                depthWrite: false,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -520,8 +520,8 @@ class Go3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.9,
-            depthTest: false,
+            opacity: 0.48,
+            depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -932,23 +932,7 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                let dx = neighbor[0] - coord[0];
-                let dy = neighbor[1] - coord[1];
-                if (dx > size / 2) dx -= size;
-                if (dx < -size / 2) dx += size;
-                if (dy > size / 2) dy -= size;
-                if (dy < -size / 2) dy += size;
-                let previous = this.torusPosition(coord, size, 0.04).position;
-                for (let step = 1; step <= 4; step++) {
-                    const t = step / 4;
-                    const current = this.torusPosition(
-                        [coord[0] + dx * t, coord[1] + dy * t],
-                        size,
-                        0.04
-                    ).position;
-                    linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
-                    previous = current;
-                }
+                this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.04));
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1005,17 +989,7 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                let dx = neighbor[0] - coord[0];
-                const dy = neighbor[1] - coord[1];
-                if (dx > width / 2) dx -= width;
-                if (dx < -width / 2) dx += width;
-                let previous = this.cylinderPosition(coord, width, height, 0.04).position;
-                for (let step = 1; step <= 4; step += 1) {
-                    const t = step / 4;
-                    const current = this.cylinderPosition([coord[0] + dx * t, coord[1] + dy * t], width, height, 0.04).position;
-                    linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
-                    previous = current;
-                }
+                this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, logic.lattice, 0.04));
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1574,16 +1548,72 @@ class Go3DRenderer {
         };
     }
 
+    appendPolyline(linePositions, points) {
+        for (let index = 1; index < points.length; index += 1) {
+            const previous = points[index - 1];
+            const current = points[index];
+            linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
+        }
+    }
+
+    shortestAngleDelta(start, end) {
+        let delta = end - start;
+        if (delta > Math.PI) delta -= TWO_PI;
+        if (delta < -Math.PI) delta += TWO_PI;
+        return delta;
+    }
+
+    torusPointFromUV(uv, lift = 0) {
+        const radius = 1.22 + lift;
+        const ringRadius = 3.35 + radius * Math.cos(uv.v);
+        return new THREE.Vector3(
+            ringRadius * Math.cos(uv.u),
+            ringRadius * Math.sin(uv.u),
+            radius * Math.sin(uv.v)
+        );
+    }
+
+    cylinderPointFromUV(uv, lift = 0) {
+        const radius = CYLINDER_RADIUS + lift;
+        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
+        return new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+    }
+
+    torusSurfaceEdgePoints(a, b, size, lattice = SQUARE_LATTICE, lift = 0.04, segments = 6) {
+        const start = this.latticeSurfaceUV(a, size, size, lattice);
+        const end = this.latticeSurfaceUV(b, size, size, lattice);
+        const du = this.shortestAngleDelta(start.u, end.u);
+        const dv = this.shortestAngleDelta(start.v, end.v);
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            points.push(this.torusPointFromUV({
+                u: start.u + du * t,
+                v: start.v + dv * t
+            }, lift));
+        }
+        return points;
+    }
+
+    cylinderSurfaceEdgePoints(a, b, width, height, lattice = SQUARE_LATTICE, lift = 0.04, segments = 6) {
+        const start = this.latticeSurfaceUV(a, width, height, lattice);
+        const end = this.latticeSurfaceUV(b, width, height, lattice);
+        const du = this.shortestAngleDelta(start.u, end.u);
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            points.push(this.cylinderPointFromUV({
+                u: start.u + du * t,
+                band: THREE.MathUtils.lerp(start.band, end.band, t)
+            }, lift));
+        }
+        return points;
+    }
+
     torusPosition(coord, size, lift = 0, lattice = SQUARE_LATTICE) {
         if (lattice !== SQUARE_LATTICE) {
             const uv = this.latticeSurfaceUV(coord, size, size, lattice);
-            const R = 3.35;
-            const r = 1.22 + lift;
-            const position = new THREE.Vector3(
-                (R + r * Math.cos(uv.v)) * Math.cos(uv.u),
-                (R + r * Math.cos(uv.v)) * Math.sin(uv.u),
-                r * Math.sin(uv.v)
-            );
+            const position = this.torusPointFromUV(uv, lift);
             const normal = new THREE.Vector3(Math.cos(uv.u) * Math.cos(uv.v), Math.sin(uv.u) * Math.cos(uv.v), Math.sin(uv.v)).normalize();
             return { position, normal };
         }
@@ -1595,9 +1625,7 @@ class Go3DRenderer {
 
     cylinderPosition(coord, width, height, lift = 0, lattice = SQUARE_LATTICE) {
         const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const radius = CYLINDER_RADIUS + lift;
-        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
-        const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+        const position = this.cylinderPointFromUV(uv, lift);
         const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
     }

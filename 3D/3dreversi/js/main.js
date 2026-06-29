@@ -138,8 +138,8 @@ class Reversi3DRenderer {
         this.nodePoints = null;
 
         if (isR3LikeTopology(topology.topology)) this.buildR3(topology);
-        else if (topology.topology === REVERSI_TOPOLOGIES.T2) this.buildTorus(topology.width, topology.height);
-        else if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) this.buildCylinder(topology.width, topology.height);
+        else if (topology.topology === REVERSI_TOPOLOGIES.T2) this.buildTorus(topology.width, topology.height, topology.lattice);
+        else if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) this.buildCylinder(topology.width, topology.height, topology.lattice);
         else if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) this.buildMobius(topology.width, topology.height);
         else if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) this.buildKlein(topology);
         else if (topology.topology === REVERSI_TOPOLOGIES.RP2) {
@@ -205,7 +205,7 @@ class Reversi3DRenderer {
         this.boardGroup.add(axes);
     }
 
-    buildTorus(width, height) {
+    buildTorus(width, height, lattice = 'square') {
         const torus = new THREE.Mesh(
             new THREE.TorusGeometry(3.35, 1.22, 64, 192),
             new THREE.MeshPhysicalMaterial({
@@ -226,14 +226,14 @@ class Reversi3DRenderer {
             opacity: 0.84,
             depthWrite: false
         });
-        for (let y = 0; y < height; y += 1) this.boardGroup.add(this.torusLine(width, height, 'x', y, gridMaterial));
-        for (let x = 0; x < width; x += 1) this.boardGroup.add(this.torusLine(width, height, 'y', x, gridMaterial));
+        for (let y = 0; y < height; y += 1) this.boardGroup.add(this.torusLine(width, height, 'x', y, gridMaterial, lattice));
+        for (let x = 0; x < width; x += 1) this.boardGroup.add(this.torusLine(width, height, 'y', x, gridMaterial, lattice));
 
         const pointPositions = [];
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                const p = this.torusPosition(coord, width, height, 0.07).position;
+                const p = this.positionForCoord(coord, this.app.logic, 0.07);
                 this.pointCoords.push(coord);
                 this.pointPositions.push(p);
                 pointPositions.push(p.x, p.y, p.z);
@@ -245,7 +245,7 @@ class Reversi3DRenderer {
         });
     }
 
-    buildCylinder(width, height) {
+    buildCylinder(width, height, lattice = 'square') {
         const surface = new THREE.Mesh(
             new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
@@ -271,12 +271,10 @@ class Reversi3DRenderer {
             depthWrite: false
         });
         const linePositions = [];
-        const addEdge = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
-                const current = this.cylinderPosition([x, y], width, height, 0.045);
-                addEdge(current, this.cylinderPosition([(x + 1) % width, y], width, height, 0.045));
-                if (y < height - 1) addEdge(current, this.cylinderPosition([x, y + 1], width, height, 0.045));
+                this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, lattice, 0.045));
+                if (y < height - 1) this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [x, y + 1], width, height, lattice, 0.045));
             }
         }
         const geometry = new THREE.BufferGeometry();
@@ -287,7 +285,7 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                const point = this.cylinderPosition(coord, width, height, 0.08);
+                const point = this.positionForCoord(coord, this.app.logic, 0.08);
                 this.pointCoords.push(coord);
                 this.pointPositions.push(point);
                 pointPositions.push(point.x, point.y, point.z);
@@ -361,11 +359,10 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                for (const lift of [0.08, -0.08]) {
-                    const pose = this.mobiusPose(coord, width, height, lift);
+                for (const position of this.positionsForCoord(coord, this.app.logic, 0.08)) {
                     this.pointCoords.push(coord);
-                    this.pointPositions.push(pose.position);
-                    pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+                    this.pointPositions.push(position);
+                    pointPositions.push(position.x, position.y, position.z);
                 }
             }
         }
@@ -433,14 +430,14 @@ class Reversi3DRenderer {
     buildKlein(topology) {
         const { width, height } = topology;
         const surface = new THREE.Mesh(
-            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 96, lift: -0.018 }),
+            createKleinBottleSurfaceGeometry({ uSegments: 180, vSegments: 76, lift: -0.018 }),
             new THREE.MeshPhysicalMaterial({
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
                 opacity: 0.68,
-                depthWrite: false,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -454,15 +451,15 @@ class Reversi3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.9,
-            depthTest: false,
+            opacity: 0.48,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.95,
-            depthTest: false,
+            opacity: 0.64,
+            depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -486,7 +483,7 @@ class Reversi3DRenderer {
 
         const pointPositions = [];
         for (const coord of topology.allCoords()) {
-            const pose = this.kleinOutsidePose(coord, width, height, 0.11);
+            const pose = this.posesForCoord(coord, this.app.logic, 0.11)[0];
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
@@ -522,17 +519,18 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                const point = this.flatPosition(coord, width, height, 0.02);
+                const gridPoint = this.flatPosition(coord, width, height, 0.02);
+                const point = this.positionForCoord(coord, this.app.logic, 0.02);
                 this.pointCoords.push(coord);
                 this.pointPositions.push(point);
                 pointPositions.push(point.x, point.y, point.z);
                 if (x < width - 1) {
                     const next = this.flatPosition([x + 1, y], width, height, 0.02);
-                    linePositions.push(point.x, point.y, point.z, next.x, next.y, next.z);
+                    linePositions.push(gridPoint.x, gridPoint.y, gridPoint.z, next.x, next.y, next.z);
                 }
                 if (y < height - 1) {
                     const next = this.flatPosition([x, y + 1], width, height, 0.02);
-                    linePositions.push(point.x, point.y, point.z, next.x, next.y, next.z);
+                    linePositions.push(gridPoint.x, gridPoint.y, gridPoint.z, next.x, next.y, next.z);
                 }
             }
         }
@@ -602,7 +600,7 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                const point = this.spherePosition(coord, width, height, 0.08);
+                const point = this.positionForCoord(coord, this.app.logic, 0.08);
                 this.pointCoords.push(coord);
                 this.pointPositions.push(point);
                 pointPositions.push(point.x, point.y, point.z);
@@ -614,7 +612,7 @@ class Reversi3DRenderer {
         });
     }
 
-    torusLine(width, height, varyingAxis, fixedValue, material) {
+    torusLine(width, height, varyingAxis, fixedValue, material, lattice = 'square') {
         const points = [];
         const segments = Math.max(96, Math.max(width, height) * 8);
         for (let i = 0; i <= segments; i += 1) {
@@ -622,7 +620,7 @@ class Reversi3DRenderer {
             const coord = varyingAxis === 'x'
                 ? [value * width, fixedValue]
                 : [fixedValue, value * height];
-            points.push(this.torusPosition(coord, width, height, 0.04).position);
+            points.push(this.torusPosition(coord, width, height, 0.04, lattice).position);
         }
         return new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
     }
@@ -648,17 +646,26 @@ class Reversi3DRenderer {
         this.clearGroup(this.stoneGroup);
         const black = [];
         const white = [];
+        const blackSurface = [];
+        const whiteSurface = [];
         const ageRings = [];
+        const surfaceFaceBoard = this.isSurfaceFaceBoard(logic);
         for (const [key, stone] of logic.board.entries()) {
             const coord = key.split(',').map(Number);
             if (!this.coordVisible(coord)) continue;
-            const positions = this.positionsForCoord(coord, logic, 0.18);
-            if (stone.color === 'black') black.push(...positions);
+            const poses = this.posesForCoord(coord, logic, surfaceFaceBoard ? 0.105 : 0.18);
+            const positions = poses.map((pose) => pose.position);
+            if (surfaceFaceBoard) {
+                if (stone.color === 'black') blackSurface.push(...poses);
+                else whiteSurface.push(...poses);
+            } else if (stone.color === 'black') black.push(...positions);
             else white.push(...positions);
             if (this.app?.shouldShowAgeRings?.()) {
                 for (const position of positions) ageRings.push({ position, age: stone.age || 0 });
             }
         }
+        this.addSurfaceStoneDiscs(blackSurface, 'black', logic);
+        this.addSurfaceStoneDiscs(whiteSurface, 'white', logic);
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
         this.addAgeRings(ageRings, logic);
@@ -729,6 +736,47 @@ class Reversi3DRenderer {
         this.applyPieceFocusToObject(stoneMesh);
         this.applyPieceFocusToObject(dotMesh);
         this.stoneGroup.add(stoneMesh, dotMesh);
+    }
+
+    addSurfaceStoneDiscs(poses, color, logic) {
+        if (!poses.length) return;
+        const radius = this.markerRadius(logic) * 1.55;
+        const discGeometry = new THREE.CircleGeometry(radius, 42);
+        const rimGeometry = new THREE.RingGeometry(radius * 0.92, radius * 1.08, 42);
+        const discMaterial = new THREE.MeshPhysicalMaterial({
+            color: color === 'black' ? 0x05070a : 0xf8fafc,
+            roughness: color === 'black' ? 0.42 : 0.22,
+            metalness: 0.02,
+            clearcoat: 0.16,
+            side: THREE.DoubleSide
+        });
+        const rimMaterial = new THREE.MeshBasicMaterial({
+            color: color === 'black' ? 0x48c7f4 : 0xf2c464,
+            transparent: true,
+            opacity: 0.92,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        discMaterial.userData.baseOpacity = discMaterial.opacity;
+        rimMaterial.userData.baseOpacity = rimMaterial.opacity;
+        const localNormal = new THREE.Vector3(0, 0, 1);
+        for (const pose of poses) {
+            const normal = pose.normal?.clone?.().normalize?.() || new THREE.Vector3(0, 0, 1);
+            const position = pose.position.clone().add(normal.clone().multiplyScalar(0.016));
+            const disc = new THREE.Mesh(discGeometry, discMaterial);
+            const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+            disc.position.copy(position);
+            rim.position.copy(position.clone().add(normal.clone().multiplyScalar(0.006)));
+            disc.quaternion.setFromUnitVectors(localNormal, normal);
+            rim.quaternion.copy(disc.quaternion);
+            disc.renderOrder = 8;
+            rim.renderOrder = 9;
+            disc.userData.pieceColor = color;
+            rim.userData.pieceColor = color;
+            this.applyPieceFocusToObject(disc);
+            this.applyPieceFocusToObject(rim);
+            this.stoneGroup.add(disc, rim);
+        }
     }
 
     addAgeRings(items, logic) {
@@ -802,14 +850,54 @@ class Reversi3DRenderer {
     }
 
     positionsForCoord(coord, logic, lift = 0) {
+        return this.posesForCoord(coord, logic, lift).map((pose) => pose.position);
+    }
+
+    isSurfaceFaceBoard(logic = this.app?.logic) {
+        return [
+            REVERSI_TOPOLOGIES.T2,
+            REVERSI_TOPOLOGIES.CYLINDER,
+            REVERSI_TOPOLOGIES.KLEIN,
+            REVERSI_TOPOLOGIES.MOBIUS,
+            REVERSI_TOPOLOGIES.RP2,
+            REVERSI_TOPOLOGIES.SPHERE
+        ].includes(logic?.topology?.topology);
+    }
+
+    surfaceCellCoord(coord, logic = this.app?.logic) {
+        if (!this.isSurfaceFaceBoard(logic) || !Array.isArray(coord)) return coord;
+        if (logic?.topology?.topology === REVERSI_TOPOLOGIES.KLEIN) {
+            return [Number(coord[0]), Number(coord[1]) + 0.5];
+        }
+        return [Number(coord[0]) + 0.5, Number(coord[1]) + 0.5];
+    }
+
+    posesForCoord(coord, logic, lift = 0) {
+        const topology = logic.topology;
+        const visualCoord = this.surfaceCellCoord(coord, logic);
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
             const visibleLift = Math.abs(lift);
             return [
-                this.mobiusPose(coord, logic.topology.width, logic.topology.height, visibleLift).position,
-                this.mobiusPose(coord, logic.topology.width, logic.topology.height, -visibleLift).position
+                this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice),
+                this.mobiusPose(visualCoord, topology.width, topology.height, -visibleLift, topology.lattice)
             ];
         }
-        return [this.positionForCoord(coord, logic, lift)];
+        if (topology.topology === REVERSI_TOPOLOGIES.T2) return [this.torusPosition(visualCoord, topology.width, topology.height, lift, topology.lattice)];
+        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return [this.cylinderPose(visualCoord, topology.width, topology.height, lift, topology.lattice)];
+        if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return [this.kleinOutsidePose(visualCoord, topology.width, topology.height, lift)];
+        if (topology.topology === REVERSI_TOPOLOGIES.RP2) return [{
+            position: this.flatCellPosition(coord, topology.width, topology.height, lift),
+            normal: new THREE.Vector3(0, 0, 1)
+        }];
+        if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) {
+            const position = this.spherePosition(visualCoord, topology.width, topology.height, lift);
+            const normal = this.spherePosition(visualCoord, topology.width, topology.height, 0).normalize();
+            return [{ position, normal }];
+        }
+        return [{
+            position: this.positionForCoord(coord, logic, lift),
+            normal: new THREE.Vector3(0, 1, 0)
+        }];
     }
 
     pickCoord(event) {
@@ -844,11 +932,7 @@ class Reversi3DRenderer {
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
             if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) {
-                const pose = mode === REVERSI_TOPOLOGIES.T2
-                    ? this.torusPosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.07)
-                    : mode === REVERSI_TOPOLOGIES.CYLINDER
-                        ? this.cylinderPose(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.08)
-                        : { position: this.spherePosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0.08), normal: this.spherePosition(coord, this.app.logic.topology.width, this.app.logic.topology.height, 0).normalize() };
+                const pose = this.posesForCoord(coord, this.app.logic, 0.08)[0];
                 if (!this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             }
             projected.copy(this.pointPositions[index]).project(this.camera);
@@ -874,13 +958,7 @@ class Reversi3DRenderer {
         if (mode === REVERSI_TOPOLOGIES.CYLINDER) return true;
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
-        const pose = mode === REVERSI_TOPOLOGIES.T2
-            ? this.torusPosition(coord, logic.topology.width, logic.topology.height, 0.07)
-            : mode === REVERSI_TOPOLOGIES.CYLINDER
-                ? this.cylinderPose(coord, logic.topology.width, logic.topology.height, 0.08)
-            : mode === REVERSI_TOPOLOGIES.KLEIN
-                ? this.kleinOutsidePose(coord, logic.topology.width, logic.topology.height, 0.11)
-            : this.mobiusPose(coord, logic.topology.width, logic.topology.height, 0.08);
+        const pose = this.posesForCoord(coord, logic, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.11 : 0.08)[0];
         if (mode === REVERSI_TOPOLOGIES.KLEIN || mode === REVERSI_TOPOLOGIES.MOBIUS) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         return true;
@@ -930,12 +1008,13 @@ class Reversi3DRenderer {
 
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
-        if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(coord, topology.width, topology.height, lift, topology.lattice).position;
-        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(coord, topology.width, topology.height, lift, topology.lattice);
-        if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(coord, topology.width, topology.height, lift, topology.lattice).position;
-        if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return this.kleinOutsidePose(coord, topology.width, topology.height, lift).position;
-        if (topology.topology === REVERSI_TOPOLOGIES.RP2) return this.flatPosition(coord, topology.width, topology.height, lift);
-        if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) return this.spherePosition(coord, topology.width, topology.height, lift);
+        const visualCoord = this.surfaceCellCoord(coord, logic);
+        if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(visualCoord, topology.width, topology.height, lift, topology.lattice).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(visualCoord, topology.width, topology.height, lift, topology.lattice);
+        if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(visualCoord, topology.width, topology.height, lift, topology.lattice).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return this.kleinOutsidePose(visualCoord, topology.width, topology.height, lift).position;
+        if (topology.topology === REVERSI_TOPOLOGIES.RP2) return this.flatCellPosition(coord, topology.width, topology.height, lift);
+        if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) return this.spherePosition(visualCoord, topology.width, topology.height, lift);
         return this.r3Position(coord, topology);
     }
 
@@ -974,17 +1053,72 @@ class Reversi3DRenderer {
         };
     }
 
-    torusPosition(coord, width, height, lift = 0, lattice = 'square') {
+    appendPolyline(linePositions, points) {
+        for (let index = 1; index < points.length; index += 1) {
+            const previous = points[index - 1];
+            const current = points[index];
+            linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
+        }
+    }
+
+    shortestAngleDelta(start, end) {
+        let delta = end - start;
+        if (delta > Math.PI) delta -= TWO_PI;
+        if (delta < -Math.PI) delta += TWO_PI;
+        return delta;
+    }
+
+    torusPointFromUV(uv, lift = 0) {
         const majorRadius = 3.35;
-        const minorRadius = 1.22;
-        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const tubeRadius = minorRadius + lift;
-        const ringRadius = majorRadius + tubeRadius * Math.cos(uv.v);
-        const position = new THREE.Vector3(
+        const minorRadius = 1.22 + lift;
+        const ringRadius = majorRadius + minorRadius * Math.cos(uv.v);
+        return new THREE.Vector3(
             ringRadius * Math.cos(uv.u),
             ringRadius * Math.sin(uv.u),
-            tubeRadius * Math.sin(uv.v)
+            minorRadius * Math.sin(uv.v)
         );
+    }
+
+    cylinderPointFromUV(uv, lift = 0) {
+        const radius = CYLINDER_RADIUS + lift;
+        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
+        return new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+    }
+
+    torusSurfaceEdgePoints(a, b, width, height, lattice = 'square', lift = 0.04, segments = 6) {
+        const start = this.latticeSurfaceUV(a, width, height, lattice);
+        const end = this.latticeSurfaceUV(b, width, height, lattice);
+        const du = this.shortestAngleDelta(start.u, end.u);
+        const dv = this.shortestAngleDelta(start.v, end.v);
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            points.push(this.torusPointFromUV({
+                u: start.u + du * t,
+                v: start.v + dv * t
+            }, lift));
+        }
+        return points;
+    }
+
+    cylinderSurfaceEdgePoints(a, b, width, height, lattice = 'square', lift = 0.04, segments = 6) {
+        const start = this.latticeSurfaceUV(a, width, height, lattice);
+        const end = this.latticeSurfaceUV(b, width, height, lattice);
+        const du = this.shortestAngleDelta(start.u, end.u);
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            points.push(this.cylinderPointFromUV({
+                u: start.u + du * t,
+                band: THREE.MathUtils.lerp(start.band, end.band, t)
+            }, lift));
+        }
+        return points;
+    }
+
+    torusPosition(coord, width, height, lift = 0, lattice = 'square') {
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
+        const position = this.torusPointFromUV(uv, lift);
         const normal = new THREE.Vector3(
             Math.cos(uv.u) * Math.cos(uv.v),
             Math.sin(uv.u) * Math.cos(uv.v),
@@ -995,9 +1129,7 @@ class Reversi3DRenderer {
 
     cylinderPose(coord, width, height, lift = 0, lattice = 'square') {
         const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const radius = CYLINDER_RADIUS + lift;
-        const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
-        const position = new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
+        const position = this.cylinderPointFromUV(uv, lift);
         const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
     }
@@ -1017,6 +1149,15 @@ class Reversi3DRenderer {
         return new THREE.Vector3(
             (coord[0] - (width - 1) / 2) * scale,
             ((height - 1) / 2 - coord[1]) * scale,
+            lift
+        );
+    }
+
+    flatCellPosition(coord, width, height, lift = 0) {
+        const scale = 7 / Math.max(width, height);
+        return new THREE.Vector3(
+            (Number(coord[0]) + 0.5 - width / 2) * scale,
+            (height / 2 - Number(coord[1]) - 0.5) * scale,
             lift
         );
     }

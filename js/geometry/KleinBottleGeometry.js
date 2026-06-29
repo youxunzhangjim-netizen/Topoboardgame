@@ -9,7 +9,8 @@ const TWO_PI = Math.PI * 2;
 const KLEIN_U_MAX = TWO_PI;
 const KLEIN_V_MIN = 0;
 const KLEIN_V_MAX = TWO_PI;
-const KLEIN_VISUAL_SCALE = 0.86;
+const KLEIN_VISUAL_XY_SCALE = 1.08;
+const KLEIN_VISUAL_Z_SCALE = 1.28;
 const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {
@@ -42,9 +43,9 @@ export function kleinBottleBasePoint(u, v) {
     const rawZ = Math.sin(parameterU / 2) * Math.sin(parameterV) +
         Math.cos(parameterU / 2) * Math.sin(2 * parameterV);
     return new THREE.Vector3(
-        rawX * KLEIN_VISUAL_SCALE,
-        rawY * KLEIN_VISUAL_SCALE,
-        rawZ * KLEIN_VISUAL_SCALE
+        rawX * KLEIN_VISUAL_XY_SCALE,
+        rawY * KLEIN_VISUAL_XY_SCALE,
+        rawZ * KLEIN_VISUAL_Z_SCALE
     );
 }
 

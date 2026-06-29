@@ -123,10 +123,11 @@ function kleinEmbeddedPosition(node, layer = 0, interval = 1, second = 0, second
 
 function trefoilPosition(segment, segmentCount) {
     const t = Math.PI * 2 * modulo(segment, segmentCount) / segmentCount;
+    const compact = 0.72;
     return [
-        Math.sin(t) + 2 * Math.sin(2 * t),
-        Math.cos(t) - 2 * Math.cos(2 * t),
-        -Math.sin(3 * t)
+        (Math.sin(t) + 2 * Math.sin(2 * t)) * compact,
+        (Math.cos(t) - 2 * Math.cos(2 * t)) * compact,
+        -Math.sin(3 * t) * 0.82
     ];
 }
 
@@ -295,15 +296,15 @@ function createTrefoilTopology({ type, dimension, size }) {
     const requestedSegments = Number(size?.[0]);
     const isTubeLike = type === 'trefoil_tube' || type === 'trefoil_solid' || type === 'trefoil_solid_product';
     const segmentCount = clampInteger(
-        requestedSegments >= (isTubeLike ? 42 : 24)
+        requestedSegments >= (isTubeLike ? 24 : 18)
             ? requestedSegments
-            : requestedSegments * (isTubeLike ? 7 : 3),
-        isTubeLike ? 42 : 24,
-        isTubeLike ? 112 : 72,
-        isTubeLike ? 56 : 30
+            : requestedSegments * (isTubeLike ? 6 : 3),
+        isTubeLike ? 24 : 18,
+        isTubeLike ? 72 : 72,
+        isTubeLike ? 36 : 30
     );
-    const thetaCount = clampInteger(size?.[1], isTubeLike ? 6 : 4, 14, isTubeLike ? 8 : 6);
-    const radialCount = clampInteger(size?.[2], 2, 4, 3);
+    const thetaCount = clampInteger(size?.[1], isTubeLike ? 8 : 4, 20, isTubeLike ? 12 : 6);
+    const radialCount = clampInteger(size?.[2], 2, 5, 3);
     const intervalCount = clampInteger(size?.[3], 2, 3, 3);
     const coordinates = [];
 
@@ -368,7 +369,7 @@ function createTrefoilTopology({ type, dimension, size }) {
             if (type === 'trefoil_diagram') return center.slice(0, 2);
             if (type === 'trefoil_track') return center.slice(0, dimension);
             const theta = Math.PI * 2 * coordinate[1] / thetaCount;
-            const radial = type === 'trefoil_tube' ? 0.2 : 0.1 + 0.1 * coordinate[2];
+            const radial = type === 'trefoil_tube' ? 0.48 : 0.24 + 0.16 * coordinate[2];
             return [
                 center[0] + Math.cos(theta) * radial,
                 center[1] + Math.sin(theta) * radial,
