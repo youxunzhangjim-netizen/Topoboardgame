@@ -281,7 +281,7 @@ function createTrefoilTopology({ type, dimension, size }) {
         }
         for (let theta = 0; theta < thetaCount; theta += 1) {
             if (type === 'trefoil_tube') {
-                coordinates.push([s, theta]);
+                coordinates.push(dimension === 3 ? [s, theta, 0] : [s, theta]);
                 continue;
             }
             for (let radius = 0; radius < radialCount; radius += 1) {
@@ -301,7 +301,7 @@ function createTrefoilTopology({ type, dimension, size }) {
         size: dimension === 2
             ? type === 'trefoil_diagram' ? [segmentCount, 1] : [segmentCount, thetaCount]
             : dimension === 3
-                ? type === 'trefoil_track' ? [segmentCount, 1, 1] : [segmentCount, thetaCount, radialCount]
+                ? type === 'trefoil_track' ? [segmentCount, 1, 1] : type === 'trefoil_tube' ? [segmentCount, thetaCount, 1] : [segmentCount, thetaCount, radialCount]
                 : [segmentCount, thetaCount, radialCount, intervalCount],
         coordinates,
         neighbors(coordinate) {
@@ -397,7 +397,7 @@ export function createSpecialBoardTopology(options = {}) {
     }
     if (dimension === 3) {
         return createTrefoilTopology({
-            type: type === 'trefoil_solid' ? 'trefoil_solid' : 'trefoil_track',
+            type: type === 'trefoil_tube' ? 'trefoil_tube' : 'trefoil_solid',
             dimension,
             size
         });
@@ -412,8 +412,7 @@ export const SPECIAL_BOARD_OPTIONS = Object.freeze({
         Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' })
     ]),
     3: Object.freeze([
-        Object.freeze({ value: 'klein_quartic_product', en: 'Klein Quartic × I', zh: 'Klein 四次曲線 × I' }),
-        Object.freeze({ value: 'trefoil_track', en: 'Trefoil Track', zh: '三葉結軌道' }),
+        Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' }),
         Object.freeze({ value: 'trefoil_solid', en: 'Trefoil Solid Tube', zh: '三葉結實心管' })
     ]),
     4: Object.freeze([

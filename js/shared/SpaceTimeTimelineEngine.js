@@ -7,11 +7,16 @@ const COPY = {
     past: 'Past Mode',
     both: 'Past+Future Mode',
     futureHelp: 'Schedule actions into future ticks. The original board-game rule is checked when the action resolves.',
-    pastHelp: 'Moves resolve immediately. A recent event may be replaced, then all later events are replayed and revalidated.',
-    bothHelp: 'Schedule future actions and rewrite recent past actions.',
+    pastHelp: 'Rewrite recent past actions inside a locked time window. The timeline is replayed before the rewrite is applied.',
+    bothHelp: 'Schedule future actions and rewrite recent past actions. Later events are replayed and revalidated.',
     delay: 'Future Delay',
+    actionSlice: 'Next Action Time Slice',
+    instantSlice: 'Instant',
+    futureSlice: '+{ticks} ticks',
     legacyTitle: 'Time period and age settings',
     legacyHelp: 'These are the original +1D clocks: Go can keep a periodic appear/disappear phase, and every +1D board game can use piece aging.',
+    ageOnlyTitle: 'Age settings',
+    ageOnlyHelp: 'Age is an independent +1D clock. It can remain off or remove pieces after the selected lifetime.',
     periodMode: 'Go time period',
     periodOffMode: 'Off',
     periodOnMode: 'Time period (Go +1D only)',
@@ -32,14 +37,21 @@ const COPY = {
     legacySummary: 'Clock summary',
     window: 'Past Rewrite Window',
     customWindow: 'Custom ticks',
-    conflict: 'Replay conflict policy',
-    reject: 'Reject rewrite on conflict',
-    skip: 'Keep rewrite and obsolete conflicts',
+    conflict: 'Conflict Policy',
+    reject: 'Strict',
+    skip: 'Fail Forward',
     apply: 'Apply timeline settings',
     selector: '2+1D / 3+1D selector',
     pending: 'Pending Future Actions',
-    history: 'Resolved Timeline',
+    history: 'Resolved Events',
     editableHistory: 'Editable History',
+    frozenHistory: 'Frozen History',
+    resolvedEvents: 'Resolved Events',
+    failedEvents: 'Failed Events',
+    obsoleteEvents: 'Obsolete Events',
+    rewrittenEvents: 'Rewritten Events',
+    cancelledEvents: 'Cancelled Events',
+    conflicts: 'Conflicts',
     resolveTick: 'Resolve Tick',
     scheduled: 'Action Scheduled',
     resolved: 'Action Resolved',
@@ -55,7 +67,7 @@ const COPY = {
     cancelRewrite: 'Cancel Rewrite',
     rewriteCommitted: 'Rewrite Applied',
     rewriteRejected: 'Rewrite Failed',
-    conflictSkipped: 'A later conflicting event became obsolete during replay.',
+    conflictSkipped: 'Replay committed with deterministic conflict handling.',
     locked: 'Locked after the first resolved move.',
     online: 'Past Mode for online rooms is still developing.',
     onlineBoth: 'Past+Future Mode for online rooms is still developing.',
@@ -72,7 +84,18 @@ const COPY = {
     modeApplied: 'Timeline settings applied.',
     selectSource: 'Choose the replacement source, then its destination.',
     selectedSource: 'Replacement source selected. Choose its destination.',
-    reset: 'Timeline cleared for the new game.'
+    reset: 'Timeline cleared for the new game.',
+    earlierGameEnd: 'An earlier game end makes later events obsolete.',
+    replayFailed: 'Replay cannot reconstruct a valid board state.',
+    replacementIllegal: 'The replacement move is illegal at the original resolve tick.',
+    setupEvent: 'Initial setup events cannot be rewritten.',
+    opponentEvent: 'The target event belongs to the opponent.',
+    outsideWindow: 'The target event is outside the rewrite window.',
+    hexConflict: 'Hex conflict: the target cell is occupied at resolve time.',
+    goConflict: 'Go conflict: the move is illegal at resolve time.',
+    reversiConflict: 'Reversi conflict: no valid flip line exists at resolve time.',
+    jumpConflict: 'Jump conflict: the path is no longer legal at resolve time.',
+    chessConflict: 'Chess conflict: the move is no longer legal at resolve time.'
   },
   zh: {
     title: '時間模式棋局',
@@ -82,11 +105,16 @@ const COPY = {
     past: '過去模式',
     both: '過去+未來模式',
     futureHelp: '將行動排程到未來回合；行動生效時重新套用原棋類規則。',
-    pastHelp: '行動立即生效；可替換近期事件，再依序重播並重新驗證後續事件。',
-    bothHelp: '排程未來行動，並改寫最近的過去行動。',
+    pastHelp: '在鎖定的時間窗口內改寫最近的過去行動；套用改寫前會回放時間線。',
+    bothHelp: '排程未來行動，並改寫最近的過去行動；後續事件會重新回放與驗證。',
     delay: '未來延遲',
+    actionSlice: '下一步時間切片',
+    instantSlice: '即時',
+    futureSlice: '+{ticks} 回合',
     legacyTitle: '時間週期與年齡設定',
     legacyHelp: '這些是原本的 +1D 時鐘：Go 可保留週期性的出現／消失相位，所有 +1D 棋局都可使用棋子老化。',
+    ageOnlyTitle: '年齡設定',
+    ageOnlyHelp: '年齡是獨立的 +1D 時鐘；可保持關閉，或在指定壽命後移除棋子。',
     periodMode: 'Go 時間週期',
     periodOffMode: '關閉',
     periodOnMode: '時間週期（僅 Go +1D）',
@@ -107,14 +135,21 @@ const COPY = {
     legacySummary: '時鐘摘要',
     window: '過去改寫窗口',
     customWindow: '自訂回合數',
-    conflict: '重播衝突處理',
-    reject: '遇到衝突時拒絕改寫',
-    skip: '保留改寫並使衝突事件失效',
+    conflict: '衝突策略',
+    reject: '嚴格',
+    skip: '失敗前進',
     apply: '套用時間線設定',
     selector: '2+1D／3+1D 選擇器',
     pending: '待生效未來行動',
-    history: '已生效時間線',
+    history: '已生效事件',
     editableHistory: '可編輯歷史',
+    frozenHistory: '凍結歷史',
+    resolvedEvents: '已生效事件',
+    failedEvents: '失敗事件',
+    obsoleteEvents: '已作廢事件',
+    rewrittenEvents: '已改寫事件',
+    cancelledEvents: '已取消事件',
+    conflicts: '衝突',
     resolveTick: '生效回合',
     scheduled: '行動已排程',
     resolved: '行動已生效',
@@ -130,7 +165,7 @@ const COPY = {
     cancelRewrite: '取消改寫',
     rewriteCommitted: '改寫已套用',
     rewriteRejected: '改寫失敗',
-    conflictSkipped: '重播時有一個後續衝突事件被標記為失效。',
+    conflictSkipped: '已用確定性的衝突處理提交重播結果。',
     locked: '第一個已生效行動後鎖定。',
     online: '線上房間的過去模式仍在開發中。',
     onlineBoth: '線上房間的過去+未來模式仍在開發中。',
@@ -147,7 +182,18 @@ const COPY = {
     modeApplied: '時間線設定已套用。',
     selectSource: '先選擇替代行動的起點，再選擇終點。',
     selectedSource: '已選擇替代起點；請選擇終點。',
-    reset: '新棋局的時間線已清除。'
+    reset: '新棋局的時間線已清除。',
+    earlierGameEnd: '較早的勝負結果會使後續事件作廢。',
+    replayFailed: '無法重建有效的棋盤狀態。',
+    replacementIllegal: '替代走法在原本生效回合不合法。',
+    setupEvent: '初始設定事件不能被改寫。',
+    opponentEvent: '目標事件屬於對手。',
+    outsideWindow: '目標事件已超出改寫窗口。',
+    hexConflict: 'Hex 衝突：目標格在生效時已被佔用。',
+    goConflict: '圍棋衝突：該手在生效時不合法。',
+    reversiConflict: '黑白棋衝突：生效時沒有合法可翻轉棋線。',
+    jumpConflict: '跳棋衝突：路徑在生效時已不合法。',
+    chessConflict: '棋類衝突：該走法在生效時已不合法。'
   }
 };
 
@@ -182,6 +228,12 @@ function normalizePeriodMode(value) {
   return mode === 'periodic' || mode === 'period' ? 'periodic' : 'off';
 }
 
+function normalizeConflictPolicy(value) {
+  const mode = String(value || '').toLowerCase().replace(/[+\s-]/g, '_');
+  if (mode === 'fail_forward' || mode === 'skip' || mode === 'forward') return 'fail_forward';
+  return 'strict';
+}
+
 function asNumber(value, fallback, min, max) {
   const parsed = Number(value);
   return Math.max(min, Math.min(max, Number.isFinite(parsed) ? parsed : fallback));
@@ -192,8 +244,6 @@ function detectLayer(params, pathname) {
   if (['1p1', '1+1', '1d+1'].includes(raw)) return '1p1';
   if (['2p1', '2+1', '2d+1'].includes(raw)) return '2p1';
   if (['3p1', '3+1', '3d+1'].includes(raw)) return '3p1';
-  if (raw === '1' && pathname.includes('/2d/')) return '2p1';
-  if (raw === '1' && pathname.includes('/3d/')) return '3p1';
   return '';
 }
 
@@ -226,7 +276,8 @@ export function installSpaceTimeTimelineEngine() {
       localStorage.getItem('topoboardgame.language') || document.documentElement.lang;
     return String(value || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
   };
-  const text = (key) => COPY[language()][key] || COPY.en[key] || key;
+  const text = (key, values = {}) => String(COPY[language()][key] || COPY.en[key] || key)
+    .replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
   const stored = readStored();
   const legacyStored = readLegacyStored();
   const storedPeriodMode = stored.periodMode || legacyStored.timeMode;
@@ -234,9 +285,10 @@ export function installSpaceTimeTimelineEngine() {
   const settings = {
     mode: normalizeMode(normalizePeriodMode(rawTimelineMode) === 'periodic' ? (stored.mode || 'future') : (rawTimelineMode || stored.mode || 'future')),
     delay: asInteger(params.get('delay') || stored.delay || legacyStored.delay, 2, 1, 32),
-    rewriteWindow: asInteger(params.get('rewriteWindow') || stored.rewriteWindow, 5, 1, 64),
+    actionOffset: asInteger(params.get('actionOffset') || stored.actionOffset || stored.delay || legacyStored.delay, 2, 0, 32),
+    rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 5, 1, 64),
     customWindow: asInteger(stored.customWindow, 5, 1, 64),
-    conflictPolicy: stored.conflictPolicy === 'skip' ? 'skip' : 'reject',
+    conflictPolicy: normalizeConflictPolicy(params.get('conflictPolicy') || stored.conflictPolicy),
     periodMode: family === 'go' ? normalizePeriodMode(queryPeriodMode || storedPeriodMode) : 'off',
     periodOn: asInteger(params.get('periodOn') || stored.periodOn || legacyStored.periodOn, 2, 1, 32),
     periodOff: asInteger(params.get('periodOff') || stored.periodOff || legacyStored.periodOff, 2, 1, 32),
@@ -248,12 +300,16 @@ export function installSpaceTimeTimelineEngine() {
     noiseRate: allowsNoise ? asNumber(params.get('noiseRate') || stored.noiseRate || legacyStored.noiseRate, 0.04, 0, 1) : 0,
     noisePeriod: allowsNoise ? asInteger(params.get('noisePeriod') || stored.noisePeriod || legacyStored.noisePeriod, 6, 1, 256) : 1
   };
+  settings.actionOffset = Math.min(settings.actionOffset, settings.delay);
   const state = {
     app: null,
     tick: 0,
     pending: [],
     timeline: [],
     failures: [],
+    rewrittenEvents: [],
+    cancelledEvents: [],
+    conflicts: [],
     initialSnapshot: null,
     lastSnapshot: null,
     internalAction: false,
@@ -335,10 +391,22 @@ export function installSpaceTimeTimelineEngine() {
     url.searchParams.set('spacetime', layer);
     url.searchParams.set('family', family);
     url.searchParams.set('timeMode', settings.mode);
-    if (usesFuture()) url.searchParams.set('delay', String(settings.delay));
-    else url.searchParams.delete('delay');
-    if (usesPast()) url.searchParams.set('rewriteWindow', String(settings.rewriteWindow));
-    else url.searchParams.delete('rewriteWindow');
+    if (usesFuture()) {
+      url.searchParams.set('delay', String(settings.delay));
+      if (settings.actionOffset !== settings.delay) url.searchParams.set('actionOffset', String(settings.actionOffset));
+      else url.searchParams.delete('actionOffset');
+    } else {
+      url.searchParams.delete('delay');
+      url.searchParams.delete('actionOffset');
+    }
+    if (usesPast()) {
+      url.searchParams.set('pastWindow', String(settings.rewriteWindow));
+      url.searchParams.set('conflictPolicy', settings.conflictPolicy);
+    } else {
+      url.searchParams.delete('pastWindow');
+      url.searchParams.delete('conflictPolicy');
+    }
+    url.searchParams.delete('rewriteWindow');
     url.searchParams.set('dt', String(settings.dt));
     if (family === 'go' && settings.periodMode === 'periodic') {
       url.searchParams.set('periodMode', 'periodic');
@@ -390,6 +458,9 @@ export function installSpaceTimeTimelineEngine() {
       .st-timeline__event{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid rgba(86,190,222,.17);border-radius:6px;background:#0b1622}
       .st-timeline__event span{min-width:0;overflow-wrap:anywhere;color:#dceaf3;font-size:.82rem}.st-timeline__event-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
       .st-timeline__event button{min-height:30px;padding:4px 8px;font-size:.75rem}.st-timeline__empty{color:#93a9b8;font-size:.82rem}
+      .st-timeline__group{display:grid;gap:6px}.st-timeline__group-title{margin:6px 0 0;color:#aac1d2;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
+      .st-timeline__event.is-failed{border-color:rgba(248,113,113,.42);background:#1a1014}.st-timeline__event.is-obsolete{border-color:rgba(251,191,36,.32);background:#18150d}
+      .st-timeline__event.is-rewritten{border-color:rgba(167,139,250,.38);background:#141225}.st-timeline__event.is-conflict{border-color:rgba(248,113,113,.55);background:#1a1014}
       .st-timeline__replacement{border-color:#f3bd49;background:rgba(243,189,73,.09);color:#ffe8ad}
       .st-timeline__legacy{border-top:1px solid rgba(86,190,222,.18);padding-top:10px}.st-timeline__legacy p{margin:0;color:#b9cad8;line-height:1.45;font-size:.82rem}
       .st-timeline__summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.st-timeline__summary span{border:1px solid rgba(86,190,222,.15);border-radius:6px;background:#0c1723;color:#dceaf3;padding:7px 9px;font-size:.8rem;overflow-wrap:anywhere}
@@ -420,6 +491,9 @@ export function installSpaceTimeTimelineEngine() {
           <label data-st-future><span data-st-label="delay"></span>
             <select data-st-delay>${Array.from({ length: 32 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join('')}</select>
           </label>
+          <label data-st-future><span data-st-label="actionSlice"></span>
+            <select data-st-action-offset></select>
+          </label>
           <label data-st-past><span data-st-label="window"></span>
             <select data-st-window>
               <option value="3">3 ticks</option><option value="5">5 ticks</option>
@@ -431,7 +505,7 @@ export function installSpaceTimeTimelineEngine() {
             <input data-st-custom-window type="number" min="1" max="64" step="1">
           </label>
           <label data-st-past><span data-st-label="conflict"></span>
-            <select data-st-conflict><option value="reject"></option><option value="skip"></option></select>
+            <select data-st-conflict><option value="strict"></option><option value="fail_forward"></option></select>
           </label>
         </div>
         <p class="st-timeline__help" data-st-help></p>
@@ -500,10 +574,12 @@ export function installSpaceTimeTimelineEngine() {
   function bindPanel() {
     panel.querySelector('[data-st-mode]').value = settings.mode;
     panel.querySelector('[data-st-delay]').value = String(settings.delay);
+    populateActionOffsetOptions();
+    panel.querySelector('[data-st-action-offset]').value = String(Math.min(settings.actionOffset, settings.delay));
     const standardWindow = [3, 5, 8, 12].includes(settings.rewriteWindow);
     panel.querySelector('[data-st-window]').value = standardWindow ? String(settings.rewriteWindow) : 'custom';
     panel.querySelector('[data-st-custom-window]').value = String(settings.customWindow);
-    panel.querySelector('[data-st-conflict]').value = settings.conflictPolicy;
+    panel.querySelector('[data-st-conflict]').value = normalizeConflictPolicy(settings.conflictPolicy);
     panel.querySelector('[data-st-period-mode]').value = settings.periodMode;
     panel.querySelector('[data-st-period-on]').value = String(settings.periodOn);
     panel.querySelector('[data-st-period-off]').value = String(settings.periodOff);
@@ -532,11 +608,12 @@ export function installSpaceTimeTimelineEngine() {
       state.message = text('modeApplied');
     }
     settings.delay = asInteger(panel.querySelector('[data-st-delay]').value, 2, 1, 32);
+    settings.actionOffset = Math.min(settings.delay, asInteger(panel.querySelector('[data-st-action-offset]').value, settings.delay, 0, 32));
     if (!state.settingsLocked) {
       const selected = panel.querySelector('[data-st-window]').value;
       settings.customWindow = asInteger(panel.querySelector('[data-st-custom-window]').value, 5, 1, 64);
       settings.rewriteWindow = selected === 'custom' ? settings.customWindow : asInteger(selected, 5, 1, 64);
-      settings.conflictPolicy = panel.querySelector('[data-st-conflict]').value === 'skip' ? 'skip' : 'reject';
+      settings.conflictPolicy = normalizeConflictPolicy(panel.querySelector('[data-st-conflict]').value);
     }
     settings.periodMode = family === 'go' ? normalizePeriodMode(panel.querySelector('[data-st-period-mode]').value) : 'off';
     settings.periodOn = asInteger(panel.querySelector('[data-st-period-on]').value, 2, 1, 32);
@@ -555,16 +632,40 @@ export function installSpaceTimeTimelineEngine() {
     refresh();
   }
 
-  function syncConditionalControls() {
+  function syncConditionalControls(event = null) {
     const mode = normalizeMode(panel.querySelector('[data-st-mode]').value);
     const hasPast = mode === 'past' || mode === 'past_future';
     panel.querySelector('[data-st-custom]').hidden = !hasPast || panel.querySelector('[data-st-window]').value !== 'custom';
+    if (event?.target?.matches?.('[data-st-delay]')) {
+      settings.delay = asInteger(panel.querySelector('[data-st-delay]').value, settings.delay, 1, 32);
+      settings.actionOffset = Math.min(settings.actionOffset, settings.delay);
+      populateActionOffsetOptions();
+    }
+    if (event?.target?.matches?.('[data-st-action-offset]')) {
+      settings.actionOffset = Math.min(settings.delay, asInteger(panel.querySelector('[data-st-action-offset]').value, settings.delay, 0, 32));
+      saveSettings();
+      writeURL();
+    }
     panel.querySelectorAll('[data-st-period-control]').forEach((node) => {
       node.hidden = family !== 'go' || normalizePeriodMode(panel.querySelector('[data-st-period-mode]').value) !== 'periodic';
     });
     panel.querySelectorAll('[data-st-age-control]').forEach((node) => {
       node.hidden = normalizeAgeMode(panel.querySelector('[data-st-age-mode]').value) !== 'lifetime';
     });
+  }
+
+  function populateActionOffsetOptions() {
+    const select = panel?.querySelector?.('[data-st-action-offset]');
+    if (!select) return;
+    const max = asInteger(panel.querySelector('[data-st-delay]')?.value || settings.delay, settings.delay, 1, 32);
+    const current = String(Math.min(settings.actionOffset, max));
+    select.replaceChildren(...Array.from({ length: max + 1 }, (_, offset) => {
+      const option = document.createElement('option');
+      option.value = String(offset);
+      option.textContent = offset === 0 ? text('instantSlice') : text('futureSlice', { ticks: offset });
+      return option;
+    }));
+    select.value = [...select.options].some((option) => option.value === current) ? current : String(max);
   }
 
   function handlePanelClick(event) {
@@ -593,6 +694,7 @@ export function installSpaceTimeTimelineEngine() {
       }
       action.status = 'cancelled';
       state.pending = state.pending.filter((item) => item.id !== action.id);
+      state.cancelledEvents.push({ ...clone(action), cancelledTick: currentTick() });
       state.message = text('cancel');
       refresh();
       return;
@@ -1004,15 +1106,17 @@ export function installSpaceTimeTimelineEngine() {
   async function scheduleFutureAction(draft) {
     if (!usesFuture() || isOnlinePastMode()) return false;
     const submittedTick = currentTick();
+    const offset = Math.max(0, Math.min(settings.delay, asInteger(settings.actionOffset, settings.delay, 0, 32)));
     const action = {
       ...clone(draft),
       id: crypto.randomUUID?.() || `future-${Date.now()}-${Math.random()}`,
       submittedTick,
-      resolveTick: submittedTick + settings.delay,
-      delay: settings.delay,
+      resolveTick: submittedTick + offset,
+      delay: offset,
       status: 'pending'
     };
     state.pending.push(action);
+    state.settingsLocked = true;
     state.message = text('scheduled');
     clearPendingSelection();
     consumeSubmissionTurn();
@@ -1043,6 +1147,21 @@ export function installSpaceTimeTimelineEngine() {
     const due = state.pending.filter((action) => action.status === 'pending' && action.resolveTick <= currentTick());
     state.pending = state.pending.filter((action) => action.status === 'pending' && action.resolveTick > currentTick());
     for (const action of due) {
+      if (gameEnded()) {
+        const conflict = makeConflict({
+          eventId: action.id,
+          tick: action.resolveTick,
+          severity: 'obsolete',
+          reasonCode: 'earlier_game_end',
+          action,
+          resolution: 'mark_event_obsolete'
+        });
+        action.status = 'obsolete';
+        state.failures.push({ ...clone(action), failedTick: currentTick(), conflicts: [conflict] });
+        state.conflicts.push(conflict);
+        state.message = `${text('failed')}: ${conflictText(conflict)}`;
+        continue;
+      }
       const before = captureSnapshot(state.app);
       state.internalAction = true;
       const ok = await applyAction(action, { preserveTurn: true });
@@ -1052,9 +1171,18 @@ export function installSpaceTimeTimelineEngine() {
         state.message = text('resolved');
         recordTimelineEvent(action, before, captureSnapshot(state.app), action.resolveTick);
       } else {
+        const conflict = makeConflict({
+          eventId: action.id,
+          tick: action.resolveTick,
+          severity: 'soft',
+          reasonCode: 'resolve_illegal',
+          action,
+          resolution: 'mark_event_failed'
+        });
         action.status = 'failed';
-        state.failures.push({ ...clone(action), failedTick: currentTick() });
-        state.message = text('failed');
+        state.failures.push({ ...clone(action), failedTick: currentTick(), conflicts: [conflict] });
+        state.conflicts.push(conflict);
+        state.message = `${text('failed')}: ${conflictText(conflict)}`;
       }
     }
     triggerRender();
@@ -1144,69 +1272,165 @@ export function installSpaceTimeTimelineEngine() {
     const currentSnapshot = captureSnapshot(state.app);
     const originalTimeline = clone(state.timeline);
     const originalPending = clone(state.pending);
+    const originalFailures = clone(state.failures);
+    const originalRewritten = clone(state.rewrittenEvents);
+    const originalConflicts = clone(state.conflicts);
     const targetIndex = state.timeline.findIndex((event) => event.id === targetEvent.id);
     const prefix = state.timeline.slice(0, targetIndex);
     const suffix = state.timeline.slice(targetIndex + 1);
     const rebuilt = [...prefix];
     const validatedPending = [];
+    const pendingFailures = [];
+    const replayConflicts = [];
+    const policy = normalizeConflictPolicy(settings.conflictPolicy);
     let snapshot = clone(targetEvent.beforeSnapshot || state.initialSnapshot);
     let rejected = false;
-    let skippedConflict = false;
+    let earlierEnd = false;
+
+    const addConflict = (data) => {
+      const conflict = makeConflict({
+        ...data,
+        id: `conflict:${targetEvent.id}:${replayConflicts.length + 1}`,
+        action: data.action || replacement
+      });
+      replayConflicts.push(conflict);
+      return conflict;
+    };
+    const rejectWith = (data) => {
+      rejected = true;
+      return addConflict({ ...data, severity: data.severity || 'hard', resolution: 'reject_rewrite' });
+    };
+    const shouldReject = () => policy === 'strict';
 
     state.internalAction = true;
-    restoreSnapshot(state.app, snapshot);
-    const replacementBefore = captureSnapshot(state.app);
-    const replacementOk = await applyAction(replacement, { preserveTurn: false });
-    if (!replacementOk) rejected = true;
+    if (targetIndex < 0 || !restoreSnapshot(state.app, snapshot)) {
+      rejectWith({ eventId: targetEvent.id, tick: targetEvent.tick, reasonCode: 'replay_failed' });
+    }
+
+    let replacementEvent = null;
     if (!rejected) {
-      const after = captureSnapshot(state.app);
-      rebuilt.push({
-        ...clone(targetEvent),
-        action: stripTimelineFields(replacement),
-        beforeSnapshot: clone(replacementBefore),
-        afterSnapshot: clone(after),
-        obsolete: false
-      });
-      snapshot = after;
+      const replacementBefore = captureSnapshot(state.app);
+      const replacementOk = await applyAction(replacement, { preserveTurn: false });
+      if (!replacementOk) {
+        rejectWith({
+          eventId: targetEvent.id,
+          tick: targetEvent.tick,
+          reasonCode: 'replacement_illegal',
+          action: replacement
+        });
+      } else {
+        const after = captureSnapshot(state.app);
+        replacementEvent = {
+          ...clone(targetEvent),
+          action: stripTimelineFields(replacement),
+          status: 'resolved',
+          obsolete: false,
+          failed: false,
+          rewrittenFrom: targetEvent.id,
+          beforeSnapshot: clone(replacementBefore),
+          afterSnapshot: clone(after),
+          conflicts: []
+        };
+        rebuilt.push(replacementEvent);
+        snapshot = after;
+        earlierEnd = gameEnded();
+      }
     }
 
     for (const event of suffix) {
       if (rejected) break;
-      restoreSnapshot(state.app, snapshot);
-      const before = captureSnapshot(state.app);
-      const ok = await applyAction(event.action, { preserveTurn: false });
-      if (!ok) {
-        if (settings.conflictPolicy === 'reject') {
+      if (earlierEnd) {
+        const conflict = addConflict({
+          eventId: event.id,
+          tick: event.tick,
+          severity: 'obsolete',
+          reasonCode: 'earlier_game_end',
+          action: event.action,
+          resolution: shouldReject() ? 'reject_rewrite' : 'mark_event_obsolete'
+        });
+        if (shouldReject()) {
           rejected = true;
           break;
         }
-        rebuilt.push({ ...clone(event), obsolete: true, beforeSnapshot: clone(before), afterSnapshot: clone(before) });
-        skippedConflict = true;
+        rebuilt.push(markTimelineEvent(event, 'obsolete', snapshot, conflict));
+        continue;
+      }
+      if (!restoreSnapshot(state.app, snapshot)) {
+        rejectWith({ eventId: event.id, tick: event.tick, reasonCode: 'replay_failed', action: event.action });
+        break;
+      }
+      const before = captureSnapshot(state.app);
+      const ok = await applyAction(event.action, { preserveTurn: false });
+      if (!ok) {
+        const conflict = addConflict({
+          eventId: event.id,
+          tick: event.tick,
+          severity: 'soft',
+          reasonCode: 'resolve_illegal',
+          action: event.action,
+          resolution: shouldReject() ? 'reject_rewrite' : 'mark_event_failed'
+        });
+        if (shouldReject()) {
+          rejected = true;
+          break;
+        }
+        rebuilt.push(markTimelineEvent(event, 'failed', before, conflict));
+        snapshot = before;
         continue;
       }
       const after = captureSnapshot(state.app);
-      rebuilt.push({ ...clone(event), obsolete: false, beforeSnapshot: clone(before), afterSnapshot: clone(after) });
+      rebuilt.push({ ...clone(event), status: 'resolved', obsolete: false, failed: false, beforeSnapshot: clone(before), afterSnapshot: clone(after), conflicts: [] });
       snapshot = after;
+      earlierEnd = gameEnded();
     }
 
     const pendingBaseSnapshot = clone(snapshot);
     let pendingSimulationSnapshot = clone(snapshot);
+    let pendingEarlierEnd = earlierEnd;
     for (const action of [...originalPending].sort((a, b) => a.resolveTick - b.resolveTick || a.submittedTick - b.submittedTick)) {
       if (rejected) break;
       if (action.status && action.status !== 'pending') continue;
       if (action.resolveTick <= targetEvent.tick) continue;
-      restoreSnapshot(state.app, pendingSimulationSnapshot);
-      const ok = await applyAction(action, { preserveTurn: false });
-      if (!ok) {
-        if (settings.conflictPolicy === 'reject') {
+      if (pendingEarlierEnd) {
+        const conflict = addConflict({
+          eventId: action.id,
+          tick: action.resolveTick,
+          severity: 'obsolete',
+          reasonCode: 'earlier_game_end',
+          action,
+          resolution: shouldReject() ? 'reject_rewrite' : 'mark_event_obsolete'
+        });
+        if (shouldReject()) {
           rejected = true;
           break;
         }
-        skippedConflict = true;
+        pendingFailures.push({ ...clone(action), status: 'obsolete', obsolete: true, failedTick: action.resolveTick, conflicts: [conflict] });
+        continue;
+      }
+      if (!restoreSnapshot(state.app, pendingSimulationSnapshot)) {
+        rejectWith({ eventId: action.id, tick: action.resolveTick, reasonCode: 'replay_failed', action });
+        break;
+      }
+      const ok = await applyAction(action, { preserveTurn: false });
+      if (!ok) {
+        const conflict = addConflict({
+          eventId: action.id,
+          tick: action.resolveTick,
+          severity: 'soft',
+          reasonCode: 'resolve_illegal',
+          action,
+          resolution: shouldReject() ? 'reject_rewrite' : 'mark_event_failed'
+        });
+        if (shouldReject()) {
+          rejected = true;
+          break;
+        }
+        pendingFailures.push({ ...clone(action), status: 'failed', failed: true, failedTick: action.resolveTick, conflicts: [conflict] });
         continue;
       }
       pendingSimulationSnapshot = captureSnapshot(state.app);
       validatedPending.push({ ...clone(action), status: 'pending' });
+      pendingEarlierEnd = gameEnded();
     }
     restoreSnapshot(state.app, pendingBaseSnapshot);
 
@@ -1214,12 +1438,22 @@ export function installSpaceTimeTimelineEngine() {
       restoreSnapshot(state.app, currentSnapshot);
       state.timeline = originalTimeline;
       state.pending = originalPending;
-      state.message = text('rewriteRejected');
+      state.failures = originalFailures;
+      state.rewrittenEvents = originalRewritten;
+      state.conflicts = [...originalConflicts, ...replayConflicts];
+      state.message = `${text('rewriteRejected')}: ${conflictText(replayConflicts[0]) || text('replayFailed')}`;
     } else {
       state.timeline = rebuilt;
       state.pending = validatedPending;
+      state.failures = [...originalFailures, ...pendingFailures];
+      state.rewrittenEvents = replacementEvent
+        ? [...originalRewritten, { ...clone(targetEvent), status: 'rewritten', rewritten: true, rewrittenBy: replacementEvent.id, rewrittenTick: currentTick() }]
+        : originalRewritten;
+      state.conflicts = [...originalConflicts, ...replayConflicts];
       state.lastSnapshot = clone(pendingBaseSnapshot);
-      state.message = skippedConflict ? `${text('rewriteCommitted')} ${text('conflictSkipped')}` : text('rewriteCommitted');
+      state.message = replayConflicts.length
+        ? `${text('rewriteCommitted')} ${text('conflictSkipped')} ${formatConflictSummary(replayConflicts)}`
+        : text('rewriteCommitted');
     }
     state.internalAction = false;
     state.editingEventId = null;
@@ -1227,6 +1461,98 @@ export function installSpaceTimeTimelineEngine() {
     state.pendingReplacement = null;
     triggerRender();
     refresh();
+  }
+
+  function markTimelineEvent(event, status, snapshot, conflict) {
+    return {
+      ...clone(event),
+      status,
+      failed: status === 'failed',
+      obsolete: status === 'obsolete',
+      beforeSnapshot: clone(snapshot),
+      afterSnapshot: clone(snapshot),
+      conflicts: conflict ? [conflict] : []
+    };
+  }
+
+  function makeConflict({
+    id = '',
+    eventId = '',
+    tick = currentTick(),
+    severity = 'soft',
+    family: conflictFamily = family,
+    reasonCode = 'resolve_illegal',
+    messageEn = '',
+    messageZh = '',
+    action = null,
+    affectedCells = null,
+    resolution = 'mark_event_failed'
+  } = {}) {
+    const messages = conflictMessages(reasonCode, action);
+    return {
+      id: id || `conflict:${eventId || 'event'}:${tick}:${reasonCode}`,
+      eventId,
+      tick,
+      severity,
+      family: conflictFamily,
+      reasonCode,
+      messageEn: messageEn || messages.en,
+      messageZh: messageZh || messages.zh,
+      affectedCells: affectedCells || affectedCellsForAction(action),
+      resolution
+    };
+  }
+
+  function conflictMessages(reasonCode, action = null) {
+    if (reasonCode === 'earlier_game_end') return { en: COPY.en.earlierGameEnd, zh: COPY.zh.earlierGameEnd };
+    if (reasonCode === 'game_ended') return { en: COPY.en.gameEnded, zh: COPY.zh.gameEnded };
+    if (reasonCode === 'replay_failed') return { en: COPY.en.replayFailed, zh: COPY.zh.replayFailed };
+    if (reasonCode === 'replacement_illegal') return familyIllegalMessages(action);
+    if (reasonCode === 'setup_event') return { en: COPY.en.setupEvent, zh: COPY.zh.setupEvent };
+    if (reasonCode === 'opponent_event') return { en: COPY.en.opponentEvent, zh: COPY.zh.opponentEvent };
+    if (reasonCode === 'outside_window') return { en: COPY.en.outsideWindow, zh: COPY.zh.outsideWindow };
+    return familyIllegalMessages(action);
+  }
+
+  function familyIllegalMessages(action = null) {
+    const kind = action?.kind || family;
+    if (kind === 'hex') return { en: COPY.en.hexConflict, zh: COPY.zh.hexConflict };
+    if (kind === 'go') return { en: COPY.en.goConflict, zh: COPY.zh.goConflict };
+    if (kind === 'reversi') return { en: COPY.en.reversiConflict, zh: COPY.zh.reversiConflict };
+    if (kind === 'jump') return { en: COPY.en.jumpConflict, zh: COPY.zh.jumpConflict };
+    if (kind === 'chess') return { en: COPY.en.chessConflict, zh: COPY.zh.chessConflict };
+    return { en: COPY.en.replacementIllegal, zh: COPY.zh.replacementIllegal };
+  }
+
+  function affectedCellsForAction(action = null) {
+    if (!action) return [];
+    const cells = [];
+    if (action.coord) cells.push(action.coord);
+    if (action.from) cells.push(action.from);
+    if (action.to) cells.push(action.to);
+    if (action.move?.from) cells.push(action.move.from);
+    if (action.move?.over) cells.push(action.move.over);
+    if (action.move?.to) cells.push(action.move.to);
+    return cells.map((cell) => {
+      if (Array.isArray(cell)) return cell.map(Number);
+      if (cell && typeof cell === 'object') {
+        if ('r' in cell || 'c' in cell) return [Number(cell.r), Number(cell.c)];
+        return [Number(cell.x), Number(cell.y), Number(cell.z ?? cell.sheet ?? 0)];
+      }
+      return [String(cell)];
+    });
+  }
+
+  function conflictText(conflict = null) {
+    if (!conflict) return '';
+    return language() === 'zh' ? (conflict.messageZh || conflict.messageEn) : (conflict.messageEn || conflict.messageZh);
+  }
+
+  function formatConflictSummary(conflicts = []) {
+    if (!conflicts.length) return '';
+    const first = conflictText(conflicts[0]);
+    const extra = conflicts.length > 1 ? ` (+${conflicts.length - 1})` : '';
+    return first ? `${first}${extra}` : '';
   }
 
   async function applyAction(action, { preserveTurn }) {
@@ -1706,20 +2032,28 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function canEdit(event, setMessage = false) {
-    if (!usesPast() || event.status !== 'resolved' || event.obsolete) return false;
-    if (gameEnded()) {
-      if (setMessage) state.message = text('gameEnded');
-      return false;
-    }
-    if (currentTick() - event.tick > settings.rewriteWindow) {
-      if (setMessage) state.message = text('expired');
-      return false;
-    }
-    if (event.player !== currentPlayer(state.app)) {
-      if (setMessage) state.message = text('playerOnly');
+    const conflict = editabilityConflict(event);
+    if (conflict) {
+      if (setMessage) state.message = conflictText(conflict);
       return false;
     }
     return true;
+  }
+
+  function editabilityConflict(event) {
+    if (!usesPast() || !event || event.status !== 'resolved' || event.obsolete) {
+      return makeConflict({ eventId: event?.id, tick: event?.tick, severity: 'hard', reasonCode: 'setup_event', resolution: 'reject_rewrite', action: event?.action });
+    }
+    if (gameEnded()) {
+      return makeConflict({ eventId: event.id, tick: event.tick, severity: 'hard', reasonCode: 'game_ended', resolution: 'reject_rewrite', action: event.action });
+    }
+    if (currentTick() - event.tick > settings.rewriteWindow) {
+      return makeConflict({ eventId: event.id, tick: event.tick, severity: 'hard', reasonCode: 'outside_window', resolution: 'reject_rewrite', action: event.action });
+    }
+    if (event.player !== currentPlayer(state.app)) {
+      return makeConflict({ eventId: event.id, tick: event.tick, severity: 'hard', reasonCode: 'opponent_event', resolution: 'reject_rewrite', action: event.action });
+    }
+    return null;
   }
 
   function canChangePending(action, setMessage = false) {
@@ -1842,6 +2176,9 @@ export function installSpaceTimeTimelineEngine() {
     state.pending = [];
     state.timeline = [];
     state.failures = [];
+    state.rewrittenEvents = [];
+    state.cancelledEvents = [];
+    state.conflicts = [];
     state.editingEventId = null;
     state.replacementSource = null;
     state.settingsLocked = false;
@@ -1895,8 +2232,11 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelector('[data-st-noise-mode]').value = settings.noiseMode;
     panel.querySelector('[data-st-noise-rate]').value = String(settings.noiseRate);
     panel.querySelector('[data-st-noise-period]').value = String(settings.noisePeriod);
-    panel.querySelector('[data-st-conflict] option[value="reject"]').textContent = text('reject');
-    panel.querySelector('[data-st-conflict] option[value="skip"]').textContent = text('skip');
+    populateActionOffsetOptions();
+    panel.querySelector('[data-st-action-offset]').value = String(Math.min(settings.actionOffset, settings.delay));
+    panel.querySelector('[data-st-conflict] option[value="strict"]').textContent = text('reject');
+    panel.querySelector('[data-st-conflict] option[value="fail_forward"]').textContent = text('skip');
+    panel.querySelector('[data-st-conflict]').value = normalizeConflictPolicy(settings.conflictPolicy);
     const windowSelect = panel.querySelector('[data-st-window]');
     for (const option of windowSelect.options) {
       option.textContent = option.value === 'custom'
@@ -1904,8 +2244,8 @@ export function installSpaceTimeTimelineEngine() {
         : `${option.value} ${language() === 'zh' ? '回合' : 'ticks'}`;
     }
     panel.querySelector('[data-st-help]').textContent = text(mode === 'future' ? 'futureHelp' : mode === 'past' ? 'pastHelp' : 'bothHelp');
-    panel.querySelector('[data-st-legacy-title]').textContent = text('legacyTitle');
-    panel.querySelector('[data-st-legacy-help]').textContent = text('legacyHelp');
+    panel.querySelector('[data-st-legacy-title]').textContent = text(family === 'go' ? 'legacyTitle' : 'ageOnlyTitle');
+    panel.querySelector('[data-st-legacy-help]').textContent = text(family === 'go' ? 'legacyHelp' : 'ageOnlyHelp');
     panel.querySelector('[data-st-apply]').textContent = text('apply');
     panel.querySelector('[data-st-apply-rewrite]').textContent = text('applyRewrite');
     panel.querySelector('[data-st-cancel-rewrite]').textContent = text('cancelRewrite');
@@ -1970,34 +2310,86 @@ export function installSpaceTimeTimelineEngine() {
   function renderTimeline() {
     const host = panel.querySelector('[data-st-history-list]');
     const past = usesPast();
-    const events = [
-      ...state.timeline.map((event) => ({ ...event, failed: false })),
-      ...state.failures.map((failure) => ({
-        id: failure.id,
-        tick: failure.failedTick,
-        action: stripTimelineFields(failure),
-        player: failure.player,
-        obsolete: false,
-        failed: true
-      }))
-    ].sort((a, b) => b.tick - a.tick);
-    if (!events.length) {
+    const resolved = state.timeline.filter((event) => event.status === 'resolved' && !event.failed && !event.obsolete)
+      .sort((a, b) => b.tick - a.tick);
+    const editable = resolved.filter((event) => past && canEdit(event));
+    const frozen = resolved.filter((event) => past && !canEdit(event));
+    const failed = [
+      ...state.timeline.filter((event) => event.status === 'failed' || event.failed),
+      ...state.failures.filter((event) => (event.status || 'failed') === 'failed')
+    ].map(normalizeHistoryItem).sort((a, b) => b.tick - a.tick);
+    const obsolete = [
+      ...state.timeline.filter((event) => event.status === 'obsolete' || event.obsolete),
+      ...state.failures.filter((event) => event.status === 'obsolete' || event.obsolete)
+    ].map(normalizeHistoryItem).sort((a, b) => b.tick - a.tick);
+    const rewritten = (state.rewrittenEvents || []).map(normalizeHistoryItem).sort((a, b) => b.tick - a.tick);
+    const cancelled = (state.cancelledEvents || []).map(normalizeHistoryItem).sort((a, b) => b.tick - a.tick);
+    const sections = [];
+    if (past) {
+      sections.push(renderTimelineGroup(text('editableHistory'), editable, 'resolved'));
+      sections.push(renderTimelineGroup(text('frozenHistory'), frozen, 'resolved'));
+    } else {
+      sections.push(renderTimelineGroup(text('resolvedEvents'), resolved, 'resolved'));
+    }
+    sections.push(renderTimelineGroup(text('failedEvents'), failed, 'failed'));
+    sections.push(renderTimelineGroup(text('obsoleteEvents'), obsolete, 'obsolete'));
+    sections.push(renderTimelineGroup(text('rewrittenEvents'), rewritten, 'rewritten'));
+    sections.push(renderTimelineGroup(text('cancelledEvents'), cancelled, 'cancelled'));
+    if (state.conflicts.length) {
+      sections.push(renderConflictGroup());
+    }
+    const html = sections.filter(Boolean).join('');
+    if (!html) {
       host.innerHTML = `<span class="st-timeline__empty">${escapeHTML(text('emptyHistory'))}</span>`;
       return;
     }
-    host.innerHTML = events.map((event) => {
-      const label = event.failed
-        ? `${text('failed')} · ${text('tick')} ${event.tick} · ${actionPublicLabel(event.action)}`
-        : event.obsolete
-          ? text('conflictSkipped')
-          : `${text('resolved')} · ${text('tick')} ${event.tick} · ${actionPublicLabel(event.action)}`;
-      return `<div class="st-timeline__event${state.editingEventId === event.id ? ' st-timeline__replacement' : ''}">
-        <span>${escapeHTML(label)}</span>
-        ${past && !event.failed ? `<div class="st-timeline__event-actions">
-          <button type="button" data-st-edit="${event.id}" ${canEdit(event) ? '' : 'disabled'}>${escapeHTML(text('edit'))}</button>
-        </div>` : ''}
-      </div>`;
-    }).join('');
+    host.innerHTML = html;
+  }
+
+  function renderTimelineGroup(title, events, status) {
+    if (!events.length) return '';
+    return `<div class="st-timeline__group"><div class="st-timeline__group-title">${escapeHTML(title)}</div>${
+      events.map((event) => renderTimelineEvent(event, status)).join('')
+    }</div>`;
+  }
+
+  function renderTimelineEvent(event, status) {
+    const statusText = status === 'failed'
+      ? text('failed')
+      : status === 'obsolete'
+        ? text('obsoleteEvents')
+        : status === 'rewritten'
+          ? text('rewrittenEvents')
+          : status === 'cancelled'
+            ? text('cancel')
+            : text('resolved');
+    const conflicts = (event.conflicts || []).map(conflictText).filter(Boolean).join(' ');
+    const label = `${statusText} · ${text('tick')} ${event.tick} · ${actionPublicLabel(event.action)}${conflicts ? ` · ${conflicts}` : ''}`;
+    const className = `st-timeline__event${state.editingEventId === event.id ? ' st-timeline__replacement' : ''} is-${status}`;
+    return `<div class="${className}">
+      <span>${escapeHTML(label)}</span>
+      ${usesPast() && status === 'resolved' ? `<div class="st-timeline__event-actions">
+        <button type="button" data-st-edit="${event.id}" ${canEdit(event) ? '' : 'disabled'}>${escapeHTML(text('edit'))}</button>
+      </div>` : ''}
+    </div>`;
+  }
+
+  function renderConflictGroup() {
+    const conflicts = state.conflicts.slice(-10).reverse();
+    return `<div class="st-timeline__group"><div class="st-timeline__group-title">${escapeHTML(text('conflicts'))}</div>${
+      conflicts.map((conflict) => {
+        const label = `${conflict.severity} · ${text('tick')} ${conflict.tick} · ${conflictText(conflict)}`;
+        return `<div class="st-timeline__event is-conflict"><span>${escapeHTML(label)}</span></div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  function normalizeHistoryItem(item) {
+    return {
+      ...item,
+      tick: item.tick ?? item.failedTick ?? item.cancelledTick ?? item.resolveTick ?? 0,
+      action: item.action || stripTimelineFields(item)
+    };
   }
 
   function actionPublicLabel(action) {

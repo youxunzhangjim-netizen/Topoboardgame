@@ -27,8 +27,7 @@ const I18N = {
         cylinder: 'Cylinder',
         torus: 'Torus / T3',
         reflective: 'Reflective',
-        kleinQuarticProduct: 'Klein Quartic × I',
-        trefoilTrack: 'Trefoil Track',
+        trefoilTube: 'Trefoil Tube',
         trefoilSolid: 'Trefoil Solid Tube',
         boardView: 'Board View',
         rotateX: 'Rotate X',
@@ -65,8 +64,7 @@ const I18N = {
             cylinder: 'Cylinder wraps the z direction; the x and y target planes remain physical.',
             torus: 'T3 wraps every axis. Both players connect explicit marked cut-zone planes.',
             reflective: 'Reflective boundaries retain the finite cubic graph and reflect attempted boundary steps.',
-            klein_quartic_product: 'A 56-triangle Klein quartic cell graph extruded through a finite interval I.',
-            trefoil_track: 'A closed cyclic graph embedded as a three-dimensional trefoil knot, with explicit target arcs.',
+            trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
             trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.'
         }
     },
@@ -92,8 +90,7 @@ const I18N = {
         cylinder: '圓柱',
         torus: '環面／T3',
         reflective: '反射邊界',
-        kleinQuarticProduct: 'Klein 四次曲線 × I',
-        trefoilTrack: '三葉結軌道',
+        trefoilTube: '三葉結管面',
         trefoilSolid: '三葉結實心管',
         boardView: '棋盤視角',
         rotateX: '繞 X 軸旋轉',
@@ -130,8 +127,7 @@ const I18N = {
             cylinder: '圓柱會包裹 z 方向；x 與 y 的目標平面仍是實體邊界。',
             torus: 'T3 會包裹所有座標軸；雙方改為連接明確標示的切面目標區。',
             reflective: '反射邊界保留有限立方圖，並反射越過邊界的鄰接步。',
-            klein_quartic_product: '把 56 三角形的 Klein 四次曲線胞腔圖沿有限區間 I 拉伸。',
-            trefoil_track: '嵌入三維空間的封閉三葉結循環圖，並標示明確目標弧。',
+            trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
             trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。'
         }
     }

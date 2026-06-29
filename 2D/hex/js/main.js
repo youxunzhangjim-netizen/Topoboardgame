@@ -37,9 +37,6 @@ const I18N = {
         mobius: 'Möbius',
         klein: 'Klein Bottle',
         randomBoundary: 'Random Boundary',
-        kleinQuartic: 'Klein Quartic (56 triangles)',
-        trefoilDiagram: 'Trefoil Diagram',
-        trefoilTube: 'Trefoil Tube',
         lattice: 'Lattice',
         hexagonal: 'Hexagonal / Axial',
         square: 'Square',
@@ -75,10 +72,7 @@ const I18N = {
             mobius: 'Möbius identifies left/right with a twist. Black uses marked cut-seam zones.',
             klein: 'Klein Bottle uses one ordinary wrap and one twisted wrap; both goals are marked zones.',
             rp2: 'RP2 identifies opposite edges with reversals; both goals are explicit marked zones.',
-            random: 'Random Boundary uses one fixed, invertible boundary pairing for this game. Both goals are marked zones.',
-            klein_quartic: 'A closed genus-3 board represented by the 56 triangular cells of the cubic Klein graph. The graph has 84 cell adjacencies and explicit goal arcs.',
-            trefoil_diagram: 'A cyclic trefoil diagram with three recorded over/under crossings. Placement follows the knot-track graph.',
-            trefoil_tube: 'A periodic tube around a trefoil centerline with coordinates (s, theta). Both coordinate directions wrap.'
+            random: 'Random Boundary uses one fixed, invertible boundary pairing for this game. Both goals are marked zones.'
         }
     },
     zh: {
@@ -113,9 +107,6 @@ const I18N = {
         mobius: 'Möbius 帶',
         klein: 'Klein 瓶',
         randomBoundary: '隨機邊界',
-        kleinQuartic: 'Klein 四次曲線（56 三角形）',
-        trefoilDiagram: '三葉結圖',
-        trefoilTube: '三葉結管面',
         lattice: '晶格',
         hexagonal: '六角形／軸向',
         square: '方格',
@@ -151,10 +142,7 @@ const I18N = {
             mobius: 'Möbius 帶以扭轉方式識別左右邊；黑方使用切縫目標區。',
             klein: 'Klein 瓶包含普通包裹與扭轉包裹；雙方皆使用標示目標區。',
             rp2: 'RP2 以反轉方式識別相對邊；雙方皆使用明確標示的目標區。',
-            random: '隨機邊界在本局使用固定且可逆的邊界配對；雙方皆使用標示目標區。',
-            klein_quartic: '封閉的虧格 3 棋盤，以三次 Klein 圖的 56 個三角形胞腔表示，共有 84 條胞腔鄰接邊與明確目標弧。',
-            trefoil_diagram: '具有三個上下穿越記錄的循環三葉結圖；落子沿著結軌道圖進行。',
-            trefoil_tube: '沿三葉結中心線形成的週期管面，座標為 (s, theta)，兩個座標方向皆會包回。'
+            random: '隨機邊界在本局使用固定且可逆的邊界配對；雙方皆使用標示目標區。'
         }
     }
 };
@@ -716,11 +704,11 @@ window.hexApp = {
     importState(state) {
         game = HexGame.fromState(state);
         size = game.size[0];
-        if ([...elements.size.options].some((option) => Number(option.value) === size)) {
-            elements.size.value = String(size);
+        if ([...elements.boardSize.options].some((option) => Number(option.value) === size)) {
+            elements.boardSize.value = String(size);
         }
-        if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
-            elements.topology.value = game.topology.topology;
+        if ([...elements.boundary.options].some((option) => option.value === game.topology.topology)) {
+            elements.boundary.value = game.topology.topology;
         }
         if ([...elements.lattice.options].some((option) => option.value === game.lattice)) {
             elements.lattice.value = game.lattice;
@@ -728,6 +716,7 @@ window.hexApp = {
         elements.lattice.disabled = game.topology.isSpecial === true;
         elements.boundaryMode.textContent = elements.boundary.options[elements.boundary.selectedIndex].text;
         elements.boundaryInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
+        topology = game.topology.topology;
         updateTargetText();
         updateReadout();
         renderHistory();
