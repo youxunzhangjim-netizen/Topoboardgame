@@ -435,13 +435,13 @@ class Reversi3DRenderer {
         const surface = new THREE.Mesh(
             createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0x8a6a39,
-                roughness: 0.58,
-                metalness: 0.02,
+                color: 0xdfe7e4,
+                roughness: 0.52,
+                metalness: 0.01,
                 transparent: true,
-                opacity: 0.94,
-                depthWrite: true,
-                clearcoat: 0.24,
+                opacity: 0.76,
+                depthWrite: false,
+                clearcoat: 0.16,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
@@ -453,22 +453,22 @@ class Reversi3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x4b5563,
+            color: 0x64747c,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.46,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 1;
+            line.renderOrder = 4;
             this.boardGroup.add(line);
         };
 
         for (const points of createKleinBottleGridLines({
             uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
             vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
-            lift: 0.13,
+            lift: 0.15,
             uSegments: 180,
             vSegments: 140
         })) addLine(points, gridMaterial);
@@ -480,11 +480,11 @@ class Reversi3DRenderer {
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
-        this.addNodePoints(pointPositions, width <= 9 ? 0.074 : width <= 13 ? 0.054 : 0.039, {
-            color: 0xf0fdf4,
-            opacity: 0.96,
-            depthTest: false,
-            renderOrder: 3
+        this.addNodePoints(pointPositions, width <= 9 ? 0.04 : width <= 13 ? 0.031 : 0.024, {
+            color: 0xe8f4f7,
+            opacity: 0.68,
+            depthTest: true,
+            renderOrder: 5
         });
     }
 

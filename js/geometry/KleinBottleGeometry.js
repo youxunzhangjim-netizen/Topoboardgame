@@ -9,9 +9,9 @@ const KLEIN_U_MAX = TWO_PI;
 const KLEIN_V_MIN = 0;
 const KLEIN_V_MAX = TWO_PI;
 const KLEIN_DIXON_SCALE = 0.2;
-const KLEIN_VISUAL_X_SCALE = 1.12;
-const KLEIN_VISUAL_Y_SCALE = 0.72;
-const KLEIN_VISUAL_Z_SCALE = 1.12;
+const KLEIN_VISUAL_X_SCALE = 1.24;
+const KLEIN_VISUAL_Y_SCALE = 0.76;
+const KLEIN_VISUAL_Z_SCALE = 1.24;
 const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {

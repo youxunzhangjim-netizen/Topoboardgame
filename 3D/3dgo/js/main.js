@@ -502,13 +502,13 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0x8a6a39,
-                roughness: 0.58,
-                metalness: 0.02,
+                color: 0xdfe7e4,
+                roughness: 0.52,
+                metalness: 0.01,
                 transparent: true,
-                opacity: 0.94,
-                depthWrite: true,
-                clearcoat: 0.24,
+                opacity: 0.76,
+                depthWrite: false,
+                clearcoat: 0.16,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
@@ -520,22 +520,22 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x4b5563,
+            color: 0x64747c,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.46,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 1;
+            line.renderOrder = 4;
             this.boardGroup.add(line);
         };
 
         for (const points of createKleinBottleGridLines({
             uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
             vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
-            lift: 0.13,
+            lift: 0.15,
             uSegments: 180,
             vSegments: 140
         })) addLine(points);
@@ -548,11 +548,11 @@ class Go3DRenderer {
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
-        this.addNodePoints(pointPositions, width <= 9 ? 0.064 : width <= 13 ? 0.049 : 0.035, {
-            color: 0x050505,
-            opacity: 0.96,
-            depthTest: false,
-            renderOrder: 3
+        this.addNodePoints(pointPositions, width <= 9 ? 0.036 : width <= 13 ? 0.029 : 0.022, {
+            color: 0x9fb3bd,
+            opacity: 0.66,
+            depthTest: true,
+            renderOrder: 5
         });
     }
 
@@ -1762,8 +1762,8 @@ class Go3DRenderer {
             this.camera.position.set(0, 8.6, 7.4);
             this.controls.target.set(0, 0.35, 0);
         } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            this.camera.position.set(8.8, 4.8, 10.4);
-            this.controls.target.set(0, 0.24, 0);
+            this.camera.position.set(8.8, 4.8, 12.8);
+            this.controls.target.set(0, -3.0, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
             this.camera.position.set(0, this.view === '2d' ? 0 : 1.8, this.view === '2d' ? 10.5 : 9.4);
             this.controls.target.set(0, 0, 0);
