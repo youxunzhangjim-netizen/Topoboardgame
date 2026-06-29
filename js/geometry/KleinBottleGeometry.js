@@ -27,9 +27,13 @@ export function kleinParametersForCoord(coord, width, height) {
     const x = Number(coord?.[0]) || 0;
     const y = Number(coord?.[1]) || 0;
     return {
-        v: KLEIN_V_MIN + TWO_PI * (x + 0.5) / Math.max(1, width),
-        u: KLEIN_U_MAX * y / Math.max(1, height)
+        v: positiveModulo(KLEIN_V_MIN + TWO_PI * (x + 0.5) / Math.max(1, width) - Math.PI / 2, TWO_PI),
+        u: KLEIN_U_MAX * (y + 0.5) / Math.max(1, height)
     };
+}
+
+function kleinSeamV(v) {
+    return positiveModulo(Math.PI - v, TWO_PI);
 }
 
 export function kleinBottleBasePoint(u, v) {
@@ -88,12 +92,13 @@ export function createKleinBottleSurfaceGeometry({
     lift = 0
 } = {}) {
     const uCount = Math.max(32, Math.floor(uSegments));
-    const vCount = Math.max(32, Math.floor(vSegments));
+    const rawVCount = Math.max(32, Math.floor(vSegments));
+    const vCount = rawVCount % 2 === 0 ? rawVCount : rawVCount + 1;
     const positions = [];
     const uvs = [];
     const indices = [];
     const indexFor = (i, j) => positiveModulo(i, uCount) * vCount + positiveModulo(j, vCount);
-    const flippedVIndex = (j) => positiveModulo(vCount - j, vCount);
+    const seamVIndex = (j) => positiveModulo(vCount / 2 - j, vCount);
 
     for (let i = 0; i < uCount; i += 1) {
         const u = TWO_PI * i / uCount;
@@ -112,8 +117,8 @@ export function createKleinBottleSurfaceGeometry({
             const nextJ = (j + 1) % vCount;
             const a = indexFor(i, j);
             const b = indexFor(i, nextJ);
-            const c = wrapsU ? indexFor(nextI, flippedVIndex(nextJ)) : indexFor(nextI, nextJ);
-            const d = wrapsU ? indexFor(nextI, flippedVIndex(j)) : indexFor(nextI, j);
+            const c = wrapsU ? indexFor(nextI, seamVIndex(nextJ)) : indexFor(nextI, nextJ);
+            const d = wrapsU ? indexFor(nextI, seamVIndex(j)) : indexFor(nextI, j);
             indices.push(a, b, c, a, c, d);
         }
     }
@@ -149,6 +154,14 @@ function addParameterLine(points, u0, v0, u1, v1, lift, segments) {
     }
 }
 
+function addShortestVLine(points, u, v0, v1, lift, segments) {
+    let endV = v1;
+    const delta = endV - v0;
+    if (delta > Math.PI) endV -= TWO_PI;
+    else if (delta < -Math.PI) endV += TWO_PI;
+    addParameterLine(points, u, v0, u, endV, lift, segments);
+}
+
 export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 24) {
     const start = kleinParametersForCoord(a, width, height);
     const end = kleinParametersForCoord(b, width, height);
@@ -160,7 +173,7 @@ export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, seg
         const lowerParam = kleinParametersForCoord(lower, width, height);
         const upperParam = kleinParametersForCoord(upper, width, height);
         addParameterLine(points, lowerParam.u, lowerParam.v, KLEIN_U_MAX, lowerParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
-        addParameterLine(points, 0, KLEIN_V_MAX - lowerParam.v, upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        addParameterLine(points, 0, kleinSeamV(lowerParam.v), upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
         return points;
     }
 
@@ -169,11 +182,40 @@ export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, seg
         const right = left === a ? b : a;
         const leftParam = kleinParametersForCoord(left, width, height);
         const rightParam = kleinParametersForCoord(right, width, height);
-        addParameterLine(points, leftParam.u, leftParam.v, leftParam.u, KLEIN_V_MAX, lift, Math.max(2, Math.ceil(segments / 2)));
-        addParameterLine(points, rightParam.u, KLEIN_V_MIN, rightParam.u, rightParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        addShortestVLine(points, leftParam.u, leftParam.v, rightParam.v, lift, segments);
         return points;
     }
 
     addParameterLine(points, start.u, start.v, end.u, end.v, lift, segments);
     return points;
+}
+
+export function createKleinBottleGridLines({
+    uSteps = 18,
+    vSteps = 16,
+    lift = 0.08,
+    uSegments = 160,
+    vSegments = 120
+} = {}) {
+    const lines = [];
+    const safeUSteps = Math.max(4, Math.floor(uSteps));
+    const safeVSteps = Math.max(4, Math.floor(vSteps));
+    const safeUSegments = Math.max(32, Math.floor(uSegments));
+    const safeVSegments = Math.max(32, Math.floor(vSegments));
+
+    for (let i = 0; i < safeUSteps; i += 1) {
+        const u = TWO_PI * i / safeUSteps;
+        const points = [];
+        addParameterLine(points, u, 0, u, TWO_PI, lift, safeVSegments);
+        lines.push(points);
+    }
+
+    for (let j = 0; j < safeVSteps; j += 1) {
+        const v = TWO_PI * j / safeVSteps;
+        const points = [];
+        addParameterLine(points, 0, v, TWO_PI, v, lift, safeUSegments);
+        lines.push(points);
+    }
+
+    return lines;
 }

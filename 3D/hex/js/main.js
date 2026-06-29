@@ -3,6 +3,7 @@ import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
+const TWO_PI = Math.PI * 2;
 const isSpaceTime = params.get('spacetime') === '3p1';
 
 const I18N = {
@@ -508,6 +509,28 @@ function projectModelPoint(model, width, height, coordinate = null) {
     };
 }
 
+function kleinSurfaceCornerModelPoint(x, y, width, height) {
+    const u = (y / Math.max(1, height)) * TWO_PI;
+    const v = (x / Math.max(1, width)) * TWO_PI - Math.PI / 2;
+    const r = 4 * (1 - Math.cos(u) / 2);
+    let rawX;
+    let rawY;
+    if (u < Math.PI) {
+        rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(u) * Math.cos(v);
+        rawY = 16 * Math.sin(u) + r * Math.sin(u) * Math.cos(v);
+    } else {
+        rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(v + Math.PI);
+        rawY = 16 * Math.sin(u);
+    }
+    const rawZ = r * Math.sin(v);
+    const scale = 0.2;
+    return [
+        rawX * scale * 1.12,
+        rawY * scale * 0.72,
+        rawZ * scale * 1.12
+    ];
+}
+
 function polygonNormal(vertices) {
     if (!vertices || vertices.length < 3) return null;
     for (let index = 1; index < vertices.length - 1; index += 1) {
@@ -651,12 +674,35 @@ function drawSurfacePanels(width, height) {
 
     for (let y = 0; y < yLimit; y += 1) {
         for (let x = 0; x < gridWidth; x += 1) {
-            const coords = surfacePanelCoordinates(x, y);
-            const unique = [...new Map(coords.map((coordinate) => [coordinate.join(','), coordinate])).values()];
-            if (unique.length < 3) continue;
-            const points = unique.map((coordinate) => projectCoordinate(coordinate, width, height));
-            const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
             const cell = surfacePanelCellCoordinate(x, y);
+            let points;
+            let blackTarget;
+            let whiteTarget;
+            if (topology === 'klein') {
+                const corners = [
+                    [x, y],
+                    [x + 1, y],
+                    [x + 1, y + 1],
+                    [x, y + 1]
+                ];
+                points = corners.map(([cornerX, cornerY]) => projectModelPoint(
+                    kleinSurfaceCornerModelPoint(cornerX, cornerY, gridWidth, gridHeight),
+                    width,
+                    height,
+                    cell
+                ));
+                blackTarget = cell && (blackZone.start(cell) || blackZone.end(cell));
+                whiteTarget = cell && (whiteZone.start(cell) || whiteZone.end(cell));
+            } else {
+                const coords = surfacePanelCoordinates(x, y);
+                const unique = [...new Map(coords.map((coordinate) => [coordinate.join(','), coordinate])).values()];
+                if (unique.length < 3) continue;
+                points = unique.map((coordinate) => projectCoordinate(coordinate, width, height));
+                blackTarget = unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate));
+                whiteTarget = unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate));
+            }
+            if (!points || points.length < 3) continue;
+            const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
             const color = cell ? game.getCell(cell) : null;
             if (color && cell) filledCells.add(cell.join(','));
             panels.push({
@@ -664,8 +710,8 @@ function drawSurfacePanels(width, height) {
                 avgDepth,
                 cell,
                 color,
-                blackTarget: unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate)),
-                whiteTarget: unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate))
+                blackTarget,
+                whiteTarget
             });
         }
     }

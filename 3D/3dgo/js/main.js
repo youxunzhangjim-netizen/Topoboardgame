@@ -33,7 +33,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
-    kleinBottleGraphEdgePoints,
+    createKleinBottleGridLines,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -506,44 +506,42 @@ class Go3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.88,
+                opacity: 0.94,
                 depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
         );
+        surface.renderOrder = 2;
         surface.castShadow = true;
         surface.receiveShadow = true;
         surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x4b5563,
             transparent: true,
-            opacity: 0.58,
+            opacity: 0.3,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 5;
+            line.renderOrder = 1;
             this.boardGroup.add(line);
         };
 
-        const logic = this.app.logic;
-        const drawn = new Set();
-        for (const coord of logic.playableCoords()) {
-            const fromKey = logic.coordKey(coord);
-            for (const neighbor of logic.neighborsFromCoord(coord)) {
-                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.13, 42));
-            }
-        }
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
+            vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
+            lift: 0.13,
+            uSegments: 180,
+            vSegments: 140
+        })) addLine(points);
 
         const pointPositions = [];
+        const logic = this.app.logic;
         for (const coord of logic.playableCoords()) {
             const pose = this.kleinOutsidePose(coord, width, height, 0.18);
             this.pointCoords.push(coord);
@@ -1764,8 +1762,8 @@ class Go3DRenderer {
             this.camera.position.set(0, 8.6, 7.4);
             this.controls.target.set(0, 0.35, 0);
         } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            this.camera.position.set(8.6, 12.4, 8.4);
-            this.controls.target.set(0, 0.18, 0);
+            this.camera.position.set(8.8, 4.8, 10.4);
+            this.controls.target.set(0, 0.24, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
             this.camera.position.set(0, this.view === '2d' ? 0 : 1.8, this.view === '2d' ? 10.5 : 9.4);
             this.controls.target.set(0, 0, 0);

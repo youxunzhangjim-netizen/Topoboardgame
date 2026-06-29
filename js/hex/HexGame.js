@@ -512,17 +512,19 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
         ];
     }
     if (topology === 'klein') {
-        const r = 4 * (1 - Math.cos(u) / 2);
+        const kleinU = ((y + 0.5) / Math.max(1, height)) * Math.PI * 2;
+        const kleinV = ((x + 0.5) / Math.max(1, width)) * Math.PI * 2 - Math.PI / 2;
+        const r = 4 * (1 - Math.cos(kleinU) / 2);
         let rawX;
         let rawY;
-        if (u < Math.PI) {
-            rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(u) * Math.cos(v);
-            rawY = 16 * Math.sin(u) + r * Math.sin(u) * Math.cos(v);
+        if (kleinU < Math.PI) {
+            rawX = 6 * Math.cos(kleinU) * (1 + Math.sin(kleinU)) + r * Math.cos(kleinU) * Math.cos(kleinV);
+            rawY = 16 * Math.sin(kleinU) + r * Math.sin(kleinU) * Math.cos(kleinV);
         } else {
-            rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(v + Math.PI);
-            rawY = 16 * Math.sin(u);
+            rawX = 6 * Math.cos(kleinU) * (1 + Math.sin(kleinU)) + r * Math.cos(kleinV + Math.PI);
+            rawY = 16 * Math.sin(kleinU);
         }
-        const rawZ = r * Math.sin(v);
+        const rawZ = r * Math.sin(kleinV);
         const dixonScale = 0.2;
         return [
             rawX * dixonScale * 1.12,

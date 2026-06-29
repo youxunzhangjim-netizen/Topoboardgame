@@ -6,7 +6,7 @@ import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkMan
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import {
     createKleinBottleSurfaceGeometry,
-    kleinBottleGraphEdgePoints,
+    createKleinBottleGridLines,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -439,50 +439,39 @@ class Reversi3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.88,
+                opacity: 0.94,
                 depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
         );
+        surface.renderOrder = 2;
         surface.castShadow = true;
         surface.receiveShadow = true;
         surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x4b5563,
             transparent: true,
-            opacity: 0.58,
-            depthTest: true,
-            depthWrite: false
-        });
-        const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
-            transparent: true,
-            opacity: 0.68,
+            opacity: 0.3,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 5;
+            line.renderOrder = 1;
             this.boardGroup.add(line);
         };
 
-        const drawn = new Set();
-        for (const coord of topology.allCoords()) {
-            for (const direction of [[1, 0], [0, 1]]) {
-                const neighbor = topology.step(coord, direction);
-                if (!neighbor) continue;
-                const edgeKey = [topology.key(coord), topology.key(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.13, 42), seam ? seamMaterial : gridMaterial);
-            }
-        }
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
+            vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
+            lift: 0.13,
+            uSegments: 180,
+            vSegments: 140
+        })) addLine(points, gridMaterial);
 
         const pointPositions = [];
         for (const coord of topology.allCoords()) {
@@ -1305,11 +1294,11 @@ class Reversi3DRenderer {
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
         else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(7.4, 5.4, 8.4);
-        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.4, 11.8, 8.2);
+        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.8, 4.8, 10.4);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);
         else if (mode === REVERSI_TOPOLOGIES.RP2) this.camera.position.set(0, 0, 10.5);
         else this.camera.position.set(7.9, 7.4, 8.2);
-        this.controls.target.set(0, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.18 : 0, 0);
+        this.controls.target.set(0, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.24 : 0, 0);
         this.controls.update();
     }
 
