@@ -8,8 +8,8 @@ const COPY = {
     both: 'Past+Future Mode',
     futureHelp: 'Schedule actions into future ticks. The original board-game rule is checked when the action resolves.',
     pastHelp: 'Moves resolve immediately. A recent event may be replaced, then all later events are replayed and revalidated.',
-    bothHelp: 'Schedule future actions and rewrite recent resolved actions on one deterministic timeline.',
-    delay: 'Future delay',
+    bothHelp: 'Schedule future actions and rewrite recent past actions.',
+    delay: 'Future Delay',
     legacyTitle: 'Time period and age settings',
     legacyHelp: 'These are the original +1D clocks: Go can keep a periodic appear/disappear phase, and every +1D board game can use piece aging.',
     periodMode: 'Go time period',
@@ -30,7 +30,7 @@ const COPY = {
     noiseRate: 'Noise rate',
     noisePeriod: 'Noise period',
     legacySummary: 'Clock summary',
-    window: 'Past rewrite window',
+    window: 'Past Rewrite Window',
     customWindow: 'Custom ticks',
     conflict: 'Replay conflict policy',
     reject: 'Reject rewrite on conflict',
@@ -39,6 +39,7 @@ const COPY = {
     selector: '2+1D / 3+1D selector',
     pending: 'Pending Future Actions',
     history: 'Resolved Timeline',
+    editableHistory: 'Editable History',
     resolveTick: 'Resolve Tick',
     scheduled: 'Action Scheduled',
     resolved: 'Action Resolved',
@@ -48,15 +49,21 @@ const COPY = {
     earlier: 'Earlier',
     later: 'Later',
     replacement: 'Choose Replacement Move',
-    replacementHelp: 'Choose a replacement with the normal board controls. The board changes only after a valid dry-run replay.',
-    rewriteCommitted: 'Past rewrite committed after deterministic replay.',
-    rewriteRejected: 'Past rewrite rejected; the current timeline was not changed.',
+    replacementHelp: 'Choose a replacement with the normal board controls, then apply the dry-run replay.',
+    dryRunReplay: 'Dry-Run Replay',
+    applyRewrite: 'Apply Rewrite',
+    cancelRewrite: 'Cancel Rewrite',
+    rewriteCommitted: 'Rewrite Applied',
+    rewriteRejected: 'Rewrite Failed',
     conflictSkipped: 'A later conflicting event became obsolete during replay.',
     locked: 'Locked after the first resolved move.',
     online: 'Past Mode for online rooms is still developing.',
+    onlineBoth: 'Past+Future Mode for online rooms is still developing.',
     emptyPending: 'No pending future actions.',
     emptyHistory: 'No resolved timeline events.',
     playerOnly: 'Only the current player can rewrite their own recent event.',
+    pendingPlayerOnly: 'Only the current player can change their own pending future action.',
+    pendingLocked: 'This pending future action can no longer be changed.',
     expired: 'This event is outside the rewrite window.',
     gameEnded: 'Events cannot be rewritten after the game has ended.',
     event: 'Event',
@@ -73,10 +80,10 @@ const COPY = {
     mode: '時間模式',
     future: '未來模式',
     past: '過去模式',
-    both: '過去＋未來模式',
+    both: '過去+未來模式',
     futureHelp: '將行動排程到未來回合；行動生效時重新套用原棋類規則。',
     pastHelp: '行動立即生效；可替換近期事件，再依序重播並重新驗證後續事件。',
-    bothHelp: '在同一條確定性時間線上排程未來行動，並改寫近期已生效行動。',
+    bothHelp: '排程未來行動，並改寫最近的過去行動。',
     delay: '未來延遲',
     legacyTitle: '時間週期與年齡設定',
     legacyHelp: '這些是原本的 +1D 時鐘：Go 可保留週期性的出現／消失相位，所有 +1D 棋局都可使用棋子老化。',
@@ -98,7 +105,7 @@ const COPY = {
     noiseRate: '噪聲比例',
     noisePeriod: '噪聲週期',
     legacySummary: '時鐘摘要',
-    window: '過去改寫範圍',
+    window: '過去改寫窗口',
     customWindow: '自訂回合數',
     conflict: '重播衝突處理',
     reject: '遇到衝突時拒絕改寫',
@@ -107,6 +114,7 @@ const COPY = {
     selector: '2+1D／3+1D 選擇器',
     pending: '待生效未來行動',
     history: '已生效時間線',
+    editableHistory: '可編輯歷史',
     resolveTick: '生效回合',
     scheduled: '行動已排程',
     resolved: '行動已生效',
@@ -116,15 +124,21 @@ const COPY = {
     earlier: '提前',
     later: '延後',
     replacement: '選擇替代行動',
-    replacementHelp: '使用一般棋盤控制選擇替代行動；只有內部試重播成功後才會改變棋盤。',
-    rewriteCommitted: '過去改寫已通過確定性重播並套用。',
-    rewriteRejected: '過去改寫遭拒；目前時間線沒有改變。',
+    replacementHelp: '使用一般棋盤控制選擇替代行動，然後套用試回放。',
+    dryRunReplay: '試回放',
+    applyRewrite: '套用改寫',
+    cancelRewrite: '取消改寫',
+    rewriteCommitted: '改寫已套用',
+    rewriteRejected: '改寫失敗',
     conflictSkipped: '重播時有一個後續衝突事件被標記為失效。',
     locked: '第一個已生效行動後鎖定。',
     online: '線上房間的過去模式仍在開發中。',
+    onlineBoth: '線上房間的過去+未來模式仍在開發中。',
     emptyPending: '目前沒有待生效未來行動。',
     emptyHistory: '目前沒有已生效時間線事件。',
     playerOnly: '目前玩家只能改寫自己近期的事件。',
+    pendingPlayerOnly: '目前玩家只能更改自己的待生效未來行動。',
+    pendingLocked: '此待生效未來行動已不能更改。',
     expired: '此事件已超出改寫範圍。',
     gameEnded: '棋局結束後不能改寫事件。',
     event: '事件',
@@ -245,6 +259,7 @@ export function installSpaceTimeTimelineEngine() {
     internalAction: false,
     editingEventId: null,
     replacementSource: null,
+    pendingReplacement: null,
     selectionSource: null,
     settingsLocked: false,
     message: '',
@@ -362,13 +377,13 @@ export function installSpaceTimeTimelineEngine() {
     const style = document.createElement('style');
     style.id = 'spaceTimeTimelineStyle';
     style.textContent = `
-      .st-timeline{margin:14px 0;border:1px solid rgba(86,190,222,.42);border-radius:8px;background:#09111bcc;color:#eef8ff;overflow:hidden}
+      .st-timeline{position:relative;z-index:50;flex:0 0 auto;margin:14px 0;border:1px solid rgba(86,190,222,.42);border-radius:8px;background:#09111bcc;color:#eef8ff;overflow:hidden}
       .st-timeline__head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid rgba(86,190,222,.18)}
       .st-timeline__head h3{margin:0;color:#f3bd49;font-size:1rem;letter-spacing:0}.st-timeline__head p{margin:4px 0 0;color:#b9cad8;line-height:1.45;font-size:.84rem}
       .st-timeline__body{display:grid;gap:12px;padding:14px}.st-timeline__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
       .st-timeline label{display:grid;gap:5px;color:#aac1d2;font-size:.78rem;font-weight:800}.st-timeline select,.st-timeline input{width:100%;min-width:0;padding:9px 10px;border:1px solid rgba(86,190,222,.36);border-radius:6px;background:#080f18;color:#f6fbff;font:inherit}
       .st-timeline__help,.st-timeline__message,.st-timeline__online{margin:0;padding:9px 10px;border:1px solid rgba(86,190,222,.16);border-radius:6px;background:#0c1723;color:#c6d7e3;line-height:1.45;font-size:.84rem}
-      .st-timeline__online{color:#ffd9a0;border-color:rgba(232,164,47,.38)}.st-timeline__actions{display:flex;flex-wrap:wrap;gap:8px}
+      .st-timeline__online{color:#ffd9a0;border-color:rgba(232,164,47,.38)}.st-timeline__actions{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:3}
       .st-timeline button,.st-timeline a{min-height:38px;padding:8px 12px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:800;text-decoration:none;cursor:pointer}
       .st-timeline button:hover,.st-timeline a:hover{border-color:#f3bd49}.st-timeline button:disabled,.st-timeline select:disabled,.st-timeline input:disabled{opacity:.52;cursor:not-allowed}
       .st-timeline__section{display:grid;gap:7px}.st-timeline__section h4{margin:0;color:#f3bd49;font-size:.88rem;letter-spacing:0}.st-timeline__list{display:grid;gap:6px}
@@ -419,6 +434,13 @@ export function installSpaceTimeTimelineEngine() {
             <select data-st-conflict><option value="reject"></option><option value="skip"></option></select>
           </label>
         </div>
+        <p class="st-timeline__help" data-st-help></p>
+        <p class="st-timeline__online" data-st-online hidden></p>
+        <p class="st-timeline__message" data-st-message hidden></p>
+        <div class="st-timeline__actions" data-st-rewrite-actions hidden>
+          <button type="button" data-st-apply-rewrite></button>
+          <button type="button" data-st-cancel-rewrite></button>
+        </div>
         <section class="st-timeline__section st-timeline__legacy" data-st-legacy-section>
           <h4 data-st-legacy-title></h4>
           <p data-st-legacy-help></p>
@@ -456,9 +478,6 @@ export function installSpaceTimeTimelineEngine() {
           </div>
           <div class="st-timeline__summary" data-st-legacy-summary></div>
         </section>
-        <p class="st-timeline__help" data-st-help></p>
-        <p class="st-timeline__online" data-st-online hidden></p>
-        <p class="st-timeline__message" data-st-message hidden></p>
         <div class="st-timeline__actions">
           <button type="button" data-st-apply></button>
           <a data-st-selector href="${relativeRoot()}spacetime/"></a>
@@ -502,7 +521,10 @@ export function installSpaceTimeTimelineEngine() {
 
   function applyControls() {
     const requestedMode = normalizeMode(panel.querySelector('[data-st-mode]').value);
-    if ((requestedMode === 'past' || requestedMode === 'past_future') && isOnline()) {
+    if (requestedMode === 'past_future' && isOnline()) {
+      settings.mode = 'future';
+      state.message = text('onlineBoth');
+    } else if (requestedMode === 'past' && isOnline()) {
       settings.mode = 'future';
       state.message = text('online');
     } else {
@@ -546,6 +568,17 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function handlePanelClick(event) {
+    const applyRewrite = event.target.closest('[data-st-apply-rewrite]');
+    if (applyRewrite) {
+      void applyPendingRewrite();
+      return;
+    }
+    const cancelRewrite = event.target.closest('[data-st-cancel-rewrite]');
+    if (cancelRewrite) {
+      clearRewriteState(text('cancelRewrite'));
+      refresh();
+      return;
+    }
     const edit = event.target.closest('[data-st-edit]');
     if (edit) {
       beginPastEdit(edit.dataset.stEdit);
@@ -553,7 +586,13 @@ export function installSpaceTimeTimelineEngine() {
     }
     const cancel = event.target.closest('[data-st-cancel]');
     if (cancel) {
-      state.pending = state.pending.filter((action) => action.id !== cancel.dataset.stCancel);
+      const action = state.pending.find((item) => item.id === cancel.dataset.stCancel);
+      if (!action || !canChangePending(action, true)) {
+        refresh();
+        return;
+      }
+      action.status = 'cancelled';
+      state.pending = state.pending.filter((item) => item.id !== action.id);
       state.message = text('cancel');
       refresh();
       return;
@@ -561,7 +600,10 @@ export function installSpaceTimeTimelineEngine() {
     const reschedule = event.target.closest('[data-st-reschedule]');
     if (reschedule) {
       const action = state.pending.find((item) => item.id === reschedule.dataset.stReschedule);
-      if (!action) return;
+      if (!action || !canChangePending(action, true)) {
+        refresh();
+        return;
+      }
       const delta = Number(reschedule.dataset.stDelta) || 0;
       action.resolveTick = Math.max(state.tick + 1, action.resolveTick + delta);
       action.delay = action.resolveTick - action.submittedTick;
@@ -998,8 +1040,8 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   async function processDueActions() {
-    const due = state.pending.filter((action) => action.resolveTick <= currentTick());
-    state.pending = state.pending.filter((action) => action.resolveTick > currentTick());
+    const due = state.pending.filter((action) => action.status === 'pending' && action.resolveTick <= currentTick());
+    state.pending = state.pending.filter((action) => action.status === 'pending' && action.resolveTick > currentTick());
     for (const action of due) {
       const before = captureSnapshot(state.app);
       state.internalAction = true;
@@ -1060,6 +1102,7 @@ export function installSpaceTimeTimelineEngine() {
     if (!event || !canEdit(event, true)) return;
     state.editingEventId = event.id;
     state.replacementSource = null;
+    state.pendingReplacement = null;
     state.message = family === 'jump' || family === 'chess' ? text('selectSource') : text('replacementHelp');
     refresh();
   }
@@ -1068,17 +1111,44 @@ export function installSpaceTimeTimelineEngine() {
     const event = state.timeline.find((item) => item.id === state.editingEventId);
     if (!event) return false;
     state.replacementSource = null;
-    void replayReplacement(event, { ...clone(raw), player: event.player });
+    state.pendingReplacement = {
+      eventId: event.id,
+      replacement: { ...clone(raw), player: event.player }
+    };
+    state.message = text('applyRewrite');
+    refresh();
     return true;
+  }
+
+  async function applyPendingRewrite() {
+    if (!state.pendingReplacement) return false;
+    const event = state.timeline.find((item) => item.id === state.pendingReplacement.eventId);
+    if (!event || !canEdit(event, true)) {
+      clearRewriteState(text('rewriteRejected'));
+      refresh();
+      return false;
+    }
+    await replayReplacement(event, state.pendingReplacement.replacement);
+    return true;
+  }
+
+  function clearRewriteState(message = '') {
+    state.editingEventId = null;
+    state.replacementSource = null;
+    state.pendingReplacement = null;
+    state.message = message;
+    clearPendingSelection();
   }
 
   async function replayReplacement(targetEvent, replacement) {
     const currentSnapshot = captureSnapshot(state.app);
     const originalTimeline = clone(state.timeline);
+    const originalPending = clone(state.pending);
     const targetIndex = state.timeline.findIndex((event) => event.id === targetEvent.id);
     const prefix = state.timeline.slice(0, targetIndex);
     const suffix = state.timeline.slice(targetIndex + 1);
     const rebuilt = [...prefix];
+    const validatedPending = [];
     let snapshot = clone(targetEvent.beforeSnapshot || state.initialSnapshot);
     let rejected = false;
     let skippedConflict = false;
@@ -1119,18 +1189,42 @@ export function installSpaceTimeTimelineEngine() {
       snapshot = after;
     }
 
+    const pendingBaseSnapshot = clone(snapshot);
+    let pendingSimulationSnapshot = clone(snapshot);
+    for (const action of [...originalPending].sort((a, b) => a.resolveTick - b.resolveTick || a.submittedTick - b.submittedTick)) {
+      if (rejected) break;
+      if (action.status && action.status !== 'pending') continue;
+      if (action.resolveTick <= targetEvent.tick) continue;
+      restoreSnapshot(state.app, pendingSimulationSnapshot);
+      const ok = await applyAction(action, { preserveTurn: false });
+      if (!ok) {
+        if (settings.conflictPolicy === 'reject') {
+          rejected = true;
+          break;
+        }
+        skippedConflict = true;
+        continue;
+      }
+      pendingSimulationSnapshot = captureSnapshot(state.app);
+      validatedPending.push({ ...clone(action), status: 'pending' });
+    }
+    restoreSnapshot(state.app, pendingBaseSnapshot);
+
     if (rejected) {
       restoreSnapshot(state.app, currentSnapshot);
       state.timeline = originalTimeline;
+      state.pending = originalPending;
       state.message = text('rewriteRejected');
     } else {
       state.timeline = rebuilt;
-      state.lastSnapshot = captureSnapshot(state.app);
+      state.pending = validatedPending;
+      state.lastSnapshot = clone(pendingBaseSnapshot);
       state.message = skippedConflict ? `${text('rewriteCommitted')} ${text('conflictSkipped')}` : text('rewriteCommitted');
     }
     state.internalAction = false;
     state.editingEventId = null;
     state.replacementSource = null;
+    state.pendingReplacement = null;
     triggerRender();
     refresh();
   }
@@ -1628,6 +1722,26 @@ export function installSpaceTimeTimelineEngine() {
     return true;
   }
 
+  function canChangePending(action, setMessage = false) {
+    if (!usesFuture() || !action || action.status !== 'pending' || action.cancelled || action.failed || action.obsolete || action.rewritten) {
+      if (setMessage) state.message = text('pendingLocked');
+      return false;
+    }
+    if (gameEnded()) {
+      if (setMessage) state.message = text('gameEnded');
+      return false;
+    }
+    if (Number(action.resolveTick) <= currentTick()) {
+      if (setMessage) state.message = text('pendingLocked');
+      return false;
+    }
+    if (action.player !== currentPlayer(state.app)) {
+      if (setMessage) state.message = text('pendingPlayerOnly');
+      return false;
+    }
+    return true;
+  }
+
   function replacementPlayer() {
     return state.timeline.find((event) => event.id === state.editingEventId)?.player || currentPlayer(state.app);
   }
@@ -1644,7 +1758,7 @@ export function installSpaceTimeTimelineEngine() {
 
   function isOnlinePastMode() {
     if (!usesPast() || !isOnline()) return false;
-    state.message = text('online');
+    state.message = text(settings.mode === 'past_future' ? 'onlineBoth' : 'online');
     return true;
   }
 
@@ -1793,9 +1907,11 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelector('[data-st-legacy-title]').textContent = text('legacyTitle');
     panel.querySelector('[data-st-legacy-help]').textContent = text('legacyHelp');
     panel.querySelector('[data-st-apply]').textContent = text('apply');
+    panel.querySelector('[data-st-apply-rewrite]').textContent = text('applyRewrite');
+    panel.querySelector('[data-st-cancel-rewrite]').textContent = text('cancelRewrite');
     panel.querySelector('[data-st-selector]').textContent = text('selector');
     panel.querySelector('[data-st-pending-title]').textContent = text('pending');
-    panel.querySelector('[data-st-history-title]').textContent = text('history');
+    panel.querySelector('[data-st-history-title]').textContent = text(past ? 'editableHistory' : 'history');
     panel.querySelectorAll('[data-st-future]').forEach((node) => { node.hidden = !future; });
     panel.querySelectorAll('[data-st-past]').forEach((node) => { node.hidden = !past; });
     panel.querySelector('[data-st-custom]').hidden = !past || panel.querySelector('[data-st-window]').value !== 'custom';
@@ -1810,7 +1926,10 @@ export function installSpaceTimeTimelineEngine() {
     online.textContent = text('online');
     const message = panel.querySelector('[data-st-message]');
     message.hidden = !state.message && !state.editingEventId;
-    message.textContent = state.editingEventId ? `${text('replacement')}: ${state.message || text('replacementHelp')}` : state.message;
+    message.textContent = state.editingEventId ? `${text('dryRunReplay')}: ${state.message || text('replacementHelp')}` : state.message;
+    const rewriteActions = panel.querySelector('[data-st-rewrite-actions]');
+    rewriteActions.hidden = !state.editingEventId;
+    panel.querySelector('[data-st-apply-rewrite]').disabled = !state.pendingReplacement;
     for (const selector of ['[data-st-window]', '[data-st-custom-window]', '[data-st-conflict]']) {
       panel.querySelector(selector).disabled = state.settingsLocked;
     }
@@ -1829,19 +1948,23 @@ export function installSpaceTimeTimelineEngine() {
 
   function renderPending() {
     const host = panel.querySelector('[data-st-pending-list]');
-    if (!state.pending.length) {
+    const activePending = state.pending.filter((action) => action.status === 'pending');
+    if (!activePending.length) {
       host.innerHTML = `<span class="st-timeline__empty">${escapeHTML(text('emptyPending'))}</span>`;
       return;
     }
-    host.innerHTML = state.pending.map((action) => `
-      <div class="st-timeline__event">
-        <span><strong>${escapeHTML(text('scheduled'))}</strong> · ${escapeHTML(text('resolveTick'))} ${action.resolveTick}</span>
-        ${settings.mode === 'past_future' ? `<div class="st-timeline__event-actions">
-          <button type="button" data-st-reschedule="${action.id}" data-st-delta="-1">${escapeHTML(text('earlier'))}</button>
-          <button type="button" data-st-reschedule="${action.id}" data-st-delta="1">${escapeHTML(text('later'))}</button>
-          <button type="button" data-st-cancel="${action.id}">${escapeHTML(text('cancel'))}</button>
-        </div>` : ''}
-      </div>`).join('');
+    host.innerHTML = activePending.map((action) => {
+      const editable = canChangePending(action);
+      return `
+        <div class="st-timeline__event">
+          <span><strong>${escapeHTML(text('scheduled'))}</strong> · ${escapeHTML(text('resolveTick'))} ${action.resolveTick}</span>
+          ${settings.mode === 'past_future' ? `<div class="st-timeline__event-actions">
+            <button type="button" data-st-reschedule="${action.id}" data-st-delta="-1" ${editable ? '' : 'disabled'}>${escapeHTML(text('earlier'))}</button>
+            <button type="button" data-st-reschedule="${action.id}" data-st-delta="1" ${editable ? '' : 'disabled'}>${escapeHTML(text('later'))}</button>
+            <button type="button" data-st-cancel="${action.id}" ${editable ? '' : 'disabled'}>${escapeHTML(text('cancel'))}</button>
+          </div>` : ''}
+        </div>`;
+    }).join('');
   }
 
   function renderTimeline() {
