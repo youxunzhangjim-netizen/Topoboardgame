@@ -442,7 +442,7 @@ function buildCenters(width, height) {
         return;
     }
 
-    const rawWidthFactor = Math.sqrt(3) * (gridWidth + gridHeight / 2);
+    const rawWidthFactor = Math.sqrt(3) * (gridWidth + Math.max(0, gridHeight - 1) / 2);
     const rawHeightFactor = 1.5 * (gridHeight - 1) + 2;
     const radius = Math.max(7, Math.min(
         (width - padding * 2) / rawWidthFactor,
@@ -624,7 +624,7 @@ function drawBoard() {
 
     for (const cell of centers) {
         const { blackTarget, whiteTarget } = targetFlags(cell.coordinate);
-        traceCell(cell, 0.96);
+        traceCell(cell, 1);
         context.fillStyle = cellFill(cell, blackTarget, whiteTarget);
         context.fill();
         const color = game.getCell(cell.coordinate);

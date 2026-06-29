@@ -101,7 +101,7 @@ try {
         mode: window.reversi3dApp.logic.topology.topology
     }));
     assert.equal(mobileStats.mode, 'sphere');
-    assert.equal(mobileStats.nodeCount, 64, 'S2 size 8 should expose 64 pickable graph points.');
+    assert.equal(mobileStats.nodeCount, 66, 'S2 size 8 should expose 64 latitude-ring points plus north/south pole points.');
     assert.ok(mobileStats.canvasWidth >= 320 && mobileStats.canvasHeight >= 360, 'Mobile canvas should remain visible.');
     assert.equal(logs.some((line) => line.startsWith('pageerror')), false, logs.join('\n'));
 

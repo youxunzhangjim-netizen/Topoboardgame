@@ -1002,51 +1002,6 @@
                 </div>
             </div>
 
-            <div class="control-section section-online">
-                <h2>Collaboration</h2>
-                <div class="control-fields two-col">
-                    <label>
-                        Connection
-                        <select id="playModeSelect">
-                            <option value="local" selected>Local</option>
-                            <option value="online">Online</option>
-                        </select>
-                    </label>
-                    <label>
-                        Room Code
-                        <input id="onlineRoomInput" type="text" autocomplete="off" placeholder="Room code or shared link">
-                    </label>
-                </div>
-                <div class="button-grid online-button-grid" id="onlineButtonGrid" hidden>
-                    <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
-                    <button id="onlineFindButton" type="button">Find Match</button>
-                    <div class="divider-text">PRIVATE ROOM</div>
-                    <button id="onlineCreateButton" type="button">Create Room</button>
-                    <div class="divider-text">OR</div>
-                    <button id="onlineJoinButton" type="button">Join Room</button>
-                    <button id="onlineReconnectButton" type="button">Reconnect</button>
-                    <button id="onlineLeaveButton" type="button">Leave</button>
-                    <div class="room-info" id="roomInfo" hidden>
-                        <strong>Room Code</strong>
-                        <div class="room-id-display" id="roomIdDisplay"></div>
-                        <div class="share-link-box">
-                            <input class="share-link-input" id="shareLinkInput" type="text" readonly>
-                            <button class="copy-btn" id="copyLinkButton" type="button">Copy</button>
-                        </div>
-                    </div>
-                </div>
-                <p class="online-status" id="onlineStatus">Local experiment.</p>
-                <div class="online-chat">
-                    <h3>Online Chat</h3>
-                    <div id="onlineChatMessages" class="online-chat-messages" aria-live="polite">
-                        <div class="online-chat-empty">Connect online to chat.</div>
-                    </div>
-                    <div class="online-chat-compose">
-                        <input id="onlineChatInput" type="text" maxlength="240" autocomplete="off" placeholder="Message online opponent" disabled>
-                        <button id="onlineChatSendButton" type="button" disabled>Send</button>
-                    </div>
-                </div>
-            </div>
         </section>
 
         <section class="lab-left-panels" aria-label="State space, rule, and initial condition details">

@@ -31,7 +31,6 @@ const I18N = {
         hypercube: 'Hypercube / R4',
         torus: '4D Torus / T4',
         kleinQuarticProduct: 'Klein Quartic × I × I',
-        trefoilSolidProduct: 'Trefoil Solid Tube × I',
         viewMode: 'View',
         sliceView: 'z-w Slice',
         stackView: '3D Stack',
@@ -74,7 +73,6 @@ const I18N = {
             open: 'R4 uses open hyperfaces and eight axis-neighbors at interior sites.',
             torus: 'T4 wraps all four axes. Both players connect explicit marked cut-hyperface zones.',
             klein_quartic_product: 'The 56-triangle Klein quartic cell graph multiplied by two finite interval directions.',
-            trefoil_solid_product: 'A discrete solid trefoil tube multiplied by a finite interval I.'
         }
     },
     zh: {
@@ -103,7 +101,6 @@ const I18N = {
         hypercube: '超立方體／R4',
         torus: '四維環面／T4',
         kleinQuarticProduct: 'Klein 四次曲線 × I × I',
-        trefoilSolidProduct: '三葉結實心管 × I',
         viewMode: '視圖',
         sliceView: 'z-w 切片',
         stackView: '3D 堆疊',
@@ -146,7 +143,6 @@ const I18N = {
             open: 'R4 使用開放超平面；內部格點各有八個軸向鄰點。',
             torus: 'T4 會包裹全部四個座標軸；雙方連接明確標示的切面目標區。',
             klein_quartic_product: '把 56 三角形的 Klein 四次曲線胞腔圖乘上兩個有限區間方向。',
-            trefoil_solid_product: '把離散三葉結實心管乘上一個有限區間 I。'
         }
     }
 };

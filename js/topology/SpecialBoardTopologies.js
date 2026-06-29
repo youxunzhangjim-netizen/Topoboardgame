@@ -568,10 +568,6 @@ export const SPECIAL_BOARD_OPTIONS = Object.freeze({
         Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' })
     ]),
     3: Object.freeze([
-        Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' }),
-        Object.freeze({ value: 'trefoil_solid', en: 'Trefoil Solid Tube', zh: '三葉結實心管' })
-    ]),
-    4: Object.freeze([
-        Object.freeze({ value: 'trefoil_solid_product', en: 'Trefoil Solid Tube × I', zh: '三葉結實心管 × I' })
+        Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' })
     ])
 });

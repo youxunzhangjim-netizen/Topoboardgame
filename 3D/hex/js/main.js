@@ -51,7 +51,6 @@ const I18N = {
         fccLattice: 'FCC',
         hcpLattice: 'HCP',
         trefoilTube: 'Trefoil Tube',
-        trefoilSolid: 'Trefoil Solid Tube',
         kleinQuartic: 'Klein Quartic x I',
         boardView: 'Board View',
         rotateX: 'Rotate X',
@@ -104,7 +103,6 @@ const I18N = {
             mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Black uses the seam zones and White uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
             trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
-            trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.',
             klein_quartic: 'Klein Quartic x I is a genus-3 cell-complex board extruded through one interval layer for 3D play.'
         }
     },
@@ -152,7 +150,6 @@ const I18N = {
         fccLattice: 'FCC',
         hcpLattice: 'HCP',
         trefoilTube: '三葉結管面',
-        trefoilSolid: '三葉結實心管',
         kleinQuartic: 'Klein quartic x I',
         boardView: '棋盤視角',
         rotateX: '繞 X 軸旋轉',
@@ -205,7 +202,6 @@ const I18N = {
             mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，黑方使用接縫目標區，白方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
             trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
-            trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。',
             klein_quartic: 'Klein quartic x I 是將 genus-3 胞複形棋盤沿一個區間層擴展後的 3D 棋盤。'
         }
     }
@@ -348,9 +344,6 @@ function expandedBoardSize(topology, baseSize) {
     if (topology === 'trefoil_tube') {
         return [Math.max(24, base * 6), Math.max(10, base * 2 + 2), 1];
     }
-    if (topology === 'trefoil_solid') {
-        return [Math.max(24, base * 6), Math.max(10, base * 2 + 2), Math.max(3, Math.ceil(base / 2))];
-    }
     if (topology === 'klein_quartic') {
         return [56, Math.max(4, base), 1];
     }
@@ -364,7 +357,7 @@ function syncBoardDimensions() {
 
 function boardSelectSizeFromGame() {
     const topology = game?.topology?.topology || selectedTopology();
-    if (topology === 'trefoil_tube' || topology === 'trefoil_solid') return Math.max(4, Math.round(axisSizes[0] / 6));
+    if (topology === 'trefoil_tube') return Math.max(4, Math.round(axisSizes[0] / 6));
     if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) return Math.max(4, Math.round(axisSizes[0] / 3));
     if (topology === 'klein_quartic' || topology === 'klein_quartic_product') return Math.max(4, axisSizes[1] || 4);
     return axisSizes[0] || 4;

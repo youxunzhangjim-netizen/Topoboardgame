@@ -42,6 +42,6 @@ assert.deepEqual(t2.topology.step([0, 0], [0, -1]), [0, 7]);
 
 const sphere = new ReversiGame({ topology: 'sphere', size: 8 });
 assert.deepEqual(sphere.topology.step([0, 3], [-1, 0]), [7, 3]);
-assert.equal(sphere.topology.step([0, 0], [0, -1]), null);
+assert.deepEqual(sphere.topology.step([0, 0], [0, -1]), [0, -1]);
 
 console.log('3D Reversi verification passed.');

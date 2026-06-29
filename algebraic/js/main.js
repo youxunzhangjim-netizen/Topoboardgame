@@ -4566,7 +4566,11 @@ function updateOnlineConnectionUI(roomId = '', playerColor = '', room = null) {
             els.shareLinkInput.value = '';
         }
     }
-    els.onlineStatus.dataset.color = playerColor || '';
+    if (els.onlineStatus) els.onlineStatus.dataset.color = playerColor || '';
+}
+
+function isOnlineExperimentMode() {
+    return els.playModeSelect?.value === 'online';
 }
 
 function syncOnlineRoomTurn(room) {
@@ -4576,9 +4580,10 @@ function syncOnlineRoomTurn(room) {
 }
 
 function syncOnlineModeVisibility() {
-    const online = els.playModeSelect.value === 'online';
+    if (!els.playModeSelect || !els.onlineButtonGrid) return;
+    const online = isOnlineExperimentMode();
     els.onlineButtonGrid.hidden = !online;
-    if (online && !els.onlineStatus.dataset.color && els.onlineStatus.textContent === 'Local experiment.') {
+    if (online && els.onlineStatus && !els.onlineStatus.dataset.color && els.onlineStatus.textContent === 'Local experiment.') {
         els.onlineStatus.textContent = 'Online mode selected.';
     }
 }
@@ -4597,13 +4602,13 @@ function onlineHooks() {
         getTurnFromBoard: (state) => state?.currentPlayer,
         renderBoard: render,
         showOnlineStatus: (text) => {
-            els.onlineStatus.textContent = text;
+            if (els.onlineStatus) els.onlineStatus.textContent = text;
         },
         onRoomChanged: ({ roomId, playerColor, room }) => {
             const connected = room?.status === 'playing';
             setOnlineConfigurationLocked(Boolean(roomId));
             updateOnlineConnectionUI(roomId, playerColor, room);
-            if (roomId) {
+            if (roomId && els.onlineRoomInput) {
                 els.onlineRoomInput.value = roomId;
                 const url = new URL(window.location.href);
                 url.searchParams.set('room', roomId);
@@ -4612,8 +4617,8 @@ function onlineHooks() {
             if (room?.board) lastOnlineSnapshotJSON = JSON.stringify(room.board);
             if (connected) syncOnlineRoomTurn(room);
             const canChat = connected && Boolean(playerColor);
-            els.onlineChatInput.disabled = !canChat;
-            els.onlineChatSendButton.disabled = !canChat;
+            if (els.onlineChatInput) els.onlineChatInput.disabled = !canChat;
+            if (els.onlineChatSendButton) els.onlineChatSendButton.disabled = !canChat;
             if (connected) render();
         },
         onChatMessages: renderOnlineChat
@@ -4651,7 +4656,7 @@ async function submitOnlineChat() {
         await sendChatMessage(text);
         els.onlineChatInput.value = '';
     } catch (error) {
-        els.onlineStatus.textContent = `Chat failed: ${error.message}`;
+        if (els.onlineStatus) els.onlineStatus.textContent = `Chat failed: ${error.message}`;
     }
 }
 
@@ -4659,7 +4664,7 @@ async function runOnlineAction(action) {
     try {
         return await action();
     } catch (error) {
-        els.onlineStatus.textContent = `Online error: ${error.message}`;
+        if (els.onlineStatus) els.onlineStatus.textContent = `Online error: ${error.message}`;
         return null;
     }
 }
@@ -4673,7 +4678,7 @@ let lastOnlineSnapshotJSON = '';
 let onlineSyncPending = false;
 
 function maybeSyncOnlineState() {
-    if (applyingRemoteState || onlineSyncPending || els.playModeSelect.value !== 'online') return;
+    if (applyingRemoteState || onlineSyncPending || !isOnlineExperimentMode()) return;
     const online = getOnlineState();
     if (online.room?.status !== 'playing' || online.room.turn !== online.playerColor) return;
     const state = game.exportState();
@@ -4688,7 +4693,7 @@ function maybeSyncOnlineState() {
     }).then(() => {
         lastOnlineSnapshotJSON = serialized;
     }).catch((error) => {
-        els.onlineStatus.textContent = `Move was not synchronized: ${error.message}`;
+        if (els.onlineStatus) els.onlineStatus.textContent = `Move was not synchronized: ${error.message}`;
     }).finally(() => {
         onlineSyncPending = false;
     });
@@ -4897,7 +4902,7 @@ function render() {
     els.pauliNoiseControl.hidden = isJump || isAnyonReversiMode(mode) || !['pauli', 'custom'].includes(els.noiseModeSelect.value);
     els.anyonFlipControl.hidden = !isJump || !['anyon_pair_creation', 'custom'].includes(els.noiseModeSelect.value);
     const online = getOnlineState();
-    const onlineLocked = els.playModeSelect.value === 'online'
+    const onlineLocked = isOnlineExperimentMode()
         && (online.room?.status !== 'playing' || online.playerColor !== game.currentPlayer);
     for (const button of [
         els.newGameButton,
@@ -6501,7 +6506,7 @@ function handleCellPointerActivation(coord, event = null) {
 function handleCellClick(coord, event = null) {
     cancelAnyonClickTimer();
     closeActionPalette();
-    if (els.playModeSelect.value === 'online') {
+    if (isOnlineExperimentMode()) {
         const online = getOnlineState();
         if (online.room?.status !== 'playing') {
             els.statusText.textContent = 'Wait for the online room to connect both players.';
@@ -7900,44 +7905,44 @@ window.addEventListener('languagechange', () => {
         }
     });
 });
-els.playModeSelect.addEventListener('change', async () => {
-    const online = els.playModeSelect.value === 'online';
+els.playModeSelect?.addEventListener('change', async () => {
+    const online = isOnlineExperimentMode();
     syncOnlineModeVisibility();
     if (online) {
         const ready = await prepareOnline();
-        if (!ready.ok) els.onlineStatus.textContent = ready.error || 'Online rooms are not available yet.';
+        if (!ready.ok && els.onlineStatus) els.onlineStatus.textContent = ready.error || 'Online rooms are not available yet.';
     } else {
         await leaveRoom();
         setOnlineConfigurationLocked(false);
         updateOnlineConnectionUI();
-        els.onlineStatus.textContent = 'Local experiment.';
+        if (els.onlineStatus) els.onlineStatus.textContent = 'Local experiment.';
     }
 });
-els.onlineCreateButton.addEventListener('click', async () => {
+els.onlineCreateButton?.addEventListener('click', async () => {
     const ready = await runOnlineAction(() => prepareOnline());
     if (!ready?.ok) return;
     const result = await runOnlineAction(() => createPrivateRoom(game.exportState()));
     if (!result) return;
-    els.onlineRoomInput.value = result.roomId;
+    if (els.onlineRoomInput) els.onlineRoomInput.value = result.roomId;
 });
-els.onlineJoinButton.addEventListener('click', async () => {
+els.onlineJoinButton?.addEventListener('click', async () => {
     const ready = await runOnlineAction(() => prepareOnline());
     if (!ready?.ok) return;
-    await runOnlineAction(() => joinPrivateRoom(els.onlineRoomInput.value));
+    await runOnlineAction(() => joinPrivateRoom(els.onlineRoomInput?.value || ''));
 });
-els.onlineFindButton.addEventListener('click', async () => {
+els.onlineFindButton?.addEventListener('click', async () => {
     const ready = await runOnlineAction(() => prepareOnline());
     if (!ready?.ok) return;
     const result = await runOnlineAction(() => findMatch(game.exportState()));
     if (!result) return;
-    els.onlineRoomInput.value = result.roomId;
+    if (els.onlineRoomInput) els.onlineRoomInput.value = result.roomId;
 });
-els.onlineReconnectButton.addEventListener('click', async () => {
+els.onlineReconnectButton?.addEventListener('click', async () => {
     const ready = await runOnlineAction(() => prepareOnline());
     if (!ready?.ok) return;
     await runOnlineAction(() => reconnectRoom());
 });
-els.onlineLeaveButton.addEventListener('click', async () => {
+els.onlineLeaveButton?.addEventListener('click', async () => {
     await runOnlineAction(() => leaveRoom());
     setOnlineConfigurationLocked(false);
     updateOnlineConnectionUI();
@@ -7951,8 +7956,8 @@ els.copyLinkButton?.addEventListener('click', async () => {
     els.copyLinkButton.textContent = 'Copied';
     window.setTimeout(() => { els.copyLinkButton.textContent = 'Copy'; }, 1000);
 });
-els.onlineChatSendButton.addEventListener('click', submitOnlineChat);
-els.onlineChatInput.addEventListener('keydown', (event) => {
+els.onlineChatSendButton?.addEventListener('click', submitOnlineChat);
+els.onlineChatInput?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') submitOnlineChat();
 });
 els.passButton.addEventListener('click', () => {
@@ -7998,13 +8003,13 @@ createGame();
 syncOnlineModeVisibility();
 
 const sharedRoomId = new URLSearchParams(window.location.search).get('room');
-if (sharedRoomId) {
+if (sharedRoomId && els.playModeSelect && els.onlineRoomInput) {
     els.playModeSelect.value = 'online';
     syncOnlineModeVisibility();
     els.onlineRoomInput.value = sharedRoomId;
     prepareOnline()
         .then((ready) => ready.ok && joinPrivateRoom(sharedRoomId))
         .catch((error) => {
-            els.onlineStatus.textContent = `Reconnect failed: ${error.message}`;
+            if (els.onlineStatus) els.onlineStatus.textContent = `Reconnect failed: ${error.message}`;
         });
 }

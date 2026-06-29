@@ -143,7 +143,70 @@ button:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
 .move-history { height: 210px; min-height: 178px; max-height: 210px; overflow: auto; align-content: start; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255,255,255,0.045); font-size: 13px; }
 .rules-text { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.score-panel {
+    display: grid;
+    gap: 6px;
+}
 .score-panel[hidden] { display: none; }
+.go-score-total {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.go-score-total strong {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(72, 199, 244, 0.22);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.045);
+}
+.go-score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 6px;
+}
+.go-score-chip {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 8px;
+    border: 1px solid rgba(224, 232, 220, 0.14);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 12px;
+}
+.go-score-chip span:nth-child(2) { overflow-wrap: anywhere; }
+.go-score-chip strong { color: #f8fbff; }
+.go-score-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: #94a3b8;
+}
+.go-score-chip.black .go-score-swatch,
+.go-score-chip.dead-black .go-score-swatch { background: #030712; }
+.go-score-chip.white .go-score-swatch,
+.go-score-chip.dead-white .go-score-swatch { background: #f8fafc; }
+.go-score-chip.black-territory .go-score-swatch { background: #334155; }
+.go-score-chip.white-territory .go-score-swatch { background: #cbd5e1; }
+.go-score-chip.komi .go-score-swatch { background: #f2c464; }
+.go-score-chip.neutral .go-score-swatch { background: #64748b; }
+.go-score-note,
+.go-score-result {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+.go-score-result {
+    color: var(--text);
+    font-weight: 850;
+}
 @media (max-width: 980px) {
     .app-shell { grid-template-columns: 1fr; }
     .board-frame { height: min(62vh, 620px); min-height: 420px; }

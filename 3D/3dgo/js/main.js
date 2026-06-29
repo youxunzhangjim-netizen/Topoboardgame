@@ -128,6 +128,24 @@ Object.assign(I18N.zh.score, {
     pendingDraw: '等待計分：暫時和棋',
     pendingLead: ({ color, margin }) => '等待計分：' + color + '暫時領先 ' + margin
 });
+Object.assign(I18N.en.score, {
+    stones: 'stones',
+    territory: 'territory',
+    komiLabel: 'komi',
+    neutralDame: 'neutral / dame',
+    deadBlackRemoved: 'dead black removed',
+    deadWhiteRemoved: 'dead white removed',
+    mixedNeutral: 'Mixed-border empty regions stay neutral.'
+});
+Object.assign(I18N.zh.score, {
+    stones: '棋子',
+    territory: '地',
+    komiLabel: '貼目',
+    neutralDame: '中立 / 單官',
+    deadBlackRemoved: '已移除黑方死子',
+    deadWhiteRemoved: '已移除白方死子',
+    mixedNeutral: '混合邊界的空區保持中立。'
+});
 Object.assign(I18N.en.mode, {
     r3Option: 'R3 Standard Go',
     t3Option: 'T3 PBC Go',
@@ -1617,11 +1635,11 @@ class Go3DRenderer {
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
-            const rawX = Number(coord[0]) + (Number(coord[1]) % 2 ? 0.5 : 0);
-            const rawY = Number(coord[1]) * Math.sqrt(3) / 2;
-            const circumference = Math.max(1, width);
-            const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
-            const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
+            const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
+            const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
+            const circumference = Math.max(1, width * Math.sqrt(3) / 2);
+            const periodicAxis = Math.max(1, height);
+            const cylinderBand = Math.max(1, height - 0.5);
             return {
                 u: (rawX / circumference) * TWO_PI,
                 v: (rawY / periodicAxis) * TWO_PI,
@@ -2581,6 +2599,33 @@ class Go3DApp {
         }).join('');
     }
 
+    scoreChip(label, value, kind) {
+        return `<span class="go-score-chip ${kind}"><span class="go-score-swatch"></span><span>${label}</span><strong>${value ?? 0}</strong></span>`;
+    }
+
+    scoreBreakdownHtml(score, result) {
+        const blackName = this.colorName('black');
+        const whiteName = this.colorName('white');
+        return `
+            <div class="go-score-total">
+                <strong>${blackName} ${score.black}</strong>
+                <strong>${whiteName} ${score.white}</strong>
+            </div>
+            <div class="go-score-breakdown">
+                ${this.scoreChip(`${blackName} ${tr('score.stones')}`, score.blackStones, 'black')}
+                ${this.scoreChip(`${blackName} ${tr('score.territory')}`, score.blackTerritory, 'black-territory')}
+                ${this.scoreChip(`${whiteName} ${tr('score.stones')}`, score.whiteStones, 'white')}
+                ${this.scoreChip(`${whiteName} ${tr('score.territory')}`, score.whiteTerritory, 'white-territory')}
+                ${this.scoreChip(tr('score.komiLabel'), score.komi, 'komi')}
+                ${this.scoreChip(tr('score.neutralDame'), score.neutral, 'neutral')}
+                ${this.scoreChip(tr('score.deadBlackRemoved'), score.deadBlack, 'dead-black')}
+                ${this.scoreChip(tr('score.deadWhiteRemoved'), score.deadWhite, 'dead-white')}
+            </div>
+            <p class="go-score-note">${tr('score.mixedNeutral')}</p>
+            <p class="go-score-result">${result}</p>
+        `;
+    }
+
     renderScore() {
         const score = this.logic.score || (this.logic.scoringPending ? this.logic.computeAreaScore() : null);
         if (!score) {
@@ -2590,7 +2635,7 @@ class Go3DApp {
         }
         this.scorePanel.hidden = false;
         const result = this.logic.gameOver ? this.resultText() : this.pendingScoreText();
-        this.scoreResult.textContent = tr('score.summary', { black: score.black, white: score.white, komi: score.komi, result });
+        this.scoreResult.innerHTML = this.scoreBreakdownHtml(score, result);
     }
 
     resultText() {

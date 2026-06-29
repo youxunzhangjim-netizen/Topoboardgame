@@ -566,9 +566,7 @@ export function createHexTopology(options = {}) {
             ? null
             : lattice === 'square'
             ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
-            : lattice === 'honeycomb'
-                ? null
-                : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
+            : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
         : surface3D
             ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
             : ['hcp', 'bcc', 'fcc'].includes(lattice)

@@ -275,7 +275,7 @@ class Reversi3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.74,
+                opacity: 0.88,
                 depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.5,
@@ -290,7 +290,7 @@ class Reversi3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0xdde8a7,
             transparent: true,
-            opacity: 0.76,
+            opacity: 0.9,
             depthWrite: false
         });
         const linePositions = [];
@@ -1107,7 +1107,7 @@ class Reversi3DRenderer {
     }
 
     honeycombSurfaceMetrics(width, height) {
-        const radius = 0.46;
+        const radius = 0.92;
         const dx = Math.sqrt(3);
         const dy = 1.5;
         return {

@@ -1702,7 +1702,6 @@ export class LifeUI {
       this.lifePlayModeSelect.value = 'local';
     }
     const online = this.lifePlayModeSelect.value === 'online';
-    const robots = this.lifePlayModeSelect.value === 'robot';
     const showConnectionControls = usage === 'two';
     if (this.lifeOnlineControls) this.lifeOnlineControls.hidden = !showConnectionControls;
     this.lifeOnlineControls?.classList.toggle('online-active', online);
@@ -1716,7 +1715,7 @@ export class LifeUI {
     }
     const text = message
       ? this.lifeText(message)
-      : this.lifeText(online ? 'onlineReady' : (robots ? 'robotBoardOnly' : 'localBoardOnly'));
+      : this.lifeText(online ? 'onlineReady' : 'localBoardOnly');
     this.setStatus(text);
   }
 

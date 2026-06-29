@@ -378,6 +378,31 @@ class Go4DApp {
         }).join('');
     }
 
+    scoreChip(label, value, kind) {
+        return `<span class="go-score-chip ${kind}"><span class="go-score-swatch"></span><span>${label}</span><strong>${value ?? 0}</strong></span>`;
+    }
+
+    scoreBreakdownHtml(score, result) {
+        return `
+            <div class="go-score-total">
+                <strong>Black ${score.black}</strong>
+                <strong>White ${score.white}</strong>
+            </div>
+            <div class="go-score-breakdown">
+                ${this.scoreChip('Black stones', score.blackStones, 'black')}
+                ${this.scoreChip('Black territory', score.blackTerritory, 'black-territory')}
+                ${this.scoreChip('White stones', score.whiteStones, 'white')}
+                ${this.scoreChip('White territory', score.whiteTerritory, 'white-territory')}
+                ${this.scoreChip('Komi', score.komi, 'komi')}
+                ${this.scoreChip('Neutral / dame', score.neutral, 'neutral')}
+                ${this.scoreChip('Dead black removed', score.deadBlack, 'dead-black')}
+                ${this.scoreChip('Dead white removed', score.deadWhite, 'dead-white')}
+            </div>
+            <p class="go-score-note">Mixed-border empty regions stay neutral.</p>
+            <p class="go-score-result">${result}</p>
+        `;
+    }
+
     renderScore() {
         if (!this.logic.score) {
             this.scorePanel.hidden = true;
@@ -385,7 +410,7 @@ class Go4DApp {
             return;
         }
         this.scorePanel.hidden = false;
-        this.scoreResult.textContent = `Black ${this.logic.score.black}, White ${this.logic.score.white} including ${this.logic.score.komi} komi. ${this.resultText()}`;
+        this.scoreResult.innerHTML = this.scoreBreakdownHtml(this.logic.score, this.resultText());
     }
 
     resultText() {
