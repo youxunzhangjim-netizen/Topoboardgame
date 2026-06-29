@@ -1,3 +1,9 @@
+import {
+    createSpecialBoardTopology,
+    isSpecialBoardTopology,
+    normalizeSpecialTopology
+} from '../topology/SpecialBoardTopologies.js';
+
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
     WHITE: 'white'
@@ -30,7 +36,10 @@ const TOPOLOGY_ALIASES = Object.freeze({
     'klein-bottle': 'klein',
     rp2: 'rp2',
     projective: 'rp2',
-    'projective-plane': 'rp2'
+    'projective-plane': 'rp2',
+    random: 'random',
+    'random-boundary': 'random',
+    rbc: 'random'
 });
 
 export function otherHexColor(color) {
@@ -81,6 +90,8 @@ export function normalizeHexTopology(topology = 'open', dimension = 2) {
         .trim()
         .toLowerCase()
         .replace(/[_\s]+/g, '-');
+    const special = normalizeSpecialTopology(token);
+    if (special) return special;
     const normalized = TOPOLOGY_ALIASES[token] ?? 'open';
 
     if (normalizedDimension === 2) {
@@ -89,6 +100,14 @@ export function normalizeHexTopology(topology = 'open', dimension = 2) {
     return ['open', 'cylinder', 'torus', 'reflective'].includes(normalized)
         ? normalized
         : 'open';
+}
+
+export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
+    if (normalizeDimension(dimension) !== 2) return 'axis';
+    const token = String(lattice || '').trim().toLowerCase();
+    if (token === 'square') return 'square';
+    if (token === 'honeycomb') return 'honeycomb';
+    return 'hexagonal';
 }
 
 function modulo(value, modulus) {
@@ -124,7 +143,7 @@ function normalizeCoordinateInput(coordinate, dimension) {
     return normalized.every(Number.isInteger) ? normalized : null;
 }
 
-function normalize2DCoordinate(coordinate, size, topology) {
+function normalize2DCoordinate(coordinate, size, topology, randomBoundary = null) {
     let [x, y] = coordinate;
     const [width, height] = size;
 
@@ -175,7 +194,73 @@ function normalize2DCoordinate(coordinate, size, topology) {
         return x >= 0 && x < width && y >= 0 && y < height ? [x, y] : null;
     }
 
+    if (topology === 'random' && randomBoundary) {
+        let guard = 0;
+        while ((x < 0 || x >= width || y < 0 || y >= height) && guard < 4) {
+            if (x < 0) {
+                x = width - 1;
+                y = randomBoundary.xInverse[modulo(y, height)];
+            } else if (x >= width) {
+                x = 0;
+                y = randomBoundary.xForward[modulo(y, height)];
+            }
+            if (y < 0) {
+                y = height - 1;
+                x = randomBoundary.yInverse[modulo(x, width)];
+            } else if (y >= height) {
+                y = 0;
+                x = randomBoundary.yForward[modulo(x, width)];
+            }
+            guard += 1;
+        }
+        return x >= 0 && x < width && y >= 0 && y < height ? [x, y] : null;
+    }
+
     return null;
+}
+
+function hashSeed(seed) {
+    let hash = 2166136261;
+    for (const character of String(seed)) {
+        hash ^= character.charCodeAt(0);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
+
+function seededPermutation(length, seed) {
+    const values = Array.from({ length }, (_, index) => index);
+    let state = hashSeed(seed) || 1;
+    const random = () => {
+        state ^= state << 13;
+        state ^= state >>> 17;
+        state ^= state << 5;
+        return (state >>> 0) / 0x100000000;
+    };
+    for (let index = values.length - 1; index > 0; index -= 1) {
+        const swap = Math.floor(random() * (index + 1));
+        [values[index], values[swap]] = [values[swap], values[index]];
+    }
+    return values;
+}
+
+function invertPermutation(permutation) {
+    const inverse = Array(permutation.length);
+    permutation.forEach((value, index) => {
+        inverse[value] = index;
+    });
+    return inverse;
+}
+
+function createRandomBoundary(size, seed) {
+    const xForward = seededPermutation(size[1], `${seed}:x`);
+    const yForward = seededPermutation(size[0], `${seed}:y`);
+    return Object.freeze({
+        xForward: Object.freeze(xForward),
+        xInverse: Object.freeze(invertPermutation(xForward)),
+        yForward: Object.freeze(yForward),
+        yInverse: Object.freeze(invertPermutation(yForward))
+    });
 }
 
 function normalizeHigherDimCoordinate(coordinate, size, topology) {
@@ -267,17 +352,31 @@ export function createHexTopology(options = {}) {
     const dimension = normalizeDimension(options.dimension ?? 2);
     const size = Object.freeze(normalizeHexSize(options.size, dimension));
     const topology = normalizeHexTopology(options.topology, dimension);
+    if (isSpecialBoardTopology(topology)) {
+        return createSpecialBoardTopology({ ...options, dimension, size, topology });
+    }
+    const lattice = normalizeHexLattice(options.lattice, dimension);
+    const randomBoundarySeed = topology === 'random'
+        ? String(options.randomBoundarySeed || `hex-rbc:${size.join('x')}`)
+        : '';
+    const randomBoundary = topology === 'random'
+        ? createRandomBoundary(size, randomBoundarySeed)
+        : null;
     const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones);
 
     const normalize = (coordinate) => {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
         if (!parsed) return null;
-        if (dimension === 2) return normalize2DCoordinate(parsed, size, topology);
+        if (dimension === 2) return normalize2DCoordinate(parsed, size, topology, randomBoundary);
         return normalizeHigherDimCoordinate(parsed, size, topology);
     };
 
     const neighborOffsets = dimension === 2
-        ? [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
+        ? lattice === 'square'
+            ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
+            : lattice === 'honeycomb'
+                ? null
+                : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
         : Array.from({ length: dimension * 2 }, (_, index) => {
             const offset = Array(dimension).fill(0);
             const axis = Math.floor(index / 2);
@@ -285,13 +384,39 @@ export function createHexTopology(options = {}) {
             return offset;
         });
 
+    const offsetsFor = (origin) => neighborOffsets || [
+        [1, 0],
+        [-1, 0],
+        [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]
+    ];
+
+    const randomAdjacency = topology === 'random'
+        ? (() => {
+            const adjacency = new Map(enumerateCoordinates(size).map((coordinate) => [coordinateKey(coordinate), new Map()]));
+            for (const origin of enumerateCoordinates(size)) {
+                const originKey = coordinateKey(origin);
+                for (const offset of offsetsFor(origin)) {
+                    const candidate = normalize(origin.map((value, axis) => value + offset[axis]));
+                    if (!candidate || coordinatesEqual(candidate, origin)) continue;
+                    const candidateKey = coordinateKey(candidate);
+                    adjacency.get(originKey).set(candidateKey, candidate);
+                    adjacency.get(candidateKey).set(originKey, origin);
+                }
+            }
+            return adjacency;
+        })()
+        : null;
+
     const neighbors = (coordinate) => {
         const origin = normalize(coordinate);
         if (!origin) return [];
+        if (randomAdjacency) {
+            return [...(randomAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
+        }
         const seen = new Set();
         const result = [];
 
-        for (const offset of neighborOffsets) {
+        for (const offset of offsetsFor(origin)) {
             const candidate = normalize(origin.map((value, axis) => value + offset[axis]));
             if (!candidate || coordinatesEqual(candidate, origin)) continue;
             const key = coordinateKey(candidate);
@@ -306,7 +431,10 @@ export function createHexTopology(options = {}) {
         dimension,
         size,
         topology,
-        isWrapped: ['cylinder', 'torus', 'mobius', 'klein', 'rp2'].includes(topology),
+        lattice,
+        isWrapped: ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'random'].includes(topology),
+        randomBoundarySeed,
+        randomBoundary,
         goalZones,
         normalize,
         neighbors,
@@ -365,6 +493,20 @@ export class HexGame {
     getCell(coordinate) {
         const key = this.topology.key(coordinate);
         return key ? this.board.get(key) ?? null : null;
+    }
+
+    setCell(coordinate, color = null) {
+        const normalized = this.topology.normalize(coordinate);
+        if (!normalized) return false;
+        const key = this.topology.key(normalized);
+        if (!key) return false;
+        if (color === null || color === undefined) {
+            this.board.delete(key);
+            return true;
+        }
+        if (!HEX_COLOR_VALUES.has(color)) return false;
+        this.board.set(key, color);
+        return true;
     }
 
     isLegalPlacement(coordinate, color = this.currentColor) {
@@ -469,6 +611,8 @@ export class HexGame {
             dimension: this.dimension,
             size: this.size,
             topology: this.topologyType,
+            lattice: this.topology.lattice,
+            randomBoundarySeed: this.topology.randomBoundarySeed || '',
             goalZones: {
                 black: {
                     type: this.topology.goalZones.black.type,
@@ -500,7 +644,9 @@ export class HexGame {
         const topology = createHexTopology({
             dimension: state.dimension,
             size: state.size,
-            topology: state.topology
+            topology: state.topology,
+            lattice: state.lattice,
+            randomBoundarySeed: state.randomBoundarySeed
         });
         const board = new Map();
         for (const cell of state.cells ?? []) {
@@ -555,7 +701,9 @@ export class HexGame {
         return new HexGame({
             dimension: state?.dimension,
             size: state?.size,
-            topology: state?.topology
+            topology: state?.topology,
+            lattice: state?.lattice,
+            randomBoundarySeed: state?.randomBoundarySeed
         }).importState(state);
     }
 }

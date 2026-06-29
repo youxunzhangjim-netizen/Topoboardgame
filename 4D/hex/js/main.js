@@ -21,6 +21,8 @@ const I18N = {
         topology: 'Topology',
         hypercube: 'Hypercube / R4',
         torus: '4D Torus / T4',
+        kleinQuarticProduct: 'Klein Quartic × I × I',
+        trefoilSolidProduct: 'Trefoil Solid Tube × I',
         viewMode: 'View',
         sliceView: 'z-w Slice',
         projectionView: '4D Projection',
@@ -32,8 +34,11 @@ const I18N = {
         resetView: 'Reset View',
         newGame: 'New Game',
         targetHyperfaces: 'Target Hyperfaces',
+        targetZones: 'Target Zones',
         blackTarget: 'Black connects x-low to x-high',
         whiteTarget: 'White connects y-low to y-high',
+        blackMarkedTarget: 'Black connects the two cyan marked zones',
+        whiteMarkedTarget: 'White connects the two gold marked zones',
         moveHistory: 'Move History',
         blackTurn: 'Black to play',
         whiteTurn: 'White to play',
@@ -47,7 +52,9 @@ const I18N = {
         robotThinking: 'Robot is choosing an empty site.',
         topologyInfo: {
             open: 'R4 uses open hyperfaces and eight axis-neighbors at interior sites.',
-            torus: 'T4 wraps all four axes. Both players connect explicit marked cut-hyperface zones.'
+            torus: 'T4 wraps all four axes. Both players connect explicit marked cut-hyperface zones.',
+            klein_quartic_product: 'The 56-triangle Klein quartic cell graph multiplied by two finite interval directions.',
+            trefoil_solid_product: 'A discrete solid trefoil tube multiplied by a finite interval I.'
         }
     },
     zh: {
@@ -67,6 +74,8 @@ const I18N = {
         topology: '拓撲',
         hypercube: '超立方體／R4',
         torus: '四維環面／T4',
+        kleinQuarticProduct: 'Klein 四次曲線 × I × I',
+        trefoilSolidProduct: '三葉結實心管 × I',
         viewMode: '視圖',
         sliceView: 'z-w 切片',
         projectionView: '四維投影',
@@ -78,8 +87,11 @@ const I18N = {
         resetView: '重設視圖',
         newGame: '新遊戲',
         targetHyperfaces: '目標超平面',
+        targetZones: '目標區',
         blackTarget: '黑方連接 x-low 與 x-high',
         whiteTarget: '白方連接 y-low 與 y-high',
+        blackMarkedTarget: '黑方連接兩個青色標示區',
+        whiteMarkedTarget: '白方連接兩個金色標示區',
         moveHistory: '落子記錄',
         blackTurn: '輪到黑方',
         whiteTurn: '輪到白方',
@@ -93,7 +105,9 @@ const I18N = {
         robotThinking: '機器人正在選擇空格。',
         topologyInfo: {
             open: 'R4 使用開放超平面；內部格點各有八個軸向鄰點。',
-            torus: 'T4 會包裹全部四個座標軸；雙方連接明確標示的切面目標區。'
+            torus: 'T4 會包裹全部四個座標軸；雙方連接明確標示的切面目標區。',
+            klein_quartic_product: '把 56 三角形的 Klein 四次曲線胞腔圖乘上兩個有限區間方向。',
+            trefoil_solid_product: '把離散三葉結實心管乘上一個有限區間 I。'
         }
     }
 };
@@ -112,6 +126,9 @@ const elements = {
     topology: document.getElementById('topologySelect'),
     viewMode: document.getElementById('viewModeSelect'),
     topologyInfo: document.getElementById('topologyInfo'),
+    targetHeading: document.getElementById('targetHeading'),
+    blackTargetText: document.getElementById('blackTargetText'),
+    whiteTargetText: document.getElementById('whiteTargetText'),
     sliceControls: document.getElementById('sliceControls'),
     sliceZ: document.getElementById('sliceZ'),
     sliceW: document.getElementById('sliceW'),
@@ -134,6 +151,7 @@ let projectedSites = [];
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
 let renderDpr = 1;
+let specialModelExtent = 1;
 
 function normalizeLanguage(value) {
     return String(value || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
@@ -158,8 +176,18 @@ function applyLanguage() {
     elements.language.textContent = language === 'zh' ? '中 / EN' : 'EN / 中';
     elements.home.href = `../../index.html?lang=${language}`;
     elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
+    updateTargetText();
     updateReadout();
     renderHistory();
+}
+
+function updateTargetText() {
+    if (!game) return;
+    const marked = game.topology.goalZones.black.type !== 'physical-sides' ||
+        game.topology.goalZones.white.type !== 'physical-sides';
+    elements.blackTargetText.textContent = text(marked ? 'blackMarkedTarget' : 'blackTarget');
+    elements.whiteTargetText.textContent = text(marked ? 'whiteMarkedTarget' : 'whiteTarget');
+    elements.targetHeading.textContent = text(marked ? 'targetZones' : 'targetHyperfaces');
 }
 
 function newGame() {
@@ -169,10 +197,14 @@ function newGame() {
     statusKey = 'emptyPrompt';
     elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
     elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
+    updateTargetText();
     for (const input of [elements.sliceZ, elements.sliceW]) {
         input.max = String(size - 1);
         input.value = String(Math.floor(size / 2));
     }
+    const sliceOption = elements.viewMode.querySelector('option[value="slice"]');
+    if (sliceOption) sliceOption.disabled = game.topology.isSpecial === true;
+    if (game.topology.isSpecial) elements.viewMode.value = 'projection';
     updateSliceLabels();
     updateReadout();
     renderHistory();
@@ -182,7 +214,7 @@ function newGame() {
 function updateSliceLabels() {
     elements.sliceZValue.textContent = elements.sliceZ.value;
     elements.sliceWValue.textContent = elements.sliceW.value;
-    elements.sliceControls.hidden = elements.viewMode.value !== 'slice';
+    elements.sliceControls.hidden = elements.viewMode.value !== 'slice' || game?.topology?.isSpecial === true;
 }
 
 function updateReadout() {
@@ -244,21 +276,29 @@ function targetEnds() {
 
 function drawSite(site, ends) {
     const color = game.getCell(site.coordinate);
-    const blackTarget = site.coordinate[0] === 0 || site.coordinate[0] === ends.x;
-    const whiteTarget = site.coordinate[1] === 0 || site.coordinate[1] === ends.y;
+    const blackTarget = game.topology.isSpecial
+        ? game.topology.goalZones.black.start(site.coordinate) || game.topology.goalZones.black.end(site.coordinate)
+        : site.coordinate[0] === 0 || site.coordinate[0] === ends.x;
+    const whiteTarget = game.topology.isSpecial
+        ? game.topology.goalZones.white.start(site.coordinate) || game.topology.goalZones.white.end(site.coordinate)
+        : site.coordinate[1] === 0 || site.coordinate[1] === ends.y;
     const radius = color
         ? Math.max(5.5, Math.min(9, site.radius * 0.11))
         : Math.max(2.2, Math.min(4, site.radius * 0.035));
     context.beginPath();
     context.arc(site.x, site.y, radius, 0, Math.PI * 2);
-    if (color === HEX_COLORS.BLACK) context.fillStyle = '#111820';
-    else if (color === HEX_COLORS.WHITE) context.fillStyle = '#f5f6f1';
+    if (color === HEX_COLORS.BLACK) context.fillStyle = '#24a9c2';
+    else if (color === HEX_COLORS.WHITE) context.fillStyle = '#e3a42f';
     else if (blackTarget && whiteTarget) context.fillStyle = '#7a8e78';
     else if (blackTarget) context.fillStyle = '#42c7df';
     else if (whiteTarget) context.fillStyle = '#e8b44c';
     else context.fillStyle = '#6f8491';
     context.fill();
-    context.strokeStyle = color === HEX_COLORS.WHITE ? '#747d82' : 'rgba(231,240,245,0.72)';
+    context.strokeStyle = color === HEX_COLORS.BLACK
+        ? '#8ce7f4'
+        : color === HEX_COLORS.WHITE
+            ? '#ffe0a3'
+            : 'rgba(231,240,245,0.72)';
     context.lineWidth = color ? 1.3 : 0.55;
     context.stroke();
 }
@@ -310,11 +350,15 @@ function drawSlice(width, height) {
 
 function projectionPoint(coordinate, width, height) {
     const midpoint = (size - 1) / 2;
-    const [rawX, rawY, rawZ, rawW] = coordinate.map((value) => value - midpoint);
+    const [rawX = 0, rawY = 0, rawZ = 0, rawW = 0] = game.topology.isSpecial
+        ? game.topology.position(coordinate)
+        : coordinate.map((value) => value - midpoint);
     const angle = Number(elements.rotation.value) * Math.PI / 180;
     const x = rawX * Math.cos(angle) - rawY * Math.sin(angle);
     const y = rawX * Math.sin(angle) + rawY * Math.cos(angle);
-    const scale = Math.min(width, height) * 0.48 / Math.max(1, size - 1) * Number(elements.zoom.value);
+    const scale = Math.min(width, height) * 0.48 /
+        Math.max(1, game.topology.isSpecial ? specialModelExtent : size - 1) *
+        Number(elements.zoom.value);
     return {
         x: width / 2 + (x + rawZ * 0.38 + rawW * 0.18) * scale,
         y: height / 2 + (y - rawZ * 0.26 + rawW * 0.42) * scale,
@@ -326,19 +370,35 @@ function projectionPoint(coordinate, width, height) {
 
 function drawProjection(width, height) {
     const coordinates = game.topology.coordinates();
+    if (game.topology.isSpecial) {
+        const positions = coordinates.map((coordinate) => game.topology.position(coordinate));
+        specialModelExtent = Math.max(1, ...positions.flatMap((position) => position.map(Math.abs)));
+    }
     const projected = new Map(coordinates.map((coordinate) => [
         coordinate.join(','),
         projectionPoint(coordinate, width, height)
     ]));
     context.strokeStyle = 'rgba(160,184,198,0.12)';
     context.lineWidth = 0.55;
+    const coordinateKeys = new Set(projected.keys());
+    const drawnEdges = new Set();
     for (const coordinate of coordinates) {
-        const from = projected.get(coordinate.join(','));
-        for (let axis = 0; axis < 4; axis += 1) {
-            const next = [...coordinate];
-            next[axis] += 1;
-            if (next[axis] >= size) continue;
-            const to = projected.get(next.join(','));
+        const fromKey = coordinate.join(',');
+        const from = projected.get(fromKey);
+        const neighbors = game.topology.isSpecial
+            ? game.topology.neighbors(coordinate)
+            : Array.from({ length: 4 }, (_, axis) => {
+                const next = [...coordinate];
+                next[axis] += 1;
+                return next;
+            });
+        for (const next of neighbors) {
+            const nextKey = next.join(',');
+            if (!coordinateKeys.has(nextKey)) continue;
+            const edgeKey = [fromKey, nextKey].sort().join('|');
+            if (drawnEdges.has(edgeKey)) continue;
+            drawnEdges.add(edgeKey);
+            const to = projected.get(nextKey);
             context.beginPath();
             context.moveTo(from.x, from.y);
             context.lineTo(to.x, to.y);
@@ -356,7 +416,7 @@ function drawBoard() {
     context.clearRect(0, 0, width, height);
     context.fillStyle = '#080d12';
     context.fillRect(0, 0, width, height);
-    if (elements.viewMode.value === 'slice') drawSlice(width, height);
+    if (elements.viewMode.value === 'slice' && !game.topology.isSpecial) drawSlice(width, height);
     else drawProjection(width, height);
 }
 
@@ -442,6 +502,7 @@ elements.language.addEventListener('click', () => {
     localStorage.setItem(LANGUAGE_KEY, language);
     applyLanguage();
     drawBoard();
+    window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
 });
 window.addEventListener('resize', drawBoard);
 
@@ -450,11 +511,35 @@ applyLanguage();
 window.hexApp = {
     get game() { return game; },
     playAt,
+    exportState() {
+        return game.exportState();
+    },
+    importState(state) {
+        game = HexGame.fromState(state);
+        size = game.size[0];
+        if ([...elements.size.options].some((option) => Number(option.value) === size)) {
+            elements.size.value = String(size);
+        }
+        if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
+            elements.topology.value = game.topology.topology;
+        }
+        elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
+        elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
+        const sliceOption = elements.viewMode.querySelector('option[value="slice"]');
+        if (sliceOption) sliceOption.disabled = game.topology.isSpecial === true;
+        if (game.topology.isSpecial) elements.viewMode.value = 'projection';
+        updateTargetText();
+        updateSliceLabels();
+        updateReadout();
+        renderHistory();
+        drawBoard();
+    },
     newGame,
     setLanguage(nextLanguage) {
         language = normalizeLanguage(nextLanguage);
         localStorage.setItem(LANGUAGE_KEY, language);
         applyLanguage();
         drawBoard();
+        window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
     }
 };

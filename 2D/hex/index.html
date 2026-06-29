@@ -97,8 +97,21 @@
                         <option value="mobius" data-i18n="mobius">Möbius</option>
                         <option value="klein" data-i18n="klein">Klein Bottle</option>
                         <option value="rp2">RP2</option>
+                        <option value="random" data-i18n="randomBoundary">Random Boundary</option>
+                        <option value="klein_quartic" data-i18n="kleinQuartic">Klein Quartic (56 triangles)</option>
+                        <option value="trefoil_diagram" data-i18n="trefoilDiagram">Trefoil Diagram</option>
+                        <option value="trefoil_tube" data-i18n="trefoilTube">Trefoil Tube</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="control-group">
+                <label for="latticeSelect" data-i18n="lattice">Lattice</label>
+                <select id="latticeSelect">
+                    <option value="hexagonal" selected data-i18n="hexagonal">Hexagonal / Axial</option>
+                    <option value="square" data-i18n="square">Square</option>
+                    <option value="honeycomb" data-i18n="honeycomb">Honeycomb</option>
+                </select>
             </div>
 
             <div class="boundary-info" id="boundaryInfo"></div>
@@ -106,10 +119,10 @@
             <button class="primary-button" id="newGameBtn" type="button" data-i18n="newGame">New Game</button>
 
             <section class="panel target-panel">
-                <h3 data-i18n="targets">Target Sides</h3>
+                <h3 id="targetHeading" data-i18n="targets">Target Sides</h3>
                 <div class="target-legend">
-                    <span><i class="target-swatch black-target"></i><span data-i18n="blackTarget">Black connects left to right</span></span>
-                    <span><i class="target-swatch white-target"></i><span data-i18n="whiteTarget">White connects top to bottom</span></span>
+                    <span><i class="target-swatch black-target"></i><span id="blackTargetText" data-i18n="blackTarget">Black connects left to right</span></span>
+                    <span><i class="target-swatch white-target"></i><span id="whiteTargetText" data-i18n="whiteTarget">White connects top to bottom</span></span>
                 </div>
             </section>
 
@@ -132,5 +145,6 @@
     </main>
 
     <script type="module" src="./js/main.js"></script>
+    <script type="module" src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
 </body>
 </html>

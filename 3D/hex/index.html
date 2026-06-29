@@ -74,6 +74,9 @@
                     <option value="cylinder" data-i18n="cylinder">Cylinder</option>
                     <option value="torus" data-i18n="torus">Torus / T3</option>
                     <option value="reflective" data-i18n="reflective">Reflective</option>
+                    <option value="klein_quartic_product" data-i18n="kleinQuarticProduct">Klein Quartic × I</option>
+                    <option value="trefoil_track" data-i18n="trefoilTrack">Trefoil Track</option>
+                    <option value="trefoil_solid" data-i18n="trefoilSolid">Trefoil Solid Tube</option>
                 </select>
             </div>
             <div class="boundary-info" id="topologyInfo"></div>
@@ -102,8 +105,8 @@
             <section class="panel target-panel">
                 <h3 data-i18n="targetZones">Target Zones</h3>
                 <div class="target-legend">
-                    <span><i class="target-swatch black-target"></i><span data-i18n="blackTarget">Black connects x-low to x-high</span></span>
-                    <span><i class="target-swatch white-target"></i><span data-i18n="whiteTarget">White connects y-low to y-high</span></span>
+                    <span><i class="target-swatch black-target"></i><span id="blackTargetText" data-i18n="blackTarget">Black connects x-low to x-high</span></span>
+                    <span><i class="target-swatch white-target"></i><span id="whiteTargetText" data-i18n="whiteTarget">White connects y-low to y-high</span></span>
                 </div>
             </section>
 
@@ -119,5 +122,6 @@
         </aside>
     </main>
     <script type="module" src="./js/main.js"></script>
+    <script type="module" src="../../js/shared/SpaceTimeGameEnhancer.js"></script>
 </body>
 </html>

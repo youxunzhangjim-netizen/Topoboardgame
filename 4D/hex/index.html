@@ -71,6 +71,8 @@
                     <select id="topologySelect">
                         <option value="open" data-i18n="hypercube">Hypercube / R4</option>
                         <option value="torus" data-i18n="torus">4D Torus / T4</option>
+                        <option value="klein_quartic_product" data-i18n="kleinQuarticProduct">Klein Quartic × I × I</option>
+                        <option value="trefoil_solid_product" data-i18n="trefoilSolidProduct">Trefoil Solid Tube × I</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -105,10 +107,10 @@
             <button id="newGameBtn" class="primary-button" type="button" data-i18n="newGame">New Game</button>
 
             <section class="panel target-panel">
-                <h3 data-i18n="targetHyperfaces">Target Hyperfaces</h3>
+                <h3 id="targetHeading" data-i18n="targetHyperfaces">Target Hyperfaces</h3>
                 <div class="target-legend">
-                    <span><i class="target-swatch black-target"></i><span data-i18n="blackTarget">Black connects x-low to x-high</span></span>
-                    <span><i class="target-swatch white-target"></i><span data-i18n="whiteTarget">White connects y-low to y-high</span></span>
+                    <span><i class="target-swatch black-target"></i><span id="blackTargetText" data-i18n="blackTarget">Black connects x-low to x-high</span></span>
+                    <span><i class="target-swatch white-target"></i><span id="whiteTargetText" data-i18n="whiteTarget">White connects y-low to y-high</span></span>
                 </div>
             </section>
 
