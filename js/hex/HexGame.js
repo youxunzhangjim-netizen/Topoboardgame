@@ -512,12 +512,22 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
         ];
     }
     if (topology === 'klein') {
-        const r = 2 + Math.cos(u / 2) * Math.sin(v) - Math.sin(u / 2) * Math.sin(2 * v);
-        const tube = Math.sin(u / 2) * Math.sin(v) + Math.cos(u / 2) * Math.sin(2 * v);
+        const r = 4 * (1 - Math.cos(u) / 2);
+        let rawX;
+        let rawY;
+        if (u < Math.PI) {
+            rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(u) * Math.cos(v);
+            rawY = 16 * Math.sin(u) + r * Math.sin(u) * Math.cos(v);
+        } else {
+            rawX = 6 * Math.cos(u) * (1 + Math.sin(u)) + r * Math.cos(v + Math.PI);
+            rawY = 16 * Math.sin(u);
+        }
+        const rawZ = r * Math.sin(v);
+        const dixonScale = 0.2;
         return [
-            r * Math.cos(u) * 1.62,
-            tube * 1.66,
-            r * Math.sin(u) * 1.22
+            rawX * dixonScale * 1.12,
+            rawY * dixonScale * 0.72,
+            rawZ * dixonScale * 1.12
         ];
     }
     const flatScale = 7 / Math.max(width - 1, height - 1);

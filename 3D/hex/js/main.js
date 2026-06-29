@@ -266,6 +266,9 @@ let onlineController = null;
 let dragging = false;
 let dragMoved = false;
 let lastPointer = null;
+const activePointers = new Map();
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
 let renderDpr = 1;
 let specialModelExtent = 1;
 
@@ -449,6 +452,18 @@ function rotatePoint(point) {
     return [x, y, z];
 }
 
+function subtractVectors(left, right) {
+    return left.map((value, index) => value - right[index]);
+}
+
+function crossVectors(left, right) {
+    return [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0]
+    ];
+}
+
 function normalizeVector(point) {
     const length = Math.hypot(point[0] || 0, point[1] || 0, point[2] || 0);
     return length > 0.0001 ? point.map((value) => value / length) : null;
@@ -491,6 +506,17 @@ function projectModelPoint(model, width, height, coordinate = null) {
         frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08,
         coordinate
     };
+}
+
+function polygonNormal(vertices) {
+    if (!vertices || vertices.length < 3) return null;
+    for (let index = 1; index < vertices.length - 1; index += 1) {
+        const first = subtractVectors(vertices[index], vertices[0]);
+        const second = subtractVectors(vertices[index + 1], vertices[0]);
+        const normal = normalizeVector(crossVectors(first, second));
+        if (normal) return normal;
+    }
+    return null;
 }
 
 function projectCoordinate(coordinate, width, height) {
@@ -690,6 +716,8 @@ function drawSpecialCellPanels(width, height) {
         if (!vertices?.length) continue;
         const points = vertices.map((vertex) => projectModelPoint(vertex.slice(0, 3), width, height, coordinate));
         const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
+        const normal = polygonNormal(vertices.map((vertex) => vertex.slice(0, 3)));
+        const rotatedNormal = normal ? rotatePoint(normal) : null;
         const color = game.getCell(coordinate);
         if (color) filledCells.add(coordinate.join(','));
         panels.push({
@@ -697,6 +725,7 @@ function drawSpecialCellPanels(width, height) {
             avgDepth,
             coordinate,
             color,
+            frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.02,
             blackTarget: blackZone.start(coordinate) || blackZone.end(coordinate),
             whiteTarget: whiteZone.start(coordinate) || whiteZone.end(coordinate)
         });
@@ -724,7 +753,8 @@ function drawSpecialCellPanels(width, height) {
         projectedSurfaceCells.push({
             points: panel.points,
             coordinate: panel.coordinate,
-            depth: panel.avgDepth
+            depth: panel.avgDepth,
+            frontFacing: panel.frontFacing
         });
     }
     context.restore();
@@ -759,10 +789,10 @@ function drawBoard() {
         drawPlane(1, 0, 'rgba(232,180,76,0.07)', 'rgba(232,180,76,0.42)', width, height);
         drawPlane(1, yEnd, 'rgba(232,180,76,0.11)', 'rgba(232,180,76,0.65)', width, height);
     }
-    const surfaceFilledCells = surface
-        ? drawSurfacePanels(width, height)
-        : specialCellPanels
-            ? drawSpecialCellPanels(width, height)
+    const surfaceFilledCells = specialCellPanels
+        ? drawSpecialCellPanels(width, height)
+        : surface
+            ? drawSurfacePanels(width, height)
             : new Set();
 
     const projectedEntries = game.topology.coordinates()
@@ -844,7 +874,13 @@ function canvasPoint(event) {
 
 function nearestSite(event) {
     const point = canvasPoint(event);
+    const frontOnly = selectedTopology().startsWith('trefoil');
+    const depths = projectedSurfaceCells.map((cell) => cell.depth);
+    const maxDepth = depths.length ? Math.max(...depths) : 0;
+    const minDepth = depths.length ? Math.min(...depths) : 0;
+    const frontCutoff = maxDepth - (maxDepth - minDepth) * 0.58;
     for (const cell of [...projectedSurfaceCells].sort((a, b) => b.depth - a.depth)) {
+        if (frontOnly && (cell.depth < frontCutoff || cell.frontFacing === false)) continue;
         if (pointInPolygon(point, cell.points)) {
             const center = cell.points.reduce((sum, item) => [sum[0] + item.x, sum[1] + item.y], [0, 0])
                 .map((value) => value / cell.points.length);
@@ -856,6 +892,7 @@ function nearestSite(event) {
             };
         }
     }
+    if (frontOnly && projectedSurfaceCells.length) return null;
     let nearest = null;
     let best = 32;
     for (const site of [...projectedSites].reverse()) {
@@ -880,6 +917,40 @@ function pointInPolygon(point, vertices) {
         if (intersects) inside = !inside;
     }
     return inside;
+}
+
+function pointerDistance() {
+    const pointers = [...activePointers.values()];
+    if (pointers.length < 2) return 0;
+    return Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+}
+
+function clampZoom(value) {
+    return Math.max(0.35, Math.min(2.2, value));
+}
+
+function resetPointerGesture(event) {
+    if (event && elements.canvas.hasPointerCapture?.(event.pointerId)) {
+        try {
+            elements.canvas.releasePointerCapture(event.pointerId);
+        } catch {
+            // Pointer capture may already be released by the browser.
+        }
+    }
+    if (activePointers.size >= 2) {
+        pinchStartDistance = pointerDistance();
+        pinchStartZoom = Number(elements.zoom.value) || 1;
+        dragMoved = true;
+    } else if (activePointers.size === 1) {
+        const pointer = [...activePointers.values()][0];
+        lastPointer = { x: pointer.x, y: pointer.y };
+        pinchStartDistance = 0;
+    } else {
+        dragging = false;
+        lastPointer = null;
+        pinchStartDistance = 0;
+        elements.canvas.classList.remove('dragging');
+    }
 }
 
 function playAt(coordinate) {
@@ -963,32 +1034,58 @@ function scheduleRobot() {
 }
 
 elements.canvas.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     dragging = true;
     dragMoved = false;
     lastPointer = { x: event.clientX, y: event.clientY };
     elements.canvas.setPointerCapture(event.pointerId);
     elements.canvas.classList.add('dragging');
+    if (activePointers.size >= 2) {
+        pinchStartDistance = pointerDistance();
+        pinchStartZoom = Number(elements.zoom.value) || 1;
+        dragMoved = true;
+    }
 });
 elements.canvas.addEventListener('pointermove', (event) => {
+    if (activePointers.has(event.pointerId)) {
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
     if (!dragging) return;
+    event.preventDefault();
+    if (activePointers.size >= 2) {
+        const distance = pointerDistance();
+        if (pinchStartDistance > 0 && distance > 0) {
+            elements.zoom.value = String(clampZoom(pinchStartZoom * (distance / pinchStartDistance)));
+            drawBoard();
+        }
+        dragMoved = true;
+        return;
+    }
     const dx = event.clientX - lastPointer.x;
     const dy = event.clientY - lastPointer.y;
     if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
-    elements.rotateY.value = String(Math.max(-180, Math.min(180, Number(elements.rotateY.value) + dx * 0.5)));
-    elements.rotateX.value = String(Math.max(-90, Math.min(90, Number(elements.rotateX.value) + dy * 0.45)));
+    elements.rotateY.value = String(Math.max(-180, Math.min(180, Number(elements.rotateY.value) + dx * 0.22)));
+    elements.rotateX.value = String(Math.max(-90, Math.min(90, Number(elements.rotateX.value) + dy * 0.2)));
     lastPointer = { x: event.clientX, y: event.clientY };
     drawBoard();
 });
 elements.canvas.addEventListener('pointerup', (event) => {
-    const site = !dragMoved ? nearestSite(event) : null;
-    dragging = false;
-    elements.canvas.classList.remove('dragging');
+    event.preventDefault();
+    const wasTap = !dragMoved && activePointers.size === 1;
+    const site = wasTap ? nearestSite(event) : null;
+    activePointers.delete(event.pointerId);
+    resetPointerGesture(event);
     const timeControlled = Boolean(window.hexApp?.__spaceTimeUsesFuture || window.hexApp?.__spaceTimeUsesPast);
     if (site && !timeControlled) playAt(site.coordinate);
 });
+elements.canvas.addEventListener('pointercancel', (event) => {
+    activePointers.delete(event.pointerId);
+    resetPointerGesture(event);
+});
 elements.canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
-    elements.zoom.value = String(Math.max(0.35, Math.min(2.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
+    elements.zoom.value = String(clampZoom(Number(elements.zoom.value) - event.deltaY * 0.0007));
     drawBoard();
 }, { passive: false });
 

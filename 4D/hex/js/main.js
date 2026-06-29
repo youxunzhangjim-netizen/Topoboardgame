@@ -200,6 +200,12 @@ let statusKey = 'emptyPrompt';
 let onlineController = null;
 let renderDpr = 1;
 let specialModelExtent = 1;
+const activePointers = new Map();
+let dragging = false;
+let dragMoved = false;
+let lastPointer = null;
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
 
 function normalizeLanguage(value) {
     return String(value || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
@@ -561,6 +567,40 @@ function nearestSite(event) {
     return nearest;
 }
 
+function pointerDistance() {
+    const pointers = [...activePointers.values()];
+    if (pointers.length < 2) return 0;
+    return Math.hypot(pointers[0].x - pointers[1].x, pointers[0].y - pointers[1].y);
+}
+
+function clampZoom(value) {
+    return Math.max(0.35, Math.min(2.2, value));
+}
+
+function resetPointerGesture(event) {
+    if (event && elements.canvas.hasPointerCapture?.(event.pointerId)) {
+        try {
+            elements.canvas.releasePointerCapture(event.pointerId);
+        } catch {
+            // Pointer capture may already be released by the browser.
+        }
+    }
+    if (activePointers.size >= 2) {
+        pinchStartDistance = pointerDistance();
+        pinchStartZoom = Number(elements.zoom.value) || 1;
+        dragMoved = true;
+    } else if (activePointers.size === 1) {
+        const pointer = [...activePointers.values()][0];
+        lastPointer = { x: pointer.x, y: pointer.y };
+        pinchStartDistance = 0;
+    } else {
+        dragging = false;
+        lastPointer = null;
+        pinchStartDistance = 0;
+        elements.canvas.classList.remove('dragging');
+    }
+}
+
 function playAt(coordinate) {
     if (onlineController && !onlineController.canActFor(game.currentColor)) {
         return { ok: false, error: text('connectOnline') };
@@ -577,13 +617,56 @@ function playAt(coordinate) {
     return result;
 }
 
-elements.canvas.addEventListener('click', (event) => {
-    const site = nearestSite(event);
+elements.canvas.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    dragging = true;
+    dragMoved = false;
+    lastPointer = { x: event.clientX, y: event.clientY };
+    elements.canvas.setPointerCapture(event.pointerId);
+    elements.canvas.classList.add('dragging');
+    if (activePointers.size >= 2) {
+        pinchStartDistance = pointerDistance();
+        pinchStartZoom = Number(elements.zoom.value) || 1;
+        dragMoved = true;
+    }
+});
+elements.canvas.addEventListener('pointermove', (event) => {
+    if (activePointers.has(event.pointerId)) {
+        activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+    if (!dragging) return;
+    event.preventDefault();
+    if (activePointers.size >= 2) {
+        const distance = pointerDistance();
+        if (pinchStartDistance > 0 && distance > 0) {
+            elements.zoom.value = String(clampZoom(pinchStartZoom * (distance / pinchStartDistance)));
+            drawBoard();
+        }
+        dragMoved = true;
+        return;
+    }
+    const dx = event.clientX - lastPointer.x;
+    if (Math.abs(dx) > 2) dragMoved = true;
+    elements.rotation.value = String(Math.max(-180, Math.min(180, Number(elements.rotation.value) + dx * 0.18)));
+    lastPointer = { x: event.clientX, y: event.clientY };
+    drawBoard();
+});
+elements.canvas.addEventListener('pointerup', (event) => {
+    event.preventDefault();
+    const wasTap = !dragMoved && activePointers.size === 1;
+    const site = wasTap ? nearestSite(event) : null;
+    activePointers.delete(event.pointerId);
+    resetPointerGesture(event);
     if (site) playAt(site.coordinate);
+});
+elements.canvas.addEventListener('pointercancel', (event) => {
+    activePointers.delete(event.pointerId);
+    resetPointerGesture(event);
 });
 elements.canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
-    elements.zoom.value = String(Math.max(0.35, Math.min(2.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
+    elements.zoom.value = String(clampZoom(Number(elements.zoom.value) - event.deltaY * 0.0007));
     drawBoard();
 }, { passive: false });
 for (const input of [elements.sliceZ, elements.sliceW, elements.rotation, elements.zoom]) {

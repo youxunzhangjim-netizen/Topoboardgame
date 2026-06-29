@@ -333,11 +333,14 @@ export function installSpaceTimeTimelineEngine() {
   const stored = readStored();
   const legacyStored = readLegacyStored();
   const storedPeriodMode = stored.periodMode || legacyStored.timeMode;
+  const hasTimelineModeQuery = params.has('timeMode') || params.has('time');
+  const hasDelayQuery = params.has('delay');
+  const hasActionOffsetQuery = params.has('actionOffset');
   const queryPeriodMode = params.get('periodMode') || (normalizePeriodMode(rawTimelineMode) === 'periodic' ? rawTimelineMode : '');
   const settings = {
-    mode: normalizeMode(rawTimelineMode || stored.mode || (normalizePeriodMode(storedPeriodMode) === 'periodic' ? 'periodic' : 'future')),
-    delay: asInteger(params.get('delay') || stored.delay || legacyStored.delay, 2, 1, 32),
-    actionOffset: asInteger(params.get('actionOffset') || stored.actionOffset || stored.delay || legacyStored.delay, 2, 0, 32),
+    mode: normalizeMode(hasTimelineModeQuery ? rawTimelineMode : 'future'),
+    delay: asInteger(hasDelayQuery ? params.get('delay') : 2, 2, 1, 32),
+    actionOffset: asInteger(hasActionOffsetQuery ? params.get('actionOffset') : hasDelayQuery ? params.get('delay') : 2, 2, 0, 32),
     rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 5, 1, 64),
     customWindow: asInteger(stored.customWindow, 5, 1, 64),
     conflictPolicy: normalizeConflictPolicy(params.get('conflictPolicy') || stored.conflictPolicy),
@@ -1041,7 +1044,7 @@ export function installSpaceTimeTimelineEngine() {
       if (typeof game.handleSquareClick === 'function') {
         const originalClick = game.handleSquareClick.bind(game);
         game.handleSquareClick = (...coords) => {
-          if (usesFuture() || usesPast() || state.editingEventId) return true;
+          if (usesFuture() || usesPast() || state.editingEventId) return captureChessCoordinate(game, coords, null);
           return originalClick(...coords);
         };
       }

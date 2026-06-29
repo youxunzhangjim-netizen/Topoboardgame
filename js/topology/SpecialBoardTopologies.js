@@ -103,6 +103,9 @@ function adjacencyFromEdges(vertexCount, edges) {
 
 const KLEIN_ADJACENCY = Object.freeze(adjacencyFromEdges(56, KLEIN_TRIANGLE_EDGES));
 const KLEIN_QUARTIC_RADII = Object.freeze([0, 0.36, 0.62, 0.82, 1.0]);
+const TREFOIL_CENTER_SCALE = 1.08;
+const TREFOIL_Z_SCALE = 1.08;
+const TREFOIL_TUBE_RADIUS = 0.5;
 
 function cyclicDistance(value, anchor, modulus) {
     const delta = Math.abs(value - anchor);
@@ -181,20 +184,18 @@ function kleinEmbeddedPosition(node, layer = 0, interval = 1, second = 0, second
 }
 
 function trefoilCenterAt(t) {
-    const compact = 0.72;
     return [
-        (Math.sin(t) + 2 * Math.sin(2 * t)) * compact,
-        (Math.cos(t) - 2 * Math.cos(2 * t)) * compact,
-        -Math.sin(3 * t) * 0.82
+        (Math.sin(t) + 2 * Math.sin(2 * t)) * TREFOIL_CENTER_SCALE,
+        (Math.cos(t) - 2 * Math.cos(2 * t)) * TREFOIL_CENTER_SCALE,
+        -Math.sin(3 * t) * TREFOIL_Z_SCALE
     ];
 }
 
 function trefoilTangentAt(t) {
-    const compact = 0.72;
     return vectorNormalize([
-        (Math.cos(t) + 4 * Math.cos(2 * t)) * compact,
-        (-Math.sin(t) + 4 * Math.sin(2 * t)) * compact,
-        -3 * Math.cos(3 * t) * 0.82
+        (Math.cos(t) + 4 * Math.cos(2 * t)) * TREFOIL_CENTER_SCALE,
+        (-Math.sin(t) + 4 * Math.sin(2 * t)) * TREFOIL_CENTER_SCALE,
+        -3 * Math.cos(3 * t) * TREFOIL_Z_SCALE
     ]);
 }
 
@@ -478,7 +479,7 @@ function createTrefoilTopology({ type, dimension, size }) {
             if (type === 'trefoil_diagram') return center.slice(0, 2);
             if (type === 'trefoil_track') return center.slice(0, dimension);
             const theta = Math.PI * 2 * coordinate[1] / thetaCount;
-            const radial = type === 'trefoil_tube' ? 0.56 : 0.18 + 0.16 * coordinate[2];
+            const radial = type === 'trefoil_tube' ? TREFOIL_TUBE_RADIUS : 0.18 + 0.16 * coordinate[2];
             return trefoilTubePoint(
                 coordinate[0],
                 coordinate[1],
@@ -493,10 +494,10 @@ function createTrefoilTopology({ type, dimension, size }) {
             const s = coordinate[0];
             const theta = coordinate[1];
             return [
-                trefoilTubePoint(s - 0.5, theta - 0.5, segmentCount, thetaCount, 0.56),
-                trefoilTubePoint(s + 0.5, theta - 0.5, segmentCount, thetaCount, 0.56),
-                trefoilTubePoint(s + 0.5, theta + 0.5, segmentCount, thetaCount, 0.56),
-                trefoilTubePoint(s - 0.5, theta + 0.5, segmentCount, thetaCount, 0.56)
+                trefoilTubePoint(s - 0.5, theta - 0.5, segmentCount, thetaCount, TREFOIL_TUBE_RADIUS),
+                trefoilTubePoint(s + 0.5, theta - 0.5, segmentCount, thetaCount, TREFOIL_TUBE_RADIUS),
+                trefoilTubePoint(s + 0.5, theta + 0.5, segmentCount, thetaCount, TREFOIL_TUBE_RADIUS),
+                trefoilTubePoint(s - 0.5, theta + 0.5, segmentCount, thetaCount, TREFOIL_TUBE_RADIUS)
             ].map((point) => point.slice(0, dimension));
         },
         goalZones: createGoalZones({ type, segmentCount, thetaCount }),
@@ -563,7 +564,6 @@ export function createSpecialBoardTopology(options = {}) {
 
 export const SPECIAL_BOARD_OPTIONS = Object.freeze({
     2: Object.freeze([
-        Object.freeze({ value: 'klein_quartic', en: 'Klein Quartic (56 triangles)', zh: 'Klein 四次曲線（56 三角形）' }),
         Object.freeze({ value: 'trefoil_diagram', en: 'Trefoil Diagram', zh: '三葉結圖' }),
         Object.freeze({ value: 'trefoil_tube', en: 'Trefoil Tube', zh: '三葉結管面' })
     ]),
@@ -572,7 +572,6 @@ export const SPECIAL_BOARD_OPTIONS = Object.freeze({
         Object.freeze({ value: 'trefoil_solid', en: 'Trefoil Solid Tube', zh: '三葉結實心管' })
     ]),
     4: Object.freeze([
-        Object.freeze({ value: 'klein_quartic_product', en: 'Klein Quartic × I × I', zh: 'Klein 四次曲線 × I × I' }),
         Object.freeze({ value: 'trefoil_solid_product', en: 'Trefoil Solid Tube × I', zh: '三葉結實心管 × I' })
     ])
 });

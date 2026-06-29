@@ -70,13 +70,13 @@ export class TorusThreeJSRenderer {
         this.renderer.domElement.style.touchAction = 'none';
 
         this.controls = new TrackballControls(this.camera, this.renderer.domElement);
-        this.controls.rotateSpeed = 3.6;
-        this.controls.zoomSpeed = 0.42;
+        this.controls.rotateSpeed = 2.0;
+        this.controls.zoomSpeed = 0.34;
         this.controls.panSpeed = 0.55;
         this.controls.noPan = true;
         this.controls.dynamicDampingFactor = 0.08;
         this.controls.minDistance = 4.4;
-        this.controls.maxDistance = 22;
+        this.controls.maxDistance = 18;
         this.controls.target.set(0, 0, 0);
 
         this.scene.add(this.decorGroup);

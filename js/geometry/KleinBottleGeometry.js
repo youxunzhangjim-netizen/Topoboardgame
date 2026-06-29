@@ -8,9 +8,10 @@ const TWO_PI = Math.PI * 2;
 const KLEIN_U_MAX = TWO_PI;
 const KLEIN_V_MIN = 0;
 const KLEIN_V_MAX = TWO_PI;
-const KLEIN_VISUAL_X_SCALE = 1.62;
-const KLEIN_VISUAL_Y_SCALE = 1.66;
-const KLEIN_VISUAL_Z_SCALE = 1.22;
+const KLEIN_DIXON_SCALE = 0.2;
+const KLEIN_VISUAL_X_SCALE = 1.12;
+const KLEIN_VISUAL_Y_SCALE = 0.72;
+const KLEIN_VISUAL_Z_SCALE = 1.12;
 const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {
@@ -34,17 +35,23 @@ export function kleinParametersForCoord(coord, width, height) {
 export function kleinBottleBasePoint(u, v) {
     const parameterU = normalizeKleinU(u);
     const parameterV = positiveModulo(v, TWO_PI);
-    const radial = 2 +
-        Math.cos(parameterU / 2) * Math.sin(parameterV) -
-        Math.sin(parameterU / 2) * Math.sin(2 * parameterV);
-    const rawX = radial * Math.cos(parameterU);
-    const rawY = radial * Math.sin(parameterU);
-    const rawZ = Math.sin(parameterU / 2) * Math.sin(parameterV) +
-        Math.cos(parameterU / 2) * Math.sin(2 * parameterV);
+    const radial = 4 * (1 - Math.cos(parameterU) / 2);
+    let rawX;
+    let rawY;
+    if (parameterU < Math.PI) {
+        rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU)) +
+            radial * Math.cos(parameterU) * Math.cos(parameterV);
+        rawY = 16 * Math.sin(parameterU) + radial * Math.sin(parameterU) * Math.cos(parameterV);
+    } else {
+        rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU)) +
+            radial * Math.cos(parameterV + Math.PI);
+        rawY = 16 * Math.sin(parameterU);
+    }
+    const rawZ = radial * Math.sin(parameterV);
     return new THREE.Vector3(
-        rawX * KLEIN_VISUAL_X_SCALE,
-        rawZ * KLEIN_VISUAL_Y_SCALE,
-        rawY * KLEIN_VISUAL_Z_SCALE
+        rawX * KLEIN_DIXON_SCALE * KLEIN_VISUAL_X_SCALE,
+        rawY * KLEIN_DIXON_SCALE * KLEIN_VISUAL_Y_SCALE,
+        rawZ * KLEIN_DIXON_SCALE * KLEIN_VISUAL_Z_SCALE
     );
 }
 
