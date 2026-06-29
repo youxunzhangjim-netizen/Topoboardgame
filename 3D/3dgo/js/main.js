@@ -38,6 +38,7 @@ import {
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
     createBuckyballSphereGridLines,
+    createBuckyballSphereVertices,
     sphereArcPoints
 } from '../../../js/geometry/SphereBoardGeometry.js';
 import {
@@ -289,6 +290,7 @@ class Go3DRenderer {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
+        this.buckyballPositionCache = new Map();
         this.mode = '';
         this.size = 0;
         this.width = 0;
@@ -437,7 +439,7 @@ class Go3DRenderer {
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const point = this.spherePosition(coord, width, height, 0.075);
+            const point = this.sphereDisplayPosition(coord, width, height, 0.075);
             this.pointCoords.push(coord);
             this.pointPositions.push(point);
             pointPositions.push(point.x, point.y, point.z);
@@ -549,11 +551,11 @@ class Go3DRenderer {
         };
 
         for (const points of createKleinBottleGridLines({
-            uSteps: height,
-            vSteps: width,
-            lift: -0.15,
-            uSegments: 180,
-            vSegments: 140
+            uSteps: Math.max(8, Math.min(12, Math.round(height * 0.55))),
+            vSteps: Math.max(8, Math.min(12, width)),
+            lift: 0.035,
+            uSegments: 220,
+            vSegments: 160
         })) addLine(points);
 
         const pointPositions = [];
@@ -942,18 +944,14 @@ class Go3DRenderer {
             depthWrite: false
         });
         const linePositions = [];
-        if (logic.lattice === HONEYCOMB_LATTICE) {
-            linePositions.push(...this.surfaceHoneycombFacePositions(size, size, logic.lattice, 'torus', 0.045));
-        } else {
-            const drawn = new Set();
-            for (const coord of logic.playableCoords()) {
-                const fromKey = logic.coordKey(coord);
-                for (const neighbor of logic.neighborsFromCoord(coord)) {
-                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                    if (drawn.has(edgeKey)) continue;
-                    drawn.add(edgeKey);
-                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.04));
-                }
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.04));
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1004,18 +1002,14 @@ class Go3DRenderer {
             depthWrite: false
         });
         const linePositions = [];
-        if (logic.lattice === HONEYCOMB_LATTICE) {
-            linePositions.push(...this.surfaceHoneycombFacePositions(width, height, logic.lattice, 'cylinder', 0.045));
-        } else {
-            const drawn = new Set();
-            for (const coord of logic.playableCoords()) {
-                const fromKey = logic.coordKey(coord);
-                for (const neighbor of logic.neighborsFromCoord(coord)) {
-                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                    if (drawn.has(edgeKey)) continue;
-                    drawn.add(edgeKey);
-                    this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, logic.lattice, 0.04));
-                }
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, logic.lattice, 0.04));
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1318,16 +1312,16 @@ class Go3DRenderer {
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
             const pose = logic.topology === 't2'
-                ? this.torusPosition(coord, logic.size, 0.055)
+                ? this.torusPosition(coord, logic.size, 0.055, logic.lattice)
                 : logic.topology === CYLINDER_GO_TOPOLOGY
-                    ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
+                    ? this.cylinderPosition(coord, logic.width, logic.height, 0.06, logic.lattice)
                     : logic.topology === RP2_GO_TOPOLOGY
                         ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
                         : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                             ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                             : logic.topology === MOBIUS_GO_TOPOLOGY
                                 ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
-                                : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
+                                : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
             if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(this.camera.position.distanceTo(pose.position))) continue;
             if (['t2', SPHERE_GO_TOPOLOGY].includes(logic.topology) && !this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             projected.copy(this.pointPositions[index]).project(this.camera);
@@ -1352,16 +1346,16 @@ class Go3DRenderer {
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
-            ? this.torusPosition(coord, logic.size, 0.055)
+            ? this.torusPosition(coord, logic.size, 0.055, logic.lattice)
             : logic.topology === CYLINDER_GO_TOPOLOGY
-                ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
+                ? this.cylinderPosition(coord, logic.width, logic.height, 0.06, logic.lattice)
             : logic.topology === RP2_GO_TOPOLOGY
                     ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
                     : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                     ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                     : logic.topology === MOBIUS_GO_TOPOLOGY
                         ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
-                        : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
+                        : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
         if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(hit.distance)) return false;
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY || logic.topology === MOBIUS_GO_TOPOLOGY) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
@@ -1475,9 +1469,55 @@ class Go3DRenderer {
                     0.14
                 );
             }
-            return this.spherePosition(coord, logic.width, logic.height, 0.18);
+            return this.sphereDisplayPosition(coord, logic.width, logic.height, 0.18);
         }
         return this.r3Position(coord, logic.size, logic.lattice);
+    }
+
+    sphereDisplayPosition(coord, width, height, lift = 0) {
+        if (this.app?.sphereGridMode?.() === BUCKYBALL_LATTICE && this.app?.sphereView?.() !== '2d') {
+            return this.buckyballPositionForCoord(coord, width, height, lift);
+        }
+        return this.spherePosition(coord, width, height, lift);
+    }
+
+    orderedSphereCoords(width, height) {
+        const coords = typeof this.app?.logic?.playableCoords === 'function'
+            ? this.app.logic.playableCoords()
+            : [];
+        const rank = (coord) => {
+            const x = Number(coord?.[0]) || 0;
+            const y = Number(coord?.[1]) || 0;
+            if (y < 0) return [-1, 0];
+            if (y >= height) return [height + 1, 0];
+            return [y, x];
+        };
+        return [...coords].sort((a, b) => {
+            const ra = rank(a);
+            const rb = rank(b);
+            return ra[0] - rb[0] || ra[1] - rb[1];
+        });
+    }
+
+    orderedBuckyballVertices(lift = 0) {
+        return createBuckyballSphereVertices({ radius: 3.5, lift })
+            .sort((a, b) => {
+                const angleA = Math.atan2(a.y, a.x);
+                const angleB = Math.atan2(b.y, b.x);
+                return b.z - a.z || angleA - angleB;
+            });
+    }
+
+    buckyballPositionForCoord(coord, width, height, lift = 0) {
+        const key = `${width}:${height}:${lift}:${coord?.join?.(',')}`;
+        if (!this.buckyballPositionCache) this.buckyballPositionCache = new Map();
+        if (this.buckyballPositionCache.has(key)) return this.buckyballPositionCache.get(key).clone();
+        const coords = this.orderedSphereCoords(width, height);
+        const index = Math.max(0, coords.findIndex((item) => this.app.logic.coordKey(item) === this.app.logic.coordKey(coord)));
+        const vertices = this.orderedBuckyballVertices(lift);
+        const position = vertices[index % vertices.length]?.clone() || this.spherePosition(coord, width, height, lift);
+        this.buckyballPositionCache.set(key, position.clone());
+        return position;
     }
 
     spherePosition(coord, width, height, lift = 0) {
@@ -1567,18 +1607,21 @@ class Go3DRenderer {
         if (lattice === TRIANGULAR_LATTICE) {
             const rawX = Number(coord[0]) + Number(coord[1]) * 0.5;
             const rawY = Number(coord[1]) * Math.sqrt(3) / 2;
+            const circumference = Math.max(1, width);
+            const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
+            const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
             return {
-                u: (rawX / Math.max(1, (width - 1) * 1.5 + 1)) * TWO_PI,
-                v: (rawY / Math.max(1, (height - 1) * Math.sqrt(3) / 2 + 1)) * TWO_PI,
-                band: rawY / Math.max(1, (height - 1) * Math.sqrt(3) / 2)
+                u: (rawX / circumference) * TWO_PI,
+                v: (rawY / periodicAxis) * TWO_PI,
+                band: rawY / cylinderBand
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
-            const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
-            const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
-            const circumference = Math.max(1, width * Math.sqrt(3) / 2);
-            const periodicAxis = Math.max(1, height);
-            const cylinderBand = Math.max(1, height - 0.5);
+            const rawX = Number(coord[0]) + (Number(coord[1]) % 2 ? 0.5 : 0);
+            const rawY = Number(coord[1]) * Math.sqrt(3) / 2;
+            const circumference = Math.max(1, width);
+            const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
+            const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
             return {
                 u: (rawX / circumference) * TWO_PI,
                 v: (rawY / periodicAxis) * TWO_PI,
@@ -1598,40 +1641,6 @@ class Go3DRenderer {
         if (!wrapY && (rawY < 0 || rawY >= height)) return null;
         const y = wrapY ? ((rawY % height) + height) % height : rawY;
         return [x, y];
-    }
-
-    surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
-        const linePositions = [];
-        const drawn = new Set();
-        const wrapY = surface === 'torus';
-        const yLimit = wrapY ? height : height - 1;
-        const edgePoints = (a, b) => surface === 'cylinder'
-            ? this.cylinderSurfaceEdgePoints(a, b, width, height, lattice, lift, 8)
-            : this.torusSurfaceEdgePoints(a, b, width, lattice, lift, 8);
-
-        for (let x = 0; x < width; x += 2) {
-            for (let y = 0; y < yLimit; y += 1) {
-                const vertices = [
-                    [x, y],
-                    [x + 1, y],
-                    [x + 2, y],
-                    [x + 2, y + 1],
-                    [x + 1, y + 1],
-                    [x, y + 1]
-                ].map((coord) => this.wrapSurfaceCoord(coord, width, height, wrapY));
-                if (vertices.some((coord) => !coord)) continue;
-                for (let index = 0; index < vertices.length; index += 1) {
-                    const a = vertices[index];
-                    const b = vertices[(index + 1) % vertices.length];
-                    const key = [a.join(','), b.join(',')].sort().join('|');
-                    if (drawn.has(key)) continue;
-                    drawn.add(key);
-                    this.appendPolyline(linePositions, edgePoints(a, b));
-                }
-            }
-        }
-
-        return linePositions;
     }
 
     appendPolyline(linePositions, points) {

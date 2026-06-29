@@ -50,7 +50,7 @@ function orderedVertexNeighbors(vertex, neighbors) {
     });
 }
 
-function truncatedIcosahedronEdges() {
+function truncatedIcosahedronData() {
     const points = new Map();
     const neighbors = new Map();
     const edges = new Map();
@@ -86,7 +86,12 @@ function truncatedIcosahedronEdges() {
         }
     }
 
-    return [...edges.values()].map(([a, b]) => [points.get(a), points.get(b)]);
+    return { points, edges: [...edges.values()] };
+}
+
+function truncatedIcosahedronEdges() {
+    const { points, edges } = truncatedIcosahedronData();
+    return edges.map(([a, b]) => [points.get(a), points.get(b)]);
 }
 
 export function sphereArcPoints(start, end, segments = 10) {
@@ -119,4 +124,15 @@ export function createBuckyballSphereGridLines({
     const scale = radius + lift;
     return truncatedIcosahedronEdges().map(([start, end]) =>
         sphereArcPoints(start.clone().multiplyScalar(scale), end.clone().multiplyScalar(scale), segments));
+}
+
+export function createBuckyballSphereVertices({
+    radius = 3.5,
+    lift = 0.05
+} = {}) {
+    const scale = radius + lift;
+    const { points } = truncatedIcosahedronData();
+    return [...points.entries()]
+        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+        .map(([, point]) => point.clone().multiplyScalar(scale));
 }

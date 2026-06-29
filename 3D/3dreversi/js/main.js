@@ -11,6 +11,7 @@ import {
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
     createBuckyballSphereGridLines,
+    createBuckyballSphereVertices,
     sphereArcPoints
 } from '../../../js/geometry/SphereBoardGeometry.js';
 import {
@@ -72,6 +73,7 @@ class Reversi3DRenderer {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
+        this.buckyballPositionCache = new Map();
         this.signature = '';
         this.sliceSignature = '';
         this.clock = new THREE.Clock();
@@ -489,11 +491,11 @@ class Reversi3DRenderer {
         };
 
         for (const points of createKleinBottleGridLines({
-            uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
-            vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
-            lift: -0.15,
-            uSegments: 180,
-            vSegments: 140
+            uSteps: Math.max(8, Math.min(12, Math.round(height * 0.55))),
+            vSteps: Math.max(8, Math.min(12, width)),
+            lift: 0.035,
+            uSegments: 220,
+            vSegments: 160
         })) addLine(points, gridMaterial);
 
         const pointPositions = [];
@@ -902,6 +904,12 @@ class Reversi3DRenderer {
                 this.mobiusPose(visualCoord, topology.width, topology.height, -visibleLift, topology.lattice)
             ];
         }
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
+            return [this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift)];
+        }
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.CYLINDER) {
+            return [this.honeycombSurfacePose(coord, topology.width, topology.height, 'cylinder', lift)];
+        }
         if (topology.topology === REVERSI_TOPOLOGIES.T2) return [this.torusPosition(visualCoord, topology.width, topology.height, lift, topology.lattice)];
         if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return [this.cylinderPose(visualCoord, topology.width, topology.height, lift, topology.lattice)];
         if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return [this.kleinOutsidePose(visualCoord, topology.width, topology.height, lift)];
@@ -910,8 +918,8 @@ class Reversi3DRenderer {
             normal: new THREE.Vector3(0, 0, 1)
         }];
         if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) {
-            const position = this.spherePosition(visualCoord, topology.width, topology.height, lift);
-            const normal = this.spherePosition(visualCoord, topology.width, topology.height, 0).normalize();
+            const position = this.sphereDisplayPosition(visualCoord, topology.width, topology.height, lift);
+            const normal = this.sphereDisplayPosition(visualCoord, topology.width, topology.height, 0).normalize();
             return [{ position, normal }];
         }
         return [{
@@ -1037,12 +1045,18 @@ class Reversi3DRenderer {
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
+            return this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift).position;
+        }
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.CYLINDER) {
+            return this.honeycombSurfacePose(coord, topology.width, topology.height, 'cylinder', lift).position;
+        }
         if (topology.topology === REVERSI_TOPOLOGIES.T2) return this.torusPosition(visualCoord, topology.width, topology.height, lift, topology.lattice).position;
         if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) return this.cylinderPosition(visualCoord, topology.width, topology.height, lift, topology.lattice);
         if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) return this.mobiusPose(visualCoord, topology.width, topology.height, lift, topology.lattice).position;
         if (topology.topology === REVERSI_TOPOLOGIES.KLEIN) return this.kleinOutsidePose(visualCoord, topology.width, topology.height, lift).position;
         if (topology.topology === REVERSI_TOPOLOGIES.RP2) return this.flatCellPosition(coord, topology.width, topology.height, lift);
-        if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) return this.spherePosition(visualCoord, topology.width, topology.height, lift);
+        if (topology.topology === REVERSI_TOPOLOGIES.SPHERE) return this.sphereDisplayPosition(visualCoord, topology.width, topology.height, lift);
         return this.r3Position(coord, topology);
     }
 
@@ -1092,34 +1106,112 @@ class Reversi3DRenderer {
         return [x, y];
     }
 
+    honeycombSurfaceMetrics(width, height) {
+        const radius = 0.46;
+        const dx = Math.sqrt(3);
+        const dy = 1.5;
+        return {
+            radius,
+            dx,
+            dy,
+            periodX: Math.max(1, width * dx),
+            periodY: Math.max(1, height * dy),
+            minY: -radius,
+            maxY: Math.max(1, (height - 1) * dy + radius)
+        };
+    }
+
+    surfacePointFromPlanar(point, metrics, surface, lift = 0.045) {
+        const x = ((point.x % metrics.periodX) + metrics.periodX) % metrics.periodX;
+        const u = x / metrics.periodX * TWO_PI;
+        if (surface === 'torus') {
+            const y = ((point.y % metrics.periodY) + metrics.periodY) % metrics.periodY;
+            return this.torusPointFromUV({ u, v: y / metrics.periodY * TWO_PI }, lift);
+        }
+        const span = Math.max(1e-6, metrics.maxY - metrics.minY);
+        const band = THREE.MathUtils.clamp((point.y - metrics.minY) / span, 0, 1);
+        return this.cylinderPointFromUV({ u, band }, lift);
+    }
+
+    honeycombSurfacePose(coord, width, height, surface, lift = 0.08) {
+        const metrics = this.honeycombSurfaceMetrics(width, height);
+        const row = Number(coord?.[1]) || 0;
+        const col = Number(coord?.[0]) || 0;
+        const center = {
+            x: metrics.dx * (col + (row % 2 ? 0.5 : 0)),
+            y: metrics.dy * row
+        };
+        const x = ((center.x % metrics.periodX) + metrics.periodX) % metrics.periodX;
+        const u = x / metrics.periodX * TWO_PI;
+        if (surface === 'torus') {
+            const y = ((center.y % metrics.periodY) + metrics.periodY) % metrics.periodY;
+            const v = y / metrics.periodY * TWO_PI;
+            return {
+                position: this.torusPointFromUV({ u, v }, lift),
+                normal: new THREE.Vector3(Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)).normalize()
+            };
+        }
+        const band = THREE.MathUtils.clamp((center.y - metrics.minY) / Math.max(1e-6, metrics.maxY - metrics.minY), 0, 1);
+        return {
+            position: this.cylinderPointFromUV({ u, band }, lift),
+            normal: new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize()
+        };
+    }
+
+    surfacePlanarEdgePoints(a, b, metrics, surface, lift = 0.045, segments = 8) {
+        const start = {
+            x: ((a.x % metrics.periodX) + metrics.periodX) % metrics.periodX,
+            y: surface === 'torus' ? ((a.y % metrics.periodY) + metrics.periodY) % metrics.periodY : a.y
+        };
+        const end = {
+            x: ((b.x % metrics.periodX) + metrics.periodX) % metrics.periodX,
+            y: surface === 'torus' ? ((b.y % metrics.periodY) + metrics.periodY) % metrics.periodY : b.y
+        };
+        let dx = end.x - start.x;
+        if (dx > metrics.periodX / 2) dx -= metrics.periodX;
+        if (dx < -metrics.periodX / 2) dx += metrics.periodX;
+        let dy = end.y - start.y;
+        if (surface === 'torus') {
+            if (dy > metrics.periodY / 2) dy -= metrics.periodY;
+            if (dy < -metrics.periodY / 2) dy += metrics.periodY;
+        }
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            points.push(this.surfacePointFromPlanar({
+                x: start.x + dx * t,
+                y: start.y + dy * t
+            }, metrics, surface, lift));
+        }
+        return points;
+    }
+
+    appendPlanarPolyline(linePositions, vertices, metrics, surface, lift = 0.045, close = false) {
+        const count = close ? vertices.length : vertices.length - 1;
+        for (let index = 0; index < count; index += 1) {
+            const a = vertices[index];
+            const b = vertices[(index + 1) % vertices.length];
+            this.appendPolyline(linePositions, this.surfacePlanarEdgePoints(a, b, metrics, surface, lift, 8));
+        }
+    }
+
     surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
         const linePositions = [];
-        const drawn = new Set();
-        const wrapY = surface === 'torus';
-        const yLimit = wrapY ? height : height - 1;
-        const edgePoints = (a, b) => surface === 'cylinder'
-            ? this.cylinderSurfaceEdgePoints(a, b, width, height, lattice, lift, 8)
-            : this.torusSurfaceEdgePoints(a, b, width, height, lattice, lift, 8);
-
-        for (let x = 0; x < width; x += 2) {
-            for (let y = 0; y < yLimit; y += 1) {
-                const vertices = [
-                    [x, y],
-                    [x + 1, y],
-                    [x + 2, y],
-                    [x + 2, y + 1],
-                    [x + 1, y + 1],
-                    [x, y + 1]
-                ].map((coord) => this.wrapSurfaceCoord(coord, width, height, wrapY));
-                if (vertices.some((coord) => !coord)) continue;
-                for (let index = 0; index < vertices.length; index += 1) {
-                    const a = vertices[index];
-                    const b = vertices[(index + 1) % vertices.length];
-                    const key = [a.join(','), b.join(',')].sort().join('|');
-                    if (drawn.has(key)) continue;
-                    drawn.add(key);
-                    this.appendPolyline(linePositions, edgePoints(a, b));
-                }
+        const metrics = this.honeycombSurfaceMetrics(width, height);
+        for (let row = 0; row < height; row += 1) {
+            for (let col = 0; col < width; col += 1) {
+                const center = {
+                    x: metrics.dx * (col + (row % 2 ? 0.5 : 0)),
+                    y: metrics.dy * row
+                };
+                const vertices = Array.from({ length: 6 }, (_, index) => {
+                    const angle = Math.PI / 6 + index * Math.PI / 3;
+                    return {
+                        x: center.x + metrics.radius * Math.cos(angle),
+                        y: center.y + metrics.radius * Math.sin(angle)
+                    };
+                });
+                this.appendPlanarPolyline(linePositions, vertices, metrics, surface, lift, true);
             }
         }
 
@@ -1195,6 +1287,54 @@ class Reversi3DRenderer {
             this.spherePosition(b, width, height, lift),
             segments
         );
+    }
+
+    sphereDisplayPosition(coord, width, height, lift = 0) {
+        if (this.app?.currentLattice?.() === BUCKYBALL_LATTICE) {
+            return this.buckyballPositionForCoord(coord, width, height, lift);
+        }
+        return this.spherePosition(coord, width, height, lift);
+    }
+
+    orderedSphereCoords(width, height) {
+        const coords = typeof this.app?.logic?.topology?.allCoords === 'function'
+            ? this.app.logic.topology.allCoords()
+            : [];
+        const rank = (coord) => {
+            const x = Number(coord?.[0]) || 0;
+            const y = Number(coord?.[1]) || 0;
+            if (y < 0) return [-1, 0];
+            if (y >= height) return [height + 1, 0];
+            return [y, x];
+        };
+        return [...coords].sort((a, b) => {
+            const ra = rank(a);
+            const rb = rank(b);
+            return ra[0] - rb[0] || ra[1] - rb[1];
+        });
+    }
+
+    orderedBuckyballVertices(lift = 0) {
+        return createBuckyballSphereVertices({ radius: 3.5, lift })
+            .sort((a, b) => {
+                const angleA = Math.atan2(a.y, a.x);
+                const angleB = Math.atan2(b.y, b.x);
+                return b.z - a.z || angleA - angleB;
+            });
+    }
+
+    buckyballPositionForCoord(coord, width, height, lift = 0) {
+        const key = `${width}:${height}:${lift}:${coord?.join?.(',')}`;
+        if (!this.buckyballPositionCache) this.buckyballPositionCache = new Map();
+        if (this.buckyballPositionCache.has(key)) return this.buckyballPositionCache.get(key).clone();
+        const topology = this.app?.logic?.topology;
+        const coordKey = (item) => typeof topology?.key === 'function' ? topology.key(item) : item.join(',');
+        const coords = this.orderedSphereCoords(width, height);
+        const index = Math.max(0, coords.findIndex((item) => coordKey(item) === coordKey(coord)));
+        const vertices = this.orderedBuckyballVertices(lift);
+        const position = vertices[index % vertices.length]?.clone() || this.spherePosition(coord, width, height, lift);
+        this.buckyballPositionCache.set(key, position.clone());
+        return position;
     }
 
     torusPosition(coord, width, height, lift = 0, lattice = 'square') {

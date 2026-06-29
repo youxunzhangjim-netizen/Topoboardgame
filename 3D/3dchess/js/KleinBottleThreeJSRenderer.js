@@ -64,11 +64,11 @@ export class KleinBottleThreeJSRenderer extends RP2ThreeJSRenderer {
             depthWrite: false
         });
         for (const points of createKleinBottleGridLines({
-            uSteps: this.boardHeight(),
-            vSteps: this.boardWidth(),
-            lift: -0.15,
-            uSegments: 180,
-            vSegments: 140
+            uSteps: Math.max(8, Math.min(12, Math.round(this.boardHeight() * 0.55))),
+            vSteps: Math.max(8, Math.min(12, this.boardWidth())),
+            lift: 0.035,
+            uSegments: 220,
+            vSegments: 160
         })) {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), gridMaterial);
             line.renderOrder = 4;

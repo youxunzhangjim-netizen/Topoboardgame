@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 
 export const KLEIN_SURFACE_MAJOR_RADIUS = 3.4;
 export const KLEIN_SURFACE_WIDTH_SCALE = 2.0;
@@ -37,8 +38,12 @@ function kleinSeamV(v) {
 }
 
 export function kleinBottleBasePoint(u, v) {
-    const parameterU = normalizeKleinU(u);
-    const parameterV = positiveModulo(v, TWO_PI);
+    let parameterU = normalizeKleinU(u);
+    let parameterV = positiveModulo(v, TWO_PI);
+    if (Math.abs(parameterU - KLEIN_U_MAX) < NORMAL_EPSILON * 2) {
+        parameterU = 0;
+        parameterV = kleinSeamV(parameterV);
+    }
     const radial = 4 * (1 - Math.cos(parameterU) / 2);
     let rawX;
     let rawY;
@@ -91,42 +96,10 @@ export function createKleinBottleSurfaceGeometry({
     vSegments = 100,
     lift = 0
 } = {}) {
-    const uCount = Math.max(32, Math.floor(uSegments));
-    const rawVCount = Math.max(32, Math.floor(vSegments));
-    const vCount = rawVCount % 2 === 0 ? rawVCount : rawVCount + 1;
-    const positions = [];
-    const uvs = [];
-    const indices = [];
-    const indexFor = (i, j) => positiveModulo(i, uCount) * vCount + positiveModulo(j, vCount);
-    const seamVIndex = (j) => positiveModulo(vCount / 2 - j, vCount);
-
-    for (let i = 0; i < uCount; i += 1) {
-        const u = TWO_PI * i / uCount;
-        for (let j = 0; j < vCount; j += 1) {
-            const v = TWO_PI * j / vCount;
-            const point = kleinBottlePoint(u, v, lift);
-            positions.push(point.x, point.y, point.z);
-            uvs.push(i / uCount, j / vCount);
-        }
-    }
-
-    for (let i = 0; i < uCount; i += 1) {
-        const nextI = (i + 1) % uCount;
-        const wrapsU = nextI === 0;
-        for (let j = 0; j < vCount; j += 1) {
-            const nextJ = (j + 1) % vCount;
-            const a = indexFor(i, j);
-            const b = indexFor(i, nextJ);
-            const c = wrapsU ? indexFor(nextI, seamVIndex(nextJ)) : indexFor(nextI, nextJ);
-            const d = wrapsU ? indexFor(nextI, seamVIndex(j)) : indexFor(nextI, j);
-            indices.push(a, b, c, a, c, d);
-        }
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setIndex(indices);
+    const geometry = new ParametricGeometry((u, v, target) => {
+        const point = kleinBottlePoint(u * TWO_PI, v * TWO_PI, lift);
+        target.set(point.x, point.y, point.z);
+    }, Math.max(32, Math.floor(uSegments)), Math.max(32, Math.floor(vSegments)));
     geometry.computeVertexNormals();
     return geometry;
 }
