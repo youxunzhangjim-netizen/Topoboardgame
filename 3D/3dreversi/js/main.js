@@ -10,6 +10,10 @@ import {
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
+    createBuckyballSphereGridLines,
+    sphereArcPoints
+} from '../../../js/geometry/SphereBoardGeometry.js';
+import {
     advanceMapPieceAges,
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
@@ -439,7 +443,7 @@ class Reversi3DRenderer {
                 roughness: 0.52,
                 metalness: 0.01,
                 transparent: true,
-                opacity: 0.76,
+                opacity: 0.68,
                 depthWrite: false,
                 clearcoat: 0.16,
                 clearcoatRoughness: 0.48,
@@ -447,15 +451,15 @@ class Reversi3DRenderer {
             })
         );
         surface.renderOrder = 2;
-        surface.castShadow = true;
-        surface.receiveShadow = true;
+        surface.castShadow = false;
+        surface.receiveShadow = false;
         surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x64747c,
+            color: 0x1f2933,
             transparent: true,
-            opacity: 0.46,
+            opacity: 0.7,
             depthTest: true,
             depthWrite: false
         });
@@ -468,7 +472,7 @@ class Reversi3DRenderer {
         for (const points of createKleinBottleGridLines({
             uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
             vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
-            lift: 0.15,
+            lift: -0.15,
             uSegments: 180,
             vSegments: 140
         })) addLine(points, gridMaterial);
@@ -482,7 +486,7 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.04 : width <= 13 ? 0.031 : 0.024, {
             color: 0xe8f4f7,
-            opacity: 0.68,
+            opacity: 0.62,
             depthTest: true,
             renderOrder: 5
         });
@@ -556,6 +560,7 @@ class Reversi3DRenderer {
     }
 
     buildSphere(width, height) {
+        const topology = this.app.logic.topology;
         const radius = 3.5;
         const surface = new THREE.Mesh(
             new THREE.SphereGeometry(radius - 0.045, 96, 48),
@@ -580,22 +585,26 @@ class Reversi3DRenderer {
                 if (y < height - 1) this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [x, y + 1], width, height, 0.045, 10));
             }
         }
+        for (let x = 0; x < width; x += 1) {
+            this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([0, -1], [x, 0], width, height, 0.045, 10));
+            this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, height - 1], [0, height], width, height, 0.045, 10));
+        }
+        for (const points of createBuckyballSphereGridLines({ radius, lift: 0.07, segments: 8 })) {
+            this.appendPolyline(linePositions, points);
+        }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
-            new THREE.LineBasicMaterial({ color: 0xd8b36b, transparent: true, opacity: 0.74 })
+            new THREE.LineBasicMaterial({ color: 0xd8b36b, transparent: true, opacity: 0.58 })
         ));
 
         const pointPositions = [];
-        for (let y = 0; y < height; y += 1) {
-            for (let x = 0; x < width; x += 1) {
-                const coord = [x, y];
-                const point = this.positionForCoord(coord, this.app.logic, 0.08);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(point);
-                pointPositions.push(point.x, point.y, point.z);
-            }
+        for (const coord of topology.allCoords()) {
+            const point = this.positionForCoord(coord, this.app.logic, 0.08);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(point);
+            pointPositions.push(point.x, point.y, point.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.082 : width <= 13 ? 0.06 : 0.045, {
             color: 0xffe3a3,
@@ -1114,27 +1123,11 @@ class Reversi3DRenderer {
     }
 
     sphereSurfaceEdgePoints(a, b, width, height, lift = 0.04, segments = 8) {
-        const startY = Number(a[1]);
-        const endY = Number(b[1]);
-        const startX = Number(a[0]);
-        const endX = Number(b[0]);
-        const startPhi = TWO_PI * startX / Math.max(1, width);
-        const endPhi = TWO_PI * endX / Math.max(1, width);
-        const dPhi = this.shortestAngleDelta(startPhi, endPhi);
-        const points = [];
-        for (let step = 0; step <= segments; step += 1) {
-            const t = step / segments;
-            const phi = startPhi + dPhi * t;
-            const y = THREE.MathUtils.lerp(startY, endY, t);
-            const radius = 3.5 + lift;
-            const theta = Math.PI * (y + 1) / (Math.max(1, height) + 1);
-            points.push(new THREE.Vector3(
-                radius * Math.sin(theta) * Math.cos(phi),
-                radius * Math.sin(theta) * Math.sin(phi),
-                radius * Math.cos(theta)
-            ));
-        }
-        return points;
+        return sphereArcPoints(
+            this.spherePosition(a, width, height, lift),
+            this.spherePosition(b, width, height, lift),
+            segments
+        );
     }
 
     torusPosition(coord, width, height, lift = 0, lattice = 'square') {
@@ -1280,7 +1273,10 @@ class Reversi3DRenderer {
 
     spherePosition(coord, width, height, lift = 0) {
         const radius = 3.5 + lift;
-        const theta = Math.PI * (Number(coord[1]) + 1) / (Math.max(1, height) + 1);
+        const y = Number(coord[1]);
+        if (y < 0) return new THREE.Vector3(0, 0, radius);
+        if (y >= height) return new THREE.Vector3(0, 0, -radius);
+        const theta = Math.PI * (y + 1) / (Math.max(1, height) + 1);
         const phi = TWO_PI * Number(coord[0]) / Math.max(1, width);
         return new THREE.Vector3(
             radius * Math.sin(theta) * Math.cos(phi),

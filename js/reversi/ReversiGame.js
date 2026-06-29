@@ -140,6 +140,66 @@ function stepPolar(coord, direction, width, height) {
     return normalizePolar(ring + dr, ring + dr === 0 ? 0 : sector + ds, width, height);
 }
 
+function sphereNorthPoleCoord() {
+    return [0, -1];
+}
+
+function sphereSouthPoleCoord(height) {
+    return [0, height];
+}
+
+function isSphereNorthPole(coord) {
+    return Array.isArray(coord) && Number(coord[0]) === 0 && Number(coord[1]) === -1;
+}
+
+function isSphereSouthPole(coord, height) {
+    return Array.isArray(coord) && Number(coord[0]) === 0 && Number(coord[1]) === height;
+}
+
+function isSpherePole(coord, height) {
+    return isSphereNorthPole(coord) || isSphereSouthPole(coord, height);
+}
+
+function spherePoleDirections(width, towardSouth = true) {
+    return Array.from({ length: width }, (_, x) => [x, towardSouth ? 1 : -1, 1]);
+}
+
+function sphereContainsCoord(coord, width, height) {
+    if (!Array.isArray(coord) || coord.length < 2) return false;
+    if (isSpherePole(coord, height)) return true;
+    return coord[0] >= 0 && coord[0] < width && coord[1] >= 0 && coord[1] < height;
+}
+
+function normalizeSphereCoord(x, y, width, height) {
+    if (Number(x) === 0 && Number(y) === -1) return sphereNorthPoleCoord();
+    if (Number(x) === 0 && Number(y) === height) return sphereSouthPoleCoord(height);
+    if (y < 0) return sphereNorthPoleCoord();
+    if (y >= height) return sphereSouthPoleCoord(height);
+    return [mod(x, width), y];
+}
+
+function stepSphere(coord, direction, width, height) {
+    const dx = direction[0] || 0;
+    const dy = direction[1] || 0;
+    const poleRay = direction[2] === 1;
+    if (isSphereNorthPole(coord)) {
+        if (dy <= 0) return null;
+        return [mod(dx, width), 0];
+    }
+    if (isSphereSouthPole(coord, height)) {
+        if (dy >= 0) return null;
+        return [mod(dx, width), height - 1];
+    }
+    if (poleRay) return normalizeSphereCoord(coord[0], coord[1] + Math.sign(dy || 1), width, height);
+    return normalizeSphereCoord(coord[0] + dx, coord[1] + dy, width, height);
+}
+
+function sphereDirectionsFor(coord, width, height, directions) {
+    if (isSphereNorthPole(coord)) return spherePoleDirections(width, true);
+    if (isSphereSouthPole(coord, height)) return spherePoleDirections(width, false);
+    return directions.map((direction) => [...direction]);
+}
+
 function randomSeed() {
     return `reversi-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
 }
@@ -338,16 +398,22 @@ export function createReversiTopology(options = {}) {
         directions,
         directionsFor(coord) {
             if (topology === REVERSI_TOPOLOGIES.POLAR) return polarDirectionsFor(coord, width);
+            if (topology === REVERSI_TOPOLOGIES.SPHERE) return sphereDirectionsFor(coord, width, height, directions);
             return lattice === 'hcp'
                 ? hcpDirections(coord)
                 : directions.map((direction) => [...direction]);
         },
         randomBoundarySeed,
         randomBoundaryMap,
-        totalVertices: topology === REVERSI_TOPOLOGIES.POLAR ? polarTotal(width, height) : width * height * depth * wSize,
+        totalVertices: topology === REVERSI_TOPOLOGIES.POLAR
+            ? polarTotal(width, height)
+            : topology === REVERSI_TOPOLOGIES.SPHERE
+                ? width * height + 2
+                : width * height * depth * wSize,
         key: coordinateKey,
         contains(coord) {
             if (!Array.isArray(coord) || coord.length < dimension) return false;
+            if (topology === REVERSI_TOPOLOGIES.SPHERE) return sphereContainsCoord(coord, width, height);
             if (coord[0] < 0 || coord[0] >= width) return false;
             if (coord[1] < 0 || coord[1] >= height) return false;
             if (dimension >= 3 && (coord[2] < 0 || coord[2] >= depth)) return false;
@@ -383,8 +449,7 @@ export function createReversiTopology(options = {}) {
                 return [x, y];
             }
             if (topology === REVERSI_TOPOLOGIES.SPHERE) {
-                if (y < 0 || y >= height) return null;
-                return [mod(x, width), y];
+                return normalizeSphereCoord(x, y, width, height);
             }
             if (topology === REVERSI_TOPOLOGIES.R3 || topology === REVERSI_TOPOLOGIES.R3_RANDOM) {
                 if (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth) return null;
@@ -401,6 +466,9 @@ export function createReversiTopology(options = {}) {
             const next = coord.map((value, index) => value + (direction[index] || 0));
             if (topology === REVERSI_TOPOLOGIES.POLAR) {
                 return stepPolar(coord, direction, width, height);
+            }
+            if (topology === REVERSI_TOPOLOGIES.SPHERE) {
+                return stepSphere(coord, direction, width, height);
             }
             if (topology === REVERSI_TOPOLOGIES.RANDOM && dimension === 2) {
                 if (next[0] >= 0 && next[0] < width && next[1] >= 0 && next[1] < height) return next;
@@ -453,6 +521,9 @@ export function createReversiTopology(options = {}) {
             if (topology === REVERSI_TOPOLOGIES.POLAR) return polarCoords(width, height);
             for (let y = 0; y < height; y += 1) {
                 for (let x = 0; x < width; x += 1) coords.push([x, y]);
+            }
+            if (topology === REVERSI_TOPOLOGIES.SPHERE) {
+                coords.push(sphereNorthPoleCoord(), sphereSouthPoleCoord(height));
             }
             return coords;
         }

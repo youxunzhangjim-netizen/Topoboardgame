@@ -37,6 +37,10 @@ import {
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
+    createBuckyballSphereGridLines,
+    sphereArcPoints
+} from '../../../js/geometry/SphereBoardGeometry.js';
+import {
     advanceIndexedPieceAges,
     createAgeArray,
     normalizePieceTimeConfig
@@ -379,15 +383,15 @@ class Go3DRenderer {
 
     buildSphere(width, height) {
         const logic = this.app.logic;
-        const radius = 3.45;
+        const radius = 3.5;
         const surface = new THREE.Mesh(
             new THREE.SphereGeometry(radius - 0.045, 96, 48),
             new THREE.MeshPhysicalMaterial({
                 color: 0x8a6a3d,
-                roughness: 0.6,
+                roughness: 0.62,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.62,
+                opacity: 0.68,
                 clearcoat: 0.18
             })
         );
@@ -398,7 +402,6 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const linePositions = [];
-        const addEdge = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
         const drawn = new Set();
         for (const coord of logic.playableCoords()) {
             const fromKey = logic.coordKey(coord);
@@ -406,17 +409,24 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                addEdge(
-                    this.spherePosition(coord, width, height, 0.04),
-                    this.spherePosition(neighbor, width, height, 0.04)
+                this.appendPolyline(
+                    linePositions,
+                    sphereArcPoints(
+                        this.spherePosition(coord, width, height, 0.055),
+                        this.spherePosition(neighbor, width, height, 0.055),
+                        10
+                    )
                 );
             }
+        }
+        for (const points of createBuckyballSphereGridLines({ radius, lift: 0.07, segments: 8 })) {
+            this.appendPolyline(linePositions, points);
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
-            new THREE.LineBasicMaterial({ color: 0xd8b36b, transparent: true, opacity: 0.72 })
+            new THREE.LineBasicMaterial({ color: 0x060606, transparent: true, opacity: 0.68 })
         ));
 
         const pointPositions = [];
@@ -427,8 +437,8 @@ class Go3DRenderer {
             pointPositions.push(point.x, point.y, point.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.075 : width <= 13 ? 0.056 : 0.042, {
-            color: 0xffe3a3,
-            opacity: 0.98
+            color: 0x10100f,
+            opacity: 0.92
         });
     }
 
@@ -502,27 +512,27 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0xdfe7e4,
-                roughness: 0.52,
+                color: 0x7b5a2f,
+                roughness: 0.64,
                 metalness: 0.01,
                 transparent: true,
-                opacity: 0.76,
+                opacity: 0.72,
                 depthWrite: false,
-                clearcoat: 0.16,
-                clearcoatRoughness: 0.48,
+                clearcoat: 0.2,
+                clearcoatRoughness: 0.54,
                 side: THREE.DoubleSide
             })
         );
         surface.renderOrder = 2;
-        surface.castShadow = true;
-        surface.receiveShadow = true;
+        surface.castShadow = false;
+        surface.receiveShadow = false;
         surface.userData.kleinPickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x64747c,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.46,
+            opacity: 0.9,
             depthTest: true,
             depthWrite: false
         });
@@ -533,9 +543,9 @@ class Go3DRenderer {
         };
 
         for (const points of createKleinBottleGridLines({
-            uSteps: Math.max(8, Math.min(16, Math.round(height * 0.75))),
-            vSteps: Math.max(8, Math.min(16, Math.round(width * 0.75))),
-            lift: 0.15,
+            uSteps: height,
+            vSteps: width,
+            lift: -0.15,
             uSegments: 180,
             vSegments: 140
         })) addLine(points);
@@ -548,9 +558,9 @@ class Go3DRenderer {
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
-        this.addNodePoints(pointPositions, width <= 9 ? 0.036 : width <= 13 ? 0.029 : 0.022, {
-            color: 0x9fb3bd,
-            opacity: 0.66,
+        this.addNodePoints(pointPositions, width <= 9 ? 0.026 : width <= 13 ? 0.021 : 0.017, {
+            color: 0x050505,
+            opacity: 0.58,
             depthTest: true,
             renderOrder: 5
         });
@@ -1457,7 +1467,7 @@ class Go3DRenderer {
     }
 
     spherePosition(coord, width, height, lift = 0) {
-        const point = sphereVertexPosition(coord, width, height, 3.45, lift);
+        const point = sphereVertexPosition(coord, width, height, 3.5, lift);
         return new THREE.Vector3(point.x, point.y, point.z);
     }
 
@@ -1765,7 +1775,7 @@ class Go3DRenderer {
             this.camera.position.set(8.8, 4.8, 12.8);
             this.controls.target.set(0, -3.0, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
-            this.camera.position.set(0, this.view === '2d' ? 0 : 1.8, this.view === '2d' ? 10.5 : 9.4);
+            this.camera.position.set(0, 0, this.view === '2d' ? 10.5 : 18.5);
             this.controls.target.set(0, 0, 0);
         } else {
             this.camera.position.set(7.8, 7.4, 8.2);

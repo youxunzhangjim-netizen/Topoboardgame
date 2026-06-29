@@ -44,28 +44,29 @@ export class KleinBottleThreeJSRenderer extends RP2ThreeJSRenderer {
                 roughness: 0.52,
                 metalness: 0.01,
                 transparent: true,
-                opacity: 0.56,
+                opacity: 0.66,
                 depthWrite: false,
                 clearcoat: 0.16,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
         );
-        surface.receiveShadow = true;
+        surface.castShadow = false;
+        surface.receiveShadow = false;
         surface.userData = { type: 'surface' };
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x64747c,
+            color: 0x202a31,
             transparent: true,
-            opacity: 0.46,
+            opacity: 0.68,
             depthTest: true,
             depthWrite: false
         });
         for (const points of createKleinBottleGridLines({
             uSteps: this.boardHeight(),
             vSteps: this.boardWidth(),
-            lift: 0.15,
+            lift: -0.15,
             uSegments: 180,
             vSegments: 140
         })) {

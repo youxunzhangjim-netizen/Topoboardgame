@@ -162,6 +162,13 @@ function addShortestVLine(points, u, v0, v1, lift, segments) {
     addParameterLine(points, u, v0, u, endV, lift, segments);
 }
 
+function addClosedKleinULine(points, v, lift, segments) {
+    const seamV = kleinSeamV(v);
+    addParameterLine(points, 0, v, KLEIN_U_MAX, v, lift, segments);
+    addParameterLine(points, 0, seamV, KLEIN_U_MAX, seamV, lift, segments);
+    points.push(kleinBottlePoint(0, v, lift));
+}
+
 export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, segments = 24) {
     const start = kleinParametersForCoord(a, width, height);
     const end = kleinParametersForCoord(b, width, height);
@@ -210,10 +217,19 @@ export function createKleinBottleGridLines({
         lines.push(points);
     }
 
+    const seamPoints = [];
+    addParameterLine(seamPoints, KLEIN_U_MAX, 0, KLEIN_U_MAX, TWO_PI, lift, safeVSegments);
+    lines.push(seamPoints);
+
+    const visitedV = new Set();
     for (let j = 0; j < safeVSteps; j += 1) {
+        if (visitedV.has(j)) continue;
         const v = TWO_PI * j / safeVSteps;
+        const seamIndex = positiveModulo(Math.round(safeVSteps / 2 - j), safeVSteps);
+        visitedV.add(j);
+        visitedV.add(seamIndex);
         const points = [];
-        addParameterLine(points, 0, v, TWO_PI, v, lift, safeUSegments);
+        addClosedKleinULine(points, v, lift, safeUSegments);
         lines.push(points);
     }
 
