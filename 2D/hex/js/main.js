@@ -40,7 +40,7 @@ const I18N = {
         klein: 'Klein Bottle',
         randomBoundary: 'Random Boundary',
         lattice: 'Lattice',
-        hexagonal: 'Hexagonal / Axial',
+        hexagonal: 'Honeycomb',
         triangular: 'Triangular',
         square: 'Square',
         honeycomb: 'Honeycomb',
@@ -79,7 +79,7 @@ const I18N = {
         onlineUnavailable: 'Connect or join an Online room before placing.',
         chatLocal: 'Chat is stored only in this page until an online room is connected.',
         topologyInfo: {
-            open: 'Standard has ordinary edges. Black connects left/right; White connects top/bottom.',
+            open: 'Standard has ordinary edges. Hex fills honeycomb cells: Black connects left/right; White connects top/bottom.',
             cylinder: 'Cylinder identifies left/right. Black uses two marked cut-seam zones; White keeps physical top/bottom targets.',
             torus: 'Torus wraps both directions. Both colors connect explicit marked cut-seam zones.',
             mobius: 'Möbius identifies left/right with a twist. Black uses marked cut-seam zones.',

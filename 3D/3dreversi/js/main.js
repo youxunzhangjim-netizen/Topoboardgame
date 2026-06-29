@@ -17,8 +17,8 @@ import {
 const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
-const MOBIUS_BAND_RADIUS = 3.05;
-const MOBIUS_BAND_HALF_WIDTH = 1.18;
+const MOBIUS_BAND_RADIUS = 3.45;
+const MOBIUS_BAND_HALF_WIDTH = 1.42;
 const R3_LIKE_TOPOLOGIES = new Set([
     REVERSI_TOPOLOGIES.R3,
     REVERSI_TOPOLOGIES.T3,
@@ -218,6 +218,7 @@ class Reversi3DRenderer {
         );
         torus.castShadow = true;
         torus.receiveShadow = true;
+        torus.userData.surfacePickOccluder = true;
         this.boardGroup.add(torus);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -262,6 +263,7 @@ class Reversi3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -310,26 +312,27 @@ class Reversi3DRenderer {
             side: THREE.DoubleSide
         });
         const surface = new THREE.Mesh(
-            this.createMobiusSolidGeometry(224, 50, 0.064),
+            this.createMobiusSolidGeometry(256, 58, 0.1),
             surfaceMaterial
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
         surface.userData.mobiusPickOccluder = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.95,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const topology = this.app.logic.topology;
@@ -349,7 +352,7 @@ class Reversi3DRenderer {
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
                 addLine(
-                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052, seam ? 34 : 22),
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.075, seam ? 42 : 26),
                     seam ? seamMaterial : gridMaterial
                 );
             }
@@ -359,7 +362,7 @@ class Reversi3DRenderer {
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
                 const coord = [x, y];
-                for (const position of this.positionsForCoord(coord, this.app.logic, 0.08)) {
+                for (const position of this.positionsForCoord(coord, this.app.logic, 0.115)) {
                     this.pointCoords.push(coord);
                     this.pointPositions.push(position);
                     pointPositions.push(position.x, position.y, position.z);
@@ -369,7 +372,7 @@ class Reversi3DRenderer {
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
             color: 0xffe3a3,
             opacity: 0.98,
-            depthTest: false,
+            depthTest: true,
             renderOrder: 3
         });
     }
@@ -430,13 +433,13 @@ class Reversi3DRenderer {
     buildKlein(topology) {
         const { width, height } = topology;
         const surface = new THREE.Mesh(
-            createKleinBottleSurfaceGeometry({ uSegments: 180, vSegments: 76, lift: -0.018 }),
+            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.68,
+                opacity: 0.88,
                 depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
@@ -451,20 +454,20 @@ class Reversi3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.48,
+            opacity: 0.58,
             depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.64,
+            opacity: 0.68,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 2;
+            line.renderOrder = 5;
             this.boardGroup.add(line);
         };
 
@@ -477,13 +480,13 @@ class Reversi3DRenderer {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.065), seam ? seamMaterial : gridMaterial);
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.13, 42), seam ? seamMaterial : gridMaterial);
             }
         }
 
         const pointPositions = [];
         for (const coord of topology.allCoords()) {
-            const pose = this.posesForCoord(coord, this.app.logic, 0.11)[0];
+            const pose = this.posesForCoord(coord, this.app.logic, 0.18)[0];
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
@@ -578,15 +581,14 @@ class Reversi3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const linePositions = [];
-        const addEdge = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
         for (let y = 0; y < height; y += 1) {
             for (let x = 0; x < width; x += 1) {
-                const current = this.spherePosition([x, y], width, height, 0.045);
-                addEdge(current, this.spherePosition([(x + 1) % width, y], width, height, 0.045));
-                if (y < height - 1) addEdge(current, this.spherePosition([x, y + 1], width, height, 0.045));
+                this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, 0.045, 10));
+                if (y < height - 1) this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [x, y + 1], width, height, 0.045, 10));
             }
         }
         const geometry = new THREE.BufferGeometry();
@@ -858,9 +860,7 @@ class Reversi3DRenderer {
             REVERSI_TOPOLOGIES.T2,
             REVERSI_TOPOLOGIES.CYLINDER,
             REVERSI_TOPOLOGIES.KLEIN,
-            REVERSI_TOPOLOGIES.MOBIUS,
-            REVERSI_TOPOLOGIES.RP2,
-            REVERSI_TOPOLOGIES.SPHERE
+            REVERSI_TOPOLOGIES.MOBIUS
         ].includes(logic?.topology?.topology);
     }
 
@@ -931,10 +931,9 @@ class Reversi3DRenderer {
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
-            if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) {
-                const pose = this.posesForCoord(coord, this.app.logic, 0.08)[0];
-                if (!this.isPoseFacingCamera(pose.position, pose.normal)) continue;
-            }
+            const pose = this.posesForCoord(coord, this.app.logic, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.11 : 0.08)[0];
+            if (mode !== REVERSI_TOPOLOGIES.KLEIN && this.surfaceOccludesDistance(this.camera.position.distanceTo(pose.position))) continue;
+            if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.SPHERE].includes(mode) && !this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
             const x = (projected.x * 0.5 + 0.5) * rect.width;
@@ -954,14 +953,23 @@ class Reversi3DRenderer {
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
         const mode = logic?.topology?.topology;
-        if (!hit || ![REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.KLEIN, REVERSI_TOPOLOGIES.MOBIUS].includes(mode)) return Boolean(hit);
-        if (mode === REVERSI_TOPOLOGIES.CYLINDER) return true;
+        if (!hit || ![REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER, REVERSI_TOPOLOGIES.KLEIN, REVERSI_TOPOLOGIES.MOBIUS, REVERSI_TOPOLOGIES.SPHERE].includes(mode)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = this.posesForCoord(coord, logic, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.11 : 0.08)[0];
-        if (mode === REVERSI_TOPOLOGIES.KLEIN || mode === REVERSI_TOPOLOGIES.MOBIUS) return true;
+        if (mode !== REVERSI_TOPOLOGIES.KLEIN && this.surfaceOccludesDistance(hit.distance)) return false;
+        if (mode === REVERSI_TOPOLOGIES.KLEIN) return true;
+        if (mode === REVERSI_TOPOLOGIES.MOBIUS) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         return true;
+    }
+
+    surfaceOccludesDistance(distance) {
+        const occluders = this.boardGroup.children.filter((child) => child.userData?.surfacePickOccluder);
+        if (!occluders.length) return false;
+        const surfaceHits = this.raycaster.intersectObjects(occluders, false);
+        const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
+        return Boolean(nearest && nearest.distance < distance - 0.08);
     }
 
     kleinClickThroughWindow(pose) {
@@ -1112,6 +1120,30 @@ class Reversi3DRenderer {
                 u: start.u + du * t,
                 band: THREE.MathUtils.lerp(start.band, end.band, t)
             }, lift));
+        }
+        return points;
+    }
+
+    sphereSurfaceEdgePoints(a, b, width, height, lift = 0.04, segments = 8) {
+        const startY = Number(a[1]);
+        const endY = Number(b[1]);
+        const startX = Number(a[0]);
+        const endX = Number(b[0]);
+        const startPhi = TWO_PI * startX / Math.max(1, width);
+        const endPhi = TWO_PI * endX / Math.max(1, width);
+        const dPhi = this.shortestAngleDelta(startPhi, endPhi);
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = step / segments;
+            const phi = startPhi + dPhi * t;
+            const y = THREE.MathUtils.lerp(startY, endY, t);
+            const radius = 3.5 + lift;
+            const theta = Math.PI * (y + 1) / (Math.max(1, height) + 1);
+            points.push(new THREE.Vector3(
+                radius * Math.sin(theta) * Math.cos(phi),
+                radius * Math.sin(theta) * Math.sin(phi),
+                radius * Math.cos(theta)
+            ));
         }
         return points;
     }
@@ -1272,12 +1304,12 @@ class Reversi3DRenderer {
         const mode = this.app?.logic?.topology?.topology || 'r3';
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
         else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
-        else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(6.4, 4.8, 7.4);
-        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(9.4, 6.2, 12.4);
+        else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(7.4, 5.4, 8.4);
+        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.4, 11.8, 8.2);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);
         else if (mode === REVERSI_TOPOLOGIES.RP2) this.camera.position.set(0, 0, 10.5);
         else this.camera.position.set(7.9, 7.4, 8.2);
-        this.controls.target.set(0, 0, 0);
+        this.controls.target.set(0, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.18 : 0, 0);
         this.controls.update();
     }
 
@@ -1360,7 +1392,7 @@ class Reversi3DApp {
             this.modeSelect.value = 'r3';
             this.boundarySelect.value = mode;
         } else {
-            this.modeSelect.value = ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(mode) ? mode : 'r3';
+            this.modeSelect.value = ['t2', 'cylinder', 'sphere', 'klein', 'mobius'].includes(mode) ? mode : 'r3';
             this.boundarySelect.value = 'r3';
         }
         const size = params.get('size');
@@ -1665,15 +1697,15 @@ class Reversi3DApp {
         };
         const modeInfo = {
             r3: lattice === 'hcp'
-                ? 'R3 HCP uses offset hexagonal close-packed layers with 12 nearest-neighbor bracket directions.'
-                : 'R3 Standard uses ordinary open cubic boundaries. Reversi brackets can run through all 26 graph ray directions.',
+                ? 'R3 HCP uses offset hexagonal close-packed site vertices with 12 nearest-neighbor bracket directions.'
+                : 'R3 Standard uses ordinary open cubic site vertices. Reversi brackets can run through all 26 graph ray directions.',
             t3: 'T3 is the all-side periodic boundary condition on the R3 board. It wraps x, y, and z, so every volume axis is periodic.',
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
-            t2: 'T2 is rendered as a solid rotatable torus. Both board directions wrap on the surface.',
-            cylinder: 'Cylinder Reversi wraps left-right around the circumference while top and bottom remain open.',
-            sphere: 'S2 is rendered as a rotatable latitude-ring sphere. Horizontal rays wrap by longitude and vertical rays stop at the caps.',
-            klein: 'Klein bottle uses normal left-right wrap and flipped top-bottom wrap on the board graph.',
-            mobius: 'Mobius strip is rendered as a solid twisted band. Horizontal seam crossings flip the transverse coordinate.',
+            t2: 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
+            cylinder: 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
+            sphere: 'S2 is rendered as a rotatable latitude-ring sphere. Sphere Reversi remains vertex-based at the singular caps.',
+            klein: 'Klein bottle uses face cells on the non-orientable surface, with normal left-right wrap and flipped top-bottom wrap on the board graph.',
+            mobius: 'Mobius strip uses face cells on a solid twisted band. Horizontal seam crossings flip the transverse coordinate.',
             rp2: 'RP2 identifies opposite boundary edges with antipodal flips in both board directions.'
         };
         this.modeDisplay.textContent = modeText[mode] || modeText.r3;

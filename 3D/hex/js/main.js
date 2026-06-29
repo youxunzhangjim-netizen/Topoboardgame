@@ -11,7 +11,7 @@ const I18N = {
         title: isSpaceTime ? '3+1D Hex' : '3D Hex',
         description: isSpaceTime
             ? 'Build a connection through the spatial volume while preserving the selected time-schedule parameters.'
-            : 'Place stones on volume or embedded-surface boards and connect the active target zones.',
+            : 'Fill volume sites or embedded-surface cells and connect the active target zones.',
         boardAria: 'Rotatable 3D Hex board',
         controls: 'Game Controls',
         home: 'Home',
@@ -92,15 +92,15 @@ const I18N = {
         opponent: 'Opponent',
         onlineUnavailable: 'Connect or join an Online room before placing.',
         topologyInfo: {
-            open: 'R3 volume uses open boundaries and the selected 3D lattice adjacency.',
+            open: 'R3 volume uses open boundaries and the selected 3D lattice adjacency. Volume Hex connects through site vertices.',
             torus: 'T3 is the all-side periodic boundary condition on the R3 volume board. Goals use explicit marked cut-zone planes inside the periodic volume.',
             r3_random: '3D RBC uses a seeded random boundary pairing when a move exits the cube.',
             reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
-            t2: 'T2 is a torus surface embedded in 3D. Both players connect marked cut-seam zones on the surface.',
-            cylinder: 'Cylinder is a 2D surface embedded in 3D. Black uses cut-seam zones; White uses the two rim directions.',
+            t2: 'T2 is a torus surface embedded in 3D. Surface Hex fills face cells and both players connect marked cut-seam zones.',
+            cylinder: 'Cylinder is a 2D surface embedded in 3D. Surface Hex fills face cells; Black uses cut-seam zones and White uses the two rim directions.',
             sphere: 'S2 is a sphere surface with single north/south pole sites and latitude rings between them.',
-            klein: 'Klein bottle is a non-orientable surface with a twisted seam. Goals use marked surface zones.',
-            mobius: 'Mobius strip is a one-sided twisted strip. Black uses the seam zones; White uses the open sides.',
+            klein: 'Klein bottle is a non-orientable surface with a twisted seam. Surface Hex fills face cells and goals use marked zones.',
+            mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Black uses the seam zones and White uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
             trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
             trefoil_solid: 'A discrete solid trefoil tube with periodic (s, theta) directions and bounded radial layers.',
@@ -112,7 +112,7 @@ const I18N = {
         title: isSpaceTime ? '3+1D 六貫棋' : '3D 六貫棋',
         description: isSpaceTime
             ? '在空間體積中建立連線，並保留所選的時間排程參數。'
-            : '在體積或嵌入曲面棋盤上落子，連接目前棋盤的目標區。',
+            : '填入體積格點或嵌入曲面單元，連接目前棋盤的目標區。',
         boardAria: '可旋轉的 3D 六貫棋棋盤',
         controls: '遊戲控制',
         home: '首頁',
@@ -193,15 +193,15 @@ const I18N = {
         opponent: '對手',
         onlineUnavailable: '請先連線或加入線上房間再落子。',
         topologyInfo: {
-            open: 'R3 體積使用開放邊界，並依所選 3D 晶格產生相鄰關係。',
+            open: 'R3 體積使用開放邊界，並依所選 3D 晶格產生相鄰關係。體積六貫棋沿格點連線。',
             torus: 'T3 是 R3 體積棋盤的全面週期邊界條件；目標使用週期體積中的明確切面標示區。',
             r3_random: '3D RBC 會在行動離開立方體邊界時使用固定種子的隨機邊界配對。',
             reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
-            t2: 'T2 是嵌入 3D 視圖的環面曲面；雙方連接曲面上的切縫目標區。',
-            cylinder: '圓柱是嵌入 3D 視圖的二維曲面；黑方使用切縫目標區，白方使用兩側邊界。',
+            t2: 'T2 是嵌入 3D 視圖的環面曲面；曲面六貫棋填入面單元，雙方連接曲面上的切縫目標區。',
+            cylinder: '圓柱是嵌入 3D 視圖的二維曲面；曲面六貫棋填入面單元，黑方使用切縫目標區，白方使用兩側邊界。',
             sphere: 'S2 是含單一北極 / 南極格點的球面；兩極之間以緯線環連接。',
-            klein: 'Klein 瓶是含扭轉縫的非定向曲面；目標使用曲面標示區。',
-            mobius: 'Mobius 帶是一側曲面；黑方使用接縫目標區，白方使用開放邊。',
+            klein: 'Klein 瓶是含扭轉縫的非定向曲面；曲面六貫棋填入面單元，目標使用曲面標示區。',
+            mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，黑方使用接縫目標區，白方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
             trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
             trefoil_solid: '離散三葉結實心管；(s, theta) 方向週期包回，徑向分層有界。',
@@ -338,7 +338,7 @@ function newGame() {
 function expandedBoardSize(topology, baseSize) {
     const base = Math.max(4, Number(baseSize) || 6);
     if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) {
-        return [Math.max(12, base * 3), Math.max(8, base * 2), 1];
+        return [Math.max(20, base * 4), Math.max(14, base * 3), 1];
     }
     if (topology === 'trefoil_tube') {
         return [Math.max(24, base * 6), Math.max(10, base * 2 + 2), 1];
@@ -690,7 +690,8 @@ function drawBoard() {
     const projectedEntries = game.topology.coordinates()
         .filter(visibleCoordinate)
         .map((coordinate) => [coordinate.join(','), projectCoordinate(coordinate, width, height)])
-        .filter(([, point]) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
+        .filter(([, point]) => point && Number.isFinite(point.x) && Number.isFinite(point.y))
+        .filter(([, point]) => !surface || selectedTopology() === 'klein' || point.frontFacing !== false);
     const visible = projectedEntries.map(([key]) => key.split(',').map(Number));
     const visibleKeys = new Set(projectedEntries.map(([key]) => key));
     const projected = new Map(projectedEntries);

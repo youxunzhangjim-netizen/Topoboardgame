@@ -72,7 +72,7 @@ function normalizeGoMode(value) {
     if (['t2', 't2go', 'torus'].includes(mode)) return 't2';
     if (['klein', 'klein_bottle'].includes(mode)) return 'klein';
     if (['mobius', 'moebius', 'mobius_strip'].includes(mode)) return 'mobius';
-    if (['rp2', 'projective', 'real_projective_plane'].includes(mode)) return 'rp2';
+    if (['rp2', 'projective', 'real_projective_plane'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     return R3_STANDARD_TOPOLOGY;
 }
 
@@ -80,7 +80,7 @@ const I18N = {
     en: {
         language: { label: 'Language', english: 'English', chinese: 'Chinese' },
         navigation: { home: 'Home' },
-        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 Go with 9, 13, and 19 scale options.' },
+        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
         controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local', online: 'Online', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus Own', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
@@ -111,7 +111,7 @@ const I18N = {
 };
 
 Object.assign(I18N.en.app, {
-    tagline: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, Mobius strip, and RP2 Go with 9, 13, and 19 scale options.'
+    tagline: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.'
 });
 Object.assign(I18N.en.score, {
     pendingDraw: 'Counting pending: provisional draw',
@@ -133,7 +133,7 @@ Object.assign(I18N.en.mode, {
     r3RandomInfo: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.'
 });
 Object.assign(I18N.zh.app, {
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein bottle、Mobius strip 與 RP2 圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein bottle 與 Mobius strip 圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 標準圍棋',
@@ -149,7 +149,7 @@ Object.assign(I18N.zh.mode, {
 
 Object.assign(I18N.zh.app, {
     title: '3D 圍棋',
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein 瓶、Mobius 帶與 RP2 圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein 瓶與 Mobius 帶圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 Standard 圍棋',
@@ -394,6 +394,7 @@ class Go3DRenderer {
         surface.castShadow = true;
         surface.receiveShadow = true;
         surface.userData.kleinPickOccluder = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const linePositions = [];
@@ -499,13 +500,13 @@ class Go3DRenderer {
 
     buildKlein(width, height) {
         const surface = new THREE.Mesh(
-            createKleinBottleSurfaceGeometry({ uSegments: 180, vSegments: 76, lift: -0.018 }),
+            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
                 color: 0x8a6a39,
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.68,
+                opacity: 0.88,
                 depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
@@ -520,13 +521,13 @@ class Go3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.48,
+            opacity: 0.58,
             depthTest: true,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
-            line.renderOrder = 2;
+            line.renderOrder = 5;
             this.boardGroup.add(line);
         };
 
@@ -538,13 +539,13 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.065, 28));
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, 0.13, 42));
             }
         }
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const pose = this.kleinOutsidePose(coord, width, height, 0.11);
+            const pose = this.kleinOutsidePose(coord, width, height, 0.18);
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
@@ -576,6 +577,7 @@ class Go3DRenderer {
         surface.castShadow = true;
         surface.receiveShadow = true;
         surface.userData.mobiusPickOccluder = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -916,6 +918,7 @@ class Go3DRenderer {
         );
         torus.castShadow = true;
         torus.receiveShadow = true;
+        torus.userData.surfacePickOccluder = true;
         this.boardGroup.add(torus);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -973,6 +976,7 @@ class Go3DRenderer {
         );
         surface.castShadow = true;
         surface.receiveShadow = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
@@ -1291,14 +1295,19 @@ class Go3DRenderer {
         let best = null;
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
-            if (['t2', SPHERE_GO_TOPOLOGY].includes(logic.topology)) {
-                const pose = logic.topology === 't2'
-                    ? this.torusPosition(coord, logic.size, 0.055)
-                    : logic.topology === CYLINDER_GO_TOPOLOGY
-                        ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
-                        : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
-                if (!this.isPoseFacingCamera(pose.position, pose.normal)) continue;
-            }
+            const pose = logic.topology === 't2'
+                ? this.torusPosition(coord, logic.size, 0.055)
+                : logic.topology === CYLINDER_GO_TOPOLOGY
+                    ? this.cylinderPosition(coord, logic.width, logic.height, 0.06)
+                    : logic.topology === RP2_GO_TOPOLOGY
+                        ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
+                        : logic.topology === KLEIN_BOTTLE_TOPOLOGY
+                            ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
+                            : logic.topology === MOBIUS_GO_TOPOLOGY
+                                ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
+                                : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
+            if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(this.camera.position.distanceTo(pose.position))) continue;
+            if (['t2', SPHERE_GO_TOPOLOGY].includes(logic.topology) && !this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
             const x = (projected.x * 0.5 + 0.5) * rect.width;
@@ -1317,8 +1326,7 @@ class Go3DRenderer {
 
     pickHitIsCameraFacing(hit) {
         const logic = this.app.logic;
-        if (!hit || !logic || !['t2', CYLINDER_GO_TOPOLOGY, KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
-        if (logic.topology === CYLINDER_GO_TOPOLOGY) return true;
+        if (!hit || !logic || !['t2', CYLINDER_GO_TOPOLOGY, KLEIN_BOTTLE_TOPOLOGY, MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY, SPHERE_GO_TOPOLOGY].includes(logic.topology)) return Boolean(hit);
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = logic.topology === 't2'
@@ -1329,10 +1337,21 @@ class Go3DRenderer {
                     ? this.rp2Pose(coord, logic.width, logic.height, 0.075)
                     : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                     ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
-                    : this.mobiusPose(coord, logic.width, logic.height, 0.075);
+                    : logic.topology === MOBIUS_GO_TOPOLOGY
+                        ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
+                        : { position: this.spherePosition(coord, logic.width, logic.height, 0.08), normal: this.spherePosition(coord, logic.width, logic.height, 0).normalize() };
+        if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(hit.distance)) return false;
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY || logic.topology === MOBIUS_GO_TOPOLOGY) return true;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         return true;
+    }
+
+    surfaceOccludesDistance(distance) {
+        const occluders = this.boardGroup.children.filter((child) => child.userData?.surfacePickOccluder);
+        if (!occluders.length) return false;
+        const surfaceHits = this.raycaster.intersectObjects(occluders, false);
+        const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
+        return Boolean(nearest && nearest.distance < distance - 0.08);
     }
 
     kleinClickThroughWindow(pose) {
@@ -1745,8 +1764,8 @@ class Go3DRenderer {
             this.camera.position.set(0, 8.6, 7.4);
             this.controls.target.set(0, 0.35, 0);
         } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            this.camera.position.set(9.4, 6.2, 12.4);
-            this.controls.target.set(0, 0, 0);
+            this.camera.position.set(8.6, 12.4, 8.4);
+            this.controls.target.set(0, 0.18, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
             this.camera.position.set(0, this.view === '2d' ? 0 : 1.8, this.view === '2d' ? 10.5 : 9.4);
             this.controls.target.set(0, 0, 0);

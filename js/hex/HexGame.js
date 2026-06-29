@@ -129,9 +129,7 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
         return 'axis';
     }
     if (normalizedDimension !== 2) return 'axis';
-    if (token === 'square' || token === 'quad') return 'square';
-    if (token === 'honeycomb') return 'honeycomb';
-    if (token === 'triangular' || token === 'triangle') return 'triangular';
+    if (token === 'square' || token === 'quad' || token === 'honeycomb' || token === 'triangular' || token === 'triangle') return 'hexagonal';
     return 'hexagonal';
 }
 
@@ -512,11 +510,12 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
         ];
     }
     if (topology === 'klein') {
-        const r = 2.45 + Math.cos(u / 2) * Math.sin(v) - Math.sin(u / 2) * Math.sin(2 * v);
+        const r = 2 + Math.cos(u / 2) * Math.sin(v) - Math.sin(u / 2) * Math.sin(2 * v);
+        const tube = Math.sin(u / 2) * Math.sin(v) + Math.cos(u / 2) * Math.sin(2 * v);
         return [
-            r * Math.cos(u) * 1.12,
-            r * Math.sin(u) * 1.12,
-            (Math.sin(u / 2) * Math.sin(v) + Math.cos(u / 2) * Math.sin(2 * v)) * 1.34
+            r * Math.cos(u) * 1.62,
+            tube * 1.66,
+            r * Math.sin(u) * 1.22
         ];
     }
     const flatScale = 7 / Math.max(width - 1, height - 1);

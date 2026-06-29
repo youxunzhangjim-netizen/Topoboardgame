@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 
 export const KLEIN_SURFACE_MAJOR_RADIUS = 3.4;
 export const KLEIN_SURFACE_WIDTH_SCALE = 2.0;
@@ -9,8 +8,9 @@ const TWO_PI = Math.PI * 2;
 const KLEIN_U_MAX = TWO_PI;
 const KLEIN_V_MIN = 0;
 const KLEIN_V_MAX = TWO_PI;
-const KLEIN_VISUAL_XY_SCALE = 1.08;
-const KLEIN_VISUAL_Z_SCALE = 1.28;
+const KLEIN_VISUAL_X_SCALE = 1.62;
+const KLEIN_VISUAL_Y_SCALE = 1.66;
+const KLEIN_VISUAL_Z_SCALE = 1.22;
 const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {
@@ -34,8 +34,7 @@ export function kleinParametersForCoord(coord, width, height) {
 export function kleinBottleBasePoint(u, v) {
     const parameterU = normalizeKleinU(u);
     const parameterV = positiveModulo(v, TWO_PI);
-    const r = 2;
-    const radial = r +
+    const radial = 2 +
         Math.cos(parameterU / 2) * Math.sin(parameterV) -
         Math.sin(parameterU / 2) * Math.sin(2 * parameterV);
     const rawX = radial * Math.cos(parameterU);
@@ -43,9 +42,9 @@ export function kleinBottleBasePoint(u, v) {
     const rawZ = Math.sin(parameterU / 2) * Math.sin(parameterV) +
         Math.cos(parameterU / 2) * Math.sin(2 * parameterV);
     return new THREE.Vector3(
-        rawX * KLEIN_VISUAL_XY_SCALE,
-        rawY * KLEIN_VISUAL_XY_SCALE,
-        rawZ * KLEIN_VISUAL_Z_SCALE
+        rawX * KLEIN_VISUAL_X_SCALE,
+        rawZ * KLEIN_VISUAL_Y_SCALE,
+        rawY * KLEIN_VISUAL_Z_SCALE
     );
 }
 
@@ -81,10 +80,41 @@ export function createKleinBottleSurfaceGeometry({
     vSegments = 100,
     lift = 0
 } = {}) {
-    const geometry = new ParametricGeometry((u, v, target) => {
-        const point = kleinBottlePoint(u * TWO_PI, v * TWO_PI, lift);
-        target.set(point.x, point.y, point.z);
-    }, Math.max(24, Math.floor(uSegments)), Math.max(24, Math.floor(vSegments)));
+    const uCount = Math.max(32, Math.floor(uSegments));
+    const vCount = Math.max(32, Math.floor(vSegments));
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+    const indexFor = (i, j) => positiveModulo(i, uCount) * vCount + positiveModulo(j, vCount);
+    const flippedVIndex = (j) => positiveModulo(vCount - j, vCount);
+
+    for (let i = 0; i < uCount; i += 1) {
+        const u = TWO_PI * i / uCount;
+        for (let j = 0; j < vCount; j += 1) {
+            const v = TWO_PI * j / vCount;
+            const point = kleinBottlePoint(u, v, lift);
+            positions.push(point.x, point.y, point.z);
+            uvs.push(i / uCount, j / vCount);
+        }
+    }
+
+    for (let i = 0; i < uCount; i += 1) {
+        const nextI = (i + 1) % uCount;
+        const wrapsU = nextI === 0;
+        for (let j = 0; j < vCount; j += 1) {
+            const nextJ = (j + 1) % vCount;
+            const a = indexFor(i, j);
+            const b = indexFor(i, nextJ);
+            const c = wrapsU ? indexFor(nextI, flippedVIndex(nextJ)) : indexFor(nextI, nextJ);
+            const d = wrapsU ? indexFor(nextI, flippedVIndex(j)) : indexFor(nextI, j);
+            indices.push(a, b, c, a, c, d);
+        }
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
     geometry.computeVertexNormals();
     return geometry;
 }
@@ -123,7 +153,7 @@ export function kleinBottleGraphEdgePoints(a, b, width, height, lift = 0.05, seg
         const lowerParam = kleinParametersForCoord(lower, width, height);
         const upperParam = kleinParametersForCoord(upper, width, height);
         addParameterLine(points, lowerParam.u, lowerParam.v, KLEIN_U_MAX, lowerParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
-        addParameterLine(points, 0, Math.PI - lowerParam.v, upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
+        addParameterLine(points, 0, KLEIN_V_MAX - lowerParam.v, upperParam.u, upperParam.v, lift, Math.max(2, Math.ceil(segments / 2)));
         return points;
     }
 

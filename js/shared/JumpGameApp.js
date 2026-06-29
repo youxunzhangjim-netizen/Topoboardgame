@@ -4,6 +4,7 @@ import { JumpGameState, chooseJumpRobotMove, coordKey, normalizeJumpLattice, oth
 import { loadLatestJumpTrainedScorer } from './JumpTrainedRobot.js';
 import { recordRobotLearningMove } from './RobotLearningRecorder.js';
 
+const JUMP_ROBOT_STEP_MS = 1000;
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
   plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Mobius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
@@ -168,6 +169,10 @@ function jumpLanguage() {
 
 function jumpWord() {
   return jumpLanguage() === 'zh' ? '跳棋' : 'Jump';
+}
+
+function waitJumpRobotStep() {
+  return new Promise((resolve) => setTimeout(resolve, JUMP_ROBOT_STEP_MS));
 }
 
 function playerFromOnlineColor(color) {
@@ -459,7 +464,7 @@ export class JumpGameApp {
     this.updateLabels();
     this.render();
     if (this.modeSelect?.value === 'online' && this.game.playerCount >= 3 && this.game.currentPlayer === 'C' && this.myColor === 'A') {
-      setTimeout(() => this.onlineRobotTurn('C'), 220);
+      setTimeout(() => this.onlineRobotTurn('C'), JUMP_ROBOT_STEP_MS);
     }
   }
 
@@ -730,9 +735,9 @@ export class JumpGameApp {
     this.render();
     this.network.sendState({ type: label || 'jump_move' });
     if (this.modeSelect?.value === 'online' && this.game.playerCount >= 3 && this.game.currentPlayer === 'C' && this.myColor === 'A') {
-      setTimeout(() => this.onlineRobotTurn('C'), 220);
+      setTimeout(() => this.onlineRobotTurn('C'), JUMP_ROBOT_STEP_MS);
     }
-    if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') setTimeout(() => this.robotTurn(), 180);
+    if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') setTimeout(() => this.robotTurn(), JUMP_ROBOT_STEP_MS);
   }
 
   recordJumpRobotMove(player, move, result = null) {
@@ -777,7 +782,7 @@ export class JumpGameApp {
         if (result.continueJump) {
           this.render();
           this.network.sendState({ type: 'jump_robot_chain_move' });
-          setTimeout(() => this.onlineRobotTurn(player), 160);
+          setTimeout(() => this.onlineRobotTurn(player), JUMP_ROBOT_STEP_MS);
           return;
         }
       }
@@ -810,14 +815,14 @@ export class JumpGameApp {
           this.recordJumpRobotMove(robotPlayer, move, result);
           if (result.continueJump) {
             this.render();
-            setTimeout(() => this.robotTurn(), 160);
+            setTimeout(() => this.robotTurn(), JUMP_ROBOT_STEP_MS);
             return;
           }
         }
       }
       this.render();
       if (this.modeSelect?.value === 'robot' && !this.game.winner && this.game.currentPlayer !== 'A') {
-        setTimeout(() => this.robotTurn(), 180);
+        setTimeout(() => this.robotTurn(), JUMP_ROBOT_STEP_MS);
       }
       return;
     }
@@ -843,8 +848,12 @@ export class JumpGameApp {
       }
       this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
       this.recordJumpRobotMove('B', move, result);
+      this.render();
       guard += 1;
-      if (result.continueJump) continue;
+      if (result.continueJump) {
+        await waitJumpRobotStep();
+        continue;
+      }
       break;
     } while (this.game.currentPlayer === 'B' && !this.game.winner);
     this.render();
@@ -1035,8 +1044,13 @@ export class JumpGameApp {
       return [(1.35 + t * Math.cos(u / 2)) * Math.cos(u), (1.35 + t * Math.cos(u / 2)) * Math.sin(u), t * Math.sin(u / 2)];
     }
     if (topology === 'klein') {
-      const R = 1.15 + 0.36 * Math.cos(v);
-      return [R * Math.cos(u), R * Math.sin(u), 0.56 * Math.sin(v) + 0.18 * Math.sin(2 * u)];
+      const r = 2 + Math.cos(u / 2) * Math.sin(v) - Math.sin(u / 2) * Math.sin(2 * v);
+      const tube = Math.sin(u / 2) * Math.sin(v) + Math.cos(u / 2) * Math.sin(2 * v);
+      return [
+        r * Math.cos(u) * 0.98,
+        tube * 1.02,
+        r * Math.sin(u) * 0.76
+      ];
     }
     if (topology === 'rp2' || topology === 'sphere' || topology === 'shell') {
       const lon = u;
