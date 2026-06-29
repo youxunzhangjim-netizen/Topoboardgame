@@ -98,7 +98,7 @@ const I18N = {
             reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
             t2: 'T2 is a torus surface embedded in 3D. Both players connect marked cut-seam zones on the surface.',
             cylinder: 'Cylinder is a 2D surface embedded in 3D. Black uses cut-seam zones; White uses the two rim directions.',
-            sphere: 'S2 is a latitude-ring sphere. Longitude wraps while the polar direction has physical caps.',
+            sphere: 'S2 is a sphere surface with single north/south pole sites and latitude rings between them.',
             klein: 'Klein bottle is a non-orientable surface with a twisted seam. Goals use marked surface zones.',
             mobius: 'Mobius strip is a one-sided twisted strip. Black uses the seam zones; White uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
@@ -109,11 +109,11 @@ const I18N = {
     },
     zh: {
         eyebrow: '體積連線策略',
-        title: isSpaceTime ? '3+1D Hex' : '3D Hex',
+        title: isSpaceTime ? '3+1D 六貫棋' : '3D 六貫棋',
         description: isSpaceTime
             ? '在空間體積中建立連線，並保留所選的時間排程參數。'
             : '在體積或嵌入曲面棋盤上落子，連接目前棋盤的目標區。',
-        boardAria: '可旋轉的 3D Hex 棋盤',
+        boardAria: '可旋轉的 3D 六貫棋棋盤',
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
@@ -177,7 +177,7 @@ const I18N = {
         blackTurn: '輪到黑方',
         whiteTurn: '輪到白方',
         emptyPrompt: '請選擇一個空的 3D 格點。',
-        occupied: '請選擇一個空的 Hex 格點。',
+        occupied: '請選擇一個空的六貫棋格點。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
@@ -199,7 +199,7 @@ const I18N = {
             reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
             t2: 'T2 是嵌入 3D 視圖的環面曲面；雙方連接曲面上的切縫目標區。',
             cylinder: '圓柱是嵌入 3D 視圖的二維曲面；黑方使用切縫目標區，白方使用兩側邊界。',
-            sphere: 'S2 是緯線球面；經度包回，極向保留實體端點。',
+            sphere: 'S2 是含單一北極 / 南極格點的球面；兩極之間以緯線環連接。',
             klein: 'Klein 瓶是含扭轉縫的非定向曲面；目標使用曲面標示區。',
             mobius: 'Mobius 帶是一側曲面；黑方使用接縫目標區，白方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
@@ -312,9 +312,12 @@ function updateTargetText() {
 function newGame() {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
-    size = Number(elements.size.value);
+    const requestedSize = Number(elements.size.value);
     const topology = selectedTopology();
-    game = new HexGame({ dimension: 3, size, topology, lattice: elements.lattice.value });
+    const topologySize = expandedBoardSize(topology, requestedSize);
+    const lattice = isVolumeTopology() ? elements.lattice.value : 'axis';
+    game = new HexGame({ dimension: 3, size: topologySize, topology, lattice });
+    size = game.size[0];
     statusKey = 'emptyPrompt';
     elements.topologyMode.textContent = selectedTopologyLabel();
     elements.topologyInfo.textContent = text(`topologyInfo.${topology}`);
@@ -328,6 +331,23 @@ function newGame() {
     updateReadout();
     renderHistory();
     drawBoard();
+}
+
+function expandedBoardSize(topology, baseSize) {
+    const base = Math.max(4, Number(baseSize) || 6);
+    if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) {
+        return [Math.max(12, base * 2), Math.max(9, base + 3), 1];
+    }
+    if (topology === 'trefoil_tube') {
+        return [Math.max(14, base * 2 + 2), Math.max(8, base + 2), 1];
+    }
+    if (topology === 'trefoil_solid') {
+        return [Math.max(14, base * 2 + 2), Math.max(8, base + 2), Math.max(3, Math.ceil(base / 2))];
+    }
+    if (topology === 'klein_quartic') {
+        return [56, Math.max(4, base), 1];
+    }
+    return [base, base, base];
 }
 
 function selectedTopology() {
@@ -413,12 +433,38 @@ function rotatePoint(point) {
     return [x, y, z];
 }
 
+function normalizeVector(point) {
+    const length = Math.hypot(point[0] || 0, point[1] || 0, point[2] || 0);
+    return length > 0.0001 ? point.map((value) => value / length) : null;
+}
+
+function surfaceNormal(coordinate, model) {
+    const topology = selectedTopology();
+    const [x, y, z] = model;
+    if (topology === 'sphere') return normalizeVector(model);
+    if (topology === 'cylinder') return normalizeVector([x, 0, z]);
+    if (topology === 't2') {
+        const angle = Math.atan2(y, x);
+        const center = [3.35 * Math.cos(angle), 3.35 * Math.sin(angle), 0];
+        return normalizeVector([x - center[0], y - center[1], z]);
+    }
+    if (topology === 'klein' || topology === 'mobius' || topology === 'rp2') {
+        return normalizeVector(model);
+    }
+    if (game?.topology?.isSpecial) {
+        return normalizeVector(model);
+    }
+    return null;
+}
+
 function projectCoordinate(coordinate, width, height) {
     const midpoint = (size - 1) / 2;
     const model = game.topology.isSpecial
         ? game.topology.position(coordinate).slice(0, 3)
         : (game.topology.position?.(coordinate) || coordinate.map((value) => value - midpoint));
     const rotated = rotatePoint(model);
+    const normal = surfaceNormal(coordinate, model);
+    const rotatedNormal = normal ? rotatePoint(normal) : null;
     const extent = game.topology.isSpecial || isSurfaceTopology()
         ? specialModelExtent * 1.2
         : size - 1;
@@ -430,6 +476,7 @@ function projectCoordinate(coordinate, width, height) {
         x: width / 2 + rotated[0] * scale * perspective,
         y: height / 2 - rotated[1] * scale * perspective,
         depth: rotated[2],
+        frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08,
         coordinate
     };
 }
@@ -485,6 +532,84 @@ function drawPlane(axis, value, fill, stroke, width, height) {
     context.stroke();
 }
 
+function surfacePanelCoordinates(x, y) {
+    const topology = selectedTopology();
+    const [width, height] = game.size;
+    const normalize = (coordinate) => game.topology.normalize(coordinate);
+    if (topology === 'sphere') {
+        if (y === 0) {
+            return [
+                normalize([0, 0, 0]),
+                normalize([x, 1, 0]),
+                normalize([x + 1, 1, 0])
+            ].filter(Boolean);
+        }
+        if (y === height - 2) {
+            return [
+                normalize([x, height - 2, 0]),
+                normalize([0, height - 1, 0]),
+                normalize([x + 1, height - 2, 0])
+            ].filter(Boolean);
+        }
+    }
+    return [
+        normalize([x, y, 0]),
+        normalize([x + 1, y, 0]),
+        normalize([x + 1, y + 1, 0]),
+        normalize([x, y + 1, 0])
+    ].filter(Boolean);
+}
+
+function drawSurfacePanels(width, height) {
+    const topology = selectedTopology();
+    if (!isSurfaceTopology()) return;
+    const [gridWidth, gridHeight] = game.size;
+    const wrapY = topology === 't2' || topology === 'klein' || topology === 'rp2';
+    const yLimit = topology === 'sphere'
+        ? gridHeight - 1
+        : wrapY ? gridHeight : gridHeight - 1;
+    const blackZone = game.topology.goalZones.black;
+    const whiteZone = game.topology.goalZones.white;
+    const panels = [];
+
+    for (let y = 0; y < yLimit; y += 1) {
+        for (let x = 0; x < gridWidth; x += 1) {
+            const coords = surfacePanelCoordinates(x, y);
+            const unique = [...new Map(coords.map((coordinate) => [coordinate.join(','), coordinate])).values()];
+            if (unique.length < 3) continue;
+            const points = unique.map((coordinate) => projectCoordinate(coordinate, width, height));
+            if (points.every((point) => point.frontFacing === false)) continue;
+            const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
+            panels.push({
+                points,
+                avgDepth,
+                blackTarget: unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate)),
+                whiteTarget: unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate))
+            });
+        }
+    }
+
+    panels.sort((a, b) => a.avgDepth - b.avgDepth);
+    context.save();
+    for (const panel of panels) {
+        context.beginPath();
+        panel.points.forEach((point, index) => {
+            if (index) context.lineTo(point.x, point.y);
+            else context.moveTo(point.x, point.y);
+        });
+        context.closePath();
+        if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.86)';
+        else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.88)';
+        else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.88)';
+        else context.fillStyle = 'rgba(224, 231, 228, 0.84)';
+        context.fill();
+        context.strokeStyle = 'rgba(65, 76, 84, 0.68)';
+        context.lineWidth = 0.75;
+        context.stroke();
+    }
+    context.restore();
+}
+
 function drawBoard() {
     if (!game) return;
     const { width, height } = fitCanvas();
@@ -508,10 +633,15 @@ function drawBoard() {
         drawPlane(1, 0, 'rgba(232,180,76,0.07)', 'rgba(232,180,76,0.42)', width, height);
         drawPlane(1, yEnd, 'rgba(232,180,76,0.11)', 'rgba(232,180,76,0.65)', width, height);
     }
+    if (surface) drawSurfacePanels(width, height);
 
-    const visible = game.topology.coordinates().filter(visibleCoordinate);
-    const visibleKeys = new Set(visible.map((coordinate) => coordinate.join(',')));
-    const projected = new Map(visible.map((coordinate) => [coordinate.join(','), projectCoordinate(coordinate, width, height)]));
+    const projectedEntries = game.topology.coordinates()
+        .filter(visibleCoordinate)
+        .map((coordinate) => [coordinate.join(','), projectCoordinate(coordinate, width, height)])
+        .filter(([, point]) => !surface || point.frontFacing);
+    const visible = projectedEntries.map(([key]) => key.split(',').map(Number));
+    const visibleKeys = new Set(projectedEntries.map(([key]) => key));
+    const projected = new Map(projectedEntries);
 
     context.lineWidth = 0.75;
     context.strokeStyle = 'rgba(160,184,198,0.2)';
@@ -690,11 +820,12 @@ elements.canvas.addEventListener('pointerup', (event) => {
     const site = !dragMoved ? nearestSite(event) : null;
     dragging = false;
     elements.canvas.classList.remove('dragging');
-    if (site && !window.hexApp?.__spaceTimeUsesFuture) playAt(site.coordinate);
+    const timeControlled = Boolean(window.hexApp?.__spaceTimeUsesFuture || window.hexApp?.__spaceTimeUsesPast);
+    if (site && !timeControlled) playAt(site.coordinate);
 });
 elements.canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
-    elements.zoom.value = String(Math.max(0.55, Math.min(1.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
+    elements.zoom.value = String(Math.max(0.35, Math.min(2.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
     drawBoard();
 }, { passive: false });
 
@@ -747,8 +878,8 @@ function importHexState(state, messageKey = '') {
         elements.topology.value = importedTopology;
         elements.boundary.value = 'open';
     }
-    if ([...elements.lattice.options].some((option) => option.value === game.lattice)) {
-        elements.lattice.value = game.lattice;
+    if ([...elements.lattice.options].some((option) => option.value === game.topology.lattice)) {
+        elements.lattice.value = game.topology.lattice;
     }
     elements.topologyMode.textContent = selectedTopologyLabel();
     elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);

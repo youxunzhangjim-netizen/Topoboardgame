@@ -96,6 +96,7 @@
                     <label for="viewModeSelect" data-i18n="viewMode">View</label>
                     <select id="viewModeSelect">
                         <option value="slice" data-i18n="sliceView">z-w Slice</option>
+                        <option value="stack" data-i18n="stackView">3D Stack</option>
                         <option value="projection" data-i18n="projectionView">4D Projection</option>
                     </select>
                 </div>
@@ -116,7 +117,7 @@
                 </div>
                 <div class="control-grid range-grid">
                     <label><span data-i18n="rotateProjection">Rotate projection</span><input id="projectionRotation" type="range" min="-180" max="180" value="20"></label>
-                    <label><span data-i18n="zoom">Zoom</span><input id="zoom" type="range" min="0.55" max="1.7" step="0.01" value="1"></label>
+                    <label><span data-i18n="zoom">Zoom</span><input id="zoom" type="range" min="0.35" max="2.8" step="0.01" value="1"></label>
                 </div>
                 <button id="resetViewBtn" class="secondary-button" type="button" data-i18n="resetView">Reset View</button>
             </details>

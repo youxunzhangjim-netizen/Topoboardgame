@@ -245,6 +245,34 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 
 .boundary-info { color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
 
+.view-settings {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.14);
+    border-radius: 8px;
+    background: #10151a;
+}
+
+.view-settings summary {
+    cursor: pointer;
+    color: #e6fbff;
+    font-weight: 850;
+}
+
+.range-grid label {
+    display: grid;
+    gap: 4px;
+}
+
+input[type="range"] {
+    min-height: 30px;
+    padding: 0;
+    accent-color: var(--cyan);
+}
+
+.secondary-button { background: #0b1015; }
+
 .online-controls {
     display: grid;
     gap: 9px;

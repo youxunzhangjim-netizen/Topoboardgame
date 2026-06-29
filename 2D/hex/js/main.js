@@ -44,6 +44,9 @@ const I18N = {
         triangular: 'Triangular',
         square: 'Square',
         honeycomb: 'Honeycomb',
+        boardView: 'Board View',
+        zoom: 'Zoom',
+        resetView: 'Reset View',
         newGame: 'New Game',
         targets: 'Target Sides',
         targetZones: 'Target Zones',
@@ -87,11 +90,11 @@ const I18N = {
     },
     zh: {
         eyebrow: '連線策略',
-        title: isSpaceTime ? '2+1D Hex' : '2D Hex',
+        title: isSpaceTime ? '2+1D 六貫棋' : '2D 六貫棋',
         description: isSpaceTime
             ? '在空間棋盤上落子，並保留啟動器所選的時間排程參數。'
             : '輪流落子，建立一條連續路徑來連接自己的一對目標邊。',
-        boardAria: '2D Hex 棋盤',
+        boardAria: '2D 六貫棋棋盤',
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
@@ -123,6 +126,9 @@ const I18N = {
         triangular: '三角晶格',
         square: '方格',
         honeycomb: '蜂巢',
+        boardView: '棋盤視圖',
+        zoom: '縮放',
+        resetView: '重設視圖',
         newGame: '新遊戲',
         targets: '目標邊',
         targetZones: '目標區',
@@ -137,11 +143,11 @@ const I18N = {
         send: '傳送',
         blackTurn: '輪到黑方',
         whiteTurn: '輪到白方',
-        emptyPrompt: '請選擇一個空的 Hex 格。',
+        emptyPrompt: '請選擇一個空的六貫棋格。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
-        occupied: '請選擇一個空的 Hex 格。',
+        occupied: '請選擇一個空的六貫棋格。',
         blackWin: '黑方已連接自己的兩個目標邊。',
         whiteWin: '白方已連接自己的兩個目標邊。',
         robotThinking: '機器人正在選擇空格。',
@@ -187,6 +193,8 @@ const elements = {
     customSize: document.getElementById('customBoardSizeInput'),
     boundary: document.getElementById('boundarySelect'),
     lattice: document.getElementById('latticeSelect'),
+    zoom: document.getElementById('zoom'),
+    resetView: document.getElementById('resetViewBtn'),
     boundaryInfo: document.getElementById('boundaryInfo'),
     targetHeading: document.getElementById('targetHeading'),
     blackTargetText: document.getElementById('blackTargetText'),
@@ -264,9 +272,12 @@ function newGame(messageKey = 'emptyPrompt') {
     clearTimeout(robotTimer);
     size = selectedSize();
     topology = elements.boundary.value;
+    const gameSize = elements.lattice.value === 'triangular'
+        ? [size * 2 - 1, size]
+        : size;
     game = new HexGame({
         dimension: 2,
-        size,
+        size: gameSize,
         topology,
         lattice: elements.lattice.value,
         randomBoundarySeed: topology === 'random' ? `hex-rbc:${size}:${Date.now()}` : ''
@@ -348,18 +359,20 @@ function fitCanvas() {
 
 function buildCenters(width, height) {
     const padding = Math.max(24, Math.min(width, height) * 0.055);
+    const zoom = Math.max(0.35, Math.min(2.8, Number(elements.zoom?.value) || 1));
+    const [gridWidth, gridHeight] = game?.size || [size, size];
     if (elements.lattice.value === 'square') {
         const spacing = Math.max(8, Math.min(
-            (width - padding * 2) / size,
-            (height - padding * 2) / size
-        ));
-        const boardWidth = spacing * size;
-        const boardHeight = spacing * size;
+            (width - padding * 2) / gridWidth,
+            (height - padding * 2) / gridHeight
+        )) * zoom;
+        const boardWidth = spacing * gridWidth;
+        const boardHeight = spacing * gridHeight;
         const offsetX = (width - boardWidth) / 2;
         const offsetY = (height - boardHeight) / 2;
         centers = [];
-        for (let r = 0; r < size; r += 1) {
-            for (let q = 0; q < size; q += 1) {
+        for (let r = 0; r < gridHeight; r += 1) {
+            for (let q = 0; q < gridWidth; q += 1) {
                 centers.push({
                     q,
                     r,
@@ -378,28 +391,40 @@ function buildCenters(width, height) {
     const triangular = elements.lattice.value === 'triangular';
     if (triangular) {
         const triangleHeight = Math.sqrt(3) / 2;
-        const boardWidthUnits = size + 0.5;
-        const boardHeightUnits = Math.max(1, size * triangleHeight);
+        const boardWidthUnits = (gridWidth + 1) / 2;
+        const boardHeightUnits = Math.max(1, gridHeight * triangleHeight);
         const side = Math.max(10, Math.min(
             (width - padding * 2) / boardWidthUnits,
             (height - padding * 2) / boardHeightUnits
-        ));
+        )) * zoom;
         const heightStep = side * triangleHeight;
         const boardWidth = boardWidthUnits * side;
         const boardHeight = boardHeightUnits * side;
-        const offsetX = (width - boardWidth) / 2 + side * 0.5;
-        const offsetY = (height - boardHeight) / 2 + heightStep * 0.5;
+        const offsetX = (width - boardWidth) / 2;
+        const offsetY = (height - boardHeight) / 2;
         centers = [];
-        for (let r = 0; r < size; r += 1) {
-            for (let q = 0; q < size; q += 1) {
+        for (let r = 0; r < gridHeight; r += 1) {
+            for (let q = 0; q < gridWidth; q += 1) {
+                const left = offsetX + q * side * 0.5;
+                const right = left + side;
+                const mid = left + side * 0.5;
+                const top = offsetY + r * heightStep;
+                const bottom = top + heightStep;
+                const up = (q + r) % 2 === 0;
+                const vertices = up
+                    ? [[left, bottom], [right, bottom], [mid, top]]
+                    : [[left, top], [right, top], [mid, bottom]];
+                const centerX = vertices.reduce((sum, vertex) => sum + vertex[0], 0) / 3;
+                const centerY = vertices.reduce((sum, vertex) => sum + vertex[1], 0) / 3;
                 centers.push({
                     q,
                     r,
                     coordinate: [q, r],
                     key: `${q},${r}`,
-                    x: offsetX + (q + (r % 2 ? 0.5 : 0)) * side,
-                    y: offsetY + r * heightStep,
+                    x: centerX,
+                    y: centerY,
                     radius: side / Math.sqrt(3),
+                    vertices,
                     shape: 'triangle'
                 });
             }
@@ -407,19 +432,19 @@ function buildCenters(width, height) {
         return;
     }
 
-    const rawWidthFactor = Math.sqrt(3) * (1.5 * (size - 1) + 1);
-    const rawHeightFactor = 1.5 * (size - 1) + 2;
+    const rawWidthFactor = Math.sqrt(3) * (gridWidth + gridHeight / 2);
+    const rawHeightFactor = 1.5 * (gridHeight - 1) + 2;
     const radius = Math.max(7, Math.min(
         (width - padding * 2) / rawWidthFactor,
         (height - padding * 2) / rawHeightFactor
-    ));
+    )) * zoom;
     const boardWidth = rawWidthFactor * radius;
     const boardHeight = rawHeightFactor * radius;
     const offsetX = (width - boardWidth) / 2 + Math.sqrt(3) * radius / 2;
     const offsetY = (height - boardHeight) / 2 + radius;
     centers = [];
-    for (let r = 0; r < size; r += 1) {
-        for (let q = 0; q < size; q += 1) {
+    for (let r = 0; r < gridHeight; r += 1) {
+        for (let q = 0; q < gridWidth; q += 1) {
             centers.push({
                 q,
                 r,
@@ -443,13 +468,11 @@ function traceCell(cell, scale = 0.96) {
         return;
     }
     if (cell.shape === 'triangle') {
-        const radius = cell.radius * scale;
-        const rotation = (cell.coordinate[0] + cell.coordinate[1]) % 2 === 0 ? -Math.PI / 2 : Math.PI / 2;
+        const vertices = cell.vertices || [];
         context.beginPath();
-        for (let index = 0; index < 3; index += 1) {
-            const angle = rotation + index * Math.PI * 2 / 3;
-            const x = cell.x + Math.cos(angle) * radius;
-            const y = cell.y + Math.sin(angle) * radius;
+        for (let index = 0; index < vertices.length; index += 1) {
+            const x = cell.x + (vertices[index][0] - cell.x) * scale;
+            const y = cell.y + (vertices[index][1] - cell.y) * scale;
             if (index === 0) context.moveTo(x, y);
             else context.lineTo(x, y);
         }
@@ -472,10 +495,11 @@ function buildSpecialCenters(width, height) {
     const minY = Math.min(...ys);
     const maxY = Math.max(...ys);
     const padding = Math.max(32, Math.min(width, height) * 0.08);
+    const zoom = Math.max(0.35, Math.min(2.8, Number(elements.zoom?.value) || 1));
     const scale = Math.min(
         (width - padding * 2) / Math.max(0.1, maxX - minX),
         (height - padding * 2) / Math.max(0.1, maxY - minY)
-    );
+    ) * zoom;
     const usedWidth = (maxX - minX) * scale;
     const usedHeight = (maxY - minY) * scale;
     const offsetX = (width - usedWidth) / 2 - minX * scale;
@@ -531,7 +555,16 @@ function drawSpecialEdges() {
             drawn.add(edgeKey);
             context.beginPath();
             context.moveTo(cell.x, cell.y);
-            context.lineTo(target.x, target.y);
+            if (isKlein) {
+                const midX = (cell.x + target.x) / 2;
+                const midY = (cell.y + target.y) / 2;
+                const pull = 0.12;
+                const controlX = midX * (1 - pull) + (context.canvas.width / renderDpr / 2) * pull;
+                const controlY = midY * (1 - pull) + (context.canvas.height / renderDpr / 2) * pull;
+                context.quadraticCurveTo(controlX, controlY, target.x, target.y);
+            } else {
+                context.lineTo(target.x, target.y);
+            }
             context.stroke();
         }
     }
@@ -589,6 +622,10 @@ function nearestCell(event) {
     let nearest = null;
     let distance = Infinity;
     for (const cell of centers) {
+        if (cell.shape === 'triangle' && cell.vertices?.length) {
+            if (pointInPolygon(point, cell.vertices)) return cell;
+            continue;
+        }
         const candidate = Math.hypot(point.x - cell.x, point.y - cell.y);
         if (candidate < distance) {
             distance = candidate;
@@ -596,6 +633,18 @@ function nearestCell(event) {
         }
     }
     return nearest && distance <= nearest.radius ? nearest : null;
+}
+
+function pointInPolygon(point, vertices) {
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i, i += 1) {
+        const [xi, yi] = vertices[i];
+        const [xj, yj] = vertices[j];
+        const intersects = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < (xj - xi) * (point.y - yi) / ((yj - yi) || 1e-9) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
 }
 
 function playAt(coordinate) {
@@ -709,6 +758,11 @@ elements.boardSize.addEventListener('change', () => {
 elements.customSize.addEventListener('change', () => newGame());
 elements.boundary.addEventListener('change', () => newGame());
 elements.lattice.addEventListener('change', () => newGame());
+elements.zoom?.addEventListener('input', drawBoard);
+elements.resetView?.addEventListener('click', () => {
+    elements.zoom.value = '1';
+    drawBoard();
+});
 elements.newGame.addEventListener('click', () => newGame());
 elements.gameMode.addEventListener('change', () => {
     statusKey = 'emptyPrompt';
@@ -722,6 +776,12 @@ elements.language.addEventListener('click', () => {
     drawBoard();
     window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
 });
+elements.canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    if (!elements.zoom) return;
+    elements.zoom.value = String(Math.max(0.35, Math.min(2.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
+    drawBoard();
+}, { passive: false });
 window.addEventListener('resize', drawBoard);
 
 newGame();
@@ -729,15 +789,17 @@ applyLanguage();
 
 function importHexState(state, messageKey = '') {
     game = HexGame.fromState(state);
-    size = game.size[0];
+    size = game.topology.lattice === 'triangular'
+        ? Math.max(3, Math.round((game.size[0] + 1) / 2))
+        : game.size[0];
     if ([...elements.boardSize.options].some((option) => Number(option.value) === size)) {
         elements.boardSize.value = String(size);
     }
     if ([...elements.boundary.options].some((option) => option.value === game.topology.topology)) {
         elements.boundary.value = game.topology.topology;
     }
-    if ([...elements.lattice.options].some((option) => option.value === game.lattice)) {
-        elements.lattice.value = game.lattice;
+    if ([...elements.lattice.options].some((option) => option.value === game.topology.lattice)) {
+        elements.lattice.value = game.topology.lattice;
     }
     elements.lattice.disabled = game.topology.isSpecial === true;
     elements.boundaryMode.textContent = elements.boundary.options[elements.boundary.selectedIndex].text;

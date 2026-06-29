@@ -34,6 +34,7 @@ const I18N = {
         trefoilSolidProduct: 'Trefoil Solid Tube × I',
         viewMode: 'View',
         sliceView: 'z-w Slice',
+        stackView: '3D Stack',
         projectionView: '4D Projection',
         boardView: 'Board View',
         sliceZ: 'Visible z slice',
@@ -78,9 +79,9 @@ const I18N = {
     },
     zh: {
         eyebrow: '四維連線策略',
-        title: '4D Hex',
+        title: '4D 六貫棋',
         description: '在四維軸向相鄰圖上落子，並以切片或投影檢視棋盤。',
-        boardAria: '投影或切片顯示的 4D Hex 棋盤',
+        boardAria: '投影或切片顯示的 4D 六貫棋棋盤',
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
@@ -105,6 +106,7 @@ const I18N = {
         trefoilSolidProduct: '三葉結實心管 × I',
         viewMode: '視圖',
         sliceView: 'z-w 切片',
+        stackView: '3D 堆疊',
         projectionView: '四維投影',
         boardView: '棋盤視圖',
         sliceZ: '可見 z 切片',
@@ -127,7 +129,7 @@ const I18N = {
         blackTurn: '輪到黑方',
         whiteTurn: '輪到白方',
         emptyPrompt: '請選擇一個空的 4D 格點。',
-        occupied: '請選擇一個空的 Hex 格點。',
+        occupied: '請選擇一個空的六貫棋格點。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
@@ -261,7 +263,9 @@ function newGame() {
 function updateSliceLabels() {
     elements.sliceZValue.textContent = elements.sliceZ.value;
     elements.sliceWValue.textContent = elements.sliceW.value;
-    elements.sliceControls.hidden = elements.viewMode.value !== 'slice' || game?.topology?.isSpecial === true;
+    elements.sliceZ.closest('label').hidden = elements.viewMode.value === 'stack';
+    elements.sliceW.closest('label').hidden = false;
+    elements.sliceControls.hidden = !['slice', 'stack'].includes(elements.viewMode.value) || game?.topology?.isSpecial === true;
 }
 
 function updateReadout() {
@@ -395,6 +399,73 @@ function drawSlice(width, height) {
     for (const site of projectedSites) drawSite(site, ends);
 }
 
+function stackPoint(coordinate, width, height) {
+    const [x, y, z, w] = coordinate;
+    const zoom = Number(elements.zoom.value);
+    const pad = Math.max(38, Math.min(width, height) * 0.08);
+    const depthOffsetX = Math.min(width, height) * 0.035 * zoom;
+    const depthOffsetY = Math.min(width, height) * 0.028 * zoom;
+    const usableW = width - pad * 2 - depthOffsetX * (size - 1);
+    const usableH = height - pad * 2 - depthOffsetY * (size - 1);
+    const spacing = Math.min(usableW / Math.max(1, size - 1), usableH / Math.max(1, size - 1)) * zoom;
+    const boardWidth = spacing * (size - 1) + depthOffsetX * (size - 1);
+    const boardHeight = spacing * (size - 1) + depthOffsetY * (size - 1);
+    const startX = (width - boardWidth) / 2;
+    const startY = (height - boardHeight) / 2;
+    return {
+        x: startX + x * spacing + z * depthOffsetX,
+        y: startY + y * spacing - z * depthOffsetY,
+        depth: z + w * 0.12,
+        radius: spacing,
+        coordinate
+    };
+}
+
+function drawStack(width, height) {
+    const w = Number(elements.sliceW.value);
+    const ends = targetEnds();
+    projectedSites = [];
+    const drawnEdges = new Set();
+    context.strokeStyle = 'rgba(160,184,198,0.24)';
+    context.lineWidth = 0.85;
+
+    for (let z = 0; z < size; z += 1) {
+        context.fillStyle = z % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(66,199,223,0.025)';
+        const layerCorners = [[0, 0, z, w], [size - 1, 0, z, w], [size - 1, size - 1, z, w], [0, size - 1, z, w]]
+            .map((coord) => stackPoint(coord, width, height));
+        context.beginPath();
+        layerCorners.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+        context.closePath();
+        context.fill();
+        context.stroke();
+    }
+
+    for (let z = 0; z < size; z += 1) {
+        for (let y = 0; y < size; y += 1) {
+            for (let x = 0; x < size; x += 1) {
+                const coordinate = [x, y, z, w];
+                const from = stackPoint(coordinate, width, height);
+                projectedSites.push(from);
+                for (const axis of [0, 1, 2]) {
+                    const next = [...coordinate];
+                    next[axis] += 1;
+                    if (next[axis] >= size) continue;
+                    const edgeKey = [coordinate.join(','), next.join(',')].sort().join('|');
+                    if (drawnEdges.has(edgeKey)) continue;
+                    drawnEdges.add(edgeKey);
+                    const to = stackPoint(next, width, height);
+                    context.beginPath();
+                    context.moveTo(from.x, from.y);
+                    context.lineTo(to.x, to.y);
+                    context.stroke();
+                }
+            }
+        }
+    }
+    projectedSites.sort((a, b) => a.depth - b.depth);
+    for (const site of projectedSites) drawSite(site, ends);
+}
+
 function projectionPoint(coordinate, width, height) {
     const midpoint = (size - 1) / 2;
     const [rawX = 0, rawY = 0, rawZ = 0, rawW = 0] = game.topology.isSpecial
@@ -464,6 +535,7 @@ function drawBoard() {
     context.fillStyle = '#080d12';
     context.fillRect(0, 0, width, height);
     if (elements.viewMode.value === 'slice' && !game.topology.isSpecial) drawSlice(width, height);
+    else if (elements.viewMode.value === 'stack' && !game.topology.isSpecial) drawStack(width, height);
     else drawProjection(width, height);
 }
 
@@ -509,6 +581,11 @@ elements.canvas.addEventListener('click', (event) => {
     const site = nearestSite(event);
     if (site) playAt(site.coordinate);
 });
+elements.canvas.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    elements.zoom.value = String(Math.max(0.35, Math.min(2.8, Number(elements.zoom.value) - event.deltaY * 0.001)));
+    drawBoard();
+}, { passive: false });
 for (const input of [elements.sliceZ, elements.sliceW, elements.rotation, elements.zoom]) {
     input.addEventListener('input', () => {
         updateSliceLabels();

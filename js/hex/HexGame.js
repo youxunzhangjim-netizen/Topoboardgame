@@ -147,6 +147,10 @@ function coordinateKey(coordinate) {
     return coordinate.join(',');
 }
 
+function uniqueCoordinates(coordinates) {
+    return [...new Map(coordinates.map((coordinate) => [coordinateKey(coordinate), coordinate])).values()];
+}
+
 function parseCoordinateKey(key, dimension) {
     const coordinate = String(key).split(',').map(Number);
     if (
@@ -315,9 +319,9 @@ function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary
     if (z !== 0) return null;
     if (topology === 'sphere') {
         const [width, height] = size;
-        return x >= -1 && x <= width && y >= 0 && y < height
-            ? [modulo(x, width), y, 0]
-            : null;
+        if (y < 0 || y >= height) return null;
+        if (y === 0 || y === height - 1) return [0, y, 0];
+        return [modulo(x, width), y, 0];
     }
     const mappedTopology = topology === 't2' ? 'torus' : topology;
     const normalized = normalize2DCoordinate([x, y], [size[0], size[1]], mappedTopology, randomBoundary);
@@ -345,6 +349,23 @@ function createGoalDefinition(dimension, size, topology, customGoalZones) {
 
     const surface3D = dimension === 3 && SURFACE_3D_TOPOLOGIES.has(topology);
     const surfaceTopology = topology === 't2' ? 'torus' : topology;
+    if (surface3D && surfaceTopology === 'sphere') {
+        const xEnd = Math.floor(size[0] / 2);
+        return Object.freeze({
+            black: Object.freeze({
+                type: 'marked-cut-zones',
+                label: 'sphere meridian cut zones',
+                start: (coordinate) => coordinate[1] > 0 && coordinate[1] < size[1] - 1 && coordinate[0] === 0,
+                end: (coordinate) => coordinate[1] > 0 && coordinate[1] < size[1] - 1 && coordinate[0] === xEnd
+            }),
+            white: Object.freeze({
+                type: 'physical-sides',
+                label: 'north pole / south pole',
+                start: (coordinate) => coordinate[1] === 0,
+                end: (coordinate) => coordinate[1] === size[1] - 1
+            })
+        });
+    }
     const xHasPhysicalSides = dimension === 2 || surface3D
         ? surfaceTopology === 'open'
         : topology !== 'torus';
@@ -389,8 +410,18 @@ function enumerateCoordinates(size) {
     return coordinates;
 }
 
-function enumerateSurface3DCoordinates(size) {
+function enumerateSurface3DCoordinates(size, topology) {
     const coordinates = [];
+    if (topology === 'sphere') {
+        for (let y = 0; y < size[1]; y += 1) {
+            if (y === 0 || y === size[1] - 1) {
+                coordinates.push([0, y, 0]);
+                continue;
+            }
+            for (let x = 0; x < size[0]; x += 1) coordinates.push([x, y, 0]);
+        }
+        return coordinates;
+    }
     for (let y = 0; y < size[1]; y += 1) {
         for (let x = 0; x < size[0]; x += 1) {
             coordinates.push([x, y, 0]);
@@ -463,7 +494,7 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
     }
     if (topology === 'sphere') {
         const theta = u;
-        const phi = Math.PI * (0.08 + band * 0.84);
+        const phi = Math.PI * band;
         const radius = 3.45;
         return [
             radius * Math.sin(phi) * Math.cos(theta),
@@ -518,7 +549,9 @@ export function createHexTopology(options = {}) {
     };
 
     const neighborOffsets = dimension === 2
-        ? lattice === 'square'
+        ? lattice === 'triangular'
+            ? null
+            : lattice === 'square'
             ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
             : lattice === 'honeycomb'
                 ? null
@@ -541,10 +574,12 @@ export function createHexTopology(options = {}) {
                 : lattice === 'fcc'
                     ? fccOffsets()
                     : hcpOffsets(origin)
-            : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
+            : lattice === 'triangular'
+                ? [[-1, 0], [1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]]
+                : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
     ];
 
-    const coordinateList = surface3D ? enumerateSurface3DCoordinates(size) : enumerateCoordinates(size);
+    const coordinateList = surface3D ? enumerateSurface3DCoordinates(size, topology) : enumerateCoordinates(size);
     const randomAdjacency = topology === 'random' || topology === 'r3_random'
         ? (() => {
             const adjacency = new Map(coordinateList.map((coordinate) => [coordinateKey(coordinate), new Map()]));
@@ -579,6 +614,17 @@ export function createHexTopology(options = {}) {
         if (!origin) return [];
         if (randomAdjacency) {
             return [...(randomAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
+        }
+        if (surface3D && topology === 'sphere') {
+            const [width, height] = size;
+            if (origin[1] === 0) {
+                const ringY = Math.min(height - 1, 1);
+                return uniqueCoordinates(Array.from({ length: width }, (_, x) => normalize([x, ringY, 0])).filter(Boolean));
+            }
+            if (origin[1] === height - 1) {
+                const ringY = Math.max(0, height - 2);
+                return uniqueCoordinates(Array.from({ length: width }, (_, x) => normalize([x, ringY, 0])).filter(Boolean));
+            }
         }
         const seen = new Set();
         const result = [];

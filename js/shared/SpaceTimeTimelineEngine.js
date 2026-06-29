@@ -13,14 +13,14 @@ const COPY = {
     bothHelp: 'Schedule future actions and rewrite recent past actions. Later events are replayed and revalidated.',
     ageHelp: 'Use the original +1D age clock. Pieces show age rings and can disappear after the selected lifetime.',
     periodHelp: 'Use the original Go +1D time period clock. Stones appear and disappear by the selected period.',
-    delay: 'Future Delay',
+    delay: 'Future Delay (full turns)',
     actionSlice: 'Next Action Time Slice',
     chooseSlice: 'Choose time slice',
     pastSlice: '-{ticks} ticks',
     pastPreview: 'Past board preview',
     pastPreviewHelp: 'The board is temporarily showing the selected past slice. Apply the rewrite to replay back to the present.',
     instantSlice: 'Instant',
-    futureSlice: '+{ticks} ticks',
+    futureSlice: '+{ticks} full turn',
     legacyTitle: 'Time period and age settings',
     legacyHelp: 'These are the original +1D clocks: Go can keep a periodic appear/disappear phase, and every +1D board game can use piece aging.',
     ageOnlyTitle: 'Age settings',
@@ -71,6 +71,9 @@ const COPY = {
     replacement: 'Choose Replacement Move',
     replacementHelp: 'Choose a replacement with the normal board controls, then apply the dry-run replay.',
     dryRunReplay: 'Dry-Run Replay',
+    replaying: 'Replaying Timeline',
+    replayStep: 'Replay {index}/{count}: {action}',
+    replacementPreview: 'Replacement selected: {action}',
     applyRewrite: 'Apply Rewrite',
     cancelRewrite: 'Cancel Rewrite',
     rewriteCommitted: 'Rewrite Applied',
@@ -119,14 +122,14 @@ const COPY = {
     bothHelp: '排程未來行動，並改寫最近的過去行動；後續事件會重新回放與驗證。',
     ageHelp: '使用原本的 +1D 年齡時鐘；棋子會顯示年齡環，並可在指定壽命後消失。',
     periodHelp: '使用原本的 Go +1D 時間週期；棋子依設定週期出現與消失。',
-    delay: '未來延遲',
+    delay: '未來延遲（完整回合）',
     actionSlice: '下一步時間切片',
     chooseSlice: '選擇時間切片',
     pastSlice: '-{ticks} 回合',
     pastPreview: '過去棋盤預覽',
     pastPreviewHelp: '畫面暫時顯示所選的過去切片；套用改寫後會回放到目前棋盤。',
     instantSlice: '即時',
-    futureSlice: '+{ticks} 回合',
+    futureSlice: '+{ticks} 輪完整回合',
     legacyTitle: '時間週期與年齡設定',
     legacyHelp: '這些是原本的 +1D 時鐘：Go 可保留週期性的出現／消失相位，所有 +1D 棋局都可使用棋子老化。',
     ageOnlyTitle: '年齡設定',
@@ -177,6 +180,9 @@ const COPY = {
     replacement: '選擇替代行動',
     replacementHelp: '使用一般棋盤控制選擇替代行動，然後套用試回放。',
     dryRunReplay: '試回放',
+    replaying: '正在回放時間線',
+    replayStep: '回放 {index}/{count}：{action}',
+    replacementPreview: '已選替代行動：{action}',
     applyRewrite: '套用改寫',
     cancelRewrite: '取消改寫',
     rewriteCommitted: '改寫已套用',
@@ -205,7 +211,7 @@ const COPY = {
     setupEvent: '初始設定事件不能被改寫。',
     opponentEvent: '目標事件屬於對手。',
     outsideWindow: '目標事件已超出改寫窗口。',
-    hexConflict: 'Hex 衝突：目標格在生效時已被佔用。',
+    hexConflict: '六貫棋衝突：目標格在生效時已被佔用。',
     goConflict: '圍棋衝突：該手在生效時不合法。',
     reversiConflict: '黑白棋衝突：生效時沒有合法可翻轉棋線。',
     jumpConflict: '跳棋衝突：路徑在生效時已不合法。',
@@ -223,8 +229,15 @@ function asInteger(value, fallback, min, max) {
 }
 
 function sameCoord(a, b) {
-  return Array.isArray(a) && Array.isArray(b) && a.length === b.length &&
-    a.every((value, index) => Number(value) === Number(b[index]));
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((value, index) => Number(value) === Number(b[index]));
+  }
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const keys = ['x', 'y', 'z', 'w', 'r', 'c', 'q', 'sheet'];
+    const used = keys.filter((key) => key in a || key in b);
+    return used.length > 0 && used.every((key) => Number(a[key] ?? 0) === Number(b[key] ?? 0));
+  }
+  return false;
 }
 
 function normalizeMode(value) {
@@ -334,6 +347,9 @@ export function installSpaceTimeTimelineEngine() {
     editingEventId: null,
     replacementSource: null,
     pendingReplacement: null,
+    previewReturnSnapshot: null,
+    replayAnimating: false,
+    replayOverlay: null,
     selectionSource: null,
     settingsLocked: false,
     message: '',
@@ -484,6 +500,7 @@ export function installSpaceTimeTimelineEngine() {
       .st-timeline__summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.st-timeline__summary span{border:1px solid rgba(86,190,222,.15);border-radius:6px;background:#0c1723;color:#dceaf3;padding:7px 9px;font-size:.8rem;overflow-wrap:anywhere}
       .st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}
       .st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}
+      .st-replay-badge{position:fixed;z-index:9998;left:50%;top:14px;transform:translateX(-50%);max-width:min(720px,calc(100vw - 24px));padding:9px 13px;border:1px solid rgba(243,189,73,.7);border-radius:999px;background:#08111df2;box-shadow:0 12px 38px rgba(0,0,0,.38);color:#ffe8ad;font-size:.86rem;font-weight:850;pointer-events:none;text-align:center}
       .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:6px;min-width:190px;max-width:min(320px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
       .st-slice-picker strong{font-size:.82rem;color:#f3bd49}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.st-slice-picker button{min-height:32px;padding:6px 7px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:850;cursor:pointer}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
       .st-timeline [hidden]{display:none!important}
@@ -1020,6 +1037,11 @@ export function installSpaceTimeTimelineEngine() {
 
   function captureBoardAction(app, event) {
     if (!usesFuture() && !usesPast() && !state.editingEventId) return;
+    if (state.replayAnimating) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     let handled = false;
     if (family === 'jump') handled = captureJumpAction(app, event);
     else {
@@ -1036,6 +1058,11 @@ export function installSpaceTimeTimelineEngine() {
 
   function captureChessBoardAction(game, event) {
     if (!usesFuture() && !usesPast() && !state.editingEventId) return;
+    if (state.replayAnimating) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     const square = event.target.closest?.('.square');
     const board = document.getElementById('chessboard');
     if (!square || !board) return;
@@ -1058,6 +1085,7 @@ export function installSpaceTimeTimelineEngine() {
       if (!state.replacementSource) {
         state.replacementSource = clone(coord);
         state.message = text('selectedSource');
+        triggerRender();
         refresh();
         return true;
       }
@@ -1093,6 +1121,7 @@ export function installSpaceTimeTimelineEngine() {
       if (!state.replacementSource) {
         state.replacementSource = clone(coord);
         state.message = text('selectedSource');
+        triggerRender();
         refresh();
         return true;
       }
@@ -1182,9 +1211,10 @@ export function installSpaceTimeTimelineEngine() {
 
   async function applySliceChoice(raw, offset) {
     if (offset < 0) return beginPastSliceReplacement(raw, Math.abs(offset));
+    if (offset === 0) return applyInstantActionFromPicker(raw);
     if (usesFuture()) {
       const previous = settings.actionOffset;
-      settings.actionOffset = Math.max(0, Math.min(settings.delay, offset));
+      settings.actionOffset = Math.max(1, Math.min(settings.delay, offset));
       const action = normalizeFutureDraft(raw);
       if (action) await scheduleFutureAction(action);
       else {
@@ -1224,12 +1254,22 @@ export function installSpaceTimeTimelineEngine() {
       state.message = `${text('failed')}: ${conflictText(conflict)}`;
       refresh();
     }
+    await processDueActions();
     return ok;
   }
 
   function beginPastSliceReplacement(raw, age) {
     if (!usesPast()) return false;
     const targetTick = currentTick() - age;
+    const resolvedTicks = state.timeline
+      .filter((candidate) => candidate.status === 'resolved' && !candidate.obsolete)
+      .map((candidate) => Number(candidate.tick));
+    const earliestTick = resolvedTicks.length ? Math.min(...resolvedTicks) : Infinity;
+    if (!Number.isFinite(earliestTick) || targetTick < earliestTick) {
+      state.message = text('outsideWindow');
+      refresh();
+      return false;
+    }
     const event = [...state.timeline].reverse().find((candidate) =>
       candidate.tick <= targetTick && candidate.player === raw.player && canEdit(candidate));
     if (!event) {
@@ -1237,10 +1277,12 @@ export function installSpaceTimeTimelineEngine() {
       refresh();
       return false;
     }
+    state.previewReturnSnapshot = captureSnapshot(state.app);
     restoreSnapshot(state.app, event.beforeSnapshot);
     state.editingEventId = event.id;
     state.replacementSource = null;
     state.pendingReplacement = null;
+    state.replayOverlay = { action: clone(raw), label: text('pastPreview') };
     state.message = `${text('pastPreview')}: ${text('pastPreviewHelp')}`;
     triggerRender();
     refresh();
@@ -1268,12 +1310,13 @@ export function installSpaceTimeTimelineEngine() {
   async function scheduleFutureAction(draft) {
     if (!usesFuture() || isOnlinePastMode()) return false;
     const submittedTick = currentTick();
-    const offset = Math.max(0, Math.min(settings.delay, asInteger(settings.actionOffset, settings.delay, 0, 32)));
+    const offset = Math.max(1, Math.min(settings.delay, asInteger(settings.actionOffset, settings.delay, 1, 32)));
+    const resolveTick = submittedTick + offset * playerTurnSpan();
     const action = {
       ...clone(draft),
       id: crypto.randomUUID?.() || `future-${Date.now()}-${Math.random()}`,
       submittedTick,
-      resolveTick: submittedTick + offset,
+      resolveTick,
       delay: offset,
       status: 'pending'
     };
@@ -1393,7 +1436,10 @@ export function installSpaceTimeTimelineEngine() {
     state.editingEventId = event.id;
     state.replacementSource = null;
     state.pendingReplacement = null;
+    state.previewReturnSnapshot = captureSnapshot(state.app);
+    restoreSnapshot(state.app, event.beforeSnapshot);
     state.message = family === 'jump' || family === 'chess' ? text('selectSource') : text('replacementHelp');
+    triggerRender();
     refresh();
   }
 
@@ -1405,8 +1451,14 @@ export function installSpaceTimeTimelineEngine() {
       eventId: event.id,
       replacement: { ...clone(raw), player: event.player }
     };
-    state.message = text('applyRewrite');
+    state.replayOverlay = {
+      action: state.pendingReplacement.replacement,
+      label: text('replacementPreview', { action: describeAction(state.pendingReplacement.replacement) })
+    };
+    state.message = text('dryRunReplay');
+    triggerRender();
     refresh();
+    setTimeout(() => { void applyPendingRewrite(); }, 180);
     return true;
   }
 
@@ -1426,12 +1478,46 @@ export function installSpaceTimeTimelineEngine() {
     state.editingEventId = null;
     state.replacementSource = null;
     state.pendingReplacement = null;
+    if (state.previewReturnSnapshot) restoreSnapshot(state.app, state.previewReturnSnapshot);
+    state.previewReturnSnapshot = null;
+    state.replayOverlay = null;
     state.message = message;
+    updateReplayBadge('');
     clearPendingSelection();
+    triggerRender();
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function animateReplayFrames(frames, finalSnapshot) {
+    if (!frames.length) return;
+    state.replayAnimating = true;
+    for (let index = 0; index < frames.length; index += 1) {
+      const frame = frames[index];
+      restoreSnapshot(state.app, frame.snapshot);
+      state.replayOverlay = {
+        action: frame.action,
+        label: text('replayStep', {
+          index: index + 1,
+          count: frames.length,
+          action: describeAction(frame.action)
+        })
+      };
+      state.message = state.replayOverlay.label;
+      triggerRender();
+      refresh();
+      await wait(300);
+    }
+    restoreSnapshot(state.app, finalSnapshot);
+    state.replayAnimating = false;
+    state.replayOverlay = null;
+    triggerRender();
   }
 
   async function replayReplacement(targetEvent, replacement) {
-    const currentSnapshot = captureSnapshot(state.app);
+    const currentSnapshot = clone(state.previewReturnSnapshot) || captureSnapshot(state.app);
     const originalTimeline = clone(state.timeline);
     const originalPending = clone(state.pending);
     const originalFailures = clone(state.failures);
@@ -1444,6 +1530,7 @@ export function installSpaceTimeTimelineEngine() {
     const validatedPending = [];
     const pendingFailures = [];
     const replayConflicts = [];
+    const replayFrames = [];
     const policy = normalizeConflictPolicy(settings.conflictPolicy);
     let snapshot = clone(targetEvent.beforeSnapshot || state.initialSnapshot);
     let rejected = false;
@@ -1495,6 +1582,7 @@ export function installSpaceTimeTimelineEngine() {
         };
         rebuilt.push(replacementEvent);
         snapshot = after;
+        replayFrames.push({ action: replacementEvent.action, tick: replacementEvent.tick, snapshot: clone(after) });
         earlierEnd = gameEnded();
       }
     }
@@ -1515,6 +1603,7 @@ export function installSpaceTimeTimelineEngine() {
           break;
         }
         rebuilt.push(markTimelineEvent(event, 'obsolete', snapshot, conflict));
+        replayFrames.push({ action: event.action, tick: event.tick, snapshot: clone(snapshot), status: 'obsolete' });
         continue;
       }
       if (!restoreSnapshot(state.app, snapshot)) {
@@ -1538,11 +1627,13 @@ export function installSpaceTimeTimelineEngine() {
         }
         rebuilt.push(markTimelineEvent(event, 'failed', before, conflict));
         snapshot = before;
+        replayFrames.push({ action: event.action, tick: event.tick, snapshot: clone(before), status: 'failed' });
         continue;
       }
       const after = captureSnapshot(state.app);
       rebuilt.push({ ...clone(event), status: 'resolved', obsolete: false, failed: false, beforeSnapshot: clone(before), afterSnapshot: clone(after), conflicts: [] });
       snapshot = after;
+      replayFrames.push({ action: event.action, tick: event.tick, snapshot: clone(after), status: 'resolved' });
       earlierEnd = gameEnded();
     }
 
@@ -1603,6 +1694,7 @@ export function installSpaceTimeTimelineEngine() {
       state.failures = originalFailures;
       state.rewrittenEvents = originalRewritten;
       state.conflicts = [...originalConflicts, ...replayConflicts];
+      state.replayOverlay = null;
       state.message = `${text('rewriteRejected')}: ${conflictText(replayConflicts[0]) || text('replayFailed')}`;
     } else {
       state.timeline = rebuilt;
@@ -1617,11 +1709,20 @@ export function installSpaceTimeTimelineEngine() {
         ? `${text('rewriteCommitted')} ${text('conflictSkipped')} ${formatConflictSummary(replayConflicts)}`
         : text('rewriteCommitted');
     }
+    const finalMessage = state.message;
     state.internalAction = false;
+    if (!rejected) {
+      await animateReplayFrames(replayFrames, pendingBaseSnapshot);
+      state.message = finalMessage;
+    }
     state.editingEventId = null;
     state.replacementSource = null;
     state.pendingReplacement = null;
-    const rewriteMessage = state.message;
+    state.previewReturnSnapshot = null;
+    state.replayOverlay = null;
+    state.replayAnimating = false;
+    updateReplayBadge('');
+    const rewriteMessage = finalMessage;
     consumeSubmissionTurn();
     state.message = rewriteMessage;
     triggerRender();
@@ -1996,6 +2097,189 @@ export function installSpaceTimeTimelineEngine() {
     ctx.restore();
   }
 
+  function drawTimelineOverlay(app = state.app) {
+    const overlay = state.replayOverlay || replacementOverlay();
+    if (!overlay || !app) {
+      updateReplayBadge('');
+      return;
+    }
+    const action = overlay.action;
+    const coords = actionCoordinates(action);
+    if (!coords.length) {
+      updateReplayBadge(overlay.label || '');
+      return;
+    }
+    const badge = overlay.label || describeAction(action);
+    updateReplayBadge(state.replayAnimating ? `${text('replaying')}: ${badge}` : badge);
+    if (family === 'hex') drawHexTimelineOverlay(app, coords, action);
+    else if (family === 'jump') drawJumpTimelineOverlay(app, coords, action);
+    else if (family === 'go' || family === 'reversi') drawStoneTimelineOverlay(app, coords, action);
+  }
+
+  function replacementOverlay() {
+    if (state.pendingReplacement?.replacement) {
+      const action = state.pendingReplacement.replacement;
+      return { action, label: text('replacementPreview', { action: describeAction(action) }) };
+    }
+    if (state.replacementSource) {
+      return {
+        action: { kind: family, player: replacementPlayer(), from: clone(state.replacementSource) },
+        label: text('replacement')
+      };
+    }
+    return null;
+  }
+
+  function actionCoordinates(action = {}) {
+    const coords = [];
+    if (action.coord) coords.push(action.coord);
+    if (action.from) coords.push(action.from);
+    if (action.move?.from) coords.push(action.move.from);
+    if (action.move?.over) coords.push(action.move.over);
+    if (action.move?.to) coords.push(action.move.to);
+    if (action.to) coords.push(action.to);
+    return coords.filter(Boolean);
+  }
+
+  function describeAction(action = {}) {
+    const player = action.player ? `${action.player} ` : '';
+    if (action.pass) return `${player}pass`;
+    if (action.coord) return `${player}[${formatCoord(action.coord)}]`;
+    if (action.move?.from && action.move?.to) return `${player}[${formatCoord(action.move.from)}] -> [${formatCoord(action.move.to)}]`;
+    if (action.from && action.to) return `${player}[${formatCoord(action.from)}] -> [${formatCoord(action.to)}]`;
+    if (action.from) return `${player}[${formatCoord(action.from)}]`;
+    return player.trim() || text('event');
+  }
+
+  function formatCoord(coord) {
+    if (Array.isArray(coord)) return coord.join(',');
+    if (coord && typeof coord === 'object') return Object.values(coord).join(',');
+    return String(coord ?? '');
+  }
+
+  function drawHexTimelineOverlay(app, coords, action) {
+    if (!app?.canvas || typeof app.getSpaceTimeCells !== 'function') return;
+    const ctx = app.canvas.getContext('2d');
+    const cells = app.getSpaceTimeCells();
+    const points = coords
+      .map((coord) => cells.find((cell) => sameCoord(cell.coordinate, coord)))
+      .filter(Boolean)
+      .map((cell) => ({ x: cell.x, y: cell.y, radius: Math.max(8, Number(cell.radius || 8) * 1.35) }));
+    drawTimelinePoints(ctx, points, action);
+  }
+
+  function drawJumpTimelineOverlay(app, coords, action) {
+    if (!app?.canvas || typeof app.project !== 'function') return;
+    const ctx = app.ctx || app.canvas.getContext('2d');
+    const radius = Math.max(10, Number(app.cellRadius?.() || 12) * 1.15);
+    const points = coords.map((coord) => {
+      try {
+        const point = app.project(coord);
+        return { x: point.x, y: point.y, radius };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+    drawTimelinePoints(ctx, points, action);
+  }
+
+  function drawStoneTimelineOverlay(app, coords, action) {
+    const canvas = app?.canvas || document.getElementById(family === 'go' ? 'goBoard' : 'reversiBoard') || document.getElementById('goCanvas');
+    const ctx = app?.ctx || canvas?.getContext?.('2d');
+    if (!canvas || !ctx) return;
+    const rect = app?.lastRect || app?.boardRect?.();
+    const radius = Math.max(9, Number(rect?.radius || rect?.step || 18) * 0.42);
+    const points = coords.map((coord) => pointForStoneCoord(app, coord, rect, radius)).filter(Boolean);
+    drawTimelinePoints(ctx, points, action);
+  }
+
+  function pointForStoneCoord(app, coord, rect = null, radius = 12) {
+    try {
+      if (typeof app?.coordToPixel === 'function') {
+        const point = app.coordToPixel(coord);
+        return point ? { x: point.x, y: point.y, radius } : null;
+      }
+      if (rect && typeof app?.hexCenter === 'function' && app?.logic?.topology?.lattice === 'honeycomb') {
+        return { ...app.hexCenter(coord, rect), radius: Math.max(radius, Number(rect.radius || radius) * 1.15) };
+      }
+      if (rect && typeof app?.polarCenter === 'function' && app?.logic?.topology?.topology === 'polar') {
+        return { ...app.polarCenter(coord, rect), radius };
+      }
+      if (rect && Array.isArray(coord) && Number.isFinite(rect.left) && Number.isFinite(rect.top) && Number.isFinite(rect.step)) {
+        return {
+          x: rect.left + (Number(coord[0]) + 0.5) * rect.step,
+          y: rect.top + (Number(coord[1]) + 0.5) * rect.step,
+          radius
+        };
+      }
+    } catch {}
+    return null;
+  }
+
+  function drawTimelinePoints(ctx, points, action = {}) {
+    if (!ctx || !points.length) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = 'rgba(243,189,73,.9)';
+    if (points.length >= 2) {
+      ctx.strokeStyle = 'rgba(243,189,73,.96)';
+      ctx.lineWidth = Math.max(3, points[0].radius * 0.24);
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      drawArrowHead(ctx, points.at(-2), points.at(-1), points[0].radius);
+    }
+    points.forEach((point, index) => {
+      const isLast = index === points.length - 1;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, point.radius, 0, Math.PI * 2);
+      ctx.fillStyle = isLast ? 'rgba(243,189,73,.24)' : 'rgba(86,190,222,.22)';
+      ctx.fill();
+      ctx.strokeStyle = isLast ? 'rgba(255,231,173,1)' : 'rgba(125,225,255,.98)';
+      ctx.lineWidth = Math.max(2.4, point.radius * 0.18);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = isLast ? '#fff0bd' : '#dff8ff';
+      ctx.font = `${Math.max(11, point.radius * 0.78)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(points.length >= 2 ? (isLast ? '2' : index === 0 ? '1' : '+') : '!', point.x, point.y);
+      ctx.shadowBlur = 12;
+    });
+    ctx.restore();
+  }
+
+  function drawArrowHead(ctx, from, to, radius) {
+    if (!from || !to) return;
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const size = Math.max(7, radius * 0.45);
+    ctx.fillStyle = 'rgba(243,189,73,.96)';
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(to.x - Math.cos(angle - Math.PI / 6) * size, to.y - Math.sin(angle - Math.PI / 6) * size);
+    ctx.lineTo(to.x - Math.cos(angle + Math.PI / 6) * size, to.y - Math.sin(angle + Math.PI / 6) * size);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function updateReplayBadge(label = '') {
+    let badge = document.getElementById('spaceTimeReplayBadge');
+    if (!label) {
+      badge?.remove();
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'spaceTimeReplayBadge';
+      badge.className = 'st-replay-badge';
+      document.body.append(badge);
+    }
+    badge.textContent = label;
+  }
+
   function syncJumpAges(app, { fresh = false } = {}) {
     const pieces = app?.game?.pieces;
     if (!(pieces instanceof Map)) return;
@@ -2273,6 +2557,13 @@ export function installSpaceTimeTimelineEngine() {
       app?.game?.moveNumber ?? app?.activeGame?.moveHistory?.length ?? app?.moveHistory?.length ?? 0) || 0;
   }
 
+  function playerTurnSpan() {
+    if (family === 'jump') {
+      return Math.max(2, Number(state.app?.game?.playerCount || state.app?.playerCount || 2) || 2);
+    }
+    return 2;
+  }
+
   function currentTick() {
     state.tick = Math.max(state.tick, observedTurn(state.app));
     return state.tick;
@@ -2346,6 +2637,10 @@ export function installSpaceTimeTimelineEngine() {
     state.conflicts = [];
     state.editingEventId = null;
     state.replacementSource = null;
+    state.pendingReplacement = null;
+    state.previewReturnSnapshot = null;
+    state.replayOverlay = null;
+    state.replayAnimating = false;
     state.settingsLocked = false;
     state.decayCount = 0;
     state.noiseCount = 0;
@@ -2356,6 +2651,7 @@ export function installSpaceTimeTimelineEngine() {
     state.initialSnapshot = captureSnapshot(state.app);
     state.lastSnapshot = clone(state.initialSnapshot);
     state.message = text('reset');
+    updateReplayBadge('');
     refresh();
   }
 
@@ -2366,6 +2662,7 @@ export function installSpaceTimeTimelineEngine() {
     try { app?.renderBoard?.(); } catch {}
     try { app?.activeGame?.renderBoard?.(); } catch {}
     try { app?.activeGame?.renderer?.render?.(); } catch {}
+    try { drawTimelineOverlay(app); } catch {}
   }
 
   function refresh() {
@@ -2579,7 +2876,8 @@ export function installSpaceTimeTimelineEngine() {
     if (action.pass) return language() === 'zh' ? '跳過回合' : 'Pass';
     if (action.kind === 'jump') return `${action.move?.from?.join(',')} → ${action.move?.to?.join(',')}`;
     if (action.kind === 'chess') return `${coordLabel(action.from)} → ${coordLabel(action.to)}`;
-    return `${action.kind === 'hex' ? 'Hex' : action.kind} ${action.coord?.join(',') || ''}`.trim();
+    const kindLabel = action.kind === 'hex' ? (language() === 'zh' ? '六貫棋' : 'Hex') : action.kind;
+    return `${kindLabel} ${action.coord?.join(',') || ''}`.trim();
   }
 
   function coordLabel(coord = {}) {

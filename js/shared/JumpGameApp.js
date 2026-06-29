@@ -871,6 +871,7 @@ export class JumpGameApp {
     for (const coord of this.game.topology.allCoords()) {
       if (!this.visibleCoord(coord)) continue;
       const p = this.project(coord);
+      if (this.usesOpaqueSurfaceView() && p.frontFacing === false) continue;
       const d = Math.hypot(p.x - x, p.y - y);
       if (d < bestDist) { bestDist = d; best = coord; }
     }
@@ -948,6 +949,30 @@ export class JumpGameApp {
   usesEmbeddedView() {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     return this.dimension >= 3 || ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell', 'projection', '4d-torus', 'hypercube'].includes(topology);
+  }
+
+  usesOpaqueSurfaceView() {
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    return this.dimension === 2 && ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
+  }
+
+  embeddedSurfaceNormal(coord, point) {
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    const [x = 0, y = 0, z = 0] = point;
+    const normalize = (vector) => {
+      const length = Math.hypot(vector[0] || 0, vector[1] || 0, vector[2] || 0);
+      return length > 0.0001 ? vector.map((value) => value / length) : null;
+    };
+    if (topology === 'sphere' || topology === 'shell' || topology === 'rp2' || topology === 'mobius' || topology === 'klein') {
+      return normalize(point);
+    }
+    if (topology === 'cylinder') return normalize([x, 0, z]);
+    if (topology === 'torus' || topology === '4d-torus') {
+      const angle = Math.atan2(y, x);
+      const center = [1.45 * Math.cos(angle), 1.45 * Math.sin(angle), 0];
+      return normalize([x - center[0], y - center[1], z - center[2]]);
+    }
+    return null;
   }
 
   planarLatticeCoord(coord) {
@@ -1048,10 +1073,18 @@ export class JumpGameApp {
       return { x: layout.cx + Math.cos(angle) * r, y: layout.cy + Math.sin(angle) * r, depth: 0 };
     }
     if (this.usesEmbeddedView()) {
-      const [x, y, z] = this.rotatePoint3D(this.embeddedPoint(coord));
+      const model = this.embeddedPoint(coord);
+      const [x, y, z] = this.rotatePoint3D(model);
+      const normal = this.usesOpaqueSurfaceView() ? this.embeddedSurfaceNormal(coord, model) : null;
+      const rotatedNormal = normal ? this.rotatePoint3D(normal) : null;
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
       const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
-      return { x: width / 2 + x * scale, y: height * 0.42 + y * scale, depth: z };
+      return {
+        x: width / 2 + x * scale,
+        y: height * 0.42 + y * scale,
+        depth: z,
+        frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08
+      };
     }
     const zoom = this.view.zoom || 1;
     const pad = Math.max(40, Math.min(width, height) * 0.08);
@@ -1096,7 +1129,10 @@ export class JumpGameApp {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = '#07111e';
     ctx.fillRect(0, 0, width, height);
-    const coords = this.game.topology.allCoords().filter((c) => this.visibleCoord(c));
+    const coords = this.game.topology.allCoords().filter((c) => {
+      if (!this.visibleCoord(c)) return false;
+      return !this.usesOpaqueSurfaceView() || this.project(c).frontFacing !== false;
+    });
     if (this.isPolarBoard()) this.drawPolarFrame(width, height);
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(95, 174, 255, 0.26)';

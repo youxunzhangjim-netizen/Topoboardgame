@@ -87,12 +87,37 @@ function kleinPosition(node) {
     const order = KLEIN_ORDER_INDEX.get(node) ?? node;
     const sector = order % 7;
     const ring = Math.floor(order / 7);
-    const angle = Math.PI * 2 * sector / 7 - Math.PI / 2 + (ring % 2 ? Math.PI / 7 : 0);
-    const radius = 0.3 + ring * 0.095;
+    const angle = Math.PI * 2 * (sector + ring * 0.36) / 7 - Math.PI / 2;
+    const radius = Math.tanh((ring + 0.72) * 0.32) * 2.85;
     return [
         Math.cos(angle) * radius,
         Math.sin(angle) * radius,
-        0.035 * (ring - 3.5)
+        0.05 * Math.sin(Math.PI * 2 * sector / 7 + ring * 0.8)
+    ];
+}
+
+function kleinEmbeddedPosition(node, layer = 0, interval = 1, second = 0, secondInterval = 1) {
+    const order = KLEIN_ORDER_INDEX.get(node) ?? node;
+    const sector = order % 7;
+    const ring = Math.floor(order / 7);
+    const theta = Math.PI * 2 * (sector + ring * 0.36) / 7;
+    const phi = Math.PI * 2 * (ring + 0.5) / 8;
+    const lobe = 0.22 * Math.cos(7 * theta);
+    const major = 2.05 + lobe + 0.2 * Math.cos(3 * phi);
+    const minor = 0.72 + 0.12 * Math.sin(7 * theta + phi);
+    const shell = [
+        (major + minor * Math.cos(phi)) * Math.cos(theta),
+        (major + minor * Math.cos(phi)) * Math.sin(theta),
+        minor * Math.sin(phi)
+    ];
+    const radial = [Math.cos(theta), Math.sin(theta), 0];
+    const layerOffset = (layer - (interval - 1) / 2) * 0.2;
+    const secondOffset = (second - (secondInterval - 1) / 2) * 0.16;
+    return [
+        shell[0] + radial[0] * layerOffset,
+        shell[1] + radial[1] * layerOffset,
+        shell[2] + secondOffset,
+        secondOffset
     ];
 }
 
@@ -108,24 +133,25 @@ function trefoilPosition(segment, segmentCount) {
 function createGoalZones({ type, segmentCount = 0, thetaCount = 0 }) {
     if (type.startsWith('klein_quartic')) {
         const orderOf = (coordinate) => KLEIN_ORDER_INDEX.get(coordinate[0]) ?? coordinate[0];
+        const arc = 2;
         return Object.freeze({
             black: Object.freeze({
                 type: 'marked-cell-zones',
                 label: 'opposite Klein-map arcs',
-                start: (coordinate) => cyclicDistance(orderOf(coordinate), 0, 56) <= 3,
-                end: (coordinate) => cyclicDistance(orderOf(coordinate), 28, 56) <= 3
+                start: (coordinate) => cyclicDistance(orderOf(coordinate), 0, 56) <= arc,
+                end: (coordinate) => cyclicDistance(orderOf(coordinate), 28, 56) <= arc
             }),
             white: Object.freeze({
                 type: 'marked-cell-zones',
                 label: 'quarter-turn Klein-map arcs',
-                start: (coordinate) => cyclicDistance(orderOf(coordinate), 14, 56) <= 3,
-                end: (coordinate) => cyclicDistance(orderOf(coordinate), 42, 56) <= 3
+                start: (coordinate) => cyclicDistance(orderOf(coordinate), 14, 56) <= arc,
+                end: (coordinate) => cyclicDistance(orderOf(coordinate), 42, 56) <= arc
             })
         });
     }
 
     const count = Math.max(8, segmentCount);
-    const arc = Math.max(1, Math.floor(count / 16));
+    const arc = Math.max(1, Math.floor(count / 22));
     const thetaOf = (coordinate) => Number(coordinate[1] || 0);
     const hasTheta = type === 'trefoil_tube' || type === 'trefoil_solid' || type === 'trefoil_solid_product';
     return Object.freeze({
@@ -241,13 +267,17 @@ function createKleinQuarticTopology({ dimension, size, product = false }) {
             return result;
         },
         position(coordinate) {
-            const [x, y, z] = kleinPosition(coordinate[0]);
-            return [
-                x,
-                y + (coordinate[1] || 0) * 0.24,
-                z + (coordinate[2] || 0) * 0.24,
-                0
-            ].slice(0, dimension);
+            if (dimension === 2 && !product) {
+                const [x, y] = kleinPosition(coordinate[0]);
+                return [x, y];
+            }
+            return kleinEmbeddedPosition(
+                coordinate[0],
+                coordinate[1] || 0,
+                interval,
+                coordinate[2] || 0,
+                secondInterval
+            ).slice(0, dimension);
         },
         goalZones: createGoalZones({ type: id }),
         metadata: {
@@ -263,14 +293,17 @@ function createKleinQuarticTopology({ dimension, size, product = false }) {
 
 function createTrefoilTopology({ type, dimension, size }) {
     const requestedSegments = Number(size?.[0]);
+    const isTubeLike = type === 'trefoil_tube' || type === 'trefoil_solid' || type === 'trefoil_solid_product';
     const segmentCount = clampInteger(
-        requestedSegments >= 24 ? requestedSegments : requestedSegments * 3,
-        24,
-        72,
-        30
+        requestedSegments >= (isTubeLike ? 42 : 24)
+            ? requestedSegments
+            : requestedSegments * (isTubeLike ? 7 : 3),
+        isTubeLike ? 42 : 24,
+        isTubeLike ? 112 : 72,
+        isTubeLike ? 56 : 30
     );
-    const thetaCount = clampInteger(size?.[1], 4, 12, 6);
-    const radialCount = clampInteger(size?.[2], 2, 3, 3);
+    const thetaCount = clampInteger(size?.[1], isTubeLike ? 6 : 4, 14, isTubeLike ? 8 : 6);
+    const radialCount = clampInteger(size?.[2], 2, 4, 3);
     const intervalCount = clampInteger(size?.[3], 2, 3, 3);
     const coordinates = [];
 
