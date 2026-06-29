@@ -1,4 +1,5 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
+import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -14,6 +15,7 @@ const I18N = {
         boardAria: 'Rotatable 3D Hex board',
         controls: 'Game Controls',
         home: 'Home',
+        switchLanguage: 'Switch language',
         black: 'Black',
         white: 'White',
         moves: 'Moves',
@@ -21,6 +23,13 @@ const I18N = {
         local: 'Local',
         online: 'Online',
         robot: 'Robot',
+        disconnected: 'Disconnected',
+        findMatch: 'Find Match',
+        privateRoom: 'PRIVATE ROOM',
+        createRoom: 'Create Room',
+        or: 'OR',
+        roomPlaceholder: 'Room code',
+        joinRoom: 'Join Room',
         boardSize: 'Board Size',
         topology: 'Topology',
         cube: 'R3 / Cube',
@@ -47,7 +56,9 @@ const I18N = {
         whiteMarkedTarget: 'White connects the two gold marked zones',
         moveHistory: 'Move History',
         onlineChat: 'Online Chat',
-        onlineMessage: 'Online rooms are not connected yet.',
+        chatEmpty: 'Connect online to chat.',
+        messagePlaceholder: 'Message opponent',
+        send: 'Send',
         blackTurn: 'Black to play',
         whiteTurn: 'White to play',
         emptyPrompt: 'Choose an empty 3D site.',
@@ -58,7 +69,14 @@ const I18N = {
         blackWin: 'Black connected x-low to x-high.',
         whiteWin: 'White connected y-low to y-high.',
         robotThinking: 'Robot is choosing an empty site.',
-        onlineUnavailable: 'Online 3D Hex rooms are not connected yet. Use Local or Robot mode.',
+        connectOnline: 'Connect or join an Online room before placing.',
+        waitingFor: 'Waiting for {color}.',
+        onlineAs: 'Online as {color}',
+        waitingOpponent: 'Waiting for opponent',
+        syncedOnline: 'Online board synchronized.',
+        you: 'You',
+        opponent: 'Opponent',
+        onlineUnavailable: 'Connect or join an Online room before placing.',
         topologyInfo: {
             open: 'R3 / Cube uses open boundaries and axis-neighbor cubic adjacency.',
             cylinder: 'Cylinder wraps the z direction; the x and y target planes remain physical.',
@@ -77,6 +95,7 @@ const I18N = {
         boardAria: '可旋轉的 3D Hex 棋盤',
         controls: '遊戲控制',
         home: '首頁',
+        switchLanguage: '切換語言',
         black: '黑方',
         white: '白方',
         moves: '步數',
@@ -84,6 +103,13 @@ const I18N = {
         local: '本機',
         online: '線上',
         robot: '機器人',
+        disconnected: '未連線',
+        findMatch: '尋找對手',
+        privateRoom: '私人房間',
+        createRoom: '建立房間',
+        or: '或',
+        roomPlaceholder: '房間代碼',
+        joinRoom: '加入房間',
         boardSize: '棋盤大小',
         topology: '拓撲',
         cube: 'R3／立方體',
@@ -110,7 +136,9 @@ const I18N = {
         whiteMarkedTarget: '白方連接兩個金色標示區',
         moveHistory: '落子記錄',
         onlineChat: '線上聊天',
-        onlineMessage: '線上房間尚未接通。',
+        chatEmpty: '連上線上房間後即可聊天。',
+        messagePlaceholder: '傳送訊息給對手',
+        send: '傳送',
         blackTurn: '輪到黑方',
         whiteTurn: '輪到白方',
         emptyPrompt: '請選擇一個空的 3D 格點。',
@@ -121,7 +149,14 @@ const I18N = {
         blackWin: '黑方已連接 x-low 與 x-high。',
         whiteWin: '白方已連接 y-low 與 y-high。',
         robotThinking: '機器人正在選擇空格。',
-        onlineUnavailable: '線上 3D Hex 房間尚未接通，請使用本機或機器人模式。',
+        connectOnline: '請先連線或加入線上房間再落子。',
+        waitingFor: '等待 {color} 行動。',
+        onlineAs: '線上身份：{color}',
+        waitingOpponent: '等待對手',
+        syncedOnline: '線上棋盤已同步。',
+        you: '你',
+        opponent: '對手',
+        onlineUnavailable: '請先連線或加入線上房間再落子。',
         topologyInfo: {
             open: 'R3／立方體使用開放邊界與立方晶格的軸向相鄰關係。',
             cylinder: '圓柱會包裹 z 方向；x 與 y 的目標平面仍是實體邊界。',
@@ -143,6 +178,12 @@ const elements = {
     status: document.getElementById('gameStatus'),
     summary: document.getElementById('moveSummary'),
     mode: document.getElementById('gameModeSelect'),
+    onlineControls: document.getElementById('onlineControls'),
+    connectionStatus: document.getElementById('connectionStatus'),
+    findMatch: document.getElementById('findMatchBtn'),
+    createRoom: document.getElementById('createRoomBtn'),
+    joinRoom: document.getElementById('joinRoomBtn'),
+    roomId: document.getElementById('roomIdInput'),
     size: document.getElementById('boardSizeSelect'),
     topology: document.getElementById('topologySelect'),
     topologyInfo: document.getElementById('topologyInfo'),
@@ -160,7 +201,10 @@ const elements = {
     history: document.getElementById('moveHistoryList'),
     language: document.getElementById('languageButton'),
     home: document.getElementById('homeLink'),
-    onlineMessage: document.getElementById('onlineMessage')
+    onlineMessage: document.getElementById('onlineMessage'),
+    chatMessages: document.getElementById('chatMessages'),
+    chatInput: document.getElementById('chatInput'),
+    chatSend: document.getElementById('chatSendBtn')
 };
 
 const context = elements.canvas.getContext('2d');
@@ -170,6 +214,7 @@ let size = 6;
 let projectedSites = [];
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
+let onlineController = null;
 let dragging = false;
 let dragMoved = false;
 let lastPointer = null;
@@ -199,9 +244,10 @@ function applyLanguage() {
     document.querySelectorAll('[data-i18n-aria]').forEach((node) => {
         node.setAttribute('aria-label', text(node.dataset.i18nAria));
     });
-    elements.language.textContent = language === 'zh' ? '中 / EN' : 'EN / 中';
+    elements.language.setAttribute('aria-label', text('switchLanguage'));
+    elements.language.title = text('switchLanguage');
     elements.home.href = `../../index.html?lang=${language}`;
-    elements.onlineMessage.textContent = text('onlineMessage');
+    onlineController?.refreshLabels();
     elements.topologyInfo.textContent = text(`topologyInfo.${elements.topology.value}`);
     updateTargetText();
     updateReadout();
@@ -456,10 +502,8 @@ function nearestSite(event) {
 }
 
 function playAt(coordinate) {
-    if (elements.mode.value === 'online') {
-        statusKey = 'onlineUnavailable';
-        updateReadout();
-        return { ok: false, error: text('onlineUnavailable') };
+    if (onlineController && !onlineController.canActFor(game.currentColor)) {
+        return { ok: false, error: text('connectOnline') };
     }
     const player = game.currentColor;
     const result = game.play(coordinate);
@@ -475,6 +519,7 @@ function playAt(coordinate) {
     updateReadout();
     renderHistory();
     drawBoard();
+    if (result.ok) onlineController?.broadcastState();
     if (result.ok) scheduleRobot();
     return result;
 }
@@ -582,7 +627,7 @@ elements.size.addEventListener('change', newGame);
 elements.topology.addEventListener('change', newGame);
 elements.newGame.addEventListener('click', newGame);
 elements.mode.addEventListener('change', () => {
-    statusKey = elements.mode.value === 'online' ? 'onlineUnavailable' : 'emptyPrompt';
+    statusKey = 'emptyPrompt';
     updateReadout();
     scheduleRobot();
 });
@@ -597,32 +642,74 @@ window.addEventListener('resize', drawBoard);
 
 newGame();
 applyLanguage();
+
+function importHexState(state, messageKey = '') {
+    game = HexGame.fromState(state);
+    size = game.size[0];
+    if ([...elements.size.options].some((option) => Number(option.value) === size)) {
+        elements.size.value = String(size);
+    }
+    if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
+        elements.topology.value = game.topology.topology;
+    }
+    elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
+    elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
+    for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
+        filter.max = String(size);
+        filter.disabled = game.topology.isSpecial === true;
+    }
+    if (messageKey) statusKey = messageKey;
+    updateTargetText();
+    updateReadout();
+    renderHistory();
+    drawBoard();
+}
+
+function exportNetworkState() {
+    return {
+        ...game.exportState(),
+        currentPlayer: game.currentColor
+    };
+}
+
 window.hexApp = {
     get game() { return game; },
     canvas: elements.canvas,
+    text,
+    getMode() { return elements.mode.value; },
+    onlineElements: {
+        mode: elements.mode,
+        onlineControls: elements.onlineControls,
+        connectionStatus: elements.connectionStatus,
+        findMatch: elements.findMatch,
+        createRoom: elements.createRoom,
+        joinRoom: elements.joinRoom,
+        roomId: elements.roomId,
+        chatMessages: elements.chatMessages,
+        chatInput: elements.chatInput,
+        chatSend: elements.chatSend
+    },
     playAt,
     exportState() {
         return game.exportState();
     },
     importState(state) {
-        game = HexGame.fromState(state);
-        size = game.size[0];
-        if ([...elements.size.options].some((option) => Number(option.value) === size)) {
-            elements.size.value = String(size);
-        }
-        if ([...elements.topology.options].some((option) => option.value === game.topology.topology)) {
-            elements.topology.value = game.topology.topology;
-        }
-        elements.topologyMode.textContent = elements.topology.options[elements.topology.selectedIndex].text;
-        elements.topologyInfo.textContent = text(`topologyInfo.${game.topology.topology}`);
-        for (const filter of [elements.filterX, elements.filterY, elements.filterZ]) {
-            filter.max = String(size);
-            filter.disabled = game.topology.isSpecial === true;
-        }
-        updateTargetText();
+        importHexState(state);
+    },
+    exportNetworkState,
+    importNetworkState(state) {
+        importHexState(state, 'syncedOnline');
+        return true;
+    },
+    setStatus(message) {
+        statusKey = message;
         updateReadout();
-        renderHistory();
-        drawBoard();
+    },
+    onlineGameKey() {
+        return `hex-3d-${elements.topology.value}-${size}`;
+    },
+    onlineMatchKey() {
+        return isSpaceTime ? 'hex-3p1' : 'hex-3d';
     },
     coordFromEvent(event) {
         return nearestSite(event)?.coordinate || null;
@@ -649,3 +736,5 @@ window.hexApp = {
         window.dispatchEvent(new CustomEvent('languagechange', { detail: { language } }));
     }
 };
+
+onlineController = createHexOnlineController(window.hexApp);

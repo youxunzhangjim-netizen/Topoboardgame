@@ -171,8 +171,7 @@ body {
 
 .header-actions { justify-content: flex-end; }
 
-.space-home-link,
-.language-button {
+.space-home-link {
     width: auto;
     min-height: 36px;
     display: inline-flex;
@@ -185,6 +184,31 @@ body {
     color: var(--text);
     text-decoration: none;
     font-weight: 850;
+}
+
+.language-button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(66, 199, 223, 0.46);
+    border-radius: 999px;
+    background: #0c1218;
+    color: var(--text);
+}
+
+.language-button svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .status-card,
@@ -234,6 +258,8 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .custom-size-input[hidden] { display: none; }
 .connection-status { padding: 8px; border-radius: 7px; text-align: center; font-weight: 850; }
 .connection-status.disconnected { background: rgba(239, 125, 114, 0.14); color: #ffc8c2; }
+.connection-status.connecting { background: rgba(232, 180, 76, 0.14); color: #ffe0a3; }
+.connection-status.connected { background: rgba(79, 178, 124, 0.16); color: #bff4d8; }
 .divider-text { color: var(--muted); font-size: 11px; font-weight: 900; text-align: center; }
 .online-btn.match { border-color: rgba(232, 180, 76, 0.7); }
 .online-btn.create { border-color: rgba(79, 178, 124, 0.7); }
