@@ -23,6 +23,11 @@ const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.45;
 const MOBIUS_BAND_HALF_WIDTH = 1.42;
+const SQUARE_LATTICE = 'square';
+const HCP_LATTICE = 'hcp';
+const HONEYCOMB_LATTICE = 'honeycomb';
+const SPHERE_COORDINATE_LATTICE = 'sphere_coordinate';
+const BUCKYBALL_LATTICE = 'buckyball';
 const R3_LIKE_TOPOLOGIES = new Set([
     REVERSI_TOPOLOGIES.R3,
     REVERSI_TOPOLOGIES.T3,
@@ -124,9 +129,12 @@ class Reversi3DRenderer {
 
     buildBoard(logic) {
         const topology = logic.topology;
+        const visualLattice = topology.topology === REVERSI_TOPOLOGIES.SPHERE
+            ? this.app.currentLattice()
+            : topology.lattice;
         const signature = [
             topology.topology,
-            topology.lattice,
+            visualLattice,
             topology.width,
             topology.height,
             topology.depth,
@@ -231,8 +239,15 @@ class Reversi3DRenderer {
             opacity: 0.84,
             depthWrite: false
         });
-        for (let y = 0; y < height; y += 1) this.boardGroup.add(this.torusLine(width, height, 'x', y, gridMaterial, lattice));
-        for (let x = 0; x < width; x += 1) this.boardGroup.add(this.torusLine(width, height, 'y', x, gridMaterial, lattice));
+        if (lattice === HONEYCOMB_LATTICE) {
+            const linePositions = this.surfaceHoneycombFacePositions(width, height, lattice, 'torus', 0.045);
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
+        } else {
+            for (let y = 0; y < height; y += 1) this.boardGroup.add(this.torusLine(width, height, 'x', y, gridMaterial, lattice));
+            for (let x = 0; x < width; x += 1) this.boardGroup.add(this.torusLine(width, height, 'y', x, gridMaterial, lattice));
+        }
 
         const pointPositions = [];
         for (let y = 0; y < height; y += 1) {
@@ -277,10 +292,14 @@ class Reversi3DRenderer {
             depthWrite: false
         });
         const linePositions = [];
-        for (let y = 0; y < height; y += 1) {
-            for (let x = 0; x < width; x += 1) {
-                this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, lattice, 0.045));
-                if (y < height - 1) this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [x, y + 1], width, height, lattice, 0.045));
+        if (lattice === HONEYCOMB_LATTICE) {
+            linePositions.push(...this.surfaceHoneycombFacePositions(width, height, lattice, 'cylinder', 0.045));
+        } else {
+            for (let y = 0; y < height; y += 1) {
+                for (let x = 0; x < width; x += 1) {
+                    this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, lattice, 0.045));
+                    if (y < height - 1) this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints([x, y], [x, y + 1], width, height, lattice, 0.045));
+                }
             }
         }
         const geometry = new THREE.BufferGeometry();
@@ -579,24 +598,27 @@ class Reversi3DRenderer {
         this.boardGroup.add(surface);
 
         const linePositions = [];
-        for (let y = 0; y < height; y += 1) {
-            for (let x = 0; x < width; x += 1) {
-                this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, 0.045, 10));
-                if (y < height - 1) this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [x, y + 1], width, height, 0.045, 10));
+        if (this.app.currentLattice() === BUCKYBALL_LATTICE) {
+            for (const points of createBuckyballSphereGridLines({ radius, lift: 0.07, segments: 8 })) {
+                this.appendPolyline(linePositions, points);
             }
-        }
-        for (let x = 0; x < width; x += 1) {
-            this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([0, -1], [x, 0], width, height, 0.045, 10));
-            this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, height - 1], [0, height], width, height, 0.045, 10));
-        }
-        for (const points of createBuckyballSphereGridLines({ radius, lift: 0.07, segments: 8 })) {
-            this.appendPolyline(linePositions, points);
+        } else {
+            for (let y = 0; y < height; y += 1) {
+                for (let x = 0; x < width; x += 1) {
+                    this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [(x + 1) % width, y], width, height, 0.045, 10));
+                    if (y < height - 1) this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, y], [x, y + 1], width, height, 0.045, 10));
+                }
+            }
+            for (let x = 0; x < width; x += 1) {
+                this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([0, -1], [x, 0], width, height, 0.045, 10));
+                this.appendPolyline(linePositions, this.sphereSurfaceEdgePoints([x, height - 1], [0, height], width, height, 0.045, 10));
+            }
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             geometry,
-            new THREE.LineBasicMaterial({ color: 0xd8b36b, transparent: true, opacity: 0.58 })
+            new THREE.LineBasicMaterial({ color: 0x0b0b0b, transparent: true, opacity: 0.68 })
         ));
 
         const pointPositions = [];
@@ -865,7 +887,7 @@ class Reversi3DRenderer {
     surfaceCellCoord(coord, logic = this.app?.logic) {
         if (!this.isSurfaceFaceBoard(logic) || !Array.isArray(coord)) return coord;
         if (logic?.topology?.topology === REVERSI_TOPOLOGIES.KLEIN) {
-            return [Number(coord[0]), Number(coord[1]) + 0.5];
+            return [Number(coord[0]), Number(coord[1])];
         }
         return [Number(coord[0]) + 0.5, Number(coord[1]) + 0.5];
     }
@@ -1046,10 +1068,13 @@ class Reversi3DRenderer {
         if (lattice === 'honeycomb') {
             const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
             const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
+            const circumference = Math.max(1, width * Math.sqrt(3) / 2);
+            const periodicAxis = Math.max(1, height);
+            const cylinderBand = Math.max(1, height - 0.5);
             return {
-                u: (rawX / Math.max(1, width * Math.sqrt(3) / 2)) * TWO_PI,
-                v: (rawY / Math.max(1, height + 0.5)) * TWO_PI,
-                band: rawY / Math.max(1, height - 0.5)
+                u: (rawX / circumference) * TWO_PI,
+                v: (rawY / periodicAxis) * TWO_PI,
+                band: rawY / cylinderBand
             };
         }
         return {
@@ -1057,6 +1082,48 @@ class Reversi3DRenderer {
             v: (Number(coord[1]) / Math.max(1, height)) * TWO_PI,
             band: Number(coord[1]) / Math.max(1, height - 1)
         };
+    }
+
+    wrapSurfaceCoord(coord, width, height, wrapY = false) {
+        const x = ((Number(coord[0]) % width) + width) % width;
+        const rawY = Number(coord[1]);
+        if (!wrapY && (rawY < 0 || rawY >= height)) return null;
+        const y = wrapY ? ((rawY % height) + height) % height : rawY;
+        return [x, y];
+    }
+
+    surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
+        const linePositions = [];
+        const drawn = new Set();
+        const wrapY = surface === 'torus';
+        const yLimit = wrapY ? height : height - 1;
+        const edgePoints = (a, b) => surface === 'cylinder'
+            ? this.cylinderSurfaceEdgePoints(a, b, width, height, lattice, lift, 8)
+            : this.torusSurfaceEdgePoints(a, b, width, height, lattice, lift, 8);
+
+        for (let x = 0; x < width; x += 2) {
+            for (let y = 0; y < yLimit; y += 1) {
+                const vertices = [
+                    [x, y],
+                    [x + 1, y],
+                    [x + 2, y],
+                    [x + 2, y + 1],
+                    [x + 1, y + 1],
+                    [x, y + 1]
+                ].map((coord) => this.wrapSurfaceCoord(coord, width, height, wrapY));
+                if (vertices.some((coord) => !coord)) continue;
+                for (let index = 0; index < vertices.length; index += 1) {
+                    const a = vertices[index];
+                    const b = vertices[(index + 1) % vertices.length];
+                    const key = [a.join(','), b.join(',')].sort().join('|');
+                    if (drawn.has(key)) continue;
+                    drawn.add(key);
+                    this.appendPolyline(linePositions, edgePoints(a, b));
+                }
+            }
+        }
+
+        return linePositions;
     }
 
     appendPolyline(linePositions, points) {
@@ -1383,7 +1450,9 @@ class Reversi3DApp {
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if (lattice === 'hcp') this.latticeSelect.value = 'hcp';
+        if ([SQUARE_LATTICE, HCP_LATTICE, HONEYCOMB_LATTICE, SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE].includes(lattice)) {
+            this.latticeSelect.value = lattice;
+        }
     }
 
     setSizeSelection(value) {
@@ -1402,7 +1471,7 @@ class Reversi3DApp {
     createLogic() {
         return new ReversiGame({
             topology: this.activeTopology(),
-            lattice: this.currentLattice(),
+            lattice: this.logicLattice(),
             size: this.boardSize(),
             maxSize: 19
         });
@@ -1458,6 +1527,26 @@ class Reversi3DApp {
         this.customSizeInput.hidden = this.sizeSelect.value !== 'custom';
     }
 
+    latticeOptionsForMode(mode = this.modeSelect.value) {
+        if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE];
+        return [SQUARE_LATTICE];
+    }
+
+    syncLatticeOptions(mode = this.modeSelect.value) {
+        const allowed = this.latticeOptionsForMode(mode);
+        this.latticeGroup.hidden = allowed.length <= 1 && allowed[0] === SQUARE_LATTICE;
+        for (const option of this.latticeSelect.options) {
+            option.hidden = !allowed.includes(option.value);
+            option.disabled = !allowed.includes(option.value);
+        }
+        if (!allowed.includes(this.latticeSelect.value)) {
+            this.latticeSelect.value = allowed[0];
+        }
+        return this.latticeSelect.value;
+    }
+
     syncLayerControl() {
         this.layerGroup.hidden = true;
         this.layerInfo.textContent = 'Full 3D board';
@@ -1466,15 +1555,32 @@ class Reversi3DApp {
         const volumeBoard = mode === 'r3';
         if (this.boundaryGroup) this.boundaryGroup.hidden = !volumeBoard;
         if (this.boundarySelect) this.boundarySelect.disabled = !volumeBoard;
-        this.latticeGroup.hidden = !volumeBoard;
         if (!volumeBoard) {
             this.boundarySelect.value = 'r3';
-            this.latticeSelect.value = 'square';
         }
+        this.syncLatticeOptions(mode);
     }
 
     currentLattice() {
-        return this.modeSelect.value === 'r3' && this.latticeSelect.value === 'hcp' ? 'hcp' : 'square';
+        return this.syncLatticeOptions(this.modeSelect.value);
+    }
+
+    latticeLabel(lattice = this.currentLattice()) {
+        return ({
+            [SQUARE_LATTICE]: 'Standard',
+            [HCP_LATTICE]: 'HCP',
+            [HONEYCOMB_LATTICE]: 'Honeycomb',
+            [SPHERE_COORDINATE_LATTICE]: 'Geodesic',
+            [BUCKYBALL_LATTICE]: 'Buckyball'
+        })[lattice] || lattice;
+    }
+
+    logicLattice() {
+        const mode = this.modeSelect.value;
+        const lattice = this.currentLattice();
+        if (mode === REVERSI_TOPOLOGIES.SPHERE) return SQUARE_LATTICE;
+        if (mode === 'r3') return lattice === HCP_LATTICE ? HCP_LATTICE : SQUARE_LATTICE;
+        return lattice === HONEYCOMB_LATTICE ? HONEYCOMB_LATTICE : SQUARE_LATTICE;
     }
 
     activeTopology() {
@@ -1669,26 +1775,33 @@ class Reversi3DApp {
         this.passBtn.disabled = this.logic.gameOver || this.logic.legalMoves(this.logic.currentPlayer).length > 0;
         const mode = this.activeTopology();
         const lattice = this.currentLattice();
+        const latticeLabel = this.latticeLabel(lattice);
         const modeText = {
-            r3: lattice === 'hcp' ? 'R3 HCP' : 'R3 Standard',
-            t3: lattice === 'hcp' ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
-            r3_random: lattice === 'hcp' ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
-            t2: 'T2',
-            cylinder: 'Cylinder',
-            sphere: 'S2',
+            r3: lattice === HCP_LATTICE ? 'R3 HCP' : 'R3 Standard',
+            t3: lattice === HCP_LATTICE ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
+            r3_random: lattice === HCP_LATTICE ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
+            t2: lattice === HONEYCOMB_LATTICE ? 'T2 Honeycomb' : 'T2 Standard',
+            cylinder: lattice === HONEYCOMB_LATTICE ? 'Cylinder Honeycomb' : 'Cylinder Standard',
+            sphere: `S2 ${latticeLabel}`,
             klein: 'Klein Bottle',
             mobius: 'Mobius Strip',
             rp2: 'RP2'
         };
         const modeInfo = {
-            r3: lattice === 'hcp'
+            r3: lattice === HCP_LATTICE
                 ? 'R3 HCP uses offset hexagonal close-packed site vertices with 12 nearest-neighbor bracket directions.'
                 : 'R3 Standard uses ordinary open cubic site vertices. Reversi brackets can run through all 26 graph ray directions.',
             t3: 'T3 is the all-side periodic boundary condition on the R3 board. It wraps x, y, and z, so every volume axis is periodic.',
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
-            t2: 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
-            cylinder: 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
-            sphere: 'S2 is rendered as a rotatable latitude-ring sphere. Sphere Reversi remains vertex-based at the singular caps.',
+            t2: lattice === HONEYCOMB_LATTICE
+                ? 'T2 honeycomb is wrapped like a nanotube net on a torus. Reversi stones occupy the center of each face cell.'
+                : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
+            cylinder: lattice === HONEYCOMB_LATTICE
+                ? 'Cylinder honeycomb wraps hexagon units around the circumference. Reversi stones occupy face-cell centers.'
+                : 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
+            sphere: lattice === BUCKYBALL_LATTICE
+                ? 'S2 Buckyball shows a pentagon/hexagon shell grid on the sphere. Sphere Reversi remains vertex-based at the singular caps.'
+                : 'S2 Geodesic shows longitude-latitude arcs with playable pole nodes. Sphere Reversi remains vertex-based at the singular caps.',
             klein: 'Klein bottle uses face cells on the non-orientable surface, with normal left-right wrap and flipped top-bottom wrap on the board graph.',
             mobius: 'Mobius strip uses face cells on a solid twisted band. Horizontal seam crossings flip the transverse coordinate.',
             rp2: 'RP2 identifies opposite boundary edges with antipodal flips in both board directions.'
