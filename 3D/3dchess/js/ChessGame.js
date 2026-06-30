@@ -31,7 +31,7 @@ const VARIANTS = {
         tagline: 'Local and online cubic chess with full 3D movement.',
         canvasLabel: '3D chess board',
         rulesTitle: '3D Movement',
-        rulesText: "Rook: axes. Bishop: plane and body diagonals. Queen: all straight 3D lines. Knight: 2-1 jumps on any plane. King: one cell in any direction except true cube-corner steps on the R3 and T3 PBC boards. Pawn: forward on X, Y, or Z, captures forward diagonals, and promotes only on the opponent's Y or Z home face inside the bottom three rows.",
+        rulesText: "Rook: axes. Bishop: plane and body diagonals. Queen: all straight 3D lines. Knight: 2-1 jumps on any plane. King: one cell in any direction except true cube-corner steps on the R3 cube. Optional R3 boundary modes affect only the left/right x-side faces; the y and z faces remain ordinary edges. Pawn: forward on X, Y, or Z, captures forward diagonals, and promotes only on the opponent's Y or Z home face inside the bottom three rows.",
         boundaryValue: 'forbidden',
         controller: CubeChessGame,
         zh: {
@@ -39,7 +39,7 @@ const VARIANTS = {
                   "tagline": "支援本地與線上的立方體國際象棋，使用完整三維走法。",
                   "canvasLabel": "三維棋盤",
                   "rulesTitle": "三維走法",
-                  "rulesText": "車沿座標軸走，象沿平面與空間對角線走，后可走所有三維直線，馬在任意平面跳 2-1；R3 與 T3 週期棋盤的王可走一格，但不能走真正的立方體角落方向。兵沿 X、Y 或 Z 前進並斜向吃子。"
+                  "rulesText": "車沿座標軸走，象沿平面與空間對角線走，后可走所有三維直線，馬在任意平面跳 2-1；R3 立方體中的王可走一格，但不能走真正的立方體角落方向。R3 邊界模式只作用在左右兩個 x 側面；y 與 z 面仍是普通邊界。兵沿 X、Y 或 Z 前進並斜向吃子。"
         }
     },
     rp2: {

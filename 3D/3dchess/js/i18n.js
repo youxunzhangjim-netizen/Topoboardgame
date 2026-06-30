@@ -163,9 +163,9 @@ const DICTIONARY = {
         boundary: {
             names: {
                 forbidden: 'Standard',
-                random: '3D RBC',
-                reflection: 'Reflection',
-                periodic: 'T3 PBC',
+                random: 'X-side RBC',
+                reflection: 'X-side Reflection',
+                periodic: 'X-side PBC',
                 rp2: 'RP2 antipodal',
                 mobius: 'Mobius twist',
                 sphere: 'Cylinder',
@@ -173,9 +173,9 @@ const DICTIONARY = {
             },
             info: {
                 forbidden: 'Standard: pieces cannot move outside the 8x8x8 cube.',
-                random: '3D RBC: each cube-boundary exit direction maps to one fixed random boundary cell for this game.',
-                reflection: 'Reflection: a move that reaches an edge bounces back into the cube.',
-                periodic: 'T3 PBC: leaving one cube face wraps to the opposite face in x, y, and z. Kings cannot use true cube-corner steps.'
+                random: 'X-side RBC: only exits through the left/right x faces map to fixed random x-side boundary cells. Other cube faces stay standard edges.',
+                reflection: 'X-side Reflection: moves reflect only at the left/right x faces. The y and z faces stay standard edges.',
+                periodic: 'X-side PBC: leaving the left/right x face wraps to the opposite x face. The y and z faces stay standard edges.'
             }
         },
         timer: {
@@ -447,28 +447,27 @@ const DICTIONARY = {
     }
 };
 
+Object.assign(DICTIONARY.en.boundary.names, {
+    random: 'X-side RBC',
+    reflection: 'X-side Reflection',
+    periodic: 'X-side PBC'
+});
+Object.assign(DICTIONARY.en.boundary.info, {
+    random: 'X-side RBC: only exits through the left/right x faces map to fixed random x-side boundary cells. Other cube faces stay standard edges.',
+    reflection: 'X-side Reflection: moves reflect only at the left/right x faces. The y and z faces stay standard edges.',
+    periodic: 'X-side PBC: leaving the left/right x face wraps to the opposite x face. The y and z faces stay standard edges.'
+});
 Object.assign(DICTIONARY.zh.boundary.names, {
     forbidden: '標準',
-    random: '3D RBC',
-    periodic: 'T3 週期'
+    random: 'X 側隨機邊界',
+    reflection: 'X 側反射',
+    periodic: 'X 側週期'
 });
 Object.assign(DICTIONARY.zh.boundary.info, {
-    forbidden: '標準：棋子不能走出 8x8x8 立方體。',
-    random: '3D RBC：每個立方體邊界出口方向會固定映射到一個隨機邊界格。',
-    periodic: 'T3 週期：從任一立方體面離開會從相對面進入；王不能走真正的立方體角落方向。'
-});
-
-Object.assign(DICTIONARY.zh.boundary.names, {
-    forbidden: 'Standard',
-    random: '3D RBC',
-    reflective: 'Reflection',
-    periodic: 'T3 PBC'
-});
-Object.assign(DICTIONARY.zh.boundary.info, {
-    forbidden: 'Standard：棋子不能離開普通 8x8x8 立方體邊界。',
-    random: '3D RBC：每個立方體邊界出口方向會固定映射到一個隨機邊界格。',
-    reflective: 'Reflection：棋子碰到邊界時會鏡射回棋盤內。',
-    periodic: 'T3 PBC：離開任一立方體面時，會從 x、y、z 的相對面包回；王不能走真正的立方體角落方向。'
+    forbidden: '標準：棋子不能離開 8x8x8 立方體。',
+    random: 'X 側隨機邊界：只有穿出左右兩個 x 面時，才會固定映射到另一個 x 側邊界格；y 與 z 面仍是普通邊界。',
+    reflection: 'X 側反射：只有左右兩個 x 面會反射；y 與 z 面仍是普通邊界。',
+    periodic: 'X 側週期：穿出左/右 x 面時會從相對 x 面包回；y 與 z 面仍是普通邊界。'
 });
 
 function normalizeLanguage(value) {
