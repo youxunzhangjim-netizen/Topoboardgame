@@ -2025,9 +2025,9 @@ class Go3DApp {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
             : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
-                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
+                ? [SQUARE_LATTICE, TRIANGULAR_LATTICE]
                 : mode === 'sphere'
-                    ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
+                    ? [SPHERE_COORDINATE_LATTICE]
                     : [];
         this.latticeGroup.hidden = allowed.length === 0;
         for (const option of this.latticeSelect.options) {
