@@ -620,24 +620,30 @@ class Reversi2DApp {
 
     drawAgeRing(x, y, radius, age, settings = this.dynamicsSettings()) {
         const mode = settings?.timeEvolution || 'off';
+        const config = this.pieceTimeConfig?.() || {
+            enabled: mode !== 'off',
+            ageEnabled: mode === 'decay',
+            decay: mode === 'decay',
+            ageLifespan: settings?.lifetime
+        };
         const numericAge = Number(age || 0);
-        if (mode === 'off' || !Number.isFinite(numericAge) || numericAge <= 0) return;
-        const lifetime = Math.max(1, Number(settings?.lifetime) || 1);
+        if (!config.enabled || !config.ageEnabled || !Number.isFinite(numericAge) || numericAge <= 0) return;
+        const lifetime = Math.max(1, Number(config.ageLifespan || settings?.lifetime) || 1);
         const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
         const ctx = this.ctx;
         ctx.save();
-        ctx.lineWidth = Math.max(3, radius * 0.13);
+        ctx.lineWidth = Math.max(2.4, radius * 0.11);
         ctx.lineCap = 'round';
-        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(125, 255, 255, 0.98)';
+        ctx.strokeStyle = config.decay && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(94, 234, 212, 0.98)';
         ctx.shadowColor = ctx.strokeStyle;
         ctx.shadowBlur = progress >= 0.96 ? 16 : 9;
         ctx.beginPath();
-        ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+        ctx.arc(x, y, radius * 0.92, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
         ctx.stroke();
-        if (mode === 'decay' && progress >= 0.96) {
+        if (config.decay && progress >= 0.96) {
             ctx.setLineDash([Math.max(3, radius * 0.28), Math.max(3, radius * 0.18)]);
             ctx.beginPath();
-            ctx.arc(x, y, radius * 1.08, 0, Math.PI * 2);
+            ctx.arc(x, y, radius * 1.02, 0, Math.PI * 2);
             ctx.stroke();
         }
         ctx.restore();

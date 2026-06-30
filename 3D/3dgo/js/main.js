@@ -1231,7 +1231,12 @@ class Go3DRenderer {
             if (value === COLORS.black) black.push(...positions);
             else white.push(...positions);
             if (this.app?.shouldShowAgeRings?.()) {
-                for (const position of positions) ageRings.push({ position, age: this.app.pieceAges?.[index] || 0 });
+                const periodProgress = this.app.spaceTimePeriodRingProgress?.(index, coord) ?? null;
+                for (const position of positions) ageRings.push({
+                    position,
+                    age: this.app.pieceAges?.[index] || 0,
+                    periodProgress
+                });
             }
         }
         this.addStoneInstances(black, 'black', logic);
@@ -1284,27 +1289,42 @@ class Go3DRenderer {
         if (!items.length) return;
         const config = this.app?.pieceTimeConfig?.();
         if (!config?.enabled) return;
-        const lifetime = Math.max(1, Number(config.lifespan || config.lifetime) || 1);
+        const ageLifetime = Math.max(1, Number(config.ageLifespan || config.lifespan || config.lifetime) || 1);
         const radius = isR3LikeTopology(logic.topology)
             ? (logic.size <= 9 ? 0.18 : logic.size <= 13 ? 0.13 : 0.095)
             : (logic.size <= 9 ? 0.16 : logic.size <= 13 ? 0.13 : 0.105);
-        const ringGeometry = new THREE.TorusGeometry(radius * 1.55, Math.max(0.012, radius * 0.085), 10, 64);
-        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: 0.96, depthWrite: false });
+        const ageRingGeometry = new THREE.TorusGeometry(radius * 1.38, Math.max(0.01, radius * 0.075), 10, 64);
+        const periodRingGeometry = new THREE.TorusGeometry(radius * 1.92, Math.max(0.008, radius * 0.052), 10, 64);
+        const ageMaterial = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.96, depthWrite: false });
         const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 1, depthWrite: false });
-        normalMaterial.userData.baseOpacity = normalMaterial.opacity;
+        const periodMaterial = new THREE.MeshBasicMaterial({ color: 0xf6b84b, transparent: true, opacity: 0.9, depthWrite: false });
+        ageMaterial.userData.baseOpacity = ageMaterial.opacity;
         warnMaterial.userData.baseOpacity = warnMaterial.opacity;
+        periodMaterial.userData.baseOpacity = periodMaterial.opacity;
         for (const item of items) {
             const age = Number(item.age || 0);
-            if (!Number.isFinite(age) || age <= 0) continue;
-            const progress = Math.max(0.05, Math.min(1, age / lifetime));
-            const material = config.decay && progress >= 0.96 ? warnMaterial : normalMaterial;
-            const ring = new THREE.Mesh(ringGeometry, material);
-            ring.position.copy(item.position);
-            ring.userData.ageRing = true;
-            ring.userData.ageProgress = progress;
-            ring.scale.setScalar(progress);
-            ring.renderOrder = 12;
-            this.stoneGroup.add(ring);
+            if (config.ageEnabled && Number.isFinite(age) && age > 0) {
+                const progress = Math.max(0.05, Math.min(1, age / ageLifetime));
+                const material = config.decay && progress >= 0.96 ? warnMaterial : ageMaterial;
+                const ring = new THREE.Mesh(ageRingGeometry, material);
+                ring.position.copy(item.position);
+                ring.userData.ageRing = true;
+                ring.userData.ageProgress = progress;
+                ring.scale.setScalar(progress);
+                ring.renderOrder = 12;
+                this.stoneGroup.add(ring);
+            }
+            if (config.periodEnabled && Number.isFinite(Number(item.periodProgress))) {
+                const progress = Math.max(0.08, Math.min(1, Number(item.periodProgress)));
+                const ring = new THREE.Mesh(periodRingGeometry, periodMaterial);
+                ring.position.copy(item.position);
+                ring.userData.ageRing = true;
+                ring.userData.periodRing = true;
+                ring.userData.ageProgress = progress;
+                ring.scale.setScalar(progress);
+                ring.renderOrder = 11;
+                this.stoneGroup.add(ring);
+            }
         }
     }
 

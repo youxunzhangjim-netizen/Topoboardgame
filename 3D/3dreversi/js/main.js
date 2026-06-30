@@ -798,16 +798,16 @@ class Reversi3DRenderer {
         if (!items.length) return;
         const config = this.app?.pieceTimeConfig?.();
         if (!config?.enabled) return;
-        const lifetime = Math.max(1, Number(config.lifespan || config.lifetime) || 1);
+        const lifetime = Math.max(1, Number(config.ageLifespan || config.lifespan || config.lifetime) || 1);
         const radius = this.markerRadius(logic);
-        const ringGeometry = new THREE.TorusGeometry(radius * 1.55, Math.max(0.012, radius * 0.085), 10, 64);
-        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: 0.96, depthWrite: false });
+        const ringGeometry = new THREE.TorusGeometry(radius * 1.38, Math.max(0.01, radius * 0.075), 10, 64);
+        const normalMaterial = new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.96, depthWrite: false });
         const warnMaterial = new THREE.MeshBasicMaterial({ color: 0xff4040, transparent: true, opacity: 1, depthWrite: false });
         normalMaterial.userData.baseOpacity = normalMaterial.opacity;
         warnMaterial.userData.baseOpacity = warnMaterial.opacity;
         for (const item of items) {
             const age = Number(item.age || 0);
-            if (!Number.isFinite(age) || age <= 0) continue;
+            if (!config.ageEnabled || !Number.isFinite(age) || age <= 0) continue;
             const progress = Math.max(0.05, Math.min(1, age / lifetime));
             const material = config.decay && progress >= 0.96 ? warnMaterial : normalMaterial;
             const ring = new THREE.Mesh(ringGeometry, material);

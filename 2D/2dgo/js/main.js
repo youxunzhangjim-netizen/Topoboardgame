@@ -695,7 +695,7 @@ class Go2DApp {
             const p = this.coordToPixel(coord);
             const radius = rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
             this.drawStone(p.x, p.y, radius, color);
-            this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings());
+            this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings(), coord, index);
         }
     }
 
@@ -965,27 +965,50 @@ class Go2DApp {
         ctx.stroke();
     }
 
-    drawAgeRing(x, y, radius, age, settings = this.dynamicsSettings()) {
+    drawAgeRing(x, y, radius, age, settings = this.dynamicsSettings(), coord = null, index = null) {
         const mode = settings?.timeEvolution || 'off';
+        const config = this.pieceTimeConfig?.() || {
+            enabled: mode !== 'off',
+            ageEnabled: mode === 'decay',
+            periodEnabled: mode === 'periodic',
+            decay: mode === 'decay',
+            ageLifespan: settings?.lifetime,
+            periodLifespan: settings?.lifetime
+        };
         const numericAge = Number(age || 0);
-        if (mode === 'off' || !Number.isFinite(numericAge) || numericAge <= 0) return;
-        const lifetime = Math.max(1, Number(settings?.lifetime) || 1);
-        const progress = Math.max(0.04, Math.min(1, numericAge / lifetime));
+        if (!config.enabled) return;
+        const ageLifetime = Math.max(1, Number(config.ageLifespan || settings?.lifetime) || 1);
         const ctx = this.ctx;
         ctx.save();
-        ctx.lineWidth = Math.max(3, radius * 0.13);
         ctx.lineCap = 'round';
-        ctx.strokeStyle = mode === 'decay' && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(125, 255, 255, 0.98)';
-        ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = progress >= 0.96 ? 16 : 9;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
-        ctx.stroke();
-        if (mode === 'decay' && progress >= 0.96) {
-            ctx.setLineDash([Math.max(3, radius * 0.28), Math.max(3, radius * 0.18)]);
+        if (config.periodEnabled) {
+            const periodProgress = Number(this.spaceTimePeriodRingProgress?.(index, coord));
+            if (Number.isFinite(periodProgress)) {
+                const progress = Math.max(0.05, Math.min(1, periodProgress));
+                ctx.lineWidth = Math.max(2, radius * 0.09);
+                ctx.strokeStyle = 'rgba(246, 184, 75, 0.96)';
+                ctx.shadowColor = ctx.strokeStyle;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 1.22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+                ctx.stroke();
+            }
+        }
+        if (config.ageEnabled && Number.isFinite(numericAge) && numericAge > 0) {
+            const progress = Math.max(0.04, Math.min(1, numericAge / ageLifetime));
+            ctx.lineWidth = Math.max(2.4, radius * 0.11);
+            ctx.strokeStyle = config.decay && progress >= 0.96 ? 'rgba(255, 64, 64, 1)' : 'rgba(94, 234, 212, 0.98)';
+            ctx.shadowColor = ctx.strokeStyle;
+            ctx.shadowBlur = progress >= 0.96 ? 16 : 9;
             ctx.beginPath();
-            ctx.arc(x, y, radius * 1.08, 0, Math.PI * 2);
+            ctx.arc(x, y, radius * 0.92, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
             ctx.stroke();
+            if (config.decay && progress >= 0.96) {
+                ctx.setLineDash([Math.max(3, radius * 0.28), Math.max(3, radius * 0.18)]);
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 1.02, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
         ctx.restore();
     }
