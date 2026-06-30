@@ -82,9 +82,9 @@ body {
 .player-timer.active { border-color: rgba(245, 191, 91, 0.78); }
 .capture-count { font-weight: 850; }
 .board-frame {
-    height: clamp(430px, calc(100vh - 280px), 680px);
+    height: clamp(520px, calc(100vh - 180px), 86vh);
     min-height: 0;
-    max-height: 680px;
+    max-height: 920px;
     position: relative;
     border-radius: 8px;
     overflow: hidden;

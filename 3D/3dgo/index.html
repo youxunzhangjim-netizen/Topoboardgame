@@ -21,7 +21,7 @@
             <header class="top-bar">
                 <div>
                     <h1 data-i18n="app.title">3D Go</h1>
-                    <p data-i18n="app.tagline">R3 standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.</p>
+                    <p data-i18n="app.tagline">R3 Go with open, T3 PBC, 3D RBC, or RP3 boundary conditions, plus T2 torus, S2 sphere, Klein bottle, and Mobius strip Go.</p>
                 </div>
             </header>
 
@@ -106,13 +106,21 @@
                 <label for="goModeSelect" data-i18n="controls.goSpace">Go Space</label>
                 <select id="goModeSelect">
                     <option value="r3" selected data-i18n="mode.r3Option">R3 Standard Go</option>
-                    <option value="t3" data-i18n="mode.t3Option">T3 PBC Go</option>
-                    <option value="r3_random" data-i18n="mode.r3RandomOption">3D RBC Go</option>
                     <option value="t2" data-i18n="mode.t2Option">T2 Torus Go</option>
                     <option value="cylinder" data-i18n="mode.cylinderOption">Cylinder Go</option>
                     <option value="sphere" data-i18n="mode.sphereOption">S2 Sphere Go</option>
                     <option value="klein" data-i18n="mode.kleinOption">Klein Bottle Go</option>
                     <option value="mobius" data-i18n="mode.mobiusOption">Mobius Strip Go</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="r3BoundaryGroup">
+                <label for="r3BoundarySelect" data-i18n="controls.boundaryCondition">R3 Boundary Condition</label>
+                <select id="r3BoundarySelect">
+                    <option value="r3" selected data-i18n="boundary.r3Open">Standard open boundary</option>
+                    <option value="t3" data-i18n="boundary.t3Pbc">T3 PBC: all-side periodic</option>
+                    <option value="r3_random" data-i18n="boundary.r3Rbc">3D RBC: random boundary condition</option>
+                    <option value="rp3" data-i18n="boundary.rp3">RP3: antipodal boundary</option>
                 </select>
             </div>
 
@@ -149,7 +157,7 @@
                 </select>
                 <input id="customBoardSizeInput" type="number" min="2" max="39" step="1" value="9" hidden>
             </div>
-            <div class="boundary-info" id="modeInfo">R3 Standard uses ordinary open boundaries in x, y, and z. T3 PBC wraps x, y, and z. 3D RBC uses a fixed random boundary map.</div>
+            <div class="boundary-info" id="modeInfo">Choose the board space first; for R3 volume boards, choose open, T3 PBC, 3D RBC, or RP3 as the boundary condition.</div>
 
             <div class="control-group">
                 <label for="timerSelect" data-i18n="controls.timer">Timer per Player</label>

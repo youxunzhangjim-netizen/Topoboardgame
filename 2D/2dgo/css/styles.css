@@ -98,9 +98,9 @@ body {
     display: grid;
     align-items: start;
     justify-items: center;
-    height: clamp(360px, calc(100vh - 190px), 86vh);
+    height: clamp(460px, calc(100vh - 130px), 92vh);
     min-height: 0;
-    padding: 12px;
+    padding: 8px;
     border-radius: 8px;
     background: linear-gradient(180deg, rgba(12, 15, 19, 0.58), rgba(12, 15, 19, 0.9));
     overflow: auto;
@@ -108,7 +108,7 @@ body {
 
 #goBoard {
     display: block;
-    width: min(100%, 1180px);
+    width: min(100%, 1280px);
     max-width: none;
     aspect-ratio: 1;
     border-radius: 8px;

@@ -11,6 +11,7 @@ import {
     HONEYCOMB_LATTICE,
     otherColor,
     R3_RANDOM_TOPOLOGY,
+    R3_RP3_TOPOLOGY,
     R3_STANDARD_TOPOLOGY,
     SIMPLE_CUBIC_LATTICE,
     SQUARE_LATTICE,
@@ -53,7 +54,7 @@ const KOMI = 7.5;
 const LANGUAGE_STORAGE_KEY = '3dgo:language';
 const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 
-const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY]);
+const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY, R3_RP3_TOPOLOGY]);
 const TWO_PI = Math.PI * 2;
 const MOBIUS_BAND_RADIUS = 3.05;
 const MOBIUS_BAND_HALF_WIDTH = 1.18;
@@ -73,14 +74,29 @@ function isR3LikeTopology(topology) {
 function normalizeGoMode(value) {
     const mode = String(value || '').toLowerCase();
     if (['s2', 'sphere'].includes(mode)) return 'sphere';
-    if (['t3', 't3go', 'pbc3d', '3d_pbc'].includes(mode)) return T3_PBC_TOPOLOGY;
-    if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d'].includes(mode)) return R3_RANDOM_TOPOLOGY;
+    if (['t3', 't3go', 'pbc3d', '3d_pbc', 'r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d', 'rp3', 'real_projective_3', 'real-projective-3', 'projective3'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(mode)) return CYLINDER_GO_TOPOLOGY;
     if (['t2', 't2go', 'torus'].includes(mode)) return 't2';
     if (['klein', 'klein_bottle'].includes(mode)) return 'klein';
     if (['mobius', 'moebius', 'mobius_strip'].includes(mode)) return 'mobius';
     if (['rp2', 'projective', 'real_projective_plane'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     return R3_STANDARD_TOPOLOGY;
+}
+
+function normalizeR3Boundary(value) {
+    const mode = String(value || '').toLowerCase();
+    if (['t3', 't3go', 'pbc3d', '3d_pbc', 'pbc', 'periodic'].includes(mode)) return T3_PBC_TOPOLOGY;
+    if (['r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d', 'rbc'].includes(mode)) return R3_RANDOM_TOPOLOGY;
+    if (['rp3', 'real_projective_3', 'real-projective-3', 'projective3', 'antipodal3d'].includes(mode)) return R3_RP3_TOPOLOGY;
+    return R3_STANDARD_TOPOLOGY;
+}
+
+function r3BoundaryKey(topology) {
+    const boundary = normalizeR3Boundary(topology);
+    if (boundary === T3_PBC_TOPOLOGY) return 't3';
+    if (boundary === R3_RANDOM_TOPOLOGY) return 'r3Random';
+    if (boundary === R3_RP3_TOPOLOGY) return 'rp3';
+    return 'r3Open';
 }
 
 const I18N = {
@@ -117,8 +133,25 @@ const I18N = {
     }
 };
 
+Object.assign(I18N.en.controls, {
+    boundaryCondition: 'R3 Boundary Condition'
+});
+I18N.en.boundary = {
+    r3Open: 'Standard open boundary',
+    t3Pbc: 'T3 PBC: all-side periodic',
+    r3Rbc: '3D RBC: random boundary condition',
+    rp3: 'RP3: antipodal boundary'
+};
+Object.assign(I18N.zh.controls, {
+    boundaryCondition: 'R3 邊界條件'
+});
+I18N.zh.boundary = {
+    r3Open: '標準開放邊界',
+    t3Pbc: 'T3 PBC：全方向週期',
+    r3Rbc: '3D RBC：隨機邊界條件'
+};
 Object.assign(I18N.en.app, {
-    tagline: 'R3 Standard, T3 PBC, 3D RBC, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.'
+    tagline: 'R3 Standard, T3 PBC, 3D RBC, RP3, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.'
 });
 Object.assign(I18N.en.score, {
     pendingDraw: 'Counting pending: provisional draw',
@@ -153,9 +186,11 @@ Object.assign(I18N.en.mode, {
     r3Display: ({ size }) => size + '^3 R3 Standard Go',
     t3Display: ({ size }) => size + '^3 T3 PBC Go',
     r3RandomDisplay: ({ size }) => size + '^3 3D RBC Go',
+    rp3Display: ({ size }) => size + '^3 RP3 Go',
     r3Info: 'R3 Standard uses ordinary open boundaries in x, y, and z.',
     t3Info: 'T3 PBC wraps x, y, and z, so every cubic axis is periodic.',
-    r3RandomInfo: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.'
+    r3RandomInfo: '3D RBC uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
+    rp3Info: 'RP3 identifies each R3 boundary exit with the opposite side and reverses the other two coordinates, giving an antipodal projective boundary.'
 });
 Object.assign(I18N.zh.app, {
     tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein bottle 與 Mobius strip 圍棋，支援 9、13、19 尺度。'
@@ -220,6 +255,18 @@ Object.assign(I18N.zh.mode, {
     cylinderOption: '圓柱圍棋',
     cylinderDisplay: ({ size }) => size + ' x ' + size + ' 圓柱圍棋',
     cylinderInfo: '圓柱只在左右方向週期包回，上下邊界保持開放。'
+});
+
+Object.assign(I18N.zh.boundary, {
+    rp3: 'RP3：對映邊界'
+});
+Object.assign(I18N.zh.app, {
+    tagline: 'R3 標準、T3 週期、3D RBC、RP3、T2 環面、S2 球面、Klein 瓶與 Mobius 帶圍棋，支援 9、13、19 尺度。'
+});
+Object.assign(I18N.zh.mode, {
+    rp3Option: 'RP3 圍棋',
+    rp3Display: ({ size }) => size + '^3 RP3 圍棋',
+    rp3Info: 'RP3 把 R3 邊界出口對接到對面，並翻轉另外兩個座標，形成實射影三維的對映邊界。'
 });
 
 function normalizeLanguage(value) {
@@ -1885,6 +1932,8 @@ class Go3DRenderer {
 class Go3DApp {
     constructor() {
         this.modeSelect = document.getElementById('goModeSelect');
+        this.r3BoundaryGroup = document.getElementById('r3BoundaryGroup');
+        this.r3BoundarySelect = document.getElementById('r3BoundarySelect');
         this.latticeGroup = document.getElementById('latticeGroup');
         this.latticeSelect = document.getElementById('latticeSelect');
         this.sphereViewSelect = document.getElementById('sphereViewSelect');
@@ -1931,7 +1980,8 @@ class Go3DApp {
         this.chatInput = document.getElementById('chatInput');
         this.chatSendBtn = document.getElementById('chatSendBtn');
         this.applyUrlSettings();
-        this.syncLatticeOptions();
+        this.syncBoundaryVisibility();
+        this.syncLatticeOptions(this.selectedTopologyMode());
         this.logic = this.createLogic();
         this.renderer = new Go3DRenderer(this);
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
@@ -1954,7 +2004,9 @@ class Go3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = String(params.get('mode') || '').toLowerCase();
+        const boundary = params.get('boundary') || params.get('boundaryCondition') || params.get('r3Boundary') || mode;
         if (mode) this.modeSelect.value = normalizeGoMode(mode);
+        if (this.r3BoundarySelect) this.r3BoundarySelect.value = normalizeR3Boundary(boundary);
 
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
@@ -1988,6 +2040,14 @@ class Go3DApp {
         return allowed.length ? this.latticeSelect.value : (isR3LikeTopology(mode) ? SIMPLE_CUBIC_LATTICE : SQUARE_LATTICE);
     }
 
+    syncBoundaryVisibility() {
+        const spaceMode = this.selectedSpaceMode();
+        if (this.r3BoundaryGroup) this.r3BoundaryGroup.hidden = spaceMode !== R3_STANDARD_TOPOLOGY;
+        if (spaceMode !== R3_STANDARD_TOPOLOGY && this.r3BoundarySelect) {
+            this.r3BoundarySelect.value = R3_STANDARD_TOPOLOGY;
+        }
+    }
+
     latticeName(lattice) {
         const resolvedLattice = lattice
             || (normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY) === 'sphere'
@@ -2009,7 +2069,7 @@ class Go3DApp {
     latticeInfo(lattice = this.logic?.lattice) {
         const enInfo = {
             [SQUARE_LATTICE]: ' Square surface nodes have four wrapped neighbors.',
-            [HONEYCOMB_LATTICE]: ' Honeycomb surface nodes have three wrapped neighbors.',
+            [HONEYCOMB_LATTICE]: ' Honeycomb surface nodes form a zigzag nanotube-style graph with three wrapped neighbors.',
             [TRIANGULAR_LATTICE]: ' Triangular surface nodes have six wrapped neighbors.',
             [SIMPLE_CUBIC_LATTICE]: ' Simple-cubic sites have six nearest neighbors.',
             [BCC_LATTICE]: ' BCC sites use eight body-diagonal nearest neighbors.',
@@ -2018,7 +2078,7 @@ class Go3DApp {
         };
         const zhInfo = {
             [SQUARE_LATTICE]: ' 方格曲面節點有四個包回鄰居。',
-            [HONEYCOMB_LATTICE]: ' 蜂巢曲面節點有三個包回鄰居。',
+            [HONEYCOMB_LATTICE]: ' 蜂巢曲面節點形成鋸齒型奈米碳管式圖格，並有三個包回鄰居。',
             [TRIANGULAR_LATTICE]: ' 三角曲面節點有六個包回鄰居。',
             [SIMPLE_CUBIC_LATTICE]: ' 簡單立方格點有六個最近鄰。',
             [BCC_LATTICE]: ' BCC 格點使用八個體對角最近鄰。',
@@ -2043,11 +2103,28 @@ class Go3DApp {
         window.setTimeout(() => this.network.resumeOrJoinRoom(roomId), 150);
     }
 
+    selectedSpaceMode() {
+        return normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY);
+    }
+
+    selectedR3Boundary() {
+        return normalizeR3Boundary(this.r3BoundarySelect?.value || R3_STANDARD_TOPOLOGY);
+    }
+
+    selectedTopologyMode() {
+        const mode = this.selectedSpaceMode();
+        return mode === R3_STANDARD_TOPOLOGY ? this.selectedR3Boundary() : mode;
+    }
+
     createLogic() {
-        const mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY);
+        const spaceMode = this.selectedSpaceMode();
+        const mode = this.selectedTopologyMode();
         const visualLattice = this.syncLatticeOptions(mode);
         const lattice = mode === 'sphere' ? SQUARE_LATTICE : visualLattice;
-        const size = this.boardSize();
+        const requestedSize = this.boardSize();
+        const needsEvenHoneycombSeam = lattice === HONEYCOMB_LATTICE
+            && (mode === 't2' || mode === CYLINDER_GO_TOPOLOGY);
+        const size = needsEvenHoneycombSeam && requestedSize % 2 ? requestedSize + 1 : requestedSize;
         const topology = isR3LikeTopology(mode)
             ? mode
             : mode === 'sphere'
@@ -2059,7 +2136,7 @@ class Go3DApp {
         return new GoGameLogic({
             size,
             width: size,
-            height: mode === 'klein' ? 19 : size,
+            height: spaceMode === 'klein' ? 19 : size,
             dimension: isR3LikeTopology(mode) ? 3 : 2,
             topology,
             lattice,
@@ -2092,7 +2169,12 @@ class Go3DApp {
 
     bindEvents() {
         this.modeSelect.addEventListener('change', () => {
-            this.syncLatticeOptions();
+            this.syncBoundaryVisibility();
+            this.syncLatticeOptions(this.selectedTopologyMode());
+            this.resetGame();
+        });
+        this.r3BoundarySelect?.addEventListener('change', () => {
+            this.syncLatticeOptions(this.selectedTopologyMode());
             this.resetGame();
         });
         this.latticeSelect.addEventListener('change', () => this.resetGame());
@@ -2476,6 +2558,7 @@ class Go3DApp {
     lockSettings() {
         this.settingsLocked = true;
         this.modeSelect.disabled = true;
+        if (this.r3BoundarySelect) this.r3BoundarySelect.disabled = true;
         this.latticeSelect.disabled = true;
         this.sizeSelect.disabled = true;
         if (this.customSizeInput) this.customSizeInput.disabled = true;
@@ -2490,6 +2573,7 @@ class Go3DApp {
         if (!this.canChangeSettings()) return;
         this.settingsLocked = false;
         this.modeSelect.disabled = false;
+        if (this.r3BoundarySelect) this.r3BoundarySelect.disabled = false;
         this.latticeSelect.disabled = false;
         this.sizeSelect.disabled = false;
         if (this.customSizeInput) this.customSizeInput.disabled = false;
@@ -2504,6 +2588,7 @@ class Go3DApp {
         const locked = !this.canChangeSettings();
         this.settingsLocked = locked;
         this.modeSelect.disabled = locked;
+        if (this.r3BoundarySelect) this.r3BoundarySelect.disabled = locked;
         this.latticeSelect.disabled = locked;
         this.sizeSelect.disabled = locked;
         if (this.customSizeInput) this.customSizeInput.disabled = locked;
@@ -2528,6 +2613,7 @@ class Go3DApp {
 
     updateUI() {
         this.updateSettingsLockState();
+        this.syncBoundaryVisibility();
         this.updateR3SliceFilterVisibility();
         const isR3Like = isR3LikeTopology(this.logic.topology);
         const isSphere = this.logic.topology === SPHERE_GO_TOPOLOGY;
@@ -2535,16 +2621,28 @@ class Go3DApp {
         const isKlein = this.logic.topology === KLEIN_BOTTLE_TOPOLOGY;
         const isMobius = this.logic.topology === MOBIUS_GO_TOPOLOGY;
         const isRP2 = this.logic.topology === RP2_GO_TOPOLOGY;
+        const boundaryKey = isR3Like ? r3BoundaryKey(this.logic.topology) : '';
         const modeKey = isR3Like
-            ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : 'r3')
+            ? 'r3'
             : isSphere ? 'sphere' : isCylinder ? 'cylinder' : isKlein ? 'klein' : isMobius ? 'mobius' : isRP2 ? 'rp2' : 't2';
+        const boundaryInfoKey = isR3Like
+            ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : this.logic.topology === R3_RP3_TOPOLOGY ? 'rp3' : 'r3')
+            : modeKey;
         const visualLattice = isSphere ? this.currentLattice() : this.logic.lattice;
+        const boundaryLabel = isR3Like ? ` - ${tr(`boundary.${boundaryKey}`)}` : '';
         this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
             size: this.logic.size,
             width: this.logic.width,
             height: this.logic.height
         })} · ${this.latticeName()}`;
-        this.modeInfo.textContent = tr(`mode.${modeKey}Info`) + this.latticeInfo(visualLattice);
+        if (boundaryLabel) {
+            this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
+                size: this.logic.size,
+                width: this.logic.width,
+                height: this.logic.height
+            })}${boundaryLabel} - ${this.latticeName()}`;
+        }
+        this.modeInfo.textContent = tr(`mode.${boundaryInfoKey}Info`) + this.latticeInfo(visualLattice);
         this.sphereViewGroup.hidden = !isSphere;
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? this.pendingScoreText() : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
         this.blackCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.black });
@@ -2730,10 +2828,12 @@ class Go3DApp {
     }
 
     getNetworkSettings() {
-        const mode = normalizeGoMode(this.modeSelect.value);
+        const spaceMode = this.selectedSpaceMode();
+        const mode = this.selectedTopologyMode();
         return {
-            variant: mode === 't2' ? 't2go' : mode === 'sphere' ? 's2go' : mode === 'klein' ? 'kleingo' : mode === 'mobius' ? 'mobiusgo' : mode === 'rp2' ? 'rp2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : 'r3go',
-            mode,
+            variant: spaceMode === 't2' ? 't2go' : spaceMode === 'sphere' ? 's2go' : spaceMode === 'klein' ? 'kleingo' : spaceMode === 'mobius' ? 'mobiusgo' : spaceMode === 'rp2' ? 'rp2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : mode === R3_RP3_TOPOLOGY ? 'rp3go' : 'r3go',
+            mode: spaceMode,
+            boundary: isR3LikeTopology(mode) ? mode : '',
             lattice: this.latticeSelect.value,
             size: this.boardSize(),
             timer: Number(this.timerSelect.value) || 0,
@@ -2761,6 +2861,7 @@ class Go3DApp {
             timeRemaining: { ...this.timeRemaining },
             timerValue: Number(this.timerSelect.value) || 0,
             modeValue: this.modeSelect.value,
+            r3BoundaryValue: this.r3BoundarySelect?.value || R3_STANDARD_TOPOLOGY,
             pieceAges: Array.from(this.pieceAges || []),
             noiseTick: this.noiseTick,
             timeEvolution: this.timeEvolutionSelect?.value || 'off',
@@ -2786,8 +2887,14 @@ class Go3DApp {
                         ? 'mobius'
                         : this.logic.topology === RP2_GO_TOPOLOGY
                             ? 'rp2'
-                            : isR3LikeTopology(this.logic.topology) ? this.logic.topology : R3_STANDARD_TOPOLOGY;
-        this.syncLatticeOptions(this.modeSelect.value);
+                            : R3_STANDARD_TOPOLOGY;
+        if (this.r3BoundarySelect) {
+            this.r3BoundarySelect.value = isR3LikeTopology(this.logic.topology)
+                ? this.logic.topology
+                : R3_STANDARD_TOPOLOGY;
+        }
+        this.syncBoundaryVisibility();
+        this.syncLatticeOptions(this.selectedTopologyMode());
         this.latticeSelect.value = this.logic.lattice;
         this.setSizeSelection(this.logic.size);
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);

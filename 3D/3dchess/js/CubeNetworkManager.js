@@ -11,7 +11,7 @@ const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'
 };
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/3D/3dchess/';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dchess/';
 const ROOM_STORAGE_PREFIX = '3dchess:cube:room:';
 const PEER_OPTIONS = {
     host: '0.peerjs.com',

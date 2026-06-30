@@ -32,7 +32,8 @@ const BUCKYBALL_LATTICE = 'buckyball';
 const R3_LIKE_TOPOLOGIES = new Set([
     REVERSI_TOPOLOGIES.R3,
     REVERSI_TOPOLOGIES.T3,
-    REVERSI_TOPOLOGIES.R3_RANDOM
+    REVERSI_TOPOLOGIES.R3_RANDOM,
+    REVERSI_TOPOLOGIES.RP3
 ]);
 
 function isR3LikeTopology(topology) {
@@ -1107,9 +1108,9 @@ class Reversi3DRenderer {
     }
 
     honeycombSurfaceMetrics(width, height) {
-        const radius = 0.92;
-        const dx = Math.sqrt(3);
-        const dy = 1.5;
+        const radius = 0.96;
+        const dx = 1.5;
+        const dy = Math.sqrt(3);
         return {
             radius,
             dx,
@@ -1117,7 +1118,14 @@ class Reversi3DRenderer {
             periodX: Math.max(1, width * dx),
             periodY: Math.max(1, height * dy),
             minY: -radius,
-            maxY: Math.max(1, (height - 1) * dy + radius)
+            maxY: Math.max(1, (height - 1) * dy + dy * 0.5 + radius)
+        };
+    }
+
+    honeycombSurfaceCenter(col, row, metrics) {
+        return {
+            x: metrics.dx * col,
+            y: metrics.dy * (row + (col % 2 ? 0.5 : 0))
         };
     }
 
@@ -1137,10 +1145,7 @@ class Reversi3DRenderer {
         const metrics = this.honeycombSurfaceMetrics(width, height);
         const row = Number(coord?.[1]) || 0;
         const col = Number(coord?.[0]) || 0;
-        const center = {
-            x: metrics.dx * (col + (row % 2 ? 0.5 : 0)),
-            y: metrics.dy * row
-        };
+        const center = this.honeycombSurfaceCenter(col, row, metrics);
         const x = ((center.x % metrics.periodX) + metrics.periodX) % metrics.periodX;
         const u = x / metrics.periodX * TWO_PI;
         if (surface === 'torus') {
@@ -1200,12 +1205,9 @@ class Reversi3DRenderer {
         const metrics = this.honeycombSurfaceMetrics(width, height);
         for (let row = 0; row < height; row += 1) {
             for (let col = 0; col < width; col += 1) {
-                const center = {
-                    x: metrics.dx * (col + (row % 2 ? 0.5 : 0)),
-                    y: metrics.dy * row
-                };
+                const center = this.honeycombSurfaceCenter(col, row, metrics);
                 const vertices = Array.from({ length: 6 }, (_, index) => {
-                    const angle = Math.PI / 6 + index * Math.PI / 3;
+                    const angle = index * Math.PI / 3;
                     return {
                         x: center.x + metrics.radius * Math.cos(angle),
                         y: center.y + metrics.radius * Math.sin(angle)
@@ -1580,9 +1582,10 @@ class Reversi3DApp {
     applyUrlSettings() {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || 'r3');
-        if (['r3', 't3', 'r3_random'].includes(mode)) {
+        const boundary = normalizeReversiTopology(params.get('boundary') || params.get('boundaryCondition') || params.get('r3Boundary') || mode);
+        if (['r3', 't3', 'r3_random', 'rp3'].includes(mode)) {
             this.modeSelect.value = 'r3';
-            this.boundarySelect.value = mode;
+            this.boundarySelect.value = ['r3', 't3', 'r3_random', 'rp3'].includes(boundary) ? boundary : mode;
         } else {
             this.modeSelect.value = ['t2', 'cylinder', 'sphere', 'klein', 'mobius'].includes(mode) ? mode : 'r3';
             this.boundarySelect.value = 'r3';
@@ -1609,10 +1612,18 @@ class Reversi3DApp {
     }
 
     createLogic() {
+        const activeTopology = this.activeTopology();
+        const lattice = this.logicLattice();
+        const requestedSize = this.boardSize();
+        const needsEvenHoneycombSeam = lattice === HONEYCOMB_LATTICE
+            && (activeTopology === REVERSI_TOPOLOGIES.T2 || activeTopology === REVERSI_TOPOLOGIES.CYLINDER);
+        const size = needsEvenHoneycombSeam && requestedSize % 2
+            ? (requestedSize < 19 ? requestedSize + 1 : requestedSize - 1)
+            : requestedSize;
         return new ReversiGame({
-            topology: this.activeTopology(),
-            lattice: this.logicLattice(),
-            size: this.boardSize(),
+            topology: activeTopology,
+            lattice,
+            size,
             maxSize: 19
         });
     }
@@ -1920,6 +1931,7 @@ class Reversi3DApp {
             r3: lattice === HCP_LATTICE ? 'R3 HCP' : 'R3 Standard',
             t3: lattice === HCP_LATTICE ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
             r3_random: lattice === HCP_LATTICE ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
+            rp3: lattice === HCP_LATTICE ? 'R3 HCP / RP3' : 'R3 / RP3',
             t2: lattice === HONEYCOMB_LATTICE ? 'T2 Honeycomb' : 'T2 Standard',
             cylinder: lattice === HONEYCOMB_LATTICE ? 'Cylinder Honeycomb' : 'Cylinder Standard',
             sphere: `S2 ${latticeLabel}`,
@@ -1933,11 +1945,12 @@ class Reversi3DApp {
                 : 'R3 Standard uses ordinary open cubic site vertices. Reversi brackets can run through all 26 graph ray directions.',
             t3: 'T3 is the all-side periodic boundary condition on the R3 board. It wraps x, y, and z, so every volume axis is periodic.',
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
+            rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
             t2: lattice === HONEYCOMB_LATTICE
-                ? 'T2 honeycomb is wrapped like a nanotube net on a torus. Reversi stones occupy the center of each face cell.'
+                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy the center of each face cell.'
                 : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
             cylinder: lattice === HONEYCOMB_LATTICE
-                ? 'Cylinder honeycomb wraps hexagon units around the circumference. Reversi stones occupy face-cell centers.'
+                ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Reversi stones occupy face-cell centers.'
                 : 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
             sphere: lattice === BUCKYBALL_LATTICE
                 ? 'S2 Buckyball shows a pentagon/hexagon shell grid on the sphere. Sphere Reversi remains vertex-based at the singular caps.'
@@ -2056,7 +2069,7 @@ class Reversi3DApp {
         if (!state?.logic) return;
         this.logic.importState(state.logic);
         const topology = state.mode || this.logic.topology.topology || this.modeSelect.value;
-        if (['r3', 't3', 'r3_random'].includes(topology)) {
+        if (['r3', 't3', 'r3_random', 'rp3'].includes(topology)) {
             this.modeSelect.value = 'r3';
             if (this.boundarySelect) this.boundarySelect.value = topology;
         } else {

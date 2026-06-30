@@ -31,6 +31,7 @@ import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
 export const R3_RANDOM_TOPOLOGY = 'r3_random';
+export const R3_RP3_TOPOLOGY = 'rp3';
 export const CYLINDER_GO_TOPOLOGY = 'cylinder';
 export const SQUARE_LATTICE = 'square';
 export const HONEYCOMB_LATTICE = 'honeycomb';
@@ -137,6 +138,27 @@ function boundaryTargets3D(size) {
 
 function randomExitKey3D(coord, axis, delta) {
     return `${coord.join(',')}:${axis}:${Math.sign(delta)}`;
+}
+
+function positiveMod(value, modulus) {
+    return ((value % modulus) + modulus) % modulus;
+}
+
+function rp3StepCoord3D(coord, direction, size) {
+    const next = coord.map((value, axis) => value + (direction[axis] || 0));
+    const outsideAxes = next
+        .map((value, axis) => (value < 0 || value >= size ? axis : -1))
+        .filter((axis) => axis >= 0);
+    if (!outsideAxes.length) return next;
+    const mapped = [...next];
+    for (const boundaryAxis of outsideAxes) {
+        mapped[boundaryAxis] = mapped[boundaryAxis] < 0 ? size - 1 : 0;
+        for (let axis = 0; axis < 3; axis += 1) {
+            if (axis === boundaryAxis) continue;
+            mapped[axis] = size - 1 - positiveMod(mapped[axis], size);
+        }
+    }
+    return mapped;
 }
 
 function createRandomBoundaryMap3D(size, seed = randomSeed()) {
@@ -310,6 +332,10 @@ export class GoGameLogic {
         }
         if (this.topology === RP2_GO_TOPOLOGY && this.dimension === 2) {
             return rp2StepCoord(coord, direction, this.width, this.height);
+        }
+        if (this.topology === R3_RP3_TOPOLOGY && this.dimension === 3) {
+            const mapped = rp3StepCoord3D(coord, direction, this.size);
+            return this.containsCoord(mapped) ? mapped : null;
         }
         if (this.topology === R3_RANDOM_TOPOLOGY && this.dimension === 3) {
             const changedAxes = direction
@@ -628,7 +654,12 @@ export class GoGameLogic {
             neutral: 0,
             komi: this.komi,
             scoring: 'graph-area',
-            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; otherwise the region is neutral.'
+            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; otherwise the region is neutral.',
+            territorySites: {
+                black: [],
+                white: [],
+                neutral: []
+            }
         };
         for (const index of deadCandidates) {
             const color = valueToColor(this.board[index]);
@@ -657,8 +688,10 @@ export class GoGameLogic {
                 const owner = [...borderColors][0];
                 score[owner] += region.length;
                 score[`${owner}Territory`] += region.length;
+                score.territorySites[owner].push(...region.map((point) => this.coordFromIndex(point)));
             } else {
                 score.neutral += region.length;
+                score.territorySites.neutral.push(...region.map((point) => this.coordFromIndex(point)));
             }
         }
 

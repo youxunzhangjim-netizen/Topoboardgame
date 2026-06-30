@@ -9,7 +9,7 @@ const MATCHMAKING_JOIN_TIMEOUT_MS = 12000;
 const MATCHMAKING_RETRY_MS = 850;
 const MATCHMAKING_SLOT_COUNT = 12;
 const ROOM_STORAGE_PREFIX = '2dchess:room:';
-const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Spacechess/2D/2dchess/';
+const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dchess/';
 const OPEN_RELAY_CREDENTIALS = {
     username: 'openrelayproject',
     credential: 'openrelayproject'

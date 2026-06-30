@@ -87,9 +87,9 @@ body {
 .score-box strong { font-size: 18px; }
 
 .board-frame {
-    height: clamp(430px, calc(100vh - 190px), 680px);
+    height: clamp(520px, calc(100vh - 150px), 86vh);
     min-height: 0;
-    max-height: 680px;
+    max-height: 920px;
     position: relative;
     border-radius: 8px;
     overflow: hidden;

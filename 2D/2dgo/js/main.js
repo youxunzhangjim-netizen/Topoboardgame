@@ -676,6 +676,8 @@ class Go2DApp {
             ctx.fill();
         }
 
+        this.drawTerritoryMarkers(rect);
+
         if (this.hoverCoord && this.logic.board[this.logic.indexFromCoord(this.hoverCoord)] === COLORS.empty && !this.logic.gameOver) {
             const p = this.coordToPixel(this.hoverCoord);
             ctx.beginPath();
@@ -695,6 +697,34 @@ class Go2DApp {
             this.drawStone(p.x, p.y, radius, color);
             this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings());
         }
+    }
+
+    drawTerritoryMarkers(rect) {
+        if (!this.logic.scoringPending && !this.logic.gameOver && !this.logic.score) return;
+        const score = this.logic.score || this.logic.computeAreaScore();
+        if (!score?.territorySites) return;
+        const ctx = this.ctx;
+        const size = Math.max(5, Math.min(rect.step * 0.28, 16));
+        const half = size / 2;
+        const entries = [
+            ['black', 'rgba(15, 23, 42, 0.7)', 'rgba(248, 250, 252, 0.52)'],
+            ['white', 'rgba(248, 250, 252, 0.78)', 'rgba(15, 23, 42, 0.42)'],
+            ['neutral', 'rgba(148, 163, 184, 0.48)', 'rgba(15, 23, 42, 0.28)']
+        ];
+        ctx.save();
+        for (const [owner, fill, stroke] of entries) {
+            for (const coord of score.territorySites[owner] || []) {
+                const index = this.logic.indexFromCoord(coord);
+                if (index < 0 || this.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
+                const point = this.coordToPixel(coord);
+                ctx.fillStyle = fill;
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = Math.max(1, size * 0.13);
+                ctx.fillRect(point.x - half, point.y - half, size, size);
+                ctx.strokeRect(point.x - half, point.y - half, size, size);
+            }
+        }
+        ctx.restore();
     }
 
     drawPolarGrid(rect) {

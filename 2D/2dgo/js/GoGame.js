@@ -633,7 +633,12 @@ export class GoGameLogic {
             neutral: 0,
             komi: this.komi,
             scoring: 'graph-area',
-            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; mixed-border regions are neutral.'
+            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; mixed-border regions are neutral.',
+            territorySites: {
+                black: [],
+                white: [],
+                neutral: []
+            }
         };
         for (const index of deadCandidates) {
             const color = valueToColor(this.board[index]);
@@ -662,13 +667,17 @@ export class GoGameLogic {
                 const polarCenterOnly = this.topology === 'polar'
                     && this.dimension === 2
                     && [...(borderStoneIndexes[owner] || [])].every((stoneIndex) => this.coordFromIndex(stoneIndex)[0] === 0);
-                if (polarCenterOnly) score.neutral += region.length;
-                else {
+                if (polarCenterOnly) {
+                    score.neutral += region.length;
+                    score.territorySites.neutral.push(...region.map((point) => this.coordFromIndex(point)));
+                } else {
                     score[owner] += region.length;
                     score[`${owner}Territory`] += region.length;
+                    score.territorySites[owner].push(...region.map((point) => this.coordFromIndex(point)));
                 }
             } else {
                 score.neutral += region.length;
+                score.territorySites.neutral.push(...region.map((point) => this.coordFromIndex(point)));
             }
         }
 
