@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Hex</title>
     <link rel="stylesheet" href="./css/hex.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js"
+            }
+        }
+    </script>
 </head>
 <body>
     <main class="app-shell">
@@ -113,6 +120,8 @@
                         <option value="bcc" data-i18n="bccLattice">BCC</option>
                         <option value="fcc" data-i18n="fccLattice">FCC</option>
                         <option value="hcp" data-i18n="hcpLattice">HCP</option>
+                        <option value="sphere_coordinate" data-i18n="geodesicLattice">Geodesic</option>
+                        <option value="buckyball" data-i18n="buckyballLattice">Buckyball</option>
                     </select>
                 </div>
             </div>

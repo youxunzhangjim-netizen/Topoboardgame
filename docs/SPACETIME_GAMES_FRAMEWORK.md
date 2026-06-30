@@ -19,13 +19,10 @@ Each family has 2+1D and 3+1D variants:
 
 ## Shared files
 
-- `spacetime/index.html`
-- `spacetime/js/TimeEngine.js`
-- `spacetime/js/TimePiece.js`
-- `spacetime/js/Scheduler.js`
-- `spacetime/js/SpaceTimeRules.js`
-- `spacetime/js/SpaceTimeUI.js`
-- `spacetime/js/presets.js`
+- `js/shared/SpaceTimeTimelineEngine.js`
+- `js/shared/SpaceTimeGameEnhancer.js`
+
+The old standalone `spacetime/` selector page has been retired. +1D play now starts directly from the main launcher’s 2+1D and 3+1D game cards.
 
 ## Supported time fields
 

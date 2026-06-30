@@ -122,6 +122,8 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
     const normalizedDimension = normalizeDimension(dimension);
     const token = String(lattice || '').trim().toLowerCase();
     if (normalizedDimension === 3) {
+        if (token === 'sphere_coordinate' || token === 'sphere-coordinate' || token === 'geodesic') return 'sphere_coordinate';
+        if (token === 'buckyball' || token === 'buckminsterfullerene' || token === 'fullerene') return 'buckyball';
         if (token === 'hcp') return 'hcp';
         if (token === 'bcc') return 'bcc';
         if (token === 'fcc') return 'fcc';

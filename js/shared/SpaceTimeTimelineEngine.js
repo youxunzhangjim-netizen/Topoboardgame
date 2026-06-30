@@ -51,7 +51,6 @@ const COPY = {
     reject: 'Strict',
     skip: 'Fail Forward',
     apply: 'Apply timeline settings',
-    selector: '2+1D / 3+1D selector',
     pending: 'Pending Future Actions',
     history: 'Resolved Events',
     editableHistory: 'Editable History',
@@ -162,7 +161,6 @@ const COPY = {
     reject: '嚴格',
     skip: '失敗前進',
     apply: '套用時間線設定',
-    selector: '2+1D／3+1D 選擇器',
     pending: '待生效未來行動',
     history: '已生效事件',
     editableHistory: '可編輯歷史',
@@ -330,6 +328,20 @@ export function installSpaceTimeTimelineEngine() {
     return next;
   }
 
+  function applyExclusiveModeDefaults() {
+    settings.mode = sanitizeMode(settings.mode);
+    if (settings.mode === 'periodic') {
+      settings.periodMode = supportsPeriodMode() ? 'periodic' : 'off';
+      settings.ageMode = 'off';
+    } else if (settings.mode === 'age') {
+      settings.periodMode = 'off';
+      settings.ageMode = supportsAgeMode() ? 'lifetime' : 'off';
+    } else {
+      settings.periodMode = 'off';
+      settings.ageMode = 'off';
+    }
+  }
+
   const stored = readStored();
   const legacyStored = readLegacyStored();
   const storedPeriodMode = stored.periodMode || legacyStored.timeMode;
@@ -355,10 +367,12 @@ export function installSpaceTimeTimelineEngine() {
     noiseRate: allowsNoise ? asNumber(params.get('noiseRate') || stored.noiseRate || legacyStored.noiseRate, 0.04, 0, 1) : 0,
     noisePeriod: allowsNoise ? asInteger(params.get('noisePeriod') || stored.noisePeriod || legacyStored.noisePeriod, 6, 1, 256) : 1
   };
+  if (!hasTimelineModeQuery && settings.periodMode === 'periodic') settings.mode = 'periodic';
   settings.actionOffset = Math.min(settings.actionOffset, settings.delay);
   settings.mode = sanitizeMode(settings.mode);
   if (!supportsAgeMode()) settings.ageMode = 'off';
   if (!supportsPeriodMode()) settings.periodMode = 'off';
+  applyExclusiveModeDefaults();
   const state = {
     app: null,
     tick: 0,
@@ -506,18 +520,19 @@ export function installSpaceTimeTimelineEngine() {
     const style = document.createElement('style');
     style.id = 'spaceTimeTimelineStyle';
     style.textContent = `
-      .st-timeline{position:relative;z-index:50;flex:0 0 auto;margin:14px 0;border:1px solid rgba(86,190,222,.42);border-radius:8px;background:#09111bcc;color:#eef8ff;overflow:hidden}
+      .st-timeline{position:relative;z-index:50;flex:0 0 auto;box-sizing:border-box;width:100%;max-width:100%;margin:14px 0;border:1px solid rgba(86,190,222,.42);border-radius:8px;background:#09111bcc;color:#eef8ff;overflow:hidden}
+      .st-timeline *{box-sizing:border-box}
       .st-timeline__head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid rgba(86,190,222,.18)}
-      .st-timeline__head h3{margin:0;color:#f3bd49;font-size:1rem;letter-spacing:0}.st-timeline__head p{margin:4px 0 0;color:#b9cad8;line-height:1.45;font-size:.84rem}
-      .st-timeline__body{display:grid;gap:12px;padding:14px}.st-timeline__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-      .st-timeline label{display:grid;gap:5px;color:#aac1d2;font-size:.78rem;font-weight:800}.st-timeline select,.st-timeline input{width:100%;min-width:0;padding:9px 10px;border:1px solid rgba(86,190,222,.36);border-radius:6px;background:#080f18;color:#f6fbff;font:inherit}
-      .st-timeline__help,.st-timeline__message,.st-timeline__online{margin:0;padding:9px 10px;border:1px solid rgba(86,190,222,.16);border-radius:6px;background:#0c1723;color:#c6d7e3;line-height:1.45;font-size:.84rem}
+      .st-timeline__head h3{margin:0;color:#f3bd49;font-size:1.08rem;letter-spacing:0;line-height:1.18}.st-timeline__head p{margin:4px 0 0;color:#b9cad8;line-height:1.45;font-size:.92rem;overflow-wrap:anywhere}
+      .st-timeline__body{display:grid;gap:12px;padding:14px}.st-timeline__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+      .st-timeline label{display:grid;min-width:0;gap:5px;color:#aac1d2;font-size:.82rem;font-weight:800}.st-timeline label span{min-width:0;line-height:1.25;overflow-wrap:anywhere}.st-timeline select,.st-timeline input{width:100%;min-width:0;min-height:42px;padding:9px 10px;border:1px solid rgba(86,190,222,.36);border-radius:6px;background:#080f18;color:#f6fbff;font:inherit}
+      .st-timeline__help,.st-timeline__message,.st-timeline__online{margin:0;padding:9px 10px;border:1px solid rgba(86,190,222,.16);border-radius:6px;background:#0c1723;color:#c6d7e3;line-height:1.5;font-size:.9rem;overflow-wrap:anywhere}
       .st-timeline__online{color:#ffd9a0;border-color:rgba(232,164,47,.38)}.st-timeline__actions{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:3}
-      .st-timeline button,.st-timeline a{min-height:38px;padding:8px 12px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:800;text-decoration:none;cursor:pointer}
+      .st-timeline button,.st-timeline a{min-height:40px;min-width:0;padding:8px 12px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:800;text-decoration:none;cursor:pointer;white-space:normal;line-height:1.2;overflow-wrap:anywhere;text-align:center}
       .st-timeline button:hover,.st-timeline a:hover{border-color:#f3bd49}.st-timeline button:disabled,.st-timeline select:disabled,.st-timeline input:disabled{opacity:.52;cursor:not-allowed}
       .st-timeline__section{display:grid;gap:7px}.st-timeline__section h4{margin:0;color:#f3bd49;font-size:.88rem;letter-spacing:0}.st-timeline__list{display:grid;gap:6px}
-      .st-timeline__event{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid rgba(86,190,222,.17);border-radius:6px;background:#0b1622}
-      .st-timeline__event span{min-width:0;overflow-wrap:anywhere;color:#dceaf3;font-size:.82rem}.st-timeline__event-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+      .st-timeline__event{display:grid;grid-template-columns:minmax(0,1fr) minmax(118px,auto);gap:8px;align-items:center;padding:8px 10px;border:1px solid rgba(86,190,222,.17);border-radius:6px;background:#0b1622}
+      .st-timeline__event span{min-width:0;overflow-wrap:anywhere;color:#dceaf3;font-size:.84rem;line-height:1.35}.st-timeline__event-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
       .st-timeline__event button{min-height:30px;padding:4px 8px;font-size:.75rem}.st-timeline__empty{color:#93a9b8;font-size:.82rem}
       .st-timeline__group{display:grid;gap:6px}.st-timeline__group-title{margin:6px 0 0;color:#aac1d2;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
       .st-timeline__event.is-failed{border-color:rgba(248,113,113,.42);background:#1a1014}.st-timeline__event.is-obsolete{border-color:rgba(251,191,36,.32);background:#18150d}
@@ -528,10 +543,11 @@ export function installSpaceTimeTimelineEngine() {
       .st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}
       .st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}
       .st-replay-badge{position:fixed;z-index:9998;left:50%;top:14px;transform:translateX(-50%);max-width:min(720px,calc(100vw - 24px));padding:9px 13px;border:1px solid rgba(243,189,73,.7);border-radius:999px;background:#08111df2;box-shadow:0 12px 38px rgba(0,0,0,.38);color:#ffe8ad;font-size:.86rem;font-weight:850;pointer-events:none;text-align:center}
-      .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:6px;min-width:190px;max-width:min(320px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
-      .st-slice-picker strong{font-size:.82rem;color:#f3bd49}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.st-slice-picker button{min-height:32px;padding:6px 7px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:850;cursor:pointer}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
+      .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:7px;min-width:210px;max-width:min(360px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
+      .st-slice-picker strong{font-size:.86rem;color:#f3bd49;line-height:1.25}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:6px}.st-slice-picker button{min-height:34px;padding:6px 7px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:850;cursor:pointer;line-height:1.15;white-space:normal}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
       .st-timeline [hidden]{display:none!important}
-      @media(max-width:680px){.st-timeline__head{display:block}.st-timeline__grid,.st-timeline__summary{grid-template-columns:1fr}.st-timeline__actions{display:grid;grid-template-columns:1fr}.st-timeline__event{grid-template-columns:1fr}.st-timeline__event-actions{justify-content:flex-start}.st-timeline button,.st-timeline a{width:100%;text-align:center}}
+      @media(max-width:920px){.st-timeline__grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.st-timeline__event{grid-template-columns:1fr}.st-timeline__event-actions{justify-content:flex-start}.st-timeline__actions>*{flex:1 1 180px}}
+      @media(max-width:680px){.st-timeline{margin:10px 0}.st-timeline__head{display:block;padding:12px}.st-timeline__body{padding:12px}.st-timeline__grid,.st-timeline__summary{grid-template-columns:1fr}.st-timeline__actions{display:grid;grid-template-columns:1fr}.st-timeline button,.st-timeline a{width:100%;text-align:center}.st-slice-picker{left:12px!important;right:12px!important;max-width:none}.st-slice-picker__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
   }
@@ -620,7 +636,6 @@ export function installSpaceTimeTimelineEngine() {
         </section>
         <div class="st-timeline__actions">
           <button type="button" data-st-apply></button>
-          <a data-st-selector href="${relativeRoot()}spacetime/"></a>
         </div>
         <section class="st-timeline__section" data-st-pending-section>
           <h4 data-st-pending-title></h4><div class="st-timeline__list" data-st-pending-list></div>
@@ -695,16 +710,7 @@ export function installSpaceTimeTimelineEngine() {
       settings.rewriteWindow = selected === 'custom' ? settings.customWindow : asInteger(selected, 5, 1, 64);
       settings.conflictPolicy = normalizeConflictPolicy(panel.querySelector('[data-st-conflict]').value);
     }
-    if (settings.mode === 'periodic') {
-      settings.periodMode = supportsPeriodMode() ? 'periodic' : 'off';
-      settings.ageMode = 'off';
-    } else if (settings.mode === 'age') {
-      settings.periodMode = 'off';
-      settings.ageMode = supportsAgeMode() ? 'lifetime' : 'off';
-    } else {
-      settings.periodMode = 'off';
-      settings.ageMode = 'off';
-    }
+    applyExclusiveModeDefaults();
     settings.periodOn = asInteger(panel.querySelector('[data-st-period-on]').value, 2, 1, 32);
     settings.periodOff = asInteger(panel.querySelector('[data-st-period-off]').value, 2, 1, 32);
     settings.dt = asInteger(panel.querySelector('[data-st-dt]').value, 1, 1, 16);
@@ -868,13 +874,21 @@ export function installSpaceTimeTimelineEngine() {
       });
       app.setDynamicsSettings = (incoming = {}) => {
         if (incoming.timeEvolution) {
-          if (incoming.timeEvolution === 'decay') settings.ageMode = 'lifetime';
-          if (incoming.timeEvolution === 'periodic' && family === 'go') settings.periodMode = 'periodic';
+          if (incoming.timeEvolution === 'decay') {
+            settings.mode = 'age';
+            settings.ageMode = 'lifetime';
+          }
+          if (incoming.timeEvolution === 'periodic' && family === 'go') {
+            settings.mode = 'periodic';
+            settings.periodMode = 'periodic';
+          }
           if (incoming.timeEvolution === 'off') {
+            if (settings.mode === 'age' || settings.mode === 'periodic') settings.mode = 'future';
             settings.ageMode = 'off';
             settings.periodMode = 'off';
           }
         }
+        applyExclusiveModeDefaults();
         if (incoming.lifetime) settings.lifetime = asInteger(incoming.lifetime, settings.lifetime, 1, 512);
         if (incoming.oldAge) settings.oldAge = asInteger(incoming.oldAge, settings.oldAge, 1, 512);
         if (incoming.noiseMode) settings.noiseMode = reverse2DNoise(incoming.noiseMode);
@@ -2785,7 +2799,6 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelector('[data-st-apply]').textContent = text('apply');
     panel.querySelector('[data-st-apply-rewrite]').textContent = text('applyRewrite');
     panel.querySelector('[data-st-cancel-rewrite]').textContent = text('cancelRewrite');
-    panel.querySelector('[data-st-selector]').textContent = text('selector');
     panel.querySelector('[data-st-pending-title]').textContent = text('pending');
     panel.querySelector('[data-st-history-title]').textContent = text(past ? 'editableHistory' : 'history');
     panel.querySelectorAll('[data-st-future]').forEach((node) => { node.hidden = !future; });

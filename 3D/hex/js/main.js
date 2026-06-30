@@ -1,10 +1,16 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
+import {
+    createBuckyballSphereFacePolygons,
+    createBuckyballSphereGridLines
+} from '../../../js/geometry/SphereBoardGeometry.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
 const TWO_PI = Math.PI * 2;
 const isSpaceTime = params.get('spacetime') === '3p1';
+const SPHERE_GEODESIC_LATTICE = 'sphere_coordinate';
+const BUCKYBALL_LATTICE = 'buckyball';
 
 const I18N = {
     en: {
@@ -50,6 +56,8 @@ const I18N = {
         bccLattice: 'BCC',
         fccLattice: 'FCC',
         hcpLattice: 'HCP',
+        geodesicLattice: 'Geodesic',
+        buckyballLattice: 'Buckyball',
         trefoilTube: 'Trefoil Tube',
         kleinQuartic: 'Klein Quartic x I',
         boardView: 'Board View',
@@ -98,7 +106,7 @@ const I18N = {
             reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
             t2: 'T2 is a torus surface embedded in 3D. Surface Hex fills face cells and both players connect marked cut-seam zones.',
             cylinder: 'Cylinder is a 2D surface embedded in 3D. Surface Hex fills face cells; Black uses cut-seam zones and White uses the two rim directions.',
-            sphere: 'S2 is a sphere surface with single north/south pole sites and latitude rings between them.',
+            sphere: 'S2 Sphere Hex can use a Geodesic longitude-latitude face board or a Buckyball pentagon/hexagon face board. Hex fills face cells on both sphere lattices.',
             klein: 'Klein bottle is a non-orientable surface with a twisted seam. Surface Hex fills face cells and goals use marked zones.',
             mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Black uses the seam zones and White uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
@@ -149,6 +157,8 @@ const I18N = {
         bccLattice: 'BCC',
         fccLattice: 'FCC',
         hcpLattice: 'HCP',
+        geodesicLattice: '測地格',
+        buckyballLattice: '巴克球',
         trefoilTube: '三葉結管面',
         kleinQuartic: 'Klein quartic x I',
         boardView: '棋盤視角',
@@ -197,7 +207,7 @@ const I18N = {
             reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
             t2: 'T2 是嵌入 3D 視圖的環面曲面；曲面六貫棋填入面單元，雙方連接曲面上的切縫目標區。',
             cylinder: '圓柱是嵌入 3D 視圖的二維曲面；曲面六貫棋填入面單元，黑方使用切縫目標區，白方使用兩側邊界。',
-            sphere: 'S2 是含單一北極 / 南極格點的球面；兩極之間以緯線環連接。',
+            sphere: 'S2 球面六貫棋可使用測地經緯面格，或巴克球五邊形 / 六邊形面格；兩者都以填滿面單元來落子。',
             klein: 'Klein 瓶是含扭轉縫的非定向曲面；曲面六貫棋填入面單元，目標使用曲面標示區。',
             mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，黑方使用接縫目標區，白方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
@@ -316,8 +326,8 @@ function newGame() {
     clearTimeout(robotTimer);
     const requestedSize = Number(elements.size.value);
     const topology = selectedTopology();
-    const topologySize = expandedBoardSize(topology, requestedSize);
-    const lattice = isVolumeTopology() ? elements.lattice.value : 'axis';
+    const lattice = selectedLatticeForTopology(topology);
+    const topologySize = expandedBoardSize(topology, requestedSize, lattice);
     game = new HexGame({ dimension: 3, size: topologySize, topology, lattice });
     syncBoardDimensions();
     statusKey = 'emptyPrompt';
@@ -336,8 +346,11 @@ function newGame() {
     drawBoard();
 }
 
-function expandedBoardSize(topology, baseSize) {
+function expandedBoardSize(topology, baseSize, lattice = selectedLatticeForTopology(topology)) {
     const base = Math.max(4, Number(baseSize) || 6);
+    if (topology === 'sphere' && lattice === BUCKYBALL_LATTICE) {
+        return [30, 3, 1];
+    }
     if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) {
         return [Math.max(20, base * 4), Math.max(14, base * 3), 1];
     }
@@ -367,6 +380,16 @@ function selectedTopology() {
     return elements.topology.value === 'open' ? elements.boundary.value : elements.topology.value;
 }
 
+function selectedLatticeForTopology(topology = selectedTopology()) {
+    if (isVolumeTopology()) return elements.lattice.value || 'axis';
+    if (topology === 'sphere') {
+        return elements.lattice.value === BUCKYBALL_LATTICE
+            ? BUCKYBALL_LATTICE
+            : SPHERE_GEODESIC_LATTICE;
+    }
+    return 'axis';
+}
+
 function selectedTopologyLabel() {
     if (elements.topology.value !== 'open') {
         return elements.topology.options[elements.topology.selectedIndex]?.textContent || text(elements.topology.value);
@@ -383,15 +406,31 @@ function isSurfaceTopology(value = elements.topology.value) {
     return ['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2', 'trefoil_tube'].includes(value);
 }
 
+function isBuckyballSphere() {
+    return selectedTopology() === 'sphere' && game?.topology?.lattice === BUCKYBALL_LATTICE;
+}
+
 function syncLatticeControl() {
     const volume = isVolumeTopology();
+    const sphere = !volume && selectedTopology() === 'sphere';
+    const allowed = volume
+        ? ['axis', 'bcc', 'fcc', 'hcp']
+        : sphere
+            ? [SPHERE_GEODESIC_LATTICE, BUCKYBALL_LATTICE]
+            : [];
     elements.boundaryGroup.hidden = !volume;
     elements.boundary.disabled = !volume;
-    elements.latticeGroup.hidden = !volume;
-    elements.lattice.disabled = !volume;
+    elements.latticeGroup.hidden = allowed.length === 0;
+    elements.lattice.disabled = allowed.length === 0;
+    for (const option of elements.lattice.options) {
+        option.hidden = !allowed.includes(option.value);
+        option.disabled = !allowed.includes(option.value);
+    }
+    if (allowed.length && !allowed.includes(elements.lattice.value)) {
+        elements.lattice.value = allowed[0];
+    }
     if (!volume) {
         elements.boundary.value = 'open';
-        elements.lattice.value = 'axis';
     }
 }
 
@@ -652,9 +691,80 @@ function surfacePanelCellCoordinate(x, y) {
     return game.topology.normalize([x, y, 0]);
 }
 
+function drawBuckyballSpherePanels(width, height) {
+    const coordinates = game.topology.coordinates();
+    const polygons = createBuckyballSphereFacePolygons({ radius: 3.45, lift: 0.08 });
+    const blackZone = game.topology.goalZones.black;
+    const whiteZone = game.topology.goalZones.white;
+    const panels = [];
+    const filledCells = new Set();
+
+    for (let index = 0; index < Math.min(coordinates.length, polygons.length); index += 1) {
+        const coordinate = coordinates[index];
+        const vertices = polygons[index].map((point) => [point.x, point.y, point.z]);
+        const points = vertices.map((vertex) => projectModelPoint(vertex, width, height, coordinate));
+        const avgDepth = points.reduce((sum, point) => sum + point.depth, 0) / points.length;
+        const normal = polygonNormal(vertices);
+        const rotatedNormal = normal ? rotatePoint(normal) : null;
+        const color = game.getCell(coordinate);
+        if (color) filledCells.add(coordinate.join(','));
+        panels.push({
+            points,
+            coordinate,
+            avgDepth,
+            color,
+            frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.02,
+            blackTarget: blackZone.start(coordinate) || blackZone.end(coordinate),
+            whiteTarget: whiteZone.start(coordinate) || whiteZone.end(coordinate)
+        });
+    }
+
+    panels.sort((a, b) => a.avgDepth - b.avgDepth);
+    context.save();
+    for (const panel of panels) {
+        context.beginPath();
+        panel.points.forEach((point, index) => {
+            if (index) context.lineTo(point.x, point.y);
+            else context.moveTo(point.x, point.y);
+        });
+        context.closePath();
+        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = 'rgba(36, 169, 194, 0.93)';
+        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = 'rgba(227, 164, 47, 0.93)';
+        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.78)';
+        else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.88)';
+        else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.88)';
+        else context.fillStyle = 'rgba(224, 231, 228, 0.82)';
+        context.fill();
+        context.strokeStyle = 'rgba(37, 49, 56, 0.68)';
+        context.lineWidth = 0.82;
+        context.stroke();
+        projectedSurfaceCells.push({
+            points: panel.points,
+            coordinate: panel.coordinate,
+            depth: panel.avgDepth,
+            frontFacing: panel.frontFacing
+        });
+    }
+
+    context.strokeStyle = 'rgba(23, 32, 38, 0.58)';
+    context.lineWidth = 0.65;
+    for (const line of createBuckyballSphereGridLines({ radius: 3.45, lift: 0.1, segments: 7 })) {
+        const points = line.map((point) => projectModelPoint([point.x, point.y, point.z], width, height));
+        context.beginPath();
+        points.forEach((point, index) => {
+            if (index) context.lineTo(point.x, point.y);
+            else context.moveTo(point.x, point.y);
+        });
+        context.stroke();
+    }
+    context.restore();
+    return filledCells;
+}
+
 function drawSurfacePanels(width, height) {
     const topology = selectedTopology();
     if (!isSurfaceTopology()) return new Set();
+    if (isBuckyballSphere()) return drawBuckyballSpherePanels(width, height);
     const [gridWidth, gridHeight] = game.size;
     const wrapY = topology === 't2' || topology === 'klein' || topology === 'trefoil_tube';
     const yLimit = topology === 'sphere'
@@ -913,7 +1023,7 @@ function canvasPoint(event) {
 
 function nearestSite(event) {
     const point = canvasPoint(event);
-    const frontOnly = selectedTopology().startsWith('trefoil');
+    const frontOnly = selectedTopology().startsWith('trefoil') || isBuckyballSphere();
     const depths = projectedSurfaceCells.map((cell) => cell.depth);
     const maxDepth = depths.length ? Math.max(...depths) : 0;
     const minDepth = depths.length ? Math.min(...depths) : 0;
@@ -1246,7 +1356,19 @@ window.hexApp = {
         return nearestSite(event)?.coordinate || null;
     },
     getSpaceTimeCells() {
-        return projectedSites.map((site) => ({
+        const surfaceCells = projectedSurfaceCells.map((cell) => {
+            const center = cell.points.reduce((sum, item) => [sum[0] + item.x, sum[1] + item.y], [0, 0])
+                .map((value) => value / cell.points.length);
+            return {
+                coordinate: [...cell.coordinate],
+                key: cell.coordinate.join(','),
+                x: center[0],
+                y: center[1],
+                radius: 11,
+                shape: 'polygon'
+            };
+        });
+        const cells = surfaceCells.length ? surfaceCells : projectedSites.map((site) => ({
             coordinate: [...site.coordinate],
             key: site.coordinate.join(','),
             x: site.x,
@@ -1254,6 +1376,7 @@ window.hexApp = {
             radius: site.radius || (game.getCell(site.coordinate) ? 7.5 : 3.4),
             shape: 'circle'
         }));
+        return cells;
     },
     resolveScheduledHex,
     consumeScheduledHexTurn,

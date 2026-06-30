@@ -34,7 +34,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
-    createKleinBottleGridLines,
+    kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -615,16 +615,18 @@ class Go3DRenderer {
             this.boardGroup.add(line);
         };
 
-        for (const points of createKleinBottleGridLines({
-            uSteps: Math.max(8, Math.min(12, Math.round(height * 0.55))),
-            vSteps: Math.max(8, Math.min(12, width)),
-            lift: 0.035,
-            uSegments: 220,
-            vSegments: 160
-        })) addLine(points);
-
         const pointPositions = [];
         const logic = this.app.logic;
+        const drawn = new Set();
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.07, 30));
+            }
+        }
         for (const coord of logic.playableCoords()) {
             const pose = this.kleinOutsidePose(coord, width, height, 0.18);
             this.pointCoords.push(coord);
@@ -2027,7 +2029,7 @@ class Go3DApp {
             : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
                 ? [SQUARE_LATTICE, TRIANGULAR_LATTICE]
                 : mode === 'sphere'
-                    ? [SPHERE_COORDINATE_LATTICE]
+                    ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
                     : [];
         this.latticeGroup.hidden = allowed.length === 0;
         for (const option of this.latticeSelect.options) {

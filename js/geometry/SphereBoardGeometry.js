@@ -54,6 +54,7 @@ function truncatedIcosahedronData() {
     const points = new Map();
     const neighbors = new Map();
     const edges = new Map();
+    const faces = [];
     const pointKey = (a, b) => `${a}->${b}`;
     const ensurePoint = (a, b) => {
         const key = pointKey(a, b);
@@ -67,6 +68,7 @@ function truncatedIcosahedronData() {
             ensurePoint(b, c), ensurePoint(c, b),
             ensurePoint(c, a), ensurePoint(a, c)
         ];
+        faces.push(face);
         for (let index = 0; index < face.length; index += 1) {
             addEdge(edges, face[index], face[(index + 1) % face.length]);
         }
@@ -81,12 +83,13 @@ function truncatedIcosahedronData() {
     for (let vertex = 0; vertex < ICOSAHEDRON_VERTICES.length; vertex += 1) {
         const ring = orderedVertexNeighbors(vertex, neighbors.get(vertex) || []);
         const face = ring.map((neighbor) => ensurePoint(vertex, neighbor));
+        faces.push(face);
         for (let index = 0; index < face.length; index += 1) {
             addEdge(edges, face[index], face[(index + 1) % face.length]);
         }
     }
 
-    return { points, edges: [...edges.values()] };
+    return { points, edges: [...edges.values()], faces };
 }
 
 function truncatedIcosahedronEdges() {
@@ -135,4 +138,14 @@ export function createBuckyballSphereVertices({
     return [...points.entries()]
         .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
         .map(([, point]) => point.clone().multiplyScalar(scale));
+}
+
+export function createBuckyballSphereFacePolygons({
+    radius = 3.5,
+    lift = 0.05
+} = {}) {
+    const scale = radius + lift;
+    const { points, faces } = truncatedIcosahedronData();
+    return faces.map((face) =>
+        face.map((key) => points.get(key).clone().multiplyScalar(scale)));
 }
