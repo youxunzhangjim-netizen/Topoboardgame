@@ -594,6 +594,7 @@ class Reversi2DApp {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const to = this.kagomeCenter(next, rect);
+                if (Math.hypot(to.x - from.x, to.y - from.y) > rect.step * 0.72) continue;
                 ctx.moveTo(from.x, from.y);
                 ctx.lineTo(to.x, to.y);
             }

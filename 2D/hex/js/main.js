@@ -1,6 +1,6 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
-import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
+import { kagomeFaceBounds, kagomeFaceCells } from '../../../js/shared/KagomeLattice.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -446,37 +446,36 @@ function buildCenters(width, height) {
     }
 
     if (elements.lattice.value === 'kagome') {
-        const bounds = kagomeBounds(gridWidth, gridHeight);
+        const bounds = kagomeFaceBounds(gridWidth, gridHeight);
         const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
         const spacing = Math.max(10, Math.min(
             (width - padding * 2) / rawWidth,
             (height - padding * 2) / rawHeight
         )) * zoom;
-        const markerRadius = spacing * 0.12;
         const boardWidth = rawWidth * spacing;
         const boardHeight = rawHeight * spacing;
         const offsetX = (width - boardWidth) / 2 - bounds.minX * spacing;
         const offsetY = (height - boardHeight) / 2 - bounds.minY * spacing;
-        centers = [];
-        for (let r = 0; r < gridHeight; r += 1) {
-            for (let q = 0; q < gridWidth; q += 1) {
-                const point = kagomePoint([q, r], gridWidth, gridHeight);
-                const centerX = offsetX + (point?.x || 0) * spacing;
-                const centerY = offsetY + (point?.y || 0) * spacing;
-                centers.push({
-                    q,
-                    r,
-                    coordinate: [q, r],
-                    key: `${q},${r}`,
-                    x: centerX,
-                    y: centerY,
-                    radius: markerRadius,
-                    vertices: null,
-                    shape: 'kagome-site'
-                });
-            }
-        }
+        centers = kagomeFaceCells(gridWidth, gridHeight).map((cell) => {
+            const vertices = cell.vertices.map((point) => [
+                offsetX + point.x * spacing,
+                offsetY + point.y * spacing
+            ]);
+            const centerX = offsetX + cell.center.x * spacing;
+            const centerY = offsetY + cell.center.y * spacing;
+            return {
+                q: cell.coord[0],
+                r: cell.coord[1],
+                coordinate: [...cell.coord],
+                key: cell.coord.join(','),
+                x: centerX,
+                y: centerY,
+                radius: Math.max(5, spacing * (cell.sides === 6 ? 0.28 : 0.18)),
+                vertices,
+                shape: cell.sides === 6 ? 'kagome-hex-face' : 'kagome-triangle-face'
+            };
+        });
         return;
     }
 
@@ -518,12 +517,6 @@ function buildCenters(width, height) {
 }
 
 function traceCell(cell, scale = 0.96) {
-    if (cell.shape === 'kagome-site') {
-        context.beginPath();
-        context.arc(cell.x, cell.y, cell.radius * scale, 0, Math.PI * 2);
-        context.closePath();
-        return;
-    }
     if (cell.vertices?.length >= 3) {
         context.beginPath();
         for (let index = 0; index < cell.vertices.length; index += 1) {
@@ -645,6 +638,7 @@ function drawSpecialEdges() {
             const target = centerByKey.get(neighborKey);
             if (!target) continue;
             drawn.add(edgeKey);
+            if (game.topology.lattice === 'kagome' && Math.hypot(target.x - cell.x, target.y - cell.y) > cell.radius * 6) continue;
             context.moveTo(cell.x, cell.y);
             if (isKlein) {
                 const midX = (cell.x + target.x) / 2;
@@ -669,7 +663,7 @@ function drawBoard() {
     context.clearRect(0, 0, width, height);
     context.fillStyle = '#f6f7f5';
     context.fillRect(0, 0, width, height);
-    if (game.topology.isSpecial || game.topology.lattice === 'kagome') drawSpecialEdges();
+    if (game.topology.isSpecial) drawSpecialEdges();
 
     for (const cell of centers) {
         const { blackTarget, whiteTarget } = targetFlags(cell.coordinate);

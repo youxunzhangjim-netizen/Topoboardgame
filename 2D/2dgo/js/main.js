@@ -1,6 +1,7 @@
 import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { GoRobotController } from './robot/GoRobot.js';
+import { honeycombBounds, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dgo/';
@@ -315,14 +316,15 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'honeycomb') {
-            const rawWidth = Math.max(1, this.logic.size - 0.5);
-            const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
+            const bounds = honeycombBounds(this.logic.size, this.logic.size);
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
             const step = span / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
             return {
-                x: (cssSize - spanX) / 2,
-                y: (cssSize - spanY) / 2,
+                x: (cssSize - spanX) / 2 - bounds.minX * step,
+                y: (cssSize - spanY) / 2 - bounds.minY * step,
                 span: Math.max(spanX, spanY),
                 spanX,
                 spanY,
@@ -368,9 +370,10 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'honeycomb') {
+            const point = honeycombPoint(coord, this.logic.size, this.logic.size);
             return {
-                x: rect.x + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
-                y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
+                x: rect.x + (point?.x || 0) * rect.step,
+                y: rect.y + (point?.y || 0) * rect.step
             };
         }
         if (this.logic.lattice === 'triangular') {
@@ -643,16 +646,25 @@ class Go2DApp {
                     const from = [x, y];
                     const fromKey = from.join(',');
                     const start = this.coordToPixel(from);
+                    const fromDegree = this.logic.lattice === 'honeycomb'
+                        ? this.logic.neighborsFromCoord(from).length
+                        : 0;
                     for (const neighbor of this.logic.neighborsFromCoord(from)) {
                         if (
                             this.logic.lattice !== 'kagome' &&
+                            this.logic.lattice !== 'honeycomb' &&
                             (Math.abs(neighbor[0] - x) > 1 || Math.abs(neighbor[1] - y) > 1)
                         ) continue;
                         const toKey = neighbor.join(',');
                         const edgeKey = [fromKey, toKey].sort().join('|');
                         if (drawn.has(edgeKey)) continue;
                         drawn.add(edgeKey);
+                        if (
+                            this.logic.lattice === 'honeycomb' &&
+                            (fromDegree < 2 || this.logic.neighborsFromCoord(neighbor).length < 2)
+                        ) continue;
                         const end = this.coordToPixel(neighbor);
+                        if (this.logic.lattice === 'kagome' && Math.hypot(end.x - start.x, end.y - start.y) > rect.step * 0.72) continue;
                         ctx.moveTo(start.x, start.y);
                         ctx.lineTo(end.x, end.y);
                     }
@@ -669,7 +681,7 @@ class Go2DApp {
         }
         ctx.stroke();
 
-        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome') {
+        if (this.logic.lattice === 'kagome') {
             ctx.fillStyle = 'rgba(42, 27, 14, 0.88)';
             for (let y = 0; y < n; y++) {
                 for (let x = 0; x < n; x++) {

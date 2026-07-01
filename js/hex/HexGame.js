@@ -3,7 +3,10 @@ import {
     isSpecialBoardTopology,
     normalizeSpecialTopology
 } from '../topology/SpecialBoardTopologies.js';
-import { kagomeBounds, kagomeNeighbors, kagomePoint } from '../shared/KagomeLattice.js';
+import {
+    kagomeFaceCells,
+    kagomeFaceNeighbors
+} from '../shared/KagomeLattice.js';
 
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
@@ -376,32 +379,41 @@ function createGoalDefinition(dimension, size, topology, customGoalZones, lattic
     }
 
     if (dimension === 2 && lattice === 'kagome') {
-        const bounds = kagomeBounds(size[0], size[1]);
-        const tolerance = Math.max(0.01, Math.min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.05);
-        const pointFor = (coordinate) => kagomePoint(coordinate, size[0], size[1]);
+        const cells = kagomeFaceCells(size[0], size[1]);
+        const sideCount = Math.max(4, Math.round(Math.sqrt(Math.max(1, cells.length))));
+        const coordKeyOf = (coord) => Array.isArray(coord) ? coord.join(',') : '';
+        const keysBy = (axis, descending = false) => cells
+            .slice()
+            .sort((a, b) => {
+                const primary = axis === 'x' ? a.center.x - b.center.x : a.center.y - b.center.y;
+                const secondary = axis === 'x' ? a.center.y - b.center.y : a.center.x - b.center.x;
+                return descending ? -primary || secondary : primary || secondary;
+            })
+            .slice(0, sideCount)
+            .map((cell) => coordKeyOf(cell.coord));
+        const leftKeys = new Set(keysBy('x'));
+        const rightKeys = new Set(keysBy('x', true));
+        const topKeys = new Set(keysBy('y'));
+        const bottomKeys = new Set(keysBy('y', true));
         return Object.freeze({
             black: Object.freeze({
                 type: topology === 'open' ? 'physical-sides' : 'marked-cut-zones',
                 label: topology === 'open' ? 'geometric left / right' : 'geometric x cut zones',
                 start: (coordinate) => {
-                    const point = pointFor(coordinate);
-                    return !!point && point.x <= bounds.minX + tolerance;
+                    return leftKeys.has(coordKeyOf(coordinate));
                 },
                 end: (coordinate) => {
-                    const point = pointFor(coordinate);
-                    return !!point && point.x >= bounds.maxX - tolerance;
+                    return rightKeys.has(coordKeyOf(coordinate));
                 }
             }),
             white: Object.freeze({
                 type: topology === 'open' ? 'physical-sides' : 'marked-cut-zones',
                 label: topology === 'open' ? 'geometric top / bottom' : 'geometric y cut zones',
                 start: (coordinate) => {
-                    const point = pointFor(coordinate);
-                    return !!point && point.y <= bounds.minY + tolerance;
+                    return topKeys.has(coordKeyOf(coordinate));
                 },
                 end: (coordinate) => {
-                    const point = pointFor(coordinate);
-                    return !!point && point.y >= bounds.maxY - tolerance;
+                    return bottomKeys.has(coordKeyOf(coordinate));
                 }
             })
         });
@@ -691,10 +703,8 @@ export function createHexTopology(options = {}) {
             return [...(randomAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
         }
         if (dimension === 2 && lattice === 'kagome') {
-            return kagomeNeighbors(origin, size[0], size[1], {
-                wrapX: ['cylinder', 'torus', 't2'].includes(topology),
-                wrapY: ['torus', 't2'].includes(topology)
-            }).map((candidate) => normalize(candidate))
+            return kagomeFaceNeighbors(origin, size[0], size[1])
+                .map((candidate) => normalize(candidate))
                 .filter((candidate) => candidate && !coordinatesEqual(candidate, origin));
         }
         if (surface3D && topology === 'sphere') {

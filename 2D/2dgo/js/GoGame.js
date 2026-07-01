@@ -10,6 +10,7 @@ import {
     createAgeArray,
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
+import { honeycombNeighbors } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeNeighbors } from '../../../js/shared/KagomeLattice.js';
 
 export const COLORS = {
@@ -341,6 +342,13 @@ export class GoGameLogic {
             return [...new Map(neighbors.map((neighbor) => [this.coordKey(neighbor), neighbor])).values()];
         }
         if (this.dimension === 2) {
+            if (this.lattice === 'honeycomb') {
+                return honeycombNeighbors(coord, this.size, this.size, {
+                    wrapX: this.isWrapAxis(0),
+                    wrapY: this.isWrapAxis(1)
+                })
+                    .filter((neighbor) => this.containsCoord(neighbor));
+            }
             if (this.lattice === 'kagome') {
                 return kagomeNeighbors(coord, this.size, this.size, {
                     wrapX: this.isWrapAxis(0),
