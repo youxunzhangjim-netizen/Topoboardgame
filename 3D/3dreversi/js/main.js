@@ -1144,23 +1144,23 @@ class Reversi3DRenderer {
 
     honeycombSurfaceMetrics(width, height) {
         const radius = 1;
-        const dx = 1.5;
-        const dy = Math.sqrt(3);
+        const dx = Math.sqrt(3);
+        const dy = 1.5;
         return {
             radius,
             dx,
             dy,
-            periodX: Math.max(1, width * dx),
-            periodY: Math.max(1, height * dy),
-            minY: -radius,
-            maxY: Math.max(1, (height - 1) * dy + dy * 0.5 + radius)
+            periodX: Math.max(1, Math.sqrt(3) * (width + (height > 1 ? 0.5 : 0))),
+            periodY: Math.max(1, 1.5 * (height - 1) + 2),
+            minY: 0,
+            maxY: Math.max(1, 1.5 * (height - 1) + 2)
         };
     }
 
     honeycombSurfaceCenter(col, row, metrics) {
         return {
-            x: metrics.dx * col,
-            y: metrics.dy * (row + (col % 2 ? 0.5 : 0))
+            x: Math.sqrt(3) * (0.5 + col + (row % 2) * 0.5),
+            y: 1 + metrics.dy * row
         };
     }
 
@@ -1238,18 +1238,31 @@ class Reversi3DRenderer {
     surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
         const linePositions = [];
         const metrics = this.honeycombSurfaceMetrics(width, height);
+        const edges = new Map();
+        const edgeKey = (a, b) => [
+            `${a.x.toFixed(5)},${a.y.toFixed(5)}`,
+            `${b.x.toFixed(5)},${b.y.toFixed(5)}`
+        ].sort().join('|');
         for (let row = 0; row < height; row += 1) {
             for (let col = 0; col < width; col += 1) {
                 const center = this.honeycombSurfaceCenter(col, row, metrics);
                 const vertices = Array.from({ length: 6 }, (_, index) => {
-                    const angle = index * Math.PI / 3;
+                    const angle = index * Math.PI / 3 - Math.PI / 6;
                     return {
                         x: center.x + metrics.radius * Math.cos(angle),
                         y: center.y + metrics.radius * Math.sin(angle)
                     };
                 });
-                this.appendPlanarPolyline(linePositions, vertices, metrics, surface, lift, true);
+                for (let index = 0; index < vertices.length; index += 1) {
+                    const a = vertices[index];
+                    const b = vertices[(index + 1) % vertices.length];
+                    const key = edgeKey(a, b);
+                    if (!edges.has(key)) edges.set(key, [a, b]);
+                }
             }
+        }
+        for (const [a, b] of edges.values()) {
+            this.appendPolyline(linePositions, this.surfacePlanarEdgePoints(a, b, metrics, surface, lift, 8));
         }
 
         return linePositions;

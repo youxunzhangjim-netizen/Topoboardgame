@@ -49,6 +49,7 @@ import {
     createAgeArray,
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
+import { honeycombBounds, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
@@ -1706,7 +1707,20 @@ class Go3DRenderer {
                 band: rawY / rawHeight
             };
         }
-        if ([TRIANGULAR_LATTICE, HONEYCOMB_LATTICE].includes(lattice)) {
+        if (lattice === HONEYCOMB_LATTICE) {
+            const point = honeycombPoint(coord, width, height) || { x: 0, y: 0 };
+            const bounds = honeycombBounds(width, height);
+            const rawX = point.x - bounds.minX;
+            const rawY = point.y - bounds.minY;
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+            return {
+                u: (rawX / rawWidth) * TWO_PI,
+                v: (rawY / rawHeight) * TWO_PI,
+                band: rawY / rawHeight
+            };
+        }
+        if (lattice === TRIANGULAR_LATTICE) {
             const row = Number(coord[1]) || 0;
             const rawX = Number(coord[0]) + (row % 2) * 0.5;
             const rawY = row * Math.sqrt(3) / 2;

@@ -27,6 +27,7 @@ import {
     setPauliLabel
 } from '../../../js/algebra/PauliAlgebra.js';
 import { SeededRandom } from '../../../js/probability/SeededRandom.js';
+import { honeycombNeighbors } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeNeighbors } from '../../../js/shared/KagomeLattice.js';
 
 export const R3_STANDARD_TOPOLOGY = 'r3';
@@ -426,6 +427,12 @@ export class GoGameLogic {
         }
         if (this.dimension === 2 && this.lattice === KAGOME_LATTICE) {
             return kagomeNeighbors(coord, this.width, this.height, {
+                wrapX: this.topology === CYLINDER_GO_TOPOLOGY || this.topology === 't2',
+                wrapY: this.topology === 't2'
+            }).filter((neighbor) => this.containsCoord(neighbor));
+        }
+        if (this.dimension === 2 && this.lattice === HONEYCOMB_LATTICE) {
+            return honeycombNeighbors(coord, this.width, this.height, {
                 wrapX: this.topology === CYLINDER_GO_TOPOLOGY || this.topology === 't2',
                 wrapY: this.topology === 't2'
             }).filter((neighbor) => this.containsCoord(neighbor));

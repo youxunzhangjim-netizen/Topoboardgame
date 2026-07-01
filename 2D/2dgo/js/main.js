@@ -1,7 +1,7 @@
 import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { GoRobotController } from './robot/GoRobot.js';
-import { honeycombBounds, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
+import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dgo/';
@@ -630,7 +630,7 @@ class Go2DApp {
         ctx.fillStyle = wood;
         ctx.fillRect(0, 0, rect.size, rect.size);
 
-        if (this.logic.lattice === 'honeycomb') this.drawHoneycombFaces(rect);
+        if (this.logic.lattice === 'honeycomb') this.drawHoneycombGraph(rect);
 
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
         ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.045 : 0.035));
@@ -639,7 +639,7 @@ class Go2DApp {
         ctx.beginPath();
         if (this.logic.topology === 'polar') {
             this.drawPolarGrid(rect);
-        } else if (this.logic.lattice !== 'square') {
+        } else if (this.logic.lattice !== 'square' && this.logic.lattice !== 'honeycomb') {
             const drawn = new Set();
             for (let y = 0; y < n; y++) {
                 for (let x = 0; x < n; x++) {
@@ -670,7 +670,7 @@ class Go2DApp {
                     }
                 }
             }
-        } else {
+        } else if (this.logic.lattice === 'square') {
             for (let i = 0; i < n; i++) {
                 const p = rect.x + i * rect.step;
                 ctx.moveTo(rect.x, p);
@@ -712,7 +712,7 @@ class Go2DApp {
         if (this.hoverCoord && this.logic.board[this.logic.indexFromCoord(this.hoverCoord)] === COLORS.empty && !this.logic.gameOver) {
             const p = this.coordToPixel(this.hoverCoord);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.28 : 0.36), 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, this.stoneRadius(rect) * 0.9, 0, Math.PI * 2);
             ctx.fillStyle = this.logic.currentPlayer === 'black' ? 'rgba(0, 0, 0, 0.24)' : 'rgba(255, 255, 255, 0.44)';
             ctx.fill();
         }
@@ -724,10 +724,18 @@ class Go2DApp {
             const coord = this.logic.coordFromIndex(index);
             if (this.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
             const p = this.coordToPixel(coord);
-            const radius = rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
+            const radius = this.stoneRadius(rect);
             this.drawStone(p.x, p.y, radius, color);
             this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings(), coord, index);
         }
+    }
+
+    stoneRadius(rect) {
+        if (this.logic.lattice === 'honeycomb') return rect.step * 0.16;
+        if (this.logic.lattice === 'kagome') return rect.step * 0.2;
+        if (this.logic.lattice === 'triangular') return rect.step * 0.26;
+        if (this.logic.topology === 'polar') return rect.step * 0.32;
+        return rect.step * 0.38;
     }
 
     drawTerritoryMarkers(rect) {
@@ -803,9 +811,43 @@ class Go2DApp {
         ctx.restore();
     }
 
-    drawHoneycombFaces(rect) {
-        // Go stones sit on lattice vertices, so the wood board stays uniform.
-        // The graph lines below show the honeycomb connectivity without face shading.
+    drawHoneycombGraph(rect) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(42, 27, 14, 0.62)';
+        ctx.lineWidth = Math.max(0.85, rect.step * 0.018);
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        const edges = new Map();
+        const keyForPoint = (point) => `${point.x.toFixed(4)},${point.y.toFixed(4)}`;
+        for (const cell of honeycombCells(this.logic.size, this.logic.size)) {
+            const vertices = cell.vertices.map((point) => ({
+                x: rect.x + point.x * rect.step,
+                y: rect.y + point.y * rect.step
+            }));
+            for (let index = 0; index < vertices.length; index += 1) {
+                const a = vertices[index];
+                const b = vertices[(index + 1) % vertices.length];
+                const edgeKey = [keyForPoint(a), keyForPoint(b)].sort().join('|');
+                if (!edges.has(edgeKey)) edges.set(edgeKey, [a, b]);
+            }
+        }
+        for (const [a, b] of edges.values()) {
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(42, 27, 14, 0.78)';
+        for (let y = 0; y < this.logic.size; y += 1) {
+            for (let x = 0; x < this.logic.size; x += 1) {
+                const point = this.coordToPixel([x, y]);
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, Math.max(1.15, rect.step * 0.018), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
     }
 
     drawPeriodicBoundary(rect) {
