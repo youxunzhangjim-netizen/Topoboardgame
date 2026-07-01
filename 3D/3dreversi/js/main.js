@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ReversiGame, REVERSI_TOPOLOGIES, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
+import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
     createKleinBottleSurfaceGeometry,
     createKleinBottleGridLines,
@@ -1102,16 +1103,16 @@ class Reversi3DRenderer {
 
     latticeSurfaceUV(coord, width, height, lattice = 'square') {
         if (lattice === KAGOME_LATTICE) {
-            const row = Number(coord[1]) || 0;
-            const rawX = Number(coord[0]) + (row % 2) * 0.5;
-            const rawY = row * Math.sqrt(3) / 2;
-            const circumference = Math.max(1, width);
-            const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
-            const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
+            const point = kagomePoint(coord, width, height) || { x: 0, y: 0 };
+            const bounds = kagomeBounds(width, height);
+            const rawX = point.x - bounds.minX;
+            const rawY = point.y - bounds.minY;
+            const circumference = Math.max(1, bounds.maxX - bounds.minX);
+            const periodicAxis = Math.max(1, bounds.maxY - bounds.minY);
             return {
                 u: (rawX / circumference) * TWO_PI,
                 v: (rawY / periodicAxis) * TWO_PI,
-                band: rawY / cylinderBand
+                band: rawY / periodicAxis
             };
         }
         if (lattice === 'honeycomb') {
@@ -1142,7 +1143,7 @@ class Reversi3DRenderer {
     }
 
     honeycombSurfaceMetrics(width, height) {
-        const radius = 0.96;
+        const radius = 1;
         const dx = 1.5;
         const dy = Math.sqrt(3);
         return {

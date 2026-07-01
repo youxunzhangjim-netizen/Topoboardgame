@@ -21,6 +21,7 @@ import {
     valueToColor
 } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
     createTorusSurfaceData,
     TORUS_MAJOR_RADIUS,
@@ -1692,7 +1693,20 @@ class Go3DRenderer {
     }
 
     latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE) {
-        if ([TRIANGULAR_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE].includes(lattice)) {
+        if (lattice === KAGOME_LATTICE) {
+            const point = kagomePoint(coord, width, height) || { x: 0, y: 0 };
+            const bounds = kagomeBounds(width, height);
+            const rawX = point.x - bounds.minX;
+            const rawY = point.y - bounds.minY;
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+            return {
+                u: (rawX / rawWidth) * TWO_PI,
+                v: (rawY / rawHeight) * TWO_PI,
+                band: rawY / rawHeight
+            };
+        }
+        if ([TRIANGULAR_LATTICE, HONEYCOMB_LATTICE].includes(lattice)) {
             const row = Number(coord[1]) || 0;
             const rawX = Number(coord[0]) + (row % 2) * 0.5;
             const rawY = row * Math.sqrt(3) / 2;

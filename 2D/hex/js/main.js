@@ -1,5 +1,6 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
+import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -445,22 +446,24 @@ function buildCenters(width, height) {
     }
 
     if (elements.lattice.value === 'kagome') {
-        const rawWidth = Math.max(1, gridWidth - 0.5);
-        const rawHeight = Math.max(1, (gridHeight - 1) * Math.sqrt(3) / 2);
+        const bounds = kagomeBounds(gridWidth, gridHeight);
+        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
         const spacing = Math.max(10, Math.min(
             (width - padding * 2) / rawWidth,
             (height - padding * 2) / rawHeight
         )) * zoom;
-        const markerRadius = spacing * 0.27;
+        const markerRadius = spacing * 0.12;
         const boardWidth = rawWidth * spacing;
         const boardHeight = rawHeight * spacing;
-        const offsetX = (width - boardWidth) / 2;
-        const offsetY = (height - boardHeight) / 2;
+        const offsetX = (width - boardWidth) / 2 - bounds.minX * spacing;
+        const offsetY = (height - boardHeight) / 2 - bounds.minY * spacing;
         centers = [];
         for (let r = 0; r < gridHeight; r += 1) {
             for (let q = 0; q < gridWidth; q += 1) {
-                const centerX = offsetX + (q + (r % 2) * 0.5) * spacing;
-                const centerY = offsetY + r * spacing * Math.sqrt(3) / 2;
+                const point = kagomePoint([q, r], gridWidth, gridHeight);
+                const centerX = offsetX + (point?.x || 0) * spacing;
+                const centerY = offsetY + (point?.y || 0) * spacing;
                 centers.push({
                     q,
                     r,
@@ -469,14 +472,8 @@ function buildCenters(width, height) {
                     x: centerX,
                     y: centerY,
                     radius: markerRadius,
-                    vertices: Array.from({ length: 6 }, (_, index) => {
-                        const angle = Math.PI / 3 * index - Math.PI / 6;
-                        return [
-                            centerX + markerRadius * Math.cos(angle),
-                            centerY + markerRadius * Math.sin(angle)
-                        ];
-                    }),
-                    shape: 'kagome'
+                    vertices: null,
+                    shape: 'kagome-site'
                 });
             }
         }
@@ -521,6 +518,12 @@ function buildCenters(width, height) {
 }
 
 function traceCell(cell, scale = 0.96) {
+    if (cell.shape === 'kagome-site') {
+        context.beginPath();
+        context.arc(cell.x, cell.y, cell.radius * scale, 0, Math.PI * 2);
+        context.closePath();
+        return;
+    }
     if (cell.vertices?.length >= 3) {
         context.beginPath();
         for (let index = 0; index < cell.vertices.length; index += 1) {
@@ -630,7 +633,10 @@ function drawSpecialEdges() {
     const drawn = new Set();
     const isKlein = game.topology.topology === 'klein_quartic';
     context.strokeStyle = isKlein ? 'rgba(75, 91, 102, 0.16)' : 'rgba(75, 91, 102, 0.34)';
-    context.lineWidth = isKlein ? 0.75 : 1;
+    context.lineWidth = game.topology.lattice === 'kagome' ? 1.45 : isKlein ? 0.75 : 1;
+    context.lineCap = 'butt';
+    context.lineJoin = 'round';
+    context.beginPath();
     for (const cell of centers) {
         for (const neighbor of game.topology.neighbors(cell.coordinate)) {
             const neighborKey = game.topology.key(neighbor);
@@ -639,7 +645,6 @@ function drawSpecialEdges() {
             const target = centerByKey.get(neighborKey);
             if (!target) continue;
             drawn.add(edgeKey);
-            context.beginPath();
             context.moveTo(cell.x, cell.y);
             if (isKlein) {
                 const midX = (cell.x + target.x) / 2;
@@ -651,9 +656,9 @@ function drawSpecialEdges() {
             } else {
                 context.lineTo(target.x, target.y);
             }
-            context.stroke();
         }
     }
+    context.stroke();
 }
 
 function drawBoard() {

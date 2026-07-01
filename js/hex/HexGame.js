@@ -3,6 +3,7 @@ import {
     isSpecialBoardTopology,
     normalizeSpecialTopology
 } from '../topology/SpecialBoardTopologies.js';
+import { kagomeBounds, kagomeNeighbors, kagomePoint } from '../shared/KagomeLattice.js';
 
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
@@ -355,7 +356,7 @@ function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary
     return normalized ? [normalized[0], normalized[1], 0] : null;
 }
 
-function createGoalDefinition(dimension, size, topology, customGoalZones) {
+function createGoalDefinition(dimension, size, topology, customGoalZones, lattice = 'hexagonal') {
     if (customGoalZones) {
         const normalizeZone = (zone, label) => {
             if (!zone || typeof zone.start !== 'function' || typeof zone.end !== 'function') {
@@ -371,6 +372,38 @@ function createGoalDefinition(dimension, size, topology, customGoalZones) {
         return Object.freeze({
             black: normalizeZone(customGoalZones.black, 'black'),
             white: normalizeZone(customGoalZones.white, 'white')
+        });
+    }
+
+    if (dimension === 2 && lattice === 'kagome') {
+        const bounds = kagomeBounds(size[0], size[1]);
+        const tolerance = Math.max(0.01, Math.min(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY) * 0.05);
+        const pointFor = (coordinate) => kagomePoint(coordinate, size[0], size[1]);
+        return Object.freeze({
+            black: Object.freeze({
+                type: topology === 'open' ? 'physical-sides' : 'marked-cut-zones',
+                label: topology === 'open' ? 'geometric left / right' : 'geometric x cut zones',
+                start: (coordinate) => {
+                    const point = pointFor(coordinate);
+                    return !!point && point.x <= bounds.minX + tolerance;
+                },
+                end: (coordinate) => {
+                    const point = pointFor(coordinate);
+                    return !!point && point.x >= bounds.maxX - tolerance;
+                }
+            }),
+            white: Object.freeze({
+                type: topology === 'open' ? 'physical-sides' : 'marked-cut-zones',
+                label: topology === 'open' ? 'geometric top / bottom' : 'geometric y cut zones',
+                start: (coordinate) => {
+                    const point = pointFor(coordinate);
+                    return !!point && point.y <= bounds.minY + tolerance;
+                },
+                end: (coordinate) => {
+                    const point = pointFor(coordinate);
+                    return !!point && point.y >= bounds.maxY - tolerance;
+                }
+            })
         });
     }
 
@@ -578,7 +611,7 @@ export function createHexTopology(options = {}) {
     const randomBoundary = topology === 'random'
         ? createRandomBoundary(size, randomBoundarySeed)
         : null;
-    const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones);
+    const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones, lattice);
 
     const normalize = (coordinate) => {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
@@ -656,6 +689,13 @@ export function createHexTopology(options = {}) {
         if (!origin) return [];
         if (randomAdjacency) {
             return [...(randomAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
+        }
+        if (dimension === 2 && lattice === 'kagome') {
+            return kagomeNeighbors(origin, size[0], size[1], {
+                wrapX: ['cylinder', 'torus', 't2'].includes(topology),
+                wrapY: ['torus', 't2'].includes(topology)
+            }).map((candidate) => normalize(candidate))
+                .filter((candidate) => candidate && !coordinatesEqual(candidate, origin));
         }
         if (surface3D && topology === 'sphere') {
             const [width, height] = size;

@@ -1,5 +1,6 @@
 import { SeededRandom } from '../probability/SeededRandom.js';
 import { createPhysicalProblem } from '../physics/PhysicalProblems.js';
+import { kagomeNeighbors } from '../shared/KagomeLattice.js';
 
 export const REVERSI_COLORS = {
     BLACK: 'black',
@@ -364,6 +365,11 @@ function kagomeDirections(coord = [0, 0]) {
         kagomeEdgeAllowed(coord, [coord[0] + direction[0], coord[1] + direction[1]]));
 }
 
+function kagomeNeighborDirections(coord, width, height, options = {}) {
+    return kagomeNeighbors(coord, width, height, options)
+        .map((neighbor) => [neighbor[0] - coord[0], neighbor[1] - coord[1]]);
+}
+
 const TRIANGULAR_LAYER_DIRECTIONS = Object.freeze([
     Object.freeze([1, 0, 0]),
     Object.freeze([-1, 0, 0]),
@@ -454,7 +460,12 @@ export function createReversiTopology(options = {}) {
         directionsFor(coord) {
             if (topology === REVERSI_TOPOLOGIES.POLAR) return polarDirectionsFor(coord, width);
             if (topology === REVERSI_TOPOLOGIES.SPHERE) return sphereDirectionsFor(coord, width, height, directions);
-            if (lattice === KAGOME_LATTICE) return kagomeDirections(coord);
+            if (lattice === KAGOME_LATTICE) {
+                return kagomeNeighborDirections(coord, width, height, {
+                    wrapX: topology === REVERSI_TOPOLOGIES.CYLINDER || topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2,
+                    wrapY: topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2
+                });
+            }
             return lattice === 'hcp'
                 ? hcpDirections(coord)
                 : directions.map((direction) => [...direction]);
@@ -520,8 +531,12 @@ export function createReversiTopology(options = {}) {
         },
         step(coord, direction) {
             const next = coord.map((value, index) => value + (direction[index] || 0));
-            if (dimension === 2 && lattice === KAGOME_LATTICE && !kagomeEdgeAllowed(coord, next)) {
-                return null;
+            if (dimension === 2 && lattice === KAGOME_LATTICE) {
+                const match = kagomeNeighbors(coord, width, height, {
+                    wrapX: topology === REVERSI_TOPOLOGIES.CYLINDER || topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2,
+                    wrapY: topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2
+                }).find((candidate) => candidate[0] === next[0] && candidate[1] === next[1]);
+                return match || null;
             }
             if (topology === REVERSI_TOPOLOGIES.POLAR) {
                 return stepPolar(coord, direction, width, height);

@@ -10,6 +10,7 @@ import {
     createAgeArray,
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
+import { kagomeNeighbors } from '../../../js/shared/KagomeLattice.js';
 
 export const COLORS = {
     empty: 0,
@@ -340,6 +341,12 @@ export class GoGameLogic {
             return [...new Map(neighbors.map((neighbor) => [this.coordKey(neighbor), neighbor])).values()];
         }
         if (this.dimension === 2) {
+            if (this.lattice === 'kagome') {
+                return kagomeNeighbors(coord, this.size, this.size, {
+                    wrapX: this.isWrapAxis(0),
+                    wrapY: this.isWrapAxis(1)
+                }).filter((neighbor) => this.containsCoord(neighbor));
+            }
             for (const direction of latticeDirections(this.lattice, coord)) {
                 const next = this.stepDirection(coord, direction);
                 if (next) neighbors.push(next);

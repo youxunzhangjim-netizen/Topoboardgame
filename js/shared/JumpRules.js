@@ -1,4 +1,5 @@
 import { chooseJumpOpeningBookMove } from './RobotOpeningBook.js';
+import { kagomeNeighbors } from './KagomeLattice.js';
 
 // Shared engine for Topoboardgame jump-race modes. It is intentionally independent
 // from Reversi/Go/Chess so jumps, target zones, and future lab labels can evolve separately.
@@ -120,6 +121,13 @@ function kagomeJumpEdgeAllowed(a, b) {
 function kagomeJumpDirections(coord = [0, 0]) {
   return triangularJumpDirections(coord).filter((dir) =>
     kagomeJumpEdgeAllowed(coord, [coord[0] + dir[0], coord[1] + dir[1]]));
+}
+
+function kagomeNeighborDirections(coord = [0, 0], size = 8, topology = 'plane') {
+  const wrapX = ['pbc', 'torus', 't2', 'cylinder'].includes(String(topology || '').toLowerCase());
+  const wrapY = ['pbc', 'torus', 't2'].includes(String(topology || '').toLowerCase());
+  return kagomeNeighbors(coord, size, size, { wrapX, wrapY })
+    .map((neighbor) => [neighbor[0] - coord[0], neighbor[1] - coord[1]]);
 }
 
 export function createDirectionVectors(dimension, lattice = 'square', topology = 'plane') {
@@ -434,7 +442,7 @@ export class JumpGameState {
     if (this.dimension === 2 && this.topologyName === 'polar' && coord?.[0] === 0) {
       return Array.from({ length: this.size }, (_, sector) => [1, sector]);
     }
-    if (this.dimension === 2 && this.lattice === 'kagome') return kagomeJumpDirections(coord);
+    if (this.dimension === 2 && this.lattice === 'kagome') return kagomeNeighborDirections(coord, this.size, this.topologyName);
     return this.directions;
   }
 
@@ -455,7 +463,11 @@ export class JumpGameState {
       if (middlePiece !== this.currentPlayer && !this.options.jumpOverEnemy) continue;
       const second = this.topology.step(first.position, first.direction);
       if (!second) continue;
-      if (this.dimension === 2 && this.lattice === 'kagome' && !kagomeJumpEdgeAllowed(first.position, second.position)) continue;
+      if (
+        this.dimension === 2 &&
+        this.lattice === 'kagome' &&
+        !kagomeNeighbors(first.position, this.size, this.size).some((neighbor) => sameCoord(neighbor, second.position))
+      ) continue;
       if (!this.options.allowLoopJump && sameCoord(second.position, coord)) continue;
       const landingKey = this.key(second.position);
       if (chainVisited?.has(landingKey)) continue;

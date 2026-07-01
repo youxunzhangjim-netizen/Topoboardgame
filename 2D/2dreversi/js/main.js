@@ -1,6 +1,7 @@
 import { ReversiGame, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
+import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import { ReversiRobotController } from './robot/ReversiRobot.js';
 
 const BOARD_THEMES = [
@@ -415,16 +416,15 @@ class Reversi2DApp {
             };
         }
         if (this.logic.topology.lattice === 'kagome') {
-            const boardWidth = this.logic.topology.width;
-            const boardHeight = this.logic.topology.height;
-            const rawWidth = Math.max(1, boardWidth - 0.5);
-            const rawHeight = Math.max(1, (boardHeight - 1) * Math.sqrt(3) / 2);
+            const bounds = kagomeBounds(this.logic.topology.width, this.logic.topology.height);
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
             const step = usable / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
             return {
-                left: (width - spanX) / 2,
-                top: (height - spanY) / 2,
+                left: (width - spanX) / 2 - bounds.minX * step,
+                top: (height - spanY) / 2 - bounds.minY * step,
                 right: (width + spanX) / 2,
                 bottom: (height + spanY) / 2,
                 step
@@ -493,9 +493,10 @@ class Reversi2DApp {
     }
 
     kagomeCenter(coord, rect) {
+        const point = kagomePoint(coord, this.logic.topology.width, this.logic.topology.height);
         return {
-            x: rect.left + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
-            y: rect.top + coord[1] * rect.step * Math.sqrt(3) / 2
+            x: rect.left + (point?.x || 0) * rect.step,
+            y: rect.top + (point?.y || 0) * rect.step
         };
     }
 
@@ -564,11 +565,11 @@ class Reversi2DApp {
     drawHexCell(coord, rect) {
         const center = this.hexCenter(coord, rect);
         const theme = this.themeColors();
-        this.traceHex(center, rect.radius * 0.94);
+        this.traceHex(center, rect.radius);
         this.ctx.fillStyle = (coord[0] + coord[1]) % 2 === 0 ? theme.light : theme.dark;
         this.ctx.fill();
         this.ctx.strokeStyle = theme.line;
-        this.ctx.lineWidth = Math.max(1.25, rect.radius * 0.075);
+        this.ctx.lineWidth = Math.max(1.15, rect.radius * 0.055);
         this.ctx.stroke();
     }
 
@@ -579,7 +580,9 @@ class Reversi2DApp {
         ctx.save();
         ctx.strokeStyle = theme.line;
         ctx.lineWidth = Math.max(1.2, rect.step * 0.035);
-        ctx.lineCap = 'round';
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
         for (const coord of this.logic.topology.allCoords()) {
             const from = this.kagomeCenter(coord, rect);
             const fromKey = this.logic.key(coord);
@@ -591,17 +594,16 @@ class Reversi2DApp {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const to = this.kagomeCenter(next, rect);
-                ctx.beginPath();
                 ctx.moveTo(from.x, from.y);
                 ctx.lineTo(to.x, to.y);
-                ctx.stroke();
             }
         }
+        ctx.stroke();
         ctx.fillStyle = theme.light;
         for (const coord of this.logic.topology.allCoords()) {
             const center = this.kagomeCenter(coord, rect);
             ctx.beginPath();
-            ctx.arc(center.x, center.y, Math.max(2.4, rect.step * 0.045), 0, Math.PI * 2);
+            ctx.arc(center.x, center.y, Math.max(1.8, rect.step * 0.032), 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
