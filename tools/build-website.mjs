@@ -50,6 +50,7 @@ rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 
 copy(launcherOutput, output);
+copyIfExists(join(root, 'favicon.png'), join(output, 'favicon.png'));
 copyIfExists(join(root, 'js'), join(output, 'js'));
 copyIfExists(join(root, 'docs'), join(output, 'docs'));
 copyIfExists(join(root, 'labs'), join(output, 'labs'));
