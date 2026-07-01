@@ -70,7 +70,8 @@ class Reversi2DApp {
         const params = new URLSearchParams(window.location.search);
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
         this.boundarySelect.value = ['open2d', 'cylinder', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
-        if (String(params.get('lattice') || '').toLowerCase() === 'honeycomb') this.latticeSelect.value = 'honeycomb';
+        const lattice = String(params.get('lattice') || '').toLowerCase();
+        if (lattice === 'honeycomb' || lattice === 'kagome') this.latticeSelect.value = lattice;
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
     }
@@ -346,18 +347,19 @@ class Reversi2DApp {
         const bounds = this.canvas.getBoundingClientRect();
         const x = (event.clientX - bounds.left) * (this.canvas.clientWidth / bounds.width);
         const y = (event.clientY - bounds.top) * (this.canvas.clientHeight / bounds.height);
-        if (this.logic.topology.lattice === 'honeycomb') {
+        if (this.logic.topology.lattice === 'honeycomb' || this.logic.topology.lattice === 'kagome') {
             let nearest = null;
             let nearestDistance = Infinity;
             for (const coord of this.logic.topology.allCoords()) {
-                const center = this.hexCenter(coord, this.lastRect);
+                const center = this.graphCenter(coord, this.lastRect);
                 const distance = Math.hypot(center.x - x, center.y - y);
                 if (distance < nearestDistance) {
                     nearest = coord;
                     nearestDistance = distance;
                 }
             }
-            return nearestDistance <= this.lastRect.radius ? nearest : null;
+            const threshold = this.logic.topology.lattice === 'kagome' ? this.lastRect.step * 0.42 : this.lastRect.radius;
+            return nearestDistance <= threshold ? nearest : null;
         }
         if (this.logic.topology.topology === 'polar') {
             let nearest = null;
@@ -412,6 +414,22 @@ class Reversi2DApp {
                 step: radius * 2
             };
         }
+        if (this.logic.topology.lattice === 'kagome') {
+            const boardWidth = this.logic.topology.width;
+            const boardHeight = this.logic.topology.height;
+            const rawWidth = Math.max(1, boardWidth - 0.5);
+            const rawHeight = Math.max(1, (boardHeight - 1) * Math.sqrt(3) / 2);
+            const step = usable / Math.max(rawWidth, rawHeight);
+            const spanX = rawWidth * step;
+            const spanY = rawHeight * step;
+            return {
+                left: (width - spanX) / 2,
+                top: (height - spanY) / 2,
+                right: (width + spanX) / 2,
+                bottom: (height + spanY) / 2,
+                step
+            };
+        }
         const step = usable / this.logic.topology.width;
         return {
             left: (width - step * this.logic.topology.width) / 2,
@@ -437,6 +455,8 @@ class Reversi2DApp {
 
         if (this.logic.topology.lattice === 'honeycomb') {
             for (const coord of this.logic.topology.allCoords()) this.drawHexCell(coord, rect);
+        } else if (this.logic.topology.lattice === 'kagome') {
+            this.drawKagomeBoard(rect);
         } else if (this.logic.topology.topology === 'polar') {
             this.drawPolarBoard(rect);
         } else {
@@ -470,6 +490,19 @@ class Reversi2DApp {
             x: rect.left + Math.sqrt(3) * rect.radius * (0.5 + x + (y % 2) * 0.5),
             y: rect.top + rect.radius + 1.5 * rect.radius * y
         };
+    }
+
+    kagomeCenter(coord, rect) {
+        return {
+            x: rect.left + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
+            y: rect.top + coord[1] * rect.step * Math.sqrt(3) / 2
+        };
+    }
+
+    graphCenter(coord, rect) {
+        return this.logic.topology.lattice === 'kagome'
+            ? this.kagomeCenter(coord, rect)
+            : this.hexCenter(coord, rect);
     }
 
     polarCenter(coord, rect) {
@@ -539,6 +572,41 @@ class Reversi2DApp {
         this.ctx.stroke();
     }
 
+    drawKagomeBoard(rect) {
+        const ctx = this.ctx;
+        const theme = this.themeColors();
+        const drawn = new Set();
+        ctx.save();
+        ctx.strokeStyle = theme.line;
+        ctx.lineWidth = Math.max(1.2, rect.step * 0.035);
+        ctx.lineCap = 'round';
+        for (const coord of this.logic.topology.allCoords()) {
+            const from = this.kagomeCenter(coord, rect);
+            const fromKey = this.logic.key(coord);
+            for (const direction of this.logic.topology.directionsFor(coord)) {
+                const next = this.logic.topology.step(coord, direction);
+                if (!next) continue;
+                const toKey = this.logic.key(next);
+                const edgeKey = [fromKey, toKey].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const to = this.kagomeCenter(next, rect);
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            }
+        }
+        ctx.fillStyle = theme.light;
+        for (const coord of this.logic.topology.allCoords()) {
+            const center = this.kagomeCenter(coord, rect);
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, Math.max(2.4, rect.step * 0.045), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
     drawTopologyHints(rect) {
         const ctx = this.ctx;
         const right = rect.right || rect.left + this.logic.topology.width * rect.step;
@@ -587,8 +655,8 @@ class Reversi2DApp {
     }
 
     drawStone(coord, color, rect) {
-        const center = this.logic.topology.lattice === 'honeycomb'
-            ? this.hexCenter(coord, rect)
+        const center = this.logic.topology.lattice === 'honeycomb' || this.logic.topology.lattice === 'kagome'
+            ? this.graphCenter(coord, rect)
             : this.logic.topology.topology === 'polar'
             ? this.polarCenter(coord, rect)
             : {
@@ -597,7 +665,11 @@ class Reversi2DApp {
             };
         const cx = center.x;
         const cy = center.y;
-        const radius = this.logic.topology.lattice === 'honeycomb' ? rect.radius * 0.58 : this.logic.topology.topology === 'polar' ? rect.step * 0.34 : rect.step * 0.39;
+        const radius = this.logic.topology.lattice === 'honeycomb'
+            ? rect.radius * 0.58
+            : this.logic.topology.lattice === 'kagome'
+            ? rect.step * 0.27
+            : this.logic.topology.topology === 'polar' ? rect.step * 0.34 : rect.step * 0.39;
         const gradient = this.ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.45, radius * 0.1, cx, cy, radius);
         if (color === 'black') {
             gradient.addColorStop(0, '#5a646d');
@@ -650,8 +722,8 @@ class Reversi2DApp {
     }
 
     drawLegalDot(coord, rect) {
-        const center = this.logic.topology.lattice === 'honeycomb'
-            ? this.hexCenter(coord, rect)
+        const center = this.logic.topology.lattice === 'honeycomb' || this.logic.topology.lattice === 'kagome'
+            ? this.graphCenter(coord, rect)
             : this.logic.topology.topology === 'polar'
             ? this.polarCenter(coord, rect)
             : {
@@ -669,6 +741,11 @@ class Reversi2DApp {
         this.ctx.lineWidth = Math.max(2, rect.step * 0.05);
         if (this.logic.topology.lattice === 'honeycomb') {
             this.traceHex(this.hexCenter(coord, rect), rect.radius * 0.82);
+            this.ctx.stroke();
+        } else if (this.logic.topology.lattice === 'kagome') {
+            const center = this.kagomeCenter(coord, rect);
+            this.ctx.beginPath();
+            this.ctx.arc(center.x, center.y, rect.step * 0.34, 0, Math.PI * 2);
             this.ctx.stroke();
         } else if (this.logic.topology.topology === 'polar') {
             const center = this.polarCenter(coord, rect);
@@ -697,6 +774,8 @@ class Reversi2DApp {
         this.boundaryEl.textContent = topology === 'polar' ? 'Polar Center' : topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'cylinder' ? 'Cylinder x-wrap' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.topology.lattice === 'honeycomb'
             ? ' Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.'
+            : this.logic.topology.lattice === 'kagome'
+            ? ' Kagome uses a staggered triangle-hexagon graph. Stones occupy graph sites and bracket along visible Kagome links.'
             : topology === 'polar'
             ? ' Polar rays can bracket around rings and radially through the center.'
             : ' Square uses the usual eight 2D rays.';

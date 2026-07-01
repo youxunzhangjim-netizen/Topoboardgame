@@ -25,6 +25,7 @@ const MOBIUS_BAND_HALF_WIDTH = 1.42;
 const SQUARE_LATTICE = 'square';
 const HCP_LATTICE = 'hcp';
 const HONEYCOMB_LATTICE = 'honeycomb';
+const KAGOME_LATTICE = 'kagome';
 const SPHERE_COORDINATE_LATTICE = 'sphere_coordinate';
 const R3_LIKE_TOPOLOGIES = new Set([
     REVERSI_TOPOLOGIES.R3,
@@ -243,6 +244,23 @@ class Reversi3DRenderer {
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
             this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
+        } else if (lattice === KAGOME_LATTICE) {
+            const linePositions = [];
+            const drawn = new Set();
+            for (const coord of this.app.logic.topology.allCoords()) {
+                const fromKey = this.app.logic.key(coord);
+                for (const direction of this.app.logic.topology.directionsFor(coord)) {
+                    const neighbor = this.app.logic.topology.step(coord, direction);
+                    if (!neighbor) continue;
+                    const edgeKey = [fromKey, this.app.logic.key(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, width, height, lattice, 0.045));
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
         } else {
             for (let y = 0; y < height; y += 1) this.boardGroup.add(this.torusLine(width, height, 'x', y, gridMaterial, lattice));
             for (let x = 0; x < width; x += 1) this.boardGroup.add(this.torusLine(width, height, 'y', x, gridMaterial, lattice));
@@ -272,8 +290,8 @@ class Reversi3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.88,
-                depthWrite: false,
+                opacity: 0.94,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.5,
                 side: THREE.DoubleSide
@@ -293,6 +311,19 @@ class Reversi3DRenderer {
         const linePositions = [];
         if (lattice === HONEYCOMB_LATTICE) {
             linePositions.push(...this.surfaceHoneycombFacePositions(width, height, lattice, 'cylinder', 0.045));
+        } else if (lattice === KAGOME_LATTICE) {
+            const drawn = new Set();
+            for (const coord of this.app.logic.topology.allCoords()) {
+                const fromKey = this.app.logic.key(coord);
+                for (const direction of this.app.logic.topology.directionsFor(coord)) {
+                    const neighbor = this.app.logic.topology.step(coord, direction);
+                    if (!neighbor) continue;
+                    const edgeKey = [fromKey, this.app.logic.key(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, lattice, 0.045));
+                }
+            }
         } else {
             for (let y = 0; y < height; y += 1) {
                 for (let x = 0; x < width; x += 1) {
@@ -1070,6 +1101,19 @@ class Reversi3DRenderer {
     }
 
     latticeSurfaceUV(coord, width, height, lattice = 'square') {
+        if (lattice === KAGOME_LATTICE) {
+            const row = Number(coord[1]) || 0;
+            const rawX = Number(coord[0]) + (row % 2) * 0.5;
+            const rawY = row * Math.sqrt(3) / 2;
+            const circumference = Math.max(1, width);
+            const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
+            const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
+            return {
+                u: (rawX / circumference) * TWO_PI,
+                v: (rawY / periodicAxis) * TWO_PI,
+                band: rawY / cylinderBand
+            };
+        }
         if (lattice === 'honeycomb') {
             const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
             const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
@@ -1539,7 +1583,7 @@ class Reversi3DApp {
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if ([SQUARE_LATTICE, HCP_LATTICE, HONEYCOMB_LATTICE, SPHERE_COORDINATE_LATTICE].includes(lattice)) {
+        if ([SQUARE_LATTICE, HCP_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE, SPHERE_COORDINATE_LATTICE].includes(lattice)) {
             this.latticeSelect.value = lattice;
         }
     }
@@ -1626,7 +1670,7 @@ class Reversi3DApp {
 
     latticeOptionsForMode(mode = this.modeSelect.value) {
         if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
-        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE];
         return [SQUARE_LATTICE];
     }
@@ -1667,6 +1711,7 @@ class Reversi3DApp {
             [SQUARE_LATTICE]: 'Standard',
             [HCP_LATTICE]: 'HCP',
             [HONEYCOMB_LATTICE]: 'Honeycomb',
+            [KAGOME_LATTICE]: 'Kagome',
             [SPHERE_COORDINATE_LATTICE]: 'Geodesic'
         })[lattice] || lattice;
     }
@@ -1676,7 +1721,9 @@ class Reversi3DApp {
         const lattice = this.currentLattice();
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return SQUARE_LATTICE;
         if (mode === 'r3') return lattice === HCP_LATTICE ? HCP_LATTICE : SQUARE_LATTICE;
-        return lattice === HONEYCOMB_LATTICE ? HONEYCOMB_LATTICE : SQUARE_LATTICE;
+        if (lattice === HONEYCOMB_LATTICE) return HONEYCOMB_LATTICE;
+        if (lattice === KAGOME_LATTICE) return KAGOME_LATTICE;
+        return SQUARE_LATTICE;
     }
 
     activeTopology() {
@@ -1877,8 +1924,8 @@ class Reversi3DApp {
             t3: lattice === HCP_LATTICE ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
             r3_random: lattice === HCP_LATTICE ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
             rp3: lattice === HCP_LATTICE ? 'R3 HCP / RP3' : 'R3 / RP3',
-            t2: lattice === HONEYCOMB_LATTICE ? 'T2 Honeycomb' : 'T2 Standard',
-            cylinder: lattice === HONEYCOMB_LATTICE ? 'Cylinder Honeycomb' : 'Cylinder Standard',
+            t2: lattice === HONEYCOMB_LATTICE ? 'T2 Honeycomb' : lattice === KAGOME_LATTICE ? 'T2 Kagome' : 'T2 Standard',
+            cylinder: lattice === HONEYCOMB_LATTICE ? 'Cylinder Honeycomb' : lattice === KAGOME_LATTICE ? 'Cylinder Kagome' : 'Cylinder Standard',
             sphere: `S2 ${latticeLabel}`,
             klein: 'Klein Bottle',
             mobius: 'Mobius Strip',
@@ -1893,9 +1940,13 @@ class Reversi3DApp {
             rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
             t2: lattice === HONEYCOMB_LATTICE
                 ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy the center of each face cell.'
+                : lattice === KAGOME_LATTICE
+                ? 'T2 Kagome uses a staggered triangle-hexagon graph wrapped on the torus. Reversi stones occupy visible graph sites.'
                 : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
             cylinder: lattice === HONEYCOMB_LATTICE
                 ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Reversi stones occupy face-cell centers.'
+                : lattice === KAGOME_LATTICE
+                ? 'Cylinder Kagome winds alternating triangle and hexagon graph links around the cylinder. Top and bottom remain open.'
                 : 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
             sphere: 'S2 Geodesic shows longitude-latitude arcs with playable pole nodes. Sphere Reversi remains vertex-based at the singular caps.',
             klein: 'Klein bottle uses face cells on the non-orientable surface, with normal left-right wrap and flipped top-bottom wrap on the board graph.',

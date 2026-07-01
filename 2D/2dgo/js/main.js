@@ -93,7 +93,7 @@ class Go2DApp {
         if (['polar', 'polar_center', 'polar-center', 'radial'].includes(mode)) this.boundarySelect.value = 'polar';
         if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if (lattice === 'honeycomb' || lattice === 'triangular') this.latticeSelect.value = lattice;
+        if (lattice === 'honeycomb' || lattice === 'triangular' || lattice === 'kagome') this.latticeSelect.value = lattice;
     }
 
     tryJoinSharedRoomFromUrl() {
@@ -143,7 +143,7 @@ class Go2DApp {
             option.hidden = unavailable;
         });
         this.latticeSelect.title = polar
-            ? 'Polar Go uses the cleaned radial square-intersection graph. Honeycomb and triangular lattice options are disabled in polar mode.'
+            ? 'Polar Go uses the cleaned radial square-intersection graph. Honeycomb, triangular, and Kagome lattice options are disabled in polar mode.'
             : '';
     }
 
@@ -296,7 +296,7 @@ class Go2DApp {
                 size: cssSize
             };
         }
-        if (this.logic.lattice === 'honeycomb') {
+        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome') {
             const rawWidth = Math.max(1, this.logic.size - 0.5);
             const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
             const step = span / Math.max(rawWidth, rawHeight);
@@ -342,7 +342,7 @@ class Go2DApp {
                 y: rect.y + Math.sin(angle) * radius
             };
         }
-        if (this.logic.lattice === 'honeycomb') {
+        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome') {
             return {
                 x: rect.x + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
                 y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
@@ -378,7 +378,7 @@ class Go2DApp {
             }
             return nearestDistance <= Math.max(14, rect.step * 0.42) ? nearest : null;
         }
-        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'triangular') {
+        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'triangular' || this.logic.lattice === 'kagome') {
             let nearest = null;
             let nearestDistance = Infinity;
             for (let gy = 0; gy < this.logic.size; gy++) {
@@ -391,7 +391,7 @@ class Go2DApp {
                     }
                 }
             }
-            const threshold = this.logic.lattice === 'honeycomb' ? 0.38 : 0.48;
+            const threshold = this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.38 : 0.48;
             return nearestDistance <= Math.max(14, rect.step * threshold) ? nearest : null;
         }
         const gx = Math.round((x - rect.x) / rect.step);
@@ -605,7 +605,7 @@ class Go2DApp {
         if (this.logic.lattice === 'honeycomb') this.drawHoneycombFaces(rect);
 
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
-        ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' ? 0.045 : 0.035));
+        ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.045 : 0.035));
         ctx.beginPath();
         if (this.logic.topology === 'polar') {
             this.drawPolarGrid(rect);
@@ -639,7 +639,7 @@ class Go2DApp {
         }
         ctx.stroke();
 
-        if (this.logic.lattice === 'honeycomb') {
+        if (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome') {
             ctx.fillStyle = 'rgba(42, 27, 14, 0.88)';
             for (let y = 0; y < n; y++) {
                 for (let x = 0; x < n; x++) {
@@ -670,7 +670,7 @@ class Go2DApp {
         if (this.hoverCoord && this.logic.board[this.logic.indexFromCoord(this.hoverCoord)] === COLORS.empty && !this.logic.gameOver) {
             const p = this.coordToPixel(this.hoverCoord);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' ? 0.28 : 0.36), 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.28 : 0.36), 0, Math.PI * 2);
             ctx.fillStyle = this.logic.currentPlayer === 'black' ? 'rgba(0, 0, 0, 0.24)' : 'rgba(255, 255, 255, 0.44)';
             ctx.fill();
         }
@@ -682,7 +682,7 @@ class Go2DApp {
             const coord = this.logic.coordFromIndex(index);
             if (this.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
             const p = this.coordToPixel(coord);
-            const radius = rect.step * (this.logic.lattice === 'honeycomb' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
+            const radius = rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.31 : this.logic.topology === 'polar' ? 0.34 : 0.42);
             this.drawStone(p.x, p.y, radius, color);
             this.drawAgeRing(p.x, p.y, radius * 1.18, this.stoneAges?.[coord.join(',')], this.dynamicsSettings(), coord, index);
         }
@@ -1072,6 +1072,8 @@ class Go2DApp {
             ? ' Honeycomb uses three graph neighbors per interior point; groups, liberties, captures, and territory use those links.'
             : this.logic.lattice === 'triangular'
                 ? ' Triangular uses six graph neighbors per interior point. A group is captured only after every exposed axial and diagonal liberty is enclosed.'
+                : this.logic.lattice === 'kagome'
+                ? ' Kagome uses horizontal bonds plus alternating diagonal bonds, forming triangle and hexagon loops with four local graph directions.'
                 : ' Square uses the usual four orthogonal graph neighbors.';
         this.boundaryInfoEl.textContent = (polar
             ? 'Polar coordinates use one true center node, radial rings, circular angular neighbors, and center-to-first-ring links.'

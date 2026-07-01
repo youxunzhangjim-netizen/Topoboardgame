@@ -36,6 +36,7 @@ export const CYLINDER_GO_TOPOLOGY = 'cylinder';
 export const SQUARE_LATTICE = 'square';
 export const HONEYCOMB_LATTICE = 'honeycomb';
 export const TRIANGULAR_LATTICE = 'triangular';
+export const KAGOME_LATTICE = 'kagome';
 export const SIMPLE_CUBIC_LATTICE = 'sc';
 export const BCC_LATTICE = 'bcc';
 export const FCC_LATTICE = 'fcc';
@@ -53,6 +54,45 @@ const TRIANGULAR_DIRECTIONS = Object.freeze([
     Object.freeze([1, -1]),
     Object.freeze([-1, 1])
 ]);
+
+function triangularDirections(coord = [0, 0]) {
+    const row = coord[1] || 0;
+    return row % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
+function honeycombDirections(coord = [0, 0]) {
+    const [x = 0, y = 0] = coord;
+    const evenRow = y % 2 === 0;
+    const evenVertex = (x + y) % 2 === 0;
+    if (evenRow) {
+        return evenVertex
+            ? [[1, 0], [-1, -1], [-1, 1]]
+            : [[-1, 0], [0, -1], [0, 1]];
+    }
+    return evenVertex
+        ? [[1, 0], [0, -1], [0, 1]]
+        : [[-1, 0], [1, -1], [1, 1]];
+}
+
+function kagomeEdgeAllowed(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    if (dy === 0 && Math.abs(dx) === 1) return true;
+    if (Math.abs(dy) !== 1) return false;
+    const top = a[1] < b[1] ? a : b;
+    const bottom = a[1] < b[1] ? b : a;
+    const downRightDelta = top[1] % 2 === 0 ? 0 : 1;
+    const isDownRight = bottom[0] - top[0] === downRightDelta;
+    return isDownRight === ((top[0] + top[1]) % 2 === 0);
+}
+
+function kagomeDirections(coord = [0, 0]) {
+    return triangularDirections(coord).filter((direction) =>
+        kagomeEdgeAllowed(coord, [coord[0] + direction[0], coord[1] + direction[1]]));
+}
 
 const SIMPLE_CUBIC_DIRECTIONS = Object.freeze([
     Object.freeze([1, 0, 0]),
@@ -105,7 +145,7 @@ function normalizeLattice(lattice, dimension) {
         if ([BCC_LATTICE, FCC_LATTICE, HCP_LATTICE].includes(value)) return value;
         return SIMPLE_CUBIC_LATTICE;
     }
-    if ([HONEYCOMB_LATTICE, TRIANGULAR_LATTICE].includes(value)) return value;
+    if ([HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, KAGOME_LATTICE].includes(value)) return value;
     return SQUARE_LATTICE;
 }
 
@@ -358,10 +398,9 @@ export class GoGameLogic {
 
     latticeDirections(coord) {
         if (this.dimension === 2) {
-            if (this.lattice === TRIANGULAR_LATTICE) return TRIANGULAR_DIRECTIONS;
-            if (this.lattice === HONEYCOMB_LATTICE) {
-                return [[1, 0], [-1, 0], [0, coord[0] % 2 === 0 ? 1 : -1]];
-            }
+            if (this.lattice === TRIANGULAR_LATTICE) return triangularDirections(coord);
+            if (this.lattice === HONEYCOMB_LATTICE) return honeycombDirections(coord);
+            if (this.lattice === KAGOME_LATTICE) return kagomeDirections(coord);
             return SQUARE_DIRECTIONS;
         }
         if (this.lattice === BCC_LATTICE) return BCC_DIRECTIONS;

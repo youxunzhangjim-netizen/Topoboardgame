@@ -47,7 +47,7 @@ function wrap(value, size) {
 
 function normalizeLattice(lattice) {
     const value = String(lattice || '').toLowerCase();
-    if (value === 'honeycomb' || value === 'triangular') return value;
+    if (value === 'honeycomb' || value === 'triangular' || value === 'kagome') return value;
     return 'square';
 }
 
@@ -85,6 +85,24 @@ function honeycombDirections(coord) {
         : [[-1, 0], [1, -1], [1, 1]];
 }
 
+function kagomeEdgeAllowed(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    if (dy === 0 && Math.abs(dx) === 1) return true;
+    if (Math.abs(dy) !== 1) return false;
+    const top = a[1] < b[1] ? a : b;
+    const bottom = a[1] < b[1] ? b : a;
+    const downRightDelta = top[1] % 2 === 0 ? 0 : 1;
+    const isDownRight = bottom[0] - top[0] === downRightDelta;
+    return isDownRight === ((top[0] + top[1]) % 2 === 0);
+}
+
+function kagomeDirections(coord) {
+    return triangularDirections(coord).filter((direction) =>
+        kagomeEdgeAllowed(coord, [coord[0] + direction[0], coord[1] + direction[1]]));
+}
+
 function randomSeed() {
     return `go-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
 }
@@ -113,6 +131,7 @@ function randomDirectionKey(coord, direction) {
 function latticeDirections(lattice, coord) {
     if (lattice === 'triangular') return triangularDirections(coord);
     if (lattice === 'honeycomb') return honeycombDirections(coord);
+    if (lattice === 'kagome') return kagomeDirections(coord);
     return SQUARE_DIRECTIONS;
 }
 

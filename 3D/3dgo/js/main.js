@@ -9,6 +9,7 @@ import {
     GoGameLogic,
     HCP_LATTICE,
     HONEYCOMB_LATTICE,
+    KAGOME_LATTICE,
     otherColor,
     R3_RANDOM_TOPOLOGY,
     R3_RP3_TOPOLOGY,
@@ -1050,8 +1051,8 @@ class Go3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.74,
-                depthWrite: false,
+                opacity: 0.92,
+                depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.5,
                 side: THREE.DoubleSide
@@ -1691,24 +1692,13 @@ class Go3DRenderer {
     }
 
     latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE) {
-        if (lattice === TRIANGULAR_LATTICE) {
-            const rawX = Number(coord[0]) + Number(coord[1]) * 0.5;
-            const rawY = Number(coord[1]) * Math.sqrt(3) / 2;
+        if ([TRIANGULAR_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE].includes(lattice)) {
+            const row = Number(coord[1]) || 0;
+            const rawX = Number(coord[0]) + (row % 2) * 0.5;
+            const rawY = row * Math.sqrt(3) / 2;
             const circumference = Math.max(1, width);
             const periodicAxis = Math.max(1, height * Math.sqrt(3) / 2);
             const cylinderBand = Math.max(1, (height - 1) * Math.sqrt(3) / 2);
-            return {
-                u: (rawX / circumference) * TWO_PI,
-                v: (rawY / periodicAxis) * TWO_PI,
-                band: rawY / cylinderBand
-            };
-        }
-        if (lattice === HONEYCOMB_LATTICE) {
-            const rawX = Number(coord[0]) * Math.sqrt(3) / 2;
-            const rawY = Number(coord[1]) + (Number(coord[0]) % 2 ? 0.5 : 0);
-            const circumference = Math.max(1, width * Math.sqrt(3) / 2);
-            const periodicAxis = Math.max(1, height);
-            const cylinderBand = Math.max(1, height - 0.5);
             return {
                 u: (rawX / circumference) * TWO_PI,
                 v: (rawY / periodicAxis) * TWO_PI,
@@ -2038,7 +2028,7 @@ class Go3DApp {
             this.timerSelect.value = timer;
         }
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if ([SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE, SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE].includes(lattice)) {
+        if ([SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, KAGOME_LATTICE, SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE, SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE].includes(lattice)) {
             this.latticeSelect.value = lattice;
         }
     }
@@ -2047,7 +2037,7 @@ class Go3DApp {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
             : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
-                ? [SQUARE_LATTICE, TRIANGULAR_LATTICE]
+                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, KAGOME_LATTICE]
                 : mode === 'sphere'
                     ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
                     : [];
@@ -2079,6 +2069,7 @@ class Go3DApp {
             [SQUARE_LATTICE]: 'Square',
             [HONEYCOMB_LATTICE]: 'Honeycomb',
             [TRIANGULAR_LATTICE]: 'Triangular',
+            [KAGOME_LATTICE]: 'Kagome',
             [SIMPLE_CUBIC_LATTICE]: 'Simple Cubic',
             [BCC_LATTICE]: 'BCC',
             [FCC_LATTICE]: 'FCC',
@@ -2093,12 +2084,14 @@ class Go3DApp {
             [SQUARE_LATTICE]: ' Square surface nodes have four wrapped neighbors.',
             [HONEYCOMB_LATTICE]: ' Honeycomb surface nodes form a zigzag nanotube-style graph with three wrapped neighbors.',
             [TRIANGULAR_LATTICE]: ' Triangular surface nodes have six wrapped neighbors.',
+            [KAGOME_LATTICE]: ' Kagome surface nodes form alternating triangle and hexagon loops on the wrapped surface.',
             [SIMPLE_CUBIC_LATTICE]: ' Simple-cubic sites have six nearest neighbors.',
             [BCC_LATTICE]: ' BCC sites use eight body-diagonal nearest neighbors.',
             [FCC_LATTICE]: ' FCC sites use twelve face-diagonal nearest neighbors.',
             [HCP_LATTICE]: ' HCP sites use six in-plane and six adjacent-layer nearest neighbors.'
         };
         const zhInfo = {
+            [KAGOME_LATTICE]: ' Kagome 曲面節點在包回曲面上形成交替的三角與六角環。',
             [SQUARE_LATTICE]: ' 方格曲面節點有四個包回鄰居。',
             [HONEYCOMB_LATTICE]: ' 蜂巢曲面節點形成鋸齒型奈米碳管式圖格，並有三個包回鄰居。',
             [TRIANGULAR_LATTICE]: ' 三角曲面節點有六個包回鄰居。',

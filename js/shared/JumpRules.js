@@ -93,7 +93,33 @@ export function normalizeJumpLattice(lattice = 'square', dimension = 2, topology
   const top = String(topology || '').toLowerCase();
   const value = String(lattice || '').toLowerCase();
   if (dim === 2 && top !== 'polar' && ['triangular', 'triangle', 'tri'].includes(value)) return 'triangular';
+  if (dim === 2 && top !== 'polar' && value === 'kagome') return 'kagome';
   return 'square';
+}
+
+function triangularJumpDirections(coord = [0, 0]) {
+  const row = coord[1] || 0;
+  return row % 2 === 0
+    ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+    : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
+function kagomeJumpEdgeAllowed(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  if (dy === 0 && Math.abs(dx) === 1) return true;
+  if (Math.abs(dy) !== 1) return false;
+  const top = a[1] < b[1] ? a : b;
+  const bottom = a[1] < b[1] ? b : a;
+  const downRightDelta = top[1] % 2 === 0 ? 0 : 1;
+  const isDownRight = bottom[0] - top[0] === downRightDelta;
+  return isDownRight === ((top[0] + top[1]) % 2 === 0);
+}
+
+function kagomeJumpDirections(coord = [0, 0]) {
+  return triangularJumpDirections(coord).filter((dir) =>
+    kagomeJumpEdgeAllowed(coord, [coord[0] + dir[0], coord[1] + dir[1]]));
 }
 
 export function createDirectionVectors(dimension, lattice = 'square', topology = 'plane') {
@@ -102,7 +128,7 @@ export function createDirectionVectors(dimension, lattice = 'square', topology =
   // diagonal jumps through cells that are not connected by a drawn edge.
   const dim = clampInt(dimension, 2, 4);
   const lat = normalizeJumpLattice(lattice, dim, topology);
-  if (dim === 2 && lat === 'triangular') {
+  if (dim === 2 && (lat === 'triangular' || lat === 'kagome')) {
     return [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
   }
   const dirs = [];
@@ -408,6 +434,7 @@ export class JumpGameState {
     if (this.dimension === 2 && this.topologyName === 'polar' && coord?.[0] === 0) {
       return Array.from({ length: this.size }, (_, sector) => [1, sector]);
     }
+    if (this.dimension === 2 && this.lattice === 'kagome') return kagomeJumpDirections(coord);
     return this.directions;
   }
 
@@ -428,6 +455,7 @@ export class JumpGameState {
       if (middlePiece !== this.currentPlayer && !this.options.jumpOverEnemy) continue;
       const second = this.topology.step(first.position, first.direction);
       if (!second) continue;
+      if (this.dimension === 2 && this.lattice === 'kagome' && !kagomeJumpEdgeAllowed(first.position, second.position)) continue;
       if (!this.options.allowLoopJump && sameCoord(second.position, coord)) continue;
       const landingKey = this.key(second.position);
       if (chainVisited?.has(landingKey)) continue;

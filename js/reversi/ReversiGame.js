@@ -337,6 +337,33 @@ const HONEYCOMB_DIRECTIONS = Object.freeze([
     Object.freeze([-1, 1])
 ]);
 
+const KAGOME_LATTICE = 'kagome';
+
+function triangularRowDirections(coord = [0, 0]) {
+    const row = coord[1] || 0;
+    return row % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
+function kagomeEdgeAllowed(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    if (dy === 0 && Math.abs(dx) === 1) return true;
+    if (Math.abs(dy) !== 1) return false;
+    const top = a[1] < b[1] ? a : b;
+    const bottom = a[1] < b[1] ? b : a;
+    const downRightDelta = top[1] % 2 === 0 ? 0 : 1;
+    const isDownRight = bottom[0] - top[0] === downRightDelta;
+    return isDownRight === ((top[0] + top[1]) % 2 === 0);
+}
+
+function kagomeDirections(coord = [0, 0]) {
+    return triangularRowDirections(coord).filter((direction) =>
+        kagomeEdgeAllowed(coord, [coord[0] + direction[0], coord[1] + direction[1]]));
+}
+
 const TRIANGULAR_LAYER_DIRECTIONS = Object.freeze([
     Object.freeze([1, 0, 0]),
     Object.freeze([-1, 0, 0]),
@@ -384,6 +411,8 @@ export function createReversiTopology(options = {}) {
         ? 'square'
         : dimension === 2 && requestedLattice === 'honeycomb'
         ? 'honeycomb'
+        : dimension === 2 && requestedLattice === KAGOME_LATTICE
+        ? KAGOME_LATTICE
         : dimension === 3 && requestedLattice === 'hcp'
             ? 'hcp'
             : 'square';
@@ -397,6 +426,8 @@ export function createReversiTopology(options = {}) {
         : 1;
     const directions = lattice === 'honeycomb'
         ? HONEYCOMB_DIRECTIONS.map((direction) => [...direction])
+        : lattice === KAGOME_LATTICE
+            ? TRIANGULAR_LAYER_DIRECTIONS.map(([x, y]) => [x, y])
         : lattice === 'hcp'
             ? hcpDirections([0, 0, 0])
         : createDirections(dimension);
@@ -423,6 +454,7 @@ export function createReversiTopology(options = {}) {
         directionsFor(coord) {
             if (topology === REVERSI_TOPOLOGIES.POLAR) return polarDirectionsFor(coord, width);
             if (topology === REVERSI_TOPOLOGIES.SPHERE) return sphereDirectionsFor(coord, width, height, directions);
+            if (lattice === KAGOME_LATTICE) return kagomeDirections(coord);
             return lattice === 'hcp'
                 ? hcpDirections(coord)
                 : directions.map((direction) => [...direction]);
@@ -488,6 +520,9 @@ export function createReversiTopology(options = {}) {
         },
         step(coord, direction) {
             const next = coord.map((value, index) => value + (direction[index] || 0));
+            if (dimension === 2 && lattice === KAGOME_LATTICE && !kagomeEdgeAllowed(coord, next)) {
+                return null;
+            }
             if (topology === REVERSI_TOPOLOGIES.POLAR) {
                 return stepPolar(coord, direction, width, height);
             }

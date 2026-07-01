@@ -133,8 +133,33 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
     if (normalizedDimension !== 2) return 'axis';
     if (token === 'square' || token === 'quad') return 'square';
     if (token === 'triangular' || token === 'triangle') return 'triangular';
+    if (token === 'kagome') return 'kagome';
     if (token === 'honeycomb' || token === 'hexagon' || token === 'hexagonal' || token === 'axial') return 'hexagonal';
     return 'hexagonal';
+}
+
+function triangularRowOffsets(origin = [0, 0]) {
+    return (origin[1] || 0) % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
+function kagomeHexEdgeAllowed(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    if (dy === 0 && Math.abs(dx) === 1) return true;
+    if (Math.abs(dy) !== 1) return false;
+    const top = a[1] < b[1] ? a : b;
+    const bottom = a[1] < b[1] ? b : a;
+    const downRightDelta = top[1] % 2 === 0 ? 0 : 1;
+    const isDownRight = bottom[0] - top[0] === downRightDelta;
+    return isDownRight === ((top[0] + top[1]) % 2 === 0);
+}
+
+function kagomeHexOffsets(origin = [0, 0]) {
+    return triangularRowOffsets(origin).filter((offset) =>
+        kagomeHexEdgeAllowed(origin, [origin[0] + offset[0], origin[1] + offset[1]]));
 }
 
 function modulo(value, modulus) {
@@ -566,6 +591,8 @@ export function createHexTopology(options = {}) {
     const neighborOffsets = dimension === 2
         ? lattice === 'triangular'
             ? null
+            : lattice === 'kagome'
+            ? null
             : lattice === 'square'
             ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
             : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
@@ -588,7 +615,9 @@ export function createHexTopology(options = {}) {
                     ? fccOffsets()
                     : hcpOffsets(origin)
             : lattice === 'triangular'
-                ? [[-1, 0], [1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]]
+                ? triangularRowOffsets(origin)
+                : lattice === 'kagome'
+                ? kagomeHexOffsets(origin)
                 : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
     ];
 

@@ -43,6 +43,7 @@ const I18N = {
         lattice: 'Lattice',
         hexagonal: 'Honeycomb',
         triangular: 'Triangular',
+        kagome: 'Kagome',
         square: 'Square',
         honeycomb: 'Honeycomb',
         boardView: 'Board View',
@@ -127,6 +128,7 @@ const I18N = {
         lattice: '晶格',
         hexagonal: '蜂巢晶格',
         triangular: '三角晶格',
+        kagome: 'Kagome 晶格',
         square: '方格晶格',
         honeycomb: '蜂巢晶格',
         boardView: '棋盤視圖',
@@ -442,6 +444,45 @@ function buildCenters(width, height) {
         return;
     }
 
+    if (elements.lattice.value === 'kagome') {
+        const rawWidth = Math.max(1, gridWidth - 0.5);
+        const rawHeight = Math.max(1, (gridHeight - 1) * Math.sqrt(3) / 2);
+        const spacing = Math.max(10, Math.min(
+            (width - padding * 2) / rawWidth,
+            (height - padding * 2) / rawHeight
+        )) * zoom;
+        const markerRadius = spacing * 0.27;
+        const boardWidth = rawWidth * spacing;
+        const boardHeight = rawHeight * spacing;
+        const offsetX = (width - boardWidth) / 2;
+        const offsetY = (height - boardHeight) / 2;
+        centers = [];
+        for (let r = 0; r < gridHeight; r += 1) {
+            for (let q = 0; q < gridWidth; q += 1) {
+                const centerX = offsetX + (q + (r % 2) * 0.5) * spacing;
+                const centerY = offsetY + r * spacing * Math.sqrt(3) / 2;
+                centers.push({
+                    q,
+                    r,
+                    coordinate: [q, r],
+                    key: `${q},${r}`,
+                    x: centerX,
+                    y: centerY,
+                    radius: markerRadius,
+                    vertices: Array.from({ length: 6 }, (_, index) => {
+                        const angle = Math.PI / 3 * index - Math.PI / 6;
+                        return [
+                            centerX + markerRadius * Math.cos(angle),
+                            centerY + markerRadius * Math.sin(angle)
+                        ];
+                    }),
+                    shape: 'kagome'
+                });
+            }
+        }
+        return;
+    }
+
     const rawWidthFactor = Math.sqrt(3) * (gridWidth + (gridHeight > 1 ? 0.5 : 0));
     const rawHeightFactor = 1.5 * (gridHeight - 1) + 2;
     const radius = Math.max(7, Math.min(
@@ -623,7 +664,7 @@ function drawBoard() {
     context.clearRect(0, 0, width, height);
     context.fillStyle = '#f6f7f5';
     context.fillRect(0, 0, width, height);
-    if (game.topology.isSpecial) drawSpecialEdges();
+    if (game.topology.isSpecial || game.topology.lattice === 'kagome') drawSpecialEdges();
 
     for (const cell of centers) {
         const { blackTarget, whiteTarget } = targetFlags(cell.coordinate);

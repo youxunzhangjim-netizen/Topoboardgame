@@ -30,7 +30,7 @@ TOPOLOGY_LABELS.plane = 'Square Board';
 TOPOLOGY_LABELS.diamond = 'Standard';
 TOPOLOGY_ZH_LABELS.plane = '\u65b9\u5f62\u68cb\u76e4';
 TOPOLOGY_ZH_LABELS.diamond = '\u6a19\u6e96';
-const LATTICE_LABELS = { square: 'Square', triangular: 'Triangular' };
+const LATTICE_LABELS = { square: 'Square', triangular: 'Triangular', kagome: 'Kagome' };
 const JUMP_ZH_TEXT = new Map(Object.entries({
   '2D Jump': '2D 跳棋',
   'Standard Jump': '標準跳棋',
@@ -297,14 +297,15 @@ export class JumpGameApp {
   syncLatticeAvailability(topology = this.topologySelect?.value || this.config.topology || 'plane') {
     if (!this.latticeSelect) return;
     const top = String(topology || '').toLowerCase();
-    const allowTriangular = this.dimension === 2 && top !== 'polar';
+    const allowGraphLattice = this.dimension === 2 && top !== 'polar';
     for (const option of this.latticeSelect.options) {
-      option.disabled = option.value === 'triangular' && !allowTriangular;
+      option.disabled = ['triangular', 'kagome'].includes(option.value) && !allowGraphLattice;
       option.textContent = this.language === 'zh'
         ? (option.value === 'triangular' ? '三角格' : '方格')
         : (LATTICE_LABELS[option.value] || option.textContent);
+      if (this.language === 'zh' && option.value === 'kagome') option.textContent = 'Kagome 格';
     }
-    if (!allowTriangular || this.latticeSelect.value !== 'triangular') {
+    if (!allowGraphLattice || !['triangular', 'kagome'].includes(this.latticeSelect.value)) {
       this.latticeSelect.value = normalizeJumpLattice(this.latticeSelect.value || this.config.lattice || 'square', this.dimension, top);
     }
     this.latticeSelect.disabled = this.dimension !== 2 || top === 'polar';
@@ -447,7 +448,7 @@ export class JumpGameApp {
       return;
       this.infoEl.textContent = jumpLanguage() === 'zh'
         ? '跳棋模式使用一步移動與連跳。目標是把自己的棋子從本方區域移到目標區。方格棋盤使用上下左右連線，三角格棋盤增加兩條斜向連線；極座標棋盤固定使用方格徑向/角向連線。環面、莫比烏斯、Klein、RP2、球面、3D 與 4D 棋盤會直接標出目標區，因為空間改變時「對面」的意思也會改變。'
-        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square or Triangular lattice links. Square boards use axis links, triangular boards add the two visible diagonal graph links, and polar boards use square radial/angular links only. On torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
+        : 'Jump modes use step moves and chain jumps. Move your pieces from home into the target zone. Diamond boards place the armies in triangular tip regions and can use Square, Triangular, or Kagome lattice links. Square boards use axis links, triangular boards add visible diagonal graph links, Kagome alternates triangle and hexagon links, and polar boards use square radial/angular links only. On torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards the target is explicitly marked because opposite changes with the space.';
     }
   }
 
@@ -1006,12 +1007,12 @@ export class JumpGameApp {
         maxY: Math.max(1, maxY - minY)
       };
     }
-    if (this.dimension === 2 && lattice === 'triangular' && !this.isPolarBoard()) {
+    if (this.dimension === 2 && (lattice === 'triangular' || lattice === 'kagome') && !this.isPolarBoard()) {
       const last = Math.max(0, size - 1);
       return {
-        x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
+        x: (coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5,
         y: (coord[1] || 0) * Math.sqrt(3) / 2,
-        maxX: Math.max(1, last * 1.5),
+        maxX: Math.max(1, last + 0.5),
         maxY: Math.max(1, last * Math.sqrt(3) / 2)
       };
     }
@@ -1372,7 +1373,7 @@ function jumpIntroText() {
   if (jumpLanguage() === 'zh') {
     return '\u8df3\u68cb\u4f7f\u7528\u4e00\u6b65\u79fb\u52d5\u8207\u9023\u8df3\u3002\u6a19\u6e96\u8df3\u68cb\u662f\u5169\u4eba\u83f1\u5f62 / \u661f\u5f62\u68cb\u76e4\uff0c\u68cb\u5b50\u5f9e\u672c\u65b9\u4e09\u89d2\u71df\u5340\u51fa\u767c\uff0c\u76ee\u6a19\u662f\u5168\u90e8\u79fb\u5230\u5c0d\u9762\u71df\u5340\u3002\u4e0d\u540c\u6676\u683c\u90fd\u7528\u76f8\u540c\u76f4\u7dda\u8df3\u8e8d\u898f\u5247\uff1a\u6cbf\u4e00\u689d\u53ef\u898b\u9023\u7dda\u8df3\u904e\u76f8\u9130\u4e00\u500b\u68cb\u5b50\uff0c\u843d\u5728\u540c\u4e00\u76f4\u7dda\u7684\u4e0b\u4e00\u500b\u7a7a\u4f4d\u3002\u65b9\u683c\u8207\u4e09\u89d2\u683c\u53ea\u6539\u8b8a\u53ef\u898b\u7684\u76f4\u7dda\u65b9\u5411\uff1b\u74b0\u9762\u3001\u83ab\u6bd4\u70cf\u65af\u3001Klein\u3001RP2\u3001\u7403\u9762\u30013D \u8207 4D \u68cb\u76e4\u6703\u76f4\u63a5\u6a19\u51fa\u76ee\u6a19\u5340\u3002';
   }
-  return 'Chinese Checkers uses step moves and chain jumps. Standard Jump is a two-player diamond/star board: pieces start in triangular camps and race into the opposite camp. Every lattice type uses the same straight jump rule: follow one visible lattice line, jump over one adjacent occupied site, and land on the next empty site on that same line. Square and Triangular lattices only change which straight line directions are available. Torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards mark target zones explicitly because opposite changes with the space.';
+  return 'Chinese Checkers uses step moves and chain jumps. Standard Jump is a two-player diamond/star board: pieces start in triangular camps and race into the opposite camp. Every lattice type uses the same straight jump rule: follow one visible lattice line, jump over one adjacent occupied site, and land on the next empty site on that same line. Square, Triangular, and Kagome lattices only change which visible line directions are available. Torus, Mobius, Klein, RP2, sphere, 3D, and 4D boards mark target zones explicitly because opposite changes with the space.';
 }
 function dimensionDescription(d) {
   if (jumpLanguage() === 'zh') {
