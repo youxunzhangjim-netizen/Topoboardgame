@@ -398,8 +398,8 @@ class Reversi2DApp {
         }
         if (this.logic.topology.lattice === 'honeycomb') {
             const n = this.logic.topology.width;
-            const rawWidth = 1.5 * (n - 1) + 2;
-            const rawHeight = Math.sqrt(3) * (1.5 * (n - 1) + 1);
+            const rawWidth = Math.sqrt(3) * (n + (n > 1 ? 0.5 : 0));
+            const rawHeight = 1.5 * (n - 1) + 2;
             const radius = usable / Math.max(rawWidth, rawHeight);
             const boardWidth = rawWidth * radius;
             const boardHeight = rawHeight * radius;
@@ -467,8 +467,8 @@ class Reversi2DApp {
     hexCenter(coord, rect) {
         const [x, y] = coord;
         return {
-            x: rect.left + rect.radius + 1.5 * rect.radius * x,
-            y: rect.top + Math.sqrt(3) * rect.radius * (0.5 + y + x / 2)
+            x: rect.left + Math.sqrt(3) * rect.radius * (0.5 + x + (y % 2) * 0.5),
+            y: rect.top + rect.radius + 1.5 * rect.radius * y
         };
     }
 
@@ -519,7 +519,7 @@ class Reversi2DApp {
     traceHex(center, radius) {
         this.ctx.beginPath();
         for (let side = 0; side < 6; side++) {
-            const angle = Math.PI / 3 * side;
+            const angle = Math.PI / 3 * side - Math.PI / 6;
             const x = center.x + radius * Math.cos(angle);
             const y = center.y + radius * Math.sin(angle);
             if (side === 0) this.ctx.moveTo(x, y);

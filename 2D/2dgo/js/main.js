@@ -297,8 +297,8 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'honeycomb') {
-            const rawWidth = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
-            const rawHeight = Math.max(1, this.logic.size - 0.5);
+            const rawWidth = Math.max(1, this.logic.size - 0.5);
+            const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
             const step = span / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
@@ -313,13 +313,8 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'triangular') {
-            const mobileVertical = cssSize < 680;
-            const rawWidth = mobileVertical
-                ? Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1)
-                : Math.max(1, (this.logic.size - 1) * 1.5 + 1);
-            const rawHeight = mobileVertical
-                ? Math.max(1, (this.logic.size - 1) * 1.5 + 1)
-                : Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2 + 1);
+            const rawWidth = Math.max(1, this.logic.size - 0.5);
+            const rawHeight = Math.max(1, (this.logic.size - 1) * Math.sqrt(3) / 2);
             const step = span / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
@@ -349,19 +344,13 @@ class Go2DApp {
         }
         if (this.logic.lattice === 'honeycomb') {
             return {
-                x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
-                y: rect.y + (coord[1] + (coord[0] % 2) * 0.5) * rect.step
+                x: rect.x + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
+                y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
             };
         }
         if (this.logic.lattice === 'triangular') {
-            if ((rect.size || this.canvas.clientWidth || 720) < 680) {
-                return {
-                    x: rect.x + coord[0] * rect.step * Math.sqrt(3) / 2,
-                    y: rect.y + (coord[1] + coord[0] * 0.5) * rect.step
-                };
-            }
             return {
-                x: rect.x + (coord[0] + coord[1] * 0.5) * rect.step,
+                x: rect.x + (coord[0] + (coord[1] % 2) * 0.5) * rect.step,
                 y: rect.y + coord[1] * rect.step * Math.sqrt(3) / 2
             };
         }
@@ -773,32 +762,8 @@ class Go2DApp {
     }
 
     drawHoneycombFaces(rect) {
-        const ctx = this.ctx;
-        const n = this.logic.size;
-        ctx.save();
-        for (let x = 0; x <= n - 3; x += 2) {
-            for (let y = 0; y <= n - 2; y++) {
-                const vertices = [
-                    [x, y],
-                    [x + 1, y],
-                    [x + 2, y],
-                    [x + 2, y + 1],
-                    [x + 1, y + 1],
-                    [x, y + 1]
-                ].map((coord) => this.coordToPixel(coord));
-                ctx.beginPath();
-                vertices.forEach((point, index) => {
-                    if (index === 0) ctx.moveTo(point.x, point.y);
-                    else ctx.lineTo(point.x, point.y);
-                });
-                ctx.closePath();
-                ctx.fillStyle = (x / 2 + y) % 2 === 0
-                    ? 'rgba(244, 205, 139, 0.34)'
-                    : 'rgba(123, 72, 31, 0.13)';
-                ctx.fill();
-            }
-        }
-        ctx.restore();
+        // Go stones sit on lattice vertices, so the wood board stays uniform.
+        // The graph lines below show the honeycomb connectivity without face shading.
     }
 
     drawPeriodicBoundary(rect) {

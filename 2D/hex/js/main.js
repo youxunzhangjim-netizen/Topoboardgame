@@ -442,7 +442,7 @@ function buildCenters(width, height) {
         return;
     }
 
-    const rawWidthFactor = Math.sqrt(3) * (gridWidth + Math.max(0, gridHeight - 1) / 2);
+    const rawWidthFactor = Math.sqrt(3) * (gridWidth + (gridHeight > 1 ? 0.5 : 0));
     const rawHeightFactor = 1.5 * (gridHeight - 1) + 2;
     const radius = Math.max(7, Math.min(
         (width - padding * 2) / rawWidthFactor,
@@ -454,20 +454,23 @@ function buildCenters(width, height) {
     const offsetY = (height - boardHeight) / 2 + radius;
     centers = [];
     for (let r = 0; r < gridHeight; r += 1) {
+        const rowOffset = (r % 2) * 0.5;
         for (let q = 0; q < gridWidth; q += 1) {
+            const centerX = offsetX + Math.sqrt(3) * radius * (q + rowOffset);
+            const centerY = offsetY + 1.5 * radius * r;
             centers.push({
                 q,
                 r,
                 coordinate: [q, r],
                 key: `${q},${r}`,
-                x: offsetX + Math.sqrt(3) * radius * (q + r / 2),
-                y: offsetY + 1.5 * radius * r,
+                x: centerX,
+                y: centerY,
                 radius,
                 vertices: Array.from({ length: 6 }, (_, index) => {
                     const angle = (Math.PI / 180) * (60 * index - 30);
                     return [
-                        offsetX + Math.sqrt(3) * radius * (q + r / 2) + radius * Math.cos(angle),
-                        offsetY + 1.5 * radius * r + radius * Math.sin(angle)
+                        centerX + radius * Math.cos(angle),
+                        centerY + radius * Math.sin(angle)
                     ];
                 }),
                 shape: 'hex'

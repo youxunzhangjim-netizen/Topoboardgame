@@ -64,6 +64,27 @@ const TRIANGULAR_DIRECTIONS = Object.freeze([
     Object.freeze([-1, 1])
 ]);
 
+function triangularDirections(coord) {
+    const row = coord[1] || 0;
+    return row % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
+function honeycombDirections(coord) {
+    const [x = 0, y = 0] = coord;
+    const evenRow = y % 2 === 0;
+    const evenVertex = (x + y) % 2 === 0;
+    if (evenRow) {
+        return evenVertex
+            ? [[1, 0], [-1, -1], [-1, 1]]
+            : [[-1, 0], [0, -1], [0, 1]];
+    }
+    return evenVertex
+        ? [[1, 0], [0, -1], [0, 1]]
+        : [[-1, 0], [1, -1], [1, 1]];
+}
+
 function randomSeed() {
     return `go-random-boundary:${Date.now()}:${Math.random().toString(36).slice(2)}`;
 }
@@ -90,10 +111,8 @@ function randomDirectionKey(coord, direction) {
 }
 
 function latticeDirections(lattice, coord) {
-    if (lattice === 'triangular') return TRIANGULAR_DIRECTIONS;
-    if (lattice === 'honeycomb') {
-        return [[1, 0], [-1, 0], [0, (coord[0] + coord[1]) % 2 === 0 ? 1 : -1]];
-    }
+    if (lattice === 'triangular') return triangularDirections(coord);
+    if (lattice === 'honeycomb') return honeycombDirections(coord);
     return SQUARE_DIRECTIONS;
 }
 
