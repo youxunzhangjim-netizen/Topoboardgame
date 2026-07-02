@@ -70,15 +70,6 @@
                         <option value="robot" data-i18n="robot">Robot</option>
                     </select>
                 </div>
-                <div class="control-group robot-strength-control" id="robotStrengthControl" hidden>
-                    <label for="robotStrengthSelect" data-i18n="robotStrength">Robot Strength</label>
-                    <select id="robotStrengthSelect">
-                        <option value="1" data-i18n="robotLevel1">L1 Quick</option>
-                        <option value="2" selected data-i18n="robotLevel2">L2 Tactical</option>
-                        <option value="3" data-i18n="robotLevel3">L3 Search</option>
-                        <option value="4" data-i18n="robotLevel4">L4 Deep Search</option>
-                    </select>
-                </div>
                 <div class="control-group">
                     <label for="boardSizeSelect" data-i18n="boardSize">Board Size</label>
                     <select id="boardSizeSelect">
@@ -169,6 +160,34 @@
             <section class="panel">
                 <h3 data-i18n="moveHistory">Move History</h3>
                 <div class="move-history" id="moveHistoryList"></div>
+            </section>
+
+            <section class="panel robot-panel" id="robotPanel">
+                <h3 data-i18n="robotPanelTitle">Robot & Analysis</h3>
+                <p class="robot-muted" data-i18n="robotHelp">Select Robot from Game Mode for automatic robot play, or analyze the current position while playing locally.</p>
+                <div class="robot-row">
+                    <label for="robotSideSelect" data-i18n="robotSide">Robot Side</label>
+                    <select id="robotSideSelect">
+                        <option value="white" data-i18n="white">White</option>
+                        <option value="black" data-i18n="black">Black</option>
+                    </select>
+                </div>
+                <div class="robot-row">
+                    <label for="robotDepthSelect" data-i18n="robotStrength">Strength</label>
+                    <select id="robotDepthSelect">
+                        <option value="1" data-i18n="robotLevel1">L1 Quick</option>
+                        <option value="2" data-i18n="robotLevel2">L2 Tactical</option>
+                        <option value="3" selected data-i18n="robotLevel3">L3 Search</option>
+                        <option value="4" data-i18n="robotLevel4">L4 Deep</option>
+                    </select>
+                </div>
+                <div class="control-grid robot-buttons">
+                    <button id="robotMoveBtn" type="button" data-i18n="robotMove">Robot Move</button>
+                    <button id="robotAnalyzeBtn" type="button" data-i18n="robotAnalyze">Analyze Position</button>
+                </div>
+                <div class="robot-analysis" id="robotAnalysisOutput">
+                    <p class="robot-muted" data-i18n="robotAnalysisIdle">Click Analyze Position to rank Hex connection moves.</p>
+                </div>
             </section>
 
             <section class="panel chat-panel">

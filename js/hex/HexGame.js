@@ -7,7 +7,6 @@ import {
     kagomeFaceCells,
     kagomeFaceNeighbors
 } from '../shared/KagomeLattice.js';
-import { createBuckyballSphereFacePolygons } from '../geometry/SphereBoardGeometry.js';
 
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
@@ -167,10 +166,41 @@ function kagomeHexOffsets(origin = [0, 0]) {
         kagomeHexEdgeAllowed(origin, [origin[0] + offset[0], origin[1] + offset[1]]));
 }
 
+const ICOSAHEDRON_FACES = Object.freeze([
+    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+]);
+
+function createBuckyballFaceVertexSets() {
+    const neighbors = new Map();
+    const pointKey = (a, b) => `${a}->${b}`;
+    const faceSets = [];
+
+    for (const [a, b, c] of ICOSAHEDRON_FACES) {
+        faceSets.push(new Set([
+            pointKey(a, b), pointKey(b, a),
+            pointKey(b, c), pointKey(c, b),
+            pointKey(c, a), pointKey(a, c)
+        ]));
+        for (const [from, to] of [[a, b], [b, c], [c, a]]) {
+            if (!neighbors.has(from)) neighbors.set(from, new Set());
+            if (!neighbors.has(to)) neighbors.set(to, new Set());
+            neighbors.get(from).add(to);
+            neighbors.get(to).add(from);
+        }
+    }
+
+    for (let vertex = 0; vertex < 12; vertex += 1) {
+        faceSets.push(new Set([...neighbors.get(vertex)].map((neighbor) => pointKey(vertex, neighbor))));
+    }
+
+    return faceSets;
+}
+
 function createBuckyballFaceAdjacency(coordinateList) {
-    const polygons = createBuckyballSphereFacePolygons({ radius: 1, lift: 0 });
-    const vertexKey = (point) => `${point.x.toFixed(6)},${point.y.toFixed(6)},${point.z.toFixed(6)}`;
-    const faceVertexSets = polygons.map((polygon) => new Set(polygon.map(vertexKey)));
+    const faceVertexSets = createBuckyballFaceVertexSets();
     const faceCount = Math.min(coordinateList.length, faceVertexSets.length);
     const adjacency = new Map();
 

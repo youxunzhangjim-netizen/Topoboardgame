@@ -1,6 +1,6 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
-import { chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
+import { analyzeHexRobotPosition, chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
 import {
     createBuckyballSphereFacePolygons,
     createBuckyballSphereGridLines
@@ -32,11 +32,33 @@ const I18N = {
         local: 'Local',
         online: 'Online',
         robot: 'Robot',
-        robotStrength: 'Robot Strength',
+        robotPanelTitle: 'Robot & Analysis',
+        robotHelp: 'Select Robot from Game Mode for automatic robot play, or analyze the current position while playing locally.',
+        robotSide: 'Robot Side',
+        robotStrength: 'Strength',
         robotLevel1: 'L1 Quick',
         robotLevel2: 'L2 Tactical',
         robotLevel3: 'L3 Search',
         robotLevel4: 'L4 Deep',
+        robotMove: 'Robot Move',
+        robotAnalyze: 'Analyze Position',
+        robotAnalysisIdle: 'Click Analyze Position to rank Hex connection moves.',
+        robotNoMove: 'Robot found no legal move.',
+        robotMoved: 'Robot played {coord}. Score {score}. Nodes {nodes}.',
+        robotScheduled: 'Robot scheduled {coord}. Score {score}. Nodes {nodes}.',
+        robotModeHint: 'Robot side is used for automatic play. Robot Move plays the current side once.',
+        robotTopMoves: 'Top Moves',
+        robotScore: 'Score',
+        robotNodes: 'Nodes',
+        robotLimited: 'limited',
+        robotCurrent: '{player} to move. Score {score}. Win estimate {winRate}%. Nodes {nodes}.',
+        robotReason: {
+            win: 'winning connection',
+            block: 'blocks opponent connection',
+            heuristic: 'fast heuristic',
+            search: 'searched line',
+            'search-timeout': 'time-limited search'
+        },
         disconnected: 'Disconnected',
         findMatch: 'Find Match',
         privateRoom: 'PRIVATE ROOM',
@@ -138,11 +160,33 @@ const I18N = {
         local: '本機',
         online: '線上',
         robot: '機器人',
-        robotStrength: '機器人強度',
+        robotPanelTitle: '機器人與分析',
+        robotHelp: '在遊戲模式選擇機器人可自動對弈；本機遊玩時也可分析目前局面。',
+        robotSide: '機器人陣營',
+        robotStrength: '強度',
         robotLevel1: 'L1 快速',
         robotLevel2: 'L2 戰術',
         robotLevel3: 'L3 搜尋',
         robotLevel4: 'L4 深搜',
+        robotMove: '機器人走子',
+        robotAnalyze: '分析局面',
+        robotAnalysisIdle: '按下「分析局面」可排序六貫棋連線走法。',
+        robotNoMove: '機器人找不到合法走法。',
+        robotMoved: '機器人走在 {coord}。分數 {score}，節點 {nodes}。',
+        robotScheduled: '機器人已排程 {coord}。分數 {score}，節點 {nodes}。',
+        robotModeHint: '機器人陣營用於自動對弈；「機器人走子」會讓目前輪到的一方走一步。',
+        robotTopMoves: '推薦走法',
+        robotScore: '分數',
+        robotNodes: '節點',
+        robotLimited: '已限時',
+        robotCurrent: '輪到 {player}。分數 {score}，勝率估計 {winRate}%，節點 {nodes}。',
+        robotReason: {
+            win: '完成連線',
+            block: '阻擋對手連線',
+            heuristic: '快速估值',
+            search: '搜尋變化',
+            'search-timeout': '限時搜尋'
+        },
         disconnected: '未連線',
         findMatch: '尋找對手',
         privateRoom: '私人房間',
@@ -239,8 +283,11 @@ const elements = {
     status: document.getElementById('gameStatus'),
     summary: document.getElementById('moveSummary'),
     mode: document.getElementById('gameModeSelect'),
-    robotStrength: document.getElementById('robotStrengthSelect'),
-    robotStrengthControl: document.getElementById('robotStrengthControl'),
+    robotSide: document.getElementById('robotSideSelect'),
+    robotDepth: document.getElementById('robotDepthSelect'),
+    robotMove: document.getElementById('robotMoveBtn'),
+    robotAnalyze: document.getElementById('robotAnalyzeBtn'),
+    robotAnalysis: document.getElementById('robotAnalysisOutput'),
     onlineControls: document.getElementById('onlineControls'),
     connectionStatus: document.getElementById('connectionStatus'),
     findMatch: document.getElementById('findMatchBtn'),
@@ -328,9 +375,72 @@ function applyLanguage() {
 }
 
 function syncRobotControls() {
-    if (elements.robotStrengthControl) {
-        elements.robotStrengthControl.hidden = elements.mode.value !== 'robot';
-    }
+    if (elements.robotMove) elements.robotMove.disabled = !game || game.winner || elements.mode.value === 'online';
+    if (elements.robotAnalyze) elements.robotAnalyze.disabled = !game;
+}
+
+function robotSide() {
+    return elements.robotSide?.value === HEX_COLORS.BLACK ? HEX_COLORS.BLACK : HEX_COLORS.WHITE;
+}
+
+function robotLevel() {
+    return Math.max(1, Math.min(4, Math.floor(Number(elements.robotDepth?.value) || 3)));
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function coordLabel(coordinate) {
+    return `(${coordinate.map((value) => Number(value) + 1).join(', ')})`;
+}
+
+function formatRobotScore(score) {
+    if (!Number.isFinite(score)) return '0';
+    if (Math.abs(score) >= 99900) return score > 0 ? '+win' : '-win';
+    return (score / 100).toFixed(2);
+}
+
+function setRobotAnalysisMessage(message) {
+    if (!elements.robotAnalysis) return;
+    elements.robotAnalysis.innerHTML = `<p class="robot-muted">${escapeHtml(message)}</p>`;
+}
+
+function renderRobotAnalysis(analysis) {
+    if (!elements.robotAnalysis || !analysis) return;
+    const rows = analysis.topMoves.map((move, index) => `
+        <li>
+            <strong>${index + 1}. ${escapeHtml(coordLabel(move.coordinate))}</strong>
+            <span class="robot-muted">${escapeHtml(formatRobotScore(move.score))} · ${(move.winRate * 100).toFixed(1)}% · ${escapeHtml(text(`robotReason.${move.reason}`))}</span>
+        </li>
+    `).join('');
+    elements.robotAnalysis.innerHTML = `
+        <div class="robot-summary-grid">
+            <div><span class="robot-label">${escapeHtml(text('robotSide'))}</span><strong>${escapeHtml(text(analysis.player))}</strong></div>
+            <div><span class="robot-label">${escapeHtml(text('robotStrength'))}</span><strong>L${analysis.level}</strong></div>
+            <div><span class="robot-label">${escapeHtml(text('robotScore'))}</span><strong>${escapeHtml(formatRobotScore(analysis.currentScore))}</strong></div>
+            <div><span class="robot-label">${escapeHtml(text('robotNodes'))}</span><strong>${analysis.nodes}</strong></div>
+        </div>
+        <p class="robot-muted">${escapeHtml(text('robotCurrent', {
+            player: text(analysis.player),
+            score: formatRobotScore(analysis.currentScore),
+            winRate: (analysis.currentWinRate * 100).toFixed(1),
+            nodes: analysis.nodes
+        }))}${analysis.truncated ? ` · ${escapeHtml(text('robotLimited'))}` : ''}</p>
+        <h4>${escapeHtml(text('robotTopMoves'))}</h4>
+        <ol class="robot-move-list">${rows || `<li>${escapeHtml(text('robotNoMove'))}</li>`}</ol>
+    `;
+}
+
+function analyzeRobotPosition() {
+    const analysis = analyzeHexRobotPosition(game, { level: robotLevel(), limit: 6 });
+    renderRobotAnalysis(analysis);
+    return analysis;
 }
 
 function updateTargetText() {
@@ -679,7 +789,8 @@ function projectModelPoint(model, width, height, coordinate = null) {
         : game.topology.isSpecial || isSurfaceTopology()
             ? specialModelExtent * 1.2
         : Math.max(...axisSizes) - 1;
-    const scale = Math.min(width, height) * 0.62 /
+    const fit = game.topology.isSpecial || isSurfaceTopology() ? 0.62 : 0.38;
+    const scale = Math.min(width, height) * fit /
         Math.max(1, extent) *
         Number(elements.zoom.value);
     const perspective = 1 + rotated[2] / Math.max(12, Math.max(...axisSizes) * 4);
@@ -1305,35 +1416,59 @@ function consumeScheduledHexTurn() {
 function scheduleRobot() {
     clearTimeout(robotTimer);
     syncRobotControls();
-    if (elements.mode.value !== 'robot' || game.winner || game.currentColor !== HEX_COLORS.WHITE) return;
+    if (elements.mode.value !== 'robot' || game.winner || game.currentColor !== robotSide()) return;
     statusKey = 'robotThinking';
     updateReadout();
-    robotTimer = window.setTimeout(() => {
-        const robotMove = chooseHexRobotMove(game, {
-            level: Number(elements.robotStrength?.value || 2)
-        });
-        const coordinate = robotMove?.coordinate;
-        if (!coordinate) return;
-        if (window.hexApp?.__spaceTimeUsesFuture && window.hexApp.__spaceTimeScheduleRobotAction) {
-            window.hexApp.__spaceTimeScheduleRobotAction({
-                kind: 'hex',
-                player: game.currentColor,
-                coord: [...coordinate]
-            });
-            return;
-        }
-        const player = game.currentColor;
-        const result = game.play(coordinate);
-        window.hexApp?.__spaceTimeRecordImmediate?.({
+    robotTimer = window.setTimeout(() => performRobotMove({ automatic: true }), 320);
+}
+
+function performRobotMove({ automatic = false } = {}) {
+    if (!game || game.winner) return null;
+    if (elements.mode.value === 'online') {
+        setRobotAnalysisMessage(text('onlineUnavailable'));
+        return null;
+    }
+    if (automatic && game.currentColor !== robotSide()) return null;
+    const robotMove = chooseHexRobotMove(game, { level: robotLevel() });
+    const coordinate = robotMove?.coordinate;
+    if (!coordinate) {
+        setRobotAnalysisMessage(text('robotNoMove'));
+        return null;
+    }
+    const player = game.currentColor;
+    if (window.hexApp?.__spaceTimeUsesFuture && window.hexApp.__spaceTimeScheduleRobotAction) {
+        window.hexApp.__spaceTimeScheduleRobotAction({
             kind: 'hex',
             player,
             coord: [...coordinate]
-        }, result);
-        statusKey = game.winner ? 'whiteWin' : 'emptyPrompt';
-        updateReadout();
-        renderHistory();
-        drawBoard();
-    }, 320);
+        });
+        setRobotAnalysisMessage(text('robotScheduled', {
+            coord: coordLabel(coordinate),
+            score: formatRobotScore(robotMove.score),
+            nodes: robotMove.nodes
+        }));
+        return robotMove;
+    }
+    const result = game.play(coordinate);
+    window.hexApp?.__spaceTimeRecordImmediate?.({
+        kind: 'hex',
+        player,
+        coord: [...coordinate]
+    }, result);
+    statusKey = game.winner
+        ? game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'
+        : 'emptyPrompt';
+    updateReadout();
+    renderHistory();
+    drawBoard();
+    setRobotAnalysisMessage(result.ok ? text('robotMoved', {
+        coord: coordLabel(coordinate),
+        score: formatRobotScore(robotMove.score),
+        nodes: robotMove.nodes
+    }) : result.error || text('occupied'));
+    if (result.ok) onlineController?.broadcastState();
+    if (result.ok) scheduleRobot();
+    return robotMove;
 }
 
 elements.canvas.addEventListener('pointerdown', (event) => {
@@ -1416,7 +1551,16 @@ elements.mode.addEventListener('change', () => {
     updateReadout();
     scheduleRobot();
 });
-elements.robotStrength?.addEventListener('change', () => scheduleRobot());
+elements.robotSide?.addEventListener('change', () => {
+    setRobotAnalysisMessage(text('robotModeHint'));
+    scheduleRobot();
+});
+elements.robotDepth?.addEventListener('change', () => {
+    analyzeRobotPosition();
+    scheduleRobot();
+});
+elements.robotMove?.addEventListener('click', () => performRobotMove({ automatic: false }));
+elements.robotAnalyze?.addEventListener('click', () => analyzeRobotPosition());
 elements.language.addEventListener('click', () => {
     language = language === 'en' ? 'zh' : 'en';
     localStorage.setItem(LANGUAGE_KEY, language);

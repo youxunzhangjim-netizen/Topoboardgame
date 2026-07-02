@@ -145,6 +145,10 @@ function evaluateBoard(board, topology, coordinates, rootColor) {
     return (opponentDistance - rootDistance) * 115 + stoneScore + centerScore * 2;
 }
 
+function winRate(score) {
+    return 1 / (1 + Math.exp(-Math.max(-900, Math.min(900, score)) / 220));
+}
+
 function scoreMove(board, topology, coordinates, coordinate, color) {
     setColor(board, topology, coordinate, color);
     const ownWin = hasConnection(board, topology, color);
@@ -268,6 +272,54 @@ export function chooseHexRobotMove(game, options = {}) {
         score: bestScore,
         nodes: stats.nodes,
         reason: stats.truncated ? 'search-timeout' : 'search'
+    };
+}
+
+export function analyzeHexRobotPosition(game, options = {}) {
+    if (!game) return null;
+    const level = normalizeLevel(options.level);
+    const limit = Math.max(1, Math.min(10, Math.floor(Number(options.limit) || 6)));
+    const profile = { ...LEVELS[level], level, startTime: now(), timeMs: Math.max(LEVELS[level].timeMs, 260) };
+    const topology = game.topology;
+    const coordinates = topology.coordinates();
+    const board = new Map(game.board);
+    const color = game.currentColor;
+    const opponent = otherHexColor(color);
+    const currentScore = evaluateBoard(board, topology, coordinates, color);
+    const stats = { nodes: 0, truncated: false };
+    const candidates = rankedMoves(board, topology, coordinates, color, profile.candidateCap);
+    const opponentWins = new Set(winningMoves(board, topology, coordinates, opponent)
+        .map((coordinate) => keyOf(topology, coordinate)));
+
+    const topMoves = candidates.map((coordinate) => {
+        setColor(board, topology, coordinate, color);
+        const won = hasConnection(board, topology, color);
+        const score = won
+            ? WIN_SCORE
+            : profile.depth <= 0
+                ? evaluateBoard(board, topology, coordinates, color)
+                : search(board, topology, coordinates, opponent, color, profile.depth - 1, -Infinity, Infinity, profile, stats);
+        setColor(board, topology, coordinate, null);
+        const key = keyOf(topology, coordinate);
+        return {
+            coordinate,
+            score,
+            winRate: winRate(score),
+            reason: won ? 'win' : opponentWins.has(key) ? 'block' : stats.truncated ? 'search-timeout' : 'search'
+        };
+    })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+    return {
+        player: color,
+        level,
+        depth: profile.depth,
+        currentScore,
+        currentWinRate: winRate(currentScore),
+        nodes: stats.nodes,
+        truncated: stats.truncated,
+        topMoves
     };
 }
 
