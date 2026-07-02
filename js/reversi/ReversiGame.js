@@ -199,7 +199,7 @@ function stepSphere(coord, direction, width, height) {
 function sphereDirectionsFor(coord, width, height, directions) {
     if (isSphereNorthPole(coord)) return spherePoleDirections(width, true);
     if (isSphereSouthPole(coord, height)) return spherePoleDirections(width, false);
-    return directions.map((direction) => [...direction]);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]];
 }
 
 function randomSeed() {

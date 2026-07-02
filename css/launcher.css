@@ -199,11 +199,11 @@ body::before {
 }
 
 .launcher-language-button svg {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
+    stroke-width: 1.35;
     stroke-linecap: round;
     stroke-linejoin: round;
 }

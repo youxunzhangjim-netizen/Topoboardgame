@@ -72,6 +72,16 @@
                 </select>
             </div>
 
+            <div class="control-group robot-strength-control" id="robotStrengthControl" hidden>
+                <label for="robotStrengthSelect" data-i18n="robotStrength">Robot Strength</label>
+                <select id="robotStrengthSelect">
+                    <option value="1" data-i18n="robotLevel1">L1 Quick</option>
+                    <option value="2" selected data-i18n="robotLevel2">L2 Tactical</option>
+                    <option value="3" data-i18n="robotLevel3">L3 Search</option>
+                    <option value="4" data-i18n="robotLevel4">L4 Deep Search</option>
+                </select>
+            </div>
+
             <section class="online-controls" id="onlineControls" hidden>
                 <div class="connection-status disconnected" id="connectionStatus" data-i18n="disconnected">Disconnected</div>
                 <button class="online-btn match" id="findMatchBtn" type="button" data-i18n="findMatch">Find Match</button>

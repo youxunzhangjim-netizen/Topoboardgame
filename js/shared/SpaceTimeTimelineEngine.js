@@ -566,7 +566,7 @@ export function installSpaceTimeTimelineEngine() {
               <option value="future"></option>
               <option value="past"></option>
               <option value="past_future"></option>
-              <option value="periodic"></option>
+              ${supportsPeriodMode() ? '<option value="periodic"></option>' : ''}
             </select>
           </label>
           <label data-st-future><span data-st-label="delay"></span>
@@ -2776,9 +2776,12 @@ export function installSpaceTimeTimelineEngine() {
     modeSelect.options[0].textContent = text('future');
     modeSelect.options[1].textContent = text('past');
     modeSelect.options[2].textContent = text('both');
-    modeSelect.options[3].textContent = text('periodModeChoice');
-    modeSelect.options[3].hidden = !supportsPeriodMode();
-    modeSelect.options[3].disabled = !supportsPeriodMode();
+    const periodModeOption = modeSelect.querySelector('option[value="periodic"]');
+    if (periodModeOption) {
+      periodModeOption.textContent = text('periodModeChoice');
+      periodModeOption.hidden = !supportsPeriodMode();
+      periodModeOption.disabled = !supportsPeriodMode();
+    }
     modeSelect.value = settings.mode;
     panel.querySelector('[data-st-period-mode] option[value="off"]').textContent = text('periodOffMode');
     panel.querySelector('[data-st-period-mode] option[value="periodic"]').textContent = text('periodOnMode');

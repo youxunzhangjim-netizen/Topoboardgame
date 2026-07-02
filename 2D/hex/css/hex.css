@@ -187,10 +187,10 @@ body {
 }
 
 .language-button {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    min-height: 36px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -202,11 +202,11 @@ body {
 }
 
 .language-button svg {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 1.35;
     stroke-linecap: round;
     stroke-linejoin: round;
 }

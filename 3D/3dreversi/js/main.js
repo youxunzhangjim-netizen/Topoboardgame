@@ -23,6 +23,7 @@ const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.45;
 const MOBIUS_BAND_HALF_WIDTH = 1.86;
+const KLEIN_RENDER_SCALE = 1.22;
 const SQUARE_LATTICE = 'square';
 const HCP_LATTICE = 'hcp';
 const HONEYCOMB_LATTICE = 'honeycomb';
@@ -500,6 +501,7 @@ class Reversi3DRenderer {
                 side: THREE.DoubleSide
             })
         );
+        surface.scale.setScalar(KLEIN_RENDER_SCALE);
         surface.renderOrder = 2;
         surface.castShadow = false;
         surface.receiveShadow = false;
@@ -515,6 +517,7 @@ class Reversi3DRenderer {
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.scale.setScalar(KLEIN_RENDER_SCALE);
             line.renderOrder = 4;
             this.boardGroup.add(line);
         };
@@ -700,7 +703,13 @@ class Reversi3DRenderer {
         for (const [key, stone] of logic.board.entries()) {
             const coord = key.split(',').map(Number);
             if (!this.coordVisible(coord)) continue;
-            const poses = this.posesForCoord(coord, logic, surfaceFaceBoard ? 0.105 : 0.18);
+            const poses = this.posesForCoord(
+                coord,
+                logic,
+                surfaceFaceBoard
+                    ? logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 0.14 : 0.105
+                    : 0.18
+            );
             const positions = poses.map((pose) => pose.position);
             if (surfaceFaceBoard) {
                 if (stone.color === 'black') blackSurface.push(...poses);
@@ -787,7 +796,7 @@ class Reversi3DRenderer {
 
     addSurfaceStoneDiscs(poses, color, logic) {
         if (!poses.length) return;
-        const radius = this.markerRadius(logic) * 1.55;
+        const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.08 : 1.55);
         const discGeometry = new THREE.CircleGeometry(radius, 42);
         const rimGeometry = new THREE.RingGeometry(radius * 0.92, radius * 1.08, 42);
         const discMaterial = new THREE.MeshPhysicalMaterial({
@@ -1368,6 +1377,7 @@ class Reversi3DRenderer {
     kleinOutsidePose(coord, width, height, lift = 0.1) {
         const pose = kleinBottlePose(coord, width, height, -Math.abs(lift));
         pose.normal.multiplyScalar(-1);
+        pose.position.multiplyScalar(KLEIN_RENDER_SCALE);
         return pose;
     }
 
@@ -1503,7 +1513,7 @@ class Reversi3DRenderer {
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
         else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(7.4, 5.4, 8.4);
-        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.8, 4.8, 10.4);
+        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.7, 4.8, 9.8);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);
         else if (mode === REVERSI_TOPOLOGIES.RP2) this.camera.position.set(0, 0, 10.5);
         else this.camera.position.set(7.9, 7.4, 8.2);

@@ -1,5 +1,6 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
+import { chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
 import { kagomeFaceBounds, kagomeFaceCells } from '../../../js/shared/KagomeLattice.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
@@ -25,6 +26,11 @@ const I18N = {
         local: 'Local',
         online: 'Online',
         robot: 'Robot',
+        robotStrength: 'Robot Strength',
+        robotLevel1: 'L1 Quick',
+        robotLevel2: 'L2 Tactical',
+        robotLevel3: 'L3 Search',
+        robotLevel4: 'L4 Deep',
         disconnected: 'Disconnected',
         findMatch: 'Find Match',
         privateRoom: 'PRIVATE ROOM',
@@ -72,7 +78,7 @@ const I18N = {
         occupied: 'Choose an empty Hex cell.',
         blackWin: 'Black connected its target sides.',
         whiteWin: 'White connected its target sides.',
-        robotThinking: 'Robot is choosing an empty cell.',
+        robotThinking: 'Robot is searching for a connection move.',
         connectOnline: 'Connect or join an Online room before placing.',
         waitingFor: 'Waiting for {color}.',
         onlineAs: 'Online as {color}',
@@ -110,6 +116,11 @@ const I18N = {
         local: '本機',
         online: '線上',
         robot: '機器人',
+        robotStrength: '機器人強度',
+        robotLevel1: 'L1 快速',
+        robotLevel2: 'L2 戰術',
+        robotLevel3: 'L3 搜尋',
+        robotLevel4: 'L4 深搜',
         disconnected: '未連線',
         findMatch: '尋找對手',
         privateRoom: '私人房間',
@@ -157,7 +168,7 @@ const I18N = {
         occupied: '請選擇一個空的六貫棋格。',
         blackWin: '黑方已連接自己的兩個目標邊。',
         whiteWin: '白方已連接自己的兩個目標邊。',
-        robotThinking: '機器人正在選擇空格。',
+        robotThinking: '機器人正在搜尋連線走法。',
         connectOnline: '請先連線或加入線上房間再落子。',
         waitingFor: '等待 {color} 行動。',
         onlineAs: '線上身份：{color}',
@@ -191,6 +202,8 @@ const elements = {
     gameStatus: document.getElementById('gameStatus'),
     moveSummary: document.getElementById('moveSummary'),
     gameMode: document.getElementById('gameModeSelect'),
+    robotStrength: document.getElementById('robotStrengthSelect'),
+    robotStrengthControl: document.getElementById('robotStrengthControl'),
     onlineControls: document.getElementById('onlineControls'),
     connectionStatus: document.getElementById('connectionStatus'),
     findMatch: document.getElementById('findMatchBtn'),
@@ -259,6 +272,12 @@ function applyLanguage() {
     updateTargetText();
     updateReadout();
     renderHistory();
+}
+
+function syncRobotControls() {
+    if (elements.robotStrengthControl) {
+        elements.robotStrengthControl.hidden = elements.gameMode.value !== 'robot';
+    }
 }
 
 function updateTargetText() {
@@ -794,13 +813,16 @@ function consumeScheduledHexTurn() {
 
 function scheduleRobot() {
     clearTimeout(robotTimer);
+    syncRobotControls();
     if (elements.gameMode.value !== 'robot' || game.winner || game.currentColor !== HEX_COLORS.WHITE) return;
     statusKey = 'robotThinking';
     updateReadout();
     robotTimer = window.setTimeout(() => {
-        const empty = game.topology.coordinates().filter((coordinate) => game.getCell(coordinate) === null);
-        if (!empty.length) return;
-        const coordinate = empty[Math.floor(Math.random() * empty.length)];
+        const robotMove = chooseHexRobotMove(game, {
+            level: Number(elements.robotStrength?.value || 2)
+        });
+        const coordinate = robotMove?.coordinate;
+        if (!coordinate) return;
         if (window.hexApp?.__spaceTimeUsesFuture && window.hexApp.__spaceTimeScheduleRobotAction) {
             window.hexApp.__spaceTimeScheduleRobotAction({
                 kind: 'hex',
@@ -858,9 +880,11 @@ elements.resetView?.addEventListener('click', () => {
 elements.newGame.addEventListener('click', () => newGame());
 elements.gameMode.addEventListener('change', () => {
     statusKey = 'emptyPrompt';
+    syncRobotControls();
     updateReadout();
     scheduleRobot();
 });
+elements.robotStrength?.addEventListener('change', () => scheduleRobot());
 elements.language.addEventListener('click', () => {
     language = language === 'en' ? 'zh' : 'en';
     localStorage.setItem(LANGUAGE_KEY, language);
@@ -878,6 +902,7 @@ window.addEventListener('resize', drawBoard);
 
 newGame();
 applyLanguage();
+syncRobotControls();
 
 function importHexState(state, messageKey = '') {
     game = HexGame.fromState(state);

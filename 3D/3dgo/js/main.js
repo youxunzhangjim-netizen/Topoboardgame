@@ -69,6 +69,7 @@ const RP2_EDGE_GAP = 0.84;
 const RP2_BOARD_LIFT = 0.02;
 const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
+const KLEIN_RENDER_SCALE = 1.22;
 const SPHERE_COORDINATE_LATTICE = 'sphere_coordinate';
 
 function isR3LikeTopology(topology) {
@@ -600,6 +601,7 @@ class Go3DRenderer {
                 side: THREE.DoubleSide
             })
         );
+        surface.scale.setScalar(KLEIN_RENDER_SCALE);
         surface.renderOrder = 2;
         surface.castShadow = false;
         surface.receiveShadow = false;
@@ -615,6 +617,7 @@ class Go3DRenderer {
         });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            line.scale.setScalar(KLEIN_RENDER_SCALE);
             line.renderOrder = 4;
             this.boardGroup.add(line);
         };
@@ -1028,15 +1031,12 @@ class Go3DRenderer {
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
             this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.052);
-        } else if (logic.lattice === TRIANGULAR_LATTICE) {
-            this.appendTriangularSurfaceGrid(linePositions, size, size, 'torus', 0.052);
         } else {
             for (const coord of logic.playableCoords()) {
                 const fromKey = logic.coordKey(coord);
                 for (const neighbor of logic.neighborsFromCoord(coord)) {
                     const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                     if (drawn.has(edgeKey)) continue;
-                    if (logic.lattice === TRIANGULAR_LATTICE && this.isSurfaceWrapEdge(coord, neighbor, size, size, true)) continue;
                     drawn.add(edgeKey);
                     this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
                 }
@@ -1053,12 +1053,13 @@ class Go3DRenderer {
             this.pointPositions.push(p);
             pointPositions.push(p.x, p.y, p.z);
         }
-        this.addNodePoints(
-            pointPositions,
-            size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
-            { color: 0x4b2f1b, opacity: 0.96 }
-        );
-        if (logic.lattice === SQUARE_LATTICE) this.addTorusStarPoints(size);
+        if (logic.lattice !== SQUARE_LATTICE) {
+            this.addNodePoints(
+                pointPositions,
+                size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
+                { color: 0x4b2f1b, opacity: 0.96 }
+            );
+        }
     }
 
     buildCylinder(logic) {
@@ -1942,6 +1943,7 @@ class Go3DRenderer {
     kleinOutsidePose(coord, width, height, lift = 0.1) {
         const pose = kleinBottlePose(coord, width, height, -Math.abs(lift));
         pose.normal.multiplyScalar(-1);
+        pose.position.multiplyScalar(KLEIN_RENDER_SCALE);
         return pose;
     }
 
@@ -2054,7 +2056,7 @@ class Go3DRenderer {
             this.camera.position.set(0, 8.6, 7.4);
             this.controls.target.set(0, 0.35, 0);
         } else if (this.app?.logic?.topology === KLEIN_BOTTLE_TOPOLOGY) {
-            this.camera.position.set(8.8, 4.8, 12.8);
+            this.camera.position.set(8.6, 4.8, 11.0);
             this.controls.target.set(0, -3.0, 0);
         } else if (this.app?.logic?.topology === SPHERE_GO_TOPOLOGY) {
             this.camera.position.set(0, 0, this.view === '2d' ? 10.5 : 18.5);
@@ -2276,9 +2278,12 @@ class Go3DApp {
         const visualLattice = this.syncLatticeOptions(mode);
         const lattice = visualLattice;
         const requestedSize = this.boardSize();
-        const needsEvenHoneycombSeam = lattice === HONEYCOMB_LATTICE
-            && (mode === 't2' || mode === CYLINDER_GO_TOPOLOGY);
-        const size = needsEvenHoneycombSeam && requestedSize % 2 ? requestedSize + 1 : requestedSize;
+        const needsEvenSurfaceSeam = (
+            lattice === HONEYCOMB_LATTICE && (mode === 't2' || mode === CYLINDER_GO_TOPOLOGY)
+        ) || (
+            lattice === TRIANGULAR_LATTICE && mode === 't2'
+        );
+        const size = needsEvenSurfaceSeam && requestedSize % 2 ? requestedSize + 1 : requestedSize;
         const topology = isR3LikeTopology(mode)
             ? mode
             : mode === 'sphere'

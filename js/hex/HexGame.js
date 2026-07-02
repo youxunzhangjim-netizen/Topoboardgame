@@ -7,6 +7,7 @@ import {
     kagomeFaceCells,
     kagomeFaceNeighbors
 } from '../shared/KagomeLattice.js';
+import { createBuckyballSphereFacePolygons } from '../geometry/SphereBoardGeometry.js';
 
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
@@ -164,6 +165,35 @@ function kagomeHexEdgeAllowed(a, b) {
 function kagomeHexOffsets(origin = [0, 0]) {
     return triangularRowOffsets(origin).filter((offset) =>
         kagomeHexEdgeAllowed(origin, [origin[0] + offset[0], origin[1] + offset[1]]));
+}
+
+function createBuckyballFaceAdjacency(coordinateList) {
+    const polygons = createBuckyballSphereFacePolygons({ radius: 1, lift: 0 });
+    const vertexKey = (point) => `${point.x.toFixed(6)},${point.y.toFixed(6)},${point.z.toFixed(6)}`;
+    const faceVertexSets = polygons.map((polygon) => new Set(polygon.map(vertexKey)));
+    const faceCount = Math.min(coordinateList.length, faceVertexSets.length);
+    const adjacency = new Map();
+
+    for (let index = 0; index < faceCount; index += 1) {
+        adjacency.set(coordinateKey(coordinateList[index]), new Map());
+    }
+
+    for (let a = 0; a < faceCount; a += 1) {
+        for (let b = a + 1; b < faceCount; b += 1) {
+            let shared = 0;
+            for (const key of faceVertexSets[a]) {
+                if (faceVertexSets[b].has(key)) shared += 1;
+                if (shared >= 2) break;
+            }
+            if (shared < 2) continue;
+            const aKey = coordinateKey(coordinateList[a]);
+            const bKey = coordinateKey(coordinateList[b]);
+            adjacency.get(aKey)?.set(bKey, coordinateList[b]);
+            adjacency.get(bKey)?.set(aKey, coordinateList[a]);
+        }
+    }
+
+    return adjacency;
 }
 
 function modulo(value, modulus) {
@@ -667,6 +697,9 @@ export function createHexTopology(options = {}) {
     ];
 
     const coordinateList = surface3D ? enumerateSurface3DCoordinates(size, topology) : enumerateCoordinates(size);
+    const buckyballAdjacency = surface3D && topology === 'sphere' && lattice === 'buckyball'
+        ? createBuckyballFaceAdjacency(coordinateList)
+        : null;
     const randomAdjacency = topology === 'random' || topology === 'r3_random'
         ? (() => {
             const adjacency = new Map(coordinateList.map((coordinate) => [coordinateKey(coordinate), new Map()]));
@@ -701,6 +734,9 @@ export function createHexTopology(options = {}) {
         if (!origin) return [];
         if (randomAdjacency) {
             return [...(randomAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
+        }
+        if (buckyballAdjacency) {
+            return [...(buckyballAdjacency.get(coordinateKey(origin))?.values() || [])].map((item) => [...item]);
         }
         if (dimension === 2 && lattice === 'kagome') {
             return kagomeFaceNeighbors(origin, size[0], size[1])

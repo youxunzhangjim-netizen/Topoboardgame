@@ -1,5 +1,6 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
+import { chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
 import {
     createBuckyballSphereFacePolygons,
     createBuckyballSphereGridLines
@@ -11,6 +12,7 @@ const TWO_PI = Math.PI * 2;
 const isSpaceTime = params.get('spacetime') === '3p1';
 const SPHERE_GEODESIC_LATTICE = 'sphere_coordinate';
 const BUCKYBALL_LATTICE = 'buckyball';
+const BUCKYBALL_RENDER_RADIUS = 4.12;
 
 const I18N = {
     en: {
@@ -30,6 +32,11 @@ const I18N = {
         local: 'Local',
         online: 'Online',
         robot: 'Robot',
+        robotStrength: 'Robot Strength',
+        robotLevel1: 'L1 Quick',
+        robotLevel2: 'L2 Tactical',
+        robotLevel3: 'L3 Search',
+        robotLevel4: 'L4 Deep',
         disconnected: 'Disconnected',
         findMatch: 'Find Match',
         privateRoom: 'PRIVATE ROOM',
@@ -90,7 +97,7 @@ const I18N = {
         historyEmpty: 'No moves yet',
         blackWin: 'Black connected x-low to x-high.',
         whiteWin: 'White connected y-low to y-high.',
-        robotThinking: 'Robot is choosing an empty site.',
+        robotThinking: 'Robot is searching for a connection move.',
         connectOnline: 'Connect or join an Online room before placing.',
         waitingFor: 'Waiting for {color}.',
         onlineAs: 'Online as {color}',
@@ -131,6 +138,11 @@ const I18N = {
         local: '本機',
         online: '線上',
         robot: '機器人',
+        robotStrength: '機器人強度',
+        robotLevel1: 'L1 快速',
+        robotLevel2: 'L2 戰術',
+        robotLevel3: 'L3 搜尋',
+        robotLevel4: 'L4 深搜',
         disconnected: '未連線',
         findMatch: '尋找對手',
         privateRoom: '私人房間',
@@ -191,7 +203,7 @@ const I18N = {
         historyEmpty: '尚無落子記錄',
         blackWin: '黑方已連接 x-low 與 x-high。',
         whiteWin: '白方已連接 y-low 與 y-high。',
-        robotThinking: '機器人正在選擇空格。',
+        robotThinking: '機器人正在搜尋連線走法。',
         connectOnline: '請先連線或加入線上房間再落子。',
         waitingFor: '等待 {color} 行動。',
         onlineAs: '線上身份：{color}',
@@ -227,6 +239,8 @@ const elements = {
     status: document.getElementById('gameStatus'),
     summary: document.getElementById('moveSummary'),
     mode: document.getElementById('gameModeSelect'),
+    robotStrength: document.getElementById('robotStrengthSelect'),
+    robotStrengthControl: document.getElementById('robotStrengthControl'),
     onlineControls: document.getElementById('onlineControls'),
     connectionStatus: document.getElementById('connectionStatus'),
     findMatch: document.getElementById('findMatchBtn'),
@@ -313,6 +327,12 @@ function applyLanguage() {
     renderHistory();
 }
 
+function syncRobotControls() {
+    if (elements.robotStrengthControl) {
+        elements.robotStrengthControl.hidden = elements.mode.value !== 'robot';
+    }
+}
+
 function updateTargetText() {
     if (!game) return;
     const marked = game.topology.goalZones.black.type !== 'physical-sides' ||
@@ -328,7 +348,13 @@ function newGame() {
     const topology = selectedTopology();
     const lattice = selectedLatticeForTopology(topology);
     const topologySize = expandedBoardSize(topology, requestedSize, lattice);
-    game = new HexGame({ dimension: 3, size: topologySize, topology, lattice });
+    game = new HexGame({
+        dimension: 3,
+        size: topologySize,
+        topology,
+        lattice,
+        goalZones: createBuckyballGoalZones(topology, topologySize, lattice)
+    });
     syncBoardDimensions();
     statusKey = 'emptyPrompt';
     elements.topologyMode.textContent = selectedTopologyLabel();
@@ -344,6 +370,129 @@ function newGame() {
     updateReadout();
     renderHistory();
     drawBoard();
+}
+
+function surfaceSphereCoordinatesForSize(size) {
+    const [width, height] = size;
+    const coordinates = [];
+    for (let y = 0; y < height; y += 1) {
+        if (y === 0 || y === height - 1) {
+            coordinates.push([0, y, 0]);
+            continue;
+        }
+        for (let x = 0; x < width; x += 1) coordinates.push([x, y, 0]);
+    }
+    return coordinates;
+}
+
+function createBuckyballGoalZones(topology, topologySize, lattice) {
+    if (topology !== 'sphere' || lattice !== BUCKYBALL_LATTICE) return null;
+    const polygons = createBuckyballSphereFacePolygons({ radius: BUCKYBALL_RENDER_RADIUS, lift: 0.08 });
+    const coordinates = surfaceSphereCoordinatesForSize(topologySize).slice(0, polygons.length);
+    const vertexKey = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)},${point.z.toFixed(5)}`;
+    const faceVertexSets = polygons.map((polygon) => new Set(polygon.map(vertexKey)));
+    const areAdjacentFaces = (a, b) => {
+        let shared = 0;
+        for (const key of faceVertexSets[a.index] || []) {
+            if (faceVertexSets[b.index]?.has(key)) shared += 1;
+            if (shared >= 2) return true;
+        }
+        return false;
+    };
+    const faceDistance = (a, b) => Math.hypot(
+        a.center.x - b.center.x,
+        a.center.y - b.center.y,
+        a.center.z - b.center.z
+    );
+    const rotateDefault = (center) => {
+        let { x, y, z } = center;
+        const ax = -24 * Math.PI / 180;
+        const ay = 34 * Math.PI / 180;
+        [y, z] = [y * Math.cos(ax) - z * Math.sin(ax), y * Math.sin(ax) + z * Math.cos(ax)];
+        [x, z] = [x * Math.cos(ay) + z * Math.sin(ay), -x * Math.sin(ay) + z * Math.cos(ay)];
+        return { x, y, z };
+    };
+    const entries = polygons.map((polygon, index) => {
+        const center = polygon.reduce((sum, point) => {
+            sum.x += point.x;
+            sum.y += point.y;
+            sum.z += point.z;
+            return sum;
+        }, { x: 0, y: 0, z: 0 });
+        center.x /= Math.max(1, polygon.length);
+        center.y /= Math.max(1, polygon.length);
+        center.z /= Math.max(1, polygon.length);
+        return { coordinate: coordinates[index], center, view: rotateDefault(center), index };
+    }).filter((entry) => Array.isArray(entry.coordinate));
+    const keyOf = (coordinate) => coordinate.join(',');
+    const pickSeparatedVisibleCaps = () => {
+        const minAnyDistance = BUCKYBALL_RENDER_RADIUS * 0.65;
+        const minSameColorDistance = BUCKYBALL_RENDER_RADIUS * 1.35;
+        const minVisibleDepth = -0.35;
+        let best = null;
+
+        const isSeparated = (selected) => {
+            for (let a = 0; a < selected.length; a += 1) {
+                for (let b = a + 1; b < selected.length; b += 1) {
+                    if (areAdjacentFaces(selected[a], selected[b])) return false;
+                    if (faceDistance(selected[a], selected[b]) < minAnyDistance) return false;
+                }
+            }
+            return true;
+        };
+
+        for (const blackStart of entries) {
+            if (blackStart.view.z < minVisibleDepth) continue;
+            for (const blackEnd of entries) {
+                if (blackEnd === blackStart || blackEnd.view.z < minVisibleDepth) continue;
+                if (faceDistance(blackStart, blackEnd) < minSameColorDistance) continue;
+                for (const whiteStart of entries) {
+                    if (whiteStart === blackStart || whiteStart === blackEnd || whiteStart.view.z < minVisibleDepth) continue;
+                    for (const whiteEnd of entries) {
+                        const selected = [blackStart, blackEnd, whiteStart, whiteEnd];
+                        if (new Set(selected).size !== selected.length) continue;
+                        if (whiteEnd.view.z < minVisibleDepth) continue;
+                        if (faceDistance(whiteStart, whiteEnd) < minSameColorDistance) continue;
+                        if (!isSeparated(selected)) continue;
+
+                        const crossDistances = [
+                            faceDistance(blackStart, whiteStart),
+                            faceDistance(blackStart, whiteEnd),
+                            faceDistance(blackEnd, whiteStart),
+                            faceDistance(blackEnd, whiteEnd)
+                        ];
+                        const score =
+                            (-blackStart.view.x + blackEnd.view.x + whiteStart.view.y - whiteEnd.view.y) * 2 +
+                            (blackStart.view.z + blackEnd.view.z + whiteStart.view.z + whiteEnd.view.z) * 1.4 +
+                            (faceDistance(blackStart, blackEnd) + faceDistance(whiteStart, whiteEnd)) * 1.8 +
+                            Math.min(...crossDistances) * 0.8;
+                        if (!best || score > best.score) best = { score, blackStart, blackEnd, whiteStart, whiteEnd };
+                    }
+                }
+            }
+        }
+        return best;
+    };
+
+    const caps = pickSeparatedVisibleCaps();
+    const blackStart = new Set([keyOf(caps?.blackStart?.coordinate || coordinates[4])]);
+    const blackEnd = new Set([keyOf(caps?.blackEnd?.coordinate || coordinates[10])]);
+    const whiteStart = new Set([keyOf(caps?.whiteStart?.coordinate || coordinates[25])]);
+    const whiteEnd = new Set([keyOf(caps?.whiteEnd?.coordinate || coordinates[22])]);
+    return {
+        black: {
+            type: 'marked-cut-zones',
+            label: 'buckyball cyan diagonal zones',
+            start: (coordinate) => blackStart.has(keyOf(coordinate)),
+            end: (coordinate) => blackEnd.has(keyOf(coordinate))
+        },
+        white: {
+            type: 'marked-cut-zones',
+            label: 'buckyball amber diagonal zones',
+            start: (coordinate) => whiteStart.has(keyOf(coordinate)),
+            end: (coordinate) => whiteEnd.has(keyOf(coordinate))
+        }
+    };
 }
 
 function expandedBoardSize(topology, baseSize, lattice = selectedLatticeForTopology(topology)) {
@@ -525,8 +674,10 @@ function projectModelPoint(model, width, height, coordinate = null) {
     const rotated = rotatePoint(model);
     const normal = surfaceNormal(coordinate, model);
     const rotatedNormal = normal ? rotatePoint(normal) : null;
-    const extent = game.topology.isSpecial || isSurfaceTopology()
-        ? specialModelExtent * 1.2
+    const extent = isBuckyballSphere()
+        ? specialModelExtent * 1.52
+        : game.topology.isSpecial || isSurfaceTopology()
+            ? specialModelExtent * 1.2
         : Math.max(...axisSizes) - 1;
     const scale = Math.min(width, height) * 0.62 /
         Math.max(1, extent) *
@@ -693,7 +844,7 @@ function surfacePanelCellCoordinate(x, y) {
 
 function drawBuckyballSpherePanels(width, height) {
     const coordinates = game.topology.coordinates();
-    const polygons = createBuckyballSphereFacePolygons({ radius: 3.45, lift: 0.08 });
+    const polygons = createBuckyballSphereFacePolygons({ radius: BUCKYBALL_RENDER_RADIUS, lift: 0.08 });
     const blackZone = game.topology.goalZones.black;
     const whiteZone = game.topology.goalZones.white;
     const panels = [];
@@ -748,7 +899,7 @@ function drawBuckyballSpherePanels(width, height) {
 
     context.strokeStyle = 'rgba(23, 32, 38, 0.58)';
     context.lineWidth = 0.65;
-    for (const line of createBuckyballSphereGridLines({ radius: 3.45, lift: 0.1, segments: 7 })) {
+    for (const line of createBuckyballSphereGridLines({ radius: BUCKYBALL_RENDER_RADIUS, lift: 0.1, segments: 7 })) {
         const points = line.map((point) => projectModelPoint([point.x, point.y, point.z], width, height));
         context.beginPath();
         points.forEach((point, index) => {
@@ -1153,13 +1304,16 @@ function consumeScheduledHexTurn() {
 
 function scheduleRobot() {
     clearTimeout(robotTimer);
+    syncRobotControls();
     if (elements.mode.value !== 'robot' || game.winner || game.currentColor !== HEX_COLORS.WHITE) return;
     statusKey = 'robotThinking';
     updateReadout();
     robotTimer = window.setTimeout(() => {
-        const empty = game.topology.coordinates().filter((coordinate) => game.getCell(coordinate) === null);
-        if (!empty.length) return;
-        const coordinate = empty[Math.floor(Math.random() * empty.length)];
+        const robotMove = chooseHexRobotMove(game, {
+            level: Number(elements.robotStrength?.value || 2)
+        });
+        const coordinate = robotMove?.coordinate;
+        if (!coordinate) return;
         if (window.hexApp?.__spaceTimeUsesFuture && window.hexApp.__spaceTimeScheduleRobotAction) {
             window.hexApp.__spaceTimeScheduleRobotAction({
                 kind: 'hex',
@@ -1258,9 +1412,11 @@ elements.lattice.addEventListener('change', newGame);
 elements.newGame.addEventListener('click', newGame);
 elements.mode.addEventListener('change', () => {
     statusKey = 'emptyPrompt';
+    syncRobotControls();
     updateReadout();
     scheduleRobot();
 });
+elements.robotStrength?.addEventListener('change', () => scheduleRobot());
 elements.language.addEventListener('click', () => {
     language = language === 'en' ? 'zh' : 'en';
     localStorage.setItem(LANGUAGE_KEY, language);
@@ -1272,6 +1428,7 @@ window.addEventListener('resize', drawBoard);
 
 newGame();
 applyLanguage();
+syncRobotControls();
 
 function importHexState(state, messageKey = '') {
     game = HexGame.fromState(state);
