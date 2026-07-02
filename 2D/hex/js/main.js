@@ -5,6 +5,7 @@ import { kagomeFaceBounds, kagomeFaceCells } from '../../../js/shared/KagomeLatt
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
 const isSpaceTime = params.get('spacetime') === '2p1';
+const VISIBLE_LATTICES = new Set(['hexagonal', 'triangular', 'square']);
 
 const I18N = {
     en: {
@@ -274,19 +275,24 @@ function selectedSize() {
     return Math.max(3, Math.min(25, Number(elements.customSize.value) || 11));
 }
 
+function selectedLattice() {
+    return VISIBLE_LATTICES.has(elements.lattice.value) ? elements.lattice.value : 'hexagonal';
+}
+
 function newGame(messageKey = 'emptyPrompt') {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
     size = selectedSize();
     topology = elements.boundary.value;
-    const gameSize = elements.lattice.value === 'triangular'
+    const lattice = selectedLattice();
+    const gameSize = lattice === 'triangular'
         ? [size * 2 - 1, size]
         : size;
     game = new HexGame({
         dimension: 2,
         size: gameSize,
         topology,
-        lattice: elements.lattice.value,
+        lattice,
         randomBoundarySeed: topology === 'random' ? `hex-rbc:${size}:${Date.now()}` : ''
     });
     elements.lattice.disabled = game.topology.isSpecial === true;
@@ -368,7 +374,8 @@ function buildCenters(width, height) {
     const padding = Math.max(24, Math.min(width, height) * 0.055);
     const zoom = Math.max(0.35, Math.min(2.8, Number(elements.zoom?.value) || 1));
     const [gridWidth, gridHeight] = game?.size || [size, size];
-    if (elements.lattice.value === 'square') {
+    const lattice = selectedLattice();
+    if (lattice === 'square') {
         const spacing = Math.max(8, Math.min(
             (width - padding * 2) / gridWidth,
             (height - padding * 2) / gridHeight
@@ -401,7 +408,7 @@ function buildCenters(width, height) {
         return;
     }
 
-    const triangular = elements.lattice.value === 'triangular';
+    const triangular = lattice === 'triangular';
     if (triangular) {
         const triangleHeight = Math.sqrt(3) / 2;
         const boardWidthUnits = (gridWidth + 1) / 2;
@@ -445,7 +452,7 @@ function buildCenters(width, height) {
         return;
     }
 
-    if (elements.lattice.value === 'kagome') {
+    if (lattice === 'kagome') {
         const bounds = kagomeFaceBounds(gridWidth, gridHeight);
         const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
@@ -885,6 +892,8 @@ function importHexState(state, messageKey = '') {
     }
     if ([...elements.lattice.options].some((option) => option.value === game.topology.lattice)) {
         elements.lattice.value = game.topology.lattice;
+    } else {
+        elements.lattice.value = 'hexagonal';
     }
     elements.lattice.disabled = game.topology.isSpecial === true;
     elements.boundaryMode.textContent = elements.boundary.options[elements.boundary.selectedIndex].text;
@@ -938,7 +947,7 @@ window.hexApp = {
         updateReadout();
     },
     onlineGameKey() {
-        return `hex-2d-${topology}-${elements.lattice.value}-${size}`;
+        return `hex-2d-${topology}-${selectedLattice()}-${size}`;
     },
     onlineMatchKey() {
         return isSpaceTime ? 'hex-2p1' : 'hex-2d';

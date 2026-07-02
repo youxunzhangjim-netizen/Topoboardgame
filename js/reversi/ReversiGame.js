@@ -702,6 +702,16 @@ export class ReversiGame {
             return;
         }
 
+        if (this.topology.dimension === 2 && this.topology.lattice === KAGOME_LATTICE) {
+            const seedX = Math.max(0, Math.min(this.topology.width - 2, midX - 2));
+            const seedY = Math.max(0, Math.min(this.topology.height - 2, midY));
+            this.set([seedX, seedY], { color: REVERSI_COLORS.WHITE });
+            this.set([seedX + 1, seedY + 1], { color: REVERSI_COLORS.WHITE });
+            this.set([seedX, seedY + 1], { color: REVERSI_COLORS.BLACK });
+            this.set([seedX + 1, seedY], { color: REVERSI_COLORS.BLACK });
+            return;
+        }
+
         this.set([lowX, lowY], { color: REVERSI_COLORS.WHITE });
         this.set([highX, highY], { color: REVERSI_COLORS.WHITE });
         this.set([lowX, highY], { color: REVERSI_COLORS.BLACK });

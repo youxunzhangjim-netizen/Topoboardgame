@@ -22,7 +22,7 @@ const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.45;
-const MOBIUS_BAND_HALF_WIDTH = 1.42;
+const MOBIUS_BAND_HALF_WIDTH = 1.86;
 const SQUARE_LATTICE = 'square';
 const HCP_LATTICE = 'hcp';
 const HONEYCOMB_LATTICE = 'honeycomb';
@@ -1684,7 +1684,7 @@ class Reversi3DApp {
 
     latticeOptionsForMode(mode = this.modeSelect.value) {
         if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
-        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE];
         return [SQUARE_LATTICE];
     }

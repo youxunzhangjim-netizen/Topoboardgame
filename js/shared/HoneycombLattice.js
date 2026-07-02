@@ -143,12 +143,7 @@ function buildHoneycombPatch(width, height = width) {
 
   const vertexByCoord = new Map(selected.map((vertex) => [coordKey(vertex.coord), vertex]));
   const coordByVertexKey = new Map(selected.map((vertex) => [vertex.key, vertex.coord]));
-  const selectedKeys = new Set(selected.map((vertex) => vertex.key));
-  const visibleCells = graph.cells.filter((cell) => cell.keys.every((key) => selectedKeys.has(key)));
-  const visiblePoints = visibleCells.length
-    ? visibleCells.flatMap((cell) => cell.vertices)
-    : selected.map((vertex) => vertex.point);
-  const bounds = boundsFromPoints(visiblePoints);
+  const bounds = graphBounds;
   const neighborsByCoord = new Map();
   for (const vertex of selected) {
     const key = coordKey(vertex.coord);
@@ -168,7 +163,7 @@ function buildHoneycombPatch(width, height = width) {
   return {
     boardWidth,
     boardHeight,
-    cells: visibleCells,
+    cells: graph.cells,
     vertexByCoord,
     neighborsByCoord,
     bounds

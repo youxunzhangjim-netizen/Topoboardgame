@@ -29,6 +29,7 @@ import {
 import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 import { honeycombNeighbors } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeNeighbors } from '../../../js/shared/KagomeLattice.js';
+import { createBuckyballSphereGraph } from '../../../js/geometry/SphereBoardGeometry.js';
 
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
@@ -43,6 +44,7 @@ export const SIMPLE_CUBIC_LATTICE = 'sc';
 export const BCC_LATTICE = 'bcc';
 export const FCC_LATTICE = 'fcc';
 export const HCP_LATTICE = 'hcp';
+export const BUCKYBALL_LATTICE = 'buckyball';
 
 const SQUARE_DIRECTIONS = Object.freeze([
     Object.freeze([1, 0]),
@@ -147,6 +149,7 @@ function normalizeLattice(lattice, dimension) {
         if ([BCC_LATTICE, FCC_LATTICE, HCP_LATTICE].includes(value)) return value;
         return SIMPLE_CUBIC_LATTICE;
     }
+    if (value === BUCKYBALL_LATTICE) return BUCKYBALL_LATTICE;
     if ([HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, KAGOME_LATTICE].includes(value)) return value;
     return SQUARE_LATTICE;
 }
@@ -242,13 +245,18 @@ export class GoGameLogic {
         this.topology = topology || 'open2d';
         this.lattice = normalizeLattice(lattice, this.dimension);
         this.komi = Number.isFinite(Number(komi)) ? Number(komi) : 7.5;
+        this.buckyballGraph = this.topology === SPHERE_GO_TOPOLOGY && this.lattice === BUCKYBALL_LATTICE
+            ? createBuckyballSphereGraph()
+            : null;
         this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (randomBoundarySeed || randomSeed()) : '';
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
             ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
             : new Map();
         this.total = this.dimension === 3
             ? this.size ** 3
-            : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
+            : this.buckyballGraph
+                ? this.buckyballGraph.vertexCount
+                : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
         this.board = new Uint8Array(this.total);
         this.pauliLabels = Array(this.total).fill('I');
         this.cliffordGoEnabled = false;
@@ -275,6 +283,7 @@ export class GoGameLogic {
         if (this.dimension === 3) {
             return coord[0] + this.size * (coord[1] + this.size * coord[2]);
         }
+        if (this.buckyballGraph) return coord[0];
         if (this.topology === SPHERE_GO_TOPOLOGY) {
             const surfaceTotal = this.width * this.height;
             if (isSphereNorthPole(coord, this.height)) return surfaceTotal;
@@ -292,6 +301,7 @@ export class GoGameLogic {
             const x = rem - y * this.size;
             return [x, y, z];
         }
+        if (this.buckyballGraph) return [value, 0];
         if (this.topology === SPHERE_GO_TOPOLOGY) {
             const surfaceTotal = this.width * this.height;
             if (value === surfaceTotal) return sphereNorthPoleCoord();
@@ -303,6 +313,14 @@ export class GoGameLogic {
     }
 
     containsCoord(coord) {
+        if (this.buckyballGraph) {
+            return Array.isArray(coord)
+                && coord.length === 2
+                && Number.isInteger(coord[0])
+                && coord[0] >= 0
+                && coord[0] < this.buckyballGraph.vertexCount
+                && Number(coord[1]) === 0;
+        }
         if (this.topology === SPHERE_GO_TOPOLOGY) {
             return sphereContainsCoord(coord, this.width, this.height);
         }
@@ -337,6 +355,9 @@ export class GoGameLogic {
                 }
             }
             return coords;
+        }
+        if (this.buckyballGraph) {
+            return Array.from({ length: this.buckyballGraph.vertexCount }, (_, index) => [index, 0]);
         }
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) coords.push([x, y]);
@@ -413,6 +434,9 @@ export class GoGameLogic {
 
     neighborsFromCoord(coord) {
         if (!this.containsCoord(coord)) return [];
+        if (this.buckyballGraph) {
+            return this.buckyballGraph.adjacency[coord[0]].map((index) => [index, 0]);
+        }
         if (this.topology === SPHERE_GO_TOPOLOGY) {
             return sphereLatitudeRingNeighbors(coord, this.width, this.height);
         }

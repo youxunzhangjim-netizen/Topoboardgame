@@ -72,7 +72,7 @@ class Reversi2DApp {
         const mode = normalizeReversiTopology(params.get('mode') || params.get('boundary') || 'open2d');
         this.boundarySelect.value = ['open2d', 'cylinder', 'pbc', 'klein', 'random'].includes(mode) ? mode : 'open2d';
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if (lattice === 'honeycomb' || lattice === 'kagome') this.latticeSelect.value = lattice;
+        if (lattice === 'honeycomb') this.latticeSelect.value = lattice;
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
     }
@@ -90,10 +90,14 @@ class Reversi2DApp {
         return normalizeReversiSize(source, { fallback: 8, max: 30 });
     }
 
+    effectiveLattice() {
+        return this.latticeSelect.value === 'honeycomb' ? 'honeycomb' : 'square';
+    }
+
     createLogic() {
         return new ReversiGame({
             topology: this.boundarySelect.value,
-            lattice: this.latticeSelect.value,
+            lattice: this.effectiveLattice(),
             size: this.boardSize(),
             maxSize: 30
         });
@@ -870,7 +874,7 @@ class Reversi2DApp {
     }
 
     onlineMatchKey() {
-        return ['2dreversi', this.boundarySelect.value, this.latticeSelect.value, this.boardSize()].join(':');
+        return ['2dreversi', this.boundarySelect.value, this.effectiveLattice(), this.boardSize()].join(':');
     }
 
     exportNetworkState() {
@@ -878,7 +882,7 @@ class Reversi2DApp {
             logic: this.logic.exportState(),
             size: this.boardSize(),
             topology: this.boundarySelect.value,
-            lattice: this.latticeSelect.value,
+            lattice: this.effectiveLattice(),
             dynamics: this.dynamicsSettings(),
             pieceAges: { ...this.pieceAges },
             noiseTick: this.noiseTick
@@ -889,7 +893,9 @@ class Reversi2DApp {
         if (!state?.logic) return;
         this.logic.importState(state.logic);
         this.boundarySelect.value = state.topology || this.logic.topology.topology || this.boundarySelect.value;
-        this.latticeSelect.value = state.lattice || this.logic.topology.lattice || this.latticeSelect.value;
+        this.latticeSelect.value = state.lattice === 'honeycomb' || this.logic.topology.lattice === 'honeycomb'
+            ? 'honeycomb'
+            : 'square';
         this.setDynamicsSettings(state.dynamics || {});
         this.pieceAges = { ...(state.pieceAges || {}) };
         this.noiseTick = Number(state.noiseTick) || 0;

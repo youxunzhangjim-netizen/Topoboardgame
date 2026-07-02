@@ -2,11 +2,12 @@ import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { GoRobotController } from './robot/GoRobot.js';
 import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
-import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
+import { kagomeBounds, kagomeFaceBounds, kagomeFaceCells, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/2D/2dgo/';
 const STORAGE_PREFIX = '2dgo:room:';
 const KOMI = 7.5;
+const VISIBLE_LATTICES = new Set(['square', 'honeycomb', 'triangular']);
 
 class Go2DApp {
     constructor() {
@@ -95,7 +96,7 @@ class Go2DApp {
         if (['polar', 'polar_center', 'polar-center', 'radial'].includes(mode)) this.boundarySelect.value = 'polar';
         if (mode === 'obc' || mode === 'open2d') this.boundarySelect.value = 'open2d';
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if (lattice === 'honeycomb' || lattice === 'triangular' || lattice === 'kagome') this.latticeSelect.value = lattice;
+        if (lattice === 'honeycomb' || lattice === 'triangular') this.latticeSelect.value = lattice;
     }
 
     tryJoinSharedRoomFromUrl() {
@@ -133,7 +134,8 @@ class Go2DApp {
     }
 
     effectiveLattice() {
-        return normalizeTopology(this.boundarySelect.value) === 'polar' ? 'square' : (this.latticeSelect.value || 'square');
+        if (normalizeTopology(this.boundarySelect.value) === 'polar') return 'square';
+        return VISIBLE_LATTICES.has(this.latticeSelect.value) ? this.latticeSelect.value : 'square';
     }
 
     updateLatticeAvailability() {
@@ -145,7 +147,7 @@ class Go2DApp {
             option.hidden = unavailable;
         });
         this.latticeSelect.title = polar
-            ? 'Polar Go uses the cleaned radial square-intersection graph. Honeycomb, triangular, and Kagome lattice options are disabled in polar mode.'
+            ? 'Polar Go uses the cleaned radial square-intersection graph. Honeycomb and triangular lattice options are disabled in polar mode.'
             : '';
     }
 
@@ -299,10 +301,17 @@ class Go2DApp {
             };
         }
         if (this.logic.lattice === 'kagome') {
-            const bounds = kagomeBounds(this.logic.size, this.logic.size);
+            const pointBounds = kagomeBounds(this.logic.size, this.logic.size);
+            const faceBounds = kagomeFaceBounds(this.logic.size, this.logic.size);
+            const bounds = {
+                minX: Math.min(pointBounds.minX, faceBounds.minX),
+                maxX: Math.max(pointBounds.maxX, faceBounds.maxX),
+                minY: Math.min(pointBounds.minY, faceBounds.minY),
+                maxY: Math.max(pointBounds.maxY, faceBounds.maxY)
+            };
             const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
             const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
-            const step = span / Math.max(rawWidth, rawHeight);
+            const step = (span * 1.12) / Math.max(rawWidth, rawHeight);
             const spanX = rawWidth * step;
             const spanY = rawHeight * step;
             return {
@@ -631,15 +640,16 @@ class Go2DApp {
         ctx.fillRect(0, 0, rect.size, rect.size);
 
         if (this.logic.lattice === 'honeycomb') this.drawHoneycombGraph(rect);
+        if (this.logic.lattice === 'kagome') this.drawKagomeCells(rect);
 
         ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
-        ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'honeycomb' || this.logic.lattice === 'kagome' ? 0.045 : 0.035));
+        ctx.lineWidth = Math.max(1, rect.step * (this.logic.lattice === 'kagome' ? 0.018 : 0.035));
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'round';
         ctx.beginPath();
         if (this.logic.topology === 'polar') {
             this.drawPolarGrid(rect);
-        } else if (this.logic.lattice !== 'square' && this.logic.lattice !== 'honeycomb') {
+        } else if (this.logic.lattice !== 'square' && this.logic.lattice !== 'honeycomb' && this.logic.lattice !== 'kagome') {
             const drawn = new Set();
             for (let y = 0; y < n; y++) {
                 for (let x = 0; x < n; x++) {
@@ -687,7 +697,7 @@ class Go2DApp {
                 for (let x = 0; x < n; x++) {
                     const point = this.coordToPixel([x, y]);
                     ctx.beginPath();
-                    ctx.arc(point.x, point.y, Math.max(1.35, rect.step * 0.026), 0, Math.PI * 2);
+                    ctx.arc(point.x, point.y, Math.max(0.95, rect.step * 0.012), 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -814,8 +824,8 @@ class Go2DApp {
     drawHoneycombGraph(rect) {
         const ctx = this.ctx;
         ctx.save();
-        ctx.strokeStyle = 'rgba(42, 27, 14, 0.62)';
-        ctx.lineWidth = Math.max(0.85, rect.step * 0.018);
+        ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
+        ctx.lineWidth = Math.max(1, rect.step * 0.035);
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'round';
         ctx.beginPath();
@@ -847,6 +857,36 @@ class Go2DApp {
                 ctx.fill();
             }
         }
+        ctx.restore();
+    }
+
+    drawKagomeCells(rect) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(42, 27, 14, 0.82)';
+        ctx.lineWidth = Math.max(1, rect.step * 0.018);
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        const edges = new Map();
+        const keyForPoint = (point) => `${point.x.toFixed(4)},${point.y.toFixed(4)}`;
+        for (const cell of kagomeFaceCells(this.logic.size, this.logic.size)) {
+            const vertices = cell.vertices.map((point) => ({
+                x: rect.x + point.x * rect.step,
+                y: rect.y + point.y * rect.step
+            }));
+            for (let index = 0; index < vertices.length; index += 1) {
+                const a = vertices[index];
+                const b = vertices[(index + 1) % vertices.length];
+                const edgeKey = [keyForPoint(a), keyForPoint(b)].sort().join('|');
+                if (!edges.has(edgeKey)) edges.set(edgeKey, [a, b]);
+            }
+        }
+        for (const [a, b] of edges.values()) {
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
         ctx.restore();
     }
 
@@ -1369,7 +1409,7 @@ class Go2DApp {
         this.logic.importState(state.logic);
         this.setSizeSelection(this.logic.size);
         this.boundarySelect.value = normalizeTopology(this.logic.topology);
-        this.latticeSelect.value = this.logic.lattice || 'square';
+        this.latticeSelect.value = VISIBLE_LATTICES.has(this.logic.lattice) ? this.logic.lattice : 'square';
         this.updateLatticeAvailability();
         this.timerSelect.value = String(state.timerValue ?? state.timeLimit ?? 0);
         this.setDynamicsSettings(state.dynamics || {});

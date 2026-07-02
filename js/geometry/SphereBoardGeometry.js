@@ -140,6 +140,24 @@ export function createBuckyballSphereVertices({
         .map(([, point]) => point.clone().multiplyScalar(scale));
 }
 
+export function createBuckyballSphereGraph() {
+    const { points, edges } = truncatedIcosahedronData();
+    const keys = [...points.keys()].sort((keyA, keyB) => keyA.localeCompare(keyB));
+    const indexByKey = new Map(keys.map((key, index) => [key, index]));
+    const adjacency = Array.from({ length: keys.length }, () => []);
+    for (const [a, b] of edges) {
+        const ai = indexByKey.get(a);
+        const bi = indexByKey.get(b);
+        if (!Number.isInteger(ai) || !Number.isInteger(bi)) continue;
+        adjacency[ai].push(bi);
+        adjacency[bi].push(ai);
+    }
+    return {
+        vertexCount: keys.length,
+        adjacency: adjacency.map((neighbors) => [...new Set(neighbors)].sort((a, b) => a - b))
+    };
+}
+
 export function createBuckyballSphereFacePolygons({
     radius = 3.5,
     lift = 0.05

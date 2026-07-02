@@ -3,6 +3,7 @@ import { installGo3DRobot } from './robot/Go3DRobot.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
     BCC_LATTICE,
+    BUCKYBALL_LATTICE,
     CYLINDER_GO_TOPOLOGY,
     COLORS,
     FCC_LATTICE,
@@ -60,7 +61,7 @@ const GLOBAL_LANGUAGE_STORAGE_KEY = 'topological-boardgame:language';
 const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RANDOM_TOPOLOGY, R3_RP3_TOPOLOGY]);
 const TWO_PI = Math.PI * 2;
 const MOBIUS_BAND_RADIUS = 3.05;
-const MOBIUS_BAND_HALF_WIDTH = 1.18;
+const MOBIUS_BAND_HALF_WIDTH = 1.68;
 const RP2_CELL_SIZE = 0.72;
 const RP2_CELL_GAP = 0.035;
 const RP2_EDGE_GAP = 0.84;
@@ -68,7 +69,6 @@ const RP2_BOARD_LIFT = 0.02;
 const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
 const SPHERE_COORDINATE_LATTICE = 'sphere_coordinate';
-const BUCKYBALL_LATTICE = 'buckyball';
 
 function isR3LikeTopology(topology) {
     return R3_LIKE_TOPOLOGIES.has(topology);
@@ -112,7 +112,7 @@ const I18N = {
         controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local', online: 'Online', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus Own', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
         online: { localStatus: 'Local pass and play', findMatch: 'Find Match', privateRoom: 'PRIVATE ROOM', createRoom: 'Create Room', or: 'OR', roomInput: '5-digit room code or shared link', joinRoom: 'Join Room', roomCode: 'Room Code', copy: 'Copy', copied: 'Copied', onlineAs: ({ color }) => 'Online as ' + color },
         chat: { title: 'Online Chat', empty: 'Connect online to chat.', placeholder: 'Message online opponent', send: 'Send', player: 'Player', connectFirst: 'Connect online before chatting.' },
-        mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The north and south pole nodes are playable and connect to every point on the nearest latitude ring.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
+        mode: { r3Option: 'R3 Go', t2Option: 'T2 Torus Go', sphereOption: 'S2 Sphere Go', kleinOption: 'Klein Bottle Go', sphere3d: '3D Sphere', sphere2d: '2D Cut-open Fallback', r3Display: ({ size }) => size + '^3 R3 Go', t2Display: ({ size }) => size + ' x ' + size + ' T2 Go', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 Go', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' Klein Bottle Go', r3Info: 'R3 uses open boundaries in x, y, and z.', t2Info: 'T2 wraps both directions on the torus board.', sphereInfo: 'S2 uses longitude rings with horizontal wrap. The north and south pole nodes are playable and connect to every point on the nearest latitude ring.', buckyballSphereInfo: 'S2 Buckyball uses a 60-vertex truncated-icosahedron graph. Captures, liberties, and territory follow the pentagon/hexagon shell edges.', kleinInfo: 'The Klein bottle has normal left-right wrap and flipped top-bottom wrap: leaving at x enters at width - 1 - x.' },
         timer: { none: 'No Timer', five: '5 Minutes', ten: '10 Minutes', thirty: '30 Minutes', hour: '1 Hour', oneDay: '1 Day' },
         history: { title: 'Move History', started: 'Game started.' },
         rules: { title: 'Rules', text: 'Area scoring with 7.5 komi. Captures, liberties, superko, and territory use the selected board graph.' },
@@ -127,7 +127,7 @@ const I18N = {
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
         controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', sliceView: 'R3 切片視圖', sliceHelp: '空白代表顯示全部。x = 5 只顯示第 5 層 yz 平面。', resetCamera: '重設視角', focusOwnPieces: '突出己方', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
         online: { localStatus: '本地輪流', findMatch: '尋找配對', privateRoom: '私人房間', createRoom: '建立房間', or: '或', roomInput: '5 位房間碼或分享連結', joinRoom: '加入房間', roomCode: '房間碼', copy: '複製', copied: '已複製', onlineAs: ({ color }) => '線上身分：' + color },
-        mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。南北極點可落子，並連到最近緯度環上的每個節點。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
+        mode: { r3Option: 'R3 圍棋', t2Option: 'T2 環面圍棋', sphereOption: 'S2 球面圍棋', kleinOption: '克萊因瓶圍棋', sphere3d: '3D 球面', sphere2d: '2D 切開備用視圖', r3Display: ({ size }) => size + '^3 R3 圍棋', t2Display: ({ size }) => size + ' x ' + size + ' T2 圍棋', sphereDisplay: ({ width, height }) => width + ' x ' + height + ' S2 圍棋', kleinDisplay: ({ width, height }) => width + ' x ' + height + ' 克萊因瓶圍棋', r3Info: 'R3 在 x、y、z 三個方向使用開放邊界。', t2Info: 'T2 在環面棋盤的兩個方向皆為週期連接。', sphereInfo: 'S2 使用經度環並在水平方向循環。南北極點可落子，並連到最近緯度環上的每個節點。', buckyballSphereInfo: 'S2 Buckyball 使用 60 個頂點的截角二十面體圖。提子、氣與地盤皆依五邊形／六邊形殼層邊連接判定。', kleinInfo: '克萊因瓶的左右邊界直接循環；上下邊界循環時翻轉 x，從 x 離開後會在 width - 1 - x 進入。' },
         timer: { none: '無計時', five: '5 分鐘', ten: '10 分鐘', thirty: '30 分鐘', hour: '1 小時', oneDay: '1 天' },
         history: { title: '走法記錄', started: '遊戲開始。' },
         rules: { title: '規則', text: '面積計分，貼目 7.5。提子、氣、超級劫與領地皆使用所選棋盤的圖相鄰關係。' },
@@ -1008,9 +1008,9 @@ class Go3DRenderer {
         this.boardGroup.add(torus);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x2b180e,
+            color: 0x1f1208,
             transparent: true,
-            opacity: 0.82,
+            opacity: 0.98,
             depthWrite: false
         });
         const linePositions = [];
@@ -1021,7 +1021,7 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.04));
+                this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1590,12 +1590,7 @@ class Go3DRenderer {
     }
 
     orderedBuckyballVertices(lift = 0) {
-        return createBuckyballSphereVertices({ radius: 3.5, lift })
-            .sort((a, b) => {
-                const angleA = Math.atan2(a.y, a.x);
-                const angleB = Math.atan2(b.y, b.x);
-                return b.z - a.z || angleA - angleB;
-            });
+        return createBuckyballSphereVertices({ radius: 3.5, lift });
     }
 
     buckyballPositionForCoord(coord, width, height, lift = 0) {
@@ -2065,7 +2060,7 @@ class Go3DApp {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
             : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
-                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE, KAGOME_LATTICE]
+                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
                 : mode === 'sphere'
                     ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
                     : [];
@@ -2163,7 +2158,7 @@ class Go3DApp {
         const spaceMode = this.selectedSpaceMode();
         const mode = this.selectedTopologyMode();
         const visualLattice = this.syncLatticeOptions(mode);
-        const lattice = mode === 'sphere' ? SQUARE_LATTICE : visualLattice;
+        const lattice = visualLattice;
         const requestedSize = this.boardSize();
         const needsEvenHoneycombSeam = lattice === HONEYCOMB_LATTICE
             && (mode === 't2' || mode === CYLINDER_GO_TOPOLOGY);
@@ -2672,6 +2667,7 @@ class Go3DApp {
             ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : this.logic.topology === R3_RP3_TOPOLOGY ? 'rp3' : 'r3')
             : modeKey;
         const visualLattice = isSphere ? this.currentLattice() : this.logic.lattice;
+        const infoKey = isSphere && visualLattice === BUCKYBALL_LATTICE ? 'buckyballSphere' : boundaryInfoKey;
         const boundaryLabel = isR3Like ? ` - ${tr(`boundary.${boundaryKey}`)}` : '';
         this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
             size: this.logic.size,
@@ -2685,8 +2681,11 @@ class Go3DApp {
                 height: this.logic.height
             })}${boundaryLabel} - ${this.latticeName()}`;
         }
-        this.modeInfo.textContent = tr(`mode.${boundaryInfoKey}Info`) + this.latticeInfo(visualLattice);
-        this.sphereViewGroup.hidden = !isSphere;
+        this.modeInfo.textContent = tr(`mode.${infoKey}Info`) + this.latticeInfo(visualLattice);
+        if (isSphere && visualLattice === BUCKYBALL_LATTICE && this.sphereViewSelect.value === '2d') {
+            this.sphereViewSelect.value = '3d';
+        }
+        this.sphereViewGroup.hidden = !isSphere || visualLattice === BUCKYBALL_LATTICE;
         this.turnEl.textContent = this.logic.gameOver ? this.resultText() : this.logic.scoringPending ? this.pendingScoreText() : tr('status.toPlay', { color: this.colorName(this.logic.currentPlayer) });
         this.blackCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.black });
         this.whiteCapturedEl.textContent = tr('captured.stones', { count: this.logic.captures.white });
@@ -2964,6 +2963,7 @@ class Go3DApp {
     }
 
     sphereView() {
+        if (this.currentLattice() === BUCKYBALL_LATTICE) return '3d';
         return this.sphereViewSelect?.value === '2d' ? '2d' : '3d';
     }
 

@@ -104,7 +104,12 @@ function buildSourceNodes(targetCount, padding = 8) {
   for (const node of nodes) {
     const dx = node.point.x - centerX;
     const dy = node.point.y - centerY;
-    node.score = dx * dx + dy * dy;
+    const flatHexRadius = Math.max(
+      Math.abs(dy) * 1.14,
+      Math.abs(SQRT3 * dx + dy) / 2,
+      Math.abs(-SQRT3 * dx + dy) / 2
+    );
+    node.score = flatHexRadius * flatHexRadius + (dx * dx + dy * dy) * 0.0005;
   }
   nodes.sort((a, b) => (a.score - b.score) || (a.point.y - b.point.y) || (a.point.x - b.point.x));
   return nodes;
@@ -119,7 +124,7 @@ function selectCompactNodes(candidates, targetCount) {
   for (let pass = 0; pass < 12; pass += 1) {
     const selected = candidates.filter((node) => selectedKeys.has(node.key));
     const leaf = selected
-      .filter((node) => selectedDegree(node, selectedKeys) < 2)
+      .filter((node) => selectedDegree(node, selectedKeys) === 0)
       .sort((a, b) => (b.score - a.score) || (b.point.y - a.point.y) || (b.point.x - a.point.x))[0];
     if (!leaf) break;
     const replacement = candidates.find((node) => {
@@ -335,7 +340,12 @@ function selectCompactFaces(allFaces, targetCount) {
   for (const face of allFaces) {
     const dx = face.center.x - centerX;
     const dy = face.center.y - centerY;
-    face.score = dx * dx + dy * dy;
+    const flatHexRadius = Math.max(
+      Math.abs(dy) * 1.08,
+      Math.abs(SQRT3 * dx + dy) / 2,
+      Math.abs(-SQRT3 * dx + dy) / 2
+    );
+    face.score = flatHexRadius * flatHexRadius + (dx * dx + dy * dy) * 0.0005;
   }
   allFaces.sort((a, b) => (a.score - b.score) || (a.center.y - b.center.y) || (a.center.x - b.center.x));
   const selectedKeys = new Set(allFaces.slice(0, targetCount).map((face) => face.key));

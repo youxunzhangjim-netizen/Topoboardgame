@@ -81,24 +81,27 @@ button[disabled] {
 
 .experiment-topbar {
     display: grid;
-    grid-template-columns: minmax(230px, 0.62fr) minmax(360px, 1fr);
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 12px;
     align-items: start;
+    justify-items: start;
 }
 
 .topbar-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    width: 100%;
     min-width: 0;
     align-items: flex-start;
+    justify-content: flex-start;
 }
 
 .nav-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 1 1 150px;
+    flex: 0 1 230px;
     min-height: 38px;
     padding: 8px 12px;
     border: 1px solid rgba(225, 232, 225, 0.2);
@@ -186,6 +189,7 @@ button[disabled] {
 
 .title-block {
     min-width: 0;
+    max-width: 920px;
 }
 
 .eyebrow {
