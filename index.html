@@ -105,6 +105,35 @@
                 </section>
                 <small id="launcherDisplayNameStatus"></small>
             </div>
+            <div id="launcherEmailAuthPanel" class="launcher-display-name-editor">
+                <strong class="launcher-account-section-title" id="launcherEmailAuthTitle">Email account</strong>
+                <label for="launcherEmailInput" id="launcherEmailLabel">Email</label>
+                <input id="launcherEmailInput" type="email" autocomplete="email" placeholder="you@example.com">
+                <label for="launcherEmailPasswordInput" id="launcherEmailPasswordLabel">Password</label>
+                <input id="launcherEmailPasswordInput" type="password" autocomplete="current-password" placeholder="Password">
+                <label for="launcherEmailDisplayNameInput" id="launcherEmailDisplayNameLabel">Visible name for new account</label>
+                <input id="launcherEmailDisplayNameInput" type="text" maxlength="24" autocomplete="nickname" placeholder="Name shown to opponents">
+                <div class="launcher-account-button-row">
+                    <button id="launcherEmailLoginButton" class="launcher-account-menu-button primary" type="button">Login</button>
+                    <button id="launcherEmailRegisterButton" class="launcher-account-menu-button" type="button">Register</button>
+                </div>
+                <button id="launcherPasswordResetButton" class="launcher-account-link-button" type="button">Forgot password?</button>
+                <small id="launcherEmailAuthStatus"></small>
+            </div>
+            <div id="launcherAccountSecurityPanel" class="launcher-display-name-editor" hidden>
+                <div class="launcher-security-head">
+                    <strong class="launcher-account-section-title" id="launcherSecurityTitle">Account security</strong>
+                    <button id="launcherDeleteAccountButton" class="launcher-account-menu-button danger" type="button">Delete account</button>
+                </div>
+                <label for="launcherCurrentPasswordInput" id="launcherCurrentPasswordLabel">Current password</label>
+                <input id="launcherCurrentPasswordInput" type="password" autocomplete="current-password" placeholder="Current password">
+                <label for="launcherNewPasswordInput" id="launcherNewPasswordLabel">New password</label>
+                <div class="launcher-display-name-row">
+                    <input id="launcherNewPasswordInput" type="password" autocomplete="new-password" placeholder="New password">
+                    <button id="launcherChangePasswordButton" class="launcher-account-menu-button" type="button">Change</button>
+                </div>
+                <small id="launcherAccountSecurityStatus"></small>
+            </div>
             <button id="launcherGoogleLoginButton" class="launcher-account-menu-button primary" type="button">Sign in with Google</button>
             <button id="launcherVisitorLoginButton" class="launcher-account-menu-button" type="button">Continue as Visitor</button>
             <button id="launcherLogoutButton" class="launcher-account-menu-button" type="button" hidden>Logout</button>

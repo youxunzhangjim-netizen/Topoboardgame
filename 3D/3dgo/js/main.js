@@ -37,6 +37,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
+    createKleinBottleGridLines,
     kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
@@ -50,7 +51,7 @@ import {
     createAgeArray,
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
-import { honeycombBounds, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
+import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
@@ -618,6 +619,16 @@ class Go3DRenderer {
             this.boardGroup.add(line);
         };
 
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(7, height + 1),
+            vSteps: Math.max(7, width + 1),
+            lift: -0.045,
+            uSegments: 180,
+            vSegments: 140
+        })) {
+            addLine(points);
+        }
+
         const pointPositions = [];
         const logic = this.app.logic;
         const drawn = new Set();
@@ -1015,13 +1026,20 @@ class Go3DRenderer {
         });
         const linePositions = [];
         const drawn = new Set();
-        for (const coord of logic.playableCoords()) {
-            const fromKey = logic.coordKey(coord);
-            for (const neighbor of logic.neighborsFromCoord(coord)) {
-                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
+        if (logic.lattice === HONEYCOMB_LATTICE) {
+            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.052);
+        } else if (logic.lattice === TRIANGULAR_LATTICE) {
+            this.appendTriangularSurfaceGrid(linePositions, size, size, 'torus', 0.052);
+        } else {
+            for (const coord of logic.playableCoords()) {
+                const fromKey = logic.coordKey(coord);
+                for (const neighbor of logic.neighborsFromCoord(coord)) {
+                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    if (logic.lattice === TRIANGULAR_LATTICE && this.isSurfaceWrapEdge(coord, neighbor, size, size, true)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
+                }
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1049,11 +1067,11 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
-                color: 0x6f8e56,
+                color: 0xb5793f,
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.92,
+                opacity: 0.96,
                 depthWrite: true,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.5,
@@ -1066,20 +1084,27 @@ class Go3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0xe6efad,
+            color: 0x1f1208,
             transparent: true,
-            opacity: 0.78,
+            opacity: 0.98,
             depthWrite: false
         });
         const linePositions = [];
         const drawn = new Set();
-        for (const coord of logic.playableCoords()) {
-            const fromKey = logic.coordKey(coord);
-            for (const neighbor of logic.neighborsFromCoord(coord)) {
-                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, logic.lattice, 0.04));
+        if (logic.lattice === HONEYCOMB_LATTICE) {
+            this.appendHoneycombSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
+        } else if (logic.lattice === TRIANGULAR_LATTICE) {
+            this.appendTriangularSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
+        } else {
+            for (const coord of logic.playableCoords()) {
+                const fromKey = logic.coordKey(coord);
+                for (const neighbor of logic.neighborsFromCoord(coord)) {
+                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    if (logic.lattice === TRIANGULAR_LATTICE && this.isSurfaceWrapEdge(coord, neighbor, width, height, false)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(coord, neighbor, width, height, logic.lattice, 0.04));
+                }
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1735,6 +1760,19 @@ class Go3DRenderer {
         };
     }
 
+    honeycombSurfaceUVFromPoint(point, width, height) {
+        const bounds = honeycombBounds(width, height);
+        const rawX = Number(point?.x || 0) - bounds.minX;
+        const rawY = Number(point?.y || 0) - bounds.minY;
+        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+        return {
+            u: (rawX / rawWidth) * TWO_PI,
+            v: (rawY / rawHeight) * TWO_PI,
+            band: rawY / rawHeight
+        };
+    }
+
     wrapSurfaceCoord(coord, width, height, wrapY = false) {
         const x = ((Number(coord[0]) % width) + width) % width;
         const rawY = Number(coord[1]);
@@ -1743,11 +1781,87 @@ class Go3DRenderer {
         return [x, y];
     }
 
+    isSurfaceWrapEdge(a, b, width, height, wrapY = false) {
+        const dx = Math.abs(Number(a?.[0]) - Number(b?.[0]));
+        const dy = Math.abs(Number(a?.[1]) - Number(b?.[1]));
+        if (dx > Math.max(1.25, width / 2)) return true;
+        return wrapY && dy > Math.max(1.25, height / 2);
+    }
+
     appendPolyline(linePositions, points) {
         for (let index = 1; index < points.length; index += 1) {
             const previous = points[index - 1];
             const current = points[index];
             linePositions.push(previous.x, previous.y, previous.z, current.x, current.y, current.z);
+        }
+    }
+
+    appendHoneycombSurfaceGrid(linePositions, width, height, surfaceKind, lift = 0.04) {
+        const edgeMap = new Map();
+        const keyForPoint = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)}`;
+        for (const cell of honeycombCells(width, height)) {
+            for (let index = 0; index < cell.vertices.length; index += 1) {
+                const a = cell.vertices[index];
+                const b = cell.vertices[(index + 1) % cell.vertices.length];
+                const edgeKey = [keyForPoint(a), keyForPoint(b)].sort().join('|');
+                if (!edgeMap.has(edgeKey)) edgeMap.set(edgeKey, [a, b]);
+            }
+        }
+        for (const [a, b] of edgeMap.values()) {
+            const start = this.honeycombSurfaceUVFromPoint(a, width, height);
+            const end = this.honeycombSurfaceUVFromPoint(b, width, height);
+            const du = this.shortestAngleDelta(start.u, end.u);
+            const dv = this.shortestAngleDelta(start.v, end.v);
+            const points = [];
+            const segments = 6;
+            for (let step = 0; step <= segments; step += 1) {
+                const t = step / segments;
+                if (surfaceKind === 'torus') {
+                    points.push(this.torusPointFromUV({
+                        u: start.u + du * t,
+                        v: start.v + dv * t
+                    }, lift));
+                } else {
+                    points.push(this.cylinderPointFromUV({
+                        u: start.u + du * t,
+                        band: THREE.MathUtils.lerp(start.band, end.band, t)
+                    }, lift));
+                }
+            }
+            this.appendPolyline(linePositions, points);
+        }
+    }
+
+    appendTriangularSurfaceGrid(linePositions, width, height, surfaceKind, lift = 0.04) {
+        const seen = new Set();
+        const wrapY = surfaceKind === 'torus';
+        const normalize = ([x, y]) => {
+            const nx = ((Number(x) % width) + width) % width;
+            if (!wrapY && (y < 0 || y >= height)) return null;
+            const ny = wrapY ? ((Number(y) % height) + height) % height : Number(y);
+            return [nx, ny];
+        };
+        const directionsForRow = (row) => [
+            [1, 0],
+            [0, 1],
+            [row % 2 ? 1 : -1, 1]
+        ];
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const from = [x, y];
+                for (const [dx, dy] of directionsForRow(y)) {
+                    const rawTo = [x + dx, y + dy];
+                    const to = normalize(rawTo);
+                    if (!to) continue;
+                    const edgeKey = [from.join(','), to.join(',')].sort().join('|');
+                    if (seen.has(edgeKey)) continue;
+                    seen.add(edgeKey);
+                    const points = surfaceKind === 'torus'
+                        ? this.torusSurfaceEdgePoints(from, to, width, TRIANGULAR_LATTICE, lift, 8)
+                        : this.cylinderSurfaceEdgePoints(from, to, width, height, TRIANGULAR_LATTICE, lift, 8);
+                    this.appendPolyline(linePositions, points);
+                }
+            }
         }
     }
 
@@ -2059,11 +2173,13 @@ class Go3DApp {
     syncLatticeOptions(mode = normalizeGoMode(this.modeSelect?.value || R3_STANDARD_TOPOLOGY)) {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
-            : mode === 't2' || mode === CYLINDER_GO_TOPOLOGY
-                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
-                : mode === 'sphere'
-                    ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
-                    : [];
+            : mode === 't2'
+                ? [SQUARE_LATTICE, TRIANGULAR_LATTICE]
+                : mode === CYLINDER_GO_TOPOLOGY
+                    ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
+                    : mode === 'sphere'
+                        ? [SPHERE_COORDINATE_LATTICE, BUCKYBALL_LATTICE]
+                        : [];
         this.latticeGroup.hidden = allowed.length === 0;
         for (const option of this.latticeSelect.options) {
             option.hidden = !allowed.includes(option.value);

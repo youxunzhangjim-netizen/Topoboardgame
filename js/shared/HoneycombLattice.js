@@ -72,11 +72,14 @@ function cellPatchDimensions(width, height = width) {
       const rawHeight = SQRT3 * (rows + (columns > 1 ? 0.5 : 0));
       const aspectPenalty = Math.abs(rawWidth / rawHeight - 1);
       const extra = vertexCount - target;
-      const candidate = { columns, rows, vertexCount, extra, aspectPenalty, graph };
+      const overfillPenalty = extra / Math.max(1, target);
+      const score = aspectPenalty * 4 + overfillPenalty;
+      const candidate = { columns, rows, vertexCount, extra, aspectPenalty, overfillPenalty, score, graph };
       if (
         !best ||
-        candidate.extra < best.extra ||
-        (candidate.extra === best.extra && candidate.aspectPenalty < best.aspectPenalty)
+        candidate.score < best.score ||
+        (candidate.score === best.score && candidate.extra < best.extra) ||
+        (candidate.score === best.score && candidate.extra === best.extra && candidate.aspectPenalty < best.aspectPenalty)
       ) {
         best = candidate;
       }

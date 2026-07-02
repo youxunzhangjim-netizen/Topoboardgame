@@ -741,7 +741,7 @@ class Go2DApp {
     }
 
     stoneRadius(rect) {
-        if (this.logic.lattice === 'honeycomb') return rect.step * 0.16;
+        if (this.logic.lattice === 'honeycomb') return rect.step * 0.19;
         if (this.logic.lattice === 'kagome') return rect.step * 0.2;
         if (this.logic.lattice === 'triangular') return rect.step * 0.26;
         if (this.logic.topology === 'polar') return rect.step * 0.32;

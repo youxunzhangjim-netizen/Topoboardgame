@@ -1,11 +1,16 @@
 import {
+    changeAccountPassword,
+    deleteCurrentAccount,
     initAccountSession,
     deleteFriend,
     deleteRecentGame,
     listFriends,
     listRecentGames,
+    registerWithEmailPassword,
     saveFriendFromProfile,
+    sendAccountPasswordReset,
     signInAsVisitor,
+    signInWithEmailPassword,
     signInWithGoogleAccount,
     signOutToGuest,
     subscribeAccountState,
@@ -24,6 +29,25 @@ const TEXT = {
         returnOffline: 'Return to Offline Guest',
         google: 'Sign in with Google',
         visitorButton: 'Continue as Visitor',
+        emailAccount: 'Email account',
+        email: 'Email',
+        emailInputPlaceholder: 'you@example.com',
+        password: 'Password',
+        passwordPlaceholder: 'Password',
+        newAccountName: 'Visible name for new account',
+        emailLogin: 'Login',
+        emailRegister: 'Register',
+        forgotPassword: 'Forgot password?',
+        resetSent: 'Password reset email sent.',
+        accountSecurity: 'Account security',
+        currentPassword: 'Current password',
+        newPassword: 'New password',
+        changePassword: 'Change',
+        passwordChanged: 'Password changed.',
+        passwordOnlyEmail: 'Password changes are available for email/password accounts.',
+        deleteAccount: 'Delete account',
+        deleteConfirm: 'Delete this account permanently? This cannot be undone.',
+        accountDeleted: 'Account deleted.',
         guestStatus: 'Offline Guest is active. Local play and local robots do not need an account.',
         visitorStatus: 'Visitor mode is active. You can play online as a temporary visitor.',
         visitorStatusChecking: 'Visitor mode is active. Preparing online play...',
@@ -74,6 +98,25 @@ const TEXT = {
         nameOnlySignedIn: 'Sign in before editing your profile.'
     },
     zh: {
+        emailAccount: 'Email 帳號',
+        email: 'Email',
+        emailInputPlaceholder: 'you@example.com',
+        password: '密碼',
+        passwordPlaceholder: '密碼',
+        newAccountName: '新帳號顯示名稱',
+        emailLogin: '登入',
+        emailRegister: '註冊',
+        forgotPassword: '忘記密碼？',
+        resetSent: '密碼重設信已寄出。',
+        accountSecurity: '帳號安全',
+        currentPassword: '目前密碼',
+        newPassword: '新密碼',
+        changePassword: '變更',
+        passwordChanged: '密碼已變更。',
+        passwordOnlyEmail: '只有 Email / 密碼帳號可以在這裡變更密碼。',
+        deleteAccount: '刪除帳號',
+        deleteConfirm: '要永久刪除此帳號嗎？此操作無法復原。',
+        accountDeleted: '帳號已刪除。',
         guest: '離線 Guest',
         visitor: '訪客',
         login: '登入',
@@ -353,6 +396,27 @@ function installLauncherAuth() {
     const publicEmailInput = document.getElementById('launcherProfilePublicEmailInput');
     const robotLearningLabel = document.getElementById('launcherProfileRobotLearningLabel');
     const robotLearningInput = document.getElementById('launcherProfileRobotLearningInput');
+    const emailAuthPanel = document.getElementById('launcherEmailAuthPanel');
+    const emailAuthTitle = document.getElementById('launcherEmailAuthTitle');
+    const emailLabel = document.getElementById('launcherEmailLabel');
+    const emailInput = document.getElementById('launcherEmailInput');
+    const emailPasswordLabel = document.getElementById('launcherEmailPasswordLabel');
+    const emailPasswordInput = document.getElementById('launcherEmailPasswordInput');
+    const emailDisplayNameLabel = document.getElementById('launcherEmailDisplayNameLabel');
+    const emailDisplayNameInput = document.getElementById('launcherEmailDisplayNameInput');
+    const emailLoginButton = document.getElementById('launcherEmailLoginButton');
+    const emailRegisterButton = document.getElementById('launcherEmailRegisterButton');
+    const passwordResetButton = document.getElementById('launcherPasswordResetButton');
+    const emailAuthStatus = document.getElementById('launcherEmailAuthStatus');
+    const accountSecurityPanel = document.getElementById('launcherAccountSecurityPanel');
+    const securityTitle = document.getElementById('launcherSecurityTitle');
+    const currentPasswordLabel = document.getElementById('launcherCurrentPasswordLabel');
+    const currentPasswordInput = document.getElementById('launcherCurrentPasswordInput');
+    const newPasswordLabel = document.getElementById('launcherNewPasswordLabel');
+    const newPasswordInput = document.getElementById('launcherNewPasswordInput');
+    const changePasswordButton = document.getElementById('launcherChangePasswordButton');
+    const deleteAccountButton = document.getElementById('launcherDeleteAccountButton');
+    const accountSecurityStatus = document.getElementById('launcherAccountSecurityStatus');
 
     const missing = {
         root: !root,
@@ -394,7 +458,28 @@ function installLauncherAuth() {
         showEmailInput: !showEmailInput,
         publicEmailInput: !publicEmailInput,
         robotLearningLabel: !robotLearningLabel,
-        robotLearningInput: !robotLearningInput
+        robotLearningInput: !robotLearningInput,
+        emailAuthPanel: !emailAuthPanel,
+        emailAuthTitle: !emailAuthTitle,
+        emailLabel: !emailLabel,
+        emailInput: !emailInput,
+        emailPasswordLabel: !emailPasswordLabel,
+        emailPasswordInput: !emailPasswordInput,
+        emailDisplayNameLabel: !emailDisplayNameLabel,
+        emailDisplayNameInput: !emailDisplayNameInput,
+        emailLoginButton: !emailLoginButton,
+        emailRegisterButton: !emailRegisterButton,
+        passwordResetButton: !passwordResetButton,
+        emailAuthStatus: !emailAuthStatus,
+        accountSecurityPanel: !accountSecurityPanel,
+        securityTitle: !securityTitle,
+        currentPasswordLabel: !currentPasswordLabel,
+        currentPasswordInput: !currentPasswordInput,
+        newPasswordLabel: !newPasswordLabel,
+        newPasswordInput: !newPasswordInput,
+        changePasswordButton: !changePasswordButton,
+        deleteAccountButton: !deleteAccountButton,
+        accountSecurityStatus: !accountSecurityStatus
     };
     if (Object.values(missing).some(Boolean)) {
         warnAuth('account UI install stopped because one or more elements are missing', missing);
@@ -412,8 +497,12 @@ function installLauncherAuth() {
     let latestState = null;
     let busy = false;
     let nameBusy = false;
+    let emailBusy = false;
+    let securityBusy = false;
     let lastInlineError = '';
     let lastNameMessage = '';
+    let lastEmailMessage = '';
+    let lastSecurityMessage = '';
     let recentBusy = false;
     let recentGameItems = [];
     let friendBusy = false;
@@ -594,6 +683,49 @@ function installLauncherAuth() {
         displayNameStatus.textContent = lastNameMessage;
     };
 
+    const refreshEmailAuthPanel = () => {
+        const signedIn = Boolean(latestState?.signedIn);
+        emailAuthPanel.hidden = signedIn;
+        emailAuthTitle.textContent = t('emailAccount');
+        emailLabel.textContent = t('email');
+        emailPasswordLabel.textContent = t('password');
+        emailDisplayNameLabel.textContent = t('newAccountName');
+        emailInput.placeholder = t('emailInputPlaceholder');
+        emailPasswordInput.placeholder = t('passwordPlaceholder');
+        emailDisplayNameInput.placeholder = t('namePlaceholder');
+        emailLoginButton.textContent = emailBusy ? t('working') : t('emailLogin');
+        emailRegisterButton.textContent = emailBusy ? t('working') : t('emailRegister');
+        passwordResetButton.textContent = t('forgotPassword');
+        [emailInput, emailPasswordInput, emailDisplayNameInput, emailLoginButton, emailRegisterButton, passwordResetButton].forEach((element) => {
+            element.disabled = busy || emailBusy || signedIn;
+        });
+        emailAuthStatus.textContent = lastEmailMessage;
+    };
+
+    const refreshAccountSecurityPanel = () => {
+        const signedIn = Boolean(latestState?.signedIn);
+        const canUsePassword = Boolean(latestState?.isEmail);
+        accountSecurityPanel.hidden = !signedIn;
+        securityTitle.textContent = t('accountSecurity');
+        currentPasswordLabel.textContent = t('currentPassword');
+        newPasswordLabel.textContent = t('newPassword');
+        currentPasswordInput.placeholder = t('currentPassword');
+        newPasswordInput.placeholder = t('newPassword');
+        changePasswordButton.textContent = securityBusy ? t('working') : t('changePassword');
+        deleteAccountButton.textContent = securityBusy ? t('working') : t('deleteAccount');
+        currentPasswordInput.hidden = !canUsePassword;
+        currentPasswordLabel.hidden = !canUsePassword;
+        newPasswordInput.hidden = !canUsePassword;
+        newPasswordLabel.hidden = !canUsePassword;
+        changePasswordButton.hidden = !canUsePassword;
+        [currentPasswordInput, newPasswordInput, changePasswordButton, deleteAccountButton].forEach((element) => {
+            element.disabled = busy || securityBusy || !signedIn || (element !== deleteAccountButton && !canUsePassword);
+        });
+        accountSecurityStatus.textContent = canUsePassword || !signedIn
+            ? lastSecurityMessage
+            : (lastSecurityMessage || t('passwordOnlyEmail'));
+    };
+
     const render = (state = latestState) => {
         latestState = state || latestState || { signedIn: false, isVisitor: false };
         globalThis.TopoboardgameAccountState = summarizeState(latestState);
@@ -611,6 +743,8 @@ function installLauncherAuth() {
         logoutButton.textContent = signedIn ? t('logout') : t('returnOffline');
         note.textContent = t('note');
         refreshDisplayNameEditor();
+        refreshEmailAuthPanel();
+        refreshAccountSecurityPanel();
         googleButton.hidden = signedIn;
         visitorButton.hidden = signedIn || visitor;
         logoutButton.hidden = !signedIn && !visitor;
@@ -711,6 +845,118 @@ function installLauncherAuth() {
             setError(error);
         } finally {
             busy = false;
+            render();
+        }
+    });
+
+    emailLoginButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (busy || emailBusy) return;
+        emailBusy = true;
+        lastInlineError = '';
+        lastEmailMessage = '';
+        render();
+        try {
+            const nextState = await signInWithEmailPassword({
+                email: emailInput.value,
+                password: emailPasswordInput.value
+            });
+            latestState = nextState;
+            emailPasswordInput.value = '';
+        } catch (error) {
+            lastEmailMessage = cleanFirebaseError(error);
+            warnAuth('signInWithEmailPassword() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            emailBusy = false;
+            render();
+        }
+    });
+
+    emailRegisterButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (busy || emailBusy) return;
+        emailBusy = true;
+        lastInlineError = '';
+        lastEmailMessage = '';
+        render();
+        try {
+            const nextState = await registerWithEmailPassword({
+                email: emailInput.value,
+                password: emailPasswordInput.value,
+                displayName: emailDisplayNameInput.value
+            });
+            latestState = nextState;
+            emailPasswordInput.value = '';
+        } catch (error) {
+            lastEmailMessage = cleanFirebaseError(error);
+            warnAuth('registerWithEmailPassword() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            emailBusy = false;
+            render();
+        }
+    });
+
+    passwordResetButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (busy || emailBusy) return;
+        emailBusy = true;
+        lastEmailMessage = '';
+        render();
+        try {
+            await sendAccountPasswordReset(emailInput.value);
+            lastEmailMessage = t('resetSent');
+        } catch (error) {
+            lastEmailMessage = cleanFirebaseError(error);
+            warnAuth('sendAccountPasswordReset() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            emailBusy = false;
+            render();
+        }
+    });
+
+    changePasswordButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (busy || securityBusy) return;
+        securityBusy = true;
+        lastSecurityMessage = '';
+        render();
+        try {
+            await changeAccountPassword({
+                currentPassword: currentPasswordInput.value,
+                newPassword: newPasswordInput.value
+            });
+            currentPasswordInput.value = '';
+            newPasswordInput.value = '';
+            lastSecurityMessage = t('passwordChanged');
+        } catch (error) {
+            lastSecurityMessage = cleanFirebaseError(error);
+            warnAuth('changeAccountPassword() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            securityBusy = false;
+            render();
+        }
+    });
+
+    deleteAccountButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (busy || securityBusy || !latestState?.signedIn) return;
+        if (!window.confirm(t('deleteConfirm'))) return;
+        securityBusy = true;
+        lastSecurityMessage = '';
+        render();
+        try {
+            const nextState = await deleteCurrentAccount({
+                currentPassword: currentPasswordInput.value
+            });
+            latestState = nextState;
+            currentPasswordInput.value = '';
+            newPasswordInput.value = '';
+            lastInlineError = t('accountDeleted');
+        } catch (error) {
+            lastSecurityMessage = cleanFirebaseError(error);
+            warnAuth('deleteCurrentAccount() threw', String(error?.stack || error?.message || error || ''));
+        } finally {
+            securityBusy = false;
             render();
         }
     });

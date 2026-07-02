@@ -4,14 +4,21 @@ import {
     browserPopupRedirectResolver,
     getAuth,
     getRedirectResult,
+    createUserWithEmailAndPassword,
+    deleteUser,
+    EmailAuthProvider,
     GoogleAuthProvider,
     initializeAuth,
     onAuthStateChanged,
+    reauthenticateWithCredential,
+    sendPasswordResetEmail,
     setPersistence,
     signInAnonymously,
+    signInWithEmailAndPassword,
     signInWithPopup,
     signInWithRedirect,
     signOut,
+    updatePassword,
     updateProfile
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import {
@@ -681,6 +688,109 @@ export async function signInWithGoogleAccount({ source = 'google-login' } = {}) 
         lastProfileWrite,
         accountState: getAccountState()
     });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+function normalizeEmailForAuth(email) {
+    const value = sanitizeEmail(email);
+    if (!value) throw new Error('Enter a valid email address.');
+    return value;
+}
+
+function normalizePasswordForAuth(password, label = 'Password') {
+    const value = String(password || '');
+    if (value.length < 6) throw new Error(`${label} must be at least 6 characters.`);
+    return value;
+}
+
+async function reauthenticatePasswordAccount(currentUser, currentPassword) {
+    if (!currentUser || currentUser.isAnonymous) throw new Error('Sign in before changing account security settings.');
+    const providerIds = providerIdsForUser(currentUser);
+    if (!providerIds.includes('password')) return;
+    const password = String(currentPassword || '');
+    if (!password) throw new Error('Enter your current password first.');
+    const email = normalizeEmailForAuth(currentUser.email || '');
+    await reauthenticateWithCredential(currentUser, EmailAuthProvider.credential(email, password));
+}
+
+export async function registerWithEmailPassword({ email = '', password = '', displayName = '' } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online sign-up is not configured.');
+    await waitForInitialAuthState();
+    const normalizedEmail = normalizeEmailForAuth(email);
+    const normalizedPassword = normalizePasswordForAuth(password);
+    const result = await createUserWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+    user = result.user || auth.currentUser || await waitForAuth(auth);
+    const name = sanitizeDisplayName(displayName || normalizedEmail.split('@')[0]);
+    setLocalDisplayName(user, name);
+    try {
+        await updateProfile(user, { displayName: name });
+        user = auth.currentUser || user;
+    } catch (error) {
+        authWarn('registerWithEmailPassword: updateProfile failed', authErrorSummary(error));
+    }
+    await upsertSignedInUserProfile(user, { source: 'email-register' });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function signInWithEmailPassword({ email = '', password = '' } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online sign-in is not configured.');
+    await waitForInitialAuthState();
+    const result = await signInWithEmailAndPassword(
+        auth,
+        normalizeEmailForAuth(email),
+        normalizePasswordForAuth(password)
+    );
+    user = result.user || auth.currentUser || await waitForAuth(auth);
+    await upsertSignedInUserProfile(user, { source: 'email-login' });
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function sendAccountPasswordReset(email = '') {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online password reset is not configured.');
+    await sendPasswordResetEmail(auth, normalizeEmailForAuth(email));
+    return true;
+}
+
+export async function changeAccountPassword({ currentPassword = '', newPassword = '' } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online account settings are not configured.');
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!currentUser || currentUser.isAnonymous) throw new Error('Sign in with an email account before changing your password.');
+    if (!providerIdsForUser(currentUser).includes('password')) {
+        throw new Error('Password changes are available for email/password accounts.');
+    }
+    await reauthenticatePasswordAccount(currentUser, currentPassword);
+    await updatePassword(currentUser, normalizePasswordForAuth(newPassword, 'New password'));
+    user = auth?.currentUser || currentUser;
+    notifyAccountListeners();
+    return getAccountState();
+}
+
+export async function deleteCurrentAccount({ currentPassword = '' } = {}) {
+    const ready = await ensureFirebaseCore();
+    if (!ready.ok) throw new Error(ready.error || 'Online account settings are not configured.');
+    await waitForInitialAuthState();
+    const currentUser = auth?.currentUser || user || null;
+    if (!currentUser || currentUser.isAnonymous) throw new Error('Sign in before deleting your account.');
+    await reauthenticatePasswordAccount(currentUser, currentPassword);
+    const uid = currentUser.uid;
+    if (db && uid) {
+        try {
+            await deleteDoc(doc(db, usersPath, uid));
+        } catch (error) {
+            authWarn('deleteCurrentAccount: profile cleanup failed', authErrorSummary(error));
+        }
+    }
+    await deleteUser(currentUser);
+    user = null;
+    lastProfileWrite = { ok: false, path: '', error: '' };
     notifyAccountListeners();
     return getAccountState();
 }

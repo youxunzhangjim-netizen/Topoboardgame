@@ -1684,7 +1684,8 @@ class Reversi3DApp {
 
     latticeOptionsForMode(mode = this.modeSelect.value) {
         if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
-        if (mode === REVERSI_TOPOLOGIES.T2 || mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.T2) return [SQUARE_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE];
         return [SQUARE_LATTICE];
     }

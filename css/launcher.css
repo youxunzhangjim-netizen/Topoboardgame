@@ -1312,6 +1312,12 @@ h1 {
     background: rgba(56, 189, 248, 0.12);
 }
 
+.launcher-account-menu-button.danger {
+    border-color: rgba(248, 113, 113, 0.62);
+    background: rgba(127, 29, 29, 0.38);
+    color: #fecaca;
+}
+
 .launcher-account-menu-button:hover,
 .launcher-account-menu-button:focus-visible {
     border-color: rgba(245, 182, 71, 0.72);
@@ -1340,6 +1346,35 @@ h1 {
     font-weight: 950;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+.launcher-account-section-title {
+    color: rgba(237, 244, 246, 0.94);
+    font-size: 13px;
+    font-weight: 950;
+}
+.launcher-account-button-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.launcher-account-link-button {
+    justify-self: start;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #7dd3fc;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.launcher-security-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
 }
 .launcher-display-name-row {
     display: grid;
@@ -1545,6 +1580,11 @@ h1 {
     }
 
     .launcher-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .launcher-account-button-row,
+    .launcher-security-head {
         grid-template-columns: 1fr;
     }
 }
