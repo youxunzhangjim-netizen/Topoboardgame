@@ -25,8 +25,8 @@ const I18N = {
         controls: 'Game Controls',
         home: 'Home',
         switchLanguage: 'Switch language',
-        black: 'Black',
-        white: 'White',
+        black: 'Blue',
+        white: 'Orange',
         moves: 'Moves',
         gameMode: 'Game Mode',
         local: 'Local',
@@ -101,24 +101,25 @@ const I18N = {
         resetCamera: 'Reset Camera',
         newGame: 'New Game',
         targetZones: 'Target Zones',
-        blackTarget: 'Black connects x-low to x-high',
-        whiteTarget: 'White connects y-low to y-high',
-        blackMarkedTarget: 'Black connects the two cyan marked zones',
-        whiteMarkedTarget: 'White connects the two gold marked zones',
+        blackTarget: 'Blue connects x-low to x-high',
+        whiteTarget: 'Orange connects y-low to y-high',
+        blackMarkedTarget: 'Blue connects the two cyan marked zones',
+        whiteMarkedTarget: 'Orange connects the two gold marked zones',
         moveHistory: 'Move History',
         onlineChat: 'Online Chat',
         chatEmpty: 'Connect online to chat.',
         messagePlaceholder: 'Message opponent',
         send: 'Send',
-        blackTurn: 'Black to play',
-        whiteTurn: 'White to play',
+        blackTurn: 'Blue to play',
+        whiteTurn: 'Orange to play',
         emptyPrompt: 'Choose an empty 3D site.',
         occupied: 'Choose an empty Hex site.',
+        opponentCamp: 'You cannot place in the other player\'s target camp.',
         noStones: 'No stones placed',
         stoneSummary: '{count} stones on the board',
         historyEmpty: 'No moves yet',
-        blackWin: 'Black connected x-low to x-high.',
-        whiteWin: 'White connected y-low to y-high.',
+        blackWin: 'Blue connected x-low to x-high.',
+        whiteWin: 'Orange connected y-low to y-high.',
         robotThinking: 'Robot is searching for a connection move.',
         connectOnline: 'Connect or join an Online room before placing.',
         waitingFor: 'Waiting for {color}.',
@@ -134,10 +135,10 @@ const I18N = {
             r3_random: '3D RBC uses a seeded random boundary pairing when a move exits the cube.',
             reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
             t2: 'T2 is a torus surface embedded in 3D. Surface Hex fills face cells and both players connect marked cut-seam zones.',
-            cylinder: 'Cylinder is a 2D surface embedded in 3D. Surface Hex fills face cells; Black uses cut-seam zones and White uses the two rim directions.',
+            cylinder: 'Cylinder is a 2D surface embedded in 3D. Surface Hex fills face cells; Blue uses cut-seam zones and Orange uses the two rim directions.',
             sphere: 'S2 Sphere Hex can use a Geodesic longitude-latitude face board or a Buckyball pentagon/hexagon face board. Hex fills face cells on both sphere lattices.',
             klein: 'Klein bottle is a non-orientable surface with a twisted seam. Surface Hex fills face cells and goals use marked zones.',
-            mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Black uses the seam zones and White uses the open sides.',
+            mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Blue uses the seam zones and Orange uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
             trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
             klein_quartic: 'Klein Quartic x I is a genus-3 cell-complex board extruded through one interval layer for 3D play.'
@@ -153,8 +154,8 @@ const I18N = {
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
-        black: '黑方',
-        white: '白方',
+        black: '藍方',
+        white: '橙方',
         moves: '步數',
         gameMode: '遊戲模式',
         local: '本機',
@@ -229,24 +230,25 @@ const I18N = {
         resetCamera: '重設視角',
         newGame: '新遊戲',
         targetZones: '目標區',
-        blackTarget: '黑方連接 x-low 與 x-high',
-        whiteTarget: '白方連接 y-low 與 y-high',
-        blackMarkedTarget: '黑方連接兩個青色標示區',
-        whiteMarkedTarget: '白方連接兩個金色標示區',
+        blackTarget: '藍方連接 x-low 與 x-high',
+        whiteTarget: '橙方連接 y-low 與 y-high',
+        blackMarkedTarget: '藍方連接兩個青色標示區',
+        whiteMarkedTarget: '橙方連接兩個金色標示區',
         moveHistory: '落子記錄',
         onlineChat: '線上聊天',
         chatEmpty: '連上線上房間後即可聊天。',
         messagePlaceholder: '傳送訊息給對手',
         send: '傳送',
-        blackTurn: '輪到黑方',
-        whiteTurn: '輪到白方',
+        blackTurn: '輪到藍方',
+        whiteTurn: '輪到橙方',
         emptyPrompt: '請選擇一個空的 3D 格點。',
         occupied: '請選擇一個空的六貫棋格點。',
+        opponentCamp: '不能落在對手的目標陣地。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
-        blackWin: '黑方已連接 x-low 與 x-high。',
-        whiteWin: '白方已連接 y-low 與 y-high。',
+        blackWin: '藍方已連接 x-low 與 x-high。',
+        whiteWin: '橙方已連接 y-low 與 y-high。',
         robotThinking: '機器人正在搜尋連線走法。',
         connectOnline: '請先連線或加入線上房間再落子。',
         waitingFor: '等待 {color} 行動。',
@@ -262,10 +264,10 @@ const I18N = {
             r3_random: '3D RBC 會在行動離開立方體邊界時使用固定種子的隨機邊界配對。',
             reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
             t2: 'T2 是嵌入 3D 視圖的環面曲面；曲面六貫棋填入面單元，雙方連接曲面上的切縫目標區。',
-            cylinder: '圓柱是嵌入 3D 視圖的二維曲面；曲面六貫棋填入面單元，黑方使用切縫目標區，白方使用兩側邊界。',
+            cylinder: '圓柱是嵌入 3D 視圖的二維曲面；曲面六貫棋填入面單元，藍方使用切縫目標區，橙方使用兩側邊界。',
             sphere: 'S2 球面六貫棋可使用測地經緯面格，或巴克球五邊形 / 六邊形面格；兩者都以填滿面單元來落子。',
             klein: 'Klein 瓶是含扭轉縫的非定向曲面；曲面六貫棋填入面單元，目標使用曲面標示區。',
-            mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，黑方使用接縫目標區，白方使用開放邊。',
+            mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，藍方使用接縫目標區，橙方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
             trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
             klein_quartic: 'Klein quartic x I 是將 genus-3 胞複形棋盤沿一個區間層擴展後的 3D 棋盤。'
@@ -501,13 +503,49 @@ function createBuckyballGoalZones(topology, topologySize, lattice) {
     const coordinates = surfaceSphereCoordinatesForSize(topologySize).slice(0, polygons.length);
     const vertexKey = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)},${point.z.toFixed(5)}`;
     const faceVertexSets = polygons.map((polygon) => new Set(polygon.map(vertexKey)));
-    const areAdjacentFaces = (a, b) => {
+    const sharedVertexCount = (aIndex, bIndex) => {
         let shared = 0;
-        for (const key of faceVertexSets[a.index] || []) {
-            if (faceVertexSets[b.index]?.has(key)) shared += 1;
-            if (shared >= 2) return true;
+        for (const key of faceVertexSets[aIndex] || []) {
+            if (faceVertexSets[bIndex]?.has(key)) shared += 1;
+            if (shared >= 2) break;
         }
-        return false;
+        return shared;
+    };
+    const faceAdjacency = faceVertexSets.map(() => []);
+    for (let a = 0; a < faceVertexSets.length; a += 1) {
+        for (let b = a + 1; b < faceVertexSets.length; b += 1) {
+            if (sharedVertexCount(a, b) < 2) continue;
+            faceAdjacency[a].push(b);
+            faceAdjacency[b].push(a);
+        }
+    }
+    const faceGraphDistance = (from, to) => {
+        if (from === to) return 0;
+        const queue = [from];
+        const distances = new Map([[from, 0]]);
+        for (let index = 0; index < queue.length; index += 1) {
+            const current = queue[index];
+            const nextDistance = distances.get(current) + 1;
+            for (const next of faceAdjacency[current] || []) {
+                if (distances.has(next)) continue;
+                if (next === to) return nextDistance;
+                distances.set(next, nextDistance);
+                queue.push(next);
+            }
+        }
+        return 0;
+    };
+    const graphDistances = faceVertexSets.map((_, from) =>
+        faceVertexSets.map((__, to) => faceGraphDistance(from, to)));
+    const graphDistance = (a, b) => graphDistances[a.index]?.[b.index] || 0;
+    const minGraphDistance = (selected) => {
+        let best = Infinity;
+        for (let a = 0; a < selected.length; a += 1) {
+            for (let b = a + 1; b < selected.length; b += 1) {
+                best = Math.min(best, graphDistance(selected[a], selected[b]));
+            }
+        }
+        return Number.isFinite(best) ? best : 0;
     };
     const faceDistance = (a, b) => Math.hypot(
         a.center.x - b.center.x,
@@ -536,33 +574,29 @@ function createBuckyballGoalZones(topology, topologySize, lattice) {
     }).filter((entry) => Array.isArray(entry.coordinate));
     const keyOf = (coordinate) => coordinate.join(',');
     const pickSeparatedVisibleCaps = () => {
-        const minAnyDistance = BUCKYBALL_RENDER_RADIUS * 0.65;
-        const minSameColorDistance = BUCKYBALL_RENDER_RADIUS * 1.35;
-        const minVisibleDepth = -0.35;
+        const minAnyGraphDistance = 3;
+        const minSameColorGraphDistance = 3;
         let best = null;
 
         const isSeparated = (selected) => {
             for (let a = 0; a < selected.length; a += 1) {
                 for (let b = a + 1; b < selected.length; b += 1) {
-                    if (areAdjacentFaces(selected[a], selected[b])) return false;
-                    if (faceDistance(selected[a], selected[b]) < minAnyDistance) return false;
+                    if (graphDistance(selected[a], selected[b]) < minAnyGraphDistance) return false;
                 }
             }
             return true;
         };
 
         for (const blackStart of entries) {
-            if (blackStart.view.z < minVisibleDepth) continue;
             for (const blackEnd of entries) {
-                if (blackEnd === blackStart || blackEnd.view.z < minVisibleDepth) continue;
-                if (faceDistance(blackStart, blackEnd) < minSameColorDistance) continue;
+                if (blackEnd === blackStart) continue;
+                if (graphDistance(blackStart, blackEnd) < minSameColorGraphDistance) continue;
                 for (const whiteStart of entries) {
-                    if (whiteStart === blackStart || whiteStart === blackEnd || whiteStart.view.z < minVisibleDepth) continue;
+                    if (whiteStart === blackStart || whiteStart === blackEnd) continue;
                     for (const whiteEnd of entries) {
                         const selected = [blackStart, blackEnd, whiteStart, whiteEnd];
                         if (new Set(selected).size !== selected.length) continue;
-                        if (whiteEnd.view.z < minVisibleDepth) continue;
-                        if (faceDistance(whiteStart, whiteEnd) < minSameColorDistance) continue;
+                        if (graphDistance(whiteStart, whiteEnd) < minSameColorGraphDistance) continue;
                         if (!isSeparated(selected)) continue;
 
                         const crossDistances = [
@@ -571,11 +605,21 @@ function createBuckyballGoalZones(topology, topologySize, lattice) {
                             faceDistance(blackEnd, whiteStart),
                             faceDistance(blackEnd, whiteEnd)
                         ];
+                        const crossGraphDistances = [
+                            graphDistance(blackStart, whiteStart),
+                            graphDistance(blackStart, whiteEnd),
+                            graphDistance(blackEnd, whiteStart),
+                            graphDistance(blackEnd, whiteEnd)
+                        ];
+                        const sameGraphDistance = graphDistance(blackStart, blackEnd) + graphDistance(whiteStart, whiteEnd);
                         const score =
-                            (-blackStart.view.x + blackEnd.view.x + whiteStart.view.y - whiteEnd.view.y) * 2 +
-                            (blackStart.view.z + blackEnd.view.z + whiteStart.view.z + whiteEnd.view.z) * 1.4 +
-                            (faceDistance(blackStart, blackEnd) + faceDistance(whiteStart, whiteEnd)) * 1.8 +
-                            Math.min(...crossDistances) * 0.8;
+                            minGraphDistance(selected) * 140 +
+                            sameGraphDistance * 60 +
+                            Math.min(...crossGraphDistances) * 40 +
+                            (faceDistance(blackStart, blackEnd) + faceDistance(whiteStart, whiteEnd)) * 3 +
+                            Math.min(...crossDistances) * 3 +
+                            (-blackStart.view.x + blackEnd.view.x + whiteStart.view.y - whiteEnd.view.y) * 0.35 +
+                            (blackStart.view.z + blackEnd.view.z + whiteStart.view.z + whiteEnd.view.z) * 0.25;
                         if (!best || score > best.score) best = { score, blackStart, blackEnd, whiteStart, whiteEnd };
                     }
                 }
@@ -990,12 +1034,12 @@ function drawBuckyballSpherePanels(width, height) {
             else context.moveTo(point.x, point.y);
         });
         context.closePath();
-        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = 'rgba(36, 169, 194, 0.93)';
-        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = 'rgba(227, 164, 47, 0.93)';
-        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.78)';
-        else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.88)';
-        else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.88)';
-        else context.fillStyle = 'rgba(224, 231, 228, 0.82)';
+        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = '#24a9c2';
+        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = '#e3a42f';
+        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = '#85977a';
+        else if (panel.blackTarget) context.fillStyle = '#c2eff7';
+        else if (panel.whiteTarget) context.fillStyle = '#f8e6ba';
+        else context.fillStyle = '#e0e7e4';
         context.fill();
         context.strokeStyle = 'rgba(37, 49, 56, 0.68)';
         context.lineWidth = 0.82;
@@ -1090,12 +1134,13 @@ function drawSurfacePanels(width, height) {
             else context.moveTo(point.x, point.y);
         });
         context.closePath();
-        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = 'rgba(36, 169, 194, 0.9)';
-        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = 'rgba(227, 164, 47, 0.9)';
-        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = 'rgba(133, 151, 122, 0.78)';
-        else if (panel.blackTarget) context.fillStyle = 'rgba(194, 239, 247, 0.88)';
-        else if (panel.whiteTarget) context.fillStyle = 'rgba(248, 230, 186, 0.88)';
-        else context.fillStyle = topology === 'klein' ? 'rgba(224, 231, 228, 0.7)' : 'rgba(224, 231, 228, 0.84)';
+        const opaqueSphere = topology === 'sphere';
+        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = opaqueSphere ? '#24a9c2' : 'rgba(36, 169, 194, 0.9)';
+        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = opaqueSphere ? '#e3a42f' : 'rgba(227, 164, 47, 0.9)';
+        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = opaqueSphere ? '#85977a' : 'rgba(133, 151, 122, 0.78)';
+        else if (panel.blackTarget) context.fillStyle = opaqueSphere ? '#c2eff7' : 'rgba(194, 239, 247, 0.88)';
+        else if (panel.whiteTarget) context.fillStyle = opaqueSphere ? '#f8e6ba' : 'rgba(248, 230, 186, 0.88)';
+        else context.fillStyle = opaqueSphere ? '#e0e7e4' : topology === 'klein' ? 'rgba(224, 231, 228, 0.7)' : 'rgba(224, 231, 228, 0.84)';
         context.fill();
         context.strokeStyle = topology === 'klein' ? 'rgba(65, 76, 84, 0.36)' : 'rgba(65, 76, 84, 0.58)';
         context.lineWidth = topology === 'klein' ? 0.45 : 0.72;
@@ -1375,7 +1420,7 @@ function playAt(coordinate) {
         player,
         coord: [...coordinate]
     }, result);
-    if (!result.ok) statusKey = 'occupied';
+    if (!result.ok) statusKey = result.code === 'opponent_camp' ? 'opponentCamp' : 'occupied';
     else statusKey = game.winner
         ? game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'
         : 'emptyPrompt';
@@ -1398,7 +1443,9 @@ function resolveScheduledHex(coordinate, player, { instant = false } = {}) {
     const result = game.play(coordinate, player);
     if (!result.ok) game.currentColor = savedPlayer;
     else if (!instant && !game.winner) game.currentColor = savedPlayer;
-    statusKey = game.winner
+    statusKey = !result.ok
+        ? result.code === 'opponent_camp' ? 'opponentCamp' : 'occupied'
+        : game.winner
         ? game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'
         : 'emptyPrompt';
     updateReadout();

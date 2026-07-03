@@ -38,8 +38,10 @@ function setColor(board, topology, coordinate, color) {
     return key;
 }
 
-function emptyCoordinates(board, topology, coordinates) {
-    return coordinates.filter((coordinate) => colorAt(board, topology, coordinate) === null);
+function emptyCoordinates(board, topology, coordinates, color = null) {
+    return coordinates.filter((coordinate) =>
+        colorAt(board, topology, coordinate) === null &&
+        (!color || typeof topology.isOpponentCamp !== 'function' || !topology.isOpponentCamp(coordinate, color)));
 }
 
 function hasConnection(board, topology, color) {
@@ -78,6 +80,7 @@ function connectionDistance(board, topology, coordinates, color) {
         queue.push({ coordinate, distance });
     };
     const costOf = (coordinate) => {
+        if (typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(coordinate, color)) return Infinity;
         const cell = colorAt(board, topology, coordinate);
         if (cell === opponent) return Infinity;
         return cell === color ? 0 : 1;
@@ -163,7 +166,7 @@ function scoreMove(board, topology, coordinates, coordinate, color) {
 }
 
 function rankedMoves(board, topology, coordinates, color, cap) {
-    return emptyCoordinates(board, topology, coordinates)
+    return emptyCoordinates(board, topology, coordinates, color)
         .map((coordinate) => ({
             coordinate,
             score: scoreMove(board, topology, coordinates, coordinate, color)
@@ -175,7 +178,7 @@ function rankedMoves(board, topology, coordinates, color, cap) {
 
 function winningMoves(board, topology, coordinates, color) {
     const result = [];
-    for (const coordinate of emptyCoordinates(board, topology, coordinates)) {
+    for (const coordinate of emptyCoordinates(board, topology, coordinates, color)) {
         setColor(board, topology, coordinate, color);
         const won = hasConnection(board, topology, color);
         setColor(board, topology, coordinate, null);
@@ -225,7 +228,7 @@ export function chooseHexRobotMove(game, options = {}) {
     const board = new Map(game.board);
     const color = game.currentColor;
     const opponent = otherHexColor(color);
-    const legal = emptyCoordinates(board, topology, coordinates);
+    const legal = emptyCoordinates(board, topology, coordinates, color);
     const stats = { nodes: 0, truncated: false };
     if (!legal.length) return null;
 
@@ -236,7 +239,8 @@ export function chooseHexRobotMove(game, options = {}) {
             .sort((a, b) => b.score - a.score)[0].move;
         return { coordinate, level, score: WIN_SCORE, nodes: stats.nodes, reason: 'win' };
     }
-    const opponentWins = winningMoves(board, topology, coordinates, opponent);
+    const opponentWins = winningMoves(board, topology, coordinates, opponent)
+        .filter((coordinate) => typeof topology.isOpponentCamp !== 'function' || !topology.isOpponentCamp(coordinate, color));
     if (opponentWins.length) {
         const coordinate = opponentWins
             .map((move) => ({ move, score: scoreMove(board, topology, coordinates, move, color) }))

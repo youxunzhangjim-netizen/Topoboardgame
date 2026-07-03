@@ -148,6 +148,12 @@ function triangularRowOffsets(origin = [0, 0]) {
         : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
 }
 
+function honeycombFaceOffsets(origin = [0, 0]) {
+    return (origin[1] || 0) % 2 === 0
+        ? [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]]
+        : [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
+}
+
 function kagomeHexEdgeAllowed(a, b) {
     if (!Array.isArray(a) || !Array.isArray(b)) return false;
     const dx = b[0] - a[0];
@@ -224,6 +230,91 @@ function createBuckyballFaceAdjacency(coordinateList) {
     }
 
     return adjacency;
+}
+
+function createBuckyballGoalDefinition(coordinateList) {
+    const faceVertexSets = createBuckyballFaceVertexSets();
+    const faceCount = Math.min(coordinateList.length, faceVertexSets.length);
+    const faceAdjacency = Array.from({ length: faceCount }, () => []);
+    const sharedVertexCount = (aIndex, bIndex) => {
+        let shared = 0;
+        for (const key of faceVertexSets[aIndex] || []) {
+            if (faceVertexSets[bIndex]?.has(key)) shared += 1;
+            if (shared >= 2) break;
+        }
+        return shared;
+    };
+    for (let a = 0; a < faceCount; a += 1) {
+        for (let b = a + 1; b < faceCount; b += 1) {
+            if (sharedVertexCount(a, b) < 2) continue;
+            faceAdjacency[a].push(b);
+            faceAdjacency[b].push(a);
+        }
+    }
+    const graphDistance = (from, to) => {
+        if (from === to) return 0;
+        const queue = [from];
+        const distances = new Map([[from, 0]]);
+        for (let index = 0; index < queue.length; index += 1) {
+            const current = queue[index];
+            const nextDistance = distances.get(current) + 1;
+            for (const next of faceAdjacency[current] || []) {
+                if (distances.has(next)) continue;
+                if (next === to) return nextDistance;
+                distances.set(next, nextDistance);
+                queue.push(next);
+            }
+        }
+        return 0;
+    };
+    const distances = Array.from({ length: faceCount }, (_, from) =>
+        Array.from({ length: faceCount }, (__, to) => graphDistance(from, to)));
+    let best = null;
+    for (let blueStart = 0; blueStart < faceCount; blueStart += 1) {
+        for (let blueEnd = 0; blueEnd < faceCount; blueEnd += 1) {
+            if (blueEnd === blueStart || distances[blueStart][blueEnd] < 3) continue;
+            for (let orangeStart = 0; orangeStart < faceCount; orangeStart += 1) {
+                if (orangeStart === blueStart || orangeStart === blueEnd) continue;
+                for (let orangeEnd = 0; orangeEnd < faceCount; orangeEnd += 1) {
+                    const selected = [blueStart, blueEnd, orangeStart, orangeEnd];
+                    if (new Set(selected).size !== selected.length) continue;
+                    if (distances[orangeStart][orangeEnd] < 3) continue;
+                    const pairDistances = [];
+                    for (let a = 0; a < selected.length; a += 1) {
+                        for (let b = a + 1; b < selected.length; b += 1) {
+                            pairDistances.push(distances[selected[a]][selected[b]]);
+                        }
+                    }
+                    const minDistance = Math.min(...pairDistances);
+                    if (minDistance < 3) continue;
+                    const score = minDistance * 100 +
+                        (distances[blueStart][blueEnd] + distances[orangeStart][orangeEnd]) * 20 +
+                        pairDistances.reduce((sum, value) => sum + value, 0);
+                    if (!best || score > best.score) best = { score, selected };
+                }
+            }
+        }
+    }
+    const selected = best?.selected || [0, Math.min(15, faceCount - 1), Math.min(5, faceCount - 1), Math.min(25, faceCount - 1)];
+    const keyOfIndex = (index) => coordinateKey(coordinateList[Math.max(0, Math.min(faceCount - 1, index))]);
+    const blueStart = new Set([keyOfIndex(selected[0])]);
+    const blueEnd = new Set([keyOfIndex(selected[1])]);
+    const orangeStart = new Set([keyOfIndex(selected[2])]);
+    const orangeEnd = new Set([keyOfIndex(selected[3])]);
+    return Object.freeze({
+        black: Object.freeze({
+            type: 'marked-cut-zones',
+            label: 'buckyball blue cap zones',
+            start: (coordinate) => blueStart.has(coordinateKey(coordinate)),
+            end: (coordinate) => blueEnd.has(coordinateKey(coordinate))
+        }),
+        white: Object.freeze({
+            type: 'marked-cut-zones',
+            label: 'buckyball orange cap zones',
+            start: (coordinate) => orangeStart.has(coordinateKey(coordinate)),
+            end: (coordinate) => orangeEnd.has(coordinateKey(coordinate))
+        })
+    });
 }
 
 function modulo(value, modulus) {
@@ -419,7 +510,7 @@ function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary
     return normalized ? [normalized[0], normalized[1], 0] : null;
 }
 
-function createGoalDefinition(dimension, size, topology, customGoalZones, lattice = 'hexagonal') {
+function createGoalDefinition(dimension, size, topology, customGoalZones, lattice = 'hexagonal', coordinateList = null) {
     if (customGoalZones) {
         const normalizeZone = (zone, label) => {
             if (!zone || typeof zone.start !== 'function' || typeof zone.end !== 'function') {
@@ -481,6 +572,9 @@ function createGoalDefinition(dimension, size, topology, customGoalZones, lattic
 
     const surface3D = dimension === 3 && SURFACE_3D_TOPOLOGIES.has(topology);
     const surfaceTopology = topology === 't2' ? 'torus' : topology;
+    if (surface3D && surfaceTopology === 'sphere' && lattice === 'buckyball' && coordinateList?.length) {
+        return createBuckyballGoalDefinition(coordinateList);
+    }
     if (surface3D && surfaceTopology === 'sphere') {
         const xEnd = Math.floor(size[0] / 2);
         return Object.freeze({
@@ -683,8 +777,6 @@ export function createHexTopology(options = {}) {
     const randomBoundary = topology === 'random'
         ? createRandomBoundary(size, randomBoundarySeed)
         : null;
-    const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones, lattice);
-
     const normalize = (coordinate) => {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
         if (!parsed) return null;
@@ -700,7 +792,7 @@ export function createHexTopology(options = {}) {
             ? null
             : lattice === 'square'
             ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
-            : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]]
+            : null
         : surface3D
             ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
             : ['hcp', 'bcc', 'fcc'].includes(lattice)
@@ -723,10 +815,11 @@ export function createHexTopology(options = {}) {
                 ? triangularRowOffsets(origin)
                 : lattice === 'kagome'
                 ? kagomeHexOffsets(origin)
-                : [[1, 0], [-1, 0], [0, (origin[0] + origin[1]) % 2 === 0 ? 1 : -1]])
+                : honeycombFaceOffsets(origin))
     ];
 
     const coordinateList = surface3D ? enumerateSurface3DCoordinates(size, topology) : enumerateCoordinates(size);
+    const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones, lattice, coordinateList);
     const buckyballAdjacency = surface3D && topology === 'sphere' && lattice === 'buckyball'
         ? createBuckyballFaceAdjacency(coordinateList)
         : null;
@@ -809,6 +902,16 @@ export function createHexTopology(options = {}) {
         goalZones,
         normalize,
         neighbors,
+        isOpponentCamp(coordinate, color) {
+            if (!HEX_COLOR_VALUES.has(color)) return false;
+            const normalized = normalize(coordinate);
+            if (!normalized) return false;
+            const ownZone = goalZones[color];
+            const opponentZone = goalZones[otherHexColor(color)];
+            const ownCamp = ownZone.start(normalized) || ownZone.end(normalized);
+            const opponentCamp = opponentZone.start(normalized) || opponentZone.end(normalized);
+            return opponentCamp && !ownCamp;
+        },
         key(coordinate) {
             const normalized = normalize(coordinate);
             return normalized ? coordinateKey(normalized) : null;
@@ -888,7 +991,7 @@ export class HexGame {
         if (!HEX_COLOR_VALUES.has(color)) return false;
         if (this.winner || color !== this.currentColor) return false;
         const key = this.topology.key(coordinate);
-        return Boolean(key && !this.board.has(key));
+        return Boolean(key && !this.board.has(key) && !this.topology.isOpponentCamp(coordinate, color));
     }
 
     place(coordinate, color = this.currentColor) {
@@ -904,6 +1007,13 @@ export class HexGame {
 
         const normalized = this.topology.normalize(coordinate);
         if (!normalized) return { ok: false, error: 'Coordinate is outside the board.' };
+        if (this.topology.isOpponentCamp(normalized, color)) {
+            return {
+                ok: false,
+                error: 'Choose your own target camp or a neutral Hex cell.',
+                code: 'opponent_camp'
+            };
+        }
 
         const key = this.topology.key(normalized);
         if (this.board.has(key)) return { ok: false, error: 'Hex placements require an empty cell.' };

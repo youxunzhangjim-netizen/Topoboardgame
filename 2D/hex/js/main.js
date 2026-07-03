@@ -19,8 +19,8 @@ const I18N = {
         controls: 'Game Controls',
         home: 'Home',
         switchLanguage: 'Switch language',
-        black: 'Black',
-        white: 'White',
+        black: 'Blue',
+        white: 'Orange',
         moves: 'Moves',
         gameMode: 'Game Mode',
         local: 'Local',
@@ -82,24 +82,25 @@ const I18N = {
         newGame: 'New Game',
         targets: 'Target Sides',
         targetZones: 'Target Zones',
-        blackTarget: 'Black connects left to right',
-        whiteTarget: 'White connects top to bottom',
-        blackMarkedTarget: 'Black connects the two cyan marked zones',
-        whiteMarkedTarget: 'White connects the two gold marked zones',
+        blackTarget: 'Blue connects left to right',
+        whiteTarget: 'Orange connects top to bottom',
+        blackMarkedTarget: 'Blue connects the two cyan marked zones',
+        whiteMarkedTarget: 'Orange connects the two gold marked zones',
         moveHistory: 'Move History',
         onlineChat: 'Online Chat',
         chatEmpty: 'Connect online to chat.',
         messagePlaceholder: 'Message opponent',
         send: 'Send',
-        blackTurn: 'Black to play',
-        whiteTurn: 'White to play',
+        blackTurn: 'Blue to play',
+        whiteTurn: 'Orange to play',
         emptyPrompt: 'Choose an empty Hex cell.',
         noStones: 'No stones placed',
         stoneSummary: '{count} stones on the board',
         historyEmpty: 'No moves yet',
         occupied: 'Choose an empty Hex cell.',
-        blackWin: 'Black connected its target sides.',
-        whiteWin: 'White connected its target sides.',
+        opponentCamp: 'You cannot place in the other player\'s target camp.',
+        blackWin: 'Blue connected its target sides.',
+        whiteWin: 'Orange connected its target sides.',
         robotThinking: 'Robot is searching for a connection move.',
         connectOnline: 'Connect or join an Online room before placing.',
         waitingFor: 'Waiting for {color}.',
@@ -111,10 +112,10 @@ const I18N = {
         onlineUnavailable: 'Connect or join an Online room before placing.',
         chatLocal: 'Chat is stored only in this page until an online room is connected.',
         topologyInfo: {
-            open: 'Standard has ordinary edges. Hex fills honeycomb cells: Black connects left/right; White connects top/bottom.',
-            cylinder: 'Cylinder identifies left/right. Black uses two marked cut-seam zones; White keeps physical top/bottom targets.',
+            open: 'Standard has ordinary edges. Hex fills honeycomb cells: Blue connects left/right; Orange connects top/bottom.',
+            cylinder: 'Cylinder identifies left/right. Blue uses two marked cut-seam zones; Orange keeps physical top/bottom targets.',
             torus: 'Torus wraps both directions. Both colors connect explicit marked cut-seam zones.',
-            mobius: 'Möbius identifies left/right with a twist. Black uses marked cut-seam zones.',
+            mobius: 'Möbius identifies left/right with a twist. Blue uses marked cut-seam zones.',
             klein: 'Klein Bottle uses one ordinary wrap and one twisted wrap; both goals are marked zones.',
             klein_quartic: 'Klein Quartic uses a 56-triangle genus-3 fundamental-domain board. Both colors connect explicit marked zones.',
             rp2: 'RP2 identifies opposite edges with reversals; both goals are explicit marked zones.',
@@ -131,8 +132,8 @@ const I18N = {
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
-        black: '黑方',
-        white: '白方',
+        black: '藍方',
+        white: '橙方',
         moves: '步數',
         gameMode: '遊戲模式',
         local: '本機',
@@ -194,24 +195,25 @@ const I18N = {
         newGame: '新遊戲',
         targets: '目標邊',
         targetZones: '目標區',
-        blackTarget: '黑方連接左邊與右邊',
-        whiteTarget: '白方連接上邊與下邊',
-        blackMarkedTarget: '黑方連接兩個青色標示區',
-        whiteMarkedTarget: '白方連接兩個金色標示區',
+        blackTarget: '藍方連接左邊與右邊',
+        whiteTarget: '橙方連接上邊與下邊',
+        blackMarkedTarget: '藍方連接兩個青色標示區',
+        whiteMarkedTarget: '橙方連接兩個金色標示區',
         moveHistory: '落子記錄',
         onlineChat: '線上聊天',
         chatEmpty: '連上線上房間後即可聊天。',
         messagePlaceholder: '傳送訊息給對手',
         send: '傳送',
-        blackTurn: '輪到黑方',
-        whiteTurn: '輪到白方',
+        blackTurn: '輪到藍方',
+        whiteTurn: '輪到橙方',
         emptyPrompt: '請選擇一個空的六貫棋格。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
         occupied: '請選擇一個空的六貫棋格。',
-        blackWin: '黑方已連接自己的兩個目標邊。',
-        whiteWin: '白方已連接自己的兩個目標邊。',
+        opponentCamp: '不能落在對手的目標陣地。',
+        blackWin: '藍方已連接自己的兩個目標邊。',
+        whiteWin: '橙方已連接自己的兩個目標邊。',
         robotThinking: '機器人正在搜尋連線走法。',
         connectOnline: '請先連線或加入線上房間再落子。',
         waitingFor: '等待 {color} 行動。',
@@ -223,10 +225,10 @@ const I18N = {
         onlineUnavailable: '請先連線或加入線上房間再落子。',
         chatLocal: '連上線上房間前，訊息只會保留在此頁。',
         topologyInfo: {
-            open: '標準棋盤使用普通邊界。黑方連接左右，白方連接上下。',
-            cylinder: '圓柱會識別左右邊；黑方改用兩個切縫目標區，白方保留上下實體目標邊。',
+            open: '標準棋盤使用普通邊界。藍方連接左右，橙方連接上下。',
+            cylinder: '圓柱會識別左右邊；藍方改用兩個切縫目標區，橙方保留上下實體目標邊。',
             torus: '環面會包裹兩個方向；雙方都連接明確標示的切縫目標區。',
-            mobius: 'Möbius 帶以扭轉方式識別左右邊；黑方使用切縫目標區。',
+            mobius: 'Möbius 帶以扭轉方式識別左右邊；藍方使用切縫目標區。',
             klein: 'Klein 瓶包含普通包裹與扭轉包裹；雙方皆使用標示目標區。',
             klein_quartic: 'Klein 四次曲線使用 56 個三角形組成的 genus-3 基本域棋盤；雙方皆連接明確標示的目標區。',
             rp2: 'RP2 以反轉方式識別相對邊；雙方皆使用明確標示的目標區。',
@@ -880,7 +882,7 @@ function playAt(coordinate) {
         coord: [...coordinate]
     }, result);
     if (!result.ok) {
-        statusKey = 'occupied';
+        statusKey = result.code === 'opponent_camp' ? 'opponentCamp' : 'occupied';
         updateReadout();
         return result;
     }
@@ -906,7 +908,9 @@ function resolveScheduledHex(coordinate, player, { instant = false } = {}) {
     const result = game.play(coordinate, player);
     if (!result.ok) game.currentColor = savedPlayer;
     else if (!instant && !game.winner) game.currentColor = savedPlayer;
-    statusKey = game.winner
+    statusKey = !result.ok
+        ? result.code === 'opponent_camp' ? 'opponentCamp' : 'occupied'
+        : game.winner
         ? game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'
         : 'emptyPrompt';
     updateReadout();

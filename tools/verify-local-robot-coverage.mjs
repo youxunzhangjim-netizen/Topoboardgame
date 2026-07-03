@@ -29,7 +29,8 @@ assertFile('4D/jump/index.html');
 assertText('js/shared/JumpRules.js', [/allowMultiJump/, /captureOnJump/, /targetFillWin/, /JumpTopology/, /chooseJumpRobotMove/]);
 assertText('2D/jump/index.html', ['gameModeSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
 assertText('3D/jump/index.html', ['gameModeSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
-assertText('4D/jump/index.html', ['targetAxisSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/, /<option value="robot">Robot<\/option>/]);
+assertText('4D/jump/index.html', ['targetAxisSelect', /<option value="local">Local<\/option>/, /<option value="online">Online<\/option>/]);
+assert.ok(!/<option value="robot">Robot<\/option>/.test(read('4D/jump/index.html')), '4D/jump/index.html should not expose Robot mode');
 
 const checks = [
   {
@@ -95,10 +96,11 @@ const checks = [
     robotFiles: ['3D/3dgo/js/robot/Go3DRobot.js'],
     selects: {
       gameModeSelect: ['local', 'robot', 'online'],
-      goModeSelect: ['r3', 't3', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2'],
-      latticeSelect: ['sc', 'bcc', 'fcc', 'hcp', 'square', 'honeycomb', 'triangular']
+      goModeSelect: ['r3', 't2', 'cylinder', 'sphere', 'klein', 'mobius'],
+      r3BoundarySelect: ['r3', 't3', 'r3_random', 'rp3'],
+      latticeSelect: ['sc', 'bcc', 'fcc', 'hcp', 'square', 'honeycomb', 'triangular', 'sphere_coordinate', 'buckyball']
     },
-    robotText: [/mcts|uct|simulation|rollout/i, /sphere|klein|mobius|rp2|t3|t2|r3_random|hcp|bcc|fcc/i],
+    robotText: [/mcts|uct|simulation|rollout/i, /sphere|klein|mobius|rp3|t3|t2|r3_random|hcp|bcc|fcc/i],
     searchFile: '3D/3dgo/js/robot/Go3DRobot.js'
   },
   {
@@ -107,10 +109,11 @@ const checks = [
     robotFiles: ['3D/3dreversi/js/robot/Reversi3DRobot.js'],
     selects: {
       gameModeSelect: ['local', 'robot', 'online'],
-      spaceSelect: ['r3', 't3', 'r3_random', 't2', 'sphere', 'klein', 'mobius', 'rp2'],
-      latticeSelect: ['square', 'hcp']
+      spaceSelect: ['r3', 't2', 'cylinder', 'sphere', 'klein', 'mobius'],
+      boundarySelect: ['r3', 't3', 'r3_random', 'rp3'],
+      latticeSelect: ['square', 'hcp', 'honeycomb', 'sphere_coordinate']
     },
-    robotText: [/negamax|alpha|beta|transposition|tt/i, /frontier|anchor|surface|sphere|klein|mobius|rp2|t3|t2|r3_random|hcp/i],
+    robotText: [/negamax|alpha|beta|transposition|tt/i, /frontier|anchor|surface|sphere|klein|mobius|rp3|t3|t2|r3_random|hcp/i],
     searchFile: '3D/3dreversi/js/robot/Reversi3DRobot.js'
   }
 ];
