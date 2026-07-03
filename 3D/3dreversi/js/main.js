@@ -22,9 +22,9 @@ const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
 const HONEYCOMB_CYLINDER_RADIUS = 2.28;
 const CYLINDER_HEIGHT = 5.8;
-const MOBIUS_BAND_RADIUS = 3.45;
-const MOBIUS_BAND_HALF_WIDTH = 1.86;
-const KLEIN_RENDER_SCALE = 1.22;
+const MOBIUS_BAND_RADIUS = 3.75;
+const MOBIUS_BAND_HALF_WIDTH = 2.06;
+const KLEIN_RENDER_SCALE = 1.42;
 const SQUARE_LATTICE = 'square';
 const HCP_LATTICE = 'hcp';
 const HONEYCOMB_LATTICE = 'honeycomb';
@@ -244,6 +244,7 @@ class Reversi3DRenderer {
         });
         if (lattice === HONEYCOMB_LATTICE) {
             const linePositions = this.surfaceHoneycombFacePositions(width, height, lattice, 'torus', 0.045);
+            this.appendTorusSeamRings(linePositions, 0.052);
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
             this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
@@ -371,7 +372,7 @@ class Reversi3DRenderer {
             side: THREE.DoubleSide
         });
         const surface = new THREE.Mesh(
-            this.createMobiusSolidGeometry(256, 58, 0.1),
+            this.createMobiusSurfaceGeometry(256, 64),
             surfaceMaterial
         );
         surface.castShadow = true;
@@ -394,28 +395,19 @@ class Reversi3DRenderer {
             depthTest: true,
             depthWrite: false
         });
-        const topology = this.app.logic.topology;
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.renderOrder = 2;
             this.boardGroup.add(line);
         };
 
-        const drawn = new Set();
-        for (const coord of topology.allCoords()) {
-            for (const direction of [[1, 0], [0, 1]]) {
-                const neighbor = topology.step(coord, direction);
-                if (!neighbor) continue;
-                const edgeKey = [topology.key(coord), topology.key(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                const seam = this.isMobiusSeamEdge(coord, neighbor, width);
-                addLine(
-                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.075, seam ? 42 : 26),
-                    seam ? seamMaterial : gridMaterial
-                );
+        for (const lift of [0.075, -0.075]) {
+            for (const points of this.mobiusCellBoundaryLines(width, height, lift)) {
+                addLine(points, gridMaterial);
             }
         }
+        addLine(this.mobiusParameterLine(0, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, 0.09, 84), seamMaterial);
+        addLine(this.mobiusParameterLine(0, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, -0.09, 84), seamMaterial);
 
         const pointPositions = [];
         for (let y = 0; y < height; y += 1) {
@@ -430,7 +422,7 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.08 : width <= 13 ? 0.058 : 0.044, {
             color: 0xffe3a3,
-            opacity: 0.98,
+            opacity: 0.08,
             depthTest: true,
             renderOrder: 3
         });
@@ -803,7 +795,7 @@ class Reversi3DRenderer {
 
     addSurfaceStoneDiscs(poses, color, logic) {
         if (!poses.length) return;
-        const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.26 : 1.55);
+        const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.1 : 1.55);
         const discGeometry = new THREE.CircleGeometry(radius, 42);
         const rimGeometry = new THREE.RingGeometry(radius * 0.92, radius * 1.08, 42);
         const discMaterial = new THREE.MeshPhysicalMaterial({
@@ -1300,6 +1292,21 @@ class Reversi3DRenderer {
         return linePositions;
     }
 
+    appendTorusSeamRings(linePositions, lift = 0.05) {
+        const segments = 144;
+        const rings = [
+            (step) => ({ u: 0, v: TWO_PI * step / segments }),
+            (step) => ({ u: TWO_PI * step / segments, v: 0 })
+        ];
+        for (const makeUv of rings) {
+            const points = [];
+            for (let step = 0; step <= segments; step += 1) {
+                points.push(this.torusPointFromUV(makeUv(step), lift));
+            }
+            this.appendPolyline(linePositions, points);
+        }
+    }
+
     appendPolyline(linePositions, points) {
         for (let index = 1; index < points.length; index += 1) {
             const previous = points[index - 1];
@@ -1438,6 +1445,36 @@ class Reversi3DRenderer {
         return base.add(basis.normal.clone().multiplyScalar(lift));
     }
 
+    mobiusParameterLine(u, t0, t1, lift = 0.06, segments = 48) {
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            const t = THREE.MathUtils.lerp(t0, t1, step / segments);
+            points.push(this.mobiusPoint(u, t, lift));
+        }
+        return points;
+    }
+
+    mobiusLoopLine(t, lift = 0.06, segments = 180) {
+        const points = [];
+        for (let step = 0; step <= segments; step += 1) {
+            points.push(this.mobiusPoint(TWO_PI * step / segments, t, lift));
+        }
+        return points;
+    }
+
+    mobiusCellBoundaryLines(width, height, lift = 0.06) {
+        const lines = [];
+        for (let x = 0; x < width; x += 1) {
+            const u = TWO_PI * x / Math.max(1, width);
+            lines.push(this.mobiusParameterLine(u, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, lift, Math.max(48, height * 6)));
+        }
+        for (let y = 0; y <= height; y += 1) {
+            const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, y / Math.max(1, height));
+            lines.push(this.mobiusLoopLine(t, lift, Math.max(144, width * 12)));
+        }
+        return lines;
+    }
+
     mobiusBasis(u, t) {
         const sinU = Math.sin(u);
         const cosU = Math.cos(u);
@@ -1462,6 +1499,40 @@ class Reversi3DRenderer {
             position: this.mobiusPoint(u, t, lift),
             normal: this.mobiusBasis(u, t).normal
         };
+    }
+
+    createMobiusSurfaceGeometry(uSegments = 220, tSegments = 48) {
+        const safeUSegments = Math.max(12, Math.floor(uSegments));
+        const safeTSegments = Math.max(4, Math.floor(tSegments));
+        const positions = [];
+        const indices = [];
+        for (let iu = 0; iu < safeUSegments; iu += 1) {
+            const u = (iu / safeUSegments) * TWO_PI;
+            for (let it = 0; it <= safeTSegments; it += 1) {
+                const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, it / safeTSegments);
+                const point = this.mobiusPoint(u, t, 0);
+                positions.push(point.x, point.y, point.z);
+            }
+        }
+        const row = safeTSegments + 1;
+        const indexAt = (iu, it) => iu * row + it;
+        const wrappedIt = (it, wraps) => wraps ? safeTSegments - it : it;
+        for (let iu = 0; iu < safeUSegments; iu += 1) {
+            const nextU = (iu + 1) % safeUSegments;
+            const wraps = nextU === 0;
+            for (let it = 0; it < safeTSegments; it += 1) {
+                const a = indexAt(iu, it);
+                const b = indexAt(nextU, wrappedIt(it, wraps));
+                const c = indexAt(nextU, wrappedIt(it + 1, wraps));
+                const d = indexAt(iu, it + 1);
+                indices.push(a, b, d, b, c, d);
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        return geometry;
     }
 
     createMobiusSolidGeometry(uSegments = 220, tSegments = 48, thickness = 0.06) {
@@ -1535,8 +1606,8 @@ class Reversi3DRenderer {
         const mode = this.app?.logic?.topology?.topology || 'r3';
         if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
         else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
-        else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(7.4, 5.4, 8.4);
-        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(8.7, 4.8, 9.8);
+        else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(8.2, 5.9, 9.2);
+        else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(10.2, 5.6, 11.4);
         else if (mode === REVERSI_TOPOLOGIES.SPHERE) this.camera.position.set(0, 2.0, 9.5);
         else if (mode === REVERSI_TOPOLOGIES.RP2) this.camera.position.set(0, 0, 10.5);
         else this.camera.position.set(7.9, 7.4, 8.2);

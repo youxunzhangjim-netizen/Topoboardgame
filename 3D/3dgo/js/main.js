@@ -82,7 +82,7 @@ function normalizeGoMode(value) {
     if (['t3', 't3go', 'pbc3d', '3d_pbc', 'r3_random', 'r3-random', 'r3rbc', 'rbc3d', '3d_rbc', 'random3d', 'rp3', 'real_projective_3', 'real-projective-3', 'projective3'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     if (['cylinder', 'cyl', 'pbcx', 'pbc-x', 'x-periodic', 'periodic-x'].includes(mode)) return CYLINDER_GO_TOPOLOGY;
     if (['t2', 't2go', 'torus'].includes(mode)) return 't2';
-    if (['klein', 'klein_bottle'].includes(mode)) return 'klein';
+    if (['klein', 'klein_bottle'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     if (['mobius', 'moebius', 'mobius_strip'].includes(mode)) return 'mobius';
     if (['rp2', 'projective', 'real_projective_plane'].includes(mode)) return R3_STANDARD_TOPOLOGY;
     return R3_STANDARD_TOPOLOGY;
@@ -108,7 +108,7 @@ const I18N = {
     en: {
         language: { label: 'Language', english: 'English', chinese: 'Chinese' },
         navigation: { home: 'Home' },
-        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.' },
+        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, and Mobius strip Go with 9, 13, and 19 scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
         controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local', online: 'Online', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus Own', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
@@ -156,7 +156,7 @@ I18N.zh.boundary = {
     r3Rbc: '3D RBC：隨機邊界條件'
 };
 Object.assign(I18N.en.app, {
-    tagline: 'R3 Standard, T3 PBC, 3D RBC, RP3, T2 torus, S2 sphere, Klein bottle, and Mobius strip Go with 9, 13, and 19 scale options.'
+    tagline: 'R3 Standard, T3 PBC, 3D RBC, RP3, T2 torus, S2 sphere, and Mobius strip Go with 9, 13, and 19 scale options.'
 });
 Object.assign(I18N.en.score, {
     pendingDraw: 'Counting pending: provisional draw',
@@ -198,7 +198,7 @@ Object.assign(I18N.en.mode, {
     rp3Info: 'RP3 identifies each R3 boundary exit with the opposite side and reverses the other two coordinates, giving an antipodal projective boundary.'
 });
 Object.assign(I18N.zh.app, {
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein bottle 與 Mobius strip 圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius strip 圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 標準圍棋',
@@ -214,7 +214,7 @@ Object.assign(I18N.zh.mode, {
 
 Object.assign(I18N.zh.app, {
     title: '3D 圍棋',
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面、Klein 瓶與 Mobius 帶圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius 帶圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 Standard 圍棋',
@@ -266,7 +266,7 @@ Object.assign(I18N.zh.boundary, {
     rp3: 'RP3：對映邊界'
 });
 Object.assign(I18N.zh.app, {
-    tagline: 'R3 標準、T3 週期、3D RBC、RP3、T2 環面、S2 球面、Klein 瓶與 Mobius 帶圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、RP3、T2 環面、S2 球面與 Mobius 帶圍棋，支援 9、13、19 尺度。'
 });
 Object.assign(I18N.zh.mode, {
     rp3Option: 'RP3 圍棋',
@@ -1048,6 +1048,7 @@ class Go3DRenderer {
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
             this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.052);
+            this.appendTorusSeamRings(linePositions, 0.058);
         } else {
             for (const coord of logic.playableCoords()) {
                 const fromKey = logic.coordKey(coord);
@@ -1856,6 +1857,21 @@ class Go3DRenderer {
         }
     }
 
+    appendTorusSeamRings(linePositions, lift = 0.05) {
+        const segments = 144;
+        const rings = [
+            (step) => ({ u: 0, v: TWO_PI * step / segments }),
+            (step) => ({ u: TWO_PI * step / segments, v: 0 })
+        ];
+        for (const makeUv of rings) {
+            const points = [];
+            for (let step = 0; step <= segments; step += 1) {
+                points.push(this.torusPointFromUV(makeUv(step), lift));
+            }
+            this.appendPolyline(linePositions, points);
+        }
+    }
+
     appendTriangularSurfaceGrid(linePositions, width, height, surfaceKind, lift = 0.04) {
         const seen = new Set();
         const wrapY = surfaceKind === 'torus';
@@ -2312,13 +2328,12 @@ class Go3DApp {
             : mode === 'sphere'
                 ? SPHERE_GO_TOPOLOGY
                 : mode === CYLINDER_GO_TOPOLOGY ? CYLINDER_GO_TOPOLOGY
-                : mode === 'klein' ? KLEIN_BOTTLE_TOPOLOGY
-                    : mode === 'mobius' ? MOBIUS_GO_TOPOLOGY
+                : mode === 'mobius' ? MOBIUS_GO_TOPOLOGY
                         : mode === 'rp2' ? RP2_GO_TOPOLOGY : 't2';
         return new GoGameLogic({
             size,
             width: size,
-            height: spaceMode === 'klein' ? 19 : size,
+            height: size,
             dimension: isR3LikeTopology(mode) ? 3 : 2,
             topology,
             lattice,
@@ -3017,7 +3032,7 @@ class Go3DApp {
         const spaceMode = this.selectedSpaceMode();
         const mode = this.selectedTopologyMode();
         return {
-            variant: spaceMode === 't2' ? 't2go' : spaceMode === 'sphere' ? 's2go' : spaceMode === 'klein' ? 'kleingo' : spaceMode === 'mobius' ? 'mobiusgo' : spaceMode === 'rp2' ? 'rp2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : mode === R3_RP3_TOPOLOGY ? 'rp3go' : 'r3go',
+            variant: spaceMode === 't2' ? 't2go' : spaceMode === 'sphere' ? 's2go' : spaceMode === 'mobius' ? 'mobiusgo' : spaceMode === 'rp2' ? 'rp2go' : mode === T3_PBC_TOPOLOGY ? 't3go' : mode === R3_RANDOM_TOPOLOGY ? 'r3rbcgo' : mode === R3_RP3_TOPOLOGY ? 'rp3go' : 'r3go',
             mode: spaceMode,
             boundary: isR3LikeTopology(mode) ? mode : '',
             lattice: this.latticeSelect.value,
@@ -3061,15 +3076,23 @@ class Go3DApp {
         if (!state?.logic) return;
         this.stopTimer();
         this.logic.importState(state.logic);
+        if (this.logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
+            this.modeSelect.value = R3_STANDARD_TOPOLOGY;
+            if (this.r3BoundarySelect) this.r3BoundarySelect.value = R3_STANDARD_TOPOLOGY;
+            this.logic = this.createLogic();
+            this.gameStarted = false;
+            this.moveHistory = [];
+            this.setStatus(t('status.start'));
+            this.renderCurrentState();
+            return;
+        }
         this.modeSelect.value = this.logic.topology === 't2'
             ? 't2'
             : this.logic.topology === CYLINDER_GO_TOPOLOGY
                 ? CYLINDER_GO_TOPOLOGY
             : this.logic.topology === SPHERE_GO_TOPOLOGY
                 ? 'sphere'
-                : this.logic.topology === KLEIN_BOTTLE_TOPOLOGY
-                    ? 'klein'
-                    : this.logic.topology === MOBIUS_GO_TOPOLOGY
+                : this.logic.topology === MOBIUS_GO_TOPOLOGY
                         ? 'mobius'
                         : this.logic.topology === RP2_GO_TOPOLOGY
                             ? 'rp2'
