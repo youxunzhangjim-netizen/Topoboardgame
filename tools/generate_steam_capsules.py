@@ -75,6 +75,33 @@ def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def extract_neon_logo_cutout(logo: Image.Image) -> Image.Image:
+    """Keep the original bright neon cup pixels and remove the square background."""
+    source = logo.convert("RGBA")
+    cutout = Image.new("RGBA", source.size, (0, 0, 0, 0))
+    src = source.load()
+    dst = cutout.load()
+    width, height = source.size
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = src[x, y]
+            if a <= 0:
+                continue
+            max_channel = max(r, g, b)
+            luminance = r * 0.299 + g * 0.587 + b * 0.114
+            blue_signal = max(0, b - max(r, g) * 0.68)
+            white_signal = max(0, luminance - 118)
+            if max_channel < 116 and blue_signal < 72 and luminance < 108:
+                continue
+            signal = max(max_channel - 112, blue_signal * 1.28, white_signal)
+            alpha = int(max(0, min(255, signal * 2.9)) * (a / 255))
+            if alpha <= 8:
+                continue
+            dst[x, y] = (r, g, b, alpha)
+
+    return cutout
+
+
 def text_bounds(draw: ImageDraw.ImageDraw, lines: list[str], font: ImageFont.ImageFont, spacing: int) -> tuple[int, int]:
     widths = []
     heights = []
@@ -104,7 +131,11 @@ def fit_font(draw: ImageDraw.ImageDraw, lines: list[str], max_width: int, max_he
 def paste_logo(canvas: Image.Image, logo: Image.Image, box: tuple[int, int, int, int]) -> None:
     x, y, width, height = box
     image = logo.copy()
-    image.thumbnail((width, height), Image.Resampling.LANCZOS)
+    scale = min(width / max(1, image.width), height / max(1, image.height))
+    image = image.resize(
+        (max(1, round(image.width * scale)), max(1, round(image.height * scale))),
+        Image.Resampling.LANCZOS
+    )
     px = x + (width - image.width) // 2
     py = y + (height - image.height) // 2
     if image.mode != "RGBA":
@@ -207,7 +238,7 @@ def create_landscape(logo: Image.Image, size: tuple[int, int]) -> Image.Image:
     draw = ImageDraw.Draw(canvas)
     margin_x = round(width * 0.055)
     margin_y = round(height * 0.11)
-    logo_size = min(round(height * 0.74), round(width * 0.34))
+    logo_size = min(round(height * 0.84), round(width * 0.38))
     logo_box = (margin_x, (height - logo_size) // 2, logo_size, logo_size)
     paste_logo(canvas, logo, logo_box)
 
@@ -222,7 +253,7 @@ def create_vertical(logo: Image.Image, size: tuple[int, int]) -> Image.Image:
     width, height = size
     canvas = Image.new("RGBA", size, BACKGROUND + (255,))
     draw = ImageDraw.Draw(canvas)
-    logo_size = min(round(width * 0.72), round(height * 0.44))
+    logo_size = min(round(width * 0.82), round(height * 0.50))
     paste_logo(canvas, logo, ((width - logo_size) // 2, round(height * 0.075), logo_size, logo_size))
 
     lines = ["Topological", "Board Game"]
@@ -322,7 +353,7 @@ def create_library_capsule(logo: Image.Image, size: tuple[int, int]) -> Image.Im
     canvas = Image.new("RGBA", size, BACKGROUND + (255,))
     draw = ImageDraw.Draw(canvas)
 
-    logo_size = round(width * 0.68)
+    logo_size = round(width * 0.78)
     paste_logo(canvas, logo, ((width - logo_size) // 2, round(height * 0.08), logo_size, logo_size))
 
     lines = ["Topological", "Board Game"]
@@ -351,7 +382,7 @@ def create_library_hero(logo: Image.Image, size: tuple[int, int]) -> Image.Image
         draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=fill)
     glow = glow.filter(ImageFilter.GaussianBlur(radius=max(42, round(width * 0.035))))
     canvas.alpha_composite(glow)
-    logo_size = round(height * 0.86)
+    logo_size = round(height * 1.48)
     paste_logo(canvas, logo, (width - logo_size - round(width * 0.04), (height - logo_size) // 2, logo_size, logo_size))
     add_horizontal_gradient(canvas, (0, 0, 0, 66), (0, 0, 0, 0), blur=24)
     return canvas.convert("RGB")
@@ -362,20 +393,20 @@ def create_library_logo(logo: Image.Image, size: tuple[int, int], icon_only: boo
     canvas = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
     if icon_only:
-        logo_size = round(min(width, height) * 0.84)
+        logo_size = round(min(width, height) * 0.94)
         paste_logo(canvas, logo, ((width - logo_size) // 2, (height - logo_size) // 2, logo_size, logo_size))
         return canvas
 
-    text_box = (round(width * 0.08), round(height * 0.20), round(width * 0.84), round(height * 0.60))
-    lines = [GAME_TITLE]
-    font = fit_font(draw, lines, text_box[2], text_box[3], round(height * 0.20), min_size=32)
+    text_box = (round(width * 0.06), round(height * 0.10), round(width * 0.88), round(height * 0.80))
+    lines = ["Topological", "Board Game"]
+    font = fit_font(draw, lines, text_box[2], text_box[3], round(height * 0.28), min_size=44)
     draw_centered_plain_lines(draw, lines, text_box, font, fill=TEXT_FILL + (255,))
     return canvas
 
 
 def generate_capsules(logo_path: Path, out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    logo = Image.open(logo_path).convert("RGBA")
+    logo = extract_neon_logo_cutout(Image.open(logo_path).convert("RGBA"))
     written = []
     for filename, size in OUTPUTS.items():
         if filename.startswith("page_background"):

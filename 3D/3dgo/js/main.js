@@ -586,19 +586,35 @@ class Go3DRenderer {
     }
 
     buildKlein(width, height) {
+        const surfaceMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xa87938,
+            roughness: 0.64,
+            metalness: 0.01,
+            transparent: true,
+            opacity: 1,
+            depthWrite: true,
+            clearcoat: 0.2,
+            clearcoatRoughness: 0.54,
+            side: THREE.DoubleSide
+        });
+        surfaceMaterial.defines = { USE_UV: '' };
+        surfaceMaterial.onBeforeCompile = (shader) => {
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', '#include <common>\nvarying vec2 vKleinUv;')
+                .replace('#include <uv_vertex>', '#include <uv_vertex>\nvKleinUv = uv;');
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <common>', '#include <common>\nvarying vec2 vKleinUv;')
+                .replace(
+                    'vec4 diffuseColor = vec4( diffuse, opacity );',
+                    `vec4 diffuseColor = vec4( diffuse, opacity );
+                    float neckWindow = smoothstep(0.41, 0.50, vKleinUv.x) * (1.0 - smoothstep(0.58, 0.69, vKleinUv.x));
+                    float throatWindow = smoothstep(0.70, 0.80, vKleinUv.y) * (1.0 - smoothstep(0.90, 1.00, vKleinUv.y));
+                    diffuseColor.a *= mix(1.0, 0.54, clamp(max(neckWindow, neckWindow * throatWindow), 0.0, 1.0));`
+                );
+        };
         const surface = new THREE.Mesh(
             createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
-            new THREE.MeshPhysicalMaterial({
-                color: 0xa87938,
-                roughness: 0.64,
-                metalness: 0.01,
-                transparent: true,
-                opacity: 0.92,
-                depthWrite: true,
-                clearcoat: 0.2,
-                clearcoatRoughness: 0.54,
-                side: THREE.DoubleSide
-            })
+            surfaceMaterial
         );
         surface.scale.setScalar(KLEIN_RENDER_SCALE);
         surface.renderOrder = 2;
@@ -611,8 +627,8 @@ class Go3DRenderer {
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.82,
-            depthTest: true,
+            opacity: 0.88,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -631,7 +647,7 @@ class Go3DRenderer {
                 const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.07, 30));
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.12, 34));
             }
         }
         for (const coord of logic.playableCoords()) {
@@ -674,14 +690,14 @@ class Go3DRenderer {
             color: 0x050505,
             transparent: true,
             opacity: 0.9,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
             opacity: 0.95,
-            depthTest: false,
+            depthTest: true,
             depthWrite: false
         });
         const logic = this.app.logic;
@@ -700,19 +716,23 @@ class Go3DRenderer {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
-                addLine(
-                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.132, seam ? 38 : 26),
-                    seam ? seamMaterial : gridMaterial
-                );
+                for (const lift of [0.15, -0.15]) {
+                    addLine(
+                        this.mobiusGraphEdgePoints(coord, neighbor, width, height, lift, seam ? 38 : 26),
+                        seam ? seamMaterial : gridMaterial
+                    );
+                }
             }
         }
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const pose = this.mobiusPose(coord, width, height, 0.18);
-            this.pointCoords.push(coord);
-            this.pointPositions.push(pose.position);
-            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+            for (const lift of [0.18, -0.18]) {
+                const pose = this.mobiusPose(coord, width, height, lift);
+                this.pointCoords.push(coord);
+                this.pointPositions.push(pose.position);
+                pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+            }
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
@@ -1384,7 +1404,8 @@ class Go3DRenderer {
     positionsForCoord(coord, logic) {
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
             return [
-                this.mobiusPose(coord, logic.width, logic.height, 0.18).position
+                this.mobiusPose(coord, logic.width, logic.height, 0.18).position,
+                this.mobiusPose(coord, logic.width, logic.height, -0.18).position
             ];
         }
         return [this.positionForCoord(coord, logic)];
@@ -1707,7 +1728,7 @@ class Go3DRenderer {
         return new THREE.Vector3((coord[0] - center) * scale, (coord[2] - center) * scale, (coord[1] - center) * scale);
     }
 
-    latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE) {
+    latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE, surfaceKind = 'flat') {
         if (lattice === KAGOME_LATTICE) {
             const point = kagomePoint(coord, width, height) || { x: 0, y: 0 };
             const bounds = kagomeBounds(width, height);
@@ -1726,12 +1747,14 @@ class Go3DRenderer {
             const bounds = honeycombBounds(width, height);
             const rawX = point.x - bounds.minX;
             const rawY = point.y - bounds.minY;
-            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
-            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+            const torusPaddingX = surfaceKind === 'torus' ? 0.75 : 0;
+            const torusPaddingY = surfaceKind === 'torus' ? Math.sqrt(3) * 0.5 : 0;
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX + torusPaddingX * 2);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY + torusPaddingY * 2);
             return {
-                u: (rawX / rawWidth) * TWO_PI,
-                v: (rawY / rawHeight) * TWO_PI,
-                band: rawY / rawHeight
+                u: ((rawX + torusPaddingX) / rawWidth) * TWO_PI,
+                v: ((rawY + torusPaddingY) / rawHeight) * TWO_PI,
+                band: rawY / Math.max(1, bounds.maxY - bounds.minY)
             };
         }
         if (lattice === TRIANGULAR_LATTICE) {
@@ -1754,16 +1777,18 @@ class Go3DRenderer {
         };
     }
 
-    honeycombSurfaceUVFromPoint(point, width, height) {
+    honeycombSurfaceUVFromPoint(point, width, height, surfaceKind = 'flat') {
         const bounds = honeycombBounds(width, height);
         const rawX = Number(point?.x || 0) - bounds.minX;
         const rawY = Number(point?.y || 0) - bounds.minY;
-        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
-        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+        const torusPaddingX = surfaceKind === 'torus' ? 0.75 : 0;
+        const torusPaddingY = surfaceKind === 'torus' ? Math.sqrt(3) * 0.5 : 0;
+        const rawWidth = Math.max(1, bounds.maxX - bounds.minX + torusPaddingX * 2);
+        const rawHeight = Math.max(1, bounds.maxY - bounds.minY + torusPaddingY * 2);
         return {
-            u: (rawX / rawWidth) * TWO_PI,
-            v: (rawY / rawHeight) * TWO_PI,
-            band: rawY / rawHeight
+            u: ((rawX + torusPaddingX) / rawWidth) * TWO_PI,
+            v: ((rawY + torusPaddingY) / rawHeight) * TWO_PI,
+            band: rawY / Math.max(1, bounds.maxY - bounds.minY)
         };
     }
 
@@ -1802,8 +1827,8 @@ class Go3DRenderer {
             }
         }
         for (const [a, b] of edgeMap.values()) {
-            const start = this.honeycombSurfaceUVFromPoint(a, width, height);
-            const end = this.honeycombSurfaceUVFromPoint(b, width, height);
+            const start = this.honeycombSurfaceUVFromPoint(a, width, height, surfaceKind);
+            const end = this.honeycombSurfaceUVFromPoint(b, width, height, surfaceKind);
             const du = this.shortestAngleDelta(start.u, end.u);
             const dv = this.shortestAngleDelta(start.v, end.v);
             const points = [];
@@ -1915,7 +1940,7 @@ class Go3DRenderer {
 
     torusPosition(coord, size, lift = 0, lattice = SQUARE_LATTICE) {
         if (lattice !== SQUARE_LATTICE) {
-            const uv = this.latticeSurfaceUV(coord, size, size, lattice);
+            const uv = this.latticeSurfaceUV(coord, size, size, lattice, 'torus');
             const position = this.torusPointFromUV(uv, lift);
             const normal = new THREE.Vector3(Math.cos(uv.u) * Math.cos(uv.v), Math.sin(uv.u) * Math.cos(uv.v), Math.sin(uv.v)).normalize();
             return { position, normal };
@@ -1927,7 +1952,7 @@ class Go3DRenderer {
     }
 
     cylinderPosition(coord, width, height, lift = 0, lattice = SQUARE_LATTICE) {
-        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
+        const uv = this.latticeSurfaceUV(coord, width, height, lattice, 'cylinder');
         const position = this.cylinderPointFromUV(uv, lift);
         const normal = new THREE.Vector3(Math.cos(uv.u), 0, Math.sin(uv.u)).normalize();
         return { position, normal };
@@ -2169,7 +2194,7 @@ class Go3DApp {
         const allowed = isR3LikeTopology(mode)
             ? [SIMPLE_CUBIC_LATTICE, BCC_LATTICE, FCC_LATTICE, HCP_LATTICE]
             : mode === 't2'
-                ? [SQUARE_LATTICE, TRIANGULAR_LATTICE]
+                ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
                 : mode === CYLINDER_GO_TOPOLOGY
                     ? [SQUARE_LATTICE, HONEYCOMB_LATTICE, TRIANGULAR_LATTICE]
                     : mode === 'sphere'
