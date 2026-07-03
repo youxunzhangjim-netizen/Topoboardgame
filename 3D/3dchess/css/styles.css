@@ -291,6 +291,45 @@ select {
     cursor: grabbing;
 }
 
+.camera-pad {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5;
+    display: none;
+    grid-template-columns: repeat(4, 38px);
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid rgba(125, 211, 252, 0.34);
+    border-radius: 12px;
+    background: rgba(5, 10, 18, 0.72);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(10px);
+}
+
+body[data-active-board-game="cube"] .camera-pad {
+    display: grid;
+}
+
+.camera-pad button {
+    width: 38px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 9px;
+    border-color: rgba(125, 211, 252, 0.45);
+    background: rgba(15, 23, 42, 0.86);
+    color: #e0f7ff;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.camera-pad button:hover,
+.camera-pad button:focus-visible {
+    border-color: rgba(245, 158, 11, 0.86);
+    color: #fff7dd;
+    outline: none;
+}
+
 .move-picker {
     display: grid;
     gap: 8px;
@@ -1020,6 +1059,20 @@ input:disabled {
 
     .board-frame {
         min-height: 360px;
+    }
+
+    .camera-pad {
+        right: 8px;
+        bottom: 8px;
+        grid-template-columns: repeat(4, 34px);
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .camera-pad button {
+        width: 34px;
+        min-height: 32px;
+        font-size: 12px;
     }
 
     .hints-toggle {

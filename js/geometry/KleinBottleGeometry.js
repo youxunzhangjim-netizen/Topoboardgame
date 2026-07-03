@@ -186,7 +186,9 @@ export function createKleinBottleGridLines({
     for (let j = 0; j < safeVSteps; j += 1) {
         const v = TWO_PI * j / safeVSteps;
         const points = [];
-        addParameterLine(points, 0, v, KLEIN_U_MAX, v, lift, safeUSegments);
+        // Avoid drawing the final identified seam point as one straight segment:
+        // the classic Klein bottle glues u=0 to u=2PI with a flipped v value.
+        addParameterLine(points, 0, v, KLEIN_U_MAX - NORMAL_EPSILON * 8, v, lift, safeUSegments);
         lines.push(points);
     }
 

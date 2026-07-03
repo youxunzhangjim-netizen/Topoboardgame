@@ -963,7 +963,7 @@ export class JumpGameApp {
 
   usesOpaqueSurfaceView() {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
-    return this.dimension === 2 && ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
+    return ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
   }
 
   embeddedSurfaceNormal(coord, point) {
@@ -1161,6 +1161,7 @@ export class JumpGameApp {
         edgeKeys.add(edgeKey);
         const a = this.project(coord);
         const b = this.project(next);
+        if (this.usesOpaqueSurfaceView() && b.frontFacing === false) continue;
         if (!this.usesEmbeddedView() && Math.hypot(a.x - b.x, a.y - b.y) > Math.min(width, height) / 2) continue;
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       }
@@ -1170,6 +1171,7 @@ export class JumpGameApp {
     for (const [key, owner] of this.game.pieces.entries()) {
       const coord = parseCoordKey(key);
       if (!this.visibleCoord(coord)) continue;
+      if (this.usesOpaqueSurfaceView() && this.project(coord).frontFacing === false) continue;
       this.drawPiece(coord, owner, this.game.labels.get(key));
     }
     if (this.game.chainPath.length) this.drawPath(this.game.chainPath);

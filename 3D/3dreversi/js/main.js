@@ -356,12 +356,12 @@ class Reversi3DRenderer {
 
     buildMobius(width, height) {
         const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x8f6238,
+            color: 0xd19a54,
             roughness: 0.58,
             metalness: 0.02,
-            transparent: true,
-            opacity: 0.78,
-            depthWrite: false,
+            transparent: false,
+            opacity: 1,
+            depthWrite: true,
             clearcoat: 0.28,
             clearcoatRoughness: 0.48,
             side: THREE.DoubleSide
@@ -493,9 +493,9 @@ class Reversi3DRenderer {
                 color: 0xdfe7e4,
                 roughness: 0.52,
                 metalness: 0.01,
-                transparent: true,
-                opacity: 0.68,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.16,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -506,12 +506,13 @@ class Reversi3DRenderer {
         surface.castShadow = false;
         surface.receiveShadow = false;
         surface.userData.kleinPickOccluder = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x1f2933,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.78,
             depthTest: true,
             depthWrite: false
         });
@@ -539,7 +540,7 @@ class Reversi3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.04 : width <= 13 ? 0.031 : 0.024, {
             color: 0xe8f4f7,
-            opacity: 0.62,
+            opacity: 0.78,
             depthTest: true,
             renderOrder: 5
         });
@@ -992,7 +993,12 @@ class Reversi3DRenderer {
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
             const pose = this.posesForCoord(coord, this.app.logic, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.11 : 0.08)[0];
-            if (mode !== REVERSI_TOPOLOGIES.KLEIN && this.surfaceOccludesDistance(this.camera.position.distanceTo(pose.position))) continue;
+            const hitLike = { distance: this.camera.position.distanceTo(this.pointPositions[index]) };
+            if (mode === REVERSI_TOPOLOGIES.KLEIN) {
+                if (this.kleinSurfaceOccludes(hitLike, pose)) continue;
+            } else if (mode === REVERSI_TOPOLOGIES.MOBIUS) {
+                if (this.mobiusSurfaceOccludes(hitLike)) continue;
+            } else if (this.surfaceOccludesDistance(hitLike.distance)) continue;
             if ([REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.SPHERE].includes(mode) && !this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
@@ -1017,9 +1023,9 @@ class Reversi3DRenderer {
         const coord = this.pointCoords[hit.index];
         if (!coord) return false;
         const pose = this.posesForCoord(coord, logic, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.11 : 0.08)[0];
-        if (mode !== REVERSI_TOPOLOGIES.KLEIN && this.surfaceOccludesDistance(hit.distance)) return false;
-        if (mode === REVERSI_TOPOLOGIES.KLEIN) return true;
-        if (mode === REVERSI_TOPOLOGIES.MOBIUS) return true;
+        if (mode === REVERSI_TOPOLOGIES.KLEIN) return !this.kleinSurfaceOccludes(hit, pose);
+        if (mode === REVERSI_TOPOLOGIES.MOBIUS) return !this.mobiusSurfaceOccludes(hit);
+        if (this.surfaceOccludesDistance(hit.distance)) return false;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         return true;
     }
@@ -1029,7 +1035,7 @@ class Reversi3DRenderer {
         if (!occluders.length) return false;
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
-        return Boolean(nearest && nearest.distance < distance - 0.08);
+        return Boolean(nearest && nearest.distance < distance - 0.04);
     }
 
     kleinClickThroughWindow(pose) {
@@ -1048,7 +1054,7 @@ class Reversi3DRenderer {
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
         if (!nearest) return false;
-        return nearest.distance < hit.distance - 0.08 && !this.kleinClickThroughWindow(pose);
+        return nearest.distance < hit.distance - 0.04 && !this.kleinClickThroughWindow(pose);
     }
 
     mobiusSurfaceOccludes(hit) {
@@ -1056,7 +1062,7 @@ class Reversi3DRenderer {
         if (!occluders.length) return false;
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
-        return Boolean(nearest && nearest.distance < hit.distance - 0.08);
+        return Boolean(nearest && nearest.distance < hit.distance - 0.04);
     }
 
     isPoseFacingCamera(position, normal, threshold = 0.04) {
@@ -1273,7 +1279,24 @@ class Reversi3DRenderer {
         for (const [a, b] of edges.values()) {
             this.appendPolyline(linePositions, this.surfacePlanarEdgePoints(a, b, metrics, surface, lift, 8));
         }
+        if (surface === 'cylinder') {
+            linePositions.push(...this.surfaceHoneycombCylinderSeamPositions(width, height, metrics, lift));
+        }
 
+        return linePositions;
+    }
+
+    surfaceHoneycombCylinderSeamPositions(width, height, metrics, lift = 0.045) {
+        const linePositions = [];
+        const points = [];
+        const segments = Math.max(32, height * 8);
+        for (let step = 0; step <= segments; step += 1) {
+            points.push(this.cylinderPointFromUV({
+                u: 0,
+                band: step / segments
+            }, lift + 0.012));
+        }
+        this.appendPolyline(linePositions, points);
         return linePositions;
     }
 

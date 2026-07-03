@@ -37,7 +37,7 @@ const TOPOLOGY_ALIASES = Object.freeze({
     sphere: 'sphere',
     s2: 'sphere',
     'sphere-s2': 'sphere',
-    reflective: 'reflective',
+    reflective: 'open',
     mobius: 'mobius',
     'mobius-strip': 'mobius',
     'möbius': 'mobius',
@@ -55,7 +55,7 @@ const TOPOLOGY_ALIASES = Object.freeze({
 });
 
 const SURFACE_3D_TOPOLOGIES = new Set(['t2', 'cylinder', 'sphere', 'mobius', 'klein', 'rp2']);
-const VOLUME_3D_TOPOLOGIES = new Set(['open', 'torus', 'reflective', 'r3_random']);
+const VOLUME_3D_TOPOLOGIES = new Set(['open', 'torus', 'r3_random']);
 
 export function otherHexColor(color) {
     if (color === HEX_COLORS.BLACK) return HEX_COLORS.WHITE;
@@ -119,7 +119,7 @@ export function normalizeHexTopology(topology = 'open', dimension = 2) {
             ? normalized
             : 'open';
     }
-    return ['open', 'torus', 'reflective'].includes(normalized) ? normalized : 'open';
+    return ['open', 'torus'].includes(normalized) ? normalized : 'open';
 }
 
 export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
@@ -693,7 +693,7 @@ function parametricPosition(coordinate, size, topology, lattice = 'axis') {
     const [x = 0, y = 0, z = 0] = coordinate;
     const [width, height, depth = 1] = size;
     const scale = 7.8 / Math.max(1, Math.max(width, height, depth) - 1);
-    if (topology === 'open' || topology === 'torus' || topology === 'reflective' || topology === 'r3_random') {
+    if (topology === 'open' || topology === 'torus' || topology === 'r3_random') {
         const hcpOffsetX = lattice === 'hcp' ? ((z % 2) * 0.5 + (y % 2) * 0.5) : 0;
         const hcpOffsetY = lattice === 'hcp' ? z * 0.18 : 0;
         const bccOffset = lattice === 'bcc' && (x + y + z) % 2 ? 0.22 : 0;

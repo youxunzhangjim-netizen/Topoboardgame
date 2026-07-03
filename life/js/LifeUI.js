@@ -28,6 +28,16 @@ const BOARD_OPACITY_LEVELS = Object.freeze([1, 0.7, 0.35, 0]);
 const BOARD_OPACITY_KEYS = Object.freeze(['boardOpacity100', 'boardOpacity70', 'boardOpacity35', 'boardOpacity0']);
 const LIFE_CONTROL_TAB_STORAGE_KEY = 'topoboard-life-world-control-view';
 const EXPERIMENT_NOTEBOOK_STORAGE_KEY = 'topoboard-life-world-experiment-notebook';
+const R3_BOUNDARY_OPTIONS = Object.freeze([
+  { value: 'open', labelKey: 'r3BoundaryOpen', infoId: 'r3' },
+  { value: 'torus', labelKey: 'r3BoundaryPeriodic', infoId: 't3' },
+  { value: 'random', labelKey: 'r3BoundaryRandom', infoId: 'r3_random' }
+]);
+const LEGACY_3D_GEOMETRY_BOUNDARY = Object.freeze({
+  r3: 'open',
+  t3: 'torus',
+  r3_random: 'random'
+});
 const LATTICE_NEIGHBOR_COUNTS = Object.freeze({
   square: 4,
   triangular: 3,
@@ -115,6 +125,14 @@ const LIFE_PATTERN_LIBRARY = Object.freeze([
 ]);
 const TOPOLOGY_COMPARE_GEOMETRY_IDS = Object.freeze(['r2', 't2_flat', 'cylinder', 't2', 'mobius', 'klein', 'klein_surface', 'sphere', 'rp2']);
 const TOPOLOGY_COMPARE_DEFAULT_GEOMETRIES = Object.freeze(['r2', 't2_flat', 'cylinder', 'mobius']);
+function r3BoundaryInfoId(boundary = 'open') {
+  return R3_BOUNDARY_OPTIONS.find((option) => option.value === boundary)?.infoId || 'r3';
+}
+
+function legacyGeometryBoundary(geometryId, fallback = 'open') {
+  return LEGACY_3D_GEOMETRY_BOUNDARY[String(geometryId || '')] || fallback;
+}
+
 const LIFE_WORLD_EXTRA_I18N = Object.freeze({
   en: {
     controlTabsLabel: 'Life World control views',
@@ -546,6 +564,7 @@ export class LifeUI {
     this.dimensionSelect = root.getElementById('dimensionSelect');
     this.boardSizeSelect = root.getElementById('boardSizeSelect');
     this.topologySelect = root.getElementById('topologySelect');
+    this.r3BoundaryControl = root.getElementById('r3BoundaryControl');
     this.speciesSelect = root.getElementById('speciesSelect');
     this.ruleSelect = root.getElementById('ruleSelect');
     this.neighborhoodSelect = root.getElementById('neighborhoodSelect');
@@ -833,7 +852,7 @@ export class LifeUI {
   }
 
   setControlView(view = 'play', options = {}) {
-    const activeView = view === 'research' ? 'research' : 'play';
+    const activeView = 'combined';
     this.controlPanel?.setAttribute('data-life-active-view', activeView);
     document.body.dataset.lifeActiveView = activeView;
     [
@@ -841,7 +860,7 @@ export class LifeUI {
       ['research', this.researchTabButton]
     ].forEach(([tab, button]) => {
       if (!button) return;
-      const active = tab === activeView;
+      const active = tab === view;
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
@@ -1027,8 +1046,13 @@ export class LifeUI {
   updateGeometryInfoCard() {
     if (!this.geometryInfoCard) return;
     const geometry = findLifeGeometry(this.boardGeometrySelect?.value);
-    const info = geometryInfo(geometry.id, this.language);
-    this.geometryInfoTitle.textContent = geometryTitle(geometry, this.language);
+    const infoId = geometry.id === 'r3' ? r3BoundaryInfoId(this.topologySelect?.value || geometry.topology) : geometry.id;
+    const info = geometryInfo(infoId, this.language);
+    const boundaryOption = geometry.id === 'r3'
+      ? R3_BOUNDARY_OPTIONS.find((option) => option.value === (this.topologySelect?.value || 'open'))
+      : null;
+    const boundarySuffix = boundaryOption ? ` / ${t(boundaryOption.labelKey, this.language)}` : '';
+    this.geometryInfoTitle.textContent = `${geometryTitle(geometry, this.language)}${boundarySuffix}`;
     this.geometryInfoDimension.textContent = info.dimension;
     this.geometryInfoTopology.textContent = info.topology;
     this.geometryInfoBoundary.textContent = info.boundary;
@@ -1314,6 +1338,28 @@ export class LifeUI {
     this.latticeSelect.value = ids.has(preferred) ? preferred : lattices[0].id;
   }
 
+  syncBoundaryControlsForGeometry(geometry, preferredBoundary = null) {
+    const isR3Volume = geometry?.id === 'r3';
+    if (this.r3BoundaryControl) {
+      this.r3BoundaryControl.hidden = !isR3Volume;
+      this.r3BoundaryControl.setAttribute('aria-hidden', String(!isR3Volume));
+    }
+    if (!this.topologySelect) return;
+    if (isR3Volume) {
+      this.topologySelect.innerHTML = R3_BOUNDARY_OPTIONS
+        .map((option) => `<option value="${option.value}">${t(option.labelKey, this.language)}</option>`)
+        .join('');
+      const allowed = new Set(R3_BOUNDARY_OPTIONS.map((option) => option.value));
+      this.topologySelect.value = allowed.has(preferredBoundary) ? preferredBoundary : 'open';
+      this.topologySelect.tabIndex = 0;
+      return;
+    }
+    const boundary = geometry?.topology || 'open';
+    this.topologySelect.innerHTML = `<option value="${boundary}">${boundary}</option>`;
+    this.topologySelect.value = boundary;
+    this.topologySelect.tabIndex = -1;
+  }
+
   latticeRulePreset(lattice = this.latticeSelect?.value, dimension = Number(this.dimensionSelect?.value) || 2) {
     if (dimension === 2 && lattice === 'triangular') return 'triangularLife';
     if (dimension === 2 && lattice === 'honeycomb') return 'honeycombLife';
@@ -1356,9 +1402,10 @@ export class LifeUI {
   }
 
   applyGeometrySelection() {
-    const geometry = findLifeGeometry(this.boardGeometrySelect.value);
+    const selectedGeometryId = this.boardGeometrySelect.value;
+    const geometry = findLifeGeometry(selectedGeometryId);
     this.dimensionSelect.value = String(geometry.dimension);
-    this.topologySelect.value = geometry.topology;
+    this.syncBoundaryControlsForGeometry(geometry, legacyGeometryBoundary(selectedGeometryId, geometry.topology));
     this.viewModeSelect.value = geometry.view;
     this.resetInitialCameraScale();
     this.populateLattices(geometry.id, this.latticeSelect.value || (geometry.dimension === 3 ? 'sc' : 'square'));
@@ -1384,7 +1431,7 @@ export class LifeUI {
     const selectedDimension = geometry.dimension || config.dimension;
     this.dimensionSelect.value = String(selectedDimension);
     this.boardSizeSelect.value = '32';
-    this.topologySelect.value = geometry.topology || config.boundary;
+    this.syncBoundaryControlsForGeometry(geometry, legacyGeometryBoundary(mode.geometry, geometry.topology || config.boundary));
     this.viewModeSelect.value = geometry.view;
     this.resetInitialCameraScale();
     this.populateLattices(geometry.id, config.lattice);
@@ -1405,7 +1452,7 @@ export class LifeUI {
     this.ageRange.value = String(config.rule.maxAge || 0);
     this.agingDeathRateRange.value = String(config.rule.agingDeathRate || 0);
     this.youngBirthBonusRange.value = String(config.rule.youngBirthBonus || 0);
-    this.oldAgePenaltyRange.value = String(config.rule.oldAgePenalty ?? 0.35);
+    this.oldAgePenaltyRange.value = String(config.rule.oldAgePenalty ?? 0);
     this.syncRangeValueReadouts();
     const params = readParams();
     params.set('mode', mode.id);
@@ -1498,7 +1545,8 @@ export class LifeUI {
     this.stateHashes = new Map();
     this.extinctionTime = null;
     this.initialCenter = null;
-    if (this.mode.id === 'moore-life') this.seedGlider(); else this.seedRandom();
+    if (this.mode.id === 'moore-life' && this.engine.dimension <= 2) this.seedGlider();
+    else this.seedRandom();
   }
 
   seedGlider() {
@@ -1633,7 +1681,16 @@ export class LifeUI {
 
   writeControlValues(controls = {}) {
     Object.entries(controls).forEach(([key, value]) => {
-      if (this[key] && value != null) this[key].value = String(value);
+      if (!this[key] || value == null) return;
+      if (key === 'boardGeometrySelect') {
+        const geometry = findLifeGeometry(value);
+        this[key].value = geometry.id;
+        if (geometry.id === 'r3' && !controls.topologySelect) {
+          this.syncBoundaryControlsForGeometry(geometry, legacyGeometryBoundary(value, geometry.topology));
+        }
+        return;
+      }
+      this[key].value = String(value);
     });
   }
 
@@ -1665,7 +1722,11 @@ export class LifeUI {
         this.tags.textContent = modeTags(this.mode, this.language).join(' · ');
       }
       this.writeControlValues(payload.controls || {});
-      if (this.boardGeometrySelect?.value) this.populateLattices(this.boardGeometrySelect.value, this.latticeSelect.value);
+      if (this.boardGeometrySelect?.value) {
+        const geometry = findLifeGeometry(this.boardGeometrySelect.value);
+        this.syncBoundaryControlsForGeometry(geometry, this.topologySelect?.value || engineState.boundary || geometry.topology);
+        this.populateLattices(geometry.id, this.latticeSelect.value);
+      }
       const expanded = {
         ...engineState,
         cells: (engineState.cells || []).map(expandLifeCell)
@@ -1673,6 +1734,7 @@ export class LifeUI {
       this.engine.importState(expanded);
       this.dimensionSelect.value = String(this.engine.dimension);
       this.boardSizeSelect.value = String(this.engine.size[0]);
+      this.syncBoundaryControlsForGeometry(findLifeGeometry(this.boardGeometrySelect?.value || 'r3'), this.engine.topology.boundary);
       this.topologySelect.value = this.engine.topology.boundary;
       this.neighborhoodSelect.value = this.engine.neighborhoodType;
       this.neighborhoodRadiusSelect.value = String(this.engine.neighborhoodRadius || 1);
@@ -2743,6 +2805,15 @@ export class LifeUI {
     ctx.globalAlpha = 1;
   }
 
+  volumeGridIndices(max, target = 28) {
+    const limit = Math.max(1, Math.floor(Number(max) || 1));
+    const step = Math.max(1, Math.ceil(limit / target));
+    const values = [];
+    for (let value = 0; value <= limit; value += step) values.push(value);
+    if (values[values.length - 1] !== limit) values.push(limit);
+    return values;
+  }
+
   drawVolumeBoundary(ctx, width, height) {
     const corners = [
       [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
@@ -2757,17 +2828,31 @@ export class LifeUI {
     const nx = Math.max(1, this.engine.size[0]);
     const ny = Math.max(1, this.engine.size[1] || 1);
     const nz = Math.max(1, this.engine.size[2] || 1);
-    const activeZ = nz > 1 ? Math.floor(nz / 2) : 0;
+    const xs = this.volumeGridIndices(nx, 30);
+    const ys = this.volumeGridIndices(ny, 30);
+    const zs = this.volumeGridIndices(nz, 18);
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
     ctx.lineWidth = Math.max(0.7, width / 980);
-    if (nx <= 80 && ny <= 80) {
-      for (let x = 0; x < nx; x += 1) this.drawPath3D(ctx, [this.volumeRawPoint(x, 0, activeZ), this.volumeRawPoint(x, ny - 1, activeZ)], width, height, 0.86);
-      for (let y = 0; y < ny; y += 1) this.drawPath3D(ctx, [this.volumeRawPoint(0, y, activeZ), this.volumeRawPoint(nx - 1, y, activeZ)], width, height, 0.86);
+    if (nx <= 96 && ny <= 96 && nz <= 24) {
+      for (const z of zs) {
+        for (const y of ys) {
+          this.drawPath3D(ctx, [this.volumeRawCornerPoint(0, y, z), this.volumeRawCornerPoint(nx, y, z)], width, height, 0.86);
+        }
+        for (const x of xs) {
+          this.drawPath3D(ctx, [this.volumeRawCornerPoint(x, 0, z), this.volumeRawCornerPoint(x, ny, z)], width, height, 0.86);
+        }
+      }
+      for (const x of xs) {
+        for (const y of ys) {
+          this.drawPath3D(ctx, [this.volumeRawCornerPoint(x, y, 0), this.volumeRawCornerPoint(x, y, nz)], width, height, 0.86);
+        }
+      }
     }
 
     ctx.strokeStyle = 'rgba(245, 182, 71, 0.72)';
     ctx.lineWidth = Math.max(2.2, width / 360);
     this.drawPath3D(ctx, [corners[0], corners[1], corners[2], corners[3], corners[0]], width, height, 0.86);
+    this.drawPath3D(ctx, [corners[4], corners[5], corners[6], corners[7], corners[4]], width, height, 0.86);
 
     ctx.fillStyle = 'rgba(245, 182, 71, 0.92)';
     ctx.font = `${Math.max(12, width / 48)}px ui-sans-serif, system-ui`;
@@ -4012,6 +4097,7 @@ export class LifeUI {
     }
     const geometry = findLifeGeometry(entry.geometry?.id || 'r2');
     this.boardGeometrySelect.value = geometry.id;
+    this.syncBoundaryControlsForGeometry(geometry, entry.topology || legacyGeometryBoundary(entry.geometry?.id, geometry.topology));
     this.populateLattices(geometry.id, entry.lattice || (geometry.dimension === 3 ? 'sc' : 'square'));
     this.dimensionSelect.value = String(entry.dimension || geometry.dimension);
     this.boardSizeSelect.value = String(Array.isArray(entry.boardSize) ? entry.boardSize[0] : entry.boardSize || 32);
@@ -4288,6 +4374,13 @@ export class LifeUI {
         const geometry = findLifeGeometry(payload.geometry === 'klein' && payload.viewMode === 'surface3d' ? 'klein_surface' : payload.geometry);
         this.boardGeometrySelect.value = geometry.id;
         this.applyGeometrySelection();
+        if (geometry.id === 'r3') {
+          const boundary = state.boundary || legacyGeometryBoundary(payload.geometry, geometry.topology);
+          this.syncBoundaryControlsForGeometry(geometry, boundary);
+          this.topologySelect.value = boundary;
+          this.engine.configure({ boundary });
+          this.updateGeometryInfoCard();
+        }
       } else if (payload.viewMode) this.viewModeSelect.value = payload.viewMode;
       if (payload.mode) { this.mode = findLifeMode(payload.mode); this.modeSelect.value = this.mode.id; this.title.textContent = modeTitle(this.mode, this.language); this.description.textContent = modeLong(this.mode, this.language); this.tags.textContent = modeTags(this.mode, this.language).join(' · '); }
       const customRule = payload.customRule || (importedRule?.id === 'custom' ? importedRule : null);

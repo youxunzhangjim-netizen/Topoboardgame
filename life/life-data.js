@@ -32,10 +32,7 @@ export const LIFE_GEOMETRIES = [
   { id: 'klein_surface', title: 'Klein Bottle 3D Surface', zhTitle: 'Klein 瓶 3D 曲面', dimension: 2, topology: 'klein', view: 'surface3d', latticeSet: '2d' },
   { id: 'sphere', title: 'S2 Sphere Surface', zhTitle: 'S2 球面生命', dimension: 2, topology: 'sphere', view: 'surface3d', latticeSet: '2d' },
   { id: 'rp2', title: 'RP2 Projective Plane Board', zhTitle: 'RP2 投影平面 2D 棋盤', dimension: 2, topology: 'projective', view: 'flat', latticeSet: '2d' },
-  { id: 'r3', title: 'R3 Open Voxel Volume', zhTitle: 'R3 體素生命', dimension: 3, topology: 'open', view: 'volume', latticeSet: '3d' },
-  { id: 't3', title: 'T3 Periodic Voxel Volume', zhTitle: 'T3 週期體素生命', dimension: 3, topology: 'torus', view: 'volume', latticeSet: '3d' },
-  { id: 'r3_random', title: '3D RBC Life', zhTitle: '3D RBC 生命', dimension: 3, topology: 'random', view: 'volume', latticeSet: '3d' },
-  { id: 'reflective', title: 'Reflective 3D Life', zhTitle: '反射邊界 3D 生命', dimension: 3, topology: 'reflective', view: 'volume', latticeSet: '3d' }
+  { id: 'r3', title: 'R3 Voxel Volume', zhTitle: 'R3 體素生命', dimension: 3, topology: 'open', view: 'volume', latticeSet: '3d' }
 ];
 
 export const LIFE_GEOMETRY_INFO = {
@@ -244,8 +241,8 @@ export const LIFE_MODES = [
     zhTitle: 'Moore 鄰域模式',
     short: 'Classic surrounding-neighbor Life: each cell reacts to the full local ring around it.',
     zhShort: '經典環繞鄰域生命：每個細胞會感受到周圍完整局部環。',
-    long: 'Use this for Conway-style Life and most visual pattern play. The Life rule stays the same while you choose the board space separately: R2, T2, Möbius, Klein, S2, RP2, R3, T3, or reflective 3D. Noise, age, mutation, and species are modifiers.',
-    zhLong: '用於 Conway 風格生命與大多數圖樣玩法。生命規則保持相同，棋盤空間另外選：R2、T2、Mobius、Klein、S2、RP2、R3、T3 或反射 3D。噪聲、年齡、突變與物種是附加功能。',
+    long: 'Use this for Conway-style Life and most visual pattern play. The Life rule stays the same while you choose the board space separately: R2, T2, Möbius, Klein, S2, RP2, or an R3 voxel volume with open, T3 periodic, or RBC boundary conditions. Noise, age, mutation, and species are modifiers.',
+    zhLong: '用於 Conway 風格生命與大多數圖樣玩法。生命規則保持相同，棋盤空間另外選：R2、T2、Mobius、Klein、S2、RP2，或使用開放、T3 週期、RBC 邊界條件的 R3 體素體積。噪聲、年齡、突變與物種是附加功能。',
     tags: ['zero-player', 'one-player', 'two-player', 'Moore'],
     zhTags: ['零人', '單人', '雙人', 'Moore'],
     geometry: 'r2',
@@ -294,6 +291,9 @@ export function findLifeMode(id) {
 
 export function findLifeGeometry(id) {
   const normalized = id === 'klein_flat' ? 'klein' : id;
+  if (['t3', 'r3_random', 'reflective'].includes(String(normalized))) {
+    return LIFE_GEOMETRIES.find((geometry) => geometry.id === 'r3') || LIFE_GEOMETRIES[0];
+  }
   return LIFE_GEOMETRIES.find((geometry) => geometry.id === normalized) || LIFE_GEOMETRIES[0];
 }
 
@@ -324,7 +324,8 @@ export function geometryTitle(geometry, language = 'en') {
 
 export function geometryInfo(geometryId, language = 'en') {
   const geometry = findLifeGeometry(geometryId);
-  const info = LIFE_GEOMETRY_INFO[geometry.id] || LIFE_GEOMETRY_INFO[geometry.topology] || LIFE_GEOMETRY_INFO.r2;
+  const infoKey = LIFE_GEOMETRY_INFO[geometryId] ? geometryId : geometry.id;
+  const info = LIFE_GEOMETRY_INFO[infoKey] || LIFE_GEOMETRY_INFO[geometry.topology] || LIFE_GEOMETRY_INFO.r2;
   if (language !== 'zh') return info;
   return {
     ...info,

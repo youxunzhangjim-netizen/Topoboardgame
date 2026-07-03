@@ -73,7 +73,6 @@ const I18N = {
         standardBoundary: 'Standard',
         t3Boundary: 'T3 all-side periodic',
         r3RandomBoundary: '3D random boundary',
-        reflectiveBoundary: 'Reflective',
         t2: 'T2 Torus Surface',
         cylinder: 'Cylinder Surface',
         sphere: 'S2 Sphere Surface',
@@ -133,7 +132,6 @@ const I18N = {
             open: 'R3 volume uses open boundaries and the selected 3D lattice adjacency. Volume Hex connects through site vertices.',
             torus: 'T3 is the all-side periodic boundary condition on the R3 volume board. Goals use explicit marked cut-zone planes inside the periodic volume.',
             r3_random: '3D RBC uses a seeded random boundary pairing when a move exits the cube.',
-            reflective: 'Reflective volume keeps the finite cubic graph while displaying reflective boundary intent.',
             t2: 'T2 is a torus surface embedded in 3D. Surface Hex fills face cells and both players connect marked cut-seam zones.',
             cylinder: 'Cylinder is a 2D surface embedded in 3D. Surface Hex fills face cells; Blue uses cut-seam zones and Orange uses the two rim directions.',
             sphere: 'S2 Sphere Hex can use a Geodesic longitude-latitude face board or a Buckyball pentagon/hexagon face board. Hex fills face cells on both sphere lattices.',
@@ -202,7 +200,6 @@ const I18N = {
         standardBoundary: '標準',
         t3Boundary: 'T3 全面週期',
         r3RandomBoundary: '3D 隨機邊界',
-        reflectiveBoundary: '反射',
         t2: 'T2 環面曲面',
         cylinder: '圓柱曲面',
         sphere: 'S2 球面曲面',
@@ -262,7 +259,6 @@ const I18N = {
             open: 'R3 體積使用開放邊界，並依所選 3D 晶格產生相鄰關係。體積六貫棋沿格點連線。',
             torus: 'T3 是 R3 體積棋盤的全面週期邊界條件；目標使用週期體積中的明確切面標示區。',
             r3_random: '3D RBC 會在行動離開立方體邊界時使用固定種子的隨機邊界配對。',
-            reflective: '反射體積保留有限立方圖，並顯示反射邊界的意義。',
             t2: 'T2 是嵌入 3D 視圖的環面曲面；曲面六貫棋填入面單元，雙方連接曲面上的切縫目標區。',
             cylinder: '圓柱是嵌入 3D 視圖的二維曲面；曲面六貫棋填入面單元，藍方使用切縫目標區，橙方使用兩側邊界。',
             sphere: 'S2 球面六貫棋可使用測地經緯面格，或巴克球五邊形 / 六邊形面格；兩者都以填滿面單元來落子。',
@@ -1631,7 +1627,7 @@ function importHexState(state, messageKey = '') {
     const importedTopology = game.topology.topology;
     if (['open', 'torus', 'r3_random', 'reflective'].includes(importedTopology)) {
         elements.topology.value = 'open';
-        elements.boundary.value = importedTopology;
+        elements.boundary.value = importedTopology === 'reflective' ? 'open' : importedTopology;
     } else if ([...elements.topology.options].some((option) => option.value === importedTopology)) {
         elements.topology.value = importedTopology;
         elements.boundary.value = 'open';

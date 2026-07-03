@@ -242,10 +242,8 @@ h1 {
   outline-offset: 2px;
 }
 
-.life-control-panel[data-life-active-view="play"] [data-life-control-view="research"],
-body[data-life-active-view="play"] .research-panel[data-life-control-view="research"],
-.life-control-panel[data-life-active-view="research"] [data-life-control-view="play"] {
-  display: none !important;
+.life-control-tabs {
+  display: none;
 }
 
 .control-row {
@@ -554,7 +552,18 @@ body[data-life-active-view="play"] .research-panel[data-life-control-view="resea
 .life-toolbar-group {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+
+.life-run-controls {
+  flex: 1 1 420px;
+}
+
+.life-view-controls {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .life-button.primary {
@@ -1380,6 +1389,16 @@ body[data-life-usage="two"] .one-player-only {
     grid-template-columns: 1fr;
   }
 
+  .life-run-controls,
+  .life-view-controls {
+    flex: 1 1 100%;
+  }
+
+  .life-view-controls {
+    justify-content: flex-end;
+    order: 2;
+  }
+
   .life-control-tabs {
     position: sticky;
     top: 0;
@@ -1437,6 +1456,9 @@ body[data-life-usage="two"] .one-player-only {
 
 /* Life geometry/lattice controls aligned with 2D/3D Go/Reversi naming. */
 .legacy-topology-control {
+  display: none !important;
+}
+.r3-boundary-control[hidden] {
   display: none !important;
 }
 .view-mode-control {
@@ -1585,15 +1607,26 @@ body[data-life-usage] #lifeCanvas:active {
 
 @media (min-width: 901px) {
   .life-player-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 380px);
+    grid-template-columns: minmax(560px, 1fr) minmax(420px, 520px);
   }
 
   .life-control-panel {
-    position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
-    overflow: auto;
-    overscroll-behavior: contain;
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .geometry-info-card,
+  .custom-rule-designer,
+  .neighborhood-lab,
+  .modifier-note,
+  .life-online-controls,
+  .settings-grid > .control-row:has(input[type="range"]) {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1621,6 +1654,14 @@ body[data-life-usage] #lifeCanvas:active {
 
   .life-board-toolbar {
     align-items: flex-start;
+  }
+
+  .life-run-controls {
+    order: 1;
+  }
+
+  .life-help {
+    order: 3;
   }
 
   .life-canvas-wrap {

@@ -66,6 +66,8 @@ export class CubeThreeJSRenderer {
         this.createBoard3D();
         this.addAxisLabels();
         this.resize();
+        this.installCameraPad();
+        this.resetCamera();
 
         window.addEventListener('resize', () => this.resize());
         window.addEventListener('topoboardgame:3dchess-board-theme', () => this.updateBoardAppearance());
@@ -505,14 +507,48 @@ export class CubeThreeJSRenderer {
         }
     }
 
-    resetCamera() {
-        if (this.game.currentPlayer === 'black') {
-            this.camera.position.set(-12, -14, -16);
-        } else {
-            this.camera.position.set(12, 14, 16);
-        }
+    homeCameraPosition() {
+        const base = new THREE.Vector3(10.5, 10, 17.5);
+        if (this.camera?.aspect < 0.78) base.setLength(26);
+        return base;
+    }
+
+    applyCameraPosition(position, up = new THREE.Vector3(0, 1, 0)) {
+        this.camera.position.copy(position);
+        this.camera.up.copy(up);
         this.controls.target.set(0, 0, 0);
+        this.camera.lookAt(this.controls.target);
         this.controls.update();
+    }
+
+    resetCamera() {
+        this.applyCameraPosition(this.homeCameraPosition());
+    }
+
+    setCameraView(view) {
+        const distance = this.camera?.aspect < 0.78 ? 24 : 21;
+        if (view === 'x') {
+            this.applyCameraPosition(new THREE.Vector3(distance, 0, 0), new THREE.Vector3(0, 1, 0));
+        } else if (view === 'y') {
+            this.applyCameraPosition(new THREE.Vector3(0, distance, 0), new THREE.Vector3(0, 0, 1));
+        } else if (view === 'z') {
+            this.applyCameraPosition(new THREE.Vector3(0, 0, distance), new THREE.Vector3(0, 1, 0));
+        } else {
+            this.resetCamera();
+        }
+    }
+
+    installCameraPad() {
+        const pad = document.getElementById('cameraPad');
+        if (!pad || pad.dataset.bound === 'true') return;
+        pad.dataset.bound = 'true';
+        pad.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-camera-view]');
+            if (!button) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.setCameraView(button.dataset.cameraView || 'home');
+        });
     }
 
     resize() {

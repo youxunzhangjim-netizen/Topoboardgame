@@ -590,12 +590,12 @@ class Go3DRenderer {
         const surface = new THREE.Mesh(
             createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0x7b5a2f,
+                color: 0xa87938,
                 roughness: 0.64,
                 metalness: 0.01,
-                transparent: true,
-                opacity: 0.72,
-                depthWrite: false,
+                transparent: false,
+                opacity: 1,
+                depthWrite: true,
                 clearcoat: 0.2,
                 clearcoatRoughness: 0.54,
                 side: THREE.DoubleSide
@@ -606,12 +606,13 @@ class Go3DRenderer {
         surface.castShadow = false;
         surface.receiveShadow = false;
         surface.userData.kleinPickOccluder = true;
+        surface.userData.surfacePickOccluder = true;
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
             color: 0x050505,
             transparent: true,
-            opacity: 0.9,
+            opacity: 0.82,
             depthTest: true,
             depthWrite: false
         });
@@ -652,7 +653,7 @@ class Go3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.026 : width <= 13 ? 0.021 : 0.017, {
             color: 0x050505,
-            opacity: 0.58,
+            opacity: 0.72,
             depthTest: true,
             renderOrder: 5
         });
@@ -660,12 +661,12 @@ class Go3DRenderer {
 
     buildMobius(width, height) {
         const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x8f6238,
+            color: 0xd19a54,
             roughness: 0.58,
             metalness: 0.02,
-            transparent: true,
-            opacity: 0.78,
-            depthWrite: false,
+            transparent: false,
+            opacity: 1,
+            depthWrite: true,
             clearcoat: 0.28,
             clearcoatRoughness: 0.48,
             side: THREE.DoubleSide
@@ -1438,7 +1439,12 @@ class Go3DRenderer {
                             : logic.topology === MOBIUS_GO_TOPOLOGY
                                 ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
                                 : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
-            if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(this.camera.position.distanceTo(pose.position))) continue;
+            const hitLike = { distance: this.camera.position.distanceTo(this.pointPositions[index]) };
+            if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
+                if (this.kleinSurfaceOccludes(hitLike, pose)) continue;
+            } else if (logic.topology === MOBIUS_GO_TOPOLOGY) {
+                if (this.mobiusSurfaceOccludes(hitLike)) continue;
+            } else if (this.surfaceOccludesDistance(hitLike.distance)) continue;
             if (['t2', SPHERE_GO_TOPOLOGY].includes(logic.topology) && !this.isPoseFacingCamera(pose.position, pose.normal)) continue;
             projected.copy(this.pointPositions[index]).project(this.camera);
             if (projected.z < -1 || projected.z > 1) continue;
@@ -1472,8 +1478,9 @@ class Go3DRenderer {
                     : logic.topology === MOBIUS_GO_TOPOLOGY
                         ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
                         : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
-        if (logic.topology !== KLEIN_BOTTLE_TOPOLOGY && this.surfaceOccludesDistance(hit.distance)) return false;
-        if (logic.topology === KLEIN_BOTTLE_TOPOLOGY || logic.topology === MOBIUS_GO_TOPOLOGY) return true;
+        if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) return !this.kleinSurfaceOccludes(hit, pose);
+        if (logic.topology === MOBIUS_GO_TOPOLOGY) return !this.mobiusSurfaceOccludes(hit);
+        if (this.surfaceOccludesDistance(hit.distance)) return false;
         if (!this.isPoseFacingCamera(pose.position, pose.normal)) return false;
         return true;
     }
@@ -1483,7 +1490,7 @@ class Go3DRenderer {
         if (!occluders.length) return false;
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
-        return Boolean(nearest && nearest.distance < distance - 0.08);
+        return Boolean(nearest && nearest.distance < distance - 0.04);
     }
 
     kleinClickThroughWindow(pose) {
@@ -1502,7 +1509,7 @@ class Go3DRenderer {
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
         if (!nearest) return false;
-        return nearest.distance < hit.distance - 0.08 && !this.kleinClickThroughWindow(pose);
+        return nearest.distance < hit.distance - 0.04 && !this.kleinClickThroughWindow(pose);
     }
 
     mobiusSurfaceOccludes(hit) {
@@ -1510,7 +1517,7 @@ class Go3DRenderer {
         if (!occluders.length) return false;
         const surfaceHits = this.raycaster.intersectObjects(occluders, false);
         const nearest = surfaceHits.find((surfaceHit) => surfaceHit.distance > 0.01);
-        return Boolean(nearest && nearest.distance < hit.distance - 0.08);
+        return Boolean(nearest && nearest.distance < hit.distance - 0.04);
     }
 
     isPoseFacingCamera(position, normal, threshold = 0.04) {

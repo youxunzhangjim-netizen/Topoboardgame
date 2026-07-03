@@ -71,6 +71,12 @@
 
             <div class="board-frame">
                 <canvas id="gameCanvas" aria-label="3D torus chess board" data-i18n-aria-label="app.canvasLabel"></canvas>
+                <div class="camera-pad" id="cameraPad" aria-label="Camera view controls">
+                    <button type="button" data-camera-view="x" aria-label="View along X axis" title="X view">X</button>
+                    <button type="button" data-camera-view="y" aria-label="View along Y axis" title="Y view">Y</button>
+                    <button type="button" data-camera-view="z" aria-label="View along Z axis" title="Z view">Z</button>
+                    <button type="button" data-camera-view="home" aria-label="Reset camera" title="Reset">R</button>
+                </div>
             </div>
 
             <section class="move-picker" aria-label="Move picker" data-i18n-aria-label="app.movePickerLabel">
