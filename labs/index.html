@@ -41,7 +41,6 @@
       position: relative;
     }
     .topbar a,
-    .language-button,
     .language-menu button {
       border: 1px solid rgba(88, 197, 255, 0.34);
       border-radius: 999px;
@@ -58,11 +57,19 @@
       min-width: 0;
     }
     .language-button {
-      min-height: 40px;
-      display: inline-flex;
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+      display: inline-grid;
       align-items: center;
       justify-content: center;
-      gap: 7px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text);
+      box-shadow: none;
       cursor: pointer;
     }
     .language-button svg {

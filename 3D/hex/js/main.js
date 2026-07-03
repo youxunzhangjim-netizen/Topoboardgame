@@ -138,7 +138,7 @@ const I18N = {
             klein: 'Klein bottle is a non-orientable surface with a twisted seam. Surface Hex fills face cells and goals use marked zones.',
             mobius: 'Mobius strip is a one-sided twisted strip. Surface Hex fills face cells; Blue uses the seam zones and Orange uses the open sides.',
             rp2: 'RP2 uses antipodal edge identification and is shown as a marked fundamental polygon surface.',
-            trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline, embedded in the rotatable 3D view.',
+            trefoil_tube: 'A two-dimensional periodic tube surface around a trefoil centerline. Blue uses seam zones; Orange uses two separated far patches, not full winding bands.',
             klein_quartic: 'Klein Quartic x I is a genus-3 cell-complex board extruded through one interval layer for 3D play.'
         }
     },
@@ -265,7 +265,7 @@ const I18N = {
             klein: 'Klein 瓶是含扭轉縫的非定向曲面；曲面六貫棋填入面單元，目標使用曲面標示區。',
             mobius: 'Mobius 帶是一側曲面；曲面六貫棋填入面單元，藍方使用接縫目標區，橙方使用開放邊。',
             rp2: 'RP2 使用對跖邊界識別，並以標示基本多邊形曲面顯示。',
-            trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面。',
+            trefoil_tube: '嵌入可旋轉 3D 視圖中的二維週期三葉結管面；藍方使用接縫目標區，橙方使用兩個相隔很遠的小區塊，而不是整圈帶狀目標。',
             klein_quartic: 'Klein quartic x I 是將 genus-3 胞複形棋盤沿一個區間層擴展後的 3D 棋盤。'
         }
     }
@@ -461,7 +461,8 @@ function newGame() {
         size: topologySize,
         topology,
         lattice,
-        goalZones: createBuckyballGoalZones(topology, topologySize, lattice)
+        goalZones: createBuckyballGoalZones(topology, topologySize, lattice) ||
+            createTrefoilTubeGoalZones(topology, topologySize)
     });
     syncBoardDimensions();
     statusKey = 'emptyPrompt';
@@ -641,6 +642,39 @@ function createBuckyballGoalZones(topology, topologySize, lattice) {
             label: 'buckyball amber diagonal zones',
             start: (coordinate) => whiteStart.has(keyOf(coordinate)),
             end: (coordinate) => whiteEnd.has(keyOf(coordinate))
+        }
+    };
+}
+
+function createTrefoilTubeGoalZones(topology, topologySize) {
+    if (topology !== 'trefoil_tube') return null;
+    const width = Math.max(1, Number(topologySize?.[0]) || 1);
+    const height = Math.max(1, Number(topologySize?.[1]) || 1);
+    const xEnd = Math.floor(width / 2);
+    const keyOf = (coordinate) => Array.isArray(coordinate) ? coordinate.join(',') : '';
+    const orangeStart = new Set([keyOf([
+        Math.max(1, Math.floor(width * 0.22)),
+        Math.max(1, Math.floor(height * 0.24)),
+        0
+    ])]);
+    const orangeEnd = new Set([keyOf([
+        Math.min(width - 2, Math.floor(width * 0.78)),
+        Math.min(height - 2, Math.floor(height * 0.76)),
+        0
+    ])]);
+
+    return {
+        black: {
+            type: 'marked-cut-zones',
+            label: 'trefoil seam zones',
+            start: (coordinate) => Array.isArray(coordinate) && coordinate[0] === 0,
+            end: (coordinate) => Array.isArray(coordinate) && coordinate[0] === xEnd
+        },
+        white: {
+            type: 'marked-cut-zones',
+            label: 'trefoil separated orange patches',
+            start: (coordinate) => orangeStart.has(keyOf(coordinate)),
+            end: (coordinate) => orangeEnd.has(keyOf(coordinate))
         }
     };
 }

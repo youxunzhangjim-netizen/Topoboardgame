@@ -29,6 +29,7 @@ OUTPUTS = {
     "page_background_1438x810.png": (1438, 810),
     "library_capsule_600x900.png": (600, 900),
     "library_header_920x430.png": (920, 430),
+    "library_hero_1920x620.png": (1920, 620),
     "library_hero_3840x1240.png": (3840, 1240),
     "library_logo_1280x720.png": (1280, 720),
     "library_logo_icon_720x720.png": (720, 720),
@@ -171,6 +172,25 @@ def draw_centered_lines(
         top += line_height + spacing
 
 
+def draw_centered_plain_lines(
+    draw: ImageDraw.ImageDraw,
+    lines: list[str],
+    box: tuple[int, int, int, int],
+    font: ImageFont.ImageFont,
+    fill: tuple[int, int, int, int] = TEXT_FILL + (255,),
+) -> None:
+    x, y, width, height = box
+    spacing = max(4, getattr(font, "size", 24) // 5)
+    _, text_height = text_bounds(draw, lines, font, spacing)
+    top = y + (height - text_height) // 2
+    for line in lines:
+        left, text_top, right, bottom = draw.textbbox((0, 0), line, font=font)
+        line_width = right - left
+        line_height = bottom - text_top
+        draw.text((x + (width - line_width) // 2, top), line, font=font, fill=fill)
+        top += line_height + spacing
+
+
 def choose_landscape_lines(draw: ImageDraw.ImageDraw, max_width: int, max_height: int, max_size: int) -> tuple[list[str], ImageFont.ImageFont]:
     single = [GAME_TITLE]
     single_font = fit_font(draw, single, max_width, max_height, max_size, min_size=16)
@@ -301,8 +321,6 @@ def create_library_capsule(logo: Image.Image, size: tuple[int, int]) -> Image.Im
     width, height = size
     canvas = Image.new("RGBA", size, BACKGROUND + (255,))
     draw = ImageDraw.Draw(canvas)
-    draw_soft_grid(canvas, opacity=26, step=48)
-    add_horizontal_gradient(canvas, (0, 0, 0, 22), (30, 118, 210, 44), blur=18)
 
     logo_size = round(width * 0.68)
     paste_logo(canvas, logo, ((width - logo_size) // 2, round(height * 0.08), logo_size, logo_size))
@@ -316,28 +334,26 @@ def create_library_capsule(logo: Image.Image, size: tuple[int, int]) -> Image.Im
 
 
 def create_library_header(logo: Image.Image, size: tuple[int, int]) -> Image.Image:
-    canvas = create_landscape(logo, size).convert("RGBA")
-    draw_soft_grid(canvas, opacity=18, step=52)
-    return canvas.convert("RGB")
+    return create_landscape(logo, size)
 
 
-def create_library_hero(size: tuple[int, int]) -> Image.Image:
+def create_library_hero(logo: Image.Image, size: tuple[int, int]) -> Image.Image:
     width, height = size
     canvas = Image.new("RGBA", size, BACKGROUND + (255,))
     glow = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(glow, "RGBA")
     for cx_ratio, cy_ratio, radius, fill in [
-        (0.72, 0.42, 1200, (24, 106, 198, 82)),
-        (0.92, 0.50, 900, (90, 166, 255, 76)),
-        (0.38, 0.68, 760, (12, 48, 112, 52)),
+        (0.78, 0.48, round(width * 0.34), (24, 106, 198, 64)),
+        (0.94, 0.50, round(width * 0.25), (90, 166, 255, 54)),
     ]:
         cx = round(width * cx_ratio)
         cy = round(height * cy_ratio)
         draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=fill)
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=130))
+    glow = glow.filter(ImageFilter.GaussianBlur(radius=max(42, round(width * 0.035))))
     canvas.alpha_composite(glow)
-    draw_soft_grid(canvas, opacity=20, step=74)
-    add_horizontal_gradient(canvas, (0, 0, 0, 110), (0, 0, 0, 0), blur=26)
+    logo_size = round(height * 0.86)
+    paste_logo(canvas, logo, (width - logo_size - round(width * 0.04), (height - logo_size) // 2, logo_size, logo_size))
+    add_horizontal_gradient(canvas, (0, 0, 0, 66), (0, 0, 0, 0), blur=24)
     return canvas.convert("RGB")
 
 
@@ -350,12 +366,10 @@ def create_library_logo(logo: Image.Image, size: tuple[int, int], icon_only: boo
         paste_logo(canvas, logo, ((width - logo_size) // 2, (height - logo_size) // 2, logo_size, logo_size))
         return canvas
 
-    logo_size = round(height * 0.64)
-    paste_logo(canvas, logo, (round(width * 0.08), (height - logo_size) // 2, logo_size, logo_size))
-    text_x = round(width * 0.08) + logo_size + round(width * 0.055)
-    text_box = (text_x, round(height * 0.20), width - text_x - round(width * 0.08), round(height * 0.60))
-    lines, font = choose_landscape_lines(draw, text_box[2], text_box[3], round(height * 0.18))
-    draw_centered_lines(draw, lines, text_box, font, align="left")
+    text_box = (round(width * 0.08), round(height * 0.20), round(width * 0.84), round(height * 0.60))
+    lines = [GAME_TITLE]
+    font = fit_font(draw, lines, text_box[2], text_box[3], round(height * 0.20), min_size=32)
+    draw_centered_plain_lines(draw, lines, text_box, font, fill=TEXT_FILL + (255,))
     return canvas
 
 
@@ -371,7 +385,7 @@ def generate_capsules(logo_path: Path, out_dir: Path) -> list[Path]:
         elif filename.startswith("library_header"):
             image = create_library_header(logo, size)
         elif filename.startswith("library_hero"):
-            image = create_library_hero(size)
+            image = create_library_hero(logo, size)
         elif filename.startswith("library_logo_icon"):
             image = create_library_logo(logo, size, icon_only=True)
         elif filename.startswith("library_logo"):

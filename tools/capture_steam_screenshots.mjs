@@ -87,42 +87,45 @@ async function captureTorusTriangularGo(page) {
   await screenshot(page, '02_torus_triangular_go_en_1920x1080.png');
 }
 
-async function captureCylinderHoneycombReversi(page) {
-  await open(page, '/3D/3dreversi/?lang=en');
-  await page.waitForFunction(() => window.reversi3dApp?.logic && window.reversi3dApp?.renderer, null, { timeout: 30000 });
-  await choose(page, '#spaceSelect', 'cylinder');
+async function captureHoneycombReversi2D(page) {
+  await open(page, '/2D/2dreversi/?lang=en&lattice=honeycomb');
+  await page.waitForFunction(() => window.reversi2dApp?.logic, null, { timeout: 30000 });
   await choose(page, '#latticeSelect', 'honeycomb');
   await choose(page, '#boardSizeSelect', '8');
   await page.evaluate(async () => {
-    const app = window.reversi3dApp;
-    const cameraVector = { x: 5.6, z: 7.1 };
-    const cameraLength = Math.hypot(cameraVector.x, cameraVector.z) || 1;
-    const facingScore = (coord) => {
-      const position = app.renderer?.positionForCoord?.(coord, app.logic, 0.08);
-      if (!position) return 0;
-      return ((position.x * cameraVector.x) + (position.z * cameraVector.z)) / cameraLength;
-    };
-    for (let turn = 0; turn < 21; turn += 1) {
+    const app = window.reversi2dApp;
+    app.boardZoom = 1.08;
+    app.resize?.();
+    for (let turn = 0; turn < 28; turn += 1) {
       const moves = app.logic.legalMoves();
-      if (!moves.length) break;
+      if (!moves.length) {
+        const pass = app.logic.pass?.();
+        if (!pass?.ok) break;
+        app.updateUI?.();
+        continue;
+      }
       const center = [app.logic.topology.width / 2, app.logic.topology.height / 2];
       const move = moves
         .slice()
         .sort((a, b) => {
           const da = Math.hypot((a.coord?.[0] ?? 0) - center[0], (a.coord?.[1] ?? 0) - center[1]);
           const db = Math.hypot((b.coord?.[0] ?? 0) - center[0], (b.coord?.[1] ?? 0) - center[1]);
-          return (facingScore(b.coord) - facingScore(a.coord)) || (da - db);
+          const fa = Array.isArray(a.flips) ? a.flips.length : 0;
+          const fb = Array.isArray(b.flips) ? b.flips.length : 0;
+          return (fb - fa) || (da - db);
         })[0];
-      app.playAt(move.coord);
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      const result = app.logic.play(move.coord);
+      if (!result.ok) break;
+      app.updateUI?.();
+      app.render?.();
+      await new Promise((resolve) => setTimeout(resolve, 55));
     }
-    app.renderer?.camera?.position?.set?.(5.6, 4.5, 7.1);
-    app.renderer?.controls?.target?.set?.(0, 0, 0);
-    app.renderer?.controls?.update?.();
+    app.boardZoom = 1.06;
+    app.resize?.();
     app.updateUI?.();
   });
   await page.waitForTimeout(900);
-  await screenshot(page, '03_cylinder_honeycomb_reversi_en_1920x1080.png');
+  await screenshot(page, '03_2d_honeycomb_reversi_en_1920x1080.png');
 }
 
 async function captureJump(page) {
@@ -204,7 +207,7 @@ async function main() {
 
   await captureTorusChess(page);
   await captureTorusTriangularGo(page);
-  await captureCylinderHoneycombReversi(page);
+  await captureHoneycombReversi2D(page);
   await captureJump(page);
   await captureSphereHex(page);
 

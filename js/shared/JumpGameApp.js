@@ -420,6 +420,7 @@ export class JumpGameApp {
       element: this.canvas,
       view: this.view,
       isEnabled: () => this.usesEmbeddedView(),
+      rotationScale: 0.24,
       syncControls: () => {
         if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
         if (this.viewControls.rotY) this.viewControls.rotY.value = String(Math.round(this.view.rotY));
@@ -1093,7 +1094,7 @@ export class JumpGameApp {
       const normal = this.usesOpaqueSurfaceView() ? this.embeddedSurfaceNormal(coord, model) : null;
       const rotatedNormal = normal ? this.rotatePoint3D(normal) : null;
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
-      const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
+      const scale = Math.min(width, height) * 0.39 * (this.view.zoom || 1) * perspective;
       return {
         x: width / 2 + x * scale,
         y: height * 0.42 + y * scale,
@@ -1121,7 +1122,7 @@ export class JumpGameApp {
 
   render() {
     const rect = this.canvas.parentElement.getBoundingClientRect();
-    const dpr = Math.max(1, devicePixelRatio || 1);
+    const dpr = Math.min(1.5, Math.max(1, devicePixelRatio || 1));
     this.canvas.width = Math.floor(rect.width * dpr);
     this.canvas.height = Math.floor(Math.max(480, rect.height) * dpr);
     this.canvas.style.width = `${rect.width}px`;
@@ -1144,8 +1145,9 @@ export class JumpGameApp {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = '#07111e';
     ctx.fillRect(0, 0, width, height);
-    const coords = this.game.topology.allCoords().filter((c) => {
-      if (!this.visibleCoord(c)) return false;
+    const visibleCoords = this.game.topology.allCoords().filter((c) => this.visibleCoord(c));
+    if (this.usesOpaqueSurfaceView()) this.drawEmbeddedSurfaceFill(visibleCoords);
+    const coords = visibleCoords.filter((c) => {
       return !this.usesOpaqueSurfaceView() || this.project(c).frontFacing !== false;
     });
     if (this.isPolarBoard()) this.drawPolarFrame(width, height);
@@ -1177,6 +1179,52 @@ export class JumpGameApp {
     if (this.game.chainPath.length) this.drawPath(this.game.chainPath);
     if (this.selected) this.drawSelected(this.selected);
     for (const move of this.legal) this.drawLegal(move);
+  }
+
+  drawEmbeddedSurfaceFill(coords) {
+    if (!coords?.length) return;
+    const projected = coords
+      .map((coord) => this.project(coord))
+      .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (projected.length < 3) return;
+    const hull = this.convexHull(projected);
+    if (hull.length < 3) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath();
+    hull.forEach((point, index) => {
+      if (index) ctx.lineTo(point.x, point.y);
+      else ctx.moveTo(point.x, point.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(19, 40, 58, 0.96)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(97, 174, 255, 0.38)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  convexHull(points) {
+    const sorted = [...points]
+      .sort((a, b) => (a.x - b.x) || (a.y - b.y))
+      .filter((point, index, list) => index === 0 || Math.hypot(point.x - list[index - 1].x, point.y - list[index - 1].y) > 0.5);
+    if (sorted.length <= 3) return sorted;
+    const cross = (origin, a, b) => (a.x - origin.x) * (b.y - origin.y) - (a.y - origin.y) * (b.x - origin.x);
+    const lower = [];
+    for (const point of sorted) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
+      lower.push(point);
+    }
+    const upper = [];
+    for (let index = sorted.length - 1; index >= 0; index -= 1) {
+      const point = sorted[index];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
+      upper.push(point);
+    }
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
   }
 
   drawPolarFrame(width, height) {

@@ -7,7 +7,7 @@ import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
     createKleinBottleSurfaceGeometry,
-    createKleinBottleGridLines,
+    kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -20,7 +20,7 @@ import {
 
 const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
-const HONEYCOMB_CYLINDER_RADIUS = 2.08;
+const HONEYCOMB_CYLINDER_RADIUS = 2.28;
 const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.45;
 const MOBIUS_BAND_HALF_WIDTH = 1.86;
@@ -492,15 +492,15 @@ class Reversi3DRenderer {
     buildKlein(topology) {
         const { width, height } = topology;
         const surface = new THREE.Mesh(
-            createKleinBottleSurfaceGeometry({ uSegments: 240, vSegments: 100, lift: 0 }),
+            createKleinBottleSurfaceGeometry({ uSegments: 220, vSegments: 92, lift: -0.012 }),
             new THREE.MeshPhysicalMaterial({
-                color: 0xdfe7e4,
-                roughness: 0.52,
-                metalness: 0.01,
-                transparent: false,
-                opacity: 1,
+                color: 0x8a6a39,
+                roughness: 0.58,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.78,
                 depthWrite: true,
-                clearcoat: 0.16,
+                clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
             })
@@ -514,9 +514,16 @@ class Reversi3DRenderer {
         this.boardGroup.add(surface);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x1f2933,
+            color: 0x050505,
             transparent: true,
-            opacity: 0.78,
+            opacity: 0.72,
+            depthTest: true,
+            depthWrite: false
+        });
+        const seamMaterial = new THREE.LineBasicMaterial({
+            color: 0x050505,
+            transparent: true,
+            opacity: 0.86,
             depthTest: true,
             depthWrite: false
         });
@@ -527,13 +534,18 @@ class Reversi3DRenderer {
             this.boardGroup.add(line);
         };
 
-        for (const points of createKleinBottleGridLines({
-            uSteps: Math.max(8, Math.min(12, Math.round(height * 0.55))),
-            vSteps: Math.max(8, Math.min(12, width)),
-            lift: 0.035,
-            uSegments: 220,
-            vSegments: 160
-        })) addLine(points, gridMaterial);
+        const drawn = new Set();
+        for (const coord of topology.allCoords()) {
+            for (const direction of [[1, 0], [0, 1]]) {
+                const neighbor = topology.step(coord, direction);
+                if (!neighbor) continue;
+                const edgeKey = [topology.key(coord), topology.key(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
+                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.056, seam ? 36 : 24), seam ? seamMaterial : gridMaterial);
+            }
+        }
 
         const pointPositions = [];
         for (const coord of topology.allCoords()) {
@@ -543,8 +555,8 @@ class Reversi3DRenderer {
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.04 : width <= 13 ? 0.031 : 0.024, {
-            color: 0xe8f4f7,
-            opacity: 0.78,
+            color: 0xf0fdf4,
+            opacity: 0.92,
             depthTest: true,
             renderOrder: 5
         });
@@ -936,10 +948,7 @@ class Reversi3DRenderer {
         const visualCoord = this.surfaceCellCoord(coord, logic);
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
             const visibleLift = Math.abs(lift);
-            return [
-                this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice),
-                this.mobiusPose(visualCoord, topology.width, topology.height, -visibleLift, topology.lattice)
-            ];
+            return [this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice)];
         }
         if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
             return [this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift)];
@@ -1170,7 +1179,7 @@ class Reversi3DRenderer {
             dx,
             dy,
             cylinderRadius: HONEYCOMB_CYLINDER_RADIUS,
-            periodX: Math.max(1, Math.sqrt(3) * (width + (height > 1 ? 0.5 : 0))),
+            periodX: Math.max(1, Math.sqrt(3) * width),
             periodY: Math.max(1, 1.5 * (height - 1) + 2),
             minY: 0,
             maxY: Math.max(1, 1.5 * (height - 1) + 2)
@@ -1284,10 +1293,6 @@ class Reversi3DRenderer {
         for (const [a, b] of edges.values()) {
             this.appendPolyline(linePositions, this.surfacePlanarEdgePoints(a, b, metrics, surface, lift, 8));
         }
-        if (surface === 'cylinder') {
-            linePositions.push(...this.surfaceHoneycombCylinderSeamPositions(width, height, metrics, lift));
-        }
-
         return linePositions;
     }
 

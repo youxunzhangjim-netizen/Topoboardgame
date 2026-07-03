@@ -46,6 +46,9 @@ const TOPOLOGY_ALIASES = Object.freeze({
     rp2: 'rp2',
     projective: 'rp2',
     'projective-plane': 'rp2',
+    trefoil: 'trefoil_tube',
+    'trefoil-tube': 'trefoil_tube',
+    trefoil_tube: 'trefoil_tube',
     random: 'random',
     'random-boundary': 'random',
     rbc: 'random',
@@ -54,7 +57,7 @@ const TOPOLOGY_ALIASES = Object.freeze({
     '3d-rbc': 'r3_random'
 });
 
-const SURFACE_3D_TOPOLOGIES = new Set(['t2', 'cylinder', 'sphere', 'mobius', 'klein', 'rp2']);
+const SURFACE_3D_TOPOLOGIES = new Set(['t2', 'cylinder', 'sphere', 'mobius', 'klein', 'rp2', 'trefoil_tube']);
 const VOLUME_3D_TOPOLOGIES = new Set(['open', 'torus', 'r3_random']);
 
 export function otherHexColor(color) {
@@ -366,7 +369,7 @@ function normalize2DCoordinate(coordinate, size, topology, randomBoundary = null
         return y >= 0 && y < height ? [modulo(x, width), y] : null;
     }
 
-    if (topology === 'torus') {
+    if (topology === 'torus' || topology === 'trefoil_tube') {
         return [modulo(x, width), modulo(y, height)];
     }
 
@@ -896,7 +899,7 @@ export function createHexTopology(options = {}) {
         size,
         topology,
         lattice,
-        isWrapped: ['cylinder', 'torus', 't2', 'sphere', 'mobius', 'klein', 'rp2', 'random', 'r3_random'].includes(topology),
+        isWrapped: ['cylinder', 'torus', 't2', 'sphere', 'mobius', 'klein', 'rp2', 'trefoil_tube', 'random', 'r3_random'].includes(topology),
         randomBoundarySeed,
         randomBoundary,
         goalZones,

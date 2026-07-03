@@ -246,6 +246,12 @@ function createGoalZones({ type, segmentCount = 0, thetaCount = 0 }) {
     const arc = Math.max(1, Math.floor(count / 22));
     const thetaOf = (coordinate) => Number(coordinate[1] || 0);
     const hasTheta = type === 'trefoil_tube' || type === 'trefoil_solid' || type === 'trefoil_solid_product';
+    const thetaCountSafe = Math.max(2, thetaCount);
+    const thetaArc = Math.max(0, Math.floor(thetaCountSafe / 10));
+    const nearTubePatch = (coordinate, segmentAnchor, thetaAnchor) => {
+        return cyclicDistance(coordinate[0], segmentAnchor, count) <= arc
+            && cyclicDistance(thetaOf(coordinate), thetaAnchor, thetaCountSafe) <= thetaArc;
+    };
     return Object.freeze({
         black: Object.freeze({
             type: 'marked-knot-arcs',
@@ -255,12 +261,12 @@ function createGoalZones({ type, segmentCount = 0, thetaCount = 0 }) {
         }),
         white: Object.freeze({
             type: 'marked-knot-arcs',
-            label: hasTheta ? 'opposite tube-angle arcs' : 'quarter-turn trefoil arcs',
+            label: hasTheta ? 'separated trefoil tube patches' : 'quarter-turn trefoil arcs',
             start: (coordinate) => hasTheta
-                ? thetaOf(coordinate) === 0
+                ? nearTubePatch(coordinate, Math.floor(count / 4), Math.floor(thetaCountSafe / 4))
                 : cyclicDistance(coordinate[0], Math.floor(count / 4), count) <= arc,
             end: (coordinate) => hasTheta
-                ? thetaOf(coordinate) === Math.floor(Math.max(2, thetaCount) / 2)
+                ? nearTubePatch(coordinate, Math.floor(3 * count / 4), Math.floor(3 * thetaCountSafe / 4))
                 : cyclicDistance(coordinate[0], Math.floor(3 * count / 4), count) <= arc
         })
     });

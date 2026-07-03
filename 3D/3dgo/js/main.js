@@ -37,7 +37,6 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
-    createKleinBottleGridLines,
     kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
@@ -593,8 +592,8 @@ class Go3DRenderer {
                 color: 0xa87938,
                 roughness: 0.64,
                 metalness: 0.01,
-                transparent: false,
-                opacity: 1,
+                transparent: true,
+                opacity: 0.92,
                 depthWrite: true,
                 clearcoat: 0.2,
                 clearcoatRoughness: 0.54,
@@ -622,16 +621,6 @@ class Go3DRenderer {
             line.renderOrder = 4;
             this.boardGroup.add(line);
         };
-
-        for (const points of createKleinBottleGridLines({
-            uSteps: Math.max(7, height + 1),
-            vSteps: Math.max(7, width + 1),
-            lift: -0.045,
-            uSegments: 180,
-            vSegments: 140
-        })) {
-            addLine(points);
-        }
 
         const pointPositions = [];
         const logic = this.app.logic;
@@ -661,7 +650,7 @@ class Go3DRenderer {
 
     buildMobius(width, height) {
         const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xd19a54,
+            color: 0xd4a05f,
             roughness: 0.58,
             metalness: 0.02,
             transparent: false,
@@ -672,7 +661,7 @@ class Go3DRenderer {
             side: THREE.DoubleSide
         });
         const surface = new THREE.Mesh(
-            this.createMobiusSolidGeometry(224, 50, 0.064),
+            this.createMobiusSolidGeometry(176, 42, 0.084),
             surfaceMaterial
         );
         surface.castShadow = true;
@@ -712,7 +701,7 @@ class Go3DRenderer {
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
                 addLine(
-                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.052, seam ? 34 : 22),
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.132, seam ? 38 : 26),
                     seam ? seamMaterial : gridMaterial
                 );
             }
@@ -720,17 +709,15 @@ class Go3DRenderer {
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            for (const lift of [0.075, -0.075]) {
-                const pose = this.mobiusPose(coord, width, height, lift);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(pose.position);
-                pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
-            }
+            const pose = this.mobiusPose(coord, width, height, 0.18);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(pose.position);
+            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
             opacity: 0.96,
-            depthTest: false,
+            depthTest: true,
             renderOrder: 3
         });
         this.addMobiusStarPoints(width, height);
@@ -1176,7 +1163,7 @@ class Go3DRenderer {
         );
         const matrix = new THREE.Matrix4();
         unique.forEach((coord, index) => {
-            const position = this.mobiusPose(coord, width, height, 0.1).position;
+            const position = this.mobiusPose(coord, width, height, 0.19).position;
             matrix.makeTranslation(position.x, position.y, position.z);
             mesh.setMatrixAt(index, matrix);
         });
@@ -1397,8 +1384,7 @@ class Go3DRenderer {
     positionsForCoord(coord, logic) {
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
             return [
-                this.mobiusPose(coord, logic.width, logic.height, 0.18).position,
-                this.mobiusPose(coord, logic.width, logic.height, -0.18).position
+                this.mobiusPose(coord, logic.width, logic.height, 0.18).position
             ];
         }
         return [this.positionForCoord(coord, logic)];
