@@ -20,6 +20,7 @@ import {
 
 const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
+const HONEYCOMB_CYLINDER_RADIUS = 2.08;
 const CYLINDER_HEIGHT = 5.8;
 const MOBIUS_BAND_RADIUS = 3.45;
 const MOBIUS_BAND_HALF_WIDTH = 1.86;
@@ -285,8 +286,11 @@ class Reversi3DRenderer {
     }
 
     buildCylinder(width, height, lattice = 'square') {
+        const surfaceRadius = lattice === HONEYCOMB_LATTICE
+            ? HONEYCOMB_CYLINDER_RADIUS
+            : CYLINDER_RADIUS;
         const surface = new THREE.Mesh(
-            new THREE.CylinderGeometry(CYLINDER_RADIUS, CYLINDER_RADIUS, CYLINDER_HEIGHT, 128, 1, true),
+            new THREE.CylinderGeometry(surfaceRadius, surfaceRadius, CYLINDER_HEIGHT, 128, 1, true),
             new THREE.MeshPhysicalMaterial({
                 color: 0x6f8e56,
                 roughness: 0.58,
@@ -1165,6 +1169,7 @@ class Reversi3DRenderer {
             radius,
             dx,
             dy,
+            cylinderRadius: HONEYCOMB_CYLINDER_RADIUS,
             periodX: Math.max(1, Math.sqrt(3) * (width + (height > 1 ? 0.5 : 0))),
             periodY: Math.max(1, 1.5 * (height - 1) + 2),
             minY: 0,
@@ -1188,7 +1193,7 @@ class Reversi3DRenderer {
         }
         const span = Math.max(1e-6, metrics.maxY - metrics.minY);
         const band = THREE.MathUtils.clamp((point.y - metrics.minY) / span, 0, 1);
-        return this.cylinderPointFromUV({ u, band }, lift);
+        return this.cylinderPointFromUV({ u, band }, lift, metrics.cylinderRadius);
     }
 
     honeycombSurfacePose(coord, width, height, surface, lift = 0.08) {
@@ -1208,7 +1213,7 @@ class Reversi3DRenderer {
         }
         const band = THREE.MathUtils.clamp((center.y - metrics.minY) / Math.max(1e-6, metrics.maxY - metrics.minY), 0, 1);
         return {
-            position: this.cylinderPointFromUV({ u, band }, lift),
+            position: this.cylinderPointFromUV({ u, band }, lift, metrics.cylinderRadius),
             normal: new THREE.Vector3(Math.cos(u), 0, Math.sin(u)).normalize()
         };
     }
@@ -1294,7 +1299,7 @@ class Reversi3DRenderer {
             points.push(this.cylinderPointFromUV({
                 u: 0,
                 band: step / segments
-            }, lift + 0.012));
+            }, lift + 0.012, metrics.cylinderRadius));
         }
         this.appendPolyline(linePositions, points);
         return linePositions;
@@ -1326,8 +1331,8 @@ class Reversi3DRenderer {
         );
     }
 
-    cylinderPointFromUV(uv, lift = 0) {
-        const radius = CYLINDER_RADIUS + lift;
+    cylinderPointFromUV(uv, lift = 0, baseRadius = CYLINDER_RADIUS) {
+        const radius = baseRadius + lift;
         const y = (0.5 - uv.band) * CYLINDER_HEIGHT;
         return new THREE.Vector3(radius * Math.cos(uv.u), y, radius * Math.sin(uv.u));
     }
