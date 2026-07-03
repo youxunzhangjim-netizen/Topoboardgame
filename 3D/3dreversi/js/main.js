@@ -7,7 +7,7 @@ import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
     createKleinBottleSurfaceGeometry,
-    kleinBottleGraphEdgePoints,
+    createKleinBottleGridLines,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
 import {
@@ -498,8 +498,8 @@ class Reversi3DRenderer {
                 roughness: 0.58,
                 metalness: 0.02,
                 transparent: true,
-                opacity: 0.78,
-                depthWrite: true,
+                opacity: 0.74,
+                depthWrite: false,
                 clearcoat: 0.24,
                 clearcoatRoughness: 0.48,
                 side: THREE.DoubleSide
@@ -520,13 +520,6 @@ class Reversi3DRenderer {
             depthTest: true,
             depthWrite: false
         });
-        const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
-            transparent: true,
-            opacity: 0.86,
-            depthTest: true,
-            depthWrite: false
-        });
         const addLine = (points, material = gridMaterial) => {
             const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
             line.scale.setScalar(KLEIN_RENDER_SCALE);
@@ -534,29 +527,26 @@ class Reversi3DRenderer {
             this.boardGroup.add(line);
         };
 
-        const drawn = new Set();
-        for (const coord of topology.allCoords()) {
-            for (const direction of [[1, 0], [0, 1]]) {
-                const neighbor = topology.step(coord, direction);
-                if (!neighbor) continue;
-                const edgeKey = [topology.key(coord), topology.key(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                const seam = Math.abs(coord[0] - neighbor[0]) > 1 || Math.abs(coord[1] - neighbor[1]) > 1;
-                addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.056, seam ? 36 : 24), seam ? seamMaterial : gridMaterial);
-            }
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(8, height),
+            vSteps: Math.max(8, width),
+            lift: -0.057,
+            uSegments: 180,
+            vSegments: 160
+        })) {
+            addLine(points, gridMaterial);
         }
 
         const pointPositions = [];
         for (const coord of topology.allCoords()) {
-            const pose = this.posesForCoord(coord, this.app.logic, 0.18)[0];
+            const pose = this.posesForCoord(coord, this.app.logic, 0.11)[0];
             this.pointCoords.push(coord);
             this.pointPositions.push(pose.position);
             pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
-        this.addNodePoints(pointPositions, width <= 9 ? 0.04 : width <= 13 ? 0.031 : 0.024, {
+        this.addNodePoints(pointPositions, width <= 9 ? 0.035 : width <= 13 ? 0.027 : 0.022, {
             color: 0xf0fdf4,
-            opacity: 0.92,
+            opacity: 0.04,
             depthTest: true,
             renderOrder: 5
         });
@@ -813,7 +803,7 @@ class Reversi3DRenderer {
 
     addSurfaceStoneDiscs(poses, color, logic) {
         if (!poses.length) return;
-        const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.08 : 1.55);
+        const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.26 : 1.55);
         const discGeometry = new THREE.CircleGeometry(radius, 42);
         const rimGeometry = new THREE.RingGeometry(radius * 0.92, radius * 1.08, 42);
         const discMaterial = new THREE.MeshPhysicalMaterial({
@@ -1727,7 +1717,7 @@ class Reversi3DApp {
 
     latticeOptionsForMode(mode = this.modeSelect.value) {
         if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
-        if (mode === REVERSI_TOPOLOGIES.T2) return [SQUARE_LATTICE];
+        if (mode === REVERSI_TOPOLOGIES.T2) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE];
         return [SQUARE_LATTICE];

@@ -37,6 +37,7 @@ import { KLEIN_BOTTLE_TOPOLOGY } from './KleinBottleTopology.js';
 import { MOBIUS_GO_TOPOLOGY, RP2_GO_TOPOLOGY } from './NonOrientableGoTopology.js';
 import {
     createKleinBottleSurfaceGeometry,
+    createKleinBottleGridLines,
     kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../../js/geometry/KleinBottleGeometry.js';
@@ -650,6 +651,15 @@ class Go3DRenderer {
                 addLine(kleinBottleGraphEdgePoints(coord, neighbor, width, height, -0.12, 34));
             }
         }
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(8, height),
+            vSteps: Math.max(8, width),
+            lift: -0.121,
+            uSegments: 180,
+            vSegments: 160
+        })) {
+            addLine(points);
+        }
         for (const coord of logic.playableCoords()) {
             const pose = this.kleinOutsidePose(coord, width, height, 0.18);
             this.pointCoords.push(coord);
@@ -736,11 +746,10 @@ class Go3DRenderer {
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
-            opacity: 0.96,
+            opacity: 0.001,
             depthTest: true,
             renderOrder: 3
         });
-        this.addMobiusStarPoints(width, height);
     }
 
     isMobiusSeamEdge(a, b, width) {
@@ -1747,13 +1756,11 @@ class Go3DRenderer {
             const bounds = honeycombBounds(width, height);
             const rawX = point.x - bounds.minX;
             const rawY = point.y - bounds.minY;
-            const torusPaddingX = surfaceKind === 'torus' ? 0.75 : 0;
-            const torusPaddingY = surfaceKind === 'torus' ? Math.sqrt(3) * 0.5 : 0;
-            const rawWidth = Math.max(1, bounds.maxX - bounds.minX + torusPaddingX * 2);
-            const rawHeight = Math.max(1, bounds.maxY - bounds.minY + torusPaddingY * 2);
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
             return {
-                u: ((rawX + torusPaddingX) / rawWidth) * TWO_PI,
-                v: ((rawY + torusPaddingY) / rawHeight) * TWO_PI,
+                u: (rawX / rawWidth) * TWO_PI,
+                v: (rawY / rawHeight) * TWO_PI,
                 band: rawY / Math.max(1, bounds.maxY - bounds.minY)
             };
         }
@@ -1781,13 +1788,11 @@ class Go3DRenderer {
         const bounds = honeycombBounds(width, height);
         const rawX = Number(point?.x || 0) - bounds.minX;
         const rawY = Number(point?.y || 0) - bounds.minY;
-        const torusPaddingX = surfaceKind === 'torus' ? 0.75 : 0;
-        const torusPaddingY = surfaceKind === 'torus' ? Math.sqrt(3) * 0.5 : 0;
-        const rawWidth = Math.max(1, bounds.maxX - bounds.minX + torusPaddingX * 2);
-        const rawHeight = Math.max(1, bounds.maxY - bounds.minY + torusPaddingY * 2);
+        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
         return {
-            u: ((rawX + torusPaddingX) / rawWidth) * TWO_PI,
-            v: ((rawY + torusPaddingY) / rawHeight) * TWO_PI,
+            u: (rawX / rawWidth) * TWO_PI,
+            v: (rawY / rawHeight) * TWO_PI,
             band: rawY / Math.max(1, bounds.maxY - bounds.minY)
         };
     }
@@ -1908,8 +1913,8 @@ class Go3DRenderer {
     }
 
     torusSurfaceEdgePoints(a, b, size, lattice = SQUARE_LATTICE, lift = 0.04, segments = 6) {
-        const start = this.latticeSurfaceUV(a, size, size, lattice);
-        const end = this.latticeSurfaceUV(b, size, size, lattice);
+        const start = this.latticeSurfaceUV(a, size, size, lattice, 'torus');
+        const end = this.latticeSurfaceUV(b, size, size, lattice, 'torus');
         const du = this.shortestAngleDelta(start.u, end.u);
         const dv = this.shortestAngleDelta(start.v, end.v);
         const points = [];
@@ -1924,8 +1929,8 @@ class Go3DRenderer {
     }
 
     cylinderSurfaceEdgePoints(a, b, width, height, lattice = SQUARE_LATTICE, lift = 0.04, segments = 6) {
-        const start = this.latticeSurfaceUV(a, width, height, lattice);
-        const end = this.latticeSurfaceUV(b, width, height, lattice);
+        const start = this.latticeSurfaceUV(a, width, height, lattice, 'cylinder');
+        const end = this.latticeSurfaceUV(b, width, height, lattice, 'cylinder');
         const du = this.shortestAngleDelta(start.u, end.u);
         const points = [];
         for (let step = 0; step <= segments; step += 1) {

@@ -5,10 +5,11 @@ import { loadLatestJumpTrainedScorer } from './JumpTrainedRobot.js';
 import { recordRobotLearningMove } from './RobotLearningRecorder.js';
 
 const JUMP_ROBOT_STEP_MS = 1000;
+const EMBEDDED_SURFACE_TOPOLOGIES = new Set(['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell']);
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
   plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Mobius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
-  cube: '3D', reflective: 'Reflective', shell: 'Sphere / Shell', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
+  cube: 'R3', reflective: 'Reflective', shell: 'Sphere / Shell', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
 };
 const TOPOLOGY_ZH_LABELS = {
   plane: '標準',
@@ -19,7 +20,7 @@ const TOPOLOGY_ZH_LABELS = {
   klein: 'Klein 瓶',
   rp2: 'RP2',
   sphere: '球面',
-  cube: '3D',
+  cube: 'R3',
   reflective: '反射',
   shell: '球殼',
   hypercube: '4D',
@@ -141,6 +142,10 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   'z = all': 'z = 全部'
 }));
 JUMP_ZH_TEXT.set('Diamond Jump', '菱形跳棋');
+JUMP_ZH_TEXT.set('Space', '空間');
+JUMP_ZH_TEXT.set('R3 Jump', 'R3 跳棋');
+JUMP_ZH_TEXT.set('R3', 'R3');
+JUMP_ZH_TEXT.set('Sphere / Shell', '球面 / 球殼');
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || min)); }
 function parseCoordKey(key) { return key.split(',').map(Number); }
@@ -230,7 +235,8 @@ export class JumpGameApp {
       rotZ: document.getElementById('viewRotateZ'),
       zoom: document.getElementById('viewZoom'),
       reset: document.getElementById('viewResetButton'),
-      focusOwn: document.getElementById('focusOwnPiecesBtn')
+      focusOwn: document.getElementById('focusOwnPiecesBtn'),
+      cameraPad: document.getElementById('cameraPad')
     };
     this.sliceInputs = {
       x: document.getElementById('r3FilterX') || document.getElementById('sliceXInput'),
@@ -259,14 +265,15 @@ export class JumpGameApp {
 
   createGame() {
     const topology = this.topologySelect?.value || this.config.topology || 'plane';
+    const gameDimension = this.effectiveDimensionForTopology(topology);
     this.syncLatticeAvailability(topology);
-    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, topology);
+    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', gameDimension, topology);
     const playerCount = Math.max(2, Math.min(3, Math.floor(Number(this.playerCountSelect?.value || this.config.playerCount || 2) || 2)));
     const size = Number(this.sizeSelect?.value || this.config.size || (this.dimension === 4 ? 5 : this.dimension === 3 ? 6 : 8));
     const targetAxis = this.axisSelect?.value || this.config.targetAxis || 'x';
     const labTargetMode = this.targetModeSelect?.value || 'opponentHome';
     return new JumpGameState({
-      dimension: this.dimension,
+      dimension: gameDimension,
       size,
       topology,
       lattice,
@@ -276,6 +283,11 @@ export class JumpGameApp {
       labTargetMode,
       zoneMode: ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'projection', '4d-torus'].includes(topology) ? 'marked' : 'auto'
     });
+  }
+
+  effectiveDimensionForTopology(topology = this.topologySelect?.value || this.config.topology || 'plane') {
+    const top = String(topology || '').toLowerCase();
+    return this.dimension >= 3 && EMBEDDED_SURFACE_TOPOLOGIES.has(top) ? 2 : this.dimension;
   }
 
   applyInitialSelectValues() {
@@ -297,18 +309,22 @@ export class JumpGameApp {
   syncLatticeAvailability(topology = this.topologySelect?.value || this.config.topology || 'plane') {
     if (!this.latticeSelect) return;
     const top = String(topology || '').toLowerCase();
-    const allowGraphLattice = this.dimension === 2 && top !== 'polar';
+    const effectiveDimension = this.effectiveDimensionForTopology(top);
+    const allowGraphLattice = effectiveDimension === 2 && top !== 'polar';
+    const allowKagome = this.dimension === 2;
     for (const option of this.latticeSelect.options) {
-      option.disabled = ['triangular', 'kagome'].includes(option.value) && !allowGraphLattice;
+      option.disabled = (option.value === 'triangular' && !allowGraphLattice)
+        || (option.value === 'kagome' && (!allowGraphLattice || !allowKagome));
       option.textContent = this.language === 'zh'
         ? (option.value === 'triangular' ? '三角格' : '方格')
         : (LATTICE_LABELS[option.value] || option.textContent);
       if (this.language === 'zh' && option.value === 'kagome') option.textContent = 'Kagome 格';
     }
-    if (!allowGraphLattice || !['triangular', 'kagome'].includes(this.latticeSelect.value)) {
-      this.latticeSelect.value = normalizeJumpLattice(this.latticeSelect.value || this.config.lattice || 'square', this.dimension, top);
+    if (!allowGraphLattice || (this.latticeSelect.value === 'kagome' && !allowKagome) || !['square', 'triangular', 'kagome'].includes(this.latticeSelect.value)) {
+      this.latticeSelect.value = normalizeJumpLattice(this.latticeSelect.value || this.config.lattice || 'square', effectiveDimension, top);
+      if (this.latticeSelect.value === 'kagome' && !allowKagome) this.latticeSelect.value = 'square';
     }
-    this.latticeSelect.disabled = this.dimension !== 2 || top === 'polar';
+    this.latticeSelect.disabled = !allowGraphLattice;
     this.latticeSelect.title = top === 'polar'
       ? (this.language === 'zh' ? '極座標跳棋固定使用方格徑向/角向連線。' : 'Polar Jump uses square radial/angular links only.')
       : '';
@@ -409,6 +425,11 @@ export class JumpGameApp {
       this.syncPieceFocusButton();
       this.render();
     });
+    this.viewControls.cameraPad?.addEventListener('click', (event) => {
+      const button = event.target.closest?.('button[data-camera-view]');
+      if (!button) return;
+      this.setCameraView(button.dataset.cameraView || 'home');
+    });
     this.canvas.addEventListener('wheel', (event) => {
       event.preventDefault();
       const factor = event.deltaY < 0 ? 1.08 : 0.92;
@@ -432,6 +453,26 @@ export class JumpGameApp {
     this.canvas.addEventListener('contextmenu', (event) => { if (this.usesEmbeddedView()) event.preventDefault(); });
     this.updateR3SliceFilterVisibility();
     this.syncPieceFocusButton();
+  }
+
+  isFreeAxis3DBoard() {
+    const top = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    return this.dimension >= 3 && !EMBEDDED_SURFACE_TOPOLOGIES.has(top);
+  }
+
+  setCameraView(view) {
+    const presets = {
+      x: { rotX: 0, rotY: 90, rotZ: 0, zoom: 1.08 },
+      y: { rotX: -90, rotY: 0, rotZ: 0, zoom: 1.08 },
+      z: { rotX: 0, rotY: 0, rotZ: 0, zoom: 1.08 },
+      home: { rotX: -26, rotY: 32, rotZ: 0, zoom: 1 }
+    };
+    Object.assign(this.view, presets[view] || presets.home, { drag: null });
+    if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
+    if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
+    if (this.viewControls.rotZ) this.viewControls.rotZ.value = String(this.view.rotZ);
+    if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom);
+    this.render();
   }
 
   updateLabels() {
@@ -464,6 +505,7 @@ export class JumpGameApp {
     this.network.gameKey = this.onlineGameKey();
     this.network.matchKey = this.onlineMatchKey();
     this.updateLabels();
+    this.updateR3SliceFilterVisibility();
     this.render();
     if (this.modeSelect?.value === 'online' && this.game.playerCount >= 3 && this.game.currentPlayer === 'C' && this.myColor === 'A') {
       setTimeout(() => this.onlineRobotTurn('C'), JUMP_ROBOT_STEP_MS);
@@ -890,7 +932,7 @@ export class JumpGameApp {
   }
 
   visibleCoord(coord) {
-    if (this.dimension <= 2) return true;
+    if ((this.game?.dimension || this.effectiveDimensionForTopology()) <= 2) return true;
     const { x, y, z, w } = this.r3SliceSettings();
     if (x !== null && coord[0] !== x) return false;
     if (y !== null && coord[1] !== y) return false;
@@ -927,9 +969,11 @@ export class JumpGameApp {
   }
 
   updateR3SliceFilterVisibility() {
-    const show = this.dimension >= 3;
+    const show = this.isFreeAxis3DBoard();
     if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show;
     if (this.viewControls.focusOwn) this.viewControls.focusOwn.hidden = !show;
+    this.viewControls.cameraPad?.classList.toggle('is-visible', show);
+    if (!show) this.clearR3SliceFilters(false);
   }
 
   focusPlayer() {
@@ -990,7 +1034,8 @@ export class JumpGameApp {
     const size = Math.max(1, this.game?.size || 1);
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const lattice = String(this.game?.lattice || this.latticeSelect?.value || 'square').toLowerCase();
-    if (this.dimension === 2 && topology === 'diamond') {
+    const graphDimension = this.game?.dimension || this.dimension;
+    if (graphDimension === 2 && topology === 'diamond') {
       const points = this.game.topology.allCoords().map((c) => ({
         x: (c[0] || 0) + (c[1] || 0) * 0.5,
         y: (c[1] || 0) * Math.sqrt(3) / 2
@@ -1008,7 +1053,7 @@ export class JumpGameApp {
         maxY: Math.max(1, maxY - minY)
       };
     }
-    if (this.dimension === 2 && (lattice === 'triangular' || lattice === 'kagome') && !this.isPolarBoard()) {
+    if (graphDimension === 2 && (lattice === 'triangular' || lattice === 'kagome') && !this.isPolarBoard()) {
       const last = Math.max(0, size - 1);
       return {
         x: (coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5,
@@ -1094,10 +1139,12 @@ export class JumpGameApp {
       const normal = this.usesOpaqueSurfaceView() ? this.embeddedSurfaceNormal(coord, model) : null;
       const rotatedNormal = normal ? this.rotatePoint3D(normal) : null;
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
-      const scale = Math.min(width, height) * 0.39 * (this.view.zoom || 1) * perspective;
+      const baseScale = this.usesOpaqueSurfaceView() ? 0.31 : 0.39;
+      const scale = Math.min(width, height) * baseScale * (this.view.zoom || 1) * perspective;
+      const centerY = height * (this.usesOpaqueSurfaceView() ? 0.5 : 0.42);
       return {
         x: width / 2 + x * scale,
-        y: height * 0.42 + y * scale,
+        y: centerY + y * scale,
         depth: z,
         frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08
       };
@@ -1118,6 +1165,88 @@ export class JumpGameApp {
       x: originX + planar.x * boardScale + zShift,
       y: originY + planar.y * boardScale - zShift + wShift
     };
+  }
+
+  surfaceDrawAlpha(coord) {
+    if (!this.usesOpaqueSurfaceView()) return 1;
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    const front = this.project(coord).frontFacing !== false;
+    if (topology === 'torus' || topology === 'cylinder') return front ? 1 : 0;
+    return front ? 1 : 0.28;
+  }
+
+  projectEmbeddedModelPoint(model, normal = null) {
+    const width = this.canvas.widthCss || this.canvas.clientWidth || 720;
+    const height = this.canvas.heightCss || this.canvas.clientHeight || 520;
+    const [x, y, z] = this.rotatePoint3D(model);
+    const rotatedNormal = normal ? this.rotatePoint3D(normal) : null;
+    const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
+    const baseScale = 0.31;
+    const scale = Math.min(width, height) * baseScale * (this.view.zoom || 1) * perspective;
+    return {
+      x: width / 2 + x * scale,
+      y: height * 0.5 + y * scale,
+      depth: z,
+      frontFacing: !rotatedNormal || rotatedNormal[2] >= -0.08
+    };
+  }
+
+  goStyleSurfacePoint(topology, u, v) {
+    if (topology === 'torus') {
+      const R = 1.45;
+      const r = 0.48;
+      const point = [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v)];
+      const normal = [Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)];
+      return { point, normal };
+    }
+    const radius = 1.18;
+    const y = (0.5 - v) * 2.25;
+    return {
+      point: [radius * Math.cos(u), y, radius * Math.sin(u)],
+      normal: [Math.cos(u), 0, Math.sin(u)]
+    };
+  }
+
+  drawGoStyleEmbeddedSurface(topology) {
+    if (topology !== 'torus' && topology !== 'cylinder') return false;
+    const ctx = this.ctx;
+    const uSegments = topology === 'torus' ? 42 : 36;
+    const vSegments = topology === 'torus' ? 18 : 12;
+    const cells = [];
+    for (let iu = 0; iu < uSegments; iu += 1) {
+      const u0 = (iu / uSegments) * Math.PI * 2;
+      const u1 = ((iu + 1) / uSegments) * Math.PI * 2;
+      for (let iv = 0; iv < vSegments; iv += 1) {
+        const v0 = topology === 'torus' ? (iv / vSegments) * Math.PI * 2 : iv / vSegments;
+        const v1 = topology === 'torus' ? ((iv + 1) / vSegments) * Math.PI * 2 : (iv + 1) / vSegments;
+        const samples = [
+          this.goStyleSurfacePoint(topology, u0, v0),
+          this.goStyleSurfacePoint(topology, u1, v0),
+          this.goStyleSurfacePoint(topology, u1, v1),
+          this.goStyleSurfacePoint(topology, u0, v1)
+        ].map(({ point, normal }) => this.projectEmbeddedModelPoint(point, normal));
+        const depth = samples.reduce((sum, point) => sum + point.depth, 0) / samples.length;
+        const frontCount = samples.filter((point) => point.frontFacing).length;
+        cells.push({ samples, depth, front: frontCount >= 2 });
+      }
+    }
+    cells.sort((a, b) => b.depth - a.depth);
+    ctx.save();
+    for (const cell of cells) {
+      ctx.beginPath();
+      cell.samples.forEach((point, index) => {
+        if (index) ctx.lineTo(point.x, point.y);
+        else ctx.moveTo(point.x, point.y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = cell.front ? '#17304a' : '#0d1d2d';
+      ctx.fill();
+      ctx.strokeStyle = cell.front ? 'rgba(113, 185, 255, 0.32)' : 'rgba(113, 185, 255, 0.12)';
+      ctx.lineWidth = cell.front ? 0.9 : 0.55;
+      ctx.stroke();
+    }
+    ctx.restore();
+    return true;
   }
 
   render() {
@@ -1147,9 +1276,7 @@ export class JumpGameApp {
     ctx.fillRect(0, 0, width, height);
     const visibleCoords = this.game.topology.allCoords().filter((c) => this.visibleCoord(c));
     if (this.usesOpaqueSurfaceView()) this.drawEmbeddedSurfaceFill(visibleCoords);
-    const coords = visibleCoords.filter((c) => {
-      return !this.usesOpaqueSurfaceView() || this.project(c).frontFacing !== false;
-    });
+    const coords = visibleCoords;
     if (this.isPolarBoard()) this.drawPolarFrame(width, height);
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(95, 174, 255, 0.26)';
@@ -1163,18 +1290,40 @@ export class JumpGameApp {
         edgeKeys.add(edgeKey);
         const a = this.project(coord);
         const b = this.project(next);
-        if (this.usesOpaqueSurfaceView() && b.frontFacing === false) continue;
         if (!this.usesEmbeddedView() && Math.hypot(a.x - b.x, a.y - b.y) > Math.min(width, height) / 2) continue;
+        const edgeAlpha = this.usesOpaqueSurfaceView() ? Math.min(this.surfaceDrawAlpha(coord), this.surfaceDrawAlpha(next)) : 1;
+        if (edgeAlpha <= 0) continue;
+        ctx.save();
+        ctx.globalAlpha = edgeAlpha;
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.restore();
       }
     }
-    for (const coord of coords) this.drawZone(coord);
-    for (const coord of coords) this.drawSite(coord);
+    for (const coord of coords) {
+      const alpha = this.surfaceDrawAlpha(coord);
+      if (alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      this.drawZone(coord);
+      ctx.restore();
+    }
+    for (const coord of coords) {
+      const alpha = this.surfaceDrawAlpha(coord);
+      if (alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      this.drawSite(coord);
+      ctx.restore();
+    }
     for (const [key, owner] of this.game.pieces.entries()) {
       const coord = parseCoordKey(key);
       if (!this.visibleCoord(coord)) continue;
-      if (this.usesOpaqueSurfaceView() && this.project(coord).frontFacing === false) continue;
+      const alpha = this.surfaceDrawAlpha(coord);
+      if (alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
       this.drawPiece(coord, owner, this.game.labels.get(key));
+      ctx.restore();
     }
     if (this.game.chainPath.length) this.drawPath(this.game.chainPath);
     if (this.selected) this.drawSelected(this.selected);
@@ -1183,6 +1332,8 @@ export class JumpGameApp {
 
   drawEmbeddedSurfaceFill(coords) {
     if (!coords?.length) return;
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    if (this.drawGoStyleEmbeddedSurface(topology)) return;
     const projected = coords
       .map((coord) => this.project(coord))
       .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y));
@@ -1197,7 +1348,7 @@ export class JumpGameApp {
       else ctx.moveTo(point.x, point.y);
     });
     ctx.closePath();
-    ctx.fillStyle = 'rgba(19, 40, 58, 0.96)';
+    ctx.fillStyle = 'rgb(19, 40, 58)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(97, 174, 255, 0.38)';
     ctx.lineWidth = 1.2;
@@ -1382,7 +1533,10 @@ export class JumpGameApp {
     if (normalized.playerCount && this.playerCountSelect && [...this.playerCountSelect.options].some((option) => option.value === String(normalized.playerCount))) {
       this.playerCountSelect.value = String(normalized.playerCount);
     }
-    if (normalized.lattice && this.latticeSelect) this.latticeSelect.value = normalizeJumpLattice(normalized.lattice, this.dimension, normalized.topology || this.topologySelect?.value);
+    if (normalized.lattice && this.latticeSelect) {
+      const topology = normalized.topology || this.topologySelect?.value;
+      this.latticeSelect.value = normalizeJumpLattice(normalized.lattice, this.effectiveDimensionForTopology(topology), topology);
+    }
     this.syncLatticeAvailability(normalized.topology || this.topologySelect?.value);
     this.game.import(normalized);
     this.timeLimit = Number(normalized.timeLimit || 0) || 0;
@@ -1398,6 +1552,7 @@ export class JumpGameApp {
     this.selected = null;
     this.legal = [];
     this.updateLabels();
+    this.updateR3SliceFilterVisibility();
     this.render();
   }
   importNetworkState(state) { this.importState(state); }
@@ -1405,7 +1560,7 @@ export class JumpGameApp {
   onlineGameKey() { return `jump-${this.dimension}d-${this.config.labMode || 'game'}`; }
   onlineMatchKey() {
     const t = this.topologySelect?.value || this.config.topology || 'plane';
-    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.dimension, t);
+    const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.effectiveDimensionForTopology(t), t);
     const players = this.playerCountSelect?.value || this.config.playerCount || this.game?.playerCount || 2;
     const s = this.sizeSelect?.value || this.config.size;
     const timer = this.timerSelect?.value || this.config.timer || this.config.timeLimit || 0;

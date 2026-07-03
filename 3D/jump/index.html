@@ -4,14 +4,14 @@
     <link rel="icon" type="image/png" href="../../favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Jump - Topoboardgame</title>
+<title>R3 Jump - Topoboardgame</title>
 <link rel="stylesheet" href="./css/jump.css">
 </head>
 <body>
 <main class="jump-shell">
   <section class="jump-board-panel">
     <header class="jump-header">
-      <div><h1 id="gameTitle">3D Jump</h1><p id="gameDescription"></p></div>
+      <div><h1 id="gameTitle">R3 Jump</h1><p id="gameDescription"></p></div>
     </header>
     <div class="jump-canvas-wrap"><canvas id="jumpCanvas" aria-label="Jump board"></canvas></div>
     <footer class="jump-status-bar"><strong id="jumpStatus">Ready</strong><div id="jumpProgress" class="jump-progress"></div></footer>
@@ -25,7 +25,8 @@
       <h2>Play</h2>
       <div class="jump-grid">
         <label>Mode<select id="gameModeSelect"><option value="local">Local</option><option value="online">Online</option><option value="robot">Robot</option></select></label>
-        <label>Topology<select id="topologySelect"><option value="cube">3D Jump</option><option value="cylinder">3D Cylinder Jump</option><option value="torus">3D Torus Jump</option><option value="sphere">3D Sphere / Shell Jump</option></select></label>
+        <label>Space<select id="topologySelect"><option value="cube">R3</option><option value="cylinder">Cylinder</option><option value="torus">Torus</option><option value="sphere">Sphere / Shell</option></select></label>
+        <label>Lattice<select id="latticeSelect"><option value="square" selected>Square</option><option value="triangular">Triangular</option></select></label>
         <label>Board size<select id="boardSizeSelect"><option value="4" selected>4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option></select></label>
         <label>Timer<select id="timerSelect"><option value="0" selected>No time</option><option value="180">3 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option><option value="1800">30 min</option></select></label>
         <label hidden>Target axis<select id="targetAxisSelect"><option value="x">x</option></select></label>
@@ -61,6 +62,12 @@
         <div class="jump-buttons jump-view-buttons">
           <button id="viewResetButton" type="button" class="secondary">Reset Camera</button>
           <button id="focusOwnPiecesBtn" type="button" class="secondary" aria-pressed="false">Focus Own</button>
+        </div>
+        <div class="jump-camera-pad" id="cameraPad" aria-label="Camera view controls">
+          <button type="button" data-camera-view="x" aria-label="View along X axis" title="X view">X</button>
+          <button type="button" data-camera-view="y" aria-label="View along Y axis" title="Y view">Y</button>
+          <button type="button" data-camera-view="z" aria-label="View along Z axis" title="Z view">Z</button>
+          <button type="button" data-camera-view="home" aria-label="Reset camera" title="Reset">R</button>
         </div>
         <p class="jump-view-help">Drag rotates 3D boards. Mouse wheel or trackpad zooms.</p>
       </details>

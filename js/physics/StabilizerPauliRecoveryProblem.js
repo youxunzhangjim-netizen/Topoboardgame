@@ -1,4 +1,5 @@
 import { SeededRandom } from '../probability/SeededRandom.js';
+import { PhysicalCliffordReversiGame } from '../localgames/PhysicalCliffordReversi.js';
 
 export const STABILIZER_PAULI_RECOVERY_ID = 'stabilizer_pauli_recovery';
 
@@ -234,7 +235,6 @@ export async function runStabilizerRecoveryExperiment({
     policy = 'measure_syndrome',
     seed = 'stabilizer-recovery-experiment'
 } = {}) {
-    const { PhysicalCliffordReversiGame } = await import('../localgames/PhysicalCliffordReversi.js');
     const trials = [];
     for (const topologySpec of topologyList) {
         const topology = typeof topologySpec === 'string'
