@@ -687,7 +687,7 @@ class Go3DRenderer {
             side: THREE.DoubleSide
         });
         const surface = new THREE.Mesh(
-            this.createMobiusSolidGeometry(176, 42, 0.084),
+            this.createMobiusSurfaceGeometry(176, 48),
             surfaceMaterial
         );
         surface.castShadow = true;
@@ -726,7 +726,7 @@ class Go3DRenderer {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
-                for (const lift of [0.15, -0.15]) {
+                for (const lift of [0.075, -0.075]) {
                     addLine(
                         this.mobiusGraphEdgePoints(coord, neighbor, width, height, lift, seam ? 38 : 26),
                         seam ? seamMaterial : gridMaterial
@@ -737,12 +737,10 @@ class Go3DRenderer {
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            for (const lift of [0.18, -0.18]) {
-                const pose = this.mobiusPose(coord, width, height, lift);
-                this.pointCoords.push(coord);
-                this.pointPositions.push(pose.position);
-                pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
-            }
+            const pose = this.mobiusPose(coord, width, height, 0.1);
+            this.pointCoords.push(coord);
+            this.pointPositions.push(pose.position);
+            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
@@ -1412,12 +1410,6 @@ class Go3DRenderer {
     }
 
     positionsForCoord(coord, logic) {
-        if (logic.topology === MOBIUS_GO_TOPOLOGY) {
-            return [
-                this.mobiusPose(coord, logic.width, logic.height, 0.18).position,
-                this.mobiusPose(coord, logic.width, logic.height, -0.18).position
-            ];
-        }
         return [this.positionForCoord(coord, logic)];
     }
 
@@ -2026,6 +2018,40 @@ class Go3DRenderer {
             position: this.mobiusPoint(u, t, lift),
             normal: this.mobiusBasis(u, t).normal
         };
+    }
+
+    createMobiusSurfaceGeometry(uSegments = 220, tSegments = 48) {
+        const safeUSegments = Math.max(12, Math.floor(uSegments));
+        const safeTSegments = Math.max(4, Math.floor(tSegments));
+        const positions = [];
+        const indices = [];
+        for (let iu = 0; iu < safeUSegments; iu += 1) {
+            const u = (iu / safeUSegments) * TWO_PI;
+            for (let it = 0; it <= safeTSegments; it += 1) {
+                const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, it / safeTSegments);
+                const point = this.mobiusPoint(u, t, 0);
+                positions.push(point.x, point.y, point.z);
+            }
+        }
+        const row = safeTSegments + 1;
+        const indexAt = (iu, it) => iu * row + it;
+        const wrappedIt = (it, wraps) => wraps ? safeTSegments - it : it;
+        for (let iu = 0; iu < safeUSegments; iu += 1) {
+            const nextU = (iu + 1) % safeUSegments;
+            const wraps = nextU === 0;
+            for (let it = 0; it < safeTSegments; it += 1) {
+                const a = indexAt(iu, it);
+                const b = indexAt(nextU, wrappedIt(it, wraps));
+                const c = indexAt(nextU, wrappedIt(it + 1, wraps));
+                const d = indexAt(iu, it + 1);
+                indices.push(a, b, d, b, c, d);
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        return geometry;
     }
 
     createMobiusSolidGeometry(uSegments = 220, tSegments = 48, thickness = 0.06) {
