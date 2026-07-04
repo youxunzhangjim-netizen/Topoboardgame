@@ -352,7 +352,7 @@ export function installSpaceTimeTimelineEngine() {
   const hasActionOffsetQuery = params.has('actionOffset');
   const queryPeriodMode = params.get('periodMode') || (normalizePeriodMode(rawTimelineMode) === 'periodic' ? rawTimelineMode : '');
   const settings = {
-    mode: normalizeMode(hasTimelineModeQuery ? rawTimelineMode : 'future'),
+    mode: normalizeMode(hasTimelineModeQuery ? rawTimelineMode : 'past_future'),
     delay: asInteger(hasDelayQuery ? params.get('delay') : 2, 2, 1, 32),
     actionOffset: asInteger(hasActionOffsetQuery ? params.get('actionOffset') : hasDelayQuery ? params.get('delay') : 2, 2, 0, 32),
     rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 2, 1, 64),
@@ -2767,7 +2767,26 @@ export function installSpaceTimeTimelineEngine() {
     try { drawTimelineOverlay(app); } catch {}
   }
 
+  function updateRouteTitle() {
+    const heading = document.querySelector(
+      '.header h1, .top-bar h1, .jump-header h1, [data-board-game-title], #gameTitle, #pageTitle, h1'
+    );
+    if (!heading) return;
+
+    const prefixPattern = /^(?:(?:1|2|3)\+1D|(?:1|2|3)D|R3)\s+/i;
+    const currentHeading = String(heading.textContent || '').trim();
+    const baseHeading = currentHeading.replace(prefixPattern, '').trim();
+    const routeHeading = `${dimensionLabel} ${baseHeading}`;
+    if (currentHeading !== routeHeading) heading.textContent = routeHeading;
+
+    const currentDocumentTitle = String(document.title || '').trim();
+    const baseDocumentTitle = currentDocumentTitle.replace(prefixPattern, '').trim() || baseHeading;
+    const routeDocumentTitle = `${dimensionLabel} ${baseDocumentTitle}`;
+    if (currentDocumentTitle !== routeDocumentTitle) document.title = routeDocumentTitle;
+  }
+
   function refresh() {
+    updateRouteTitle();
     let mode = sanitizeMode(settings.mode);
     if (mode !== settings.mode) settings.mode = mode;
     if (mode === 'periodic' && !supportsPeriodMode()) {

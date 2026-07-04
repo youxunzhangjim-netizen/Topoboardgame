@@ -13,8 +13,8 @@ const I18N = {
         controls: 'Game Controls',
         home: 'Home',
         switchLanguage: 'Switch language',
-        black: 'Black',
-        white: 'White',
+        black: 'Blue',
+        white: 'Orange',
         moves: 'Moves',
         gameMode: 'Game Mode',
         local: 'Local',
@@ -32,6 +32,7 @@ const I18N = {
         torus: '4D Torus / T4',
         kleinQuarticProduct: 'Klein Quartic × I × I',
         viewMode: 'View',
+        allSlicesView: 'All z/w Slices',
         sliceView: 'z-w Slice',
         stackView: '3D Stack',
         projectionView: '4D Projection',
@@ -44,24 +45,24 @@ const I18N = {
         newGame: 'New Game',
         targetHyperfaces: 'Target Hyperfaces',
         targetZones: 'Target Zones',
-        blackTarget: 'Black connects x-low to x-high',
-        whiteTarget: 'White connects y-low to y-high',
-        blackMarkedTarget: 'Black connects the two cyan marked zones',
-        whiteMarkedTarget: 'White connects the two gold marked zones',
+        blackTarget: 'Blue connects x-low to x-high',
+        whiteTarget: 'Orange connects y-low to y-high',
+        blackMarkedTarget: 'Blue connects the two cyan marked zones',
+        whiteMarkedTarget: 'Orange connects the two gold marked zones',
         moveHistory: 'Move History',
         onlineChat: 'Online Chat',
         chatEmpty: 'Connect online to chat.',
         messagePlaceholder: 'Message opponent',
         send: 'Send',
-        blackTurn: 'Black to play',
-        whiteTurn: 'White to play',
+        blackTurn: 'Blue to play',
+        whiteTurn: 'Orange to play',
         emptyPrompt: 'Choose an empty 4D site.',
         occupied: 'Choose an empty Hex site.',
         noStones: 'No stones placed',
         stoneSummary: '{count} stones on the board',
         historyEmpty: 'No moves yet',
-        blackWin: 'Black connected the x-low and x-high hyperfaces.',
-        whiteWin: 'White connected the y-low and y-high hyperfaces.',
+        blackWin: 'Blue connected the x-low and x-high hyperfaces.',
+        whiteWin: 'Orange connected the y-low and y-high hyperfaces.',
         connectOnline: 'Connect or join an Online room before placing.',
         waitingFor: 'Waiting for {color}.',
         onlineAs: 'Online as {color}',
@@ -83,8 +84,8 @@ const I18N = {
         controls: '遊戲控制',
         home: '首頁',
         switchLanguage: '切換語言',
-        black: '黑方',
-        white: '白方',
+        black: '藍方',
+        white: '橙方',
         moves: '步數',
         gameMode: '遊戲模式',
         local: '本機',
@@ -102,6 +103,7 @@ const I18N = {
         torus: '四維環面／T4',
         kleinQuarticProduct: 'Klein 四次曲線 × I × I',
         viewMode: '視圖',
+        allSlicesView: '全部 z/w 切片',
         sliceView: 'z-w 切片',
         stackView: '3D 堆疊',
         projectionView: '四維投影',
@@ -114,8 +116,8 @@ const I18N = {
         newGame: '新遊戲',
         targetHyperfaces: '目標超平面',
         targetZones: '目標區',
-        blackTarget: '黑方連接 x-low 與 x-high',
-        whiteTarget: '白方連接 y-low 與 y-high',
+        blackTarget: '藍方連接 x-low 與 x-high',
+        whiteTarget: '橙方連接 y-low 與 y-high',
         blackMarkedTarget: '黑方連接兩個青色標示區',
         whiteMarkedTarget: '白方連接兩個金色標示區',
         moveHistory: '落子記錄',
@@ -175,6 +177,7 @@ const elements = {
     sliceW: document.getElementById('sliceW'),
     sliceZValue: document.getElementById('sliceZValue'),
     sliceWValue: document.getElementById('sliceWValue'),
+    wSliceButtons: document.getElementById('wSliceButtons'),
     rotation: document.getElementById('projectionRotation'),
     zoom: document.getElementById('zoom'),
     resetView: document.getElementById('resetViewBtn'),
@@ -265,9 +268,26 @@ function newGame() {
 function updateSliceLabels() {
     elements.sliceZValue.textContent = elements.sliceZ.value;
     elements.sliceWValue.textContent = elements.sliceW.value;
-    elements.sliceZ.closest('label').hidden = elements.viewMode.value === 'stack';
-    elements.sliceW.closest('label').hidden = false;
-    elements.sliceControls.hidden = !['slice', 'stack'].includes(elements.viewMode.value) || game?.topology?.isSpecial === true;
+    elements.sliceZ.closest('label').hidden = elements.viewMode.value !== 'slice';
+    elements.sliceW.closest('label').hidden = elements.viewMode.value === 'all_slices';
+    elements.sliceControls.hidden = elements.viewMode.value === 'all_slices';
+    renderWSliceButtons();
+}
+
+function renderWSliceButtons() {
+    if (!elements.wSliceButtons) return;
+    elements.wSliceButtons.replaceChildren(...Array.from({ length: size }, (_, w) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `w=${w}`;
+        button.setAttribute('aria-pressed', String(Number(elements.sliceW.value) === w));
+        button.addEventListener('click', () => {
+            elements.sliceW.value = String(w);
+            updateSliceLabels();
+            drawBoard();
+        });
+        return button;
+    }));
 }
 
 function updateReadout() {
@@ -396,6 +416,81 @@ function drawSlice(width, height) {
                 context.stroke();
             }
             projectedSites.push({ x: px, y: py, depth: 0, radius: spacing, coordinate: [x, y, z, w] });
+        }
+    }
+    for (const site of projectedSites) drawSite(site, ends);
+}
+
+function drawAllSlices(width, height) {
+    const sliceCount = size * size;
+    const columns = Math.max(1, Math.ceil(Math.sqrt(sliceCount)));
+    const rows = Math.ceil(sliceCount / columns);
+    const outerPadding = Math.max(12, Math.min(width, height) * 0.025);
+    const gap = Math.max(8, Math.min(width, height) * 0.012);
+    const tileWidth = (width - outerPadding * 2 - gap * (columns - 1)) / columns;
+    const tileHeight = (height - outerPadding * 2 - gap * (rows - 1)) / rows;
+    const titleHeight = Math.max(13, Math.min(22, tileHeight * 0.13));
+    const ends = targetEnds();
+    projectedSites = [];
+    context.font = `${Math.max(9, Math.min(13, titleHeight * 0.65))}px system-ui, sans-serif`;
+    context.textAlign = 'left';
+    context.textBaseline = 'middle';
+
+    let tileIndex = 0;
+    for (let w = 0; w < size; w += 1) {
+        for (let z = 0; z < size; z += 1) {
+            const column = tileIndex % columns;
+            const row = Math.floor(tileIndex / columns);
+            const left = outerPadding + column * (tileWidth + gap);
+            const top = outerPadding + row * (tileHeight + gap);
+            const boardTop = top + titleHeight;
+            const boardHeight = Math.max(1, tileHeight - titleHeight);
+            const padding = Math.max(5, Math.min(tileWidth, boardHeight) * 0.09);
+            const spacing = Math.min(
+                (tileWidth - padding * 2) / Math.max(1, size - 1),
+                (boardHeight - padding * 2) / Math.max(1, size - 1)
+            );
+            const boardWidth = spacing * (size - 1);
+            const drawnHeight = spacing * (size - 1);
+            const startX = left + (tileWidth - boardWidth) / 2;
+            const startY = boardTop + (boardHeight - drawnHeight) / 2;
+
+            context.fillStyle = 'rgba(13, 24, 34, 0.96)';
+            context.fillRect(left, top, tileWidth, tileHeight);
+            context.strokeStyle = 'rgba(109, 145, 164, 0.34)';
+            context.lineWidth = 0.8;
+            context.strokeRect(left + 0.5, top + 0.5, tileWidth - 1, tileHeight - 1);
+            context.fillStyle = '#b9cad5';
+            context.fillText(`z=${z}, w=${w}`, left + 6, top + titleHeight * 0.5);
+
+            context.strokeStyle = 'rgba(160,184,198,0.34)';
+            context.lineWidth = 0.7;
+            for (let y = 0; y < size; y += 1) {
+                for (let x = 0; x < size; x += 1) {
+                    const px = startX + x * spacing;
+                    const py = startY + y * spacing;
+                    if (x < size - 1) {
+                        context.beginPath();
+                        context.moveTo(px, py);
+                        context.lineTo(px + spacing, py);
+                        context.stroke();
+                    }
+                    if (y < size - 1) {
+                        context.beginPath();
+                        context.moveTo(px, py);
+                        context.lineTo(px, py + spacing);
+                        context.stroke();
+                    }
+                    projectedSites.push({
+                        x: px,
+                        y: py,
+                        depth: tileIndex,
+                        radius: Math.max(8, spacing),
+                        coordinate: [x, y, z, w]
+                    });
+                }
+            }
+            tileIndex += 1;
         }
     }
     for (const site of projectedSites) drawSite(site, ends);
@@ -536,7 +631,8 @@ function drawBoard() {
     context.clearRect(0, 0, width, height);
     context.fillStyle = '#080d12';
     context.fillRect(0, 0, width, height);
-    if (elements.viewMode.value === 'slice' && !game.topology.isSpecial) drawSlice(width, height);
+    if (elements.viewMode.value === 'all_slices' && !game.topology.isSpecial) drawAllSlices(width, height);
+    else if (elements.viewMode.value === 'slice' && !game.topology.isSpecial) drawSlice(width, height);
     else if (elements.viewMode.value === 'stack' && !game.topology.isSpecial) drawStack(width, height);
     else drawProjection(width, height);
 }
@@ -552,7 +648,7 @@ function canvasPoint(event) {
 function nearestSite(event) {
     const point = canvasPoint(event);
     let nearest = null;
-    let best = elements.viewMode.value === 'slice' ? 24 : 13;
+    let best = elements.viewMode.value === 'all_slices' ? 10 : elements.viewMode.value === 'slice' ? 24 : 13;
     for (const site of [...projectedSites].reverse()) {
         const distance = Math.hypot(point.x - site.x, point.y - site.y);
         if (distance < best) {
@@ -733,6 +829,7 @@ function exportNetworkState() {
 
 window.hexApp = {
     get game() { return game; },
+    getVisibleSites() { return projectedSites.map((site) => ({ ...site, coordinate: [...site.coordinate] })); },
     text,
     getMode() { return elements.mode.value; },
     onlineElements: {

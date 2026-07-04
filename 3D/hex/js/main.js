@@ -1056,8 +1056,8 @@ function surfacePanelCellCoordinate(x, y) {
     const [width, height] = game.size;
     const topology = selectedTopology();
     if (topology === 'sphere') {
-        if (y === 0) return game.topology.normalize([0, 0, 0]);
-        if (y >= height - 2) return game.topology.normalize([0, height - 1, 0]);
+        if (y === 0) return game.topology.normalize([x, 0, 0]);
+        if (y >= height - 2) return game.topology.normalize([x, height - 1, 0]);
     }
     return game.topology.normalize([x, y, 0]);
 }
@@ -1296,31 +1296,7 @@ function drawSurfacePanels(width, height) {
             let points;
             let blackTarget;
             let whiteTarget;
-            if (topology === 'sphere') {
-                if ((y === 0 || y === gridHeight - 2) && x > 0) continue;
-                if (y === 0) {
-                    const ringY = Math.min(gridHeight - 1, 1);
-                    const ring = Array.from({ length: gridWidth }, (_, index) => game.topology.normalize([index, ringY, 0]))
-                        .filter(Boolean);
-                    points = ring.map((coordinate) => projectCoordinate(coordinate, width, height));
-                    blackTarget = cell && (blackZone.start(cell) || blackZone.end(cell));
-                    whiteTarget = cell && (whiteZone.start(cell) || whiteZone.end(cell));
-                } else if (y === gridHeight - 2) {
-                    const ringY = Math.max(0, gridHeight - 2);
-                    const ring = Array.from({ length: gridWidth }, (_, index) => game.topology.normalize([gridWidth - 1 - index, ringY, 0]))
-                        .filter(Boolean);
-                    points = ring.map((coordinate) => projectCoordinate(coordinate, width, height));
-                    blackTarget = cell && (blackZone.start(cell) || blackZone.end(cell));
-                    whiteTarget = cell && (whiteZone.start(cell) || whiteZone.end(cell));
-                } else {
-                    const coords = surfacePanelCoordinates(x, y);
-                    const unique = [...new Map(coords.map((coordinate) => [coordinate.join(','), coordinate])).values()];
-                    if (unique.length < 3) continue;
-                    points = unique.map((coordinate) => projectCoordinate(coordinate, width, height));
-                    blackTarget = unique.some((coordinate) => blackZone.start(coordinate) || blackZone.end(coordinate));
-                    whiteTarget = unique.some((coordinate) => whiteZone.start(coordinate) || whiteZone.end(coordinate));
-                }
-            } else if (topology === 'klein') {
+            if (topology === 'klein') {
                 const corners = [
                     [x, y],
                     [x + 1, y],
@@ -1540,7 +1516,8 @@ function nearestSite(event) {
     const minDepth = depths.length ? Math.min(...depths) : 0;
     const frontCutoff = maxDepth - (maxDepth - minDepth) * 0.58;
     for (const cell of [...projectedSurfaceCells].sort((a, b) => b.depth - a.depth)) {
-        if (frontOnly && (cell.depth < frontCutoff || cell.frontFacing === false)) continue;
+        const clippedByDepth = isBuckyballSphere() && cell.depth < frontCutoff;
+        if (frontOnly && (clippedByDepth || cell.frontFacing === false)) continue;
         if (pointInPolygon(point, cell.points)) {
             const center = cell.points.reduce((sum, item) => [sum[0] + item.x, sum[1] + item.y], [0, 0])
                 .map((value) => value / cell.points.length);

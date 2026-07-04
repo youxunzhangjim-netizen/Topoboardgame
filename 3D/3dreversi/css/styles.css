@@ -176,6 +176,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .share-link-input { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .move-history { height: 260px; min-height: 178px; max-height: 260px; overflow: auto; align-content: start; display: grid; gap: 6px; }
 .move-history-item { padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.045); font-size: 13px; }
+.move-choice-panel { display: grid; gap: 8px; padding: 10px; border: 1px solid rgba(72,199,244,.22); border-radius: 8px; background: rgba(8,14,20,.88); }
+.move-choice-heading { display: flex; justify-content: space-between; gap: 10px; color: #dcecf3; font-size: 13px; }
+.move-choice-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.move-choice-buttons button { width: auto; min-height: 34px; padding: 6px 9px; font-size: 12px; }
 .chat-panel { margin-top: auto; }
 .chat-messages {
     min-height: 130px;

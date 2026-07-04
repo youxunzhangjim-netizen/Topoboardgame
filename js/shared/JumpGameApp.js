@@ -60,6 +60,14 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   'Custom Marked Target': '自訂標記目標',
   'Advanced / Research Settings': '進階 / 研究設定',
   'Board View': '棋盤視角',
+  View: '視圖',
+  Board: '棋盤',
+  'All 2D z/w slices': '全部 2D z/w 切片',
+  '3D x/y/z slice': '3D x/y/z 切片',
+  '4D stacked view': '4D 堆疊視圖',
+  'Visible w for 3D slice': '3D 切片的可見 w',
+  'Hypercubic / R4': '超立方格 / R4',
+  'Choose one w coordinate to inspect its interactive 3D x/y/z board.': '選擇一個 w 座標，檢視可互動的 3D x/y/z 棋盤。',
   'Rotate X': '旋轉 X',
   'Rotate Y': '旋轉 Y',
   'Rotate Z': '旋轉 Z',
@@ -210,6 +218,9 @@ export class JumpGameApp {
     this.infoEl = document.getElementById('jumpInfo');
     this.historyEl = document.getElementById('moveHistory');
     this.modeSelect = document.getElementById('gameModeSelect');
+    this.viewModeSelect = document.getElementById('viewModeSelect');
+    this.onlineControls = document.getElementById('onlineControls');
+    this.wSliceButtons = document.getElementById('wSliceButtons');
     this.topologySelect = document.getElementById('topologySelect');
     this.latticeSelect = document.getElementById('latticeSelect');
     this.playerCountSelect = document.getElementById('playerCountSelect');
@@ -250,6 +261,8 @@ export class JumpGameApp {
     };
     this.sliceFilterEl = document.getElementById('r3FilterControl');
     this.focusOwnPieces = false;
+    this.sliceProjectionMap = null;
+    this.sliceCellSize = 0;
     this.applyInitialSelectValues();
     this.movePicker = this.ensureMovePicker();
     this.translateStaticUI();
@@ -370,11 +383,17 @@ export class JumpGameApp {
     addEventListener('resize', () => this.render());
     this.canvas.addEventListener('click', (event) => this.onCanvasClick(event));
     this.installViewControls();
-    for (const el of [this.modeSelect, this.topologySelect, this.latticeSelect, this.playerCountSelect, this.sizeSelect, this.timerSelect, this.axisSelect, this.targetModeSelect]) {
+    for (const el of [this.modeSelect, this.viewModeSelect, this.topologySelect, this.latticeSelect, this.playerCountSelect, this.sizeSelect, this.timerSelect, this.axisSelect, this.targetModeSelect]) {
       el?.addEventListener('change', () => {
         if (el === this.modeSelect && this.modeSelect?.value !== 'online') {
           this.network.close({ silent: true });
           this.myColor = null;
+        }
+        if (el === this.modeSelect) this.updateOnlineControls();
+        if (el === this.viewModeSelect) {
+          this.updateR3SliceFilterVisibility();
+          this.render();
+          return;
         }
         if (el === this.topologySelect) this.syncLatticeAvailability();
         this.resetGame();
@@ -397,6 +416,7 @@ export class JumpGameApp {
       this.enterOnlineMode();
       setTimeout(() => this.network.resumeOrJoinRoom(room), 200);
     }
+    this.updateOnlineControls();
   }
 
 
@@ -723,6 +743,10 @@ export class JumpGameApp {
     const player = this.game.currentPlayer;
     const movablePieces = canMove ? this.getMovablePieces(player) : [];
     const selectedKey = this.selected ? coordKey(this.selected) : '';
+    const visibleMovablePieces = movablePieces
+      .slice()
+      .sort((a, b) => (a.key === selectedKey ? -1 : b.key === selectedKey ? 1 : 0))
+      .slice(0, this.dimension >= 3 ? 24 : movablePieces.length);
 
     if (!canMove) {
       const text = this.game.winner
@@ -738,7 +762,7 @@ export class JumpGameApp {
     if (this.movePicker.pieceSummary) this.movePicker.pieceSummary.textContent = `${this.t('Player', 'Player')} ${player}: ${movablePieces.length} ${this.t('movable', 'movable')}`;
     if (this.movePicker.pieces) {
       this.movePicker.pieces.innerHTML = movablePieces.length
-        ? movablePieces.map(({ key, coord, moves }) => `
+        ? visibleMovablePieces.map(({ key, coord, moves }) => `
           <button class="jump-piece-button${key === selectedKey ? ' active' : ''}" type="button" data-piece-key="${escapeHtml(key)}" aria-pressed="${key === selectedKey}">
             <span class="jump-piece-owner">${escapeHtml(player)}</span>
             <span class="jump-piece-coord">${escapeHtml(this.formatCoord(coord))}</span>
@@ -937,6 +961,8 @@ export class JumpGameApp {
 
   visibleCoord(coord) {
     if ((this.game?.dimension || this.effectiveDimensionForTopology()) <= 2) return true;
+    if (this.dimension === 4 && this.viewModeSelect?.value === 'all_slices') return true;
+    if (this.dimension === 4 && this.viewModeSelect?.value === 'stacked_4d') return true;
     const { x, y, z, w } = this.r3SliceSettings();
     if (x !== null && coord[0] !== x) return false;
     if (y !== null && coord[1] !== y) return false;
@@ -974,10 +1000,36 @@ export class JumpGameApp {
 
   updateR3SliceFilterVisibility() {
     const show = this.isFreeAxis3DBoard();
-    if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show;
+    const allSlices = this.dimension === 4 && this.viewModeSelect?.value === 'all_slices';
+    const stacked = this.dimension === 4 && this.viewModeSelect?.value === 'stacked_4d';
+    if (this.dimension === 4 && this.sliceInputs?.w) {
+      this.sliceInputs.w.max = String(this.game?.size || this.config.size || 5);
+      const current = Math.max(1, Math.min(Number(this.sliceInputs.w.value) || 1, Number(this.sliceInputs.w.max)));
+      this.sliceInputs.w.value = String(current);
+    }
+    this.renderWSliceButtons();
+    if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show || allSlices || stacked;
     if (this.viewControls.focusOwn) this.viewControls.focusOwn.hidden = !show;
     this.viewControls.cameraPad?.classList.toggle('is-visible', show);
     if (!show) this.clearR3SliceFilters(false);
+  }
+
+  renderWSliceButtons() {
+    if (!this.wSliceButtons || !this.sliceInputs?.w) return;
+    const count = this.game?.size || 1;
+    const selected = Math.max(0, Number(this.sliceInputs.w.value || 1) - 1);
+    this.wSliceButtons.replaceChildren(...Array.from({ length: count }, (_, w) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `w=${w}`;
+      button.setAttribute('aria-pressed', String(selected === w));
+      button.addEventListener('click', () => {
+        this.sliceInputs.w.value = String(w + 1);
+        this.renderWSliceButtons();
+        this.render();
+      });
+      return button;
+    }));
   }
 
   focusPlayer() {
@@ -1003,9 +1055,13 @@ export class JumpGameApp {
     };
   }
 
-  cellRadius() { return Math.max(8, Math.min(this.canvas.clientWidth || 720, this.canvas.clientHeight || 520) / (this.game.size * 2.8)); }
+  cellRadius() {
+    if (this.sliceProjectionMap) return Math.max(3, this.sliceCellSize * 0.28);
+    return Math.max(8, Math.min(this.canvas.clientWidth || 720, this.canvas.clientHeight || 520) / (this.game.size * 2.8));
+  }
 
   usesEmbeddedView() {
+    if (this.dimension === 4 && this.viewModeSelect?.value === 'all_slices') return false;
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     return this.dimension >= 3 || ['projection', '4d-torus', 'hypercube'].includes(topology);
   }
@@ -1139,6 +1195,8 @@ export class JumpGameApp {
   }
 
   project(coord) {
+    const sliced = this.sliceProjectionMap?.get(coordKey(coord));
+    if (sliced) return sliced;
     const n = this.game.size;
     const width = this.canvas.clientWidth || 720;
     const height = this.canvas.clientHeight || 520;
@@ -1290,6 +1348,11 @@ export class JumpGameApp {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = '#07111e';
     ctx.fillRect(0, 0, width, height);
+    if (this.dimension === 4 && this.viewModeSelect?.value === 'all_slices') {
+      this.draw4DAllSlices(width, height);
+      return;
+    }
+    this.sliceProjectionMap = null;
     const visibleCoords = this.game.topology.allCoords().filter((c) => this.visibleCoord(c));
     if (this.usesOpaqueSurfaceView()) this.drawEmbeddedSurfaceFill(visibleCoords);
     const coords = visibleCoords;
@@ -1343,6 +1406,85 @@ export class JumpGameApp {
       ctx.globalAlpha = alpha;
       this.drawPiece(coord, owner, this.game.labels.get(key));
       ctx.restore();
+    }
+    if (this.game.chainPath.length) this.drawPath(this.game.chainPath);
+    if (this.selected) this.drawSelected(this.selected);
+    for (const move of this.legal) this.drawLegal(move);
+  }
+
+  draw4DAllSlices(width, height) {
+    const size = this.game.size;
+    const count = size * size;
+    const columns = Math.max(1, Math.ceil(Math.sqrt(count)));
+    const rows = Math.ceil(count / columns);
+    const outer = Math.max(10, Math.min(width, height) * 0.02);
+    const gap = Math.max(6, Math.min(width, height) * 0.009);
+    const tileWidth = (width - outer * 2 - gap * (columns - 1)) / columns;
+    const tileHeight = (height - outer * 2 - gap * (rows - 1)) / rows;
+    const titleHeight = Math.max(12, Math.min(20, tileHeight * 0.13));
+    this.sliceProjectionMap = new Map();
+    this.sliceCellSize = 0;
+    const ctx = this.ctx;
+    let tile = 0;
+
+    for (let w = 0; w < size; w += 1) {
+      for (let z = 0; z < size; z += 1) {
+        const column = tile % columns;
+        const row = Math.floor(tile / columns);
+        const left = outer + column * (tileWidth + gap);
+        const top = outer + row * (tileHeight + gap);
+        const boardTop = top + titleHeight;
+        const availableHeight = tileHeight - titleHeight;
+        const padding = Math.max(4, Math.min(tileWidth, availableHeight) * 0.08);
+        const spacing = Math.min(
+          (tileWidth - padding * 2) / Math.max(1, size - 1),
+          (availableHeight - padding * 2) / Math.max(1, size - 1)
+        );
+        this.sliceCellSize = spacing;
+        const startX = left + (tileWidth - spacing * (size - 1)) / 2;
+        const startY = boardTop + (availableHeight - spacing * (size - 1)) / 2;
+        ctx.fillStyle = 'rgba(9, 20, 33, 0.98)';
+        ctx.fillRect(left, top, tileWidth, tileHeight);
+        ctx.strokeStyle = 'rgba(97,174,255,.28)';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(left + 0.5, top + 0.5, tileWidth - 1, tileHeight - 1);
+        ctx.fillStyle = '#b9cfe2';
+        ctx.font = `${Math.max(8, Math.min(12, titleHeight * 0.65))}px system-ui`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`z=${z}, w=${w}`, left + 5, top + titleHeight * 0.5);
+        for (let y = 0; y < size; y += 1) {
+          for (let x = 0; x < size; x += 1) {
+            this.sliceProjectionMap.set(coordKey([x, y, z, w]), {
+              x: startX + x * spacing,
+              y: startY + y * spacing,
+              depth: tile
+            });
+          }
+        }
+        tile += 1;
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(132,202,255,.38)';
+    ctx.lineWidth = 0.75;
+    for (const coord of this.game.topology.allCoords()) {
+      const from = this.project(coord);
+      for (const axis of [0, 1]) {
+        const next = [...coord];
+        next[axis] += 1;
+        if (next[axis] >= size) continue;
+        const to = this.project(next);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+    }
+    for (const coord of this.game.topology.allCoords()) this.drawZone(coord);
+    for (const coord of this.game.topology.allCoords()) this.drawSite(coord);
+    for (const [key, owner] of this.game.pieces.entries()) {
+      this.drawPiece(parseCoordKey(key), owner, this.game.labels.get(key));
     }
     if (this.game.chainPath.length) this.drawPath(this.game.chainPath);
     if (this.selected) this.drawSelected(this.selected);
@@ -1664,7 +1806,15 @@ export class JumpGameApp {
     this.render();
   }
   importNetworkState(state) { this.importState(state); }
-  enterOnlineMode() { if (this.modeSelect) this.modeSelect.value = 'online'; }
+  updateOnlineControls() {
+    const online = this.modeSelect?.value === 'online';
+    if (this.onlineControls) this.onlineControls.hidden = !online;
+  }
+
+  enterOnlineMode() {
+    if (this.modeSelect) this.modeSelect.value = 'online';
+    this.updateOnlineControls();
+  }
   onlineGameKey() { return `jump-${this.dimension}d-${this.config.labMode || 'game'}`; }
   onlineMatchKey() {
     const t = this.topologySelect?.value || this.config.topology || 'plane';

@@ -502,13 +502,13 @@ function normalizeHigherDimCoordinate(coordinate, size, topology) {
         : null;
 }
 
-function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary = null) {
+function normalizeSurface3DCoordinate(coordinate, size, topology, randomBoundary = null, lattice = 'square') {
     const [x, y, z = 0] = coordinate;
     if (z !== 0) return null;
     if (topology === 'sphere') {
         const [width, height] = size;
         if (y < 0 || y >= height) return null;
-        if (y === 0 || y === height - 1) return [0, y, 0];
+        if (lattice === 'buckyball' && (y === 0 || y === height - 1)) return [0, y, 0];
         return [modulo(x, width), y, 0];
     }
     const mappedTopology = topology === 't2' ? 'torus' : topology;
@@ -642,9 +642,9 @@ function enumerateCoordinates(size) {
     return coordinates;
 }
 
-function enumerateSurface3DCoordinates(size, topology) {
+function enumerateSurface3DCoordinates(size, topology, lattice = 'square') {
     const coordinates = [];
-    if (topology === 'sphere') {
+    if (topology === 'sphere' && lattice === 'buckyball') {
         for (let y = 0; y < size[1]; y += 1) {
             if (y === 0 || y === size[1] - 1) {
                 coordinates.push([0, y, 0]);
@@ -787,7 +787,7 @@ export function createHexTopology(options = {}) {
         const parsed = normalizeCoordinateInput(coordinate, dimension);
         if (!parsed) return null;
         if (dimension === 2) return normalize2DCoordinate(parsed, size, topology, randomBoundary);
-        if (surface3D) return normalizeSurface3DCoordinate(parsed, size, topology, randomBoundary);
+        if (surface3D) return normalizeSurface3DCoordinate(parsed, size, topology, randomBoundary, lattice);
         return normalizeHigherDimCoordinate(parsed, size, topology);
     };
 
@@ -830,7 +830,7 @@ export function createHexTopology(options = {}) {
                 : honeycombFaceOffsets(origin))
     ];
 
-    const coordinateList = surface3D ? enumerateSurface3DCoordinates(size, topology) : enumerateCoordinates(size);
+    const coordinateList = surface3D ? enumerateSurface3DCoordinates(size, topology, lattice) : enumerateCoordinates(size);
     const goalZones = createGoalDefinition(dimension, size, topology, options.goalZones, lattice, coordinateList);
     const buckyballAdjacency = surface3D && topology === 'sphere' && lattice === 'buckyball'
         ? createBuckyballFaceAdjacency(coordinateList)
@@ -878,7 +878,7 @@ export function createHexTopology(options = {}) {
                 .map((candidate) => normalize(candidate))
                 .filter((candidate) => candidate && !coordinatesEqual(candidate, origin));
         }
-        if (surface3D && topology === 'sphere') {
+        if (surface3D && topology === 'sphere' && lattice === 'buckyball') {
             const [width, height] = size;
             if (origin[1] === 0) {
                 const ringY = Math.min(height - 1, 1);
@@ -1030,7 +1030,8 @@ export class HexGame {
         if (!HEX_COLOR_VALUES.has(color)) return false;
         if (this.winner || color !== this.currentColor) return false;
         const key = this.topology.key(coordinate);
-        return Boolean(key && !this.board.has(key) && !this.topology.wouldSealOpponentCamp(coordinate, color, this.board));
+        const sealsOpponentCamp = this.topology.wouldSealOpponentCamp?.(coordinate, color, this.board) === true;
+        return Boolean(key && !this.board.has(key) && !sealsOpponentCamp);
     }
 
     place(coordinate, color = this.currentColor) {
@@ -1046,7 +1047,7 @@ export class HexGame {
 
         const normalized = this.topology.normalize(coordinate);
         if (!normalized) return { ok: false, error: 'Coordinate is outside the board.' };
-        if (this.topology.wouldSealOpponentCamp(normalized, color, this.board)) {
+        if (this.topology.wouldSealOpponentCamp?.(normalized, color, this.board) === true) {
             return {
                 ok: false,
                 error: 'You cannot seal every cell of the opponent target camp.',

@@ -14,6 +14,11 @@ class Go4DApp {
             nw: document.getElementById('nwInput')
         };
         this.zoomSelect = document.getElementById('zoomLayerSelect');
+        this.viewModeSelect = document.getElementById('viewModeSelect');
+        this.wSliceInput = document.getElementById('wSliceInput');
+        this.wSliceValue = document.getElementById('wSliceValue');
+        this.wSliceGroup = document.getElementById('wSliceGroup');
+        this.wSliceButtons = document.getElementById('wSliceButtons');
         this.statusEl = document.getElementById('gameStatus');
         this.selectionEl = document.getElementById('selectionStatus');
         this.turnEl = document.getElementById('playerTurn');
@@ -125,6 +130,15 @@ class Go4DApp {
         });
         this.dynamicControls().forEach((control) => control.addEventListener('change', () => this.resetGame()));
         this.zoomSelect.addEventListener('change', () => this.render());
+        this.viewModeSelect?.addEventListener('change', () => {
+            this.zoomSelect.value = 'all';
+            this.updateViewControls();
+            this.render();
+        });
+        this.wSliceInput?.addEventListener('input', () => {
+            this.updateViewControls();
+            this.render();
+        });
         document.getElementById('passBtn').addEventListener('click', () => this.passTurn());
         document.getElementById('countBtn').addEventListener('click', () => this.agreeCount());
         document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
@@ -247,6 +261,36 @@ class Go4DApp {
             }
         }
         this.zoomSelect.value = [...this.zoomSelect.options].some((option) => option.value === current) ? current : 'all';
+        if (this.wSliceInput) {
+            this.wSliceInput.max = String(Math.max(0, this.logic.sizes.nw - 1));
+            this.wSliceInput.value = String(Math.min(Number(this.wSliceInput.value) || 0, this.logic.sizes.nw - 1));
+        }
+        this.updateViewControls();
+    }
+
+    updateViewControls() {
+        const is3DSlice = this.viewModeSelect?.value === 'w_slice';
+        if (this.wSliceGroup) this.wSliceGroup.hidden = !is3DSlice;
+        if (this.wSliceValue && this.wSliceInput) this.wSliceValue.textContent = this.wSliceInput.value;
+        this.renderWSliceButtons();
+    }
+
+    renderWSliceButtons() {
+        if (!this.wSliceButtons || !this.wSliceInput) return;
+        const count = this.logic?.sizes?.nw || 1;
+        this.wSliceButtons.replaceChildren(...Array.from({ length: count }, (_, w) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `w=${w}`;
+            button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
+            button.addEventListener('click', () => {
+                this.wSliceInput.value = String(w);
+                this.zoomSelect.value = 'all';
+                this.updateViewControls();
+                this.render();
+            });
+            return button;
+        }));
     }
 
     updateUI() {
@@ -308,17 +352,24 @@ class Go4DApp {
     render() {
         const { nx, ny, nz, nw } = this.logic.sizes;
         const zoom = this.zoomSelect.value;
+        const is3DSlice = this.viewModeSelect?.value === 'w_slice';
         const onlyLayer = zoom !== 'all' ? zoom.split(',').map(Number) : null;
+        const visibleW = is3DSlice ? Number(this.wSliceInput?.value || 0) : null;
         const { group, liberties } = this.selectionSets();
         this.gridEl.style.gridTemplateColumns = onlyLayer ? '1fr' : `repeat(${nz}, max-content)`;
         this.gridEl.innerHTML = '';
 
         for (let w = 0; w < nw; w++) {
             for (let z = 0; z < nz; z++) {
+                if (visibleW !== null && w !== visibleW) continue;
                 if (onlyLayer && (onlyLayer[0] !== z || onlyLayer[1] !== w)) continue;
                 const slice = document.createElement('section');
                 slice.className = `slice-board${onlyLayer ? ' zoomed' : ''}`;
                 slice.innerHTML = `<div class="slice-title">z=${z}, w=${w}</div>`;
+                slice.querySelector('.slice-title').addEventListener('click', () => {
+                    this.zoomSelect.value = `${z},${w}`;
+                    this.render();
+                });
                 const grid = document.createElement('div');
                 grid.className = 'xy-grid';
                 grid.style.gridTemplateColumns = `repeat(${nx}, 1fr)`;

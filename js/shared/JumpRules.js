@@ -170,7 +170,7 @@ function reflected(v, size) {
 export class JumpTopology {
   constructor({ dimension = 2, size = 8, topology = 'plane', boundary = topology, targetAxis = 'x', playerCount = 2 } = {}) {
     this.dimension = clampInt(dimension, 2, 4);
-    this.size = clampInt(size, 4, this.dimension === 2 ? 24 : 12);
+    this.size = clampInt(size, this.dimension === 4 ? 3 : 4, this.dimension === 2 ? 24 : 12);
     this.topology = String(boundary || topology || 'plane').toLowerCase();
     this.targetAxis = ['x', 'y', 'z', 'w'].includes(String(targetAxis)) ? String(targetAxis) : 'x';
     this.axisIndex = { x: 0, y: 1, z: 2, w: 3 }[this.targetAxis] ?? 0;
@@ -379,7 +379,7 @@ export class JumpGameState {
   constructor(options = {}) {
     this.options = { ...DEFAULT_JUMP_OPTIONS, ...options };
     this.dimension = clampInt(options.dimension, 2, 4);
-    this.size = clampInt(options.size, 4, this.dimension === 2 ? 24 : 12);
+    this.size = clampInt(options.size, this.dimension === 4 ? 3 : 4, this.dimension === 2 ? 24 : 12);
     this.topologyName = options.topology || options.boundary || 'plane';
     this.lattice = normalizeJumpLattice(options.lattice || 'square', this.dimension, this.topologyName);
     this.targetAxis = options.targetAxis || 'x';
@@ -607,7 +607,7 @@ export class JumpGameState {
 
   import(state = {}) {
     this.dimension = clampInt(state.dimension || this.dimension, 2, 4);
-    this.size = clampInt(state.size || this.size, 4, this.dimension === 2 ? 24 : 12);
+    this.size = clampInt(state.size || this.size, this.dimension === 4 ? 3 : 4, this.dimension === 2 ? 24 : 12);
     this.topologyName = state.topology || this.topologyName;
     this.lattice = normalizeJumpLattice(state.lattice || this.lattice, this.dimension, this.topologyName);
     this.playerCount = Math.max(2, Math.min(3, Math.floor(Number(state.playerCount || this.playerCount) || 2)));

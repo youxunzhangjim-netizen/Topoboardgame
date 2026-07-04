@@ -87,6 +87,20 @@
                 <label>Nz <input id="nzInput" type="number" min="1" max="9" value="5"></label>
                 <label>Nw <input id="nwInput" type="number" min="1" max="9" value="5"></label>
             </div>
+            <div class="control-grid">
+                <div class="control-group">
+                    <label for="viewModeSelect">Board View</label>
+                    <select id="viewModeSelect">
+                        <option value="all_slices">All 2D z/w slices</option>
+                        <option value="w_slice">3D x/y/z slice</option>
+                    </select>
+                </div>
+                <div class="control-group" id="wSliceGroup" hidden>
+                    <label for="wSliceInput">Visible w: <strong id="wSliceValue">0</strong></label>
+                    <input id="wSliceInput" type="range" min="0" max="4" value="0">
+                    <div id="wSliceButtons" class="slice-switcher" aria-label="Choose 3D w slice"></div>
+                </div>
+            </div>
 <div class="control-group">
                 <label for="zoomLayerSelect">Zoom Layer</label>
                 <select id="zoomLayerSelect">

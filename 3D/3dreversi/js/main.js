@@ -1887,6 +1887,8 @@ class Reversi3DApp {
         this.focusOwnPiecesBtn = document.getElementById('focusOwnPiecesBtn');
         this.focusOwnPieces = false;
         this.historyEl = document.getElementById('moveHistoryList');
+        this.moveChoiceButtons = document.getElementById('moveChoiceButtons');
+        this.moveChoiceSummary = document.getElementById('moveChoiceSummary');
         this.gameModeSelect = document.getElementById('gameModeSelect');
         this.onlineControls = document.getElementById('onlineControls');
         this.onlineColorEl = document.getElementById('onlineColorStatus');
@@ -2320,9 +2322,33 @@ class Reversi3DApp {
         this.modeDisplay.textContent = modeText[mode] || modeText.r3;
         this.modeInfo.textContent = modeInfo[mode] || modeInfo.r3;
         if (this.logic.gameOver) this.setStatus(this.resultText());
+        this.renderMoveChoices();
         this.renderHistory();
         this.renderer.renderGame(this.logic);
         this.syncPieceFocus();
+    }
+
+    renderMoveChoices() {
+        if (!this.moveChoiceButtons) return;
+        const moves = this.logic.gameOver ? [] : this.logic.legalMoves(this.logic.currentPlayer);
+        const isZh = document.documentElement.lang.toLowerCase().startsWith('zh');
+        if (this.moveChoiceSummary) {
+            this.moveChoiceSummary.textContent = isZh
+                ? `${moves.length} 個可用走法`
+                : `${moves.length} available`;
+        }
+        this.moveChoiceButtons.replaceChildren(...moves.slice(0, 36).map((move) => {
+            const coord = move.coord || move;
+            const flips = this.logic.previewMove(coord).length;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `(${coord.map((value) => value + 1).join(', ')}) · ${flips}`;
+            button.title = isZh
+                ? `翻轉 ${flips} 枚棋子`
+                : `${flips} ${flips === 1 ? 'flip' : 'flips'}`;
+            button.addEventListener('click', () => this.playAt(coord));
+            return button;
+        }));
     }
 
     focusColor() {

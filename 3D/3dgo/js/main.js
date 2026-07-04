@@ -1080,16 +1080,17 @@ class Go3DRenderer {
         });
         const linePositions = [];
         const drawn = new Set();
-        for (const coord of logic.playableCoords()) {
-            const fromKey = logic.coordKey(coord);
-            for (const neighbor of logic.neighborsFromCoord(coord)) {
-                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                if (drawn.has(edgeKey)) continue;
-                drawn.add(edgeKey);
-                this.appendPolyline(
-                    linePositions,
-                    this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, logic.lattice === HONEYCOMB_LATTICE ? 0.16 : 0.052)
-                );
+        if (logic.lattice === HONEYCOMB_LATTICE) {
+            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.16);
+        } else {
+            for (const coord of logic.playableCoords()) {
+                const fromKey = logic.coordKey(coord);
+                for (const neighbor of logic.neighborsFromCoord(coord)) {
+                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
+                }
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1144,7 +1145,9 @@ class Go3DRenderer {
         });
         const linePositions = [];
         const drawn = new Set();
-        if (logic.lattice === TRIANGULAR_LATTICE) {
+        if (logic.lattice === HONEYCOMB_LATTICE) {
+            this.appendHoneycombSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
+        } else if (logic.lattice === TRIANGULAR_LATTICE) {
             this.appendTriangularSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
         } else {
             for (const coord of logic.playableCoords()) {
@@ -1775,47 +1778,16 @@ class Go3DRenderer {
 
     honeycombSurfaceCoordPoint(coord, width, height, surfaceKind = 'flat') {
         if (surfaceKind !== 'cylinder' && surfaceKind !== 'torus') return null;
-        const x = Number(coord?.[0]);
-        const y = Number(coord?.[1]);
-        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-        const root3 = Math.sqrt(3);
-        if (surfaceKind === 'cylinder') {
-            const periodX = Math.max(1, root3 * width);
-            const rawHeight = Math.max(1, 1.5 * (height - 1) + 2);
-            const center = {
-                x: root3 * (0.5 + x + (y % 2) * 0.5),
-                y: 1 + 1.5 * y
-            };
-            const point = {
-                x: center.x + Math.cos(Math.PI / 2),
-                y: center.y + Math.sin(Math.PI / 2)
-            };
-            return {
-                point,
-                originX: 0,
-                originY: 0,
-                periodX,
-                periodY: rawHeight,
-                rawHeight
-            };
-        }
-        const periodX = Math.max(1, 1.5 * width);
-        const periodY = Math.max(1, root3 * height);
-        const center = {
-            x: 1.5 * x,
-            y: root3 * (y + (x % 2) * 0.5)
-        };
-        const point = {
-            x: center.x + Math.cos((2 * Math.PI) / 3),
-            y: center.y + Math.sin((2 * Math.PI) / 3)
-        };
+        const point = honeycombPoint(coord, width, height);
+        if (!point) return null;
+        const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
         return {
             point,
-            originX: 0,
-            originY: 0,
-            periodX,
-            periodY,
-            rawHeight: periodY
+            originX: metrics.originX,
+            originY: metrics.originY,
+            periodX: metrics.periodX,
+            periodY: metrics.periodY,
+            rawHeight: metrics.rawHeight
         };
     }
 
@@ -2133,7 +2105,7 @@ class Go3DRenderer {
             points.push(this.torusPointFromUV({
                 u: start.u + du * t,
                 v: start.v + dv * t
-            }, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard'));
+            }, lift));
         }
         return points;
     }
