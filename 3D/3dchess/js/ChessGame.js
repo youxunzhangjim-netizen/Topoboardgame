@@ -117,7 +117,9 @@ const DEFAULT_VARIANT = 'cube';
 const STORAGE_KEY = '3dchess:selectedVariant';
 
 function normalizeVariant(value) {
-    return value === 's2' || value === 'cylinder' ? 'sphere' : value;
+    if (value === 's2' || value === 'cylinder') return 'sphere';
+    if (value === 't2') return 'torus';
+    return value;
 }
 
 export class ChessGame {
@@ -146,8 +148,7 @@ export class ChessGame {
             return fromUrl;
         }
 
-        const stored = normalizeVariant(window.localStorage.getItem(STORAGE_KEY) || '');
-        return this.isVariant(stored) ? stored : DEFAULT_VARIANT;
+        return DEFAULT_VARIANT;
     }
 
     isVariant(value) {

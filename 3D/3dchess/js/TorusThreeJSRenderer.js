@@ -614,6 +614,17 @@ export class TorusThreeJSRenderer {
         for (const child of remove) this.highlightGroup.remove(child);
     }
 
+    nearestBoardSurfaceHit() {
+        const hits = this.raycaster.intersectObjects(this.boardGroup.children, false)
+            .filter((hit) => hit.object?.isMesh && hit.object.userData?.type !== 'guide' && hit.object.userData?.type !== 'winding-axis');
+        return hits[0] || null;
+    }
+
+    surfaceBlocksHit(hit) {
+        const surface = this.nearestBoardSurfaceHit();
+        return Boolean(surface && hit && surface.distance < hit.distance - 0.012 && surface.object !== hit.object);
+    }
+
     async onMouseClick(event) {
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -621,7 +632,7 @@ export class TorusThreeJSRenderer {
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
         const hintHits = this.raycaster.intersectObjects(this.highlightGroup.children, true);
-        const hint = hintHits.find((hit) => hit.object.userData?.type === 'legal-move');
+        const hint = hintHits.find((hit) => hit.object.userData?.type === 'legal-move' && !this.surfaceBlocksHit(hit));
         if (hint) {
             const { x, y, sheet = 0 } = hint.object.userData;
             await this.game.handleSquareClick(x, y, sheet);
@@ -629,8 +640,9 @@ export class TorusThreeJSRenderer {
         }
 
         const pieceHits = this.raycaster.intersectObjects(this.piecesGroup.children, true);
-        if (pieceHits.length) {
-            let obj = pieceHits[0].object;
+        const pieceHit = pieceHits.find((hit) => !this.surfaceBlocksHit(hit));
+        if (pieceHit) {
+            let obj = pieceHit.object;
             while (obj && !obj.userData?.piece) obj = obj.parent;
             if (obj?.userData?.piece) {
                 await this.game.handleSquareClick(obj.userData.x, obj.userData.y, obj.userData.sheet || 0);
@@ -639,7 +651,8 @@ export class TorusThreeJSRenderer {
         }
 
         const cellHits = this.raycaster.intersectObjects(this.boardGroup.children, false);
-        const cell = cellHits.find((hit) => hit.object.userData?.type === 'cell');
+        const firstSurface = this.nearestBoardSurfaceHit();
+        const cell = cellHits.find((hit) => hit.object.userData?.type === 'cell' && (!firstSurface || firstSurface.object === hit.object || hit.distance <= firstSurface.distance + 0.012));
         if (cell) {
             const { x, y, sheet = 0 } = cell.object.userData;
             await this.game.handleSquareClick(x, y, sheet);

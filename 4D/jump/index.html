@@ -34,11 +34,19 @@
         <span id="jumpTimerA">A --</span>
         <span id="jumpTimerB">B --</span>
       </div>
+      <div class="r3-filter-control" id="r3FilterControl">
+        <label>4D slice view</label>
+        <div class="r3-filter-grid">
+          <input id="sliceXInput" type="number" min="1" placeholder="x all">
+          <input id="sliceYInput" type="number" min="1" placeholder="y all">
+          <input id="sliceZInput" type="number" min="1" placeholder="z all">
+          <input id="sliceWInput" type="number" min="1" placeholder="w all">
+        </div>
+        <p class="jump-view-help">Leave fields empty to show all layers. Enter one or more coordinates to inspect a 2D/3D slice.</p>
+      </div>
       <details class="advanced-settings"><summary>Advanced / Research Settings</summary>
         <div class="jump-grid">
           <label>Target Mode<select id="targetModeSelect"><option value="opponentHome">Opponent Home Zone</option><option value="antipodal">Antipodal Zone</option><option value="sameCharge">Same Charge Sector</option><option value="fusionTarget">Fusion Target</option><option value="braidTarget">Braid Target</option><option value="custom">Custom Marked Target</option></select></label>
-          <label>Slice z<input id="sliceZInput" type="number" min="0" placeholder="all"></label>
-          <label>Slice w<input id="sliceWInput" type="number" min="0" placeholder="all"></label>
         </div>
       </details>
 

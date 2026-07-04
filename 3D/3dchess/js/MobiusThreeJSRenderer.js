@@ -199,35 +199,6 @@ export class MobiusThreeJSRenderer extends TorusThreeJSRenderer {
 
     showTwistCrossingHints(moves) {
         this.clearTwistCrossingHints();
-        const seen = new Set();
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x22c55e,
-            transparent: true,
-            opacity: 0.96,
-            depthTest: false,
-            depthWrite: false
-        });
-
-        for (const move of moves) {
-            for (const crossing of move.boundaryCrossings || []) {
-                if (seen.has(crossing.key)) continue;
-                seen.add(crossing.key);
-                const link = this.twistLinks.get(crossing.key);
-                if (!link) continue;
-
-                link.line.material.color.set(0x22c55e);
-                link.line.material.opacity = 0.98;
-                link.arrow.material.color.set(0x22c55e);
-                link.arrow.material.emissive.set(0x22c55e);
-                link.arrow.material.emissiveIntensity = 0.9;
-
-                const glow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 14), glowMaterial);
-                glow.position.copy(link.glowPosition);
-                glow.renderOrder = 38;
-                glow.userData = { type: 'twist-glow', key: crossing.key };
-                this.highlightGroup.add(glow);
-            }
-        }
     }
 
     clearTwistCrossingHints() {

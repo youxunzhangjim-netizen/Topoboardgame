@@ -269,7 +269,7 @@ export class JumpGameApp {
     this.syncLatticeAvailability(topology);
     const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', gameDimension, topology);
     const playerCount = Math.max(2, Math.min(3, Math.floor(Number(this.playerCountSelect?.value || this.config.playerCount || 2) || 2)));
-    const size = Number(this.sizeSelect?.value || this.config.size || (this.dimension === 4 ? 5 : this.dimension === 3 ? 6 : 8));
+    const size = Number(this.sizeSelect?.value || this.config.size || (this.dimension === 4 ? 5 : 8));
     const targetAxis = this.axisSelect?.value || this.config.targetAxis || 'x';
     const labTargetMode = this.targetModeSelect?.value || 'opponentHome';
     return new JumpGameState({
@@ -1091,10 +1091,10 @@ export class JumpGameApp {
     if (topology === 'torus' || topology === '4d-torus') {
       const R = 1.45;
       const r = 0.48;
-      return [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v) + (coord[2] || 0) / Math.max(1, n) - 0.5];
+      return [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v)];
     }
     if (topology === 'cylinder') {
-      const radial = 1.18 + ((coord[2] || 0) / Math.max(1, n)) * 0.72;
+      const radial = 1.18;
       const vertical = (coord[1] / Math.max(1, n) - 0.5) * 2.2 + ((coord[3] || 0) / Math.max(1, n) - 0.5) * 0.38;
       return [radial * Math.cos(u), vertical, radial * Math.sin(u)];
     }
@@ -1183,8 +1183,8 @@ export class JumpGameApp {
     if (!this.usesOpaqueSurfaceView()) return 1;
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const front = this.project(coord).frontFacing !== false;
-    if (topology === 'torus' || topology === 'cylinder') return front ? 1 : 0.42;
-    return front ? 1 : 0.48;
+    if (topology === 'torus' || topology === 'cylinder') return front ? 1 : 0.72;
+    return front ? 1 : 0.68;
   }
 
   projectEmbeddedModelPoint(model, normal = null) {

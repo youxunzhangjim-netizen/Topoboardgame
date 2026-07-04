@@ -210,11 +210,11 @@ class Reversi3DRenderer {
         gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         this.boardGroup.add(new THREE.LineSegments(
             gridGeometry,
-            new THREE.LineBasicMaterial({ color: 0x2b1b10, transparent: true, opacity: 0.9 })
+            new THREE.LineBasicMaterial({ color: 0x5a3518, transparent: true, opacity: 0.96 })
         ));
         const plane = new THREE.Mesh(
             new THREE.PlaneGeometry(9.2, 6.6),
-            new THREE.MeshBasicMaterial({ color: 0xb67b45, transparent: true, opacity: 0.24, side: THREE.DoubleSide })
+            new THREE.MeshBasicMaterial({ color: 0xd29a53, transparent: true, opacity: 0.82, side: THREE.DoubleSide })
         );
         plane.position.z = -0.02;
         this.boardGroup.add(plane);
@@ -228,7 +228,7 @@ class Reversi3DRenderer {
                 pointPositions.push(position.x, position.y, position.z);
             }
         }
-        this.addNodePoints(pointPositions, width <= 9 ? 0.046 : 0.034, { color: 0x24130b, opacity: 0.92 });
+        this.addNodePoints(pointPositions, width <= 9 ? 0.046 : 0.034, { color: 0x6b421d, opacity: 0.9 });
     }
 
     buildR3(topology) {
@@ -902,7 +902,8 @@ class Reversi3DRenderer {
             roughness: color === 'black' ? 0.42 : 0.22,
             metalness: 0.02,
             clearcoat: 0.16,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            depthWrite: false
         });
         const rimMaterial = new THREE.MeshBasicMaterial({
             color: color === 'black' ? 0x48c7f4 : 0xf2c464,
@@ -916,7 +917,8 @@ class Reversi3DRenderer {
         const localNormal = new THREE.Vector3(0, 0, 1);
         for (const pose of poses) {
             const normal = pose.normal?.clone?.().normalize?.() || new THREE.Vector3(0, 0, 1);
-            const position = pose.position.clone().add(normal.clone().multiplyScalar(0.016));
+            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.032 : 0.016;
+            const position = pose.position.clone().add(normal.clone().multiplyScalar(surfaceLift));
             const disc = new THREE.Mesh(discGeometry, discMaterial);
             const rim = new THREE.Mesh(rimGeometry, rimMaterial);
             disc.position.copy(position);
