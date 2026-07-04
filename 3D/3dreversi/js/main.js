@@ -141,6 +141,7 @@ class Reversi3DRenderer {
             topology.width,
             topology.height,
             topology.depth,
+            this.app?.surfaceViewMode?.() || '3d',
             this.app?.r3SliceSignature?.() || ''
         ].join(':');
         if (signature === this.signature) return;
@@ -153,6 +154,7 @@ class Reversi3DRenderer {
         this.nodePoints = null;
 
         if (isR3LikeTopology(topology.topology)) this.buildR3(topology);
+        else if (topology.topology === REVERSI_TOPOLOGIES.T2 && topology.lattice === HONEYCOMB_LATTICE && this.app?.surfaceViewMode?.() === 'cut2d') this.buildHoneycombCutView(topology.width, topology.height);
         else if (topology.topology === REVERSI_TOPOLOGIES.T2) this.buildTorus(topology.width, topology.height, topology.lattice);
         else if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) this.buildCylinder(topology.width, topology.height, topology.lattice);
         else if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) this.buildMobius(topology.width, topology.height);
@@ -161,6 +163,8 @@ class Reversi3DRenderer {
             this.buildFlatNonOrientable(topology.width, topology.height, topology.topology);
         }
         else this.buildSphere(topology.width, topology.height);
+        const flatCut = topology.topology === REVERSI_TOPOLOGIES.T2 && topology.lattice === HONEYCOMB_LATTICE && this.app?.surfaceViewMode?.() === 'cut2d';
+        this.controls.enableRotate = !flatCut;
         this.controls.minPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : 0;
         this.controls.maxPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : Math.PI;
 
@@ -169,6 +173,62 @@ class Reversi3DRenderer {
 
     coordVisible(coord) {
         return this.app?.coordVisibleInSlice?.(coord) !== false;
+    }
+
+    honeycombCutCenter(coord, width, height) {
+        const root3 = Math.sqrt(3);
+        const rawX = 1.5 * Number(coord?.[0] || 0);
+        const rawY = root3 * (Number(coord?.[1] || 0) + (Number(coord?.[0] || 0) % 2) * 0.5);
+        const boardW = Math.max(1, 1.5 * Math.max(1, width - 1));
+        const boardH = Math.max(1, root3 * Math.max(1, height - 0.5));
+        const scale = Math.min(8.2 / boardW, 5.9 / boardH);
+        return new THREE.Vector3((rawX - boardW / 2) * scale, (boardH / 2 - rawY) * scale, 0);
+    }
+
+    honeycombCutPose(coord, width, height, lift = 0.08) {
+        return {
+            position: this.honeycombCutCenter(coord, width, height).add(new THREE.Vector3(0, 0, lift)),
+            normal: new THREE.Vector3(0, 0, 1)
+        };
+    }
+
+    buildHoneycombCutView(width, height) {
+        const linePositions = [];
+        const radius = 0.48;
+        const pushLine = (a, b) => linePositions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const center = this.honeycombCutCenter([x, y], width, height);
+                const vertices = Array.from({ length: 6 }, (_, index) => {
+                    const angle = index * Math.PI / 3;
+                    return new THREE.Vector3(center.x + Math.cos(angle) * radius, center.y + Math.sin(angle) * radius, 0);
+                });
+                for (let index = 0; index < 6; index += 1) pushLine(vertices[index], vertices[(index + 1) % 6]);
+            }
+        }
+        const gridGeometry = new THREE.BufferGeometry();
+        gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+        this.boardGroup.add(new THREE.LineSegments(
+            gridGeometry,
+            new THREE.LineBasicMaterial({ color: 0x2b1b10, transparent: true, opacity: 0.9 })
+        ));
+        const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(9.2, 6.6),
+            new THREE.MeshBasicMaterial({ color: 0xb67b45, transparent: true, opacity: 0.24, side: THREE.DoubleSide })
+        );
+        plane.position.z = -0.02;
+        this.boardGroup.add(plane);
+        const pointPositions = [];
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const coord = [x, y];
+                const position = this.honeycombCutPose(coord, width, height, 0.04).position;
+                this.pointCoords.push(coord);
+                this.pointPositions.push(position);
+                pointPositions.push(position.x, position.y, position.z);
+            }
+        }
+        this.addNodePoints(pointPositions, width <= 9 ? 0.046 : 0.034, { color: 0x24130b, opacity: 0.92 });
     }
 
     buildR3(topology) {
@@ -967,6 +1027,9 @@ class Reversi3DRenderer {
     posesForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2 && this.app?.surfaceViewMode?.() === 'cut2d') {
+            return [this.honeycombCutPose(coord, topology.width, topology.height, lift)];
+        }
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
             return [this.mobiusPose(visualCoord, topology.width, topology.height, Math.abs(lift), topology.lattice)];
         }
@@ -1116,6 +1179,9 @@ class Reversi3DRenderer {
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
+        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2 && this.app?.surfaceViewMode?.() === 'cut2d') {
+            return this.honeycombCutPose(coord, topology.width, topology.height, lift).position;
+        }
         if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
             return this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift).position;
         }
@@ -1711,7 +1777,8 @@ class Reversi3DRenderer {
 
     resetCamera() {
         const mode = this.app?.logic?.topology?.topology || 'r3';
-        if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
+        if (mode === REVERSI_TOPOLOGIES.T2 && this.app?.surfaceViewMode?.() === 'cut2d') this.camera.position.set(0, 0, 10.2);
+        else if (mode === REVERSI_TOPOLOGIES.T2) this.camera.position.set(0, 5.7, 9.9);
         else if (mode === REVERSI_TOPOLOGIES.CYLINDER) this.camera.position.set(0, 0, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.MOBIUS) this.camera.position.set(8.2, 5.9, 9.2);
         else if (mode === REVERSI_TOPOLOGIES.KLEIN) this.camera.position.set(10.2, 5.6, 11.4);
@@ -1719,6 +1786,24 @@ class Reversi3DRenderer {
         else if (mode === REVERSI_TOPOLOGIES.RP2) this.camera.position.set(0, 0, 10.5);
         else this.camera.position.set(7.9, 7.4, 8.2);
         this.controls.target.set(0, mode === REVERSI_TOPOLOGIES.KLEIN ? 0.24 : 0, 0);
+        this.controls.update();
+    }
+
+    setCameraView(view = 'home') {
+        if (view === 'home') {
+            this.resetCamera();
+            return;
+        }
+        const mode = this.app?.logic?.topology?.topology || 'r3';
+        const distance = mode === REVERSI_TOPOLOGIES.SPHERE ? 9.8 : 10.6;
+        const presets = {
+            x: [distance, 0, 0],
+            y: [0, distance, 0],
+            z: [0, 0, distance]
+        };
+        const position = presets[view] || presets.z;
+        this.camera.position.set(position[0], position[1], position[2]);
+        this.controls.target.set(0, 0, 0);
         this.controls.update();
     }
 
@@ -1743,6 +1828,8 @@ class Reversi3DApp {
         this.boundarySelect = document.getElementById('boundarySelect');
         this.latticeGroup = document.getElementById('latticeControlGroup');
         this.latticeSelect = document.getElementById('latticeSelect');
+        this.surfaceViewGroup = document.getElementById('surfaceViewControlGroup');
+        this.surfaceViewSelect = document.getElementById('surfaceViewSelect');
         this.sizeSelect = document.getElementById('boardSizeSelect');
         this.customSizeInput = document.getElementById('customBoardSizeInput');
         this.layerGroup = document.getElementById('layerControlGroup');
@@ -1857,6 +1944,10 @@ class Reversi3DApp {
             this.resetGame();
         });
         this.latticeSelect.addEventListener('change', () => this.resetGame());
+        this.surfaceViewSelect?.addEventListener('change', () => {
+            this.renderer.signature = '';
+            this.updateUI();
+        });
         this.sizeSelect.addEventListener('change', () => {
             this.updateCustomSizeVisibility();
             this.resetGame();
@@ -1874,6 +1965,13 @@ class Reversi3DApp {
         this.cameraResetBtn?.addEventListener('click', () => {
             this.clearR3SliceFilters(false);
             this.renderer.resetCamera();
+            this.updateUI();
+        });
+        document.getElementById('boardCameraPad')?.addEventListener('click', (event) => {
+            const button = event.target.closest?.('button[data-camera-view]');
+            if (!button) return;
+            if (button.dataset.cameraView === 'home') this.clearR3SliceFilters(false);
+            this.renderer.setCameraView(button.dataset.cameraView || 'home');
             this.updateUI();
         });
         for (const input of Object.values(this.sliceInputs || {})) {
@@ -2145,6 +2243,7 @@ class Reversi3DApp {
 
     updateUI() {
         this.updateCustomSizeVisibility();
+        this.syncSurfaceViewControl();
         this.syncLayerControl();
         const counts = this.logic.counts();
         this.blackScoreEl.textContent = counts.black;
@@ -2175,7 +2274,7 @@ class Reversi3DApp {
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
             t2: lattice === HONEYCOMB_LATTICE
-                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy the center of each face cell.'
+                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy face centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify PBC crossings.'
                 : lattice === KAGOME_LATTICE
                 ? 'T2 Kagome uses a staggered triangle-hexagon graph wrapped on the torus. Reversi stones occupy visible graph sites.'
                 : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
@@ -2199,6 +2298,16 @@ class Reversi3DApp {
 
     focusColor() {
         return this.gameModeSelect?.value === 'online' && this.myColor ? this.myColor : this.logic.currentPlayer;
+    }
+
+    surfaceViewMode() {
+        return this.surfaceViewSelect?.value || '3d';
+    }
+
+    syncSurfaceViewControl() {
+        const show = this.activeTopology() === REVERSI_TOPOLOGIES.T2 && this.currentLattice() === HONEYCOMB_LATTICE;
+        if (this.surfaceViewGroup) this.surfaceViewGroup.hidden = !show;
+        if (!show && this.surfaceViewSelect) this.surfaceViewSelect.value = '3d';
     }
 
     togglePieceFocus() {

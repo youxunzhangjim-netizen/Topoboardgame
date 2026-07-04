@@ -1785,16 +1785,6 @@ class Go3DRenderer {
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
-            if (surfaceKind === 'torus') {
-                const root3 = Math.sqrt(3);
-                const rawX = 1.5 * Number(coord?.[0] || 0);
-                const rawY = root3 * (Number(coord?.[1] || 0) + (Number(coord?.[0] || 0) % 2) * 0.5);
-                return {
-                    u: (rawX / Math.max(1, 1.5 * width)) * TWO_PI,
-                    v: (rawY / Math.max(1, root3 * height)) * TWO_PI,
-                    band: rawY / Math.max(1, root3 * (height - 1))
-                };
-            }
             const point = honeycombPoint(coord, width, height) || { x: 0, y: 0 };
             const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
             const rawX = point.x - metrics.originX;
@@ -2238,6 +2228,23 @@ class Go3DRenderer {
         this.controls.update();
     }
 
+    setCameraView(view = 'home') {
+        if (view === 'home') {
+            this.resetCamera();
+            return;
+        }
+        const distance = this.app?.logic?.topology === SPHERE_GO_TOPOLOGY ? 16.5 : 10.8;
+        const presets = {
+            x: [distance, 0, 0],
+            y: [0, distance, 0],
+            z: [0, 0, distance]
+        };
+        const position = presets[view] || presets.z;
+        this.camera.position.set(position[0], position[1], position[2]);
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+    }
+
     animate() {
         requestAnimationFrame(() => this.animate());
         const elapsed = this.clock.getElapsedTime();
@@ -2545,6 +2552,13 @@ class Go3DApp {
         document.getElementById('cameraReset').addEventListener('click', () => {
             this.clearR3SliceFilters(false);
             this.renderer.resetCamera();
+            this.updateUI();
+        });
+        document.getElementById('boardCameraPad')?.addEventListener('click', (event) => {
+            const button = event.target.closest?.('button[data-camera-view]');
+            if (!button) return;
+            if (button.dataset.cameraView === 'home') this.clearR3SliceFilters(false);
+            this.renderer.setCameraView(button.dataset.cameraView || 'home');
             this.updateUI();
         });
         for (const input of Object.values(this.sliceInputs || {})) {

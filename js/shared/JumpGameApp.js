@@ -1011,6 +1011,10 @@ export class JumpGameApp {
     return this.dimension >= 3 && ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
   }
 
+  usesVolumeGraphView() {
+    return this.dimension >= 3 && !this.usesOpaqueSurfaceView();
+  }
+
   embeddedSurfaceNormal(coord, point) {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const [x = 0, y = 0, z = 0] = point;
@@ -1055,6 +1059,14 @@ export class JumpGameApp {
     }
     if (graphDimension === 2 && (lattice === 'triangular' || lattice === 'kagome') && !this.isPolarBoard()) {
       const last = Math.max(0, size - 1);
+      if (lattice === 'triangular') {
+        return {
+          x: (coord[0] || 0) + (coord[1] || 0) * 0.5,
+          y: (coord[1] || 0) * Math.sqrt(3) / 2,
+          maxX: Math.max(1, last * 1.5),
+          maxY: Math.max(1, last * Math.sqrt(3) / 2)
+        };
+      }
       return {
         x: (coord[0] || 0) + ((coord[1] || 0) % 2) * 0.5,
         y: (coord[1] || 0) * Math.sqrt(3) / 2,
@@ -1278,8 +1290,9 @@ export class JumpGameApp {
     if (this.usesOpaqueSurfaceView()) this.drawEmbeddedSurfaceFill(visibleCoords);
     const coords = visibleCoords;
     if (this.isPolarBoard()) this.drawPolarFrame(width, height);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(95, 174, 255, 0.26)';
+    const volumeGraph = this.usesVolumeGraphView();
+    ctx.lineWidth = volumeGraph ? 1.35 : 1;
+    ctx.strokeStyle = volumeGraph ? 'rgba(132, 202, 255, 0.52)' : 'rgba(95, 174, 255, 0.26)';
     const edgeKeys = new Set();
     for (const coord of coords) {
       for (const dir of (this.game.directionsFor?.(coord) || this.game.directions)) {
@@ -1431,8 +1444,9 @@ export class JumpGameApp {
   drawSite(coord) {
     const p = this.project(coord);
     const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(210, 230, 255, 0.85)';
-    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2, this.cellRadius() * 0.13), 0, Math.PI * 2); ctx.fill();
+    const volumeGraph = this.usesVolumeGraphView();
+    ctx.fillStyle = volumeGraph ? 'rgba(232, 244, 255, 0.96)' : 'rgba(210, 230, 255, 0.85)';
+    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(volumeGraph ? 2.6 : 2, this.cellRadius() * (volumeGraph ? 0.16 : 0.13)), 0, Math.PI * 2); ctx.fill();
   }
 
   drawPiece(coord, owner, label) {
@@ -1444,7 +1458,7 @@ export class JumpGameApp {
     if (focus && owner !== focus) ctx.globalAlpha = 0.34;
     ctx.fillStyle = owner === 'A' ? '#54a4ff' : owner === 'C' ? '#be60ff' : '#ffbe4c';
     ctx.strokeStyle = '#f8fbff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = this.usesVolumeGraphView() ? 2.6 : 2;
     ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = owner === 'A' ? '#04111f' : owner === 'C' ? '#170620' : '#160d02';
     ctx.font = `${Math.max(10, r * 0.75)}px system-ui, sans-serif`;

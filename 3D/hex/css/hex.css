@@ -1,7 +1,7 @@
 @import url("../../../2D/hex/css/hex.css");
 
 .board-panel-3d {
-    min-height: 560px;
+    min-height: clamp(640px, calc(100vh - 150px), 980px);
     background: #070b10;
     overflow: hidden;
 }
@@ -9,7 +9,7 @@
 #hexBoard {
     width: 100%;
     height: 100%;
-    min-height: 520px;
+    min-height: clamp(600px, calc(100vh - 170px), 940px);
     aspect-ratio: auto;
     background: #080d12;
     cursor: grab;

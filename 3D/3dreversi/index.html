@@ -36,6 +36,12 @@
 
             <div class="board-frame">
                 <canvas id="reversiBoard" aria-label="3D Reversi board"></canvas>
+                <div class="board-camera-pad" id="boardCameraPad" aria-label="Camera view controls">
+                    <button type="button" data-camera-view="x" aria-label="View along X axis" title="X view">X</button>
+                    <button type="button" data-camera-view="y" aria-label="View along Y axis" title="Y view">Y</button>
+                    <button type="button" data-camera-view="z" aria-label="View along Z axis" title="Z view">Z</button>
+                    <button type="button" data-camera-view="home" aria-label="Reset camera" title="Reset">R</button>
+                </div>
             </div>
         </section>
 
@@ -108,6 +114,15 @@
                     <option value="honeycomb">Honeycomb</option>
                     <option value="sphere_coordinate">Geodesic</option>
                 </select>
+            </div>
+
+            <div class="control-group" id="surfaceViewControlGroup" hidden>
+                <label for="surfaceViewSelect">Surface View</label>
+                <select id="surfaceViewSelect">
+                    <option value="3d" selected>3D Torus</option>
+                    <option value="cut2d">2D Cut View</option>
+                </select>
+                <div class="boundary-info">Use 2D Cut View to check honeycomb PBC crossings: bracket rays follow only direct shared-edge hex cells.</div>
             </div>
 
             <div class="boundary-info">

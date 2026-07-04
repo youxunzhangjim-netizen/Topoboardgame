@@ -1,6 +1,11 @@
 const ZH = new Map(Object.entries({
   'Language': '語言',
   'Home': '首頁',
+  'Surface View': '曲面視圖',
+  '3D Torus': '3D 環面',
+  '2D Cut View': '2D 展開視圖',
+  'Use 2D Cut View to check honeycomb PBC crossings: bracket rays follow only direct shared-edge hex cells.': '使用 2D 展開視圖檢查蜂巢 PBC 穿越：夾擊射線只沿著直接共邊的六邊形格。',
+  'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy face centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify PBC crossings.': 'T2 蜂巢使用鋸齒奈米碳管式六邊形網格包成環面。黑白棋棋子位於面中心；夾擊射線只沿著直接共邊的六邊形格。可用 2D 展開視圖檢查 PBC 穿越。',
   'Topological Board Game': '拓撲棋盤遊戲',
   'Strategy & Systems Labs': '策略與系統實驗室',
   'Topoboard Labs': 'Topoboard 實驗室',

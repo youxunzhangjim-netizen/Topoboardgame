@@ -48,6 +48,12 @@
 
             <div class="board-frame">
                 <canvas id="goCanvas" aria-label="3D Go board"></canvas>
+                <div class="board-camera-pad" id="boardCameraPad" aria-label="Camera view controls">
+                    <button type="button" data-camera-view="x" aria-label="View along X axis" title="X view">X</button>
+                    <button type="button" data-camera-view="y" aria-label="View along Y axis" title="Y view">Y</button>
+                    <button type="button" data-camera-view="z" aria-label="View along Z axis" title="Z view">Z</button>
+                    <button type="button" data-camera-view="home" aria-label="Reset camera" title="Reset">R</button>
+                </div>
             </div>
 
             <section class="panel score-panel" id="scorePanel" hidden>
@@ -173,8 +179,6 @@
                     <option value="86400" data-i18n="timer.oneDay">1 Day</option>
                 </select>
             </div>
-</div>
-</div>
 
             <div class="control-group r3-filter-control" id="r3FilterControl">
                 <label>R3 coordinate view filter</label>
