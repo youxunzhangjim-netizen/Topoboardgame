@@ -9,7 +9,7 @@ const EMBEDDED_SURFACE_TOPOLOGIES = new Set(['cylinder', 'torus', 'mobius', 'kle
 const DIM_LABELS = { 2: '2D', 3: '3D', 4: '4D' };
 const TOPOLOGY_LABELS = {
   plane: 'Standard', polar: 'Polar', cylinder: 'Cylinder', torus: 'Torus', mobius: 'Mobius', klein: 'Klein', rp2: 'RP2', sphere: 'Sphere',
-  cube: 'R3', reflective: 'Reflective', shell: 'Sphere / Shell', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
+  cube: 'R3', reflective: 'Reflective', shell: 'Sphere', hypercube: 'Hypercube', projection: 'Projection', '4d-torus': '4D Torus'
 };
 const TOPOLOGY_ZH_LABELS = {
   plane: '標準',
@@ -1171,8 +1171,8 @@ export class JumpGameApp {
     if (!this.usesOpaqueSurfaceView()) return 1;
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
     const front = this.project(coord).frontFacing !== false;
-    if (topology === 'torus' || topology === 'cylinder') return front ? 1 : 0;
-    return front ? 1 : 0.28;
+    if (topology === 'torus' || topology === 'cylinder') return front ? 1 : 0.42;
+    return front ? 1 : 0.48;
   }
 
   projectEmbeddedModelPoint(model, normal = null) {

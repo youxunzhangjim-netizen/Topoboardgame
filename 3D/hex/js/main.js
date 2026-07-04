@@ -5,6 +5,7 @@ import {
     createBuckyballSphereFacePolygons,
     createBuckyballSphereGridLines
 } from '../../../js/geometry/SphereBoardGeometry.js';
+import { honeycombBounds, honeycombCells } from '../../../js/shared/HoneycombLattice.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -1057,6 +1058,123 @@ function surfacePanelCellCoordinate(x, y) {
     return game.topology.normalize([x, y, 0]);
 }
 
+function surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight) {
+    const topology = selectedTopology();
+    const u = (x / Math.max(1, gridWidth)) * TWO_PI;
+    const band = y / Math.max(1, gridHeight);
+    if (topology === 't2') {
+        const v = band * TWO_PI;
+        const major = 3.35;
+        const minor = 1.22;
+        const ring = major + minor * Math.cos(v);
+        return [ring * Math.cos(u), ring * Math.sin(u), minor * Math.sin(v)];
+    }
+    if (topology === 'cylinder') {
+        const radius = 3.25;
+        return [radius * Math.cos(u), (0.5 - band) * 6.0, radius * Math.sin(u)];
+    }
+    if (topology === 'mobius') {
+        const t = (band - 0.5) * 1.65;
+        const radius = 2.75 + t * Math.cos(u / 2);
+        return [radius * Math.cos(u), t * Math.sin(u / 2), radius * Math.sin(u)];
+    }
+    return null;
+}
+
+function projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, coordinate = null) {
+    const model = surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight);
+    return model ? projectModelPoint(model, width, height, coordinate) : null;
+}
+
+function surfacePanelFill(panel, topology) {
+    const opaqueSphere = topology === 'sphere';
+    if (panel.color === HEX_COLORS.BLACK) return opaqueSphere ? '#24a9c2' : 'rgba(36, 169, 194, 0.9)';
+    if (panel.color === HEX_COLORS.WHITE) return opaqueSphere ? '#e3a42f' : 'rgba(227, 164, 47, 0.9)';
+    if (panel.blackTarget && panel.whiteTarget) return opaqueSphere ? '#85977a' : 'rgba(133, 151, 122, 0.78)';
+    if (panel.blackTarget) return opaqueSphere ? '#c2eff7' : 'rgba(194, 239, 247, 0.88)';
+    if (panel.whiteTarget) return opaqueSphere ? '#f8e6ba' : 'rgba(248, 230, 186, 0.88)';
+    return opaqueSphere ? '#e0e7e4' : topology === 'klein' ? 'rgba(224, 231, 228, 0.7)' : 'rgba(224, 231, 228, 0.84)';
+}
+
+function drawPanelList(panels, topology, filledCells) {
+    panels.sort((a, b) => a.avgDepth - b.avgDepth);
+    context.save();
+    for (const panel of panels) {
+        context.beginPath();
+        panel.points.forEach((point, index) => {
+            if (index) context.lineTo(point.x, point.y);
+            else context.moveTo(point.x, point.y);
+        });
+        context.closePath();
+        context.fillStyle = surfacePanelFill(panel, topology);
+        context.fill();
+        context.strokeStyle = topology === 'klein' ? 'rgba(65, 76, 84, 0.36)' : 'rgba(65, 76, 84, 0.58)';
+        context.lineWidth = topology === 'klein' ? 0.45 : 0.72;
+        context.stroke();
+        if (panel.cell) {
+            projectedSurfaceCells.push({
+                points: panel.points,
+                coordinate: panel.cell,
+                depth: panel.avgDepth
+            });
+        }
+    }
+    context.restore();
+    return filledCells;
+}
+
+function drawLatticeSurfacePanels(width, height, lattice) {
+    const topology = selectedTopology();
+    const [gridWidth, gridHeight] = game.size;
+    const blackZone = game.topology.goalZones.black;
+    const whiteZone = game.topology.goalZones.white;
+    const panels = [];
+    const filledCells = new Set();
+    const addPanel = (vertices, cell) => {
+        const points = vertices
+            .map(([x, y]) => projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, cell))
+            .filter(Boolean);
+        if (points.length < 3 || !cell) return;
+        const color = game.getCell(cell);
+        if (color) filledCells.add(cell.join(','));
+        panels.push({
+            points,
+            avgDepth: points.reduce((sum, point) => sum + point.depth, 0) / points.length,
+            cell,
+            color,
+            blackTarget: blackZone.start(cell) || blackZone.end(cell),
+            whiteTarget: whiteZone.start(cell) || whiteZone.end(cell)
+        });
+    };
+
+    if (lattice === 'honeycomb') {
+        const bounds = honeycombBounds(gridWidth, gridHeight);
+        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+        honeycombCells(gridWidth, gridHeight).forEach((cellData, index) => {
+            const x = index % gridWidth;
+            const y = Math.floor(index / gridWidth);
+            const cell = game.topology.normalize([x, y, 0]);
+            const vertices = cellData.vertices.map((point) => [
+                ((point.x - bounds.minX) / rawWidth) * gridWidth,
+                ((point.y - bounds.minY) / rawHeight) * gridHeight
+            ]);
+            addPanel(vertices, cell);
+        });
+    } else if (lattice === 'triangular') {
+        for (let y = 0; y < gridHeight; y += 1) {
+            for (let x = 0; x < gridWidth; x += 1) {
+                const cell = game.topology.normalize([x, y, 0]);
+                const shift0 = (y % 2) * 0.5;
+                const shift1 = ((y + 1) % 2) * 0.5;
+                addPanel([[x + shift0, y], [x + 1 + shift0, y], [x + shift1, y + 1]], cell);
+                addPanel([[x + 1 + shift0, y], [x + 1 + shift1, y + 1], [x + shift1, y + 1]], cell);
+            }
+        }
+    }
+    return drawPanelList(panels, topology, filledCells);
+}
+
 function drawBuckyballSpherePanels(width, height) {
     const coordinates = game.topology.coordinates();
     const polygons = createBuckyballSphereFacePolygons({ radius: BUCKYBALL_RENDER_RADIUS, lift: 0.08 });
@@ -1131,6 +1249,10 @@ function drawSurfacePanels(width, height) {
     const topology = selectedTopology();
     if (!isSurfaceTopology()) return new Set();
     if (isBuckyballSphere()) return drawBuckyballSpherePanels(width, height);
+    const lattice = selectedLatticeForTopology(topology);
+    if ((lattice === 'honeycomb' || lattice === 'triangular') && ['t2', 'cylinder', 'mobius'].includes(topology)) {
+        return drawLatticeSurfacePanels(width, height, lattice);
+    }
     const [gridWidth, gridHeight] = game.size;
     const wrapY = topology === 't2' || topology === 'klein' || topology === 'trefoil_tube';
     const yLimit = topology === 'sphere'
@@ -1185,36 +1307,7 @@ function drawSurfacePanels(width, height) {
         }
     }
 
-    panels.sort((a, b) => a.avgDepth - b.avgDepth);
-    context.save();
-    for (const panel of panels) {
-        context.beginPath();
-        panel.points.forEach((point, index) => {
-            if (index) context.lineTo(point.x, point.y);
-            else context.moveTo(point.x, point.y);
-        });
-        context.closePath();
-        const opaqueSphere = topology === 'sphere';
-        if (panel.color === HEX_COLORS.BLACK) context.fillStyle = opaqueSphere ? '#24a9c2' : 'rgba(36, 169, 194, 0.9)';
-        else if (panel.color === HEX_COLORS.WHITE) context.fillStyle = opaqueSphere ? '#e3a42f' : 'rgba(227, 164, 47, 0.9)';
-        else if (panel.blackTarget && panel.whiteTarget) context.fillStyle = opaqueSphere ? '#85977a' : 'rgba(133, 151, 122, 0.78)';
-        else if (panel.blackTarget) context.fillStyle = opaqueSphere ? '#c2eff7' : 'rgba(194, 239, 247, 0.88)';
-        else if (panel.whiteTarget) context.fillStyle = opaqueSphere ? '#f8e6ba' : 'rgba(248, 230, 186, 0.88)';
-        else context.fillStyle = opaqueSphere ? '#e0e7e4' : topology === 'klein' ? 'rgba(224, 231, 228, 0.7)' : 'rgba(224, 231, 228, 0.84)';
-        context.fill();
-        context.strokeStyle = topology === 'klein' ? 'rgba(65, 76, 84, 0.36)' : 'rgba(65, 76, 84, 0.58)';
-        context.lineWidth = topology === 'klein' ? 0.45 : 0.72;
-        context.stroke();
-        if (panel.cell) {
-            projectedSurfaceCells.push({
-                points: panel.points,
-                coordinate: panel.cell,
-                depth: panel.avgDepth
-            });
-        }
-    }
-    context.restore();
-    return filledCells;
+    return drawPanelList(panels, topology, filledCells);
 }
 
 function hasSpecialCellPanels() {

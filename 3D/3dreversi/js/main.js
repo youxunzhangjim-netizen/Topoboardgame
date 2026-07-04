@@ -964,11 +964,7 @@ class Reversi3DRenderer {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
-            const visibleLift = Math.abs(lift);
-            return [
-                this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice),
-                this.mobiusPose(visualCoord, topology.width, topology.height, -visibleLift, topology.lattice)
-            ];
+            return [this.mobiusPose(visualCoord, topology.width, topology.height, Math.abs(lift), topology.lattice)];
         }
         if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
             return [this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift)];
@@ -1196,11 +1192,10 @@ class Reversi3DRenderer {
         const dy = 1.5;
         const rawPeriodX = Math.max(1, Math.sqrt(3) * width);
         const rawPeriodY = Math.max(1, 1.5 * (height - 1) + 2);
-        const xScale = surface === 'torus' ? 0.985 : 1;
         const yScale = surface === 'torus'
             ? Math.max(0.94, rawPeriodY / (rawPeriodY + Math.max(0.001, rawPeriodY / Math.max(8, height * 4))))
             : 1;
-        const periodX = rawPeriodX * xScale;
+        const periodX = rawPeriodX;
         const periodY = rawPeriodY * yScale;
         return {
             radius,

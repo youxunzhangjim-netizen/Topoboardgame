@@ -1441,10 +1441,7 @@ class Go3DRenderer {
 
     positionsForCoord(coord, logic, lift = 0.18) {
         if (logic?.topology === MOBIUS_GO_TOPOLOGY) {
-            return [
-                this.mobiusPose(coord, logic.width, logic.height, Math.abs(lift), logic.lattice).position,
-                this.mobiusPose(coord, logic.width, logic.height, -Math.abs(lift), logic.lattice).position
-            ];
+            return [this.mobiusPose(coord, logic.width, logic.height, Math.abs(lift), logic.lattice).position];
         }
         return [this.positionForCoord(coord, logic)];
     }
@@ -1826,11 +1823,10 @@ class Go3DRenderer {
         const bounds = honeycombBounds(width, height);
         const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
-        const xScale = surfaceKind === 'torus' ? 0.985 : 1;
         const yScale = surfaceKind === 'torus'
             ? Math.max(0.94, rawHeight / (rawHeight + Math.max(0.001, rawHeight / Math.max(8, height * 4))))
             : 1;
-        const periodX = rawWidth * xScale;
+        const periodX = rawWidth;
         const periodY = rawHeight * yScale;
         return {
             bounds,
