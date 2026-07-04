@@ -1776,6 +1776,52 @@ class Go3DRenderer {
         return new THREE.Vector3((coord[0] - center) * scale, (coord[2] - center) * scale, (coord[1] - center) * scale);
     }
 
+    honeycombSurfaceCoordPoint(coord, width, height, surfaceKind = 'flat') {
+        if (surfaceKind !== 'cylinder' && surfaceKind !== 'torus') return null;
+        const x = Number(coord?.[0]);
+        const y = Number(coord?.[1]);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        const root3 = Math.sqrt(3);
+        if (surfaceKind === 'cylinder') {
+            const periodX = Math.max(1, root3 * width);
+            const rawHeight = Math.max(1, 1.5 * (height - 1) + 2);
+            const center = {
+                x: root3 * (0.5 + x + (y % 2) * 0.5),
+                y: 1 + 1.5 * y
+            };
+            const point = {
+                x: center.x + Math.cos(Math.PI / 2),
+                y: center.y + Math.sin(Math.PI / 2)
+            };
+            return {
+                point,
+                originX: 0,
+                originY: 0,
+                periodX,
+                periodY: rawHeight,
+                rawHeight
+            };
+        }
+        const periodX = Math.max(1, 1.5 * width);
+        const periodY = Math.max(1, root3 * height);
+        const center = {
+            x: 1.5 * x,
+            y: root3 * (y + (x % 2) * 0.5)
+        };
+        const point = {
+            x: center.x + Math.cos((2 * Math.PI) / 3),
+            y: center.y + Math.sin((2 * Math.PI) / 3)
+        };
+        return {
+            point,
+            originX: 0,
+            originY: 0,
+            periodX,
+            periodY,
+            rawHeight: periodY
+        };
+    }
+
     latticeSurfaceUV(coord, width, height, lattice = SQUARE_LATTICE, surfaceKind = 'flat') {
         if (lattice === KAGOME_LATTICE) {
             const point = kagomePoint(coord, width, height) || { x: 0, y: 0 };
@@ -1791,6 +1837,16 @@ class Go3DRenderer {
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
+            const surfacePoint = this.honeycombSurfaceCoordPoint(coord, width, height, surfaceKind);
+            if (surfacePoint) {
+                const rawX = ((surfacePoint.point.x - surfacePoint.originX) % surfacePoint.periodX + surfacePoint.periodX) % surfacePoint.periodX;
+                const rawY = ((surfacePoint.point.y - surfacePoint.originY) % surfacePoint.periodY + surfacePoint.periodY) % surfacePoint.periodY;
+                return {
+                    u: (rawX / surfacePoint.periodX) * TWO_PI,
+                    v: (rawY / surfacePoint.periodY) * TWO_PI,
+                    band: THREE.MathUtils.clamp((surfacePoint.point.y - surfacePoint.originY) / surfacePoint.rawHeight, 0, 1)
+                };
+            }
             const point = honeycombPoint(coord, width, height) || { x: 0, y: 0 };
             const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
             const rawX = point.x - metrics.originX;
