@@ -1080,17 +1080,16 @@ class Go3DRenderer {
         });
         const linePositions = [];
         const drawn = new Set();
-        if (logic.lattice === HONEYCOMB_LATTICE) {
-            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.16);
-        } else {
-            for (const coord of logic.playableCoords()) {
-                const fromKey = logic.coordKey(coord);
-                for (const neighbor of logic.neighborsFromCoord(coord)) {
-                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
-                    if (drawn.has(edgeKey)) continue;
-                    drawn.add(edgeKey);
-                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, 0.052));
-                }
+        for (const coord of logic.playableCoords()) {
+            const fromKey = logic.coordKey(coord);
+            for (const neighbor of logic.neighborsFromCoord(coord)) {
+                const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                if (drawn.has(edgeKey)) continue;
+                drawn.add(edgeKey);
+                this.appendPolyline(
+                    linePositions,
+                    this.torusSurfaceEdgePoints(coord, neighbor, size, logic.lattice, logic.lattice === HONEYCOMB_LATTICE ? 0.16 : 0.052)
+                );
             }
         }
         const gridGeometry = new THREE.BufferGeometry();
@@ -1145,9 +1144,7 @@ class Go3DRenderer {
         });
         const linePositions = [];
         const drawn = new Set();
-        if (logic.lattice === HONEYCOMB_LATTICE) {
-            this.appendHoneycombSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
-        } else if (logic.lattice === TRIANGULAR_LATTICE) {
+        if (logic.lattice === TRIANGULAR_LATTICE) {
             this.appendTriangularSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
         } else {
             for (const coord of logic.playableCoords()) {
@@ -2136,7 +2133,7 @@ class Go3DRenderer {
             points.push(this.torusPointFromUV({
                 u: start.u + du * t,
                 v: start.v + dv * t
-            }, lift));
+            }, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard'));
         }
         return points;
     }

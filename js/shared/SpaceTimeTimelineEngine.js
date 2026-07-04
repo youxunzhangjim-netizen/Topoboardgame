@@ -16,11 +16,12 @@ const COPY = {
     delay: 'Future Delay (full turns)',
     actionSlice: 'Next Action Time Slice',
     chooseSlice: 'Choose time slice',
-    pastSlice: '-{ticks} ticks',
+    pastSlice: '-{ticks}',
     pastPreview: 'Past board preview',
     pastPreviewHelp: 'The board is temporarily showing the selected past slice. Apply the rewrite to replay back to the present.',
-    instantSlice: 'Instant',
-    futureSlice: '+{ticks} full turn',
+    pastLockedSource: 'Past slice locked to this source: {action}. Choose its replacement destination.',
+    instantSlice: '0',
+    futureSlice: '+{ticks}',
     modifierTitle: 'Age, period, and noise modifiers',
     modifierHelp: 'Age and noise can run with any +1D time mode when the game supports them. Go Time Period is its own main time mode; if Age is also on, Age uses the smaller cyan/red lifetime ring and Go Period uses the larger amber phase ring.',
     periodMode: 'Go time period',
@@ -126,11 +127,12 @@ const COPY = {
     delay: '未來延遲（完整回合）',
     actionSlice: '下一步時間切片',
     chooseSlice: '選擇時間切片',
-    pastSlice: '-{ticks} 回合',
+    pastSlice: '-{ticks}',
     pastPreview: '過去棋盤預覽',
     pastPreviewHelp: '畫面暫時顯示所選的過去切片；套用改寫後會回放到目前棋盤。',
-    instantSlice: '即時',
-    futureSlice: '+{ticks} 輪完整回合',
+    pastLockedSource: '過去切片已鎖定此起點：{action}。請選擇替代終點。',
+    instantSlice: '0',
+    futureSlice: '+{ticks}',
     modifierTitle: '年齡、週期與噪聲修飾',
     modifierHelp: '年齡與噪聲可套用在支援它們的任何 +1D 時間模式上。Go 時間週期仍是獨立的主模式；若同時啟用年齡，年齡使用較小的青色／紅色壽命倒數環，Go 週期使用較大的琥珀色相位環。',
     periodMode: 'Go 時間週期',
@@ -353,7 +355,7 @@ export function installSpaceTimeTimelineEngine() {
     mode: normalizeMode(hasTimelineModeQuery ? rawTimelineMode : 'future'),
     delay: asInteger(hasDelayQuery ? params.get('delay') : 2, 2, 1, 32),
     actionOffset: asInteger(hasActionOffsetQuery ? params.get('actionOffset') : hasDelayQuery ? params.get('delay') : 2, 2, 0, 32),
-    rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 5, 1, 64),
+    rewriteWindow: asInteger(params.get('pastWindow') || params.get('rewriteWindow') || stored.rewriteWindow, 2, 1, 64),
     customWindow: asInteger(stored.customWindow, 5, 1, 64),
     conflictPolicy: normalizeConflictPolicy(params.get('conflictPolicy') || stored.conflictPolicy),
     periodMode: family === 'go' ? normalizePeriodMode(queryPeriodMode || storedPeriodMode || (normalizeMode(rawTimelineMode) === 'periodic' ? 'periodic' : 'off')) : 'off',
@@ -543,8 +545,8 @@ export function installSpaceTimeTimelineEngine() {
       .st-piece-age-ring{position:absolute;inset:7%;border:3px solid rgba(125,255,255,.98);border-radius:50%;box-shadow:0 0 12px rgba(125,255,255,.78);pointer-events:none}.st-piece-age-ring.near-death{border-color:rgba(255,64,64,1);box-shadow:0 0 16px rgba(255,64,64,.9)}
       .st-piece-age-label{position:absolute;right:2px;bottom:2px;z-index:4;font-size:.62rem;color:#e0f2fe;text-shadow:0 1px 2px #000;pointer-events:none}
       .st-replay-badge{position:fixed;z-index:9998;left:50%;top:14px;transform:translateX(-50%);max-width:min(720px,calc(100vw - 24px));padding:9px 13px;border:1px solid rgba(243,189,73,.7);border-radius:999px;background:#08111df2;box-shadow:0 12px 38px rgba(0,0,0,.38);color:#ffe8ad;font-size:.86rem;font-weight:850;pointer-events:none;text-align:center}
-      .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:7px;min-width:210px;max-width:min(360px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
-      .st-slice-picker strong{font-size:.86rem;color:#f3bd49;line-height:1.25}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(58px,1fr));gap:6px}.st-slice-picker button{min-height:34px;padding:6px 7px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-weight:850;cursor:pointer;line-height:1.15;white-space:normal}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
+      .st-slice-picker{position:fixed;z-index:9999;display:grid;gap:7px;min-width:210px;max-width:min(390px,calc(100vw - 24px));padding:10px;border:1px solid rgba(243,189,73,.64);border-radius:8px;background:#08111df2;box-shadow:0 18px 50px rgba(0,0,0,.42);color:#eef8ff}
+      .st-slice-picker strong{font-size:.86rem;color:#f3bd49;line-height:1.25}.st-slice-picker__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px}.st-slice-picker button{min-height:38px;padding:6px 8px;border:1px solid rgba(86,190,222,.4);border-radius:6px;background:#0a1420;color:#f5f9fc;font-size:.78rem;font-weight:850;cursor:pointer;line-height:1.12;white-space:normal;overflow-wrap:anywhere;text-align:center}.st-slice-picker button:hover{border-color:#f3bd49}.st-slice-picker__past{border-color:rgba(248,113,113,.52)!important}.st-slice-picker__now{border-color:rgba(79,178,124,.64)!important}.st-slice-picker__future{border-color:rgba(86,190,222,.58)!important}
       .st-timeline [hidden]{display:none!important}
       @media(max-width:920px){.st-timeline__grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.st-timeline__event{grid-template-columns:1fr}.st-timeline__event-actions{justify-content:flex-start}.st-timeline__actions>*{flex:1 1 180px}}
       @media(max-width:680px){.st-timeline{margin:10px 0}.st-timeline__head{display:block;padding:12px}.st-timeline__body{padding:12px}.st-timeline__grid,.st-timeline__summary{grid-template-columns:1fr}.st-timeline__actions{display:grid;grid-template-columns:1fr}.st-timeline button,.st-timeline a{width:100%;text-align:center}.st-slice-picker{left:12px!important;right:12px!important;max-width:none}.st-slice-picker__grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -577,7 +579,7 @@ export function installSpaceTimeTimelineEngine() {
           </label>
           <label data-st-past><span data-st-label="window"></span>
             <select data-st-window>
-              <option value="3">3 ticks</option><option value="5">5 ticks</option>
+              <option value="2">2 ticks</option><option value="3">3 ticks</option><option value="5">5 ticks</option>
               <option value="8">8 ticks</option><option value="12">12 ticks</option>
               <option value="custom">Custom</option>
             </select>
@@ -656,7 +658,7 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelector('[data-st-delay]').value = String(settings.delay);
     populateActionOffsetOptions();
     panel.querySelector('[data-st-action-offset]').value = String(Math.min(settings.actionOffset, settings.delay));
-    const standardWindow = [3, 5, 8, 12].includes(settings.rewriteWindow);
+    const standardWindow = [2, 3, 5, 8, 12].includes(settings.rewriteWindow);
     panel.querySelector('[data-st-window]').value = standardWindow ? String(settings.rewriteWindow) : 'custom';
     panel.querySelector('[data-st-custom-window]').value = String(settings.customWindow);
     panel.querySelector('[data-st-conflict]').value = normalizeConflictPolicy(settings.conflictPolicy);
@@ -1185,7 +1187,7 @@ export function installSpaceTimeTimelineEngine() {
     if (game.selectedSquare) {
       const action = { kind: 'chess', player: game.currentPlayer, from: clone(game.selectedSquare), to: clone(coord) };
       const legal = findChessMove(game, action.from, action.to);
-      if (legal) {
+      if (legal || usesFuture()) {
         submitBoardTimeChoice(action, event);
         clearChessSelection(game);
         return true;
@@ -1219,8 +1221,12 @@ export function installSpaceTimeTimelineEngine() {
     }
     if (app.selected) {
       const move = app.legal?.find((candidate) => sameCoord(candidate.to, coord));
-      if (move) {
-        submitBoardTimeChoice({ kind: 'jump', player: app.game.currentPlayer, move: plainMove(move) }, event);
+      if (move || usesFuture()) {
+        submitBoardTimeChoice({
+          kind: 'jump',
+          player: app.game.currentPlayer,
+          move: move ? plainMove(move) : { from: clone(app.selected), to: clone(coord), path: [clone(app.selected), clone(coord)] }
+        }, event);
         app.selected = null;
         app.legal = [];
         app.render?.();
@@ -1235,7 +1241,7 @@ export function installSpaceTimeTimelineEngine() {
   }
 
   function submitFutureFromBoard(raw) {
-    const action = normalizeFutureDraft(raw);
+    const action = normalizeFutureDraft(raw, { deferLegality: true });
     if (!action) return true;
     void scheduleFutureAction(action);
     return true;
@@ -1301,7 +1307,7 @@ export function installSpaceTimeTimelineEngine() {
     if (usesFuture()) {
       const previous = settings.actionOffset;
       settings.actionOffset = Math.max(1, Math.min(settings.delay, offset));
-      const action = normalizeFutureDraft(raw);
+      const action = normalizeFutureDraft(raw, { deferLegality: true });
       if (action) await scheduleFutureAction(action);
       else {
         state.message = text('replacementIllegal');
@@ -1366,17 +1372,20 @@ export function installSpaceTimeTimelineEngine() {
     state.previewReturnSnapshot = captureSnapshot(state.app);
     restoreSnapshot(state.app, event.beforeSnapshot);
     state.editingEventId = event.id;
-    state.replacementSource = null;
+    state.replacementSource = clone(raw.from || raw.move?.from || null);
     state.pendingReplacement = null;
     state.replayOverlay = { action: clone(raw), label: text('pastPreview') };
-    state.message = `${text('pastPreview')}: ${text('pastPreviewHelp')}`;
+    state.message = state.replacementSource
+      ? text('pastLockedSource', { action: describeAction({ ...raw, from: state.replacementSource }) })
+      : `${text('pastPreview')}: ${text('pastPreviewHelp')}`;
     triggerRender();
     refresh();
     return true;
   }
 
-  function normalizeFutureDraft(raw) {
+  function normalizeFutureDraft(raw, { deferLegality = false } = {}) {
     if (!raw || raw.kind !== family) return null;
+    if (deferLegality) return clone(raw);
     if (family === 'hex') {
       if (state.app?.game?.winner || state.app?.game?.getCell?.(raw.coord) !== null) return null;
     }

@@ -833,11 +833,11 @@ export class TorusThreeJSRenderer {
         const material = new THREE.SpriteMaterial({
             map: texture,
             transparent: true,
-            depthTest: false
+            depthTest: true,
+            depthWrite: false
         });
         const sprite = new THREE.Sprite(material);
         sprite.scale.set(0.52, 0.52, 0.52);
-        sprite.renderOrder = 40;
         return sprite;
     }
 }
