@@ -221,8 +221,9 @@ class Reversi3DRenderer {
     }
 
     buildTorus(width, height, lattice = 'square') {
+        const honeycombProfile = lattice === HONEYCOMB_LATTICE;
         const torus = new THREE.Mesh(
-            new THREE.TorusGeometry(3.35, 1.22, 64, 192),
+            new THREE.TorusGeometry(honeycombProfile ? 3.0 : 3.35, honeycombProfile ? 1.0 : 1.22, 64, 192),
             new THREE.MeshPhysicalMaterial({
                 color: 0xb67b45,
                 roughness: 0.52,
@@ -240,13 +241,16 @@ class Reversi3DRenderer {
             color: 0x3d2718,
             transparent: true,
             opacity: 0.84,
-            depthWrite: false
+            depthWrite: false,
+            depthTest: true
         });
         if (lattice === HONEYCOMB_LATTICE) {
-            const linePositions = this.surfaceHoneycombFacePositions(width, height, lattice, 'torus', 0.045);
+            const linePositions = this.surfaceHoneycombFacePositions(width, height, lattice, 'torus', 0.15);
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-            this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
+            const gridLines = new THREE.LineSegments(geometry, gridMaterial);
+            gridLines.renderOrder = 6;
+            this.boardGroup.add(gridLines);
         } else if (lattice === KAGOME_LATTICE) {
             const linePositions = [];
             const drawn = new Set();
@@ -1204,6 +1208,7 @@ class Reversi3DRenderer {
             cylinderRadius: HONEYCOMB_CYLINDER_RADIUS,
             periodX,
             periodY,
+            profile: surface === 'torus' ? 'honeycomb' : 'standard',
             originX: 0,
             originY: (rawPeriodY - periodY) / 2,
             minY: 0,
@@ -1223,7 +1228,7 @@ class Reversi3DRenderer {
         const u = x / metrics.periodX * TWO_PI;
         if (surface === 'torus') {
             const y = (((point.y - metrics.originY) % metrics.periodY) + metrics.periodY) % metrics.periodY;
-            return this.torusPointFromUV({ u, v: y / metrics.periodY * TWO_PI }, lift);
+            return this.torusPointFromUV({ u, v: y / metrics.periodY * TWO_PI }, lift, metrics.profile);
         }
         const span = Math.max(1e-6, metrics.maxY - metrics.minY);
         const band = THREE.MathUtils.clamp((point.y - metrics.minY) / span, 0, 1);
@@ -1234,6 +1239,19 @@ class Reversi3DRenderer {
         const metrics = this.honeycombSurfaceMetrics(width, height, surface);
         const row = Number(coord?.[1]) || 0;
         const col = Number(coord?.[0]) || 0;
+        if (surface === 'torus') {
+            const root3 = Math.sqrt(3);
+            const center = {
+                x: 1.5 * col,
+                y: root3 * (row + (col % 2) * 0.5)
+            };
+            const u = (center.x / Math.max(1, 1.5 * width)) * TWO_PI;
+            const v = (center.y / Math.max(1, root3 * height)) * TWO_PI;
+            return {
+                position: this.torusPointFromUV({ u, v }, lift, 'honeycomb'),
+                normal: new THREE.Vector3(Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)).normalize()
+            };
+        }
         const center = this.honeycombSurfaceCenter(col, row, metrics);
         const x = (((center.x - metrics.originX) % metrics.periodX) + metrics.periodX) % metrics.periodX;
         const u = x / metrics.periodX * TWO_PI;
@@ -1241,7 +1259,7 @@ class Reversi3DRenderer {
             const y = (((center.y - metrics.originY) % metrics.periodY) + metrics.periodY) % metrics.periodY;
             const v = y / metrics.periodY * TWO_PI;
             return {
-                position: this.torusPointFromUV({ u, v }, lift),
+                position: this.torusPointFromUV({ u, v }, lift, metrics.profile),
                 normal: new THREE.Vector3(Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)).normalize()
             };
         }
@@ -1291,6 +1309,64 @@ class Reversi3DRenderer {
 
     surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
         const linePositions = [];
+        if (surface === 'torus') {
+            const root3 = Math.sqrt(3);
+            const periodX = Math.max(1, 1.5 * width);
+            const periodY = Math.max(1, root3 * height);
+            const radius = 1.015;
+            const edges = new Map();
+            const edgeKey = (a, b) => [
+                `${a.x.toFixed(5)},${a.y.toFixed(5)}`,
+                `${b.x.toFixed(5)},${b.y.toFixed(5)}`
+            ].sort().join('|');
+            const pointFromPlanar = (point) => this.torusPointFromUV({
+                u: (point.x / periodX) * TWO_PI,
+                v: (point.y / periodY) * TWO_PI
+            }, lift, 'honeycomb');
+            for (let row = 0; row < height; row += 1) {
+                for (let col = 0; col < width; col += 1) {
+                    const center = {
+                        x: 1.5 * col,
+                        y: root3 * (row + (col % 2) * 0.5)
+                    };
+                    const vertices = Array.from({ length: 6 }, (_, index) => {
+                        const angle = index * Math.PI / 3;
+                        return {
+                            x: center.x + radius * Math.cos(angle),
+                            y: center.y + radius * Math.sin(angle)
+                        };
+                    });
+                    for (let index = 0; index < vertices.length; index += 1) {
+                        const a = vertices[index];
+                        const b = vertices[(index + 1) % vertices.length];
+                        const key = edgeKey(a, b);
+                        if (!edges.has(key)) edges.set(key, [a, b]);
+                    }
+                }
+            }
+            for (const [a, b] of edges.values()) {
+                const start = {
+                    u: (a.x / periodX) * TWO_PI,
+                    v: (a.y / periodY) * TWO_PI
+                };
+                const end = {
+                    u: (b.x / periodX) * TWO_PI,
+                    v: (b.y / periodY) * TWO_PI
+                };
+                const du = this.shortestAngleDelta(start.u, end.u);
+                const dv = this.shortestAngleDelta(start.v, end.v);
+                const points = [];
+                for (let step = 0; step <= 8; step += 1) {
+                    const t = step / 8;
+                    points.push(pointFromPlanar({
+                        x: ((start.u + du * t) / TWO_PI) * periodX,
+                        y: ((start.v + dv * t) / TWO_PI) * periodY
+                    }));
+                }
+                this.appendPolyline(linePositions, points);
+            }
+            return linePositions;
+        }
         const metrics = this.honeycombSurfaceMetrics(width, height, surface);
         const edges = new Map();
         const edgeKey = (a, b) => [
@@ -1350,9 +1426,10 @@ class Reversi3DRenderer {
         return delta;
     }
 
-    torusPointFromUV(uv, lift = 0) {
-        const majorRadius = 3.35;
-        const minorRadius = 1.22 + lift;
+    torusPointFromUV(uv, lift = 0, profile = 'standard') {
+        const majorRadius = profile === 'honeycomb' ? 3.0 : 3.35;
+        const minorBase = profile === 'honeycomb' ? 1.0 : 1.22;
+        const minorRadius = minorBase + lift;
         const ringRadius = majorRadius + minorRadius * Math.cos(uv.v);
         return new THREE.Vector3(
             ringRadius * Math.cos(uv.u),
@@ -1378,7 +1455,7 @@ class Reversi3DRenderer {
             points.push(this.torusPointFromUV({
                 u: start.u + du * t,
                 v: start.v + dv * t
-            }, lift));
+            }, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard'));
         }
         return points;
     }
@@ -1412,7 +1489,7 @@ class Reversi3DRenderer {
 
     torusPosition(coord, width, height, lift = 0, lattice = 'square') {
         const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const position = this.torusPointFromUV(uv, lift);
+        const position = this.torusPointFromUV(uv, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard');
         const normal = new THREE.Vector3(
             Math.cos(uv.u) * Math.cos(uv.v),
             Math.sin(uv.u) * Math.cos(uv.v),
@@ -1749,6 +1826,10 @@ class Reversi3DApp {
         return normalizeReversiSize(source, { fallback: 8, max: 19 });
     }
 
+    defaultBoardSizeForMode(mode = this.activeTopology()) {
+        return ['r3', 't3', 'r3_random', 'rp3'].includes(mode) ? 6 : 8;
+    }
+
     createLogic() {
         const activeTopology = this.activeTopology();
         const lattice = this.logicLattice();
@@ -1767,8 +1848,14 @@ class Reversi3DApp {
     }
 
     bindEvents() {
-        this.modeSelect.addEventListener('change', () => this.resetGame());
-        this.boundarySelect?.addEventListener('change', () => this.resetGame());
+        this.modeSelect.addEventListener('change', () => {
+            this.setSizeSelection(this.defaultBoardSizeForMode());
+            this.resetGame();
+        });
+        this.boundarySelect?.addEventListener('change', () => {
+            this.setSizeSelection(this.defaultBoardSizeForMode());
+            this.resetGame();
+        });
         this.latticeSelect.addEventListener('change', () => this.resetGame());
         this.sizeSelect.addEventListener('change', () => {
             this.updateCustomSizeVisibility();

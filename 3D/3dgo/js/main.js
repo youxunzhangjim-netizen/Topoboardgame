@@ -63,6 +63,7 @@ const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RA
 const TWO_PI = Math.PI * 2;
 const MOBIUS_BAND_RADIUS = 3.05;
 const MOBIUS_BAND_HALF_WIDTH = 1.68;
+const MOBIUS_GO_STONE_LIFT = 0.28;
 const RP2_CELL_SIZE = 0.72;
 const RP2_CELL_GAP = 0.035;
 const RP2_EDGE_GAP = 0.84;
@@ -108,7 +109,7 @@ const I18N = {
     en: {
         language: { label: 'Language', english: 'English', chinese: 'Chinese' },
         navigation: { home: 'Home' },
-        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, and Mobius strip Go with 9, 13, and 19 scale options.' },
+        app: { title: '3D Go', tagline: 'R3 lattice, T2 torus, S2 sphere, and Mobius strip Go with compact R3 and larger surface scale options.' },
         colors: { black: 'Black', white: 'White' },
         captured: { byBlack: 'Captured by Black', byWhite: 'Captured by White', stones: ({ count }) => count + ' ' + (count === 1 ? 'stone' : 'stones') },
         controls: { title: 'Game Controls', gameMode: 'Game Mode', local: 'Local', online: 'Online', goSpace: 'Go Space', lattice: 'Lattice', sphereView: 'Sphere View', boardScale: 'Board Scale', timer: 'Timer per Player', sliceView: 'R3 Slice View', sliceHelp: 'Empty fields show all sites. x = 5 shows the whole yz-plane.', resetCamera: 'Reset Camera', focusOwnPieces: 'Focus Own', pass: 'Pass', agreeCount: 'Agree Count', newGame: 'New Game', surrender: 'Surrender' },
@@ -124,7 +125,7 @@ const I18N = {
     zh: {
         language: { label: '語言', english: 'English', chinese: '繁體中文' },
         navigation: { home: '首頁' },
-        app: { title: '3D 圍棋', tagline: 'R3 格點、T2 環面、S2 球面與克萊因瓶圍棋，支援 9、13、19 尺寸。' },
+        app: { title: '3D 圍棋', tagline: 'R3 格點、T2 環面、S2 球面與 Mobius 帶圍棋，支援較小 R3 與較大曲面尺度。' },
         colors: { black: '黑方', white: '白方' },
         captured: { byBlack: '黑方提子', byWhite: '白方提子', stones: ({ count }) => count + ' 子' },
         controls: { title: '遊戲控制', gameMode: '遊戲模式', local: '本地輪流', online: '線上多人', goSpace: '圍棋空間', lattice: '格點', sphereView: '球面視圖', boardScale: '棋盤尺度', timer: '每方時間', sliceView: 'R3 切片視圖', sliceHelp: '空白代表顯示全部。x = 5 只顯示第 5 層 yz 平面。', resetCamera: '重設視角', focusOwnPieces: '突出己方', pass: '停一手', agreeCount: '同意計分', newGame: '新遊戲', surrender: '認輸' },
@@ -156,7 +157,7 @@ I18N.zh.boundary = {
     r3Rbc: '3D RBC：隨機邊界條件'
 };
 Object.assign(I18N.en.app, {
-    tagline: 'R3 Standard, T3 PBC, 3D RBC, RP3, T2 torus, S2 sphere, and Mobius strip Go with 9, 13, and 19 scale options.'
+    tagline: 'R3 Standard, T3 PBC, 3D RBC, RP3, T2 torus, S2 sphere, and Mobius strip Go with compact R3 and larger surface scale options.'
 });
 Object.assign(I18N.en.score, {
     pendingDraw: 'Counting pending: provisional draw',
@@ -198,7 +199,7 @@ Object.assign(I18N.en.mode, {
     rp3Info: 'RP3 identifies each R3 boundary exit with the opposite side and reverses the other two coordinates, giving an antipodal projective boundary.'
 });
 Object.assign(I18N.zh.app, {
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius strip 圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius 帶圍棋，支援較小 R3 與較大曲面尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 標準圍棋',
@@ -214,7 +215,7 @@ Object.assign(I18N.zh.mode, {
 
 Object.assign(I18N.zh.app, {
     title: '3D 圍棋',
-    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius 帶圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、T2 環面、S2 球面與 Mobius 帶圍棋，支援較小 R3 與較大曲面尺度。'
 });
 Object.assign(I18N.zh.mode, {
     r3Option: 'R3 Standard 圍棋',
@@ -266,7 +267,7 @@ Object.assign(I18N.zh.boundary, {
     rp3: 'RP3：對映邊界'
 });
 Object.assign(I18N.zh.app, {
-    tagline: 'R3 標準、T3 週期、3D RBC、RP3、T2 環面、S2 球面與 Mobius 帶圍棋，支援 9、13、19 尺度。'
+    tagline: 'R3 標準、T3 週期、3D RBC、RP3、T2 環面、S2 球面與 Mobius 帶圍棋，支援較小 R3 與較大曲面尺度。'
 });
 Object.assign(I18N.zh.mode, {
     rp3Option: 'RP3 圍棋',
@@ -1046,7 +1047,10 @@ class Go3DRenderer {
 
     buildTorus(logic) {
         const size = logic.size;
-        const surfaceData = createTorusSurfaceData();
+        const honeycombProfile = logic.lattice === HONEYCOMB_LATTICE;
+        const torusMajor = honeycombProfile ? 3.0 : 3.35;
+        const torusMinor = honeycombProfile ? 1.0 : 1.22;
+        const surfaceData = createTorusSurfaceData(192, 64, torusMajor, torusMinor);
         const surfaceGeometry = new THREE.BufferGeometry();
         surfaceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(surfaceData.positions, 3));
         surfaceGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(surfaceData.normals, 3));
@@ -1071,12 +1075,13 @@ class Go3DRenderer {
             color: 0x1f1208,
             transparent: true,
             opacity: 0.98,
-            depthWrite: false
+            depthWrite: false,
+            depthTest: true
         });
         const linePositions = [];
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
-            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.052);
+            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.16);
         } else {
             for (const coord of logic.playableCoords()) {
                 const fromKey = logic.coordKey(coord);
@@ -1090,11 +1095,13 @@ class Go3DRenderer {
         }
         const gridGeometry = new THREE.BufferGeometry();
         gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-        this.boardGroup.add(new THREE.LineSegments(gridGeometry, gridMaterial));
+        const gridLines = new THREE.LineSegments(gridGeometry, gridMaterial);
+        gridLines.renderOrder = 6;
+        this.boardGroup.add(gridLines);
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const p = this.torusPosition(coord, size, 0.055, logic.lattice).position;
+            const p = this.torusPosition(coord, size, logic.lattice === HONEYCOMB_LATTICE ? 0.17 : 0.055, logic.lattice).position;
             this.pointCoords.push(coord);
             this.pointPositions.push(p);
             pointPositions.push(p.x, p.y, p.z);
@@ -1103,7 +1110,7 @@ class Go3DRenderer {
             this.addNodePoints(
                 pointPositions,
                 size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
-                { color: 0x4b2f1b, opacity: 0.96 }
+                { color: 0x4b2f1b, opacity: 0.96, depthTest: true, renderOrder: 7 }
             );
         }
     }
@@ -1221,7 +1228,7 @@ class Go3DRenderer {
         );
         const matrix = new THREE.Matrix4();
         unique.forEach((coord, index) => {
-            const position = this.mobiusPose(coord, width, height, 0.19).position;
+            const position = this.mobiusPose(coord, width, height, MOBIUS_GO_STONE_LIFT).position;
             matrix.makeTranslation(position.x, position.y, position.z);
             mesh.setMatrixAt(index, matrix);
         });
@@ -1441,7 +1448,7 @@ class Go3DRenderer {
 
     positionsForCoord(coord, logic, lift = 0.18) {
         if (logic?.topology === MOBIUS_GO_TOPOLOGY) {
-            return [this.mobiusPose(coord, logic.width, logic.height, Math.abs(lift), logic.lattice).position];
+            return [this.mobiusPose(coord, logic.width, logic.height, Math.max(MOBIUS_GO_STONE_LIFT, Math.abs(lift)), logic.lattice).position];
         }
         return [this.positionForCoord(coord, logic)];
     }
@@ -1479,7 +1486,7 @@ class Go3DRenderer {
                         : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                             ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                             : logic.topology === MOBIUS_GO_TOPOLOGY
-                                ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
+                                ? this.mobiusPose(coord, logic.width, logic.height, MOBIUS_GO_STONE_LIFT)
                                 : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
             const hitLike = { distance: this.camera.position.distanceTo(this.pointPositions[index]) };
             if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) {
@@ -1518,7 +1525,7 @@ class Go3DRenderer {
                     : logic.topology === KLEIN_BOTTLE_TOPOLOGY
                     ? this.kleinOutsidePose(coord, logic.width, logic.height, 0.11)
                     : logic.topology === MOBIUS_GO_TOPOLOGY
-                        ? this.mobiusPose(coord, logic.width, logic.height, 0.075)
+                        ? this.mobiusPose(coord, logic.width, logic.height, MOBIUS_GO_STONE_LIFT)
                         : { position: this.sphereDisplayPosition(coord, logic.width, logic.height, 0.08), normal: this.sphereDisplayPosition(coord, logic.width, logic.height, 0).normalize() };
         if (logic.topology === KLEIN_BOTTLE_TOPOLOGY) return !this.kleinSurfaceOccludes(hit, pose);
         if (logic.topology === MOBIUS_GO_TOPOLOGY) return !this.mobiusSurfaceOccludes(hit);
@@ -1617,7 +1624,7 @@ class Go3DRenderer {
         if (logic.topology === 't2') return this.torusPosition(coord, logic.size, 0.18, logic.lattice).position;
         if (logic.topology === CYLINDER_GO_TOPOLOGY) return this.cylinderPosition(coord, logic.width, logic.height, 0.18, logic.lattice).position;
         if (logic.topology === MOBIUS_GO_TOPOLOGY) {
-            return this.mobiusPose(coord, logic.width, logic.height, 0.18, logic.lattice).position;
+            return this.mobiusPose(coord, logic.width, logic.height, MOBIUS_GO_STONE_LIFT, logic.lattice).position;
         }
         if (logic.topology === RP2_GO_TOPOLOGY) {
             return this.rp2Position(coord, logic.width, logic.height, 0.18);
@@ -1778,6 +1785,16 @@ class Go3DRenderer {
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
+            if (surfaceKind === 'torus') {
+                const root3 = Math.sqrt(3);
+                const rawX = 1.5 * Number(coord?.[0] || 0);
+                const rawY = root3 * (Number(coord?.[1] || 0) + (Number(coord?.[0] || 0) % 2) * 0.5);
+                return {
+                    u: (rawX / Math.max(1, 1.5 * width)) * TWO_PI,
+                    v: (rawY / Math.max(1, root3 * height)) * TWO_PI,
+                    band: rawY / Math.max(1, root3 * (height - 1))
+                };
+            }
             const point = honeycombPoint(coord, width, height) || { x: 0, y: 0 };
             const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
             const rawX = point.x - metrics.originX;
@@ -1863,6 +1880,58 @@ class Go3DRenderer {
     }
 
     appendHoneycombSurfaceGrid(linePositions, width, height, surfaceKind, lift = 0.04) {
+        if (surfaceKind === 'torus') {
+            const root3 = Math.sqrt(3);
+            const periodX = Math.max(1, 1.5 * width);
+            const periodY = Math.max(1, root3 * height);
+            const radius = 1.015;
+            const edgeMap = new Map();
+            const keyForPoint = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)}`;
+            const pointFor = (x, y) => this.torusPointFromUV({
+                u: (x / periodX) * TWO_PI,
+                v: (y / periodY) * TWO_PI
+            }, lift, 'honeycomb');
+            for (let row = 0; row < height; row += 1) {
+                for (let col = 0; col < width; col += 1) {
+                    const center = {
+                        x: 1.5 * col,
+                        y: root3 * (row + (col % 2) * 0.5)
+                    };
+                    const vertices = Array.from({ length: 6 }, (_, index) => {
+                        const angle = index * Math.PI / 3;
+                        return {
+                            x: center.x + radius * Math.cos(angle),
+                            y: center.y + radius * Math.sin(angle)
+                        };
+                    });
+                    for (let index = 0; index < vertices.length; index += 1) {
+                        const a = vertices[index];
+                        const b = vertices[(index + 1) % vertices.length];
+                        const edgeKey = [keyForPoint(a), keyForPoint(b)].sort().join('|');
+                        if (!edgeMap.has(edgeKey)) edgeMap.set(edgeKey, [a, b]);
+                    }
+                }
+            }
+            for (const [a, b] of edgeMap.values()) {
+                const start = {
+                    u: (a.x / periodX) * TWO_PI,
+                    v: (a.y / periodY) * TWO_PI
+                };
+                const end = {
+                    u: (b.x / periodX) * TWO_PI,
+                    v: (b.y / periodY) * TWO_PI
+                };
+                const du = this.shortestAngleDelta(start.u, end.u);
+                const dv = this.shortestAngleDelta(start.v, end.v);
+                const points = [];
+                for (let step = 0; step <= 6; step += 1) {
+                    const t = step / 6;
+                    points.push(pointFor((start.u + du * t) / TWO_PI * periodX, (start.v + dv * t) / TWO_PI * periodY));
+                }
+                this.appendPolyline(linePositions, points);
+            }
+            return;
+        }
         const edgeMap = new Map();
         const keyForPoint = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)}`;
         for (const cell of honeycombCells(width, height)) {
@@ -1886,7 +1955,7 @@ class Go3DRenderer {
                     points.push(this.torusPointFromUV({
                         u: start.u + du * t,
                         v: start.v + dv * t
-                    }, lift));
+                    }, lift, 'honeycomb'));
                 } else {
                     points.push(this.cylinderPointFromUV({
                         u: start.u + du * t,
@@ -1938,9 +2007,11 @@ class Go3DRenderer {
         return delta;
     }
 
-    torusPointFromUV(uv, lift = 0) {
-        const radius = 1.22 + lift;
-        const ringRadius = 3.35 + radius * Math.cos(uv.v);
+    torusPointFromUV(uv, lift = 0, profile = 'standard') {
+        const majorRadius = profile === 'honeycomb' ? 3.0 : 3.35;
+        const minorBase = profile === 'honeycomb' ? 1.0 : 1.22;
+        const radius = minorBase + lift;
+        const ringRadius = majorRadius + radius * Math.cos(uv.v);
         return new THREE.Vector3(
             ringRadius * Math.cos(uv.u),
             ringRadius * Math.sin(uv.u),
@@ -1988,7 +2059,7 @@ class Go3DRenderer {
     torusPosition(coord, size, lift = 0, lattice = SQUARE_LATTICE) {
         if (lattice !== SQUARE_LATTICE) {
             const uv = this.latticeSurfaceUV(coord, size, size, lattice, 'torus');
-            const position = this.torusPointFromUV(uv, lift);
+            const position = this.torusPointFromUV(uv, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard');
             const normal = new THREE.Vector3(Math.cos(uv.u) * Math.cos(uv.v), Math.sin(uv.u) * Math.cos(uv.v), Math.sin(uv.v)).normalize();
             return { position, normal };
         }
@@ -2371,6 +2442,10 @@ class Go3DApp {
         return mode === R3_STANDARD_TOPOLOGY ? this.selectedR3Boundary() : mode;
     }
 
+    defaultBoardSizeForMode(mode = this.selectedTopologyMode()) {
+        return isR3LikeTopology(mode) ? 5 : 9;
+    }
+
     createLogic() {
         const spaceMode = this.selectedSpaceMode();
         const mode = this.selectedTopologyMode();
@@ -2428,10 +2503,12 @@ class Go3DApp {
         this.modeSelect.addEventListener('change', () => {
             this.syncBoundaryVisibility();
             this.syncLatticeOptions(this.selectedTopologyMode());
+            this.setSizeSelection(this.defaultBoardSizeForMode());
             this.resetGame();
         });
         this.r3BoundarySelect?.addEventListener('change', () => {
             this.syncLatticeOptions(this.selectedTopologyMode());
+            this.setSizeSelection(this.defaultBoardSizeForMode());
             this.resetGame();
         });
         this.latticeSelect.addEventListener('change', () => this.resetGame());

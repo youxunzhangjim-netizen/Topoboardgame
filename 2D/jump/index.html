@@ -25,7 +25,7 @@
       <h2>Play</h2>
       <div class="jump-grid">
         <label>Mode<select id="gameModeSelect"><option value="local">Local</option><option value="online">Online</option><option value="robot">Robot</option></select></label>
-        <label>Topology<select id="topologySelect"><option value="diamond" selected>Standard Jump</option><option value="plane">Square Board Jump</option><option value="polar">Polar Jump</option><option value="cylinder">Cylinder Jump</option><option value="torus">Torus Jump</option><option value="mobius">Mobius Jump</option><option value="klein">Klein Jump</option><option value="rp2">RP2 Jump</option><option value="sphere">Sphere Jump</option></select></label>
+        <label>Topology<select id="topologySelect"><option value="diamond" selected>Standard Jump</option><option value="plane">Square Board Jump</option><option value="polar">Polar Jump</option><option value="cylinder">Cylinder Boundary</option><option value="torus">PBC Boundary</option><option value="mobius">Mobius Boundary</option><option value="klein">Klein Boundary</option><option value="rp2">RP2 Boundary</option></select></label>
         <label>Players<select id="playerCountSelect"><option value="2" selected>2 players</option><option value="3">3 players</option></select></label>
         <label>Lattice<select id="latticeSelect"><option value="square">Square</option><option value="triangular" selected>Triangular</option></select></label>
         <label>Board size<select id="boardSizeSelect"><option value="6" >6</option><option value="8">8</option><option value="10" >10</option><option value="12" selected>12</option><option value="14" >14</option></select></label>
@@ -46,12 +46,12 @@
 
       <details class="advanced-settings view-settings" open><summary>Board View</summary>
         <div class="jump-grid">
-          <label>Rotate X<input id="viewRotateX" type="range" min="-90" max="90" value="-26"></label>
-          <label>Rotate Y<input id="viewRotateY" type="range" min="-180" max="180" value="32"></label>
-          <label>Rotate Z<input id="viewRotateZ" type="range" min="-180" max="180" value="0"></label>
+          <label hidden>Rotate X<input id="viewRotateX" type="range" min="-90" max="90" value="0"></label>
+          <label hidden>Rotate Y<input id="viewRotateY" type="range" min="-180" max="180" value="0"></label>
+          <label hidden>Rotate Z<input id="viewRotateZ" type="range" min="-180" max="180" value="0"></label>
           <label>Zoom<input id="viewZoom" type="range" min="0.45" max="2.4" step="0.01" value="1"></label>
         </div>
-        <div class="r3-filter-control" id="r3FilterControl">
+        <div class="r3-filter-control" id="r3FilterControl" hidden>
           <label>R3 coordinate view filter</label>
           <div class="r3-filter-grid">
             <input id="r3FilterX" type="number" min="1" placeholder="x = all" aria-label="Show only X coordinate">
@@ -64,7 +64,7 @@
           <button id="viewResetButton" type="button" class="secondary">Reset Camera</button>
           <button id="focusOwnPiecesBtn" type="button" class="secondary" aria-pressed="false">Focus Own</button>
         </div>
-        <p class="jump-view-help">Drag rotates 3D boards. Mouse wheel or trackpad zooms.</p>
+        <p class="jump-view-help">Use the zoom control to resize the flat 2D board.</p>
       </details>
       <div class="jump-buttons"><button id="newGameButton">New Game</button><button id="endJumpButton" class="secondary" disabled>Stop Jump Chain</button></div>
     </section>

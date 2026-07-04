@@ -114,7 +114,7 @@ const I18N = {
         whiteTurn: 'Orange to play',
         emptyPrompt: 'Choose an empty 3D site.',
         occupied: 'Choose an empty Hex site.',
-        opponentCamp: 'You cannot place in the other player\'s target camp.',
+        opponentCamp: 'You may enter the opponent camp, but cannot seal every cell of it.',
         noStones: 'No stones placed',
         stoneSummary: '{count} stones on the board',
         historyEmpty: 'No moves yet',
@@ -241,7 +241,7 @@ const I18N = {
         whiteTurn: '輪到橙方',
         emptyPrompt: '請選擇一個空的 3D 格點。',
         occupied: '請選擇一個空的六貫棋格點。',
-        opponentCamp: '不能落在對手的目標陣地。',
+        opponentCamp: '可以進入對手目標區，但不能封住整個目標區。',
         noStones: '尚未落子',
         stoneSummary: '棋盤上共有 {count} 顆棋子',
         historyEmpty: '尚無落子記錄',
@@ -703,6 +703,10 @@ function expandedBoardSize(topology, baseSize, lattice = selectedLatticeForTopol
     if (topology === 'sphere' && lattice === BUCKYBALL_LATTICE) {
         return [30, 3, 1];
     }
+    if (topology === 't2') {
+        const wrapped = Math.max(24, base * 4);
+        return [wrapped, wrapped, 1];
+    }
     if (['t2', 'cylinder', 'sphere', 'klein', 'mobius', 'rp2'].includes(topology)) {
         return [Math.max(20, base * 4), Math.max(14, base * 3), 1];
     }
@@ -1058,14 +1062,15 @@ function surfacePanelCellCoordinate(x, y) {
     return game.topology.normalize([x, y, 0]);
 }
 
-function surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight) {
+function surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight, lattice = selectedLatticeForTopology()) {
     const topology = selectedTopology();
     const u = (x / Math.max(1, gridWidth)) * TWO_PI;
     const band = y / Math.max(1, gridHeight);
     if (topology === 't2') {
         const v = band * TWO_PI;
-        const major = 3.35;
-        const minor = 1.22;
+        const honeycombTorus = lattice === 'honeycomb';
+        const major = honeycombTorus ? 3.0 : 3.35;
+        const minor = honeycombTorus ? 1.0 : 1.22;
         const ring = major + minor * Math.cos(v);
         return [ring * Math.cos(u), ring * Math.sin(u), minor * Math.sin(v)];
     }
@@ -1081,8 +1086,8 @@ function surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight) {
     return null;
 }
 
-function projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, coordinate = null) {
-    const model = surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight);
+function projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, coordinate = null, lattice = selectedLatticeForTopology()) {
+    const model = surfaceModelPointFromPlanar(x, y, gridWidth, gridHeight, lattice);
     return model ? projectModelPoint(model, width, height, coordinate) : null;
 }
 
@@ -1132,7 +1137,7 @@ function drawLatticeSurfacePanels(width, height, lattice) {
     const filledCells = new Set();
     const addPanel = (vertices, cell) => {
         const points = vertices
-            .map(([x, y]) => projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, cell))
+            .map(([x, y]) => projectSurfacePlanarPoint(x, y, gridWidth, gridHeight, width, height, cell, lattice))
             .filter(Boolean);
         if (points.length < 3 || !cell) return;
         const color = game.getCell(cell);
@@ -1148,19 +1153,41 @@ function drawLatticeSurfacePanels(width, height, lattice) {
     };
 
     if (lattice === 'honeycomb') {
-        const bounds = honeycombBounds(gridWidth, gridHeight);
-        const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
-        const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
-        honeycombCells(gridWidth, gridHeight).forEach((cellData, index) => {
-            const x = index % gridWidth;
-            const y = Math.floor(index / gridWidth);
-            const cell = game.topology.normalize([x, y, 0]);
-            const vertices = cellData.vertices.map((point) => [
-                ((point.x - bounds.minX) / rawWidth) * gridWidth,
-                ((point.y - bounds.minY) / rawHeight) * gridHeight
-            ]);
-            addPanel(vertices, cell);
-        });
+        if (topology === 't2') {
+            const root3 = Math.sqrt(3);
+            const rawWidth = Math.max(1, 1.5 * gridWidth);
+            const rawHeight = Math.max(1, root3 * gridHeight);
+            const radius = 1.015;
+            for (let y = 0; y < gridHeight; y += 1) {
+                for (let x = 0; x < gridWidth; x += 1) {
+                    const cell = game.topology.normalize([x, y, 0]);
+                    const centerX = 1.5 * x;
+                    const centerY = root3 * (y + (x % 2) * 0.5);
+                    const vertices = Array.from({ length: 6 }, (_, index) => {
+                        const angle = index * Math.PI / 3;
+                        return [
+                            ((centerX + radius * Math.cos(angle)) / rawWidth) * gridWidth,
+                            ((centerY + radius * Math.sin(angle)) / rawHeight) * gridHeight
+                        ];
+                    });
+                    addPanel(vertices, cell);
+                }
+            }
+        } else {
+            const bounds = honeycombBounds(gridWidth, gridHeight);
+            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
+            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+            honeycombCells(gridWidth, gridHeight).forEach((cellData, index) => {
+                const x = index % gridWidth;
+                const y = Math.floor(index / gridWidth);
+                const cell = game.topology.normalize([x, y, 0]);
+                const vertices = cellData.vertices.map((point) => [
+                    ((point.x - bounds.minX) / rawWidth) * gridWidth,
+                    ((point.y - bounds.minY) / rawHeight) * gridHeight
+                ]);
+                addPanel(vertices, cell);
+            });
+        }
     } else if (lattice === 'triangular') {
         for (let y = 0; y < gridHeight; y += 1) {
             for (let x = 0; x < gridWidth; x += 1) {

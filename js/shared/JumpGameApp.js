@@ -1003,12 +1003,12 @@ export class JumpGameApp {
 
   usesEmbeddedView() {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
-    return this.dimension >= 3 || ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell', 'projection', '4d-torus', 'hypercube'].includes(topology);
+    return this.dimension >= 3 || ['projection', '4d-torus', 'hypercube'].includes(topology);
   }
 
   usesOpaqueSurfaceView() {
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
-    return ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
+    return this.dimension >= 3 && ['cylinder', 'torus', 'mobius', 'klein', 'rp2', 'sphere', 'shell'].includes(topology);
   }
 
   embeddedSurfaceNormal(coord, point) {

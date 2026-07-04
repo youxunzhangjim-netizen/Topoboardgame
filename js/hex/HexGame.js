@@ -924,6 +924,33 @@ export function createHexTopology(options = {}) {
             const opponentCamp = opponentZone.start(normalized) || opponentZone.end(normalized);
             return opponentCamp && !ownCamp;
         },
+        wouldSealOpponentCamp(coordinate, color, board) {
+            if (!HEX_COLOR_VALUES.has(color) || !(board instanceof Map)) return false;
+            const normalized = normalize(coordinate);
+            if (!normalized) return false;
+            const opponent = otherHexColor(color);
+            const opponentZone = goalZones[opponent];
+            const ownZone = goalZones[color];
+            const inOwnCamp = ownZone.start(normalized) || ownZone.end(normalized);
+            const zoneChecks = [
+                opponentZone.start(normalized) && !inOwnCamp ? opponentZone.start : null,
+                opponentZone.end(normalized) && !inOwnCamp ? opponentZone.end : null
+            ].filter(Boolean);
+            if (!zoneChecks.length) return false;
+            const normalizedKey = coordinateKey(normalized);
+            return zoneChecks.some((zoneCheck) => {
+                let zoneCount = 0;
+                let blockedCount = 0;
+                for (const candidate of coordinateList) {
+                    if (!zoneCheck(candidate)) continue;
+                    zoneCount += 1;
+                    const key = coordinateKey(candidate);
+                    const occupant = key === normalizedKey ? color : board.get(key);
+                    if (occupant === color) blockedCount += 1;
+                }
+                return zoneCount > 0 && blockedCount >= zoneCount;
+            });
+        },
         key(coordinate) {
             const normalized = normalize(coordinate);
             return normalized ? coordinateKey(normalized) : null;
@@ -1003,7 +1030,7 @@ export class HexGame {
         if (!HEX_COLOR_VALUES.has(color)) return false;
         if (this.winner || color !== this.currentColor) return false;
         const key = this.topology.key(coordinate);
-        return Boolean(key && !this.board.has(key) && !this.topology.isOpponentCamp(coordinate, color));
+        return Boolean(key && !this.board.has(key) && !this.topology.wouldSealOpponentCamp(coordinate, color, this.board));
     }
 
     place(coordinate, color = this.currentColor) {
@@ -1019,10 +1046,10 @@ export class HexGame {
 
         const normalized = this.topology.normalize(coordinate);
         if (!normalized) return { ok: false, error: 'Coordinate is outside the board.' };
-        if (this.topology.isOpponentCamp(normalized, color)) {
+        if (this.topology.wouldSealOpponentCamp(normalized, color, this.board)) {
             return {
                 ok: false,
-                error: 'Choose your own target camp or a neutral Hex cell.',
+                error: 'You cannot seal every cell of the opponent target camp.',
                 code: 'opponent_camp'
             };
         }
