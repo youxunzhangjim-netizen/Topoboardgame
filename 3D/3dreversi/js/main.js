@@ -359,39 +359,20 @@ class Reversi3DRenderer {
     }
 
     buildMobius(width, height) {
-        const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xd19a54,
-            roughness: 0.58,
-            metalness: 0.02,
-            transparent: false,
-            opacity: 1,
-            depthWrite: true,
-            clearcoat: 0.28,
-            clearcoatRoughness: 0.48,
-            side: THREE.DoubleSide
-        });
-        const surface = new THREE.Mesh(
-            this.createMobiusSurfaceGeometry(256, 64),
-            surfaceMaterial
-        );
-        surface.castShadow = true;
-        surface.receiveShadow = true;
-        surface.userData.mobiusPickOccluder = true;
-        surface.userData.surfacePickOccluder = true;
-        this.boardGroup.add(surface);
+        this.addMobiusCellPanels(width, height);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x1f150b,
             transparent: true,
-            opacity: 0.9,
-            depthTest: true,
+            opacity: 0.96,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x0f0a05,
             transparent: true,
-            opacity: 0.95,
-            depthTest: true,
+            opacity: 1,
+            depthTest: false,
             depthWrite: false
         });
         const addLine = (points, material = gridMaterial) => {
@@ -475,6 +456,64 @@ class Reversi3DRenderer {
         points.push(this.mobiusPose(a, width, height, lift).position);
         points.push(this.mobiusPose(b, width, height, lift).position);
         return points;
+    }
+
+    addMobiusCellPanels(width, height) {
+        const materialA = new THREE.MeshBasicMaterial({
+            color: 0xd19a54,
+            transparent: true,
+            opacity: 0.62,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            depthTest: true
+        });
+        const materialB = new THREE.MeshBasicMaterial({
+            color: 0xb98549,
+            transparent: true,
+            opacity: 0.62,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            depthTest: true
+        });
+        const uSegments = 3;
+        const tSegments = 2;
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const positions = [];
+                const indices = [];
+                const base = [];
+                const t0 = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, y / Math.max(1, height));
+                const t1 = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, (y + 1) / Math.max(1, height));
+                const addVertex = (u, t) => {
+                    const point = this.mobiusPoint(u, t, 0);
+                    positions.push(point.x, point.y, point.z);
+                    return positions.length / 3 - 1;
+                };
+                for (let iu = 0; iu <= uSegments; iu += 1) {
+                    base[iu] = [];
+                    const u = ((x + iu / uSegments) / Math.max(1, width)) * TWO_PI;
+                    for (let it = 0; it <= tSegments; it += 1) {
+                        base[iu][it] = addVertex(u, THREE.MathUtils.lerp(t0, t1, it / tSegments));
+                    }
+                }
+                for (let iu = 0; iu < uSegments; iu += 1) {
+                    for (let it = 0; it < tSegments; it += 1) {
+                        const a = base[iu][it];
+                        const b = base[iu + 1][it];
+                        const c = base[iu + 1][it + 1];
+                        const d = base[iu][it + 1];
+                        indices.push(a, b, d, b, c, d);
+                    }
+                }
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+                const mesh = new THREE.Mesh(geometry, (x + y) % 2 === 0 ? materialA : materialB);
+                mesh.renderOrder = 1;
+                this.boardGroup.add(mesh);
+            }
+        }
     }
 
     buildKlein(topology) {
@@ -1157,10 +1196,11 @@ class Reversi3DRenderer {
         const dy = 1.5;
         const rawPeriodX = Math.max(1, Math.sqrt(3) * width);
         const rawPeriodY = Math.max(1, 1.5 * (height - 1) + 2);
+        const xScale = surface === 'torus' ? 0.985 : 1;
         const yScale = surface === 'torus'
             ? Math.max(0.94, rawPeriodY / (rawPeriodY + Math.max(0.001, rawPeriodY / Math.max(8, height * 4))))
             : 1;
-        const periodX = rawPeriodX;
+        const periodX = rawPeriodX * xScale;
         const periodY = rawPeriodY * yScale;
         return {
             radius,

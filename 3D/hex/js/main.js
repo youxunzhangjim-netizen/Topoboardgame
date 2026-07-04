@@ -73,12 +73,12 @@ const I18N = {
         standardBoundary: 'Standard',
         t3Boundary: 'T3 all-side periodic',
         r3RandomBoundary: '3D random boundary',
-        t2: 'T2 Torus Surface',
-        cylinder: 'Cylinder Surface',
-        sphere: 'S2 Sphere Surface',
-        klein: 'Klein Bottle Surface',
-        mobius: 'Mobius Strip Surface',
-        rp2: 'RP2 Surface',
+        t2: 'T2 Torus',
+        cylinder: 'Cylinder',
+        sphere: 'S2 Sphere',
+        klein: 'Klein Bottle',
+        mobius: 'Mobius Strip',
+        rp2: 'RP2',
         lattice: 'Lattice',
         axisLattice: 'Simple cubic',
         bccLattice: 'BCC',
@@ -271,6 +271,30 @@ const I18N = {
     }
 };
 
+Object.assign(I18N.en, {
+    t2: 'T2 Torus',
+    cylinder: 'Cylinder',
+    sphere: 'S2 Sphere',
+    klein: 'Klein Bottle',
+    mobius: 'Mobius Strip',
+    rp2: 'RP2',
+    squareLattice: 'Square',
+    honeycombLattice: 'Honeycomb',
+    triangularLattice: 'Triangular'
+});
+
+Object.assign(I18N.zh, {
+    t2: 'T2 環面',
+    cylinder: '圓柱',
+    sphere: 'S2 球面',
+    klein: 'Klein 瓶',
+    mobius: 'Mobius 帶',
+    rp2: 'RP2',
+    squareLattice: '方格',
+    honeycombLattice: '蜂巢',
+    triangularLattice: '三角'
+});
+
 const elements = {
     canvas: document.getElementById('hexBoard'),
     turn: document.getElementById('playerTurn'),
@@ -318,6 +342,7 @@ const elements = {
     chatInput: document.getElementById('chatInput'),
     chatSend: document.getElementById('chatSendBtn')
 };
+const latticeOptionTemplates = Array.from(elements.lattice.options).map((option) => option.cloneNode(true));
 
 const context = elements.canvas.getContext('2d');
 let language = normalizeLanguage(params.get('lang') || localStorage.getItem(LANGUAGE_KEY));
@@ -713,7 +738,12 @@ function selectedLatticeForTopology(topology = selectedTopology()) {
             ? BUCKYBALL_LATTICE
             : SPHERE_GEODESIC_LATTICE;
     }
-    return 'axis';
+    if (['t2', 'cylinder', 'klein', 'mobius'].includes(topology)) {
+        return ['square', 'honeycomb', 'triangular'].includes(elements.lattice.value)
+            ? elements.lattice.value
+            : 'square';
+    }
+    return 'square';
 }
 
 function selectedTopologyLabel() {
@@ -739,21 +769,28 @@ function isBuckyballSphere() {
 function syncLatticeControl() {
     const volume = isVolumeTopology();
     const sphere = !volume && selectedTopology() === 'sphere';
+    const surfaceBoard = !volume && ['t2', 'cylinder', 'klein', 'mobius'].includes(selectedTopology());
     const allowed = volume
         ? ['axis', 'bcc', 'fcc', 'hcp']
         : sphere
             ? [SPHERE_GEODESIC_LATTICE, BUCKYBALL_LATTICE]
-            : [];
+            : surfaceBoard
+                ? ['square', 'honeycomb', 'triangular']
+                : [];
     elements.boundaryGroup.hidden = !volume;
     elements.boundary.disabled = !volume;
     elements.latticeGroup.hidden = allowed.length === 0;
     elements.lattice.disabled = allowed.length === 0;
-    for (const option of elements.lattice.options) {
-        option.hidden = !allowed.includes(option.value);
-        option.disabled = !allowed.includes(option.value);
-    }
-    if (allowed.length && !allowed.includes(elements.lattice.value)) {
-        elements.lattice.value = allowed[0];
+    const current = allowed.includes(elements.lattice.value) ? elements.lattice.value : allowed[0];
+    elements.lattice.replaceChildren(...latticeOptionTemplates
+        .filter((option) => allowed.includes(option.value))
+        .map((option) => {
+            const clone = option.cloneNode(true);
+            if (clone.dataset.i18n) clone.textContent = text(clone.dataset.i18n);
+            return clone;
+        }));
+    if (current) {
+        elements.lattice.value = current;
     }
     if (!volume) {
         elements.boundary.value = 'open';

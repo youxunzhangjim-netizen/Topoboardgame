@@ -131,6 +131,9 @@ export function normalizeHexLattice(lattice = 'hexagonal', dimension = 2) {
     if (normalizedDimension === 3) {
         if (token === 'sphere_coordinate' || token === 'sphere-coordinate' || token === 'geodesic') return 'sphere_coordinate';
         if (token === 'buckyball' || token === 'buckminsterfullerene' || token === 'fullerene') return 'buckyball';
+        if (token === 'square' || token === 'quad') return 'square';
+        if (token === 'triangular' || token === 'triangle') return 'triangular';
+        if (token === 'honeycomb' || token === 'hexagon' || token === 'hexagonal' || token === 'axial') return 'honeycomb';
         if (token === 'hcp') return 'hcp';
         if (token === 'bcc') return 'bcc';
         if (token === 'fcc') return 'fcc';
@@ -797,7 +800,11 @@ export function createHexTopology(options = {}) {
             ? [[1, 0], [-1, 0], [0, 1], [0, -1]]
             : null
         : surface3D
-            ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
+            ? lattice === 'square'
+                ? [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0]]
+                : lattice === 'triangular'
+                    ? null
+                    : [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, -1, 0], [-1, 1, 0]]
             : ['hcp', 'bcc', 'fcc'].includes(lattice)
                 ? null
         : Array.from({ length: dimension * 2 }, (_, index) => {
@@ -809,11 +816,13 @@ export function createHexTopology(options = {}) {
 
     const offsetsFor = (origin) => neighborOffsets || [
         ...(dimension === 3
-            ? lattice === 'bcc'
-                ? bccOffsets()
-                : lattice === 'fcc'
-                    ? fccOffsets()
-                    : hcpOffsets(origin)
+            ? surface3D && lattice === 'triangular'
+                ? triangularRowOffsets(origin).map(([dx, dy]) => [dx, dy, 0])
+                : lattice === 'bcc'
+                    ? bccOffsets()
+                    : lattice === 'fcc'
+                        ? fccOffsets()
+                        : hcpOffsets(origin)
             : lattice === 'triangular'
                 ? triangularRowOffsets(origin)
                 : lattice === 'kagome'

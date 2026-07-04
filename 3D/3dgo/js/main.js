@@ -675,39 +675,20 @@ class Go3DRenderer {
     }
 
     buildMobius(width, height) {
-        const surfaceMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xd4a05f,
-            roughness: 0.58,
-            metalness: 0.02,
-            transparent: false,
-            opacity: 1,
-            depthWrite: true,
-            clearcoat: 0.28,
-            clearcoatRoughness: 0.48,
-            side: THREE.DoubleSide
-        });
-        const surface = new THREE.Mesh(
-            this.createMobiusSurfaceGeometry(176, 48),
-            surfaceMaterial
-        );
-        surface.castShadow = true;
-        surface.receiveShadow = true;
-        surface.userData.mobiusPickOccluder = true;
-        surface.userData.surfacePickOccluder = true;
-        this.boardGroup.add(surface);
+        this.addMobiusCellPanels(width, height);
 
         const gridMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x1f150b,
             transparent: true,
-            opacity: 0.9,
-            depthTest: true,
+            opacity: 0.96,
+            depthTest: false,
             depthWrite: false
         });
         const seamMaterial = new THREE.LineBasicMaterial({
-            color: 0x050505,
+            color: 0x0f0a05,
             transparent: true,
-            opacity: 0.95,
-            depthTest: true,
+            opacity: 1,
+            depthTest: false,
             depthWrite: false
         });
         const logic = this.app.logic;
@@ -805,6 +786,57 @@ class Go3DRenderer {
         points.push(this.mobiusPose(a, width, height, lift).position);
         points.push(this.mobiusPose(b, width, height, lift).position);
         return points;
+    }
+
+    addMobiusCellPanels(width, height) {
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xd4a05f,
+            transparent: true,
+            opacity: 0.58,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            depthTest: true
+        });
+        const positions = [];
+        const indices = [];
+        const uSegments = 3;
+        const tSegments = 2;
+        const addVertex = (u, t) => {
+            const point = this.mobiusPoint(u, t, 0);
+            positions.push(point.x, point.y, point.z);
+            return positions.length / 3 - 1;
+        };
+        for (let y = 0; y < height - 1; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                const base = [];
+                const t0 = this.mobiusTForY(y, height);
+                const t1 = this.mobiusTForY(y + 1, height);
+                for (let iu = 0; iu <= uSegments; iu += 1) {
+                    base[iu] = [];
+                    const u = ((x + iu / uSegments) / Math.max(1, width)) * TWO_PI;
+                    for (let it = 0; it <= tSegments; it += 1) {
+                        const t = THREE.MathUtils.lerp(t0, t1, it / tSegments);
+                        base[iu][it] = addVertex(u, t);
+                    }
+                }
+                for (let iu = 0; iu < uSegments; iu += 1) {
+                    for (let it = 0; it < tSegments; it += 1) {
+                        const a = base[iu][it];
+                        const b = base[iu + 1][it];
+                        const c = base[iu + 1][it + 1];
+                        const d = base[iu][it + 1];
+                        indices.push(a, b, d, b, c, d);
+                    }
+                }
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.renderOrder = 1;
+        this.boardGroup.add(mesh);
     }
 
     buildRP2(width, height) {
@@ -1794,10 +1826,11 @@ class Go3DRenderer {
         const bounds = honeycombBounds(width, height);
         const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+        const xScale = surfaceKind === 'torus' ? 0.985 : 1;
         const yScale = surfaceKind === 'torus'
             ? Math.max(0.94, rawHeight / (rawHeight + Math.max(0.001, rawHeight / Math.max(8, height * 4))))
             : 1;
-        const periodX = rawWidth;
+        const periodX = rawWidth * xScale;
         const periodY = rawHeight * yScale;
         return {
             bounds,
