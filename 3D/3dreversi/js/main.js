@@ -900,39 +900,44 @@ class Reversi3DRenderer {
     addSurfaceStoneDiscs(poses, color, logic) {
         if (!poses.length) return;
         const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.1 : 1.55);
-        const discGeometry = new THREE.CircleGeometry(radius, 42);
-        const rimGeometry = new THREE.RingGeometry(radius * 0.96, radius * 1.05, 42);
+        const puckThickness = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.09 : 0.075;
+        const discGeometry = new THREE.CylinderGeometry(radius, radius, puckThickness, 48, 1);
+        const rimGeometry = new THREE.RingGeometry(radius * 0.985, radius * 1.025, 42);
         const discMaterial = new THREE.MeshPhysicalMaterial({
             color: color === 'black' ? 0x05070a : 0xf8fafc,
-            roughness: color === 'black' ? 0.22 : 0.14,
-            metalness: 0.06,
-            clearcoat: 0.5,
-            clearcoatRoughness: 0.18,
+            roughness: color === 'black' ? 0.18 : 0.12,
+            metalness: 0.05,
+            clearcoat: 0.46,
+            clearcoatRoughness: 0.2,
             emissive: color === 'black' ? 0x02070b : 0xffffff,
-            emissiveIntensity: color === 'black' ? 0.08 : 0.04,
+            emissiveIntensity: color === 'black' ? 0.1 : 0.05,
             side: THREE.DoubleSide,
-            depthWrite: false
+            depthWrite: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -3,
+            polygonOffsetUnits: -3
         });
         const rimMaterial = new THREE.MeshBasicMaterial({
-            color: color === 'black' ? 0x48c7f4 : 0xf2c464,
+            color: color === 'black' ? 0x05070a : 0xf8fafc,
             transparent: true,
-            opacity: 0.58,
+            opacity: 0.82,
             side: THREE.DoubleSide,
             depthWrite: false
         });
         discMaterial.userData.baseOpacity = discMaterial.opacity;
         rimMaterial.userData.baseOpacity = rimMaterial.opacity;
-        const localNormal = new THREE.Vector3(0, 0, 1);
+        const localPuckNormal = new THREE.Vector3(0, 1, 0);
+        const localRimNormal = new THREE.Vector3(0, 0, 1);
         for (const pose of poses) {
             const normal = pose.normal?.clone?.().normalize?.() || new THREE.Vector3(0, 0, 1);
-            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.032 : 0.024;
-            const position = pose.position.clone().add(normal.clone().multiplyScalar(surfaceLift));
+            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.07 : 0.052;
+            const position = pose.position.clone().add(normal.clone().multiplyScalar(surfaceLift + puckThickness * 0.5));
             const disc = new THREE.Mesh(discGeometry, discMaterial);
             const rim = new THREE.Mesh(rimGeometry, rimMaterial);
             disc.position.copy(position);
-            rim.position.copy(position.clone().add(normal.clone().multiplyScalar(0.006)));
-            disc.quaternion.setFromUnitVectors(localNormal, normal);
-            rim.quaternion.copy(disc.quaternion);
+            rim.position.copy(position.clone().add(normal.clone().multiplyScalar(puckThickness * 0.55)));
+            disc.quaternion.setFromUnitVectors(localPuckNormal, normal);
+            rim.quaternion.setFromUnitVectors(localRimNormal, normal);
             disc.renderOrder = 8;
             rim.renderOrder = 9;
             disc.userData.pieceColor = color;
