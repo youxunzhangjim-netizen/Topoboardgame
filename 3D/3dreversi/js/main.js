@@ -22,8 +22,8 @@ const TWO_PI = Math.PI * 2;
 const CYLINDER_RADIUS = 2.38;
 const HONEYCOMB_CYLINDER_RADIUS = 2.28;
 const CYLINDER_HEIGHT = 5.8;
-const MOBIUS_BAND_RADIUS = 3.75;
-const MOBIUS_BAND_HALF_WIDTH = 2.06;
+const MOBIUS_BAND_RADIUS = 4.05;
+const MOBIUS_BAND_HALF_WIDTH = 2.72;
 const KLEIN_RENDER_SCALE = 1.42;
 const SQUARE_LATTICE = 'square';
 const HCP_LATTICE = 'hcp';
@@ -244,7 +244,6 @@ class Reversi3DRenderer {
         });
         if (lattice === HONEYCOMB_LATTICE) {
             const linePositions = this.surfaceHoneycombFacePositions(width, height, lattice, 'torus', 0.045);
-            this.appendTorusSeamRings(linePositions, 0.052);
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
             this.boardGroup.add(new THREE.LineSegments(geometry, gridMaterial));
@@ -401,13 +400,10 @@ class Reversi3DRenderer {
             this.boardGroup.add(line);
         };
 
-        for (const lift of [0.075, -0.075]) {
-            for (const points of this.mobiusCellBoundaryLines(width, height, lift)) {
-                addLine(points, gridMaterial);
-            }
+        for (const points of this.mobiusCellBoundaryLines(width, height, 0.082)) {
+            addLine(points, gridMaterial);
         }
         addLine(this.mobiusParameterLine(0, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, 0.09, 84), seamMaterial);
-        addLine(this.mobiusParameterLine(0, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, -0.09, 84), seamMaterial);
 
         const pointPositions = [];
         for (let y = 0; y < height; y += 1) {
@@ -930,7 +926,10 @@ class Reversi3DRenderer {
         const visualCoord = this.surfaceCellCoord(coord, logic);
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
             const visibleLift = Math.abs(lift);
-            return [this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice)];
+            return [
+                this.mobiusPose(visualCoord, topology.width, topology.height, visibleLift, topology.lattice),
+                this.mobiusPose(visualCoord, topology.width, topology.height, -visibleLift, topology.lattice)
+            ];
         }
         if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
             return [this.honeycombSurfacePose(coord, topology.width, topology.height, 'torus', lift)];
@@ -1152,19 +1151,28 @@ class Reversi3DRenderer {
         return [x, y];
     }
 
-    honeycombSurfaceMetrics(width, height) {
+    honeycombSurfaceMetrics(width, height, surface = 'flat') {
         const radius = 1;
         const dx = Math.sqrt(3);
         const dy = 1.5;
+        const rawPeriodX = Math.max(1, Math.sqrt(3) * width);
+        const rawPeriodY = Math.max(1, 1.5 * (height - 1) + 2);
+        const yScale = surface === 'torus'
+            ? Math.max(0.94, rawPeriodY / (rawPeriodY + Math.max(0.001, rawPeriodY / Math.max(8, height * 4))))
+            : 1;
+        const periodX = rawPeriodX;
+        const periodY = rawPeriodY * yScale;
         return {
             radius,
             dx,
             dy,
             cylinderRadius: HONEYCOMB_CYLINDER_RADIUS,
-            periodX: Math.max(1, Math.sqrt(3) * width),
-            periodY: Math.max(1, 1.5 * (height - 1) + 2),
+            periodX,
+            periodY,
+            originX: 0,
+            originY: (rawPeriodY - periodY) / 2,
             minY: 0,
-            maxY: Math.max(1, 1.5 * (height - 1) + 2)
+            maxY: rawPeriodY
         };
     }
 
@@ -1176,10 +1184,10 @@ class Reversi3DRenderer {
     }
 
     surfacePointFromPlanar(point, metrics, surface, lift = 0.045) {
-        const x = ((point.x % metrics.periodX) + metrics.periodX) % metrics.periodX;
+        const x = (((point.x - metrics.originX) % metrics.periodX) + metrics.periodX) % metrics.periodX;
         const u = x / metrics.periodX * TWO_PI;
         if (surface === 'torus') {
-            const y = ((point.y % metrics.periodY) + metrics.periodY) % metrics.periodY;
+            const y = (((point.y - metrics.originY) % metrics.periodY) + metrics.periodY) % metrics.periodY;
             return this.torusPointFromUV({ u, v: y / metrics.periodY * TWO_PI }, lift);
         }
         const span = Math.max(1e-6, metrics.maxY - metrics.minY);
@@ -1188,14 +1196,14 @@ class Reversi3DRenderer {
     }
 
     honeycombSurfacePose(coord, width, height, surface, lift = 0.08) {
-        const metrics = this.honeycombSurfaceMetrics(width, height);
+        const metrics = this.honeycombSurfaceMetrics(width, height, surface);
         const row = Number(coord?.[1]) || 0;
         const col = Number(coord?.[0]) || 0;
         const center = this.honeycombSurfaceCenter(col, row, metrics);
-        const x = ((center.x % metrics.periodX) + metrics.periodX) % metrics.periodX;
+        const x = (((center.x - metrics.originX) % metrics.periodX) + metrics.periodX) % metrics.periodX;
         const u = x / metrics.periodX * TWO_PI;
         if (surface === 'torus') {
-            const y = ((center.y % metrics.periodY) + metrics.periodY) % metrics.periodY;
+            const y = (((center.y - metrics.originY) % metrics.periodY) + metrics.periodY) % metrics.periodY;
             const v = y / metrics.periodY * TWO_PI;
             return {
                 position: this.torusPointFromUV({ u, v }, lift),
@@ -1248,7 +1256,7 @@ class Reversi3DRenderer {
 
     surfaceHoneycombFacePositions(width, height, lattice, surface, lift = 0.045) {
         const linePositions = [];
-        const metrics = this.honeycombSurfaceMetrics(width, height);
+        const metrics = this.honeycombSurfaceMetrics(width, height, surface);
         const edges = new Map();
         const edgeKey = (a, b) => [
             `${a.x.toFixed(5)},${a.y.toFixed(5)}`,
@@ -1290,21 +1298,6 @@ class Reversi3DRenderer {
         }
         this.appendPolyline(linePositions, points);
         return linePositions;
-    }
-
-    appendTorusSeamRings(linePositions, lift = 0.05) {
-        const segments = 144;
-        const rings = [
-            (step) => ({ u: 0, v: TWO_PI * step / segments }),
-            (step) => ({ u: TWO_PI * step / segments, v: 0 })
-        ];
-        for (const makeUv of rings) {
-            const points = [];
-            for (let step = 0; step <= segments; step += 1) {
-                points.push(this.torusPointFromUV(makeUv(step), lift));
-            }
-            this.appendPolyline(linePositions, points);
-        }
     }
 
     appendPolyline(linePositions, points) {
@@ -1492,9 +1485,11 @@ class Reversi3DRenderer {
     }
 
     mobiusPose(coord, width, height, lift = 0, lattice = 'square') {
-        const uv = this.latticeSurfaceUV(coord, width, height, lattice);
-        const u = uv.u;
-        const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, uv.band);
+        const x = Number(coord?.[0]) || 0;
+        const y = Number(coord?.[1]) || 0;
+        const u = (x / Math.max(1, width)) * TWO_PI;
+        const band = THREE.MathUtils.clamp(y / Math.max(1, height), 0, 1);
+        const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, band);
         return {
             position: this.mobiusPoint(u, t, lift),
             normal: this.mobiusBasis(u, t).normal

@@ -1018,7 +1018,8 @@ h1 {
 }
 
 .dimension-card.is-collapsible[data-expanded="true"] {
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto;
+    grid-auto-rows: auto;
 }
 
 .dimension-card.is-collapsible[data-expanded="true"] .game-option {

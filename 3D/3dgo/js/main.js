@@ -726,21 +726,20 @@ class Go3DRenderer {
                 if (drawn.has(edgeKey)) continue;
                 drawn.add(edgeKey);
                 const seam = this.isMobiusSeamEdge(coord, neighbor, width);
-                for (const lift of [0.075, -0.075]) {
-                    addLine(
-                        this.mobiusGraphEdgePoints(coord, neighbor, width, height, lift, seam ? 38 : 26),
-                        seam ? seamMaterial : gridMaterial
-                    );
-                }
+                addLine(
+                    this.mobiusGraphEdgePoints(coord, neighbor, width, height, 0.082, seam ? 38 : 26),
+                    seam ? seamMaterial : gridMaterial
+                );
             }
         }
 
         const pointPositions = [];
         for (const coord of logic.playableCoords()) {
-            const pose = this.mobiusPose(coord, width, height, 0.1);
-            this.pointCoords.push(coord);
-            this.pointPositions.push(pose.position);
-            pointPositions.push(pose.position.x, pose.position.y, pose.position.z);
+            for (const position of this.positionsForCoord(coord, logic, 0.1)) {
+                this.pointCoords.push(coord);
+                this.pointPositions.push(position);
+                pointPositions.push(position.x, position.y, position.z);
+            }
         }
         this.addNodePoints(pointPositions, width <= 9 ? 0.058 : width <= 13 ? 0.047 : 0.036, {
             color: 0x050505,
@@ -1046,7 +1045,6 @@ class Go3DRenderer {
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
             this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.052);
-            this.appendTorusSeamRings(linePositions, 0.058);
         } else {
             for (const coord of logic.playableCoords()) {
                 const fromKey = logic.coordKey(coord);
@@ -1409,7 +1407,13 @@ class Go3DRenderer {
         this.hoverGroup.add(mesh);
     }
 
-    positionsForCoord(coord, logic) {
+    positionsForCoord(coord, logic, lift = 0.18) {
+        if (logic?.topology === MOBIUS_GO_TOPOLOGY) {
+            return [
+                this.mobiusPose(coord, logic.width, logic.height, Math.abs(lift), logic.lattice).position,
+                this.mobiusPose(coord, logic.width, logic.height, -Math.abs(lift), logic.lattice).position
+            ];
+        }
         return [this.positionForCoord(coord, logic)];
     }
 
@@ -1746,15 +1750,13 @@ class Go3DRenderer {
         }
         if (lattice === HONEYCOMB_LATTICE) {
             const point = honeycombPoint(coord, width, height) || { x: 0, y: 0 };
-            const bounds = honeycombBounds(width, height);
-            const rawX = point.x - bounds.minX;
-            const rawY = point.y - bounds.minY;
-            const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
-            const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+            const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
+            const rawX = point.x - metrics.originX;
+            const rawY = point.y - metrics.originY;
             return {
-                u: (rawX / rawWidth) * TWO_PI,
-                v: (rawY / rawHeight) * TWO_PI,
-                band: rawY / Math.max(1, bounds.maxY - bounds.minY)
+                u: (rawX / metrics.periodX) * TWO_PI,
+                v: (rawY / metrics.periodY) * TWO_PI,
+                band: (point.y - metrics.bounds.minY) / metrics.rawHeight
             };
         }
         if (lattice === TRIANGULAR_LATTICE) {
@@ -1778,15 +1780,33 @@ class Go3DRenderer {
     }
 
     honeycombSurfaceUVFromPoint(point, width, height, surfaceKind = 'flat') {
+        const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
+        const rawX = Number(point?.x || 0) - metrics.originX;
+        const rawY = Number(point?.y || 0) - metrics.originY;
+        return {
+            u: (rawX / metrics.periodX) * TWO_PI,
+            v: (rawY / metrics.periodY) * TWO_PI,
+            band: (Number(point?.y || 0) - metrics.bounds.minY) / metrics.rawHeight
+        };
+    }
+
+    honeycombSurfaceMetrics(width, height, surfaceKind = 'flat') {
         const bounds = honeycombBounds(width, height);
-        const rawX = Number(point?.x || 0) - bounds.minX;
-        const rawY = Number(point?.y || 0) - bounds.minY;
         const rawWidth = Math.max(1, bounds.maxX - bounds.minX);
         const rawHeight = Math.max(1, bounds.maxY - bounds.minY);
+        const yScale = surfaceKind === 'torus'
+            ? Math.max(0.94, rawHeight / (rawHeight + Math.max(0.001, rawHeight / Math.max(8, height * 4))))
+            : 1;
+        const periodX = rawWidth;
+        const periodY = rawHeight * yScale;
         return {
-            u: (rawX / rawWidth) * TWO_PI,
-            v: (rawY / rawHeight) * TWO_PI,
-            band: rawY / Math.max(1, bounds.maxY - bounds.minY)
+            bounds,
+            rawWidth,
+            rawHeight,
+            periodX,
+            periodY,
+            originX: (bounds.minX + bounds.maxX - periodX) / 2,
+            originY: (bounds.minY + bounds.maxY - periodY) / 2
         };
     }
 
@@ -1844,21 +1864,6 @@ class Go3DRenderer {
                         band: THREE.MathUtils.lerp(start.band, end.band, t)
                     }, lift));
                 }
-            }
-            this.appendPolyline(linePositions, points);
-        }
-    }
-
-    appendTorusSeamRings(linePositions, lift = 0.05) {
-        const segments = 144;
-        const rings = [
-            (step) => ({ u: 0, v: TWO_PI * step / segments }),
-            (step) => ({ u: TWO_PI * step / segments, v: 0 })
-        ];
-        for (const makeUv of rings) {
-            const points = [];
-            for (let step = 0; step <= segments; step += 1) {
-                points.push(this.torusPointFromUV(makeUv(step), lift));
             }
             this.appendPolyline(linePositions, points);
         }

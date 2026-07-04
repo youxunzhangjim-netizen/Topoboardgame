@@ -531,6 +531,13 @@ export function createReversiTopology(options = {}) {
         },
         step(coord, direction) {
             const next = coord.map((value, index) => value + (direction[index] || 0));
+            if (topology === REVERSI_TOPOLOGIES.KLEIN) {
+                const dx = Number(direction?.[0] || 0);
+                const dy = Number(direction?.[1] || 0);
+                const crossesSeam = next[0] < 0 || next[0] >= width || next[1] < 0 || next[1] >= height;
+                const orthogonal = (dx !== 0 && dy === 0) || (dx === 0 && dy !== 0);
+                if (crossesSeam && !orthogonal) return null;
+            }
             if (dimension === 2 && lattice === KAGOME_LATTICE) {
                 const match = kagomeNeighbors(coord, width, height, {
                     wrapX: topology === REVERSI_TOPOLOGIES.CYLINDER || topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2,
