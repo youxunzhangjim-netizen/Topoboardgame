@@ -338,6 +338,32 @@ const HONEYCOMB_DIRECTIONS = Object.freeze([
     Object.freeze([-1, 1])
 ]);
 
+function oddRowOffsetToAxial(coord = [0, 0]) {
+    const row = Number(coord[1]) || 0;
+    const parity = mod(row, 2);
+    return [
+        (Number(coord[0]) || 0) - (row - parity) / 2,
+        row
+    ];
+}
+
+function axialToOddRowOffset(axial = [0, 0]) {
+    const row = Number(axial[1]) || 0;
+    const parity = mod(row, 2);
+    return [
+        (Number(axial[0]) || 0) + (row - parity) / 2,
+        row
+    ];
+}
+
+function stepHoneycombOffset(coord, direction) {
+    const axial = oddRowOffsetToAxial(coord);
+    return axialToOddRowOffset([
+        axial[0] + (Number(direction?.[0]) || 0),
+        axial[1] + (Number(direction?.[1]) || 0)
+    ]);
+}
+
 const KAGOME_LATTICE = 'kagome';
 
 function triangularRowDirections(coord = [0, 0]) {
@@ -530,7 +556,9 @@ export function createReversiTopology(options = {}) {
             return [x, y];
         },
         step(coord, direction) {
-            const next = coord.map((value, index) => value + (direction[index] || 0));
+            const next = lattice === 'honeycomb' && dimension === 2
+                ? stepHoneycombOffset(coord, direction)
+                : coord.map((value, index) => value + (direction[index] || 0));
             if (topology === REVERSI_TOPOLOGIES.KLEIN) {
                 const dx = Number(direction?.[0] || 0);
                 const dy = Number(direction?.[1] || 0);

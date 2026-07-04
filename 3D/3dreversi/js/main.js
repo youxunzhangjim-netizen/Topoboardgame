@@ -154,7 +154,11 @@ class Reversi3DRenderer {
         this.nodePoints = null;
 
         if (isR3LikeTopology(topology.topology)) this.buildR3(topology);
-        else if (topology.topology === REVERSI_TOPOLOGIES.T2 && topology.lattice === HONEYCOMB_LATTICE && this.app?.surfaceViewMode?.() === 'cut2d') this.buildHoneycombCutView(topology.width, topology.height);
+        else if (
+            [REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER].includes(topology.topology) &&
+            topology.lattice === HONEYCOMB_LATTICE &&
+            this.app?.surfaceViewMode?.() === 'cut2d'
+        ) this.buildHoneycombCutView(topology.width, topology.height);
         else if (topology.topology === REVERSI_TOPOLOGIES.T2) this.buildTorus(topology.width, topology.height, topology.lattice);
         else if (topology.topology === REVERSI_TOPOLOGIES.CYLINDER) this.buildCylinder(topology.width, topology.height, topology.lattice);
         else if (topology.topology === REVERSI_TOPOLOGIES.MOBIUS) this.buildMobius(topology.width, topology.height);
@@ -163,7 +167,9 @@ class Reversi3DRenderer {
             this.buildFlatNonOrientable(topology.width, topology.height, topology.topology);
         }
         else this.buildSphere(topology.width, topology.height);
-        const flatCut = topology.topology === REVERSI_TOPOLOGIES.T2 && topology.lattice === HONEYCOMB_LATTICE && this.app?.surfaceViewMode?.() === 'cut2d';
+        const flatCut = [REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER].includes(topology.topology) &&
+            topology.lattice === HONEYCOMB_LATTICE &&
+            this.app?.surfaceViewMode?.() === 'cut2d';
         this.controls.enableRotate = !flatCut;
         this.controls.minPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : 0;
         this.controls.maxPolarAngle = topology.topology === REVERSI_TOPOLOGIES.CYLINDER ? Math.PI / 2 : Math.PI;
@@ -1042,7 +1048,11 @@ class Reversi3DRenderer {
     posesForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
-        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2 && this.app?.surfaceViewMode?.() === 'cut2d') {
+        if (
+            topology.lattice === HONEYCOMB_LATTICE &&
+            [REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER].includes(topology.topology) &&
+            this.app?.surfaceViewMode?.() === 'cut2d'
+        ) {
             return [this.honeycombCutPose(coord, topology.width, topology.height, lift)];
         }
         if (logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS) {
@@ -1194,7 +1204,11 @@ class Reversi3DRenderer {
     positionForCoord(coord, logic, lift = 0) {
         const topology = logic.topology;
         const visualCoord = this.surfaceCellCoord(coord, logic);
-        if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2 && this.app?.surfaceViewMode?.() === 'cut2d') {
+        if (
+            topology.lattice === HONEYCOMB_LATTICE &&
+            [REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER].includes(topology.topology) &&
+            this.app?.surfaceViewMode?.() === 'cut2d'
+        ) {
             return this.honeycombCutPose(coord, topology.width, topology.height, lift).position;
         }
         if (topology.lattice === HONEYCOMB_LATTICE && topology.topology === REVERSI_TOPOLOGIES.T2) {
@@ -2289,12 +2303,12 @@ class Reversi3DApp {
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
             t2: lattice === HONEYCOMB_LATTICE
-                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy face centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify PBC crossings.'
+                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy face centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify torus crossings.'
                 : lattice === KAGOME_LATTICE
                 ? 'T2 Kagome uses a staggered triangle-hexagon graph wrapped on the torus. Reversi stones occupy visible graph sites.'
                 : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
             cylinder: lattice === HONEYCOMB_LATTICE
-                ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Reversi stones occupy face-cell centers.'
+                ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Reversi stones occupy face-cell centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify cylinder crossings.'
                 : lattice === KAGOME_LATTICE
                 ? 'Cylinder Kagome winds alternating triangle and hexagon graph links around the cylinder. Top and bottom remain open.'
                 : 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',
@@ -2320,7 +2334,8 @@ class Reversi3DApp {
     }
 
     syncSurfaceViewControl() {
-        const show = this.activeTopology() === REVERSI_TOPOLOGIES.T2 && this.currentLattice() === HONEYCOMB_LATTICE;
+        const show = [REVERSI_TOPOLOGIES.T2, REVERSI_TOPOLOGIES.CYLINDER].includes(this.activeTopology()) &&
+            this.currentLattice() === HONEYCOMB_LATTICE;
         if (this.surfaceViewGroup) this.surfaceViewGroup.hidden = !show;
         if (!show && this.surfaceViewSelect) this.surfaceViewSelect.value = '3d';
     }
