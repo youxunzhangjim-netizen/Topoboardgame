@@ -858,18 +858,23 @@ class Reversi3DRenderer {
         const radius = this.markerRadius(logic);
         const stoneGeometry = new THREE.SphereGeometry(radius, 28, 18);
         const dotGeometry = new THREE.SphereGeometry(radius * 0.26, 16, 10);
+        const r3Stone = isR3LikeTopology(logic.topology.topology);
         const stoneMaterial = new THREE.MeshPhysicalMaterial({
             color: color === 'black' ? 0x05070a : 0xf5f7fb,
-            roughness: color === 'black' ? 0.34 : 0.2,
-            metalness: 0.04,
-            clearcoat: 0.18,
+            roughness: r3Stone ? (color === 'black' ? 0.16 : 0.1) : (color === 'black' ? 0.34 : 0.2),
+            metalness: r3Stone ? 0.14 : 0.04,
+            clearcoat: r3Stone ? 0.74 : 0.18,
+            clearcoatRoughness: r3Stone ? 0.12 : 0.34,
+            emissive: color === 'black' ? 0x071521 : 0xffffff,
+            emissiveIntensity: r3Stone ? (color === 'black' ? 0.18 : 0.08) : 0,
+            envMapIntensity: r3Stone ? 1.5 : 1,
             transparent: true,
             opacity: 1
         });
         const dotMaterial = new THREE.MeshStandardMaterial({
             color: color === 'black' ? 0x48c7f4 : 0xf2c464,
             emissive: color === 'black' ? 0x48c7f4 : 0xf2c464,
-            emissiveIntensity: 1.35,
+            emissiveIntensity: r3Stone ? 2.0 : 1.35,
             transparent: true,
             opacity: 1
         });
@@ -896,19 +901,22 @@ class Reversi3DRenderer {
         if (!poses.length) return;
         const radius = this.markerRadius(logic) * (logic.topology.topology === REVERSI_TOPOLOGIES.KLEIN ? 1.1 : 1.55);
         const discGeometry = new THREE.CircleGeometry(radius, 42);
-        const rimGeometry = new THREE.RingGeometry(radius * 0.92, radius * 1.08, 42);
+        const rimGeometry = new THREE.RingGeometry(radius * 0.96, radius * 1.05, 42);
         const discMaterial = new THREE.MeshPhysicalMaterial({
             color: color === 'black' ? 0x05070a : 0xf8fafc,
-            roughness: color === 'black' ? 0.42 : 0.22,
-            metalness: 0.02,
-            clearcoat: 0.16,
+            roughness: color === 'black' ? 0.22 : 0.14,
+            metalness: 0.06,
+            clearcoat: 0.5,
+            clearcoatRoughness: 0.18,
+            emissive: color === 'black' ? 0x02070b : 0xffffff,
+            emissiveIntensity: color === 'black' ? 0.08 : 0.04,
             side: THREE.DoubleSide,
             depthWrite: false
         });
         const rimMaterial = new THREE.MeshBasicMaterial({
             color: color === 'black' ? 0x48c7f4 : 0xf2c464,
             transparent: true,
-            opacity: 0.92,
+            opacity: 0.58,
             side: THREE.DoubleSide,
             depthWrite: false
         });
@@ -917,7 +925,7 @@ class Reversi3DRenderer {
         const localNormal = new THREE.Vector3(0, 0, 1);
         for (const pose of poses) {
             const normal = pose.normal?.clone?.().normalize?.() || new THREE.Vector3(0, 0, 1);
-            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.032 : 0.016;
+            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.032 : 0.024;
             const position = pose.position.clone().add(normal.clone().multiplyScalar(surfaceLift));
             const disc = new THREE.Mesh(discGeometry, discMaterial);
             const rim = new THREE.Mesh(rimGeometry, rimMaterial);

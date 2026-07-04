@@ -145,6 +145,10 @@ JUMP_ZH_TEXT.set('Diamond Jump', '菱形跳棋');
 JUMP_ZH_TEXT.set('Space', '空間');
 JUMP_ZH_TEXT.set('R3 Jump', 'R3 跳棋');
 JUMP_ZH_TEXT.set('R3', 'R3');
+JUMP_ZH_TEXT.set('x-wrap', 'x \u74b0\u7e5e');
+JUMP_ZH_TEXT.set('y-wrap', 'y \u74b0\u7e5e');
+JUMP_ZH_TEXT.set('x-wrap + y-twist', 'x \u74b0\u7e5e + y \u7ffb\u8f49');
+JUMP_ZH_TEXT.set('x/y antipodal', 'x/y \u5c0d\u8e60');
 JUMP_ZH_TEXT.set('Sphere / Shell', '球面 / 球殼');
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || min)); }
@@ -1298,6 +1302,7 @@ export class JumpGameApp {
       for (const dir of (this.game.directionsFor?.(coord) || this.game.directions)) {
         const next = this.game.topology.step(coord, dir)?.position;
         if (!next || !this.visibleCoord(next)) continue;
+        if (this.isPolarBoard()) continue;
         const edgeKey = [coordKey(coord), coordKey(next)].sort().join('|');
         if (edgeKeys.has(edgeKey)) continue;
         edgeKeys.add(edgeKey);
@@ -1312,6 +1317,7 @@ export class JumpGameApp {
         ctx.restore();
       }
     }
+    this.drawFlatBoundaryCue(coords, width, height);
     for (const coord of coords) {
       const alpha = this.surfaceDrawAlpha(coord);
       if (alpha <= 0) continue;
@@ -1341,6 +1347,94 @@ export class JumpGameApp {
     if (this.game.chainPath.length) this.drawPath(this.game.chainPath);
     if (this.selected) this.drawSelected(this.selected);
     for (const move of this.legal) this.drawLegal(move);
+  }
+
+  drawFlatBoundaryCue(coords, width, height) {
+    if (this.usesEmbeddedView() || this.isPolarBoard() || this.dimension !== 2 || !coords?.length) return;
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    if (!['cylinder', 'torus', 'pbc', 'mobius', 'klein', 'klein_bottle', 'rp2', 'projective', 'projection'].includes(topology)) return;
+    const points = coords.map((coord) => this.project(coord));
+    const minX = Math.min(...points.map((point) => point.x));
+    const maxX = Math.max(...points.map((point) => point.x));
+    const minY = Math.min(...points.map((point) => point.y));
+    const maxY = Math.max(...points.map((point) => point.y));
+    const pad = Math.max(16, this.cellRadius() * 1.35);
+    const left = Math.max(8, minX - pad);
+    const right = Math.min(width - 8, maxX + pad);
+    const top = Math.max(8, minY - pad);
+    const bottom = Math.min(height - 8, maxY + pad);
+    const midX = (left + right) / 2;
+    const midY = (top + bottom) / 2;
+    const ctx = this.ctx;
+    const label = (text, x, y, rotate = 0) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotate);
+      ctx.font = `${Math.max(11, Math.min(15, this.cellRadius() * 0.92))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(3, 7, 18, 0.82)';
+      ctx.fillStyle = 'rgba(226, 246, 255, 0.92)';
+      const translated = this.t(text, text);
+      ctx.strokeText(translated, 0, 0);
+      ctx.fillText(translated, 0, 0);
+      ctx.restore();
+    };
+    const dashedLine = (x1, y1, x2, y2, color) => {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1.6, this.cellRadius() * 0.1);
+      ctx.setLineDash([8, 7]);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    if (topology === 'cylinder') {
+      dashedLine(left, top, left, bottom, 'rgba(34, 197, 94, 0.76)');
+      dashedLine(right, top, right, bottom, 'rgba(34, 197, 94, 0.76)');
+      label('x-wrap', left, midY, -Math.PI / 2);
+      label('x-wrap', right, midY, Math.PI / 2);
+      return;
+    }
+    if (topology === 'torus' || topology === 'pbc') {
+      dashedLine(left, top, left, bottom, 'rgba(34, 197, 94, 0.72)');
+      dashedLine(right, top, right, bottom, 'rgba(34, 197, 94, 0.72)');
+      dashedLine(left, top, right, top, 'rgba(96, 165, 250, 0.72)');
+      dashedLine(left, bottom, right, bottom, 'rgba(96, 165, 250, 0.72)');
+      label('x-wrap', left, midY, -Math.PI / 2);
+      label('x-wrap', right, midY, Math.PI / 2);
+      label('y-wrap', midX, top);
+      label('y-wrap', midX, bottom);
+      return;
+    }
+    if (topology === 'mobius') {
+      dashedLine(left, top, left, bottom, 'rgba(45, 212, 191, 0.78)');
+      dashedLine(right, top, right, bottom, 'rgba(45, 212, 191, 0.78)');
+      label('x-wrap + y-twist', left, midY, -Math.PI / 2);
+      label('x-wrap + y-twist', right, midY, Math.PI / 2);
+      return;
+    }
+    if (topology === 'klein' || topology === 'klein_bottle') {
+      dashedLine(left, top, left, bottom, 'rgba(45, 212, 191, 0.78)');
+      dashedLine(right, top, right, bottom, 'rgba(45, 212, 191, 0.78)');
+      dashedLine(left, top, right, top, 'rgba(250, 204, 21, 0.7)');
+      dashedLine(left, bottom, right, bottom, 'rgba(250, 204, 21, 0.7)');
+      label('x-wrap + y-twist', left, midY, -Math.PI / 2);
+      label('x-wrap + y-twist', right, midY, Math.PI / 2);
+      label('y-wrap', midX, top);
+      label('y-wrap', midX, bottom);
+      return;
+    }
+    dashedLine(left, top, left, bottom, 'rgba(216, 180, 254, 0.76)');
+    dashedLine(right, top, right, bottom, 'rgba(216, 180, 254, 0.76)');
+    dashedLine(left, top, right, top, 'rgba(216, 180, 254, 0.76)');
+    dashedLine(left, bottom, right, bottom, 'rgba(216, 180, 254, 0.76)');
+    label('x/y antipodal', midX, top);
+    label('x/y antipodal', midX, bottom);
   }
 
   drawEmbeddedSurfaceFill(coords) {

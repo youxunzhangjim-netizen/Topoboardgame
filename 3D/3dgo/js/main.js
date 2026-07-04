@@ -1333,18 +1333,24 @@ class Go3DRenderer {
             : (logic.size <= 9 ? 0.16 : logic.size <= 13 ? 0.13 : 0.105);
         const stoneGeometry = new THREE.SphereGeometry(radius, 24, 16);
         const dotGeometry = new THREE.SphereGeometry(radius * 0.28, 16, 10);
+        const r3Stone = isR3LikeTopology(logic.topology);
         const stoneMaterial = new THREE.MeshPhysicalMaterial({
             color: color === 'black' ? 0x05070a : 0xf5f7fb,
-            roughness: color === 'black' ? 0.3 : 0.18,
-            metalness: 0.05,
+            roughness: r3Stone ? (color === 'black' ? 0.16 : 0.1) : (color === 'black' ? 0.3 : 0.18),
+            metalness: r3Stone ? 0.14 : 0.05,
+            clearcoat: r3Stone ? 0.72 : 0.18,
+            clearcoatRoughness: r3Stone ? 0.12 : 0.34,
+            emissive: color === 'black' ? 0x071521 : 0xffffff,
+            emissiveIntensity: r3Stone ? (color === 'black' ? 0.18 : 0.08) : 0,
+            envMapIntensity: r3Stone ? 1.45 : 1,
             transparent: true,
-            opacity: color === 'black' ? 0.78 : 0.72,
-            transmission: 0.15
+            opacity: r3Stone ? 1 : (color === 'black' ? 0.78 : 0.72),
+            transmission: r3Stone ? 0 : 0.15
         });
         const dotMaterial = new THREE.MeshStandardMaterial({
             color: color === 'black' ? 0x38bdf8 : 0xfacc15,
             emissive: color === 'black' ? 0x38bdf8 : 0xfacc15,
-            emissiveIntensity: 1.6,
+            emissiveIntensity: r3Stone ? 2.15 : 1.6,
             transparent: true,
             opacity: 1
         });
@@ -1917,6 +1923,54 @@ class Go3DRenderer {
                 for (let step = 0; step <= 6; step += 1) {
                     const t = step / 6;
                     points.push(pointFor((start.u + du * t) / TWO_PI * periodX, (start.v + dv * t) / TWO_PI * periodY));
+                }
+                this.appendPolyline(linePositions, points);
+            }
+            return;
+        }
+        if (surfaceKind === 'cylinder') {
+            const root3 = Math.sqrt(3);
+            const radius = 1;
+            const periodX = Math.max(1, root3 * width);
+            const rawHeight = Math.max(1, 1.5 * (height - 1) + 2);
+            const edgeMap = new Map();
+            const keyForPoint = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)}`;
+            const cylinderPoint = (point) => this.cylinderPointFromUV({
+                u: ((((point.x % periodX) + periodX) % periodX) / periodX) * TWO_PI,
+                band: THREE.MathUtils.clamp(point.y / rawHeight, 0, 1)
+            }, lift);
+            for (let row = 0; row < height; row += 1) {
+                for (let col = 0; col < width; col += 1) {
+                    const center = {
+                        x: root3 * (0.5 + col + (row % 2) * 0.5),
+                        y: 1 + 1.5 * row
+                    };
+                    const vertices = Array.from({ length: 6 }, (_, index) => {
+                        const angle = index * Math.PI / 3 - Math.PI / 6;
+                        return {
+                            x: center.x + radius * Math.cos(angle),
+                            y: center.y + radius * Math.sin(angle)
+                        };
+                    });
+                    for (let index = 0; index < vertices.length; index += 1) {
+                        const a = vertices[index];
+                        const b = vertices[(index + 1) % vertices.length];
+                        const edgeKey = [keyForPoint(a), keyForPoint(b)].sort().join('|');
+                        if (!edgeMap.has(edgeKey)) edgeMap.set(edgeKey, [a, b]);
+                    }
+                }
+            }
+            for (const [a, b] of edgeMap.values()) {
+                const startU = ((((a.x % periodX) + periodX) % periodX) / periodX) * TWO_PI;
+                const endU = ((((b.x % periodX) + periodX) % periodX) / periodX) * TWO_PI;
+                const du = this.shortestAngleDelta(startU, endU);
+                const points = [];
+                for (let step = 0; step <= 8; step += 1) {
+                    const t = step / 8;
+                    points.push(cylinderPoint({
+                        x: ((startU + du * t) / TWO_PI) * periodX,
+                        y: THREE.MathUtils.lerp(a.y, b.y, t)
+                    }));
                 }
                 this.appendPolyline(linePositions, points);
             }
