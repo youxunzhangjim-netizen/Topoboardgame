@@ -1,4 +1,5 @@
 import { buildAdjacencyMap, undirectedEdgeKey } from './VertexGraphBoardValidator.js';
+import { endTimer, estimateMemoryRisk, recordMetric, startTimer } from './PerformanceAudit.js';
 
 const SQRT3 = Math.sqrt(3);
 const mod = (value, modulus) => ((value % modulus) + modulus) % modulus;
@@ -21,6 +22,7 @@ export const BOARD_TYPE_LABELS = Object.freeze({
 });
 
 function createHoneycombGraph(width, height, wrapU, wrapV) {
+    const timer = startTimer(`honeycomb:${wrapU ? 'periodic-u' : 'hard-u'}:${wrapV ? 'periodic-v' : 'hard-v'}`);
     const W = Math.max(2, Math.floor(Number(width) || 2));
     const H = Math.max(2, Math.floor(Number(height) || 2));
     const sites = [];
@@ -82,6 +84,10 @@ function createHoneycombGraph(width, height, wrapU, wrapV) {
     board.siteByGameCoord = new Map(sites.map((site) => [site.gameCoord.join(','), site]));
     board.indexById = new Map(sites.map((site, index) => [site.id, index]));
     board.neighbors = (id) => [...(board.adjacency.get(String(id)) || [])];
+    endTimer(timer, { category: 'board generation', name: wrapV ? 'honeycomb-torus' : 'honeycomb-cylinder' });
+    recordMetric('board', 'honeycomb-sites', sites.length, { wrapU, wrapV });
+    recordMetric('board', 'honeycomb-edges', edges.length, { wrapU, wrapV });
+    estimateMemoryRisk({ sites: sites.length, edges: edges.length });
     return board;
 }
 

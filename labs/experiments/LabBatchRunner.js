@@ -20,6 +20,7 @@ import {
     topologyDimensions
 } from './LabExperimentRegistry.js';
 import { seededRandom } from './LabBatchCore.js';
+import { endTimer, recordMetric, startTimer } from '../../js/shared/PerformanceAudit.js';
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -496,6 +497,7 @@ export async function runSingleLabExperiment(run) {
 }
 
 export async function runBatchSequential(batchConfig, callbacks = {}) {
+    const batchTimer = startTimer(`lab-batch:${batchConfig?.batchId || 'batch'}`);
     const results = [];
     const failedRuns = [];
     let cancelled = false;
@@ -508,12 +510,15 @@ export async function runBatchSequential(batchConfig, callbacks = {}) {
     for (let index = 0; index < batchConfig.runMatrix.length; index += 1) {
         if (cancelled) break;
         const run = batchConfig.runMatrix[index];
+        const runTimer = startTimer(`lab-run:${run.runId}`);
         callbacks.onProgress?.({ index, totalRuns: batchConfig.runMatrix.length, run, phase: 'running' });
         try {
             const result = await runSingleLabExperiment(run);
+            endTimer(runTimer, { category: 'lab step', name: run.runId });
             results.push(result);
             callbacks.onRunComplete?.({ index, run, result });
         } catch (error) {
+            endTimer(runTimer, { category: 'lab step', name: run.runId });
             failedRuns.push({
                 runId: run.runId,
                 experimentConfig: run.experimentConfig,
@@ -527,6 +532,12 @@ export async function runBatchSequential(batchConfig, callbacks = {}) {
         await new Promise((resolve) => setTimeout(resolve, 0));
     }
     callbacks.onComplete?.({ results, failedRuns, cancelled });
+    endTimer(batchTimer, { category: 'lab initialization', name: batchConfig?.batchId || 'batch' });
+    recordMetric('lab', 'batch-runs', results.length + failedRuns.length, {
+        completed: results.length,
+        failed: failedRuns.length,
+        cancelled
+    });
     return { results, failedRuns, cancelled };
 }
 
