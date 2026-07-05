@@ -36,7 +36,7 @@ import {
 } from '../../../js/shared/HoneycombGraphBoards.js';
 import { createKleinBottleVertexGraph } from '../../../js/shared/KleinVertexGraphBoard.js';
 import { validateVertexGraphBoard } from '../../../js/shared/VertexGraphBoardValidator.js';
-import { getGraphNeighbors } from '../../../js/shared/VertexPlayableBoardAdapter.js';
+import { getNeighborsForGame } from '../../../js/shared/PlayableSiteAdapter.js';
 
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
@@ -329,7 +329,7 @@ export class GoGameLogic {
     }
 
     neighborsFromSiteId(siteId) {
-        return getGraphNeighbors(this.vertexGraph, siteId);
+        return getNeighborsForGame(this.vertexGraph, siteId);
     }
 
     syncSiteState() {

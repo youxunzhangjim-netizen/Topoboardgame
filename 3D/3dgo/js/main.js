@@ -52,7 +52,7 @@ import {
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
 import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
-import { hitTestPlayableSite } from '../../../js/shared/VertexPlayableBoardAdapter.js';
+import { hitTestPlayableUnit } from '../../../js/shared/PlayableSiteAdapter.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
@@ -1574,12 +1574,12 @@ class Go3DRenderer {
             screenSites.push({ id: siteId, coord, draw: { x, y } });
             coordBySiteId.set(siteId, coord);
         }
-        const hit = hitTestPlayableSite({
+        const hit = hitTestPlayableUnit({
             playableKind: 'vertex',
             sites: screenSites,
             siteById: new Map(screenSites.map((site) => [site.id, site])),
             hitRadius: maxPixels
-        }, targetX, targetY, maxPixels);
+        }, targetX, targetY, { threshold: maxPixels });
         return hit ? coordBySiteId.get(hit.siteId) || null : null;
     }
 

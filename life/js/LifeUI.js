@@ -17,6 +17,10 @@ import {
 import { currentLifeLanguage, localizeStaticText, syncLifeLinks, t } from './i18n.js';
 import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManager.js';
 import { classicKleinBottlePoint } from '../../js/geometry/KleinBottleMath.js';
+import {
+  STEAM_SAFETY_TEXT,
+  assessBoardSafety
+} from '../../js/shared/SteamSafetyLimits.js';
 
 const COLORS = { 1: '#38bdf8', 2: '#ef4444', 3: '#22c55e', 4: '#f5b647' };
 const SQRT3 = Math.sqrt(3);
@@ -671,7 +675,7 @@ export class LifeUI {
     this.timer = 0;
     this.tool = 'draw';
     this.showGrid = true;
-    this.boardOpacityIndex = 0;
+    this.boardOpacityIndex = 1;
     this.drawing = false;
     this.lastDrawPosition = null;
     this.camera = {
@@ -1473,10 +1477,40 @@ export class LifeUI {
   currentSize() {
     const n = Math.max(8, Number(this.boardSizeSelect.value) || 32);
     const dimension = Math.max(1, Number(this.dimensionSelect.value) || 2);
-    if (dimension === 1) return [n];
-    if (dimension === 2) return [n, n];
-    if (dimension === 3) return [Math.min(n, 64), Math.min(n, 64), Math.min(16, Math.max(4, Math.floor(n / 6)))];
-    return [Math.min(n, 32), Math.min(n, 32), 4, 4];
+    const dimensionsFor = (side) => {
+      if (dimension === 1) return [side];
+      if (dimension === 2) return [side, side];
+      if (dimension === 3) return [Math.min(side, 64), Math.min(side, 64), Math.min(16, Math.max(4, Math.floor(side / 6)))];
+      return [Math.min(side, 32), Math.min(side, 32), 4, 4];
+    };
+    const requested = dimensionsFor(n);
+    const requestedSites = requested.reduce((product, value) => product * value, 1);
+    const safety = assessBoardSafety({
+      dimension,
+      playableSites: requestedSites,
+      visibleSites: dimension === 4 ? requested[0] * requested[1] : requestedSites,
+      slicedOrProjected: dimension === 4
+    });
+    if (safety.allowed) return requested;
+
+    const fallbackSide = [128, 96, 64, 48, 40, 32, 24]
+      .filter((side) => side <= n)
+      .find((side) => {
+        const size = dimensionsFor(side);
+        const sites = size.reduce((product, value) => product * value, 1);
+        return assessBoardSafety({
+          dimension,
+          playableSites: sites,
+          visibleSites: dimension === 4 ? size[0] * size[1] : sites,
+          slicedOrProjected: dimension === 4
+        }).allowed;
+      }) || 24;
+    this.boardSizeSelect.value = String(fallbackSide);
+    const warning = String(this.language).startsWith('zh')
+      ? STEAM_SAFETY_TEXT.zh.boardWarning
+      : STEAM_SAFETY_TEXT.en.boardWarning;
+    if (!this.pendingNeighborhoodWarnings.includes(warning)) this.pendingNeighborhoodWarnings.push(warning);
+    return dimensionsFor(fallbackSide);
   }
 
   resetInitialCameraScale() {

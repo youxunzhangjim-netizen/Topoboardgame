@@ -18,6 +18,14 @@ import {
     HONEYCOMB_LATTICE
 } from '../3D/3dgo/js/GoGame.js';
 import { KLEIN_BOTTLE_TOPOLOGY } from '../3D/3dgo/js/KleinBottleTopology.js';
+import {
+    getDrawPosition,
+    getNeighborsForGame,
+    getPlayableUnits,
+    hitTestPlayableUnit,
+    isPlayableUnitOccupied,
+    placePieceOnPlayableUnit
+} from '../js/shared/PlayableSiteAdapter.js';
 
 function assertCommonGraph(board, validationOptions) {
     const result = validateVertexGraphBoard(board, { connected: true, ...validationOptions });
@@ -37,6 +45,19 @@ function assertCommonGraph(board, validationOptions) {
     for (const [id, neighbors] of board.adjacency) {
         for (const neighbor of neighbors) assert.ok(ids.has(neighbor), `Unknown neighbor ${neighbor} at ${id}.`);
     }
+
+    const units = getPlayableUnits(board);
+    const first = units[0];
+    assert.equal(units.length, board.sites.length, 'Playable adapter must expose every graph vertex.');
+    assert.deepEqual(getNeighborsForGame(board, first.id).sort(), [...board.adjacency.get(first.id)].sort());
+    const draw = getDrawPosition(board, first.id);
+    assert.ok(draw && Number.isFinite(draw.x) && Number.isFinite(draw.y), 'Playable unit must expose a draw position.');
+    const hit = hitTestPlayableUnit(board, draw.x, draw.y, { threshold: board.hitRadius });
+    assert.equal(hit?.unitId, first.id, 'Hit testing must select the exact nearest graph vertex.');
+    const state = { stones: new Map() };
+    assert.equal(placePieceOnPlayableUnit(state, first.id, 'black').ok, true);
+    assert.equal(isPlayableUnitOccupied(state, first.id), true);
+    assert.equal(placePieceOnPlayableUnit(state, first.id, 'white').ok, false);
 }
 
 function assertGoBehavior(game) {

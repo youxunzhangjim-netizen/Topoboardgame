@@ -522,140 +522,17 @@ function surfaceSphereCoordinatesForSize(size) {
 
 function createBuckyballGoalZones(topology, topologySize, lattice) {
     if (topology !== 'sphere' || lattice !== BUCKYBALL_LATTICE) return null;
-    const polygons = createBuckyballSphereFacePolygons({ radius: BUCKYBALL_RENDER_RADIUS, lift: 0.08 });
-    const coordinates = surfaceSphereCoordinatesForSize(topologySize).slice(0, polygons.length);
-    const vertexKey = (point) => `${point.x.toFixed(5)},${point.y.toFixed(5)},${point.z.toFixed(5)}`;
-    const faceVertexSets = polygons.map((polygon) => new Set(polygon.map(vertexKey)));
-    const sharedVertexCount = (aIndex, bIndex) => {
-        let shared = 0;
-        for (const key of faceVertexSets[aIndex] || []) {
-            if (faceVertexSets[bIndex]?.has(key)) shared += 1;
-            if (shared >= 2) break;
-        }
-        return shared;
-    };
-    const faceAdjacency = faceVertexSets.map(() => []);
-    for (let a = 0; a < faceVertexSets.length; a += 1) {
-        for (let b = a + 1; b < faceVertexSets.length; b += 1) {
-            if (sharedVertexCount(a, b) < 2) continue;
-            faceAdjacency[a].push(b);
-            faceAdjacency[b].push(a);
-        }
-    }
-    const faceGraphDistance = (from, to) => {
-        if (from === to) return 0;
-        const queue = [from];
-        const distances = new Map([[from, 0]]);
-        for (let index = 0; index < queue.length; index += 1) {
-            const current = queue[index];
-            const nextDistance = distances.get(current) + 1;
-            for (const next of faceAdjacency[current] || []) {
-                if (distances.has(next)) continue;
-                if (next === to) return nextDistance;
-                distances.set(next, nextDistance);
-                queue.push(next);
-            }
-        }
-        return 0;
-    };
-    const graphDistances = faceVertexSets.map((_, from) =>
-        faceVertexSets.map((__, to) => faceGraphDistance(from, to)));
-    const graphDistance = (a, b) => graphDistances[a.index]?.[b.index] || 0;
-    const minGraphDistance = (selected) => {
-        let best = Infinity;
-        for (let a = 0; a < selected.length; a += 1) {
-            for (let b = a + 1; b < selected.length; b += 1) {
-                best = Math.min(best, graphDistance(selected[a], selected[b]));
-            }
-        }
-        return Number.isFinite(best) ? best : 0;
-    };
-    const faceDistance = (a, b) => Math.hypot(
-        a.center.x - b.center.x,
-        a.center.y - b.center.y,
-        a.center.z - b.center.z
-    );
-    const rotateDefault = (center) => {
-        let { x, y, z } = center;
-        const ax = -24 * Math.PI / 180;
-        const ay = 34 * Math.PI / 180;
-        [y, z] = [y * Math.cos(ax) - z * Math.sin(ax), y * Math.sin(ax) + z * Math.cos(ax)];
-        [x, z] = [x * Math.cos(ay) + z * Math.sin(ay), -x * Math.sin(ay) + z * Math.cos(ay)];
-        return { x, y, z };
-    };
-    const entries = polygons.map((polygon, index) => {
-        const center = polygon.reduce((sum, point) => {
-            sum.x += point.x;
-            sum.y += point.y;
-            sum.z += point.z;
-            return sum;
-        }, { x: 0, y: 0, z: 0 });
-        center.x /= Math.max(1, polygon.length);
-        center.y /= Math.max(1, polygon.length);
-        center.z /= Math.max(1, polygon.length);
-        return { coordinate: coordinates[index], center, view: rotateDefault(center), index };
-    }).filter((entry) => Array.isArray(entry.coordinate));
+    const faceCount = createBuckyballSphereFacePolygons({
+        radius: BUCKYBALL_RENDER_RADIUS,
+        lift: 0.08
+    }).length;
+    const coordinates = surfaceSphereCoordinatesForSize(topologySize).slice(0, faceCount);
     const keyOf = (coordinate) => coordinate.join(',');
-    const pickSeparatedVisibleCaps = () => {
-        const minAnyGraphDistance = 3;
-        const minSameColorGraphDistance = 3;
-        let best = null;
-
-        const isSeparated = (selected) => {
-            for (let a = 0; a < selected.length; a += 1) {
-                for (let b = a + 1; b < selected.length; b += 1) {
-                    if (graphDistance(selected[a], selected[b]) < minAnyGraphDistance) return false;
-                }
-            }
-            return true;
-        };
-
-        for (const blackStart of entries) {
-            for (const blackEnd of entries) {
-                if (blackEnd === blackStart) continue;
-                if (graphDistance(blackStart, blackEnd) < minSameColorGraphDistance) continue;
-                for (const whiteStart of entries) {
-                    if (whiteStart === blackStart || whiteStart === blackEnd) continue;
-                    for (const whiteEnd of entries) {
-                        const selected = [blackStart, blackEnd, whiteStart, whiteEnd];
-                        if (new Set(selected).size !== selected.length) continue;
-                        if (graphDistance(whiteStart, whiteEnd) < minSameColorGraphDistance) continue;
-                        if (!isSeparated(selected)) continue;
-
-                        const crossDistances = [
-                            faceDistance(blackStart, whiteStart),
-                            faceDistance(blackStart, whiteEnd),
-                            faceDistance(blackEnd, whiteStart),
-                            faceDistance(blackEnd, whiteEnd)
-                        ];
-                        const crossGraphDistances = [
-                            graphDistance(blackStart, whiteStart),
-                            graphDistance(blackStart, whiteEnd),
-                            graphDistance(blackEnd, whiteStart),
-                            graphDistance(blackEnd, whiteEnd)
-                        ];
-                        const sameGraphDistance = graphDistance(blackStart, blackEnd) + graphDistance(whiteStart, whiteEnd);
-                        const score =
-                            minGraphDistance(selected) * 140 +
-                            sameGraphDistance * 60 +
-                            Math.min(...crossGraphDistances) * 40 +
-                            (faceDistance(blackStart, blackEnd) + faceDistance(whiteStart, whiteEnd)) * 3 +
-                            Math.min(...crossDistances) * 3 +
-                            (-blackStart.view.x + blackEnd.view.x + whiteStart.view.y - whiteEnd.view.y) * 0.35 +
-                            (blackStart.view.z + blackEnd.view.z + whiteStart.view.z + whiteEnd.view.z) * 0.25;
-                        if (!best || score > best.score) best = { score, blackStart, blackEnd, whiteStart, whiteEnd };
-                    }
-                }
-            }
-        }
-        return best;
-    };
-
-    const caps = pickSeparatedVisibleCaps();
-    const blackStart = new Set([keyOf(caps?.blackStart?.coordinate || coordinates[4])]);
-    const blackEnd = new Set([keyOf(caps?.blackEnd?.coordinate || coordinates[10])]);
-    const whiteStart = new Set([keyOf(caps?.whiteStart?.coordinate || coordinates[25])]);
-    const whiteEnd = new Set([keyOf(caps?.whiteEnd?.coordinate || coordinates[22])]);
+    const coordinateAt = (index) => coordinates[Math.min(index, Math.max(0, coordinates.length - 1))];
+    const blackStart = new Set([keyOf(coordinateAt(3))]);
+    const blackEnd = new Set([keyOf(coordinateAt(14))]);
+    const whiteStart = new Set([keyOf(coordinateAt(25))]);
+    const whiteEnd = new Set([keyOf(coordinateAt(22))]);
     return {
         black: {
             type: 'marked-cut-zones',

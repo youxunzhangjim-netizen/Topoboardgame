@@ -7,6 +7,7 @@ import {
     kagomeFaceCells,
     kagomeFaceNeighbors
 } from '../shared/KagomeLattice.js';
+import { createBuckyballSphereFaceGraph } from '../geometry/SphereBoardGeometry.js';
 
 export const HEX_COLORS = Object.freeze({
     BLACK: 'black',
@@ -178,130 +179,27 @@ function kagomeHexOffsets(origin = [0, 0]) {
         kagomeHexEdgeAllowed(origin, [origin[0] + offset[0], origin[1] + offset[1]]));
 }
 
-const ICOSAHEDRON_FACES = Object.freeze([
-    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
-    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
-    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
-    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
-]);
-
-function createBuckyballFaceVertexSets() {
-    const neighbors = new Map();
-    const pointKey = (a, b) => `${a}->${b}`;
-    const faceSets = [];
-
-    for (const [a, b, c] of ICOSAHEDRON_FACES) {
-        faceSets.push(new Set([
-            pointKey(a, b), pointKey(b, a),
-            pointKey(b, c), pointKey(c, b),
-            pointKey(c, a), pointKey(a, c)
-        ]));
-        for (const [from, to] of [[a, b], [b, c], [c, a]]) {
-            if (!neighbors.has(from)) neighbors.set(from, new Set());
-            if (!neighbors.has(to)) neighbors.set(to, new Set());
-            neighbors.get(from).add(to);
-            neighbors.get(to).add(from);
-        }
-    }
-
-    for (let vertex = 0; vertex < 12; vertex += 1) {
-        faceSets.push(new Set([...neighbors.get(vertex)].map((neighbor) => pointKey(vertex, neighbor))));
-    }
-
-    return faceSets;
-}
-
 function createBuckyballFaceAdjacency(coordinateList) {
-    const faceVertexSets = createBuckyballFaceVertexSets();
-    const faceCount = Math.min(coordinateList.length, faceVertexSets.length);
+    const faceGraph = createBuckyballSphereFaceGraph();
+    const faceCount = Math.min(coordinateList.length, faceGraph.faceCount);
     const adjacency = new Map();
 
     for (let index = 0; index < faceCount; index += 1) {
         adjacency.set(coordinateKey(coordinateList[index]), new Map());
     }
-
     for (let a = 0; a < faceCount; a += 1) {
-        for (let b = a + 1; b < faceCount; b += 1) {
-            let shared = 0;
-            for (const key of faceVertexSets[a]) {
-                if (faceVertexSets[b].has(key)) shared += 1;
-                if (shared >= 2) break;
-            }
-            if (shared < 2) continue;
-            const aKey = coordinateKey(coordinateList[a]);
-            const bKey = coordinateKey(coordinateList[b]);
-            adjacency.get(aKey)?.set(bKey, coordinateList[b]);
-            adjacency.get(bKey)?.set(aKey, coordinateList[a]);
+        const aKey = coordinateKey(coordinateList[a]);
+        for (const b of faceGraph.adjacency[a] || []) {
+            if (b >= faceCount) continue;
+            adjacency.get(aKey)?.set(coordinateKey(coordinateList[b]), coordinateList[b]);
         }
     }
-
     return adjacency;
 }
 
 function createBuckyballGoalDefinition(coordinateList) {
-    const faceVertexSets = createBuckyballFaceVertexSets();
-    const faceCount = Math.min(coordinateList.length, faceVertexSets.length);
-    const faceAdjacency = Array.from({ length: faceCount }, () => []);
-    const sharedVertexCount = (aIndex, bIndex) => {
-        let shared = 0;
-        for (const key of faceVertexSets[aIndex] || []) {
-            if (faceVertexSets[bIndex]?.has(key)) shared += 1;
-            if (shared >= 2) break;
-        }
-        return shared;
-    };
-    for (let a = 0; a < faceCount; a += 1) {
-        for (let b = a + 1; b < faceCount; b += 1) {
-            if (sharedVertexCount(a, b) < 2) continue;
-            faceAdjacency[a].push(b);
-            faceAdjacency[b].push(a);
-        }
-    }
-    const graphDistance = (from, to) => {
-        if (from === to) return 0;
-        const queue = [from];
-        const distances = new Map([[from, 0]]);
-        for (let index = 0; index < queue.length; index += 1) {
-            const current = queue[index];
-            const nextDistance = distances.get(current) + 1;
-            for (const next of faceAdjacency[current] || []) {
-                if (distances.has(next)) continue;
-                if (next === to) return nextDistance;
-                distances.set(next, nextDistance);
-                queue.push(next);
-            }
-        }
-        return 0;
-    };
-    const distances = Array.from({ length: faceCount }, (_, from) =>
-        Array.from({ length: faceCount }, (__, to) => graphDistance(from, to)));
-    let best = null;
-    for (let blueStart = 0; blueStart < faceCount; blueStart += 1) {
-        for (let blueEnd = 0; blueEnd < faceCount; blueEnd += 1) {
-            if (blueEnd === blueStart || distances[blueStart][blueEnd] < 3) continue;
-            for (let orangeStart = 0; orangeStart < faceCount; orangeStart += 1) {
-                if (orangeStart === blueStart || orangeStart === blueEnd) continue;
-                for (let orangeEnd = 0; orangeEnd < faceCount; orangeEnd += 1) {
-                    const selected = [blueStart, blueEnd, orangeStart, orangeEnd];
-                    if (new Set(selected).size !== selected.length) continue;
-                    if (distances[orangeStart][orangeEnd] < 3) continue;
-                    const pairDistances = [];
-                    for (let a = 0; a < selected.length; a += 1) {
-                        for (let b = a + 1; b < selected.length; b += 1) {
-                            pairDistances.push(distances[selected[a]][selected[b]]);
-                        }
-                    }
-                    const minDistance = Math.min(...pairDistances);
-                    if (minDistance < 3) continue;
-                    const score = minDistance * 100 +
-                        (distances[blueStart][blueEnd] + distances[orangeStart][orangeEnd]) * 20 +
-                        pairDistances.reduce((sum, value) => sum + value, 0);
-                    if (!best || score > best.score) best = { score, selected };
-                }
-            }
-        }
-    }
-    const selected = best?.selected || [0, Math.min(15, faceCount - 1), Math.min(5, faceCount - 1), Math.min(25, faceCount - 1)];
+    const faceCount = Math.min(coordinateList.length, createBuckyballSphereFaceGraph().faceCount);
+    const selected = [0, 12, 27, 29].map((index) => Math.min(index, Math.max(0, faceCount - 1)));
     const keyOfIndex = (index) => coordinateKey(coordinateList[Math.max(0, Math.min(faceCount - 1, index))]);
     const blueStart = new Set([keyOfIndex(selected[0])]);
     const blueEnd = new Set([keyOfIndex(selected[1])]);

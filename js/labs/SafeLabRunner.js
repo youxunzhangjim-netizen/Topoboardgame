@@ -8,13 +8,14 @@ import {
     recordWarning,
     startTimer
 } from '../shared/PerformanceAudit.js';
+import { STEAM_LAB_LIMITS } from '../shared/SteamSafetyLimits.js';
 
 export const SAFE_LAB_DEFAULTS = Object.freeze({
     maxStepMs: 100,
     maxInitMs: 1500,
     maxSites: 20000,
     maxEdges: 100000,
-    maxStateVariables: 50000,
+    maxStateVariables: STEAM_LAB_LIMITS.simpleMaxStateVariables,
     chunkSize: 1000,
     yieldToUI: true
 });

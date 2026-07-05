@@ -74,6 +74,20 @@ for (const marker of [
   }
 }
 
+if (!/<option value="moore"[^>]*selected/.test(world)) {
+  console.error('[Life default] Moore neighborhood is not selected.');
+  ok = false;
+} else {
+  console.log('[Life default] Moore / Chebyshev radius 1');
+}
+
+if (!/id="boardOpacityButton"[^>]*data-life-i18n="boardOpacity70"/.test(world)) {
+  console.error('[Life default] Board opacity is not initialized at 70%.');
+  ok = false;
+} else {
+  console.log('[Life default] board opacity 70%');
+}
+
 const lifeIndex = fs.readFileSync(path.join(root, 'life/index.html'), 'utf8');
 for (const marker of [
   './world.html',
@@ -109,6 +123,11 @@ for (const marker of ['isCameraInteraction', 'handleCanvasWheel', 'drawSurfaceBo
   } else {
     console.log(`[LifeUI interactive] ${marker}`);
   }
+}
+
+if (!ui.includes('this.boardOpacityIndex = 1;')) {
+  console.error('[Life default] LifeUI opacity index must start at 70%.');
+  ok = false;
 }
 
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');

@@ -1,4 +1,9 @@
 const ZH = new Map(Object.entries({
+  'Performance Mode': '\u6548\u80fd\u6a21\u5f0f',
+  'Show Edges': '\u986f\u793a\u908a',
+  'Show Labels': '\u986f\u793a\u6a19\u7c64',
+  'Lower Detail': '\u964d\u4f4e\u7d30\u7bc0',
+  'Pause Updates': '\u66ab\u505c\u66f4\u65b0',
   'Language': '語言',
   'Home': '首頁',
   'Surface View': '曲面視圖',

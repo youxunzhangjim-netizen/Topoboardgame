@@ -307,6 +307,10 @@ const els = {
     unbraidHintButton: document.querySelector('#unbraidHintButton'),
     manualNoiseButton: document.querySelector('#manualNoiseButton'),
     manualTimeButton: document.querySelector('#manualTimeButton'),
+    showEdgesToggle: document.querySelector('#showEdgesToggle'),
+    showLabelsToggle: document.querySelector('#showLabelsToggle'),
+    lowerDetailButton: document.querySelector('#lowerDetailButton'),
+    pauseUpdatesButton: document.querySelector('#pauseUpdatesButton'),
     dropAnyonButton: document.querySelector('#dropAnyonButton'),
     rulesIntroButton: document.querySelector('#rulesIntroButton'),
     rulesIntroCloseButton: document.querySelector('#rulesIntroCloseButton'),
@@ -7883,6 +7887,23 @@ els.countButton.addEventListener('click', handleCount);
 els.unbraidHintButton.addEventListener('click', showUnbraidHint);
 els.manualNoiseButton.addEventListener('click', applyNoiseNow);
 els.manualTimeButton.addEventListener('click', applyTimeNow);
+els.showEdgesToggle?.addEventListener('change', () => {
+    algebraic3d.configurePerformance({ showEdges: els.showEdgesToggle.checked });
+});
+els.showLabelsToggle?.addEventListener('change', () => {
+    algebraic3d.configurePerformance({ showLabels: els.showLabelsToggle.checked });
+});
+els.lowerDetailButton?.addEventListener('click', () => {
+    const active = els.lowerDetailButton.getAttribute('aria-pressed') !== 'true';
+    els.lowerDetailButton.setAttribute('aria-pressed', String(active));
+    algebraic3d.configurePerformance({ lowerDetail: active, performanceMode: active });
+});
+els.pauseUpdatesButton?.addEventListener('click', () => {
+    const active = els.pauseUpdatesButton.getAttribute('aria-pressed') !== 'true';
+    els.pauseUpdatesButton.setAttribute('aria-pressed', String(active));
+    algebraic3d.configurePerformance({ pauseUpdates: active });
+    if (!active) renderAlgebraic3DBoard();
+});
 els.dropAnyonButton.addEventListener('click', dropSelectedAnyon);
 els.rulesIntroButton.addEventListener('click', toggleRulesIntro);
 els.rulesIntroCloseButton.addEventListener('click', () => setRulesIntroOpen(false));

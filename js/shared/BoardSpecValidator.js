@@ -1,7 +1,13 @@
 import { BOARD_PLAYABLE_KINDS, BOARD_SPEC_SCHEMA, buildAdjacencyMap } from './BoardSpec.js';
 import { isPerformanceDebugEnabled, recordWarning, startTimer, endTimer } from './PerformanceAudit.js';
+import { getBoardSafetyLimit } from './SteamSafetyLimits.js';
 
-export const STEAM_SAFE_SITE_LIMITS = Object.freeze({ 1: 50000, 2: 50000, 3: 20000, 4: 10000 });
+export const STEAM_SAFE_SITE_LIMITS = Object.freeze(
+    Object.fromEntries([1, 2, 3, 4].map((dimension) => [
+        dimension,
+        getBoardSafetyLimit(dimension).maxPlayableSites
+    ]))
+);
 
 function edgeKey(a, b) {
     return String(a) < String(b) ? `${a}|${b}` : `${b}|${a}`;

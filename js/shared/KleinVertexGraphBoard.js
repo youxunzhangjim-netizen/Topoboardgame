@@ -35,6 +35,7 @@ export function createKleinBottleVertexGraph(width, height) {
             });
         }
     }
+    // Topology is defined by logical coordinates and edges, not by visual distance.
     const edges = [];
     const seen = new Set();
     const add = (a, b) => {

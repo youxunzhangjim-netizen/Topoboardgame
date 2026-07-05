@@ -10,13 +10,19 @@ import {
     startTimer
 } from './PerformanceAudit.js';
 import { getFeatureStatus, registerFeatureStatus, resolveFeatureStatus } from './FeatureStatusRegistry.js';
+import { STEAM_BOARD_LIMITS, STEAM_LAB_LIMITS } from './SteamSafetyLimits.js';
 
 export const BOARD_PERFORMANCE_BUDGET = Object.freeze({
     generationWarningMs: PERFORMANCE_THRESHOLDS.boardGenerationWarningMs,
     generationDangerMs: PERFORMANCE_THRESHOLDS.boardGenerationDangerMs,
     renderWarningMs: PERFORMANCE_THRESHOLDS.renderWarningMs,
     renderDangerMs: PERFORMANCE_THRESHOLDS.renderDangerMs,
-    maxSitesByDimension: Object.freeze({ 1: 50000, 2: 50000, 3: 20000, 4: 10000 }),
+    maxSitesByDimension: Object.freeze(
+        Object.fromEntries(Object.entries(STEAM_BOARD_LIMITS).map(([dimension, limits]) => [
+            dimension,
+            limits.maxPlayableSites
+        ]))
+    ),
     maxEdges: 150000,
     maxDrawObjects: 50000
 });
@@ -25,7 +31,9 @@ export const LAB_PERFORMANCE_BUDGET = Object.freeze({
     stepWarningMs: PERFORMANCE_THRESHOLDS.labStepWarningMs,
     stepDangerMs: PERFORMANCE_THRESHOLDS.labStepDangerMs,
     defaultChunkSize: 100,
-    maxSynchronousIterations: 5000
+    maxSynchronousIterations: 5000,
+    maxSimpleStateVariables: STEAM_LAB_LIMITS.simpleMaxStateVariables,
+    maxUpdateOperationsPerFrame: STEAM_LAB_LIMITS.maxUpdateOperationsPerFrame
 });
 
 function asBoardSpec(board, metadata) {

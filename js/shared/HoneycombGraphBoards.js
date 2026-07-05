@@ -43,6 +43,7 @@ function createHoneycombGraph(width, height, wrapU, wrapV) {
         }
     }
 
+    // Topology is defined by logical coordinates and edges, not by visual distance.
     const edges = [];
     const seen = new Set();
     const addEdge = (a, b) => {

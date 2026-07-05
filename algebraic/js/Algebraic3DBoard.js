@@ -6,6 +6,11 @@ import {
     kleinBottleGraphEdgePoints,
     kleinBottlePose
 } from '../../js/geometry/KleinBottleGeometry.js';
+import {
+    applyObjectVisibility,
+    createRenderPolicy,
+    measureRender
+} from '../../js/shared/RenderSafety.js';
 
 const TWO_PI = Math.PI * 2;
 const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'cylinder', 'torus', 'sphere_latitude', 'klein_bottle']);
@@ -72,6 +77,7 @@ function labelSprite(text, {
         depthWrite: false
     }));
     sprite.scale.set(scale * 1.6, scale * 0.8, 1);
+    sprite.userData.performanceLabel = true;
     return sprite;
 }
 
@@ -90,6 +96,16 @@ export class Algebraic3DBoard {
         this.viewState = {};
         this.signature = '';
         this.pointerGesture = null;
+        this.renderRequested = true;
+        this.edgeLines = null;
+        this.edgeCount = 0;
+        this.performanceOptions = {
+            performanceMode: false,
+            showEdges: null,
+            showLabels: null,
+            lowerDetail: false,
+            pauseUpdates: false
+        };
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x091016);
@@ -113,6 +129,7 @@ export class Algebraic3DBoard {
         this.controls.minDistance = 7;
         this.controls.maxDistance = 16;
         this.interactionLocked = false;
+        this.controls.addEventListener('change', () => this.requestRender());
 
         this.raycaster = new THREE.Raycaster();
         this.raycaster.params.Points.threshold = 0.2;
@@ -163,6 +180,28 @@ export class Algebraic3DBoard {
         if (visible) requestAnimationFrame(() => this.resize());
     }
 
+    requestRender() {
+        this.renderRequested = true;
+    }
+
+    configurePerformance(options = {}) {
+        this.performanceOptions = { ...this.performanceOptions, ...options };
+        const policy = createRenderPolicy({
+            visibleSites: this.pointCoords.length,
+            visibleEdges: this.edgeCount,
+            ...this.performanceOptions
+        });
+        if (this.edgeLines) this.edgeLines.visible = policy.showEdges;
+        applyObjectVisibility(
+            this.entityGroup,
+            (object) => object.userData?.performanceLabel === true,
+            policy.showLabels
+        );
+        this.renderer.setPixelRatio(policy.lowerDetail ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+        this.requestRender();
+        return policy;
+    }
+
     resize() {
         if (this.canvas.hidden) return;
         const rect = this.canvas.parentElement.getBoundingClientRect();
@@ -172,15 +211,18 @@ export class Algebraic3DBoard {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, false);
         this.applySafeZoomRange();
+        this.requestRender();
     }
 
     renderGame(game, viewState = {}) {
+        if (this.performanceOptions.pauseUpdates && this.game) return;
         this.game = game;
         this.viewState = viewState;
         this.buildBoard();
         this.renderEntities();
         this.renderMarkers();
         this.renderTrails();
+        this.configurePerformance();
     }
 
     buildBoard() {
@@ -197,6 +239,8 @@ export class Algebraic3DBoard {
         this.pointCoords = [];
         this.pointPositions = [];
         this.nodePoints = null;
+        this.edgeLines = null;
+        this.edgeCount = 0;
         this.surfaceMeshes = [];
 
         if (topology.name === 'cylinder') this.addCylinderSurface();
@@ -380,7 +424,8 @@ export class Algebraic3DBoard {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
         if (z2GaugeEdges) geometry.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
-        this.boardGroup.add(new THREE.LineSegments(
+        this.edgeCount = drawn.size;
+        this.edgeLines = new THREE.LineSegments(
             geometry,
             new THREE.LineBasicMaterial({
                 color: z2GaugeEdges ? 0xffffff : topology.name === 'r3' ? 0x6ec8ec : 0x7dd3fc,
@@ -389,7 +434,9 @@ export class Algebraic3DBoard {
                 opacity: z2GaugeEdges ? 0.96 : topology.name === 'r3' ? 0.38 : 0.68,
                 depthWrite: false
             })
-        ));
+        );
+        this.edgeLines.userData.performanceEdges = true;
+        this.boardGroup.add(this.edgeLines);
 
         const nodeGeometry = new THREE.BufferGeometry();
         nodeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(
@@ -928,7 +975,17 @@ export class Algebraic3DBoard {
     animate() {
         requestAnimationFrame(() => this.animate());
         if (this.canvas.hidden) return;
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
+        const controlsChanged = this.controls.update();
+        if (!this.renderRequested && !controlsChanged) return;
+        this.renderRequested = false;
+        const result = measureRender('algebraic-3d-board', () => {
+            this.renderer.render(this.scene, this.camera);
+        }, {
+            visibleSites: this.pointCoords.length,
+            visibleEdges: this.edgeCount
+        });
+        if (result.simplify && !this.performanceOptions.lowerDetail) {
+            this.configurePerformance({ lowerDetail: true, showLabels: false });
+        }
     }
 }

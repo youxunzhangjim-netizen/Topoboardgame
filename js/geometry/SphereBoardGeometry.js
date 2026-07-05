@@ -167,3 +167,29 @@ export function createBuckyballSphereFacePolygons({
     return faces.map((face) =>
         face.map((key) => points.get(key).clone().multiplyScalar(scale)));
 }
+
+export function createBuckyballSphereFaceGraph() {
+    const { faces } = truncatedIcosahedronData();
+    const edgeToFaces = new Map();
+    const adjacency = Array.from({ length: faces.length }, () => new Set());
+    const edgeKey = (a, b) => a < b ? `${a}|${b}` : `${b}|${a}`;
+
+    for (let faceIndex = 0; faceIndex < faces.length; faceIndex += 1) {
+        const face = faces[faceIndex];
+        for (let index = 0; index < face.length; index += 1) {
+            const key = edgeKey(face[index], face[(index + 1) % face.length]);
+            const previousFace = edgeToFaces.get(key);
+            if (Number.isInteger(previousFace)) {
+                adjacency[faceIndex].add(previousFace);
+                adjacency[previousFace].add(faceIndex);
+            } else {
+                edgeToFaces.set(key, faceIndex);
+            }
+        }
+    }
+
+    return {
+        faceCount: faces.length,
+        adjacency: adjacency.map((neighbors) => [...neighbors].sort((a, b) => a - b))
+    };
+}

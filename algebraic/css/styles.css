@@ -658,6 +658,34 @@ h2 {
     margin-top: 7px;
 }
 
+.performance-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.performance-toggle {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+}
+
+.performance-toggle input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+@media (max-width: 620px) {
+    .performance-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
 .rules-intro-panel {
     position: fixed;
     inset: 0;
