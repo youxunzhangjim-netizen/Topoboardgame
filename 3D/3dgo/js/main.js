@@ -1105,7 +1105,7 @@ class Go3DRenderer {
                         neighbor,
                         size,
                         HONEYCOMB_LATTICE,
-                        0.052,
+                        0.085,
                         8
                     ));
                 }
@@ -1137,7 +1137,7 @@ class Go3DRenderer {
         if (logic.lattice !== SQUARE_LATTICE) {
             this.addNodePoints(
                 pointPositions,
-                size <= 9 ? 0.055 : size <= 13 ? 0.044 : 0.034,
+                size <= 9 ? 0.078 : size <= 13 ? 0.056 : 0.042,
                 { color: 0x4b2f1b, opacity: 0.96, depthTest: true, renderOrder: 7 }
             );
         }
@@ -1888,6 +1888,13 @@ class Go3DRenderer {
                 const u = Number(coord[0]) || 0;
                 const v = Number(coord[1]) || 0;
                 const sub = Number(coord[2]) || 0;
+                if (surfaceKind === 'torus') {
+                    return {
+                        u: ((u + sub / 3) / Math.max(1, width)) * TWO_PI,
+                        v: ((v + sub / 3) / Math.max(1, height)) * TWO_PI,
+                        band: (v + sub / 3) / Math.max(1, height)
+                    };
+                }
                 const visualU = u + v / 2 + sub / 2;
                 const visualV = 1.5 * v + sub * 0.5;
                 return {
@@ -2195,7 +2202,7 @@ class Go3DRenderer {
             points.push(this.torusPointFromUV({
                 u: start.u + du * t,
                 v: start.v + dv * t
-            }, lift));
+            }, lift, lattice === HONEYCOMB_LATTICE ? 'honeycomb' : 'standard'));
         }
         return points;
     }
