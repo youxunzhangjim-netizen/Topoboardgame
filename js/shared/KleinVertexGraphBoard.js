@@ -3,17 +3,27 @@ import { buildAdjacencyMap, undirectedEdgeKey } from './VertexGraphBoardValidato
 const mod = (value, modulus) => ((value % modulus) + modulus) % modulus;
 const siteId = (x, y) => `k:${x}:${y}`;
 
-function normalize(x, y, width, height) {
-    const crossings = Math.floor(y / height);
-    const ny = mod(y, height);
-    let nx = mod(x, width);
-    if (mod(crossings, 2) === 1) nx = width - 1 - nx;
-    return [nx, ny];
+export function normalizeKleinBottleSquare(coord, width, height) {
+    const W = Math.floor(Number(width));
+    const H = Math.floor(Number(height));
+    if (!Number.isInteger(W) || W < 3 || !Number.isInteger(H) || H < 3) {
+        throw new RangeError('Klein bottle square vertex boards require width and height >= 3.');
+    }
+    const sourceX = Math.trunc(Number(coord?.x) || 0);
+    const sourceY = Math.trunc(Number(coord?.y) || 0);
+    const crossings = Math.floor(sourceY / H);
+    const y = mod(sourceY, H);
+    let x = mod(sourceX, W);
+    if (mod(crossings, 2) === 1) x = W - 1 - x;
+    return { x, y };
 }
 
 export function createKleinBottleVertexGraph(width, height) {
-    const W = Math.max(3, Math.floor(Number(width) || 3));
-    const H = Math.max(3, Math.floor(Number(height) || 3));
+    const W = Math.floor(Number(width));
+    const H = Math.floor(Number(height));
+    if (!Number.isInteger(W) || W < 3 || !Number.isInteger(H) || H < 3) {
+        throw new RangeError('Klein bottle square vertex boards require width and height >= 3.');
+    }
     const sites = [];
     for (let y = 0; y < H; y += 1) {
         for (let x = 0; x < W; x += 1) {
@@ -35,9 +45,9 @@ export function createKleinBottleVertexGraph(width, height) {
     };
     for (const site of sites) {
         const { x, y } = site.coord;
-        for (const [dx, dy] of [[1, 0], [0, 1]]) {
-            const [nx, ny] = normalize(x + dx, y + dy, W, H);
-            add(site.id, siteId(nx, ny));
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const neighbor = normalizeKleinBottleSquare({ x: x + dx, y: y + dy }, W, H);
+            add(site.id, siteId(neighbor.x, neighbor.y));
         }
     }
     const board = {
@@ -49,10 +59,17 @@ export function createKleinBottleVertexGraph(width, height) {
         hitRadius: 0.42,
         metadata: {
             boardType: 'vertex_graph',
+            label: 'Klein Bottle Square Vertex Go',
             space: 'Klein Bottle',
-            lattice: 'Square Vertex Graph',
-            boundary: 'Periodic/Twisted Gluing',
-            zh: { space: 'Klein 瓶', lattice: '方形頂點圖', boundary: '週期／扭轉黏合' }
+            lattice: 'Square Vertex Lattice',
+            boundary: 'periodic x, flipped y gluing',
+            boundaryGluing: 'periodic x, flipped y gluing',
+            zh: {
+                label: 'Klein 瓶方格頂點棋盤',
+                space: 'Klein 瓶',
+                lattice: '方格頂點晶格',
+                boundary: 'x 方向週期黏合，y 方向反向黏合'
+            }
         }
     };
     board.adjacency = buildAdjacencyMap(sites, edges);

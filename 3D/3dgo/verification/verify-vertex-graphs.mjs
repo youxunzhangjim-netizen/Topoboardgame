@@ -3,7 +3,10 @@ import {
     createHoneycombCylinderGraph,
     createHoneycombTorusGraph
 } from '../../../js/shared/HoneycombGraphBoards.js';
-import { createKleinBottleVertexGraph } from '../../../js/shared/KleinVertexGraphBoard.js';
+import {
+    createKleinBottleVertexGraph,
+    normalizeKleinBottleSquare
+} from '../../../js/shared/KleinVertexGraphBoard.js';
 import {
     assertBoardValid,
     validateVertexGraphBoard
@@ -120,6 +123,11 @@ assert.ok(cylinderGame.playableCoords().every((coord) => {
     return degree >= 2 && degree <= 3;
 }));
 
+assert.deepEqual(normalizeKleinBottleSquare({ x: -1, y: 2 }, 9, 7), { x: 8, y: 2 });
+assert.deepEqual(normalizeKleinBottleSquare({ x: 2, y: -1 }, 9, 7), { x: 6, y: 6 });
+assert.deepEqual(normalizeKleinBottleSquare({ x: 2, y: 7 }, 9, 7), { x: 6, y: 0 });
+assert.throws(() => createKleinBottleVertexGraph(2, 7), /width and height >= 3/);
+
 const kleinGraph = createKleinBottleVertexGraph(9, 7);
 const kleinResult = validateVertexGraphBoard(kleinGraph, {
     expectedSiteCount: 63,
@@ -128,6 +136,13 @@ const kleinResult = validateVertexGraphBoard(kleinGraph, {
     connected: true
 });
 assert.equal(kleinResult.ok, true, kleinResult.errors.join('\n'));
+assert.equal(kleinGraph.playableKind, 'vertex');
+assert.equal(kleinGraph.metadata.lattice, 'Square Vertex Lattice');
+assert.deepEqual(
+    new Set(kleinGraph.neighbors('k:2:6')),
+    new Set(['k:1:6', 'k:3:6', 'k:2:5', 'k:6:0']),
+    'Top seam must use flipped-y Klein gluing.'
+);
 
 const kleinGame = new GoGameLogic({
     width: 9,
