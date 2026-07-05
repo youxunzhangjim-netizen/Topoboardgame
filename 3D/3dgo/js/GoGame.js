@@ -30,6 +30,13 @@ import { SeededRandom } from '../../../js/probability/SeededRandom.js';
 import { honeycombNeighbors } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeNeighbors } from '../../../js/shared/KagomeLattice.js';
 import { createBuckyballSphereGraph } from '../../../js/geometry/SphereBoardGeometry.js';
+import {
+    createHoneycombCylinderGraph,
+    createHoneycombTorusGraph
+} from '../../../js/shared/HoneycombGraphBoards.js';
+import { createKleinBottleVertexGraph } from '../../../js/shared/KleinVertexGraphBoard.js';
+import { validateVertexGraphBoard } from '../../../js/shared/VertexGraphBoardValidator.js';
+import { getGraphNeighbors } from '../../../js/shared/VertexPlayableBoardAdapter.js';
 
 export const R3_STANDARD_TOPOLOGY = 'r3';
 export const T3_PBC_TOPOLOGY = 't3';
@@ -189,6 +196,35 @@ function positiveMod(value, modulus) {
     return ((value % modulus) + modulus) % modulus;
 }
 
+function createGoVertexGraph({ topology, lattice, width, height }) {
+    if (lattice === HONEYCOMB_LATTICE && topology === 't2') {
+        return createHoneycombTorusGraph(width, height);
+    }
+    if (lattice === HONEYCOMB_LATTICE && topology === CYLINDER_GO_TOPOLOGY) {
+        return createHoneycombCylinderGraph(width, height);
+    }
+    if (topology === KLEIN_BOTTLE_TOPOLOGY) {
+        return createKleinBottleVertexGraph(width, height);
+    }
+    return null;
+}
+
+function validateGoVertexGraph(graph, topology, lattice, width, height) {
+    if (!graph || typeof console === 'undefined') return;
+    const closedHoneycomb = lattice === HONEYCOMB_LATTICE && topology === 't2';
+    const validation = validateVertexGraphBoard(graph, {
+        expectedSiteCount: graph.sites.length,
+        expectedEdgeCount: closedHoneycomb ? 3 * width * height : undefined,
+        expectedDegree: closedHoneycomb || topology === KLEIN_BOTTLE_TOPOLOGY
+            ? (closedHoneycomb ? 3 : 4)
+            : undefined,
+        allowedDegreeRange: topology === CYLINDER_GO_TOPOLOGY ? [2, 3] : undefined,
+        bipartite: lattice === HONEYCOMB_LATTICE,
+        connected: true
+    });
+    if (!validation.ok) console.error('[Go vertex graph]', validation.errors, validation.stats);
+}
+
 function rp3StepCoord3D(coord, direction, size) {
     const next = coord.map((value, axis) => value + (direction[axis] || 0));
     const outsideAxes = next
@@ -248,16 +284,21 @@ export class GoGameLogic {
         this.buckyballGraph = this.topology === SPHERE_GO_TOPOLOGY && this.lattice === BUCKYBALL_LATTICE
             ? createBuckyballSphereGraph()
             : null;
+        this.vertexGraph = createGoVertexGraph(this);
+        validateGoVertexGraph(this.vertexGraph, this.topology, this.lattice, this.width, this.height);
         this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (randomBoundarySeed || randomSeed()) : '';
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
             ? new Map(Array.isArray(randomBoundaryMap) ? randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
             : new Map();
-        this.total = this.dimension === 3
-            ? this.size ** 3
-            : this.buckyballGraph
-                ? this.buckyballGraph.vertexCount
-                : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
+        this.total = this.vertexGraph
+            ? this.vertexGraph.sites.length
+            : this.dimension === 3
+                ? this.size ** 3
+                : this.buckyballGraph
+                    ? this.buckyballGraph.vertexCount
+                    : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
         this.board = new Uint8Array(this.total);
+        this.siteState = new Map();
         this.pauliLabels = Array(this.total).fill('I');
         this.cliffordGoEnabled = false;
         this.currentPlayer = 'black';
@@ -278,8 +319,34 @@ export class GoGameLogic {
         return coord.join(',');
     }
 
+    siteIdFromCoord(coord) {
+        return this.vertexGraph?.siteByGameCoord.get(this.coordKey(coord))?.id || '';
+    }
+
+    coordFromSiteId(siteId) {
+        const coord = this.vertexGraph?.siteById.get(String(siteId))?.gameCoord;
+        return coord ? [...coord] : null;
+    }
+
+    neighborsFromSiteId(siteId) {
+        return getGraphNeighbors(this.vertexGraph, siteId);
+    }
+
+    syncSiteState() {
+        if (!this.vertexGraph) return;
+        this.siteState = new Map();
+        for (let index = 0; index < this.vertexGraph.sites.length; index += 1) {
+            const value = this.board[index];
+            if (value !== COLORS.empty) this.siteState.set(this.vertexGraph.sites[index].id, value);
+        }
+    }
+
     indexFromCoord(coord) {
         if (!this.containsCoord(coord)) return -1;
+        if (this.vertexGraph) {
+            const site = this.vertexGraph.siteByGameCoord.get(coord.join(','));
+            return site ? this.vertexGraph.indexById.get(site.id) ?? -1 : -1;
+        }
         if (this.dimension === 3) {
             return coord[0] + this.size * (coord[1] + this.size * coord[2]);
         }
@@ -294,6 +361,7 @@ export class GoGameLogic {
 
     coordFromIndex(index) {
         const value = Number(index);
+        if (this.vertexGraph) return [...(this.vertexGraph.sites[value]?.gameCoord || [])];
         if (this.dimension === 3) {
             const z = Math.floor(value / (this.size * this.size));
             const rem = value - z * this.size * this.size;
@@ -313,6 +381,9 @@ export class GoGameLogic {
     }
 
     containsCoord(coord) {
+        if (this.vertexGraph) {
+            return Array.isArray(coord) && this.vertexGraph.siteByGameCoord.has(coord.join(','));
+        }
         if (this.buckyballGraph) {
             return Array.isArray(coord)
                 && coord.length === 2
@@ -345,6 +416,7 @@ export class GoGameLogic {
 
     playableCoords() {
         const coords = [];
+        if (this.vertexGraph) return this.vertexGraph.sites.map((site) => [...site.gameCoord]);
         if (this.dimension === 3) {
             for (let z = 0; z < this.size; z++) {
                 for (let y = 0; y < this.size; y++) {
@@ -434,6 +506,14 @@ export class GoGameLogic {
 
     neighborsFromCoord(coord) {
         if (!this.containsCoord(coord)) return [];
+        if (this.vertexGraph) {
+            const site = this.vertexGraph.siteByGameCoord.get(coord.join(','));
+            if (!site) return [];
+            return this.neighborsFromSiteId(site.id)
+                .map((id) => this.vertexGraph.siteById.get(id)?.gameCoord)
+                .filter(Boolean)
+                .map((gameCoord) => [...gameCoord]);
+        }
         if (this.buckyballGraph) {
             return this.buckyballGraph.adjacency[coord[0]].map((index) => [index, 0]);
         }
@@ -474,7 +554,14 @@ export class GoGameLogic {
     }
 
     serializeBoard(board = this.board) {
+        if (board === this.board) this.syncSiteState();
         return Array.from(board).join('');
+    }
+
+    tryPlaySite(siteId, color = this.currentPlayer, options = {}) {
+        const coord = this.coordFromSiteId(siteId);
+        if (!coord) return { ok: false, error: 'Unknown playable site.' };
+        return this.tryPlay(coord, color, options);
     }
 
     getGroupAndLiberties(board, startIndex) {
@@ -548,6 +635,7 @@ export class GoGameLogic {
         }
 
         this.board = nextBoard;
+        this.syncSiteState();
         this.pauliLabels = nextLabels;
         this.captures[color] += captured;
         this.passCount = 0;
@@ -785,6 +873,7 @@ export class GoGameLogic {
     }
 
     exportState() {
+        this.syncSiteState();
         return {
             version: 1,
             size: this.size,
@@ -797,6 +886,7 @@ export class GoGameLogic {
             randomBoundarySeed: this.randomBoundarySeed,
             randomBoundaryMap: [...this.randomBoundaryMap.entries()],
             board: Array.from(this.board),
+            siteState: this.vertexGraph ? [...this.siteState.entries()] : undefined,
             pauliLabels: [...this.pauliLabels],
             cliffordGoEnabled: this.cliffordGoEnabled,
             currentPlayer: this.currentPlayer,
@@ -822,14 +912,24 @@ export class GoGameLogic {
         this.topology = state.topology || 'open2d';
         this.lattice = normalizeLattice(state.lattice, this.dimension);
         this.komi = Number.isFinite(Number(state.komi)) ? Number(state.komi) : 7.5;
+        this.buckyballGraph = this.topology === SPHERE_GO_TOPOLOGY && this.lattice === BUCKYBALL_LATTICE
+            ? createBuckyballSphereGraph()
+            : null;
+        this.vertexGraph = createGoVertexGraph(this);
+        validateGoVertexGraph(this.vertexGraph, this.topology, this.lattice, this.width, this.height);
         this.randomBoundarySeed = this.topology === R3_RANDOM_TOPOLOGY ? (state.randomBoundarySeed || randomSeed()) : '';
         this.randomBoundaryMap = this.topology === R3_RANDOM_TOPOLOGY
             ? new Map(Array.isArray(state.randomBoundaryMap) ? state.randomBoundaryMap : createRandomBoundaryMap3D(this.size, this.randomBoundarySeed))
             : new Map();
-        this.total = this.dimension === 3
-            ? this.size ** 3
-            : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
+        this.total = this.vertexGraph
+            ? this.vertexGraph.sites.length
+            : this.dimension === 3
+                ? this.size ** 3
+                : this.buckyballGraph
+                    ? this.buckyballGraph.vertexCount
+                    : this.width * this.height + (this.topology === SPHERE_GO_TOPOLOGY ? 2 : 0);
         this.board = new Uint8Array(this.total);
+        this.siteState = new Map();
         this.pauliLabels = Array(this.total).fill('I');
         if (Array.isArray(state.board)) {
             for (let i = 0; i < Math.min(this.board.length, state.board.length); i++) {
@@ -837,6 +937,16 @@ export class GoGameLogic {
                 this.board[i] = value === COLORS.white ? COLORS.white : value === COLORS.black ? COLORS.black : COLORS.empty;
             }
         }
+        if (this.vertexGraph && Array.isArray(state.siteState)) {
+            this.board.fill(COLORS.empty);
+            for (const [siteId, rawValue] of state.siteState) {
+                const index = this.vertexGraph.indexById.get(String(siteId));
+                if (index === undefined) continue;
+                const value = Number(rawValue);
+                this.board[index] = value === COLORS.white ? COLORS.white : value === COLORS.black ? COLORS.black : COLORS.empty;
+            }
+        }
+        this.syncSiteState();
         if (Array.isArray(state.pauliLabels)) {
             for (let i = 0; i < Math.min(this.pauliLabels.length, state.pauliLabels.length); i++) {
                 this.pauliLabels[i] = normalizePauliLabel(state.pauliLabels[i]);

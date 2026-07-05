@@ -52,6 +52,7 @@ import {
     normalizePieceTimeConfig
 } from '../../../js/time/PieceAgeClock.js';
 import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
+import { hitTestPlayableSite } from '../../../js/shared/VertexPlayableBoardAdapter.js';
 
 const PUBLIC_GAME_URL = 'https://youxunzhangjim-netizen.github.io/Topoboardgame/3D/3dgo/';
 const STORAGE_PREFIX = '3dgo:room:';
@@ -1081,7 +1082,22 @@ class Go3DRenderer {
         const linePositions = [];
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
-            this.appendHoneycombSurfaceGrid(linePositions, size, size, 'torus', 0.16);
+            for (const coord of logic.playableCoords()) {
+                const fromKey = logic.coordKey(coord);
+                for (const neighbor of logic.neighborsFromCoord(coord)) {
+                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.torusSurfaceEdgePoints(
+                        coord,
+                        neighbor,
+                        size,
+                        HONEYCOMB_LATTICE,
+                        0.052,
+                        8
+                    ));
+                }
+            }
         } else {
             for (const coord of logic.playableCoords()) {
                 const fromKey = logic.coordKey(coord);
@@ -1146,7 +1162,23 @@ class Go3DRenderer {
         const linePositions = [];
         const drawn = new Set();
         if (logic.lattice === HONEYCOMB_LATTICE) {
-            this.appendHoneycombSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
+            for (const coord of logic.playableCoords()) {
+                const fromKey = logic.coordKey(coord);
+                for (const neighbor of logic.neighborsFromCoord(coord)) {
+                    const edgeKey = [fromKey, logic.coordKey(neighbor)].sort().join('|');
+                    if (drawn.has(edgeKey)) continue;
+                    drawn.add(edgeKey);
+                    this.appendPolyline(linePositions, this.cylinderSurfaceEdgePoints(
+                        coord,
+                        neighbor,
+                        width,
+                        height,
+                        HONEYCOMB_LATTICE,
+                        0.04,
+                        8
+                    ));
+                }
+            }
         } else if (logic.lattice === TRIANGULAR_LATTICE) {
             this.appendTriangularSurfaceGrid(linePositions, width, height, 'cylinder', 0.04);
         } else {
@@ -1480,7 +1512,8 @@ class Go3DRenderer {
         const targetY = event.clientY - rect.top;
         const maxPixels = logic?.topology === KLEIN_BOTTLE_TOPOLOGY || logic?.topology === MOBIUS_GO_TOPOLOGY ? 24 : 18;
         const projected = new THREE.Vector3();
-        let best = null;
+        const screenSites = [];
+        const coordBySiteId = new Map();
         for (let index = 0; index < this.pointPositions.length; index += 1) {
             const coord = this.pointCoords[index];
             const pose = logic.topology === 't2'
@@ -1505,16 +1538,17 @@ class Go3DRenderer {
             if (projected.z < -1 || projected.z > 1) continue;
             const x = (projected.x * 0.5 + 0.5) * rect.width;
             const y = (-projected.y * 0.5 + 0.5) * rect.height;
-            const screenDistance = Math.hypot(x - targetX, y - targetY);
-            if (screenDistance > maxPixels) continue;
-            const cameraDistance = this.camera.position.distanceTo(this.pointPositions[index]);
-            if (!best
-                || screenDistance < best.screenDistance - 0.6
-                || (Math.abs(screenDistance - best.screenDistance) <= 0.6 && cameraDistance < best.cameraDistance)) {
-                best = { index, screenDistance, cameraDistance };
-            }
+            const siteId = logic.siteIdFromCoord(coord) || `coord:${coord.join(',')}`;
+            screenSites.push({ id: siteId, coord, draw: { x, y } });
+            coordBySiteId.set(siteId, coord);
         }
-        return best ? this.pointCoords[best.index] || null : null;
+        const hit = hitTestPlayableSite({
+            playableKind: 'vertex',
+            sites: screenSites,
+            siteById: new Map(screenSites.map((site) => [site.id, site])),
+            hitRadius: maxPixels
+        }, targetX, targetY, maxPixels);
+        return hit ? coordBySiteId.get(hit.siteId) || null : null;
     }
 
     pickHitIsCameraFacing(hit) {
@@ -1778,6 +1812,17 @@ class Go3DRenderer {
 
     honeycombSurfaceCoordPoint(coord, width, height, surfaceKind = 'flat') {
         if (surfaceKind !== 'cylinder' && surfaceKind !== 'torus') return null;
+        const graphSite = this.app?.logic?.vertexGraph?.siteByGameCoord?.get(coord.join(','));
+        if (graphSite?.draw) {
+            return {
+                point: graphSite.draw,
+                originX: 0,
+                originY: 0,
+                periodX: Math.max(1, width * 3),
+                periodY: Math.max(1, height * Math.sqrt(3)),
+                rawHeight: Math.max(1, height * Math.sqrt(3))
+            };
+        }
         const point = honeycombPoint(coord, width, height);
         if (!point) return null;
         const metrics = this.honeycombSurfaceMetrics(width, height, surfaceKind);
@@ -1806,6 +1851,18 @@ class Go3DRenderer {
             };
         }
         if (lattice === HONEYCOMB_LATTICE) {
+            if (coord.length >= 3) {
+                const u = Number(coord[0]) || 0;
+                const v = Number(coord[1]) || 0;
+                const sub = Number(coord[2]) || 0;
+                const visualU = u + v / 2 + sub / 2;
+                const visualV = 1.5 * v + sub * 0.5;
+                return {
+                    u: (visualU / Math.max(1, width)) * TWO_PI,
+                    v: (visualV / Math.max(1, 1.5 * height)) * TWO_PI,
+                    band: visualV / Math.max(1, 1.5 * (height - 1) + 0.5)
+                };
+            }
             const surfacePoint = this.honeycombSurfaceCoordPoint(coord, width, height, surfaceKind);
             if (surfacePoint) {
                 const rawX = ((surfacePoint.point.x - surfacePoint.originX) % surfacePoint.periodX + surfacePoint.periodX) % surfacePoint.periodX;
@@ -2464,7 +2521,9 @@ class Go3DApp {
                 : (this.logic?.lattice || this.latticeSelect.value));
         return ({
             [SQUARE_LATTICE]: 'Square',
-            [HONEYCOMB_LATTICE]: 'Honeycomb',
+            [HONEYCOMB_LATTICE]: currentLanguage === 'zh'
+                ? '蜂巢圖晶格（3 鄰接）'
+                : 'Honeycomb Graph (3-neighbor)',
             [TRIANGULAR_LATTICE]: 'Triangular',
             [KAGOME_LATTICE]: 'Kagome',
             [SIMPLE_CUBIC_LATTICE]: 'Simple Cubic',
@@ -2838,9 +2897,13 @@ class Go3DApp {
             return;
         }
         const placedIndex = this.logic.indexFromCoord(coord);
-        const result = this.logic.tryPlay(coord, this.logic.currentPlayer, {
+        const playOptions = {
             virtualEmptyIndexes: this.isSpaceTimeIndexVisible?.(placedIndex, coord) === false ? [placedIndex] : []
-        });
+        };
+        const siteId = this.logic.siteIdFromCoord(coord);
+        const result = siteId
+            ? this.logic.tryPlaySite(siteId, this.logic.currentPlayer, playOptions)
+            : this.logic.tryPlay(coord, this.logic.currentPlayer, playOptions);
         if (!result.ok) {
             this.setStatus(result.error);
             return;

@@ -1510,7 +1510,7 @@ function canvasPoint(event) {
 
 function nearestSite(event) {
     const point = canvasPoint(event);
-    const frontOnly = selectedTopology().startsWith('trefoil') || isBuckyballSphere();
+    const frontOnly = isBuckyballSphere();
     const depths = projectedSurfaceCells.map((cell) => cell.depth);
     const maxDepth = depths.length ? Math.max(...depths) : 0;
     const minDepth = depths.length ? Math.min(...depths) : 0;

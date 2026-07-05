@@ -40,7 +40,7 @@ const triangular = new GoGameLogic({
 });
 assert.equal(triangular.neighborsFromCoord([0, 0]).length, 6, 'Triangular T2 has six wrapped neighbors.');
 assert.ok(
-    triangular.neighborsFromCoord([0, 0]).some((coord) => coordKey(coord) === '1,18'),
+    triangular.neighborsFromCoord([0, 0]).some((coord) => coordKey(coord) === '18,18'),
     'Triangular diagonal edges wrap across the torus seam.'
 );
 
@@ -50,9 +50,10 @@ const honeycomb = new GoGameLogic({
     topology: 't2',
     lattice: HONEYCOMB_LATTICE
 });
-assert.equal(honeycomb.neighborsFromCoord([0, 0]).length, 3, 'Honeycomb T2 has three wrapped neighbors.');
+assert.equal(honeycomb.total, 2 * 19 * 19, 'Honeycomb T2 uses two vertices per unit cell.');
+assert.equal(honeycomb.neighborsFromCoord([0, 0, 0]).length, 3, 'Honeycomb T2 has three wrapped neighbors.');
 assert.ok(
-    honeycomb.neighborsFromCoord([0, 0]).some((coord) => coordKey(coord) === '18,0'),
+    honeycomb.neighborsFromCoord([0, 0, 0]).some((coord) => coordKey(coord) === '18,0,1'),
     'Honeycomb horizontal edges cover the periodic torus seam.'
 );
 
