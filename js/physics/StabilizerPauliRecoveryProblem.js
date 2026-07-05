@@ -1,5 +1,4 @@
 import { SeededRandom } from '../probability/SeededRandom.js';
-import { PhysicalCliffordReversiGame } from '../localgames/PhysicalCliffordReversi.js';
 
 export const STABILIZER_PAULI_RECOVERY_ID = 'stabilizer_pauli_recovery';
 
@@ -16,6 +15,14 @@ const DEFAULT_CONFIG = Object.freeze({
     enableNonCliffordPhaseKick: false,
     maxTurns: 100
 });
+let registeredRecoveryGameFactory = null;
+
+export function registerStabilizerRecoveryGameFactory(factory) {
+    if (factory != null && typeof factory !== 'function') {
+        throw new TypeError('Stabilizer recovery game factory must be a function.');
+    }
+    registeredRecoveryGameFactory = factory;
+}
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -233,8 +240,13 @@ export async function runStabilizerRecoveryExperiment({
     errorDensity = 0.08,
     measurementErrorRate = 0.02,
     policy = 'measure_syndrome',
-    seed = 'stabilizer-recovery-experiment'
+    seed = 'stabilizer-recovery-experiment',
+    gameFactory = null
 } = {}) {
+    const createGame = gameFactory || registeredRecoveryGameFactory;
+    if (typeof createGame !== 'function') {
+        throw new Error('Physical Clifford recovery game factory is not registered.');
+    }
     const trials = [];
     for (const topologySpec of topologyList) {
         const topology = typeof topologySpec === 'string'
@@ -243,7 +255,7 @@ export async function runStabilizerRecoveryExperiment({
         for (let trial = 0; trial < numTrials; trial++) {
             const trialSeed = `${seed}:${JSON.stringify(topologySpec)}:${trial}`;
             const rng = new SeededRandom(hashSeed(trialSeed));
-            const game = new PhysicalCliffordReversiGame({
+            const game = createGame({
                 topology,
                 physicalInitialState: 'sparse_pauli_errors',
                 sparseErrorDensity: errorDensity,

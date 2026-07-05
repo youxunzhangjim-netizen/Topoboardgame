@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
+import { classicKleinBottlePoint } from './KleinBottleMath.js';
 
 export const KLEIN_SURFACE_MAJOR_RADIUS = 3.4;
 export const KLEIN_SURFACE_WIDTH_SCALE = 2.0;
@@ -9,7 +10,6 @@ const TWO_PI = Math.PI * 2;
 const KLEIN_U_MAX = TWO_PI;
 const KLEIN_V_MIN = 0;
 const KLEIN_V_MAX = TWO_PI;
-const KLEIN_DIXON_SCALE = 0.2;
 const KLEIN_VISUAL_X_SCALE = 1.24;
 const KLEIN_VISUAL_Y_SCALE = 0.76;
 const KLEIN_VISUAL_Z_SCALE = 1.24;
@@ -17,11 +17,6 @@ const NORMAL_EPSILON = 0.0008;
 
 function positiveModulo(value, modulus) {
     return ((value % modulus) + modulus) % modulus;
-}
-
-function normalizeKleinU(u) {
-    if (Math.abs(u - KLEIN_U_MAX) < NORMAL_EPSILON * 2) return KLEIN_U_MAX;
-    return positiveModulo(u, KLEIN_U_MAX);
 }
 
 export function kleinParametersForCoord(coord, width, height) {
@@ -38,30 +33,12 @@ function kleinSeamV(v) {
 }
 
 export function kleinBottleBasePoint(u, v) {
-    let parameterU = normalizeKleinU(u);
-    let parameterV = positiveModulo(v, TWO_PI);
-    if (Math.abs(parameterU - KLEIN_U_MAX) < NORMAL_EPSILON * 2) {
-        parameterU = 0;
-        parameterV = kleinSeamV(parameterV);
-    }
-    const radial = 4 * (1 - Math.cos(parameterU) / 2);
-    let rawX;
-    let rawY;
-    if (parameterU < Math.PI) {
-        rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU)) +
-            radial * Math.cos(parameterU) * Math.cos(parameterV);
-        rawY = 16 * Math.sin(parameterU) + radial * Math.sin(parameterU) * Math.cos(parameterV);
-    } else {
-        rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU)) +
-            radial * Math.cos(parameterV + Math.PI);
-        rawY = 16 * Math.sin(parameterU);
-    }
-    const rawZ = radial * Math.sin(parameterV);
-    return new THREE.Vector3(
-        rawX * KLEIN_DIXON_SCALE * KLEIN_VISUAL_X_SCALE,
-        rawY * KLEIN_DIXON_SCALE * KLEIN_VISUAL_Y_SCALE,
-        rawZ * KLEIN_DIXON_SCALE * KLEIN_VISUAL_Z_SCALE
-    );
+    const point = classicKleinBottlePoint(u, v, {
+        xScale: KLEIN_VISUAL_X_SCALE,
+        yScale: KLEIN_VISUAL_Y_SCALE,
+        zScale: KLEIN_VISUAL_Z_SCALE
+    });
+    return new THREE.Vector3(point.x, point.y, point.z);
 }
 
 export function kleinBottleBasis(u, v) {
@@ -186,9 +163,9 @@ export function createKleinBottleGridLines({
     for (let j = 0; j < safeVSteps; j += 1) {
         const v = TWO_PI * j / safeVSteps;
         const points = [];
-        // Avoid drawing the final identified seam point as one straight segment:
-        // the classic Klein bottle glues u=0 to u=2PI with a flipped v value.
-        addParameterLine(points, 0, v, KLEIN_U_MAX - NORMAL_EPSILON * 8, v, lift, safeUSegments);
+        // The endpoint is mapped through the flipped Klein seam by the shared
+        // parameter normalizer, so the visible line reaches the neck.
+        addParameterLine(points, 0, v, KLEIN_U_MAX, v, lift, safeUSegments);
         lines.push(points);
     }
 

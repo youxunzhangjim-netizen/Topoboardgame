@@ -16,6 +16,7 @@ import {
 } from '../life-data.js';
 import { currentLifeLanguage, localizeStaticText, syncLifeLinks, t } from './i18n.js';
 import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManager.js';
+import { classicKleinBottlePoint } from '../../js/geometry/KleinBottleMath.js';
 
 const COLORS = { 1: '#38bdf8', 2: '#ef4444', 3: '#22c55e', 4: '#f5b647' };
 const SQRT3 = Math.sqrt(3);
@@ -340,31 +341,12 @@ export function runLifeRuleDesignerSelfTest() {
   }
   return { ok: true, cases: cases.length };
 }
-function wrapAngle(angle) {
-  return ((angle % TAU) + TAU) % TAU;
-}
 function kleinBottleSurfacePoint(u, v) {
-  const parameterU = wrapAngle(u);
-  const parameterV = wrapAngle(v);
-  const radial = 4 * (1 - Math.cos(parameterU) / 2);
-  let rawX;
-  let rawY;
-  if (parameterU < Math.PI) {
-    rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU))
-      + radial * Math.cos(parameterU) * Math.cos(parameterV);
-    rawY = 16 * Math.sin(parameterU)
-      + radial * Math.sin(parameterU) * Math.cos(parameterV);
-  } else {
-    rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU))
-      + radial * Math.cos(parameterV + Math.PI);
-    rawY = 16 * Math.sin(parameterU);
-  }
-  const rawZ = radial * Math.sin(parameterV);
-  return {
-    x: rawX * 0.2 * 1.24,
-    y: rawY * 0.2 * 0.76,
-    z: rawZ * 0.2 * 1.24
-  };
+  return classicKleinBottlePoint(u, v, {
+    xScale: 1.12,
+    yScale: 0.72,
+    zScale: 1.12
+  });
 }
 function formatNumber(value, digits = 3) {
   if (value == null || Number.isNaN(Number(value))) return '—';

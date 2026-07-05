@@ -21,6 +21,11 @@ import {
 } from './LabExperimentRegistry.js';
 import { seededRandom } from './LabBatchCore.js';
 import { endTimer, recordMetric, startTimer } from '../../js/shared/PerformanceAudit.js';
+import {
+    cancelRunningLab,
+    resumeLab,
+    runLabStepSafely
+} from '../../js/labs/SafeLabRunner.js';
 
 function cloneValue(value) {
     if (Array.isArray(value)) return value.map(cloneValue);
@@ -498,27 +503,33 @@ export async function runSingleLabExperiment(run) {
 
 export async function runBatchSequential(batchConfig, callbacks = {}) {
     const batchTimer = startTimer(`lab-batch:${batchConfig?.batchId || 'batch'}`);
+    resumeLab();
     const results = [];
     const failedRuns = [];
     let cancelled = false;
     const controller = {
         cancel() {
             cancelled = true;
+            cancelRunningLab();
         }
     };
     callbacks.onStart?.({ totalRuns: batchConfig.runMatrix.length, controller });
     for (let index = 0; index < batchConfig.runMatrix.length; index += 1) {
         if (cancelled) break;
         const run = batchConfig.runMatrix[index];
-        const runTimer = startTimer(`lab-run:${run.runId}`);
         callbacks.onProgress?.({ index, totalRuns: batchConfig.runMatrix.length, run, phase: 'running' });
-        try {
-            const result = await runSingleLabExperiment(run);
-            endTimer(runTimer, { category: 'lab step', name: run.runId });
+        const safeResult = await runLabStepSafely(null, () => runSingleLabExperiment(run), {
+            ...(batchConfig.safetyOptions || {}),
+            labId: run.runId,
+            onWarning: (warning) => callbacks.onSafetyWarning?.({ index, run, warning })
+        });
+        if (safeResult.value) {
+            const result = safeResult.value;
             results.push(result);
             callbacks.onRunComplete?.({ index, run, result });
-        } catch (error) {
-            endTimer(runTimer, { category: 'lab step', name: run.runId });
+        }
+        if (safeResult.failed) {
+            const error = safeResult.error;
             failedRuns.push({
                 runId: run.runId,
                 experimentConfig: run.experimentConfig,
@@ -528,6 +539,9 @@ export async function runBatchSequential(batchConfig, callbacks = {}) {
                 metadata: { stack: error?.stack || '' }
             });
             callbacks.onRunFailed?.({ index, run, error });
+        } else if (safeResult.paused) {
+            cancelled = true;
+            callbacks.onSafetyPause?.({ index, run, result: safeResult.value, messages: safeResult.messages });
         }
         await new Promise((resolve) => setTimeout(resolve, 0));
     }

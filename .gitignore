@@ -27,6 +27,7 @@ engines/
 # Topoboardgame generated local/research outputs
 npm-debug.log*
 release/
+release-packages/
 out/
 .env.local
 .env.*.local

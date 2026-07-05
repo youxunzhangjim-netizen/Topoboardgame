@@ -729,7 +729,11 @@ function runWithWorker(batchConfig) {
 async function runWithFallback(batchConfig) {
     const startedAt = Date.now();
     els.workerStatus.textContent = uiText('fallback', language);
-    const output = await runBatchSequentialLazy(batchConfig, {
+    const safeBatchConfig = {
+        ...batchConfig,
+        safetyOptions: { ...(batchConfig.safetyOptions || {}), language }
+    };
+    const output = await runBatchSequentialLazy(safeBatchConfig, {
         onStart({ totalRuns, controller }) {
             fallbackController = controller;
             logRun(`start ${totalRuns}`);
@@ -744,6 +748,13 @@ async function runWithFallback(batchConfig) {
         },
         onRunFailed({ run, error }) {
             logRun(`failed ${run.runId}: ${error?.message || error}`, 'bad');
+        },
+        onSafetyWarning({ warning }) {
+            logRun(language === 'zh' ? warning.messageZh : warning.messageEn, 'bad');
+        },
+        onSafetyPause({ messages }) {
+            const message = messages?.at(-1);
+            if (message) logRun(language === 'zh' ? message.messageZh : message.messageEn, 'bad');
         }
     });
     fallbackController = null;

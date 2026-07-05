@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import {
+    createKleinBottleGridLines,
+    createKleinBottleSurfaceGeometry,
+    kleinBottleGraphEdgePoints,
+    kleinBottlePose
+} from '../../js/geometry/KleinBottleGeometry.js';
 
 const TWO_PI = Math.PI * 2;
-const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'cylinder', 'torus', 'sphere_latitude']);
+const THREE_DIMENSIONAL_VIEWS = new Set(['r3', 'cylinder', 'torus', 'sphere_latitude', 'klein_bottle']);
 const CYLINDER_RADIUS = 2.38;
 const CYLINDER_HEIGHT = 5.8;
 
@@ -196,6 +202,7 @@ export class Algebraic3DBoard {
         if (topology.name === 'cylinder') this.addCylinderSurface();
         if (topology.name === 'torus') this.addTorusSurface();
         if (topology.name === 'sphere_latitude') this.addSphereSurface();
+        if (topology.name === 'klein_bottle') this.addKleinSurface();
         this.addGraph();
         if (topology.name === 'r3') {
             const axes = new THREE.AxesHelper(4.8);
@@ -272,6 +279,47 @@ export class Algebraic3DBoard {
         mesh.userData.pickSurface = true;
         this.surfaceMeshes.push(mesh);
         this.boardGroup.add(mesh);
+    }
+
+    addKleinSurface() {
+        const mesh = new THREE.Mesh(
+            createKleinBottleSurfaceGeometry({ uSegments: 176, vSegments: 96 }),
+            new THREE.MeshPhysicalMaterial({
+                color: 0xb68a4c,
+                roughness: 0.56,
+                metalness: 0.02,
+                transparent: true,
+                opacity: 0.78,
+                depthWrite: false,
+                clearcoat: 0.28,
+                clearcoatRoughness: 0.46,
+                side: THREE.DoubleSide
+            })
+        );
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.pickSurface = true;
+        this.surfaceMeshes.push(mesh);
+        this.boardGroup.add(mesh);
+
+        const gridMaterial = new THREE.LineBasicMaterial({
+            color: 0x17212b,
+            transparent: true,
+            opacity: 0.7,
+            depthWrite: false
+        });
+        for (const points of createKleinBottleGridLines({
+            uSteps: Math.max(8, this.game.topology.sizes[1]),
+            vSteps: Math.max(8, this.game.topology.sizes[0]),
+            lift: 0.035,
+            uSegments: 120,
+            vSegments: 96
+        })) {
+            this.boardGroup.add(new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(points),
+                gridMaterial
+            ));
+        }
     }
 
     localGraphSteps(coord) {
@@ -387,6 +435,16 @@ export class Algebraic3DBoard {
                 if (point.lengthSq() > 1e-6) point.normalize().multiplyScalar(3.52);
                 return point;
             });
+        }
+        if (topology.name === 'klein_bottle') {
+            return kleinBottleGraphEdgePoints(
+                from,
+                step.coord,
+                topology.sizes[0],
+                topology.sizes[1],
+                -0.045,
+                28
+            );
         }
         const rawTo = step.edge?.rawTo || step.coord;
         const samples = topology.name === 'cylinder' || topology.name === 'torus' || topology.name === 'sphere_latitude' ? 12 : 5;
@@ -698,6 +756,9 @@ export class Algebraic3DBoard {
         if (topology.name === 'cylinder') return this.cylinderPosition(coord, lift);
         if (topology.name === 'torus') return this.torusPosition(coord, lift);
         if (topology.name === 'sphere_latitude') return this.spherePosition(coord, lift);
+        if (topology.name === 'klein_bottle') {
+            return kleinBottlePose(coord, topology.sizes[0], topology.sizes[1], -Math.abs(lift)).position;
+        }
         return this.r3Position(coord);
     }
 
@@ -834,6 +895,7 @@ export class Algebraic3DBoard {
         if (topology === 'cylinder') return new THREE.Vector3(0, 0, 9.2);
         if (topology === 'torus') return new THREE.Vector3(0, 5.7, 9.9);
         if (topology === 'sphere_latitude') return new THREE.Vector3(0, 2.2, 9.6);
+        if (topology === 'klein_bottle') return new THREE.Vector3(0.8, 2.2, 10.4);
         return new THREE.Vector3(8.2, 7.6, 8.6);
     }
 

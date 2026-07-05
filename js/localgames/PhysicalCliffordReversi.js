@@ -6,6 +6,7 @@ import {
 } from '../algebra/PauliAlgebra.js';
 import { coordKey } from '../topology/GraphTopologies.js';
 import { createPhysicalProblem } from '../physics/PhysicalProblems.js';
+import { registerStabilizerRecoveryGameFactory } from '../physics/StabilizerPauliRecoveryProblem.js';
 import { CLIFFORD_REVERSI_MODE, CliffordReversiGame } from './CliffordReversi.js';
 
 export const PHYSICAL_CLIFFORD_REVERSI_MODE = 'physical_clifford_reversi';
@@ -1103,6 +1104,8 @@ export class PhysicalCliffordReversiGame extends CliffordReversiGame {
         };
     }
 }
+
+registerStabilizerRecoveryGameFactory((options) => new PhysicalCliffordReversiGame(options));
 
 export function createPhysicalCliffordReversi(options = {}) {
     return new PhysicalCliffordReversiGame(options);

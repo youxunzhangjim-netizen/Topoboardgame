@@ -1,0 +1,97 @@
+{
+  "schema": "topoboard.release.v1",
+  "outputRoot": "release-packages",
+  "packages": {
+    "web-lite": {
+      "output": "web-lite",
+      "include": [
+        "dist",
+        "release-manifest.json",
+        "LICENSE.md",
+        "PRIVACY_POLICY.md",
+        "THIRD_PARTY_NOTICES.md",
+        "README.md"
+      ]
+    },
+    "steam-lite": {
+      "output": "steam-lite",
+      "include": [
+        "dist",
+        "local-app/electron",
+        "local-app/build-resources",
+        "package.json",
+        "release-manifest.json",
+        "LICENSE.md",
+        "EULA.md",
+        "PRIVACY_POLICY.md",
+        "COMMERCIAL_LICENSE_REQUEST.md",
+        "THIRD_PARTY_NOTICES.md",
+        "STEAM_RELEASE_CHECKLIST.md"
+      ]
+    },
+    "research-pack": {
+      "output": "research-pack",
+      "include": [
+        "local-data",
+        "research",
+        "models",
+        "local-models",
+        "docs",
+        "release-manifest.json",
+        "LICENSE.md",
+        "THIRD_PARTY_NOTICES.md"
+      ],
+      "allowResearchData": true
+    }
+  },
+  "exclude": {
+    "directories": [
+      "node_modules",
+      ".git",
+      "test-results",
+      "playwright-report",
+      ".launcher-dist",
+      "release",
+      "release-packages",
+      "steamworks"
+    ],
+    "normalReleaseDirectories": [
+      "local-data",
+      "research/selfplay",
+      "research/output"
+    ],
+    "fileExtensions": [
+      ".log",
+      ".tmp",
+      ".bak"
+    ],
+    "normalReleaseFileExtensions": [
+      ".jsonl"
+    ],
+    "privateFileNames": [
+      ".env",
+      "steam_appid.txt",
+      "account_name.txt",
+      "steam_credentials.json",
+      "service-account.json"
+    ],
+    "privateNameFragments": [
+      "steam-credentials",
+      "service-account",
+      "private-key",
+      "debug-screenshot"
+    ]
+  },
+  "steam": {
+    "allowedFeatureStatuses": [
+      "stable",
+      "playable"
+    ],
+    "labTiers": [
+      "toy",
+      "estimator",
+      "benchmarked",
+      "research_grade"
+    ]
+  }
+}

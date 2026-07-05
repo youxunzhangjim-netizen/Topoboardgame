@@ -88,6 +88,13 @@
     "verify:life": "node tools/verify-life-worlds.mjs",
     "verify:vertex-go-boards": "node verification/verify-vertex-go-boards.mjs",
     "verify:board-stability": "node verification/verify-board-stability-layer.mjs",
+    "verify:lab-safety": "node verification/verify-safe-lab-runner.mjs",
+    "verify:klein-surface": "node verification/verify-klein-surface.mjs",
+    "verify:steam-safe": "node verification/verify-steam-safe-build.mjs",
+    "clean:release": "node scripts/package-release.mjs clean",
+    "pack:web-lite": "npm run build && node scripts/package-release.mjs web-lite",
+    "pack:steam-lite": "npm run build && node scripts/package-release.mjs steam-lite",
+    "pack:research-pack": "node scripts/package-release.mjs research-pack",
     "steam:check-info": "node scripts/check-steam-upload-info.mjs",
     "steam:prepare-vdf": "node scripts/prepare-steam-vdf.mjs"
   },
