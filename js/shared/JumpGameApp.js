@@ -1683,8 +1683,14 @@ export class JumpGameApp {
     const r = this.cellRadius() * 0.72;
     const ctx = this.ctx;
     const drawDisc = (fill, stroke, scale = 1, lineWidth = 1.15) => {
+      const volumeBlock = this.dimension >= 3 && this.usesVolumeGraphView();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, r * scale, 0, Math.PI * 2);
+      if (volumeBlock) {
+        const side = r * scale * 2.25;
+        ctx.rect(p.x - side / 2, p.y - side / 2, side, side);
+      } else {
+        ctx.arc(p.x, p.y, r * scale, 0, Math.PI * 2);
+      }
       if (fill) { ctx.fillStyle = fill; ctx.fill(); }
       if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
     };
@@ -1697,11 +1703,11 @@ export class JumpGameApp {
       if (this.game.zones.cTarget?.has(key)) drawDisc(null, 'rgba(190, 96, 255, 0.72)', 0.64);
       return;
     }
-    if (this.game.zones.aHome.has(key)) drawDisc('rgba(84, 164, 255, 0.2)', null, 0.86);
+    if (this.game.zones.aHome.has(key)) drawDisc('rgba(84, 164, 255, 0.4)', 'rgba(132, 201, 255, 0.82)', 0.86);
     if (this.game.zones.aTarget.has(key)) drawDisc(null, 'rgba(84, 164, 255, 0.72)', 0.88);
-    if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.2)', null, 0.86);
+    if (this.game.zones.bHome.has(key)) drawDisc('rgba(255, 190, 76, 0.4)', 'rgba(255, 216, 132, 0.82)', 0.86);
     if (this.game.zones.bTarget.has(key)) drawDisc(null, 'rgba(255, 190, 76, 0.72)', 0.76);
-    if (this.game.zones.cHome?.has(key)) drawDisc('rgba(190, 96, 255, 0.2)', null, 0.86);
+    if (this.game.zones.cHome?.has(key)) drawDisc('rgba(190, 96, 255, 0.4)', 'rgba(218, 157, 255, 0.82)', 0.86);
     if (this.game.zones.cTarget?.has(key)) drawDisc(null, 'rgba(190, 96, 255, 0.72)', 0.64);
   }
 

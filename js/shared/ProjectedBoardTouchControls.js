@@ -87,6 +87,7 @@ export function installProjectedBoardTouchControls({
         setTouchAction();
         if (!isEnabled()) return;
         if (event.pointerType === 'mouse' && ![0, 1, 2].includes(event.button)) return;
+        if (event.target.closest?.('button[data-coord], button[data-site], [data-board-action]')) return;
 
         const pointer = pointerFromEvent(event);
         pointers.set(event.pointerId, pointer);

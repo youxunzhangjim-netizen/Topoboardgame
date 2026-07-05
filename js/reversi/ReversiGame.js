@@ -486,6 +486,14 @@ export function createReversiTopology(options = {}) {
         directionsFor(coord) {
             if (topology === REVERSI_TOPOLOGIES.POLAR) return polarDirectionsFor(coord, width);
             if (topology === REVERSI_TOPOLOGIES.SPHERE) return sphereDirectionsFor(coord, width, height, directions);
+            if (topology === REVERSI_TOPOLOGIES.MOBIUS || topology === REVERSI_TOPOLOGIES.KLEIN) {
+                // These square face boards expose only direct shared-edge rays.
+                // Diagonal visual proximity across an immersion or twisted seam
+                // is not a Reversi bracket direction.
+                return directions
+                    .filter((direction) => direction.reduce((sum, value) => sum + Math.abs(value), 0) === 1)
+                    .map((direction) => [...direction]);
+            }
             if (lattice === KAGOME_LATTICE) {
                 return kagomeNeighborDirections(coord, width, height, {
                     wrapX: topology === REVERSI_TOPOLOGIES.CYLINDER || topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2,

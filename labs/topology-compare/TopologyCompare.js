@@ -22,7 +22,6 @@ import {
     parseScalar,
     toCsv
 } from '../experiments/LabBatchCore.js';
-import { runBatchSequential } from '../experiments/LabBatchRunner.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
 import {
     EVENT_DETECTOR_REGISTRY,
@@ -38,6 +37,11 @@ import {
     topologySiteCount
 } from './LabTopologyCompareCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
+
+async function runBatchSequentialLazy(...args) {
+    const { runBatchSequential } = await import('../experiments/LabBatchRunner.js');
+    return runBatchSequential(...args);
+}
 
 const I18N = {
     en: {
@@ -836,7 +840,7 @@ function runWithWorker() {
 
 async function runWithFallback() {
     els.workerStatus.textContent = t('fallback');
-    const output = await runBatchSequential(currentBatchConfig, {
+    const output = await runBatchSequentialLazy(currentBatchConfig, {
         onStart({ totalRuns, controller }) {
             fallbackController = controller;
             logRun(`${t('startLog')} ${totalRuns}`);

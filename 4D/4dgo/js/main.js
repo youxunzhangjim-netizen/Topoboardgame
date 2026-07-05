@@ -193,6 +193,7 @@ class Go4DApp {
         });
         this.gridEl.addEventListener('pointerdown', (event) => {
             if (this.viewModeSelect?.value !== 'w_slice') return;
+            if (event.target.closest?.('button[data-coord]')) return;
             this.view.drag = { x: event.clientX, y: event.clientY };
             this.gridEl.setPointerCapture?.(event.pointerId);
         });

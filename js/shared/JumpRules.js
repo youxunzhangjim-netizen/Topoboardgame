@@ -314,7 +314,7 @@ function cornerCluster(coord, anchor, radius) { return distanceChebyshev(coord, 
 
 export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'plane', targetAxis = 'x', zoneMode = 'auto', labTargetMode = 'opponentHome', playerCount = 2 } = {}) {
   const dim = clampInt(dimension, 2, 4);
-  const n = clampInt(size, 4, 24);
+  const n = clampInt(size, dim === 4 ? 3 : 4, 24);
   const axis = { x: 0, y: 1, z: 2, w: 3 }[targetAxis] ?? 0;
   const top = String(topology || 'plane').toLowerCase();
   const width = Math.max(1, Math.floor(n / (dim === 2 ? 4 : 3)));
@@ -327,7 +327,23 @@ export function createHomeTargetZones({ dimension = 2, size = 8, topology = 'pla
   const closed = ['torus', 'pbc', 't3', '4d-torus', 'torus4d', 'cylinder', 'cyl', 'pbcx', 'pbc-x', 'mobius', 'klein', 'klein_bottle', 'rp2', 'projective', 'projection'].includes(top);
   const sphere = ['sphere', 'shell'].includes(top);
 
-  if (dim === 2 && top === 'diamond') {
+  if (dim === 4 && n === 3) {
+    // A 3^4 board is too small for full hyperface camps: those occupy most of
+    // the board and overlap at the center. Use balanced corner simplices
+    // (corner plus one inward site on each axis) instead.
+    const low = Array(dim).fill(0);
+    const high = Array(dim).fill(n - 1);
+    aHome.add(coordKey(low));
+    bHome.add(coordKey(high));
+    for (let axisIndex = 0; axisIndex < dim; axisIndex += 1) {
+      const a = [...low];
+      const b = [...high];
+      a[axisIndex] = 1;
+      b[axisIndex] = n - 2;
+      aHome.add(coordKey(a));
+      bHome.add(coordKey(b));
+    }
+  } else if (dim === 2 && top === 'diamond') {
     for (const key of diamondCamp(n, 'bottom', playerCount)) aHome.add(key);
     for (const key of diamondCamp(n, 'top', playerCount)) bHome.add(key);
     if (playerCount >= 3) {

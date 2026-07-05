@@ -25,9 +25,13 @@ import {
     resultsToSummaryStatistics,
     toCsv
 } from './LabBatchCore.js';
-import { runBatchSequential } from './LabBatchRunner.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from './LabLanguageMenu.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
+
+async function runBatchSequentialLazy(...args) {
+    const { runBatchSequential } = await import('./LabBatchRunner.js');
+    return runBatchSequential(...args);
+}
 
 const els = {
     languageSelect: document.querySelector('#languageSelect'),
@@ -725,7 +729,7 @@ function runWithWorker(batchConfig) {
 async function runWithFallback(batchConfig) {
     const startedAt = Date.now();
     els.workerStatus.textContent = uiText('fallback', language);
-    const output = await runBatchSequential(batchConfig, {
+    const output = await runBatchSequentialLazy(batchConfig, {
         onStart({ totalRuns, controller }) {
             fallbackController = controller;
             logRun(`start ${totalRuns}`);

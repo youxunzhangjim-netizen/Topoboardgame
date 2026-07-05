@@ -65,20 +65,28 @@ body {
 .interactive-3d-edge { stroke: rgba(108, 164, 224, .34); stroke-width: 1; }
 .interactive-3d-slice .vertex.projected-vertex {
     position: absolute;
-    width: 7px;
-    height: 7px;
+    width: 24px;
+    height: 24px;
     min-width: 0;
     min-height: 0;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: rgba(190, 218, 240, .62);
+    background: radial-gradient(circle, rgba(220, 239, 252, .9) 0 3px, transparent 3.5px);
     transform: translate(-50%, -50%);
     overflow: visible;
 }
 .interactive-3d-slice .vertex.projected-vertex::before,
 .interactive-3d-slice .vertex.projected-vertex::after { display: none; }
-.interactive-3d-slice .vertex.projected-vertex .stone { width: 22px; height: 22px; }
+.interactive-3d-slice .vertex.projected-vertex .stone { width: 24px; height: 24px; }
+.interactive-3d-slice .vertex.projected-vertex.liberty {
+    background: radial-gradient(circle, rgba(74, 222, 128, 1) 0 6px, rgba(34, 197, 94, .32) 6.5px 10px, transparent 10.5px);
+    box-shadow: none;
+}
+.interactive-3d-slice .vertex.projected-vertex.group {
+    background: radial-gradient(circle, rgba(56, 189, 248, 1) 0 6px, rgba(14, 165, 233, .3) 6.5px 10px, transparent 10.5px);
+    box-shadow: none;
+}
 .interactive-3d-slice .slice-3d-label {
     position: absolute;
     top: 12px;
@@ -154,7 +162,11 @@ body {
 .stone.white { background: radial-gradient(circle at 34% 26%, #ffffff 0 18%, #edf4f7 45%, #b5c3ca 78%); border: 1px solid rgba(37, 50, 58, 0.34); }
 .vertex.hover,
 .vertex.group { box-shadow: inset 0 0 0 999px rgba(72, 199, 244, 0.18); }
-.vertex.liberty { box-shadow: inset 0 0 0 999px rgba(34, 197, 94, 0.18); }
+.vertex.liberty {
+    box-shadow: inset 0 0 0 999px rgba(34, 197, 94, 0.34);
+    outline: 2px solid rgba(74, 222, 128, 0.92);
+    outline-offset: -2px;
+}
 .vertex.selected { outline: 2px solid var(--gold); outline-offset: -2px; box-shadow: inset 0 0 0 999px rgba(242, 196, 100, 0.18); }
 .sidebar { display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow: auto; }
 .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

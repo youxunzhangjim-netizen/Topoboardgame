@@ -64,7 +64,7 @@ const R3_LIKE_TOPOLOGIES = new Set([R3_STANDARD_TOPOLOGY, T3_PBC_TOPOLOGY, R3_RA
 const TWO_PI = Math.PI * 2;
 const MOBIUS_BAND_RADIUS = 3.05;
 const MOBIUS_BAND_HALF_WIDTH = 1.68;
-const MOBIUS_GO_STONE_LIFT = 0.28;
+const MOBIUS_GO_STONE_LIFT = 0;
 const RP2_CELL_SIZE = 0.72;
 const RP2_CELL_GAP = 0.035;
 const RP2_EDGE_GAP = 0.84;
@@ -760,11 +760,6 @@ class Go3DRenderer {
             for (let step = 0; step <= segments; step += 1) {
                 const u = THREE.MathUtils.lerp(u0, TWO_PI, step / segments);
                 points.push(this.mobiusPoint(u, t, lift));
-            }
-            const endT = this.mobiusTForY(end[1], height);
-            for (let step = 1; step <= Math.max(2, Math.ceil(segments / 5)); step += 1) {
-                const tStep = THREE.MathUtils.lerp(-t, endT, step / Math.max(2, Math.ceil(segments / 5)));
-                points.push(this.mobiusPoint(0, tStep, lift));
             }
             return points;
         }
@@ -1519,7 +1514,7 @@ class Go3DRenderer {
 
     positionsForCoord(coord, logic, lift = 0.18) {
         if (logic?.topology === MOBIUS_GO_TOPOLOGY) {
-            return [this.mobiusPose(coord, logic.width, logic.height, Math.max(MOBIUS_GO_STONE_LIFT, Math.abs(lift)), logic.lattice).position];
+            return [this.mobiusPose(coord, logic.width, logic.height, MOBIUS_GO_STONE_LIFT, logic.lattice).position];
         }
         return [this.positionForCoord(coord, logic)];
     }

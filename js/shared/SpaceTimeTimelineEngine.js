@@ -2864,7 +2864,10 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelectorAll('[data-st-noise]').forEach((node) => { node.hidden = !allowsNoise; });
     panel.querySelector('[data-st-legacy-section]').hidden = !(supportsAgeMode() || supportsPeriodMode() || allowsNoise);
     panel.querySelector('[data-st-pending-section]').hidden = !future;
-    panel.querySelector('[data-st-history-section]').hidden = false;
+    // Resolved actions belong in each game's ordinary move history. Keeping a
+    // second editable/frozen timeline here duplicates moves and implies that
+    // committed history remains directly editable.
+    panel.querySelector('[data-st-history-section]').hidden = true;
     const online = panel.querySelector('[data-st-online]');
     online.hidden = !(past && isOnline());
     online.textContent = text('online');
@@ -2897,7 +2900,6 @@ export function installSpaceTimeTimelineEngine() {
     panel.querySelector('[data-st-window]').title = state.settingsLocked ? text('locked') : '';
     renderLegacySummary();
     renderPending();
-    renderTimeline();
   }
 
   function renderLegacySummary() {

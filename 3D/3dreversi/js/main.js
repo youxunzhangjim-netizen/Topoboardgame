@@ -491,11 +491,6 @@ class Reversi3DRenderer {
             for (let step = 0; step <= segments; step += 1) {
                 points.push(this.mobiusPoint(THREE.MathUtils.lerp(u0, TWO_PI, step / segments), t, lift));
             }
-            const endT = this.mobiusTForY(end[1], height);
-            const bridgeSegments = Math.max(2, Math.ceil(segments / 5));
-            for (let step = 1; step <= bridgeSegments; step += 1) {
-                points.push(this.mobiusPoint(0, THREE.MathUtils.lerp(-t, endT, step / bridgeSegments), lift));
-            }
             return points;
         }
 
@@ -936,7 +931,7 @@ class Reversi3DRenderer {
         const localRimNormal = new THREE.Vector3(0, 0, 1);
         for (const pose of poses) {
             const normal = pose.normal?.clone?.().normalize?.() || new THREE.Vector3(0, 0, 1);
-            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? 0.07 : 0.052;
+            const surfaceLift = logic.topology.topology === REVERSI_TOPOLOGIES.MOBIUS ? -puckThickness * 0.5 : 0.052;
             const position = pose.position.clone().add(normal.clone().multiplyScalar(surfaceLift + puckThickness * 0.5));
             const disc = new THREE.Mesh(discGeometry, discMaterial);
             const rim = new THREE.Mesh(rimGeometry, rimMaterial);
@@ -1656,7 +1651,9 @@ class Reversi3DRenderer {
 
     mobiusLoopLine(t, lift = 0.06, segments = 180) {
         const points = [];
-        for (let step = 0; step <= segments; step += 1) {
+        // A constant transverse coordinate reaches -t after one circuit.
+        // Trace two circuits so every displayed grid curve closes smoothly.
+        for (let step = 0; step <= segments * 2; step += 1) {
             points.push(this.mobiusPoint(TWO_PI * step / segments, t, lift));
         }
         return points;
@@ -1668,7 +1665,9 @@ class Reversi3DRenderer {
             const u = TWO_PI * x / Math.max(1, width);
             lines.push(this.mobiusParameterLine(u, -MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, lift, Math.max(48, height * 6)));
         }
-        for (let y = 0; y <= height; y += 1) {
+        // Positive and negative t produce the same closed 4PI curve, so draw
+        // one representative from each pair to avoid doubled dark lines.
+        for (let y = Math.ceil(height / 2); y <= height; y += 1) {
             const t = THREE.MathUtils.lerp(-MOBIUS_BAND_HALF_WIDTH, MOBIUS_BAND_HALF_WIDTH, y / Math.max(1, height));
             lines.push(this.mobiusLoopLine(t, lift, Math.max(144, width * 12)));
         }
