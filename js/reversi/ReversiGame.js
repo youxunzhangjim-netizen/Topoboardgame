@@ -405,25 +405,32 @@ const TRIANGULAR_LAYER_DIRECTIONS = Object.freeze([
     Object.freeze([-1, 1, 0])
 ]);
 
-function hcpDirections(coord = [0, 0, 0]) {
-    const upward = (coord[2] || 0) % 2 === 0
-        ? [[0, 0, 1], [-1, 0, 1], [0, -1, 1]]
-        : [[0, 0, 1], [1, 0, 1], [0, 1, 1]];
-    const downward = (coord[2] || 0) % 2 === 0
-        ? [[0, 0, -1], [-1, 0, -1], [0, -1, -1]]
-        : [[0, 0, -1], [1, 0, -1], [0, 1, -1]];
-    return [
-        ...TRIANGULAR_LAYER_DIRECTIONS.map((direction) => [...direction]),
-        ...upward,
-        ...downward
-    ];
-}
-
 function is3DReversiTopology(topology) {
     return topology === REVERSI_TOPOLOGIES.R3 ||
         topology === REVERSI_TOPOLOGIES.T3 ||
         topology === REVERSI_TOPOLOGIES.R3_RANDOM ||
         topology === REVERSI_TOPOLOGIES.RP3;
+}
+
+function bccDirections() {
+    const directions = [];
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+        directions.push([x, y, z]);
+    }
+    return directions;
+}
+
+function fccDirections() {
+    const directions = [];
+    for (let zeroAxis = 0; zeroAxis < 3; zeroAxis += 1) {
+        for (const a of [-1, 1]) for (const b of [-1, 1]) {
+            const direction = [0, 0, 0];
+            direction[(zeroAxis + 1) % 3] = a;
+            direction[(zeroAxis + 2) % 3] = b;
+            directions.push(direction);
+        }
+    }
+    return directions;
 }
 
 function is4DReversiTopology(topology) {
@@ -445,8 +452,8 @@ export function createReversiTopology(options = {}) {
         ? 'honeycomb'
         : dimension === 2 && requestedLattice === KAGOME_LATTICE
         ? KAGOME_LATTICE
-        : dimension === 3 && requestedLattice === 'hcp'
-            ? 'hcp'
+        : dimension === 3 && ['bcc', 'fcc'].includes(requestedLattice)
+            ? requestedLattice
             : 'square';
     const width = normalizeReversiSize(options.width ?? size, { fallback: size, min: 4, max: options.maxSize || 30 });
     const height = normalizeReversiSize(options.height ?? size, { fallback: size, min: 4, max: options.maxSize || 30 });
@@ -460,8 +467,10 @@ export function createReversiTopology(options = {}) {
         ? HONEYCOMB_DIRECTIONS.map((direction) => [...direction])
         : lattice === KAGOME_LATTICE
             ? TRIANGULAR_LAYER_DIRECTIONS.map(([x, y]) => [x, y])
-        : lattice === 'hcp'
-            ? hcpDirections([0, 0, 0])
+        : lattice === 'bcc'
+            ? bccDirections()
+        : lattice === 'fcc'
+            ? fccDirections()
         : createDirections(dimension);
     const hasRandomBoundary = topology === REVERSI_TOPOLOGIES.RANDOM || topology === REVERSI_TOPOLOGIES.R3_RANDOM;
     const randomBoundarySeed = hasRandomBoundary ? (options.randomBoundarySeed || randomSeed()) : '';
@@ -500,9 +509,7 @@ export function createReversiTopology(options = {}) {
                     wrapY: topology === REVERSI_TOPOLOGIES.PBC || topology === REVERSI_TOPOLOGIES.T2
                 });
             }
-            return lattice === 'hcp'
-                ? hcpDirections(coord)
-                : directions.map((direction) => [...direction]);
+            return directions.map((direction) => [...direction]);
         },
         randomBoundarySeed,
         randomBoundaryMap,
@@ -722,6 +729,13 @@ export class ReversiGame {
             const midZ = Math.floor(this.topology.depth / 2);
             const lowZ = midZ - 1;
             const highZ = midZ;
+            if (this.topology.lattice === 'fcc') {
+                this.set([lowX, lowY, lowZ], { color: REVERSI_COLORS.BLACK });
+                this.set([highX, highY, lowZ], { color: REVERSI_COLORS.WHITE });
+                this.set([lowX, highY, lowZ], { color: REVERSI_COLORS.WHITE });
+                this.set([highX, lowY, lowZ], { color: REVERSI_COLORS.BLACK });
+                return;
+            }
             for (const z of [lowZ, highZ]) {
                 for (const y of [lowY, highY]) {
                     for (const x of [lowX, highX]) {

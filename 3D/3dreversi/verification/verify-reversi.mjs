@@ -12,13 +12,17 @@ assert.equal(customOdd.topology.depth, 9);
 assert.equal(customOdd.counts().black, 4);
 assert.ok(customOdd.legalMoves('black').length > 0);
 
-const hcp = new ReversiGame({ topology: 'r3', lattice: 'hcp', size: 8 });
-assert.equal(hcp.topology.lattice, 'hcp');
-assert.equal(hcp.topology.dimension, 3);
-assert.equal(hcp.topology.directionsFor([3, 3, 3]).length, 12);
-assert.ok(hcp.topology.step([3, 3, 3], [1, 0, 0]), 'HCP in-layer neighbor exists.');
-assert.ok(hcp.topology.step([3, 3, 3], [0, 0, 1]), 'HCP adjacent-layer neighbor exists.');
-assert.ok(hcp.legalMoves('black').length > 0, 'HCP R3 Reversi has legal opening moves.');
+const bcc = new ReversiGame({ topology: 'r3', lattice: 'bcc', size: 8 });
+assert.equal(bcc.topology.lattice, 'bcc');
+assert.equal(bcc.topology.directionsFor([3, 3, 3]).length, 8);
+assert.ok(bcc.topology.directionsFor([3, 3, 3]).every((direction) => direction.every((value) => Math.abs(value) === 1)));
+assert.ok(bcc.legalMoves('black').length > 0, 'BCC R3 Reversi has legal opening moves.');
+
+const fcc = new ReversiGame({ topology: 'r3', lattice: 'fcc', size: 8 });
+assert.equal(fcc.topology.lattice, 'fcc');
+assert.equal(fcc.topology.directionsFor([3, 3, 3]).length, 12);
+assert.ok(fcc.topology.directionsFor([3, 3, 3]).every((direction) => direction.filter(Boolean).length === 2));
+assert.ok(fcc.legalMoves('black').length > 0, 'FCC R3 Reversi has legal opening moves.');
 
 const t3 = new ReversiGame({ topology: 't3', size: 8 });
 assert.equal(t3.topology.dimension, 3);

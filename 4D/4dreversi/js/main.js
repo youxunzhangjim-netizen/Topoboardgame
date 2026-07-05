@@ -57,6 +57,7 @@ class Reversi4DApp {
             reset: document.getElementById('viewResetButton')
         };
         this.suppressClickUntil = 0;
+        this.pendingMoveChoiceKey = '';
         this.logic = this.createLogic();
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.bindEvents();
@@ -232,6 +233,7 @@ class Reversi4DApp {
         this.logic = this.createLogic();
         this.selectedKey = '';
         this.hoverKey = '';
+        this.pendingMoveChoiceKey = '';
         this.pieceAges = {};
         this.noiseTick = 0;
         this.updateZoomOptions();
@@ -254,6 +256,7 @@ class Reversi4DApp {
             return;
         }
         this.selectedKey = this.logic.key(result.coord);
+        this.pendingMoveChoiceKey = '';
         this.hoverKey = '';
         this.applyTimeEvolutionAndNoise();
         this.setStatus(`${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
@@ -350,14 +353,28 @@ class Reversi4DApp {
         }
         this.moveChoiceButtons.replaceChildren(...moves.slice(0, 40).map((move) => {
             const coord = move.coord || move;
+            const moveKey = this.logic.key(coord);
             const flips = this.logic.previewMove(coord).length;
             const button = document.createElement('button');
             button.type = 'button';
-            button.textContent = `(${coord.join(', ')}) · ${flips}`;
+            button.textContent = `(${coord.join(', ')}) - ${flips}`;
+            button.classList.toggle('active', this.pendingMoveChoiceKey === moveKey);
             button.title = isZh
                 ? `翻轉 ${flips} 枚棋子`
                 : `${flips} ${flips === 1 ? 'flip' : 'flips'}`;
-            button.addEventListener('click', () => this.play(coord));
+            button.addEventListener('click', () => {
+                if (this.pendingMoveChoiceKey !== moveKey) {
+                    this.pendingMoveChoiceKey = moveKey;
+                    this.selectedKey = moveKey;
+                    this.setStatus(isZh
+                        ? `已選擇位置 (${coord.join(', ')})；再次按下以落子。`
+                        : `Selected site (${coord.join(', ')}); press it again to move.`);
+                    this.updateSelectionSummary();
+                    this.renderMoveChoices();
+                    return;
+                }
+                this.play(coord);
+            });
             return button;
         }));
     }

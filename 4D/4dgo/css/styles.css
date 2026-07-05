@@ -158,7 +158,7 @@ body {
     z-index: 2;
     box-shadow: inset -4px -5px 10px rgba(0,0,0,0.28), inset 2px 2px 5px rgba(255,255,255,0.18), 0 4px 10px rgba(0,0,0,0.42);
 }
-.stone.black { background: radial-gradient(circle at 34% 26%, #6b7280 0 6%, #202833 34%, #05070a 72%); border: 1px solid rgba(255,255,255,0.08); }
+.stone.black { background: radial-gradient(circle at 30% 24%, #a8d8f0 0 7%, #365b70 18%, #101923 52%, #020407 78%); border: 2px solid rgba(99, 196, 234, 0.72); }
 .stone.white { background: radial-gradient(circle at 34% 26%, #ffffff 0 18%, #edf4f7 45%, #b5c3ca 78%); border: 1px solid rgba(37, 50, 58, 0.34); }
 .vertex.hover,
 .vertex.group { box-shadow: inset 0 0 0 999px rgba(72, 199, 244, 0.18); }
@@ -190,6 +190,7 @@ button:hover:not(:disabled), button:focus-visible { border-color: rgba(72, 199, 
 .move-choice-heading { display: flex; justify-content: space-between; gap: 10px; color: #dcecf3; font-size: 13px; }
 .move-choice-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 .move-choice-buttons button { width: auto; min-height: 34px; padding: 6px 9px; font-size: 12px; }
+.move-choice-buttons button.active { border-color: #4ade80; box-shadow: inset 0 0 0 2px rgba(74,222,128,.28); color: #dcfce7; }
 .online-controls { display: grid; gap: 10px; padding: 12px; border: 1px solid rgba(34, 197, 94, 0.55); border-radius: 8px; background: rgba(34, 197, 94, 0.09); }
 .online-controls[hidden] { display: none; }
 .connection-status { padding: 9px; border-radius: 8px; font-weight: 900; text-align: center; }

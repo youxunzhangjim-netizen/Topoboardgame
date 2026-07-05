@@ -346,17 +346,24 @@ function wrapAngle(angle) {
 function kleinBottleSurfacePoint(u, v) {
   const parameterU = wrapAngle(u);
   const parameterV = wrapAngle(v);
-  const radial = 2
-    + Math.cos(parameterU / 2) * Math.sin(parameterV)
-    - Math.sin(parameterU / 2) * Math.sin(2 * parameterV);
-  const rawX = radial * Math.cos(parameterU);
-  const rawY = radial * Math.sin(parameterU);
-  const rawZ = Math.sin(parameterU / 2) * Math.sin(parameterV)
-    + Math.cos(parameterU / 2) * Math.sin(2 * parameterV);
+  const radial = 4 * (1 - Math.cos(parameterU) / 2);
+  let rawX;
+  let rawY;
+  if (parameterU < Math.PI) {
+    rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU))
+      + radial * Math.cos(parameterU) * Math.cos(parameterV);
+    rawY = 16 * Math.sin(parameterU)
+      + radial * Math.sin(parameterU) * Math.cos(parameterV);
+  } else {
+    rawX = 6 * Math.cos(parameterU) * (1 + Math.sin(parameterU))
+      + radial * Math.cos(parameterV + Math.PI);
+    rawY = 16 * Math.sin(parameterU);
+  }
+  const rawZ = radial * Math.sin(parameterV);
   return {
-    x: rawX * 0.49,
-    y: rawZ * 0.5,
-    z: rawY * 0.38
+    x: rawX * 0.2 * 1.24,
+    y: rawY * 0.2 * 0.76,
+    z: rawZ * 0.2 * 1.24
   };
 }
 function formatNumber(value, digits = 3) {

@@ -46,16 +46,16 @@
         .reversi4d-edge { stroke: rgba(108, 164, 224, .22); stroke-width: .85; }
         .reversi4d-projection .vertex.projected-vertex {
             position: absolute;
-            width: 4px !important;
-            height: 4px !important;
+            width: 7px !important;
+            height: 7px !important;
             min-width: 0 !important;
             min-height: 0 !important;
-            max-width: 4px;
-            max-height: 4px;
+            max-width: 7px;
+            max-height: 7px;
             padding: 0 !important;
             border: 0;
             border-radius: 50%;
-            background: rgba(95, 127, 160, .42);
+            background: rgba(174, 211, 238, .76);
             transform: translate(-50%, -50%);
             box-shadow: none;
             overflow: visible;
@@ -77,9 +77,9 @@
         }
         .reversi4d-projection .vertex.projected-vertex.selected { outline: 2px solid #f8c75d; outline-offset: 2px; }
         .reversi4d-projection .stone {
-            width: 16px;
-            height: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, .28);
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 0 0 2px rgba(93, 196, 235, .5), 0 3px 7px rgba(0, 0, 0, .58);
         }
         .reversi4d-jump-form .jump-side .panel,
         .reversi4d-jump-form .jump-side .status-card,
@@ -172,10 +172,10 @@
             </section>
 
             <div class="dimension-controls">
-                <label>Nx <input id="nxInput" type="number" min="4" max="9" value="5"></label>
-                <label>Ny <input id="nyInput" type="number" min="4" max="9" value="5"></label>
-                <label>Nz <input id="nzInput" type="number" min="4" max="9" value="5"></label>
-                <label>Nw <input id="nwInput" type="number" min="4" max="9" value="5"></label>
+                <label>Nx <input id="nxInput" type="number" min="4" max="9" value="4"></label>
+                <label>Ny <input id="nyInput" type="number" min="4" max="9" value="4"></label>
+                <label>Nz <input id="nzInput" type="number" min="4" max="9" value="4"></label>
+                <label>Nw <input id="nwInput" type="number" min="4" max="9" value="4"></label>
             </div>
             <div class="control-grid">
                 <div class="control-group">

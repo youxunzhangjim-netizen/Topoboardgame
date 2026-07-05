@@ -1810,16 +1810,27 @@ export function installSpaceTimeTimelineEngine() {
       await animateReplayFrames(replayFrames, pendingBaseSnapshot);
       state.message = finalMessage;
     }
-    state.editingEventId = null;
-    state.replacementSource = null;
-    state.pendingReplacement = null;
-    state.previewReturnSnapshot = null;
-    state.replayOverlay = null;
+    if (rejected) {
+      restoreSnapshot(state.app, targetEvent.beforeSnapshot);
+      state.editingEventId = targetEvent.id;
+      state.replacementSource = clone(targetEvent.action?.from || targetEvent.action?.move?.from || null);
+      state.pendingReplacement = null;
+      state.previewReturnSnapshot = currentSnapshot;
+      state.replayOverlay = state.replacementSource
+        ? { action: { ...clone(targetEvent.action), from: clone(state.replacementSource) }, label: text('pastPreview') }
+        : null;
+      state.message = `${finalMessage} ${text('replacementHelp')}`;
+    } else {
+      state.editingEventId = null;
+      state.replacementSource = null;
+      state.pendingReplacement = null;
+      state.previewReturnSnapshot = null;
+      state.replayOverlay = null;
+      consumeSubmissionTurn();
+      state.message = finalMessage;
+    }
     state.replayAnimating = false;
-    updateReplayBadge('');
-    const rewriteMessage = finalMessage;
-    consumeSubmissionTurn();
-    state.message = rewriteMessage;
+    updateReplayBadge(state.replayOverlay?.label || '');
     triggerRender();
     refresh();
   }
@@ -2329,6 +2340,13 @@ export function installSpaceTimeTimelineEngine() {
     }
     points.forEach((point, index) => {
       const isLast = index === points.length - 1;
+      const isLockedPastSource = Boolean(state.editingEventId && index === 0);
+      if (isLockedPastSource) {
+        const side = point.radius * 2.35;
+        ctx.strokeStyle = 'rgba(74,222,128,1)';
+        ctx.lineWidth = Math.max(3, point.radius * 0.2);
+        ctx.strokeRect(point.x - side / 2, point.y - side / 2, side, side);
+      }
       ctx.beginPath();
       ctx.arc(point.x, point.y, point.radius, 0, Math.PI * 2);
       ctx.fillStyle = isLast ? 'rgba(243,189,73,.24)' : 'rgba(86,190,222,.22)';

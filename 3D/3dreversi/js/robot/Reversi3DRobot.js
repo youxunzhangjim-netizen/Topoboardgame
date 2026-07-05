@@ -198,7 +198,8 @@ function reason(logic, move, before, after) {
   if (logic.topology.topology === 'cylinder') reasons.push('uses the 2D PBC robot strategy on the cylinder wrap');
   else if (logic.topology.topology === 't3' || logic.topology.topology === 't2') reasons.push('checks periodic bracket lines');
   if (logic.topology.topology === 'r3_random') reasons.push('uses fixed 3D RBC boundary map');
-  if (logic.topology.lattice === 'hcp') reasons.push('uses HCP bracket directions');
+  if (logic.topology.lattice === 'bcc') reasons.push('uses straight BCC body-diagonal bracket rays');
+  if (logic.topology.lattice === 'fcc') reasons.push('uses straight FCC face-diagonal bracket rays');
   if (logic.topology.topology === 'sphere') reasons.push('uses sphere embedded graph');
   if (logic.topology.topology === 'klein') reasons.push('checks Klein bottle flipped wrap');
   if (logic.topology.topology === 'mobius') reasons.push('checks Mobius twisted seam');

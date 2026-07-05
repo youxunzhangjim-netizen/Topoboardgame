@@ -1045,7 +1045,11 @@ class Go3DRenderer {
             this.pointPositions.push(p);
             pointPositions.push(p.x, p.y, p.z);
         }
-        this.addNodePoints(pointPositions, size <= 9 ? 0.06 : size <= 13 ? 0.045 : 0.034);
+        this.addNodePoints(pointPositions, size <= 9 ? 0.115 : size <= 13 ? 0.082 : 0.058, {
+            color: 0xe8f7ff,
+            opacity: 0.98,
+            renderOrder: 4
+        });
         const scale = this.r3Scale(size);
         const axes = new THREE.AxesHelper(scale * (size - 1) * 0.65);
         axes.material.depthTest = false;

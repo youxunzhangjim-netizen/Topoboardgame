@@ -26,7 +26,8 @@ const MOBIUS_BAND_RADIUS = 4.05;
 const MOBIUS_BAND_HALF_WIDTH = 2.72;
 const KLEIN_RENDER_SCALE = 1.42;
 const SQUARE_LATTICE = 'square';
-const HCP_LATTICE = 'hcp';
+const BCC_LATTICE = 'bcc';
+const FCC_LATTICE = 'fcc';
 const HONEYCOMB_LATTICE = 'honeycomb';
 const KAGOME_LATTICE = 'kagome';
 const SPHERE_COORDINATE_LATTICE = 'sphere_coordinate';
@@ -1230,12 +1231,10 @@ class Reversi3DRenderer {
         const centerX = (topology.width - 1) / 2;
         const centerY = (topology.height - 1) / 2;
         const centerZ = (topology.depth - 1) / 2;
-        const hcpOffsetX = topology.lattice === 'hcp' ? ((coord[2] % 2) * 0.5 + (coord[1] % 2) * 0.5) : 0;
-        const hcpOffsetY = topology.lattice === 'hcp' ? coord[2] * 0.18 : 0;
         return new THREE.Vector3(
-            (coord[0] + hcpOffsetX - centerX) * scale,
-            (coord[2] * (topology.lattice === 'hcp' ? 0.82 : 1) - centerZ + hcpOffsetY) * scale,
-            ((coord[1] - centerY) * (topology.lattice === 'hcp' ? 0.866 : 1)) * scale
+            (coord[0] - centerX) * scale,
+            (coord[2] - centerZ) * scale,
+            (coord[1] - centerY) * scale
         );
     }
 
@@ -1898,6 +1897,7 @@ class Reversi3DApp {
         this.chatInput = document.getElementById('chatInput');
         this.chatSendBtn = document.getElementById('chatSendBtn');
         this.hoverCoord = null;
+        this.pendingMoveChoiceKey = '';
         this.myColor = null;
         this.noiseTick = 0;
 
@@ -1925,7 +1925,7 @@ class Reversi3DApp {
         const size = params.get('size');
         if (size !== null && size.trim() !== '' && Number.isFinite(Number(size))) this.setSizeSelection(size);
         const lattice = String(params.get('lattice') || '').toLowerCase();
-        if ([SQUARE_LATTICE, HCP_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE, SPHERE_COORDINATE_LATTICE].includes(lattice)) {
+        if ([SQUARE_LATTICE, BCC_LATTICE, FCC_LATTICE, HONEYCOMB_LATTICE, KAGOME_LATTICE, SPHERE_COORDINATE_LATTICE].includes(lattice)) {
             this.latticeSelect.value = lattice;
         }
     }
@@ -2032,7 +2032,7 @@ class Reversi3DApp {
     }
 
     latticeOptionsForMode(mode = this.modeSelect.value) {
-        if (mode === 'r3') return [SQUARE_LATTICE, HCP_LATTICE];
+        if (mode === 'r3') return [SQUARE_LATTICE, BCC_LATTICE, FCC_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.T2) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.CYLINDER) return [SQUARE_LATTICE, HONEYCOMB_LATTICE];
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return [SPHERE_COORDINATE_LATTICE];
@@ -2073,7 +2073,8 @@ class Reversi3DApp {
     latticeLabel(lattice = this.currentLattice()) {
         return ({
             [SQUARE_LATTICE]: 'Standard',
-            [HCP_LATTICE]: 'HCP',
+            [BCC_LATTICE]: 'BCC',
+            [FCC_LATTICE]: 'FCC',
             [HONEYCOMB_LATTICE]: 'Honeycomb',
             [KAGOME_LATTICE]: 'Kagome',
             [SPHERE_COORDINATE_LATTICE]: 'Geodesic'
@@ -2084,7 +2085,7 @@ class Reversi3DApp {
         const mode = this.modeSelect.value;
         const lattice = this.currentLattice();
         if (mode === REVERSI_TOPOLOGIES.SPHERE) return SQUARE_LATTICE;
-        if (mode === 'r3') return lattice === HCP_LATTICE ? HCP_LATTICE : SQUARE_LATTICE;
+        if (mode === 'r3') return [BCC_LATTICE, FCC_LATTICE].includes(lattice) ? lattice : SQUARE_LATTICE;
         if (lattice === HONEYCOMB_LATTICE) return HONEYCOMB_LATTICE;
         if (lattice === KAGOME_LATTICE) return KAGOME_LATTICE;
         return SQUARE_LATTICE;
@@ -2225,6 +2226,7 @@ class Reversi3DApp {
     resetGame({ broadcast = false } = {}) {
         this.logic = this.createLogic();
         this.hoverCoord = null;
+        this.pendingMoveChoiceKey = '';
         this.noiseTick = 0;
         this.syncLayerControl();
         this.setStatus('New 3D Reversi game started.');
@@ -2246,6 +2248,7 @@ class Reversi3DApp {
             return;
         }
         this.hoverCoord = null;
+        this.pendingMoveChoiceKey = '';
         const protectedKeys = [this.logic.key(result.coord), ...(this.logic.lastFlipped || [])];
         const evolution = this.advanceEvolution(protectedKeys);
         const base = `${this.capitalize(actor)} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`;
@@ -2285,10 +2288,10 @@ class Reversi3DApp {
         const lattice = this.currentLattice();
         const latticeLabel = this.latticeLabel(lattice);
         const modeText = {
-            r3: lattice === HCP_LATTICE ? 'R3 HCP' : 'R3 Standard',
-            t3: lattice === HCP_LATTICE ? 'R3 HCP / T3 PBC' : 'R3 / T3 PBC',
-            r3_random: lattice === HCP_LATTICE ? 'R3 HCP / 3D RBC' : 'R3 / 3D RBC',
-            rp3: lattice === HCP_LATTICE ? 'R3 HCP / RP3' : 'R3 / RP3',
+            r3: lattice === BCC_LATTICE ? 'R3 BCC' : lattice === FCC_LATTICE ? 'R3 FCC' : 'R3 Standard',
+            t3: 'R3 / T3 PBC',
+            r3_random: 'R3 / 3D RBC',
+            rp3: 'R3 / RP3',
             t2: lattice === HONEYCOMB_LATTICE ? 'T2 Honeycomb' : lattice === KAGOME_LATTICE ? 'T2 Kagome' : 'T2 Standard',
             cylinder: lattice === HONEYCOMB_LATTICE ? 'Cylinder Honeycomb' : lattice === KAGOME_LATTICE ? 'Cylinder Kagome' : 'Cylinder Standard',
             sphere: `S2 ${latticeLabel}`,
@@ -2297,9 +2300,11 @@ class Reversi3DApp {
             rp2: 'RP2'
         };
         const modeInfo = {
-            r3: lattice === HCP_LATTICE
-                ? 'R3 HCP uses offset hexagonal close-packed site vertices with 12 nearest-neighbor bracket directions.'
-                : 'R3 Standard uses ordinary open cubic site vertices. Reversi brackets can run through all 26 graph ray directions.',
+            r3: lattice === BCC_LATTICE
+                ? 'R3 BCC uses eight straight body-diagonal bracket rays through the cubic cell.'
+                : lattice === FCC_LATTICE
+                    ? 'R3 FCC uses twelve straight face-diagonal bracket rays.'
+                    : 'R3 Standard uses ordinary simple-cubic site vertices with straight axis, face-diagonal, and body-diagonal rays.',
             t3: 'T3 is the all-side periodic boundary condition on the R3 board. It wraps x, y, and z, so every volume axis is periodic.',
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
@@ -2338,14 +2343,26 @@ class Reversi3DApp {
         }
         this.moveChoiceButtons.replaceChildren(...moves.slice(0, 36).map((move) => {
             const coord = move.coord || move;
+            const moveKey = this.logic.key(coord);
             const flips = this.logic.previewMove(coord).length;
             const button = document.createElement('button');
             button.type = 'button';
-            button.textContent = `(${coord.map((value) => value + 1).join(', ')}) · ${flips}`;
+            button.textContent = `(${coord.map((value) => value + 1).join(', ')}) - ${flips}`;
+            button.classList.toggle('active', this.pendingMoveChoiceKey === moveKey);
             button.title = isZh
                 ? `翻轉 ${flips} 枚棋子`
                 : `${flips} ${flips === 1 ? 'flip' : 'flips'}`;
-            button.addEventListener('click', () => this.playAt(coord));
+            button.addEventListener('click', () => {
+                if (this.pendingMoveChoiceKey !== moveKey) {
+                    this.pendingMoveChoiceKey = moveKey;
+                    this.setStatus(isZh
+                        ? `已選擇位置 (${coord.map((value) => value + 1).join(', ')})；再次按下以落子。`
+                        : `Selected site (${coord.map((value) => value + 1).join(', ')}); press it again to move.`);
+                    this.renderMoveChoices();
+                    return;
+                }
+                this.playAt(coord);
+            });
             return button;
         }));
     }
