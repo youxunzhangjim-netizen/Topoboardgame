@@ -33,8 +33,11 @@ const I18N = {
         kleinQuarticProduct: 'Klein Quartic × I × I',
         viewMode: 'View',
         allSlicesView: 'All z/w Slices',
-        sliceView: 'z-w Slice',
-        stackView: '3D Stack',
+        sliceView: '2D z/w Slice',
+        stackView: 'Interactive 3D x/y/z Slice',
+        rotateX: 'Rotate X',
+        rotateY: 'Rotate Y',
+        rotateZ: 'Rotate Z',
         projectionView: '4D Projection',
         boardView: 'Board View',
         sliceZ: 'Visible z slice',
@@ -104,8 +107,11 @@ const I18N = {
         kleinQuarticProduct: 'Klein 四次曲線 × I × I',
         viewMode: '視圖',
         allSlicesView: '全部 z/w 切片',
-        sliceView: 'z-w 切片',
-        stackView: '3D 堆疊',
+        sliceView: '2D z/w 切片',
+        stackView: '互動 3D x/y/z 切片',
+        rotateX: '繞 X 軸旋轉',
+        rotateY: '繞 Y 軸旋轉',
+        rotateZ: '繞 Z 軸旋轉',
         projectionView: '四維投影',
         boardView: '棋盤視圖',
         sliceZ: '可見 z 切片',
@@ -178,6 +184,8 @@ const elements = {
     sliceZValue: document.getElementById('sliceZValue'),
     sliceWValue: document.getElementById('sliceWValue'),
     wSliceButtons: document.getElementById('wSliceButtons'),
+    rotationX: document.getElementById('rotationX'),
+    rotationY: document.getElementById('rotationY'),
     rotation: document.getElementById('projectionRotation'),
     zoom: document.getElementById('zoom'),
     resetView: document.getElementById('resetViewBtn'),
@@ -195,6 +203,7 @@ let language = normalizeLanguage(params.get('lang') || localStorage.getItem(LANG
 let game;
 let size = 5;
 let projectedSites = [];
+let sliceTileRegions = [];
 let statusKey = 'emptyPrompt';
 let onlineController = null;
 let renderDpr = 1;
@@ -283,6 +292,7 @@ function renderWSliceButtons() {
         button.setAttribute('aria-pressed', String(Number(elements.sliceW.value) === w));
         button.addEventListener('click', () => {
             elements.sliceW.value = String(w);
+            elements.viewMode.value = 'stack';
             updateSliceLabels();
             drawBoard();
         });
@@ -432,6 +442,7 @@ function drawAllSlices(width, height) {
     const titleHeight = Math.max(13, Math.min(22, tileHeight * 0.13));
     const ends = targetEnds();
     projectedSites = [];
+    sliceTileRegions = [];
     context.font = `${Math.max(9, Math.min(13, titleHeight * 0.65))}px system-ui, sans-serif`;
     context.textAlign = 'left';
     context.textBaseline = 'middle';
@@ -462,6 +473,7 @@ function drawAllSlices(width, height) {
             context.strokeRect(left + 0.5, top + 0.5, tileWidth - 1, tileHeight - 1);
             context.fillStyle = '#b9cad5';
             context.fillText(`z=${z}, w=${w}`, left + 6, top + titleHeight * 0.5);
+            sliceTileRegions.push({ left, top, width: tileWidth, height: titleHeight, w });
 
             context.strokeStyle = 'rgba(160,184,198,0.34)';
             context.lineWidth = 0.7;
@@ -498,22 +510,33 @@ function drawAllSlices(width, height) {
 
 function stackPoint(coordinate, width, height) {
     const [x, y, z, w] = coordinate;
+    const midpoint = (size - 1) / 2;
+    let px = x - midpoint;
+    let py = y - midpoint;
+    let pz = z - midpoint;
+    const rotateX = Number(elements.rotationX.value) * Math.PI / 180;
+    const rotateY = Number(elements.rotationY.value) * Math.PI / 180;
+    const rotateZ = Number(elements.rotation.value) * Math.PI / 180;
+    [py, pz] = [
+        py * Math.cos(rotateX) - pz * Math.sin(rotateX),
+        py * Math.sin(rotateX) + pz * Math.cos(rotateX)
+    ];
+    [px, pz] = [
+        px * Math.cos(rotateY) + pz * Math.sin(rotateY),
+        -px * Math.sin(rotateY) + pz * Math.cos(rotateY)
+    ];
+    [px, py] = [
+        px * Math.cos(rotateZ) - py * Math.sin(rotateZ),
+        px * Math.sin(rotateZ) + py * Math.cos(rotateZ)
+    ];
     const zoom = Number(elements.zoom.value);
-    const pad = Math.max(38, Math.min(width, height) * 0.08);
-    const depthOffsetX = Math.min(width, height) * 0.035 * zoom;
-    const depthOffsetY = Math.min(width, height) * 0.028 * zoom;
-    const usableW = width - pad * 2 - depthOffsetX * (size - 1);
-    const usableH = height - pad * 2 - depthOffsetY * (size - 1);
-    const spacing = Math.min(usableW / Math.max(1, size - 1), usableH / Math.max(1, size - 1)) * zoom;
-    const boardWidth = spacing * (size - 1) + depthOffsetX * (size - 1);
-    const boardHeight = spacing * (size - 1) + depthOffsetY * (size - 1);
-    const startX = (width - boardWidth) / 2;
-    const startY = (height - boardHeight) / 2;
+    const spacing = Math.min(width, height) * 0.63 / Math.max(1, size - 1) * zoom;
+    const perspective = Math.max(0.72, 1 + pz * 0.035);
     return {
-        x: startX + x * spacing + z * depthOffsetX,
-        y: startY + y * spacing - z * depthOffsetY,
-        depth: z + w * 0.12,
-        radius: spacing,
+        x: width / 2 + px * spacing * perspective,
+        y: height / 2 + py * spacing * perspective,
+        depth: pz,
+        radius: spacing * perspective,
         coordinate
     };
 }
@@ -739,18 +762,33 @@ elements.canvas.addEventListener('pointermove', (event) => {
         return;
     }
     const dx = event.clientX - lastPointer.x;
-    if (Math.abs(dx) > 2) dragMoved = true;
-    elements.rotation.value = String(Math.max(-180, Math.min(180, Number(elements.rotation.value) + dx * 0.18)));
+    const dy = event.clientY - lastPointer.y;
+    if (Math.hypot(dx, dy) > 2) dragMoved = true;
+    elements.rotationY.value = String(Math.max(-180, Math.min(180, Number(elements.rotationY.value) + dx * 0.18)));
+    elements.rotationX.value = String(Math.max(-90, Math.min(90, Number(elements.rotationX.value) + dy * 0.18)));
     lastPointer = { x: event.clientX, y: event.clientY };
     drawBoard();
 });
 elements.canvas.addEventListener('pointerup', (event) => {
     event.preventDefault();
     const wasTap = !dragMoved && activePointers.size === 1;
-    const site = wasTap ? nearestSite(event) : null;
+    const point = wasTap ? canvasPoint(event) : null;
+    const tile = point && elements.viewMode.value === 'all_slices'
+        ? sliceTileRegions.find((region) =>
+            point.x >= region.left && point.x <= region.left + region.width &&
+            point.y >= region.top && point.y <= region.top + region.height)
+        : null;
+    const site = wasTap && !tile ? nearestSite(event) : null;
     activePointers.delete(event.pointerId);
     resetPointerGesture(event);
-    if (site) playAt(site.coordinate);
+    if (tile) {
+        elements.sliceW.value = String(tile.w);
+        elements.viewMode.value = 'stack';
+        updateSliceLabels();
+        drawBoard();
+    } else if (site) {
+        playAt(site.coordinate);
+    }
 });
 elements.canvas.addEventListener('pointercancel', (event) => {
     activePointers.delete(event.pointerId);
@@ -761,7 +799,7 @@ elements.canvas.addEventListener('wheel', (event) => {
     elements.zoom.value = String(clampZoom(Number(elements.zoom.value) - event.deltaY * 0.0007));
     drawBoard();
 }, { passive: false });
-for (const input of [elements.sliceZ, elements.sliceW, elements.rotation, elements.zoom]) {
+for (const input of [elements.sliceZ, elements.sliceW, elements.rotationX, elements.rotationY, elements.rotation, elements.zoom]) {
     input.addEventListener('input', () => {
         updateSliceLabels();
         drawBoard();
@@ -774,7 +812,9 @@ elements.viewMode.addEventListener('change', () => {
 elements.resetView.addEventListener('click', () => {
     elements.sliceZ.value = String(Math.floor(size / 2));
     elements.sliceW.value = String(Math.floor(size / 2));
-    elements.rotation.value = '20';
+    elements.rotationX.value = '-26';
+    elements.rotationY.value = '32';
+    elements.rotation.value = '0';
     elements.zoom.value = '1';
     updateSliceLabels();
     drawBoard();

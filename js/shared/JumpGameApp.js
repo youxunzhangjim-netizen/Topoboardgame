@@ -262,6 +262,7 @@ export class JumpGameApp {
     this.sliceFilterEl = document.getElementById('r3FilterControl');
     this.focusOwnPieces = false;
     this.sliceProjectionMap = null;
+    this.sliceTileRegions = [];
     this.sliceCellSize = 0;
     this.applyInitialSelectValues();
     this.movePicker = this.ensureMovePicker();
@@ -598,6 +599,7 @@ export class JumpGameApp {
 
   onCanvasClick(event) {
     if (performance.now() < this.suppressCanvasClickUntil) return;
+    if (this.open4DSliceFromEvent(event)) return;
     if (!this.canCurrentUserAct()) return;
     const coord = this.coordFromEvent(event);
     if (!coord) return;
@@ -959,6 +961,21 @@ export class JumpGameApp {
     return bestDist < this.cellRadius() * 1.2 ? best : null;
   }
 
+  open4DSliceFromEvent(event) {
+    if (this.dimension !== 4 || this.viewModeSelect?.value !== 'all_slices' || !this.sliceTileRegions?.length) return false;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const tile = this.sliceTileRegions.find((region) =>
+      x >= region.left && x <= region.right && y >= region.top && y <= region.titleBottom);
+    if (!tile) return false;
+    this.viewModeSelect.value = 'w_slice';
+    if (this.sliceInputs?.w) this.sliceInputs.w.value = String(tile.w + 1);
+    this.updateR3SliceFilterVisibility();
+    this.render();
+    return true;
+  }
+
   visibleCoord(coord) {
     if ((this.game?.dimension || this.effectiveDimensionForTopology()) <= 2) return true;
     if (this.dimension === 4 && this.viewModeSelect?.value === 'all_slices') return true;
@@ -1025,6 +1042,8 @@ export class JumpGameApp {
       button.setAttribute('aria-pressed', String(selected === w));
       button.addEventListener('click', () => {
         this.sliceInputs.w.value = String(w + 1);
+        if (this.viewModeSelect) this.viewModeSelect.value = 'w_slice';
+        this.updateViewControls();
         this.renderWSliceButtons();
         this.render();
       });
@@ -1423,6 +1442,7 @@ export class JumpGameApp {
     const tileHeight = (height - outer * 2 - gap * (rows - 1)) / rows;
     const titleHeight = Math.max(12, Math.min(20, tileHeight * 0.13));
     this.sliceProjectionMap = new Map();
+    this.sliceTileRegions = [];
     this.sliceCellSize = 0;
     const ctx = this.ctx;
     let tile = 0;
@@ -1453,6 +1473,14 @@ export class JumpGameApp {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(`z=${z}, w=${w}`, left + 5, top + titleHeight * 0.5);
+        this.sliceTileRegions.push({
+          left,
+          right: left + tileWidth,
+          top,
+          titleBottom: top + titleHeight,
+          z,
+          w
+        });
         for (let y = 0; y < size; y += 1) {
           for (let x = 0; x < size; x += 1) {
             this.sliceProjectionMap.set(coordKey([x, y, z, w]), {
@@ -1687,7 +1715,8 @@ export class JumpGameApp {
 
   drawPiece(coord, owner, label) {
     const p = this.project(coord);
-    const r = this.cellRadius() * 0.72;
+    const r3VolumePiece = this.dimension === 3 && this.usesVolumeGraphView();
+    const r = this.cellRadius() * (r3VolumePiece ? 0.88 : 0.72);
     const ctx = this.ctx;
     const focus = this.focusOwnPieces ? this.focusPlayer() : null;
     ctx.save();

@@ -19,6 +19,15 @@ class Go4DApp {
         this.wSliceValue = document.getElementById('wSliceValue');
         this.wSliceGroup = document.getElementById('wSliceGroup');
         this.wSliceButtons = document.getElementById('wSliceButtons');
+        this.slice3DViewControls = document.getElementById('slice3DViewControls');
+        this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
+        this.viewControls = {
+            rotX: document.getElementById('viewRotateX'),
+            rotY: document.getElementById('viewRotateY'),
+            rotZ: document.getElementById('viewRotateZ'),
+            zoom: document.getElementById('viewZoom'),
+            reset: document.getElementById('viewResetButton')
+        };
         this.statusEl = document.getElementById('gameStatus');
         this.selectionEl = document.getElementById('selectionStatus');
         this.turnEl = document.getElementById('playerTurn');
@@ -168,6 +177,44 @@ class Go4DApp {
             this.hoverIndex = -1;
             this.updateBoardHighlights();
         });
+        for (const control of [this.viewControls.rotX, this.viewControls.rotY, this.viewControls.rotZ, this.viewControls.zoom]) {
+            control?.addEventListener('input', () => {
+                this.view.rotX = Number(this.viewControls.rotX.value);
+                this.view.rotY = Number(this.viewControls.rotY.value);
+                this.view.rotZ = Number(this.viewControls.rotZ.value);
+                this.view.zoom = Number(this.viewControls.zoom.value);
+                this.render();
+            });
+        }
+        this.viewControls.reset?.addEventListener('click', () => {
+            Object.assign(this.view, { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null });
+            this.syncViewControls();
+            this.render();
+        });
+        this.gridEl.addEventListener('pointerdown', (event) => {
+            if (this.viewModeSelect?.value !== 'w_slice') return;
+            this.view.drag = { x: event.clientX, y: event.clientY };
+            this.gridEl.setPointerCapture?.(event.pointerId);
+        });
+        this.gridEl.addEventListener('pointermove', (event) => {
+            if (!this.view.drag || this.viewModeSelect?.value !== 'w_slice') return;
+            const dx = event.clientX - this.view.drag.x;
+            const dy = event.clientY - this.view.drag.y;
+            this.view.rotY += dx * 0.22;
+            this.view.rotX = Math.max(-90, Math.min(90, this.view.rotX + dy * 0.22));
+            this.view.drag = { x: event.clientX, y: event.clientY };
+            this.syncViewControls();
+            this.render();
+        });
+        this.gridEl.addEventListener('pointerup', () => { this.view.drag = null; });
+        this.gridEl.addEventListener('pointercancel', () => { this.view.drag = null; });
+        this.gridEl.addEventListener('wheel', (event) => {
+            if (this.viewModeSelect?.value !== 'w_slice') return;
+            event.preventDefault();
+            this.view.zoom = Math.max(0.45, Math.min(2.4, this.view.zoom - event.deltaY * 0.001));
+            this.syncViewControls();
+            this.render();
+        }, { passive: false });
     }
 
     resetGame({ broadcast = false } = {}) {
@@ -271,8 +318,16 @@ class Go4DApp {
     updateViewControls() {
         const is3DSlice = this.viewModeSelect?.value === 'w_slice';
         if (this.wSliceGroup) this.wSliceGroup.hidden = !is3DSlice;
+        if (this.slice3DViewControls) this.slice3DViewControls.hidden = !is3DSlice;
         if (this.wSliceValue && this.wSliceInput) this.wSliceValue.textContent = this.wSliceInput.value;
         this.renderWSliceButtons();
+    }
+
+    syncViewControls() {
+        if (this.viewControls.rotX) this.viewControls.rotX.value = String(this.view.rotX);
+        if (this.viewControls.rotY) this.viewControls.rotY.value = String(this.view.rotY);
+        if (this.viewControls.rotZ) this.viewControls.rotZ.value = String(this.view.rotZ);
+        if (this.viewControls.zoom) this.viewControls.zoom.value = String(this.view.zoom);
     }
 
     renderWSliceButtons() {
@@ -285,6 +340,7 @@ class Go4DApp {
             button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
             button.addEventListener('click', () => {
                 this.wSliceInput.value = String(w);
+                this.viewModeSelect.value = 'w_slice';
                 this.zoomSelect.value = 'all';
                 this.updateViewControls();
                 this.render();
@@ -356,6 +412,11 @@ class Go4DApp {
         const onlyLayer = zoom !== 'all' ? zoom.split(',').map(Number) : null;
         const visibleW = is3DSlice ? Number(this.wSliceInput?.value || 0) : null;
         const { group, liberties } = this.selectionSets();
+        if (is3DSlice) {
+            this.render3DSlice(visibleW, group, liberties);
+            return;
+        }
+        this.gridEl.className = 'slice-grid';
         this.gridEl.style.gridTemplateColumns = onlyLayer ? '1fr' : `repeat(${nz}, max-content)`;
         this.gridEl.innerHTML = '';
 
@@ -367,7 +428,10 @@ class Go4DApp {
                 slice.className = `slice-board${onlyLayer ? ' zoomed' : ''}`;
                 slice.innerHTML = `<div class="slice-title">z=${z}, w=${w}</div>`;
                 slice.querySelector('.slice-title').addEventListener('click', () => {
-                    this.zoomSelect.value = `${z},${w}`;
+                    this.wSliceInput.value = String(w);
+                    this.viewModeSelect.value = 'w_slice';
+                    this.zoomSelect.value = 'all';
+                    this.updateViewControls();
                     this.render();
                 });
                 const grid = document.createElement('div');
@@ -402,6 +466,84 @@ class Go4DApp {
                 this.gridEl.append(slice);
             }
         }
+    }
+
+    render3DSlice(w, group, liberties) {
+        const { nx, ny, nz } = this.logic.sizes;
+        this.gridEl.className = 'slice-grid interactive-3d-slice';
+        this.gridEl.style.gridTemplateColumns = '';
+        this.gridEl.innerHTML = '<div class="slice-3d-label">Interactive 3D slice · fixed w=' + w + '</div>';
+        const rect = this.gridEl.getBoundingClientRect();
+        const width = Math.max(320, rect.width || 720);
+        const height = Math.max(500, rect.height || 620);
+        const coords = [];
+        for (let z = 0; z < nz; z++) for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) coords.push([x, y, z, w]);
+        const projected = new Map(coords.map((coord) => {
+            const point = this.project3DCoord(coord, width, height);
+            return [coord.join(','), { coord, ...point }];
+        }));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'interactive-3d-edge-layer');
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        for (const item of projected.values()) {
+            for (let axis = 0; axis < 3; axis++) {
+                const next = [...item.coord];
+                next[axis] += 1;
+                const other = projected.get(next.join(','));
+                if (!other) continue;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'interactive-3d-edge');
+                line.setAttribute('x1', item.x);
+                line.setAttribute('y1', item.y);
+                line.setAttribute('x2', other.x);
+                line.setAttribute('y2', other.y);
+                svg.append(line);
+            }
+        }
+        this.gridEl.append(svg);
+        [...projected.values()].sort((a, b) => a.depth - b.depth).forEach(({ coord, x, y, depth }) => {
+            const index = this.logic.indexFromCoord(coord);
+            const value = this.logic.board[index];
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'vertex projected-vertex';
+            button.dataset.coord = JSON.stringify(coord);
+            button.title = `(${coord.join(',')})`;
+            button.style.left = `${x}px`;
+            button.style.top = `${y}px`;
+            button.style.zIndex = String(Math.round((depth + 8) * 100));
+            button.addEventListener('click', () => this.play(coord));
+            button.classList.toggle('selected', index === this.selectedIndex);
+            button.classList.toggle('hover', index === this.hoverIndex);
+            button.classList.toggle('group', group.has(index));
+            button.classList.toggle('liberty', liberties.has(index));
+            if (value) {
+                const stone = document.createElement('span');
+                stone.className = `stone ${valueToColor(value)}`;
+                button.append(stone);
+            }
+            this.gridEl.append(button);
+        });
+    }
+
+    project3DCoord(coord, width, height) {
+        const { nx, ny, nz } = this.logic.sizes;
+        const normalize = (value, count) => (value / Math.max(1, count - 1) - 0.5) * 2;
+        let x = normalize(coord[0], nx);
+        let y = normalize(coord[1], ny);
+        let z = normalize(coord[2], nz);
+        const rx = this.view.rotX * Math.PI / 180;
+        const ry = this.view.rotY * Math.PI / 180;
+        const rz = this.view.rotZ * Math.PI / 180;
+        let c = Math.cos(rx), s = Math.sin(rx);
+        [y, z] = [y * c - z * s, y * s + z * c];
+        c = Math.cos(ry); s = Math.sin(ry);
+        [x, z] = [x * c + z * s, -x * s + z * c];
+        c = Math.cos(rz); s = Math.sin(rz);
+        [x, y] = [x * c - y * s, x * s + y * c];
+        const perspective = 1 / Math.max(0.42, 1 + z * 0.18);
+        const scale = Math.min(width, height) * 0.34 * this.view.zoom * perspective;
+        return { x: width / 2 + x * scale, y: height / 2 + y * scale, depth: z };
     }
 
     updateBoardHighlights() {

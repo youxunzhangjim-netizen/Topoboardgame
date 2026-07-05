@@ -206,7 +206,7 @@ class Reversi4DApp {
             this.render();
         });
         this.gridEl.addEventListener('wheel', (event) => {
-            if (this.viewModeSelect?.value !== 'stacked_4d') return;
+            if (!['stacked_4d', 'w_slice'].includes(this.viewModeSelect?.value)) return;
             event.preventDefault();
             const factor = event.deltaY < 0 ? 1.08 : 0.92;
             this.view.zoom = Math.max(0.35, Math.min(2.8, this.view.zoom * factor));
@@ -216,7 +216,7 @@ class Reversi4DApp {
         installProjectedBoardTouchControls({
             element: this.gridEl,
             view: this.view,
-            isEnabled: () => this.viewModeSelect?.value === 'stacked_4d',
+            isEnabled: () => ['stacked_4d', 'w_slice'].includes(this.viewModeSelect?.value),
             rotationScale: 0.22,
             syncControls: () => {
                 if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
@@ -301,7 +301,7 @@ class Reversi4DApp {
         const is3DSlice = this.viewModeSelect?.value === 'w_slice';
         const isStacked = this.viewModeSelect?.value === 'stacked_4d';
         if (this.wSliceGroup) this.wSliceGroup.hidden = !is3DSlice;
-        if (this.stackedViewControls) this.stackedViewControls.hidden = !isStacked;
+        if (this.stackedViewControls) this.stackedViewControls.hidden = !isStacked && !is3DSlice;
         if (this.wSliceValue && this.wSliceInput) this.wSliceValue.textContent = this.wSliceInput.value;
         this.renderWSliceButtons();
     }
@@ -316,6 +316,7 @@ class Reversi4DApp {
             button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
             button.addEventListener('click', () => {
                 this.wSliceInput.value = String(w);
+                this.viewModeSelect.value = 'w_slice';
                 this.zoomSelect.value = 'all';
                 this.updateViewControls();
                 this.render();
@@ -391,6 +392,10 @@ class Reversi4DApp {
         const legal = new Set(this.logic.legalMoves(this.logic.currentPlayer).map((move) => this.logic.key(move.coord)));
         const preview = this.hoverKey ? this.logic.previewMove(this.hoverKey.split(',').map(Number)) : [];
         const previewFlips = new Set(preview.map((coord) => this.logic.key(coord)));
+        if (is3DSlice) {
+            this.render3DSlice(visibleW, legal, previewFlips);
+            return;
+        }
 
         this.gridEl.className = 'slice-grid';
         this.gridEl.style.gridTemplateColumns = onlyLayer ? '1fr' : `repeat(${depth}, max-content)`;
@@ -405,7 +410,10 @@ class Reversi4DApp {
                 slice.className = `slice-board${onlyLayer ? ' zoomed' : ''}`;
                 slice.innerHTML = `<div class="slice-title">z=${z}, w=${w}</div>`;
                 slice.querySelector('.slice-title').addEventListener('click', () => {
-                    this.zoomSelect.value = `${z},${w}`;
+                    this.wSliceInput.value = String(w);
+                    this.viewModeSelect.value = 'w_slice';
+                    this.zoomSelect.value = 'all';
+                    this.updateViewControls();
                     this.render();
                 });
                 const grid = document.createElement('div');
@@ -441,6 +449,76 @@ class Reversi4DApp {
                 this.gridEl.append(slice);
             }
         }
+    }
+
+    render3DSlice(w, legal, previewFlips) {
+        const { width, height, depth } = this.logic.topology;
+        this.gridEl.className = 'slice-grid interactive-3d-slice';
+        this.gridEl.style.gridTemplateColumns = '';
+        this.gridEl.style.minHeight = 'clamp(500px, 68vh, 760px)';
+        this.gridEl.innerHTML = `<div class="slice-3d-label">Interactive 3D slice · fixed w=${w}</div>`;
+        const rect = this.gridEl.getBoundingClientRect();
+        const boardWidth = Math.max(320, rect.width || 720);
+        const boardHeight = Math.max(500, rect.height || 620);
+        const coords = [];
+        for (let z = 0; z < depth; z++) for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) coords.push([x, y, z, w]);
+        const projected = new Map(coords.map((coord) => [
+            this.logic.key(coord),
+            { coord, ...this.project3DSliceCoord(coord, boardWidth, boardHeight) }
+        ]));
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'interactive-3d-edge-layer');
+        svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
+        for (const item of projected.values()) {
+            for (let axis = 0; axis < 3; axis++) {
+                const next = [...item.coord];
+                next[axis] += 1;
+                const other = projected.get(this.logic.key(next));
+                if (!other) continue;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'interactive-3d-edge');
+                line.setAttribute('x1', item.x);
+                line.setAttribute('y1', item.y);
+                line.setAttribute('x2', other.x);
+                line.setAttribute('y2', other.y);
+                svg.append(line);
+            }
+        }
+        this.gridEl.append(svg);
+        [...projected.values()].sort((a, b) => a.depth - b.depth).forEach(({ coord, x, y, depth: pointDepth }) => {
+            const key = this.logic.key(coord);
+            const stone = this.logic.get(coord);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'vertex projected-vertex';
+            button.dataset.coord = JSON.stringify(coord);
+            button.dataset.key = key;
+            button.title = `(${coord.join(',')})`;
+            button.style.left = `${x}px`;
+            button.style.top = `${y}px`;
+            button.style.zIndex = String(Math.round((pointDepth + 8) * 100));
+            button.addEventListener('click', () => this.play(coord));
+            button.classList.toggle('selected', key === this.selectedKey);
+            button.classList.toggle('hover', key === this.hoverKey);
+            button.classList.toggle('liberty', legal.has(key));
+            button.classList.toggle('group', previewFlips.has(key));
+            if (stone) {
+                const node = document.createElement('span');
+                node.className = `stone ${stone.color}`;
+                button.append(node);
+            }
+            this.gridEl.append(button);
+        });
+    }
+
+    project3DSliceCoord(coord, width, height) {
+        const { width: nx, height: ny, depth } = this.logic.topology;
+        const scaleAxis = (value, count) => (value / Math.max(1, count - 1) - 0.5) * 2;
+        let point = [scaleAxis(coord[0], nx), scaleAxis(coord[1], ny), scaleAxis(coord[2], depth)];
+        point = this.rotatePoint3D(point);
+        const perspective = 1 / Math.max(0.42, 1 + point[2] * 0.18);
+        const scale = Math.min(width, height) * 0.34 * (this.view.zoom || 1) * perspective;
+        return { x: width / 2 + point[0] * scale, y: height / 2 + point[1] * scale, depth: point[2] };
     }
 
     renderStacked4D() {
