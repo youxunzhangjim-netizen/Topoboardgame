@@ -86,6 +86,7 @@
     "models:promote": "powershell -ExecutionPolicy Bypass -File scripts/Promote-TrainedModels.ps1",
     "preupload:check": "powershell -ExecutionPolicy Bypass -File scripts/Preupload-Check.ps1",
     "verify:life": "node tools/verify-life-worlds.mjs",
+    "verify:vertex-go-boards": "node verification/verify-vertex-go-boards.mjs",
     "steam:check-info": "node scripts/check-steam-upload-info.mjs",
     "steam:prepare-vdf": "node scripts/prepare-steam-vdf.mjs"
   },

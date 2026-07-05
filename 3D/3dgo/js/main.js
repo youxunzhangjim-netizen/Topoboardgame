@@ -257,11 +257,23 @@ Object.assign(I18N.en.mode, {
     rp2Info: 'RP2 uses a raised projective board with antipodal glue arcs; crossing any cut edge flips the transverse coordinate.',
     cylinderInfo: 'Cylinder Go wraps left-right around the circumference while top and bottom remain open.'
 });
+Object.assign(I18N.en.mode, {
+    honeycombTorus: 'Honeycomb Torus',
+    honeycombCylinder: 'Honeycomb Cylinder',
+    kleinSquareVertex: 'Klein Bottle Square Vertex Board',
+    vertexSubtitle: 'Go stones are placed on graph vertices.'
+});
 
 Object.assign(I18N.zh.mode, {
     cylinderOption: '圓柱圍棋',
     cylinderDisplay: ({ size }) => size + ' x ' + size + ' 圓柱圍棋',
     cylinderInfo: '圓柱只在左右方向週期包回，上下邊界保持開放。'
+});
+Object.assign(I18N.zh.mode, {
+    honeycombTorus: '蜂巢圖環面',
+    honeycombCylinder: '蜂巢圖圓柱',
+    kleinSquareVertex: 'Klein 瓶方格頂點棋盤',
+    vertexSubtitle: '圍棋棋子放在圖的頂點上。'
 });
 
 Object.assign(I18N.zh.boundary, {
@@ -1356,6 +1368,27 @@ class Go3DRenderer {
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
         this.addAgeRings(ageRings, logic);
+        this.addLastMoveMarker(logic);
+    }
+
+    addLastMoveMarker(logic) {
+        if (!logic.vertexGraph) return;
+        const lastMove = logic.moveHistory.find((entry) => entry.type === 'play' && Array.isArray(entry.coord));
+        if (!lastMove) return;
+        const position = this.positionForCoord(lastMove.coord, logic);
+        const marker = new THREE.Mesh(
+            new THREE.TorusGeometry(0.105, 0.018, 10, 40),
+            new THREE.MeshBasicMaterial({
+                color: 0xef4444,
+                transparent: true,
+                opacity: 0.94,
+                depthWrite: false
+            })
+        );
+        marker.position.copy(position);
+        marker.userData.ageRing = true;
+        marker.renderOrder = 13;
+        this.stoneGroup.add(marker);
     }
 
     addStoneInstances(positions, color, logic) {
@@ -2563,6 +2596,16 @@ class Go3DApp {
         return (currentLanguage === 'zh' ? zhInfo : enInfo)[lattice] || '';
     }
 
+    syncVertexBoardLabels(lattice = this.logic?.lattice) {
+        const torusOption = this.modeSelect?.querySelector('option[value="t2"]');
+        const cylinderOption = this.modeSelect?.querySelector('option[value="cylinder"]');
+        const honeycomb = lattice === HONEYCOMB_LATTICE;
+        if (torusOption) torusOption.textContent = honeycomb ? tr('mode.honeycombTorus') : tr('mode.t2Option');
+        if (cylinderOption) {
+            cylinderOption.textContent = honeycomb ? tr('mode.honeycombCylinder') : tr('mode.cylinderOption');
+        }
+    }
+
     tryJoinSharedRoomFromUrl() {
         const roomId = new URLSearchParams(window.location.search).get('room');
         if (!roomId) return;
@@ -3119,6 +3162,7 @@ class Go3DApp {
             ? (this.logic.topology === T3_PBC_TOPOLOGY ? 't3' : this.logic.topology === R3_RANDOM_TOPOLOGY ? 'r3Random' : this.logic.topology === R3_RP3_TOPOLOGY ? 'rp3' : 'r3')
             : modeKey;
         const visualLattice = isSphere ? this.currentLattice() : this.logic.lattice;
+        this.syncVertexBoardLabels(visualLattice);
         const infoKey = isSphere && visualLattice === BUCKYBALL_LATTICE ? 'buckyballSphere' : boundaryInfoKey;
         const boundaryLabel = isR3Like ? ` - ${tr(`boundary.${boundaryKey}`)}` : '';
         this.modeDisplay.textContent = `${tr(`mode.${modeKey}Display`, {
@@ -3133,7 +3177,16 @@ class Go3DApp {
                 height: this.logic.height
             })}${boundaryLabel} - ${this.latticeName()}`;
         }
-        this.modeInfo.textContent = tr(`mode.${infoKey}Info`) + this.latticeInfo(visualLattice);
+        if (this.logic.vertexGraph && visualLattice === HONEYCOMB_LATTICE) {
+            this.modeDisplay.textContent = `${this.logic.width} × ${this.logic.height} ${tr(
+                `mode.${isCylinder ? 'honeycombCylinder' : 'honeycombTorus'}`
+            )}`;
+        } else if (this.logic.vertexGraph && isKlein) {
+            this.modeDisplay.textContent = `${this.logic.width} × ${this.logic.height} ${tr('mode.kleinSquareVertex')}`;
+        }
+        this.modeInfo.textContent = this.logic.vertexGraph
+            ? `${tr(`mode.${infoKey}Info`)} ${tr('mode.vertexSubtitle')}`
+            : tr(`mode.${infoKey}Info`) + this.latticeInfo(visualLattice);
         if (isSphere && visualLattice === BUCKYBALL_LATTICE && this.sphereViewSelect.value === '2d') {
             this.sphereViewSelect.value = '3d';
         }
