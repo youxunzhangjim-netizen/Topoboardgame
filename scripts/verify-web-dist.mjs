@@ -50,9 +50,17 @@ const forbiddenDirectoryNames = new Set([
     'node_modules',
     '.git',
     'local-data',
+    'research-data',
+    'training-data',
+    'selfplay',
+    'self-play',
     'release',
     'release-packages',
+    'out',
+    'build',
     'steamworks',
+    'python-bridge',
+    'research-bridge',
     'test-results',
     'playwright-report'
 ]);
@@ -65,7 +73,11 @@ for (const path of files) {
     }
     const lower = relativePath.toLowerCase();
     if (lower.endsWith('.jsonl')) fail(`Training/self-play JSONL published in web-lite dist: ${relativePath}`);
+    if (lower.endsWith('.steamguard')) fail(`SteamGuard file published in web-lite dist: ${relativePath}`);
+    if (lower.endsWith('.tmp')) fail(`Temporary file published in web-lite dist: ${relativePath}`);
+    if (lower.endsWith('.cache')) fail(`Cache file published in web-lite dist: ${relativePath}`);
     if (/(^|\/)\.env(\.|$)/i.test(relativePath)) fail(`Environment file published in web-lite dist: ${relativePath}`);
+    if (/(^|\/)firebase\.local\.json$/i.test(relativePath)) fail(`Firebase local config published in web-lite dist: ${relativePath}`);
     if (/steam.*credential|credential.*steam|service-account|private-key/i.test(relativePath)) {
         fail(`Private credential-like file published in web-lite dist: ${relativePath}`);
     }

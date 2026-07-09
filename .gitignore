@@ -5,6 +5,7 @@ dist-steam/
 dist-research/
 dist-debug/
 .launcher-dist/
+build/
 
 */node_modules/
 */dist/
@@ -14,6 +15,7 @@ dist-debug/
 !.env.web-lite
 !.env.steam-stable
 !.env.research-dev
+!.env.example
 *.log
 .codex-*.log
 .vscode/
@@ -23,13 +25,16 @@ test-results/
 
 .local-git-backups/
 local-data/
+research-data/
 *.jsonl
 *.jsonl.gz
 training-data/
+selfplay/
 self-play/
 python-bridge/
 research-bridge/
 .DS_Store
+Thumbs.db
 
 local-models/*.json
 local-models/**/*.json
@@ -41,8 +46,11 @@ npm-debug.log*
 release/
 release-packages/
 out/
+*.tmp
+*.cache
 .env.local
 .env.*.local
+firebase.local.json
 # Steamworks private generated/upload folders
 steamworks/sdk/
 steamworks/build-output/
@@ -53,6 +61,7 @@ steamworks/generated/
 steamworks/**/*.vdf.local
 steamworks/**/*credentials*
 steamworks/**/*private*
+*.steamguard
 steam_appid.txt
 account_name.txt
 steam_credentials.json
