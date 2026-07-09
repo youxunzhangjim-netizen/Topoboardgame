@@ -103,6 +103,39 @@ service cloud.firestore {
           || profile[field] is bool;
       }
 
+      function validOptionalRoomString(field, maxLength) {
+        return !request.resource.data.keys().hasAny([field])
+          || (
+            request.resource.data[field] is string
+            && request.resource.data[field].size() <= maxLength
+          );
+      }
+
+      function validOptionalRoomNumber(field) {
+        return !request.resource.data.keys().hasAny([field])
+          || request.resource.data[field] is number;
+      }
+
+      function keepsOptionalRoomField(field) {
+        return request.resource.data.keys().hasAny([field]) == resource.data.keys().hasAny([field])
+          && (
+            !resource.data.keys().hasAny([field])
+            || request.resource.data[field] == resource.data[field]
+          );
+      }
+
+      function validRoomCompatibilityFields() {
+        return validOptionalRoomNumber("roomProtocolVersion")
+          && validOptionalRoomString("onlinePool", 40)
+          && validOptionalRoomString("onlineEnv", 40);
+      }
+
+      function keepsRoomCompatibilityFields() {
+        return keepsOptionalRoomField("roomProtocolVersion")
+          && keepsOptionalRoomField("onlinePool")
+          && keepsOptionalRoomField("onlineEnv");
+      }
+
       function validRoomPlayerProfile(profile, uid) {
         return profile is map
           && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
@@ -353,6 +386,7 @@ service cloud.firestore {
         && request.resource.data.public is bool
         && request.resource.data.gameKey is string
         && request.resource.data.matchKey is string
+        && validRoomCompatibilityFields()
         && request.resource.data.board is string
         && (
           request.resource.data.turn == "white"
@@ -361,6 +395,7 @@ service cloud.firestore {
         && request.resource.data.moveNumber == 0;
 
       allow update: if signedIn()
+        && keepsRoomCompatibilityFields()
         && (isJoin() || isPublicWaitingTouch() || isLegalClientMove() || isLeave() || isPublicWaitingLeave() || isPlayerInfoRefresh());
 
       allow delete: if false;

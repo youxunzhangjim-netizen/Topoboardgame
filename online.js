@@ -40,6 +40,8 @@ import {
     where
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
+import { ONLINE_CONFIG } from './js/shared/OnlineConfig.js';
+import { canJoinRoom, getJoinRoomProblemMessage } from './js/shared/OnlineCompatibility.js';
 
 const buildEnv = import.meta.env || {};
 const onlineBuildConfig = {
@@ -47,6 +49,7 @@ const onlineBuildConfig = {
     clientKind: String(buildEnv.VITE_TBG_CLIENT_KIND || 'web'),
     environment: String(buildEnv.VITE_TBG_ONLINE_ENV || 'prod'),
     pool: String(buildEnv.VITE_TBG_ONLINE_POOL || 'global'),
+    roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
     enabled: String(buildEnv.VITE_TBG_ENABLE_ONLINE ?? 'true').toLowerCase() !== 'false'
 };
 
@@ -1322,7 +1325,8 @@ function normalizeRoomId(value) {
 function roomMatchesCurrentBucket(room) {
     const waitingUid = waitingPlayerUid(room);
     const assignedPlayers = new Set([room?.players?.white, room?.players?.black].filter(Boolean));
-    return room?.status === 'waiting'
+    return canJoinRoom(currentOnlineCompatibilityConfig(), room).ok
+        && room?.status === 'waiting'
         && room?.public === true
         && room?.matchKey === hooks.matchKey
         && room?.gameKey === hooks.gameKey
@@ -1570,6 +1574,7 @@ export async function createPrivateRoom(initialBoard) {
         turn: 'white',
         gameKey: hooks.gameKey,
         matchKey: hooks.matchKey,
+        ...onlineRoomCompatibilityMetadata(),
         board: encodeBoardForFirestore(board),
         moveNumber: 0,
         lastMove: null,
@@ -1587,6 +1592,43 @@ export async function createPrivateRoom(initialBoard) {
     return { roomId, playerColor };
 }
 
+function currentLanguageCode() {
+    try {
+        const stored = localStorage.getItem('topological-boardgame:language')
+            || localStorage.getItem('topoboardgame:language')
+            || document.documentElement.lang
+            || navigator.language
+            || 'en';
+        return /^zh/i.test(stored) ? 'zh' : 'en';
+    } catch {
+        return 'en';
+    }
+}
+
+function currentOnlineCompatibilityConfig() {
+    return {
+        roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
+        onlinePool: onlineBuildConfig.pool,
+        gameKey: hooks.gameKey,
+        matchKey: hooks.matchKey
+    };
+}
+
+function onlineRoomCompatibilityMetadata() {
+    return {
+        roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
+        onlinePool: onlineBuildConfig.pool,
+        onlineEnv: onlineBuildConfig.environment
+    };
+}
+
+function assertRoomCompatibility(room) {
+    const result = canJoinRoom(currentOnlineCompatibilityConfig(), room);
+    if (!result.ok) {
+        throw new Error(getJoinRoomProblemMessage(result, currentLanguageCode()));
+    }
+}
+
 export async function joinPrivateRoom(rawRoomId) {
     requireReady();
     const requestedRoom = normalizeRoomId(rawRoomId);
@@ -1598,12 +1640,7 @@ export async function joinPrivateRoom(rawRoomId) {
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error('Room not found.');
         const room = snapshot.data();
-        if (room.gameKey && room.gameKey !== hooks.gameKey) {
-            throw new Error('This room belongs to a different game.');
-        }
-        if (room.public && room.matchKey && room.matchKey !== hooks.matchKey) {
-            throw new Error('This room uses different match settings.');
-        }
+        assertRoomCompatibility(room);
         const existingColor = room.players?.white === user.uid
             ? 'white'
             : room.players?.black === user.uid ? 'black' : null;
@@ -1742,6 +1779,7 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
                 turn: initialTurn,
                 gameKey: hooks.gameKey,
                 matchKey: hooks.matchKey,
+                ...onlineRoomCompatibilityMetadata(),
                 board: encodeBoardForFirestore(board),
                 moveNumber: 0,
                 lastMove: null,
@@ -1753,7 +1791,7 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
         }
 
         const room = snapshot.data();
-        if (room.gameKey !== hooks.gameKey || room.matchKey !== hooks.matchKey) return null;
+        if (!canJoinRoom(currentOnlineCompatibilityConfig(), room).ok) return null;
         const existingColor = playerColorInRoom(room);
         if (existingColor) {
             return {
