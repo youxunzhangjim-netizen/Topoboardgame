@@ -1,6 +1,6 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-06-22T03:54:33.186Z",
+  "generatedAt": "2026-07-09T19:41:53.087Z",
   "game": "chess",
   "boardFamily": "standard",
   "manifest": [
@@ -35,6 +35,15 @@
       "notes": ""
     },
     {
+      "id": "AlphaZero self-play learning paper",
+      "name": "AlphaZero self-play learning paper",
+      "url": "https://arxiv.org/abs/1712.01815",
+      "license": "Metadata reference only; no article text, models, or weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": ""
+    },
+    {
       "id": "User-provided Go SGF folder",
       "name": "User-provided Go SGF folder",
       "url": "local:data/go/sgf/",
@@ -52,6 +61,15 @@
       "license": "Engine executable is configured locally and not redistributed by this repository.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
+      "notes": ""
+    },
+    {
+      "id": "KataGo self-play learning paper",
+      "name": "KataGo self-play learning paper",
+      "url": "https://arxiv.org/abs/1902.10565",
+      "license": "Metadata reference only; no article text, models, or weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
       "notes": ""
     },
     {
@@ -75,6 +93,24 @@
       "notes": ""
     },
     {
+      "id": "MoHex and Benzene Hex search references",
+      "name": "MoHex and Benzene Hex search references",
+      "url": "https://benzene.sourceforge.net/",
+      "license": "Metadata reference only; no external Hex engine code or article text is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": ""
+    },
+    {
+      "id": "Go-on-graphs rules and graph-feature references",
+      "name": "Go-on-graphs rules and graph-feature references",
+      "url": "https://who.rocq.inria.fr/Laurent.Viennot/gog/rules.html",
+      "license": "Metadata reference only; graph rules are implemented locally.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": ""
+    },
+    {
       "id": "Topoboardgame Chinese Checkers local notes",
       "name": "Topoboardgame Chinese Checkers local notes",
       "url": "local:data/chinese-checkers/notes/",
@@ -85,58 +121,214 @@
       "notes": ""
     },
     {
-      "id": "stockfish",
-      "name": "Stockfish chess engine",
+      "id": "Chinese Checkers MCTS and endgame research references",
+      "name": "Chinese Checkers MCTS and endgame research references",
+      "url": "https://ar5iv.labs.arxiv.org/html/1903.01747",
+      "license": "Metadata reference only; no article text, solver data, or model weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": ""
+    },
+    {
+      "id": "stockfish-official",
+      "name": "Stockfish official project and UCI documentation",
       "url": "https://stockfishchess.org/",
-      "license": "GPL-3.0-or-later. Use as a local external engine unless GPL obligations are intentionally handled.",
+      "localPath": "process.env.STOCKFISH_PATH",
+      "license": "GPL-3.0-or-later for the engine; executable is configured locally and not bundled here.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Metadata only. The repository does not download or bundle Stockfish."
+      "notes": "Used as a local teacher/baseline through UCI for normal 2D chess and derived engine-analysis features."
     },
     {
-      "id": "katago",
-      "name": "KataGo Go engine",
+      "id": "lichess-open-database",
+      "name": "Lichess open chess database",
+      "url": "https://database.lichess.org/",
+      "localPath": "data/chess/pgn/",
+      "license": "Lichess database pages list standard rated games as CC0; broadcasts are CC BY-SA 4.0. User must keep source class separated when importing.",
+      "redistributionAllowed": true,
+      "dataType": "PGN",
+      "notes": "Use only user-downloaded local PGN files to build derived opening statistics."
+    },
+    {
+      "id": "lichess-chess-openings",
+      "name": "lichess-org/chess-openings",
+      "url": "https://github.com/lichess-org/chess-openings",
+      "localPath": "data/chess/openings/",
+      "license": "CC0-1.0 according to the project repository.",
+      "redistributionAllowed": true,
+      "dataType": "JSON",
+      "notes": "Opening names/facts can annotate local opening books, but move statistics still come from local PGN/engine data."
+    },
+    {
+      "id": "local-syzygy",
+      "name": "Local Syzygy tablebases",
+      "url": "local:LOCAL_SYZYGY_PATH",
+      "localPath": "process.env.LOCAL_SYZYGY_PATH",
+      "license": "User-provided local tablebase files; not bundled or redistributed.",
+      "redistributionAllowed": false,
+      "dataType": "TABLEBASE",
+      "notes": "Use for exact chess endgame probing when available and piece count is within the configured tablebase limit."
+    },
+    {
+      "id": "alphazero-paper",
+      "name": "AlphaZero self-play reinforcement learning paper",
+      "url": "https://arxiv.org/abs/1712.01815",
+      "license": "Research paper metadata only; no model weights or paper text are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as design guidance for policy/value self-play, search priors, and keeping rules-only variants trained by local self-play."
+    },
+    {
+      "id": "katago-official",
+      "name": "KataGo official project",
       "url": "https://github.com/lightvector/KataGo",
-      "license": "MIT license for engine source; neural network/model files may have their own terms.",
+      "localPath": "process.env.KATAGO_PATH",
+      "license": "Open-source project; executable and neural net are configured locally and not bundled by this repository.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Metadata only. Configure a local KATAGO_PATH for analysis."
+      "notes": "Use as a local Go teacher/baseline through GTP or analysis JSON for normal boards and derived features."
     },
     {
-      "id": "edax",
-      "name": "Edax Reversi engine",
-      "url": "https://github.com/abulmo/edax-reversi",
-      "license": "Verify upstream license before redistribution.",
+      "id": "katago-selfplay-paper",
+      "name": "Accelerating Self-Play Learning in Go",
+      "url": "https://arxiv.org/abs/1902.10565",
+      "license": "Research paper metadata only; no model weights or paper text are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used to prioritize ownership/value estimates, auxiliary board features, and efficient self-play learning for Go-style robots."
+    },
+    {
+      "id": "cwi-go-games",
+      "name": "CWI Database of Go Games",
+      "url": "https://homepages.cwi.nl/~aeb/go/games/",
+      "localPath": "data/go/sgf/",
+      "license": "Public web collection; redistribution rights must be checked by the user before bundling any SGF files.",
+      "redistributionAllowed": false,
+      "dataType": "SGF",
+      "notes": "Metadata-only source. User may place locally approved SGF files in data/go/sgf for derived joseki/fuseki stats."
+    },
+    {
+      "id": "edax-official",
+      "name": "Edax Reversi official project",
+      "url": "https://sensuikan1973.github.io/edax-reversi/",
+      "localPath": "process.env.EDAX_PATH",
+      "license": "GPL-2.0-or-later according to the project license text; executable is configured locally and not bundled here.",
       "redistributionAllowed": false,
       "dataType": "ENGINE",
-      "notes": "Metadata only. Configure a local EDAX_PATH for analysis."
+      "notes": "Use as a local Reversi teacher/baseline for normal 8x8 boards and derived engine-analysis features."
     },
     {
-      "id": "wthor",
-      "name": "WTHOR Reversi game files",
+      "id": "wthor-ffo",
+      "name": "French Othello Federation WTHOR database",
       "url": "https://www.ffothello.org/informatique/la-base-wthor/",
-      "license": "Verify data license before redistribution.",
+      "localPath": "data/reversi/wthor/",
+      "license": "User must verify terms before redistribution; this repository stores only derived statistics.",
       "redistributionAllowed": false,
       "dataType": "WTHOR",
-      "notes": "User-provided local files only; derived opening statistics can be regenerated locally."
+      "notes": "Use locally downloaded WTHOR files to derive Reversi opening statistics."
+    },
+    {
+      "id": "mohex-paper",
+      "name": "MoHex 2.0 pattern-based MCTS Hex player",
+      "url": "https://webdocs.cs.ualberta.ca/~mmueller/ps/2013/2013-CG-Mohex2.0.pdf",
+      "license": "Research paper metadata only; no paper text or engine code is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as guidance for Hex search priors, learned-pattern style scoring, and virtual connection awareness."
+    },
+    {
+      "id": "benzene-hex",
+      "name": "Benzene Hex framework",
+      "url": "https://benzene.sourceforge.net/",
+      "localPath": "models/external/benzene/",
+      "license": "LGPL project; code is not bundled here unless reviewed separately.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": "Reference for Hex alpha-beta, MCTS, virtual connection, and solving concepts."
+    },
+    {
+      "id": "neurohex-paper",
+      "name": "NeuroHex deep Q-learning Hex agent",
+      "url": "https://arxiv.org/abs/1604.07097",
+      "license": "Research paper metadata only; no model weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as a non-bundled reference for Hex self-play policy learning."
+    },
+    {
+      "id": "go-on-graphs",
+      "name": "Go on Graphs rules reference",
+      "url": "https://who.rocq.inria.fr/Laurent.Viennot/gog/rules.html",
+      "license": "Rules/reference metadata only.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used to reinforce that topology Go liberties and captures must be graph-neighbor based."
+    },
+    {
+      "id": "graph-go-common-fate",
+      "name": "Learning on Graphs in the Game of Go",
+      "url": "https://www.herbrich.me/papers/go.pdf",
+      "license": "Research paper metadata only; no paper text is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as guidance for graph-based Go position features."
     },
     {
       "id": "pettingzoo-chinese-checkers",
-      "name": "PettingZoo Chinese Checkers research environment",
+      "name": "PettingZoo Chinese Checkers environment",
       "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
-      "license": "Verify repository license before code reuse.",
+      "localPath": "models/external/pettingzoo-chinese-checkers/",
+      "license": "Check repository license before bundling code. Use as a research reference and optional local environment.",
       "redistributionAllowed": false,
       "dataType": "JSON",
-      "notes": "Metadata reference for multi-agent training ideas; do not copy code without license review."
+      "notes": "Reference for multi-agent Chinese Checkers training with chaining jumps and parameter sharing."
     },
     {
-      "id": "scid",
-      "name": "Scid chess database tool",
-      "url": "https://scid.sourceforge.net/",
-      "license": "GPL software; bundled sample databases may have separate terms.",
+      "id": "zedrichu-chinese-checkers",
+      "name": "Zedrichu Chinese Checkers minimax reference",
+      "url": "https://github.com/zedrichu/chinese-checkers",
+      "localPath": "models/external/zedrichu-chinese-checkers/",
+      "license": "Check repository license before bundling code. Use only if local copy is approved.",
       "redistributionAllowed": false,
-      "dataType": "PGN",
-      "notes": "Metadata reference for PGN/database tooling, not a bundled data source."
+      "dataType": "JSON",
+      "notes": "Reference for two-player minimax-style Chinese Checkers ideas."
+    },
+    {
+      "id": "chinese-checkers-mcts-rl",
+      "name": "Chinese Checkers heuristics, MCTS, and reinforcement learning reference",
+      "url": "https://ar5iv.labs.arxiv.org/html/1903.01747",
+      "license": "Research paper metadata only; no paper text or model weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used for jump-chain progress, heuristic rollouts, and self-play guidance for Jump robots."
+    },
+    {
+      "id": "chinese-checkers-uct-endgame",
+      "name": "UCT enhancements with a Chinese Checkers endgame database",
+      "url": "https://www.cs.du.edu/~sturtevant/papers/UCT-endgame.pdf",
+      "license": "Research paper metadata only; no database is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as guidance for target-camp endgame heuristics and lookup-style future work."
+    },
+    {
+      "id": "chinese-checkers-strong-solving",
+      "name": "On Strongly Solving Chinese Checkers",
+      "url": "https://webdocs.cs.ualberta.ca/~nathanst/papers/sturtevant2019chinesecheckers.pdf",
+      "license": "Research paper metadata only; no solver data is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "JSON",
+      "notes": "Used as guidance for exact rules, scalable board sizes, and endgame safety checks."
+    },
+    {
+      "id": "topoboardgame-local-notes",
+      "name": "Topoboardgame local strategy notes",
+      "url": "local:data/strategy-notes/",
+      "localPath": "data/strategy-notes/",
+      "license": "User-authored derived feature notes for this repository.",
+      "redistributionAllowed": true,
+      "dataType": "NOTES",
+      "notes": "Compact feature rules only; do not paste copyrighted strategy article text here."
     }
   ],
   "rules": [
@@ -251,6 +443,45 @@
       "sourceIds": [
         "stockfish-official",
         "local-syzygy"
+      ]
+    },
+    {
+      "id": "chess-standard-engine-book-policy-prior",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Use standard opening books as policy priors, then verify tactics with search. Book moves should keep legal development, king safety, and central control, but must not override immediate tactical refutations.",
+      "features": [
+        "openingBookLookup",
+        "policyPrior",
+        "engineVerification",
+        "tacticalOverride",
+        "transpositionHash"
+      ],
+      "weight": 1.7,
+      "sourceIds": [
+        "alphazero-paper",
+        "stockfish-official",
+        "lichess-open-database"
+      ]
+    },
+    {
+      "id": "chess-standard-search-stability",
+      "game": "chess",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Search should prefer moves whose evaluation remains stable after forcing replies. Penalize candidate moves that only score well before captures, checks, or recaptures are examined.",
+      "features": [
+        "principalVariationStability",
+        "forcingMove",
+        "captureRecaptureSafety",
+        "checkSequence",
+        "evaluationVolatility"
+      ],
+      "weight": 1.45,
+      "sourceIds": [
+        "stockfish-official",
+        "alphazero-paper"
       ]
     }
   ],

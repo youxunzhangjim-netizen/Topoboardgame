@@ -176,8 +176,12 @@ local-models/2dchess-rbc-left-right-linear.json
 local-models/2dgo-klein-honeycomb-linear.json
 local-models/2dgo-pbc-triangular-linear.json
 local-models/2dreversi-pbc-square-linear.json
+local-models/2dhex-standard-linear.json
+local-models/2djump-standard-linear.json
 local-models/3dgo-sphere-fcc-linear.json
 local-models/3dreversi-t3-hcp-linear.json
+local-models/3dhex-r3-axis-linear.json
+local-models/3djump-r3-linear.json
 ```
 
 Do not mix all game modes into one model at first. Each topology/lattice changes what “good” means.
@@ -197,7 +201,7 @@ Later, a Python policy-value trainer can read these examples and train a neural 
 - This first ML robot is a feature-linear model, not a deep neural network.
 - It learns correlations from self-play data, so bad self-play data produces bad models.
 - It does not replace the legal-move rule engine. All robots must still choose from legal moves.
-- 3D Chess is not yet supported by headless research self-play until the 3D Chess rule core is separated from DOM/WebGL rendering.
+- Headless self-play now covers 2D/3D Chess, Go, Reversi, Jump, and Hex where a pure rule adapter exists. Promote a model only after a held-out tournament, not immediately after a smoke run.
 
 ## Windows PowerShell commands
 
@@ -230,9 +234,16 @@ npm run ml:train-all -- --preset normal
 Current headless ML coverage:
 
 - 2dchess
+- 3dchess
 - 2dgo
-- 2dreversi
 - 3dgo
+- 2dreversi
 - 3dreversi
+- 2djump
+- 3djump
+- 4djump
+- 2dhex
+- 3dhex
+- 4dhex
 
-3dchess is playable with the UI local robot, but it is not yet in headless ML training because its current constructors still create DOM/WebGL renderers. Refactor it into a pure rule core before adding it to `research:selfplay`.
+Hex and Jump data are still young compared with Chess, Go, and Reversi. Treat their current books as strategy priors for the local robot and as features for the ML runner until larger validated self-play sets are available.

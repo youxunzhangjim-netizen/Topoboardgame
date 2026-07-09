@@ -59,6 +59,26 @@
       "features": ["kingActivity", "passedPawn", "rookActivity", "tablebaseProbe", "materialConversion"],
       "weight": 1.55,
       "sourceIds": ["stockfish-official", "local-syzygy"]
+    },
+    {
+      "id": "chess-standard-engine-book-policy-prior",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Use standard opening books as policy priors, then verify tactics with search. Book moves should keep legal development, king safety, and central control, but must not override immediate tactical refutations.",
+      "features": ["openingBookLookup", "policyPrior", "engineVerification", "tacticalOverride", "transpositionHash"],
+      "weight": 1.7,
+      "sourceIds": ["alphazero-paper", "stockfish-official", "lichess-open-database"]
+    },
+    {
+      "id": "chess-standard-search-stability",
+      "game": "chess",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Search should prefer moves whose evaluation remains stable after forcing replies. Penalize candidate moves that only score well before captures, checks, or recaptures are examined.",
+      "features": ["principalVariationStability", "forcingMove", "captureRecaptureSafety", "checkSequence", "evaluationVolatility"],
+      "weight": 1.45,
+      "sourceIds": ["stockfish-official", "alphazero-paper"]
     }
   ]
 }

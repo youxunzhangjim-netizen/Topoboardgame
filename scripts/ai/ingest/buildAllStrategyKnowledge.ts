@@ -37,7 +37,9 @@ const jobs: Job[] = [
     notes: ['data/strategy-notes/chinese-checkers/standard'],
     datasets: ['data/strategy-seeds/chinese-checkers/standard-openings.json']
   },
-  { game: 'chinese-checkers', boardFamily: 'graph-topology', notes: ['data/strategy-notes/chinese-checkers/graph-topology'], datasets: [] }
+  { game: 'chinese-checkers', boardFamily: 'graph-topology', notes: ['data/strategy-notes/chinese-checkers/graph-topology'], datasets: [] },
+  { game: 'hex', boardFamily: 'standard', notes: ['data/strategy-notes/hex/standard'], datasets: [] },
+  { game: 'hex', boardFamily: 'graph-topology', notes: ['data/strategy-notes/hex/graph-topology'], datasets: [] }
 ];
 
 for (const job of jobs) {

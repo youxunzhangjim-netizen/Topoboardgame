@@ -29,6 +29,26 @@
       "features": ["ownGoalBlockingPenalty", "deepGoalFill", "targetEntryLane", "remainingPieceDistance", "settledPiecePenalty"],
       "weight": 2.1,
       "sourceIds": ["topoboardgame-local-notes"]
+    },
+    {
+      "id": "checkers-standard-rollout-ladder-prior",
+      "game": "chinese-checkers",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Robot search should rank moves by reachable jump ladders and rollout progress, not only immediate distance. A short setup step can be better than a long jump if it creates multiple future chain options.",
+      "features": ["futureJumpPotential", "jumpLadderSetup", "rolloutProgress", "graphDistanceToGoal", "opponentJumpOpportunity"],
+      "weight": 1.75,
+      "sourceIds": ["chinese-checkers-mcts-rl", "pettingzoo-chinese-checkers"]
+    },
+    {
+      "id": "checkers-standard-endgame-database-shape",
+      "game": "chinese-checkers",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Endgame evaluation should strongly prefer target-camp fill order, exact reachable wins where known, and avoiding deadlocks that force settled pieces to move out again.",
+      "features": ["deepGoalFill", "targetEntryLane", "endgameLookupShape", "settledPiecePenalty", "ownGoalBlockingPenalty"],
+      "weight": 2.0,
+      "sourceIds": ["chinese-checkers-uct-endgame", "chinese-checkers-strong-solving", "topoboardgame-local-notes"]
     }
   ]
 }

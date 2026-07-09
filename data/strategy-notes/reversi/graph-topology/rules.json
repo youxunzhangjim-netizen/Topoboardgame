@@ -39,6 +39,26 @@
       "features": ["earlyOverflipPenalty", "frontierExposure", "graphAnchor", "completeTopologyCycle", "opponentMobilityRestriction"],
       "weight": 1.45,
       "sourceIds": ["edax-official"]
+    },
+    {
+      "id": "reversi-graph-topology-ray-legality",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "On curved or embedded boards, bracket rays must follow the legal graph directions, not visual shortcuts across the drawing. Moves that appear close in screen space but are not connected by the board graph should be ignored.",
+      "features": ["legalGraphRay", "visualShortcutPenalty", "graphMobility", "frontierDiscs", "stableRays"],
+      "weight": 1.7,
+      "sourceIds": ["edax-official", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "reversi-graph-topology-cycle-parity",
+      "game": "reversi",
+      "phase": "endgame",
+      "boardFamily": "graph-topology",
+      "description": "For wrapped boards, endgame search should split empty regions by actual graph components and cycle seams before applying parity; rendered boundaries are not necessarily endgame regions.",
+      "features": ["graphComponentParity", "cycleSeam", "regionControl", "exactSolver", "finalDiscCount"],
+      "weight": 1.6,
+      "sourceIds": ["edax-official", "topoboardgame-local-notes"]
     }
   ]
 }

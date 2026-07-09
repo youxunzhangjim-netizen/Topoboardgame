@@ -131,6 +131,54 @@ function neighborScore(board, topology, coordinate, color) {
     return own * 12 + enemy * 5 + empty * 0.4;
 }
 
+function commonEmptyConnectorCount(board, topology, first, second, color) {
+    const firstNeighbors = new Set(topology.neighbors(first).map((coord) => keyOf(topology, coord)).filter(Boolean));
+    let count = 0;
+    for (const coord of topology.neighbors(second)) {
+        const key = keyOf(topology, coord);
+        if (!key || !firstNeighbors.has(key)) continue;
+        if (colorAt(board, topology, coord) !== null) continue;
+        if (typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(coord, color)) continue;
+        count += 1;
+    }
+    return count;
+}
+
+function virtualConnectionScore(board, topology, coordinate, color) {
+    const opponent = otherHexColor(color);
+    const neighbors = topology.neighbors(coordinate);
+    const ownNeighbors = neighbors.filter((neighbor) => colorAt(board, topology, neighbor) === color);
+    const enemyNeighbors = neighbors.filter((neighbor) => colorAt(board, topology, neighbor) === opponent);
+    let score = 0;
+
+    // Hex strategy books call these bridge/virtual-connection priors: a move is stronger
+    // when it connects several friendly local regions or leaves a second empty connector.
+    for (let i = 0; i < ownNeighbors.length; i += 1) {
+        for (let j = i + 1; j < ownNeighbors.length; j += 1) {
+            const commonEmpty = commonEmptyConnectorCount(board, topology, ownNeighbors[i], ownNeighbors[j], color);
+            score += commonEmpty >= 2 ? 34 : commonEmpty === 1 ? 18 : 8;
+        }
+    }
+
+    for (const empty of neighbors) {
+        if (colorAt(board, topology, empty) !== null) continue;
+        if (typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(empty, color)) continue;
+        let secondRingOwn = 0;
+        let secondRingEnemy = 0;
+        for (const around of topology.neighbors(empty)) {
+            const cell = colorAt(board, topology, around);
+            if (cell === color) secondRingOwn += 1;
+            else if (cell === opponent) secondRingEnemy += 1;
+        }
+        if (secondRingOwn >= 2) score += 12;
+        if (secondRingOwn >= 1 && secondRingEnemy >= 1) score += 4;
+    }
+
+    if (ownNeighbors.length >= 2) score += 22 + ownNeighbors.length * 7;
+    if (enemyNeighbors.length >= 2) score += 14 + enemyNeighbors.length * 4;
+    return score;
+}
+
 function evaluateBoard(board, topology, coordinates, rootColor) {
     if (hasConnection(board, topology, rootColor)) return WIN_SCORE;
     const opponent = otherHexColor(rootColor);
@@ -160,6 +208,7 @@ function scoreMove(board, topology, coordinates, coordinate, color) {
     const score = (ownWin ? WIN_SCORE / 2 : 0)
         + (opponentDistance - ownDistance) * 120
         + neighborScore(board, topology, coordinate, color)
+        + virtualConnectionScore(board, topology, coordinate, color)
         + modelCenterScore(topology, coordinate) * 3;
     setColor(board, topology, coordinate, null);
     return score;

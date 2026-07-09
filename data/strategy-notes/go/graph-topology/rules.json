@@ -29,6 +29,26 @@
       "features": ["graphAreaScore", "passTiming", "ownTerritoryFillPenalty", "territoryFloodFill"],
       "weight": 1.9,
       "sourceIds": ["katago-official", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "go-graph-topology-3d-liberty-pressure",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For 3D and surface-embedded Go, liberties must come only from graph neighbors. Prefer moves that reduce opponent group escape volume while keeping own groups connected through high-degree junctions.",
+      "features": ["graphLiberties", "escapeVolume", "highDegreeJunction", "connectionValue", "selfAtariPenalty"],
+      "weight": 1.7,
+      "sourceIds": ["go-on-graphs", "graph-go-common-fate", "katago-official"]
+    },
+    {
+      "id": "go-graph-topology-seam-region-balance",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "On torus, cylinder, Mobius, sphere, and 3D boards, opening moves should estimate region control across seams and avoid treating rendered edges as physical edges unless the graph actually has hard boundaries.",
+      "features": ["seamRegionControl", "graphCentrality", "hardBoundaryAwareness", "territoryFloodFill", "selfplayBook"],
+      "weight": 1.6,
+      "sourceIds": ["go-on-graphs", "katago-selfplay-paper", "topoboardgame-local-notes"]
     }
   ]
 }

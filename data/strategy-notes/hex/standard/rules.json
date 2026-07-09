@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "id": "hex-standard-opening-center-connection",
+      "game": "hex",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Opening play should prefer central cells that shorten the player's connection distance while also increasing the opponent's shortest connection distance.",
+      "features": ["connectionDistance", "centerInfluence", "opponentDistance", "policyPrior"],
+      "weight": 1.55,
+      "sourceIds": ["mohex-paper", "benzene-hex", "neurohex-paper"]
+    },
+    {
+      "id": "hex-standard-virtual-bridge",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Prefer moves that create or complete two-threat bridge structures: two friendly stones with two shared empty connector cells are harder for the opponent to cut.",
+      "features": ["virtualConnection", "bridgeTemplate", "sharedConnector", "cutResistance"],
+      "weight": 1.8,
+      "sourceIds": ["mohex-paper", "benzene-hex"]
+    },
+    {
+      "id": "hex-standard-cut-and-block",
+      "game": "hex",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "When the opponent has a short connection path, block on cells that both increase opponent path cost and preserve the player's own path continuity.",
+      "features": ["opponentDistance", "cutPoint", "connectionDistance", "dualPurposeBlock"],
+      "weight": 1.75,
+      "sourceIds": ["mohex-paper", "benzene-hex"]
+    },
+    {
+      "id": "hex-standard-endgame-forced-connection",
+      "game": "hex",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Late search should prioritize immediate wins, immediate blocks, and forced connection sequences over local neighbor count.",
+      "features": ["immediateWin", "immediateBlock", "forcedConnection", "searchDepth"],
+      "weight": 2.0,
+      "sourceIds": ["mohex-paper", "benzene-hex"]
+    }
+  ]
+}

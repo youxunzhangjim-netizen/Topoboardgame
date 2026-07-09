@@ -19,6 +19,26 @@
       "features": ["multiAgentUtility", "assignedTargetCamp", "graphDistanceToGoal", "opponentProgress"],
       "weight": 1.6,
       "sourceIds": ["pettingzoo-chinese-checkers"]
+    },
+    {
+      "id": "checkers-graph-topology-lane-symmetry",
+      "game": "chinese-checkers",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "On torus, sphere, 3D, 4D, and lattice boards, opening camps must be evaluated by symmetric target distance and lane congestion. Avoid overusing one narrow tunnel when multiple equivalent graph lanes exist.",
+      "features": ["symmetricCampDistance", "laneCongestion", "futureJumpPotential", "graphDistanceToGoal", "pieceConnectivity"],
+      "weight": 1.75,
+      "sourceIds": ["chinese-checkers-mcts-rl", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "checkers-graph-topology-replay-safe-endgame",
+      "game": "chinese-checkers",
+      "phase": "endgame",
+      "boardFamily": "graph-topology",
+      "description": "Endgames on topology boards should preserve legal graph paths and target-camp entry order; a move that appears closer in projection is bad if it blocks the only jump ladder into the marked target region.",
+      "features": ["targetEntryLane", "jumpLadderSetup", "projectionShortcutPenalty", "ownGoalBlockingPenalty", "assignedTargetCamp"],
+      "weight": 1.9,
+      "sourceIds": ["chinese-checkers-uct-endgame", "topoboardgame-local-notes"]
     }
   ]
 }

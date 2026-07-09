@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join } from 'node:path';
 import { positionHash } from './PositionHasher.ts';
 
-export type KnowledgeGame = 'chess' | 'go' | 'reversi' | 'chinese-checkers';
+export type KnowledgeGame = 'chess' | 'go' | 'reversi' | 'chinese-checkers' | 'hex';
 export type KnowledgePhase = 'opening' | 'middlegame' | 'endgame' | 'all';
 export type KnowledgeBoardFamily = 'standard' | 'graph-topology' | 'torus' | 'cylinder' | 'polar';
 export type KnowledgeDataType = 'PGN' | 'SGF' | 'WTHOR' | 'ENGINE' | 'TABLEBASE' | 'NOTES' | 'JSON';
@@ -205,7 +205,8 @@ export function decisionStackFor(game: KnowledgeGame): string[] {
     chess: 'endgame: Syzygy if LOCAL_SYZYGY_PATH exists and piece count <= 7; else Stockfish/local search',
     go: 'endgame: KataGo score/ownership and yose heuristics; no exact full-board tablebase',
     reversi: 'endgame: exact alpha-beta if empty squares <= threshold; else Edax/local search',
-    'chinese-checkers': 'endgame: graph-distance race, goal blocking, and jump-chain heuristic'
+    'chinese-checkers': 'endgame: graph-distance race, goal blocking, and jump-chain heuristic',
+    hex: 'endgame: immediate connection/block checks, virtual-connection cuts, and local connection search'
   }[game];
   return [DEFAULT_DECISION_STACK[0], exact, ...DEFAULT_DECISION_STACK.slice(2)];
 }

@@ -18,6 +18,24 @@
     "notes": "Metadata only. Configure a local KATAGO_PATH for analysis."
   },
   {
+    "id": "alphazero-paper",
+    "name": "AlphaZero self-play reinforcement learning paper",
+    "url": "https://arxiv.org/abs/1712.01815",
+    "license": "Research paper metadata only; no model weights or article text are bundled.",
+    "redistributionAllowed": false,
+    "dataType": "PAPER",
+    "notes": "Reference for policy/value self-play and search-guided learning."
+  },
+  {
+    "id": "katago-selfplay-paper",
+    "name": "Accelerating Self-Play Learning in Go",
+    "url": "https://arxiv.org/abs/1902.10565",
+    "license": "Research paper metadata only; no model weights or article text are bundled.",
+    "redistributionAllowed": false,
+    "dataType": "PAPER",
+    "notes": "Reference for Go ownership/value feature learning and efficient self-play."
+  },
+  {
     "id": "edax",
     "name": "Edax Reversi engine",
     "url": "https://github.com/abulmo/edax-reversi",
@@ -36,6 +54,24 @@
     "notes": "User-provided local files only; derived opening statistics can be regenerated locally."
   },
   {
+    "id": "mohex-paper",
+    "name": "MoHex 2.0 pattern-based MCTS Hex player",
+    "url": "https://webdocs.cs.ualberta.ca/~mmueller/ps/2013/2013-CG-Mohex2.0.pdf",
+    "license": "Research paper metadata only; no model weights or article text are bundled.",
+    "redistributionAllowed": false,
+    "dataType": "PAPER",
+    "notes": "Reference for Hex MCTS, pattern priors, and virtual-connection-aware search."
+  },
+  {
+    "id": "benzene-hex",
+    "name": "Benzene Hex framework",
+    "url": "https://benzene.sourceforge.net/",
+    "license": "LGPL project; code is not bundled here unless reviewed separately.",
+    "redistributionAllowed": false,
+    "dataType": "ENGINE",
+    "notes": "Reference for Hex solving/search concepts."
+  },
+  {
     "id": "pettingzoo-chinese-checkers",
     "name": "PettingZoo Chinese Checkers research environment",
     "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
@@ -43,6 +79,15 @@
     "redistributionAllowed": false,
     "dataType": "JSON",
     "notes": "Metadata reference for multi-agent training ideas; do not copy code without license review."
+  },
+  {
+    "id": "chinese-checkers-mcts-rl",
+    "name": "Chinese Checkers heuristics, MCTS, and reinforcement learning reference",
+    "url": "https://ar5iv.labs.arxiv.org/html/1903.01747",
+    "license": "Research paper metadata only; no model weights or article text are bundled.",
+    "redistributionAllowed": false,
+    "dataType": "PAPER",
+    "notes": "Reference for jump-chain, rollout, and self-play heuristics."
   },
   {
     "id": "scid",

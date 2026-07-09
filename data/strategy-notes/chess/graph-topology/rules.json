@@ -29,6 +29,26 @@
       "features": ["topologyAttackMap", "defendedPiece", "hangingPiecePenalty", "safeTrade", "kingEscapeRegion"],
       "weight": 1.55,
       "sourceIds": ["stockfish-official"]
+    },
+    {
+      "id": "chess-graph-topology-volume-lane-control",
+      "game": "chess",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "For 3D chess, opening play should occupy high-centrality volume lanes, activate long-range pieces on straight graph rays, and keep the king with multiple escape layers instead of copying ordinary 2D opening names.",
+      "features": ["volumeCentrality", "straightRayActivity", "layerEscapeSquare", "pieceCoordination", "openingBookDisabled"],
+      "weight": 1.55,
+      "sourceIds": ["stockfish-official", "alphazero-paper"]
+    },
+    {
+      "id": "chess-graph-topology-seam-tactics",
+      "game": "chess",
+      "phase": "middlegame",
+      "boardFamily": "graph-topology",
+      "description": "On wrapped or twisted chess boards, search seam tactics explicitly: a line that crosses a seam can attack the king or hang a valuable piece even when it appears distant in the rendered view.",
+      "features": ["seamAttackRay", "wrappedLineOfSight", "topologyAttackMap", "kingSafety", "hangingPiecePenalty"],
+      "weight": 1.6,
+      "sourceIds": ["stockfish-official", "topoboardgame-local-notes"]
     }
   ]
 }

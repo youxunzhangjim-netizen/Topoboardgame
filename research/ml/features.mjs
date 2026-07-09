@@ -1,7 +1,20 @@
 export const FEATURE_SCHEMA_VERSION = 'topoboardgame.ml.features.v1';
 
 const PIECE_VALUES = Object.freeze({ p: 1, n: 3.2, b: 3.3, r: 5, q: 9, k: 0 });
-const KNOWN_GAMES = ['2dchess', '3dchess', '2dgo', '3dgo', '2dreversi', '3dreversi', '2djump', '3djump', '4djump'];
+const KNOWN_GAMES = [
+  '2dchess',
+  '3dchess',
+  '2dgo',
+  '3dgo',
+  '2dreversi',
+  '3dreversi',
+  '2djump',
+  '3djump',
+  '4djump',
+  '2dhex',
+  '3dhex',
+  '4dhex'
+];
 
 export function buildExample({ game, options = {}, player = '', state = null, move = null, legalCount = 0, label = null, source = null }) {
   return {
@@ -93,6 +106,7 @@ function addStateFeatures(f, { game, state, player }) {
   if (String(game).includes('go')) return addGoStateFeatures(f, state, player);
   if (String(game).includes('reversi')) return addReversiStateFeatures(f, state, player);
   if (String(game).includes('jump')) return addJumpStateFeatures(f, state, player);
+  if (String(game).includes('hex')) return addHexStateFeatures(f, state, player);
 }
 
 function addChessStateFeatures(f, state, player) {
@@ -175,6 +189,24 @@ function addJumpStateFeatures(f, state, player) {
   add(f, 'jump_player_count', Number(state.playerCount || 2) / 3);
 }
 
+function addHexStateFeatures(f, state, player) {
+  const board = Array.isArray(state.board) ? state.board : [];
+  let black = 0;
+  let white = 0;
+  for (const entry of board) {
+    const value = Array.isArray(entry) ? entry[1] : entry;
+    if (value === 'black') black += 1;
+    else if (value === 'white') white += 1;
+  }
+  const size = Number(state.size) || 9;
+  const dimension = Number(state.dimension) || 2;
+  const total = Math.max(1, size ** Math.max(1, dimension));
+  const sign = String(player).toLowerCase() === 'black' ? 1 : -1;
+  add(f, 'hex_stone_balance', sign * (black - white) / total);
+  add(f, 'hex_occupancy', (black + white) / total);
+  add(f, 'hex_remaining_fraction', Math.max(0, total - black - white) / total);
+}
+
 function addMoveFeatures(f, { game, options, state, move }) {
   if (!move || typeof move !== 'object') return;
   add(f, 'move_bias', 1);
@@ -196,6 +228,7 @@ function addMoveFeatures(f, { game, options, state, move }) {
   if (String(game).includes('chess') && move.from && move.to) addChessDeltaFeatures(f, move.from, move.to);
   if (String(game).includes('jump') && move.from && move.to) addJumpDeltaFeatures(f, move.from, move.to, move);
   if (String(game).includes('reversi') && coord) addReversiMoveShapeFeatures(f, coord, Number(options.size || state?.size || 8), String(options.topology || options.boundary || state?.topology || state?.boundary || ''));
+  if (String(game).includes('hex') && coord) addHexMoveShapeFeatures(f, coord, Number(options.size || state?.size || 9), String(options.topology || options.boundary || state?.topology || state?.boundary || ''));
 }
 
 function addCrossFeatures(f, { game, options, move }) {
@@ -256,6 +289,17 @@ function addReversiMoveShapeFeatures(f, coord, size, topology) {
   add(f, 'reversi_anchor_move', anchor ? 1 : 0);
   add(f, 'reversi_near_anchor_risk', !anchor && nearCorner && !isNoBoundary ? 1 : 0);
   add(f, 'reversi_topology_cycle_candidate', isNoBoundary && coord.some((v) => Number(v) === 0 || Number(v) === n - 1) ? 1 : 0);
+}
+
+function addHexMoveShapeFeatures(f, coord, size, topology) {
+  const n = Math.max(2, Number(size) || 9);
+  const lowerTopology = String(topology || '').toLowerCase();
+  const edgeTouches = coord.filter((v) => Number(v) <= 0 || Number(v) >= n - 1).length;
+  const center = (n - 1) / 2;
+  const centerDistance = Math.sqrt(coord.reduce((sum, v) => sum + (Number(v) - center) ** 2, 0)) / Math.max(1, Math.sqrt(coord.length) * center);
+  add(f, 'hex_edge_touch_count', edgeTouches / Math.max(1, coord.length));
+  add(f, 'hex_center_pressure', 1 - centerDistance);
+  add(f, 'hex_closed_surface_goal', /torus|t2|t3|sphere|mobius|klein|rp2|trefoil/.test(lowerTopology) ? 1 : 0);
 }
 
 function captureCount(move) {

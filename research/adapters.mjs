@@ -22,6 +22,8 @@ import { ReversiGame, otherReversiColor } from '../js/reversi/ReversiGame.js';
 import { JumpGameState, chooseJumpRobotMove, otherPlayer as otherJumpPlayer } from '../js/shared/JumpRules.js';
 import { chooseReversiRobotMove, analyzeReversiPosition } from '../2D/2dreversi/js/robot/ReversiRobot.js';
 import { chooseReversi3DRobotMove, analyzeReversi3DPosition } from '../3D/3dreversi/js/robot/Reversi3DRobot.js';
+import { HexGame, otherHexColor } from '../js/hex/HexGame.js';
+import { chooseHexRobotMove, analyzeHexRobotPosition } from '../js/hex/HexRobot.js';
 
 export const SUPPORTED_RESEARCH_GAMES = Object.freeze([
   '2dchess',
@@ -32,7 +34,10 @@ export const SUPPORTED_RESEARCH_GAMES = Object.freeze([
   '3dreversi',
   '2djump',
   '3djump',
-  '4djump'
+  '4djump',
+  '2dhex',
+  '3dhex',
+  '4dhex'
 ]);
 
 export function createResearchAdapter(gameKey, options = {}) {
@@ -46,6 +51,9 @@ export function createResearchAdapter(gameKey, options = {}) {
   if (game === '2djump') return createJumpAdapter({ ...options, dimension: 2 });
   if (game === '3djump') return createJumpAdapter({ ...options, dimension: 3 });
   if (game === '4djump') return createJumpAdapter({ ...options, dimension: 4 });
+  if (game === '2dhex') return createHexAdapter({ ...options, dimension: 2 });
+  if (game === '3dhex') return createHexAdapter({ ...options, dimension: 3 });
+  if (game === '4dhex') return createHexAdapter({ ...options, dimension: 4 });
   throw new Error(`Unsupported headless research game "${gameKey}". Supported: ${SUPPORTED_RESEARCH_GAMES.join(', ')}.`);
 }
 
@@ -252,6 +260,41 @@ function createJumpAdapter(options = {}) {
   };
 }
 
+function createHexAdapter(options = {}) {
+  const dimension = Number(options.dimension) || 2;
+  const topology = options.boundary || options.topology || (dimension === 2 ? 'open' : dimension === 3 ? 'r3' : 'open');
+  const game = new HexGame({
+    dimension,
+    size: clamp(Number(options.size) || (dimension === 4 ? 4 : dimension === 3 ? 5 : 9), 3, dimension === 4 ? 8 : dimension === 3 ? 10 : 19),
+    topology,
+    lattice: options.lattice || (dimension === 3 ? 'axis' : 'hexagonal'),
+    randomBoundarySeed: options.seed || ''
+  });
+  return {
+    kind: `${dimension}dhex`,
+    options: { topology: game.topology.topology, lattice: game.topology.lattice, size: game.size[0], dimension: game.dimension },
+    currentPlayer: () => game.currentColor,
+    isTerminal: () => Boolean(game.winner),
+    winner: () => game.winner || '',
+    legalMoves: () => hexLegalMoves(game),
+    serializeState: () => compactHexState(game),
+    evaluate: () => analyzeHexRobotPosition(game, { level: 2 })?.currentScore || 0,
+    chooseBuiltin: (level = 2) => {
+      const choice = chooseHexRobotMove(game, { level });
+      return { move: choice ? { type: 'play', coord: choice.coordinate, id: choice.coordinate.join(','), label: `(${choice.coordinate.join(',')})` } : null, score: choice?.score || 0, nodes: choice?.nodes || 0 };
+    },
+    analyze: (level = 2) => analyzeHexRobotPosition(game, { level }),
+    applyMove(move) {
+      const legal = hexLegalMoves(game);
+      const chosen = matchHexMove(legal, move);
+      if (!chosen) return { ok: false, error: 'illegal-move' };
+      const result = game.play(chosen.coord, game.currentColor);
+      return { ok: Boolean(result?.ok), move: chosen, result };
+    },
+    opponent: otherHexColor
+  };
+}
+
 const CHESS3D_VALUES = { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 };
 
 function chess3DLegalMoves(logic, color) {
@@ -414,6 +457,19 @@ function compactReversiState(logic) {
   };
 }
 
+function compactHexState(game) {
+  return {
+    player: game.currentColor,
+    topology: game.topology.topology,
+    lattice: game.topology.lattice,
+    dimension: game.dimension,
+    size: game.size[0],
+    winner: game.winner,
+    moveNumber: game.moveNumber,
+    board: [...game.board.entries()]
+  };
+}
+
 
 function playableCoords(logic) {
   if (typeof logic.playableCoords === 'function') return logic.playableCoords();
@@ -431,6 +487,12 @@ function goLegalMoves(logic, player) {
   }
   moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
   return moves;
+}
+
+function hexLegalMoves(game) {
+  return game.topology.coordinates()
+    .filter((coord) => game.isLegalPlacement(coord, game.currentColor))
+    .map((coord) => ({ type: 'play', coord, id: coord.join(','), label: `(${coord.join(',')})` }));
 }
 
 function finishGoScoring(logic) {
@@ -465,6 +527,13 @@ function matchReversiMove(legal, move) {
   if (typeof move === 'string') return legal.find((candidate) => candidate.id === move || candidate.label === move) || null;
   const id = move.id || move.moveId || (Array.isArray(move.coord) ? move.coord.join(',') : null);
   return legal.find((candidate) => candidate.id === id || candidate.coord?.join(',') === id) || null;
+}
+
+function matchHexMove(legal, move) {
+  if (!move) return null;
+  if (typeof move === 'string') return legal.find((candidate) => candidate.id === move || candidate.label === move) || null;
+  const id = move.id || move.moveId || (Array.isArray(move.coord) ? move.coord.join(',') : null);
+  return legal.find((candidate) => candidate.id === id) || null;
 }
 
 function samePoint(a, b) {

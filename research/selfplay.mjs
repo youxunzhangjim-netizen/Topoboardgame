@@ -220,9 +220,15 @@ function addSummary(map, winner) {
 function defaultMaxPlies(game) {
   if (game.includes('go')) return 220;
   if (game.includes('reversi')) return 500;
+  if (game.includes('hex')) return game.startsWith('4d') ? 900 : game.startsWith('3d') ? 600 : 260;
+  if (game.includes('jump')) return game.startsWith('4d') ? 500 : 360;
   return 240;
 }
-function defaultDepth(game) { return game.includes('go') ? 1 : 2; }
+function defaultDepth(game) {
+  if (game.includes('go')) return 1;
+  if (game.includes('hex')) return 3;
+  return 2;
+}
 function defaultSize(game) {
   if (game === '2dgo') return 9;
   if (game === '3dgo') return 5;
@@ -231,6 +237,9 @@ function defaultSize(game) {
   if (game === '2djump') return 12;
   if (game === '3djump') return 6;
   if (game === '4djump') return 4;
+  if (game === '2dhex') return 9;
+  if (game === '3dhex') return 5;
+  if (game === '4dhex') return 4;
   return 8;
 }
 function defaultBoundary(game) {
@@ -241,11 +250,16 @@ function defaultBoundary(game) {
   if (game === '4djump') return 'hypercube';
   if (game === '2dgo' || game === '2dreversi') return 'open2d';
   if (game === '3dgo' || game === '3dreversi') return 'r3';
+  if (game === '2dhex') return 'open';
+  if (game === '3dhex') return 'r3';
+  if (game === '4dhex') return 'open';
   return 'open2d';
 }
 function defaultLattice(game) {
   if (game === '3dgo') return 'sc';
   if (game === '3dchess') return 'chess3d';
+  if (game === '2dhex') return 'hexagonal';
+  if (game === '3dhex' || game === '4dhex') return 'axis';
   return 'square';
 }
 function defaultPlayerCount(game) { return game === '2djump' ? 2 : 2; }
@@ -254,5 +268,29 @@ function defaultOutput(game) {
   return `local-data/selfplay/${game}-${stamp}.jsonl`;
 }
 function printHelp() {
-  console.log(`Topoboardgame research self-play runner\n\nUsage:\n  npm run research:selfplay -- --game 2dchess --boundary random --games 1000 --out local-data/selfplay/chess-rbc.jsonl\n\nSupported games:\n  ${SUPPORTED_RESEARCH_GAMES.join(', ')}\n\nCommon options:\n  --game GAME              2dchess | 3dchess | 2dgo | 2dreversi | 3dgo | 3dreversi\n  --boundary MODE          boundary/topology mode\n  --lattice LATTICE        square/honeycomb/triangular/sc/bcc/fcc/hcp where supported\n  --size N                 board size\n  --games N                number of games\n  --maxPlies N             maximum plies per game\n  --depthA N --depthB N    robot strengths\n  --botA builtin|random|externalA\n  --botB builtin|random|externalB\n  --externalA \"cmd ...\"    persistent JSONL robot process\n  --externalB \"cmd ...\"\n  --record moves|games     moves writes one line per move plus game footer; games writes one line per game\n  --state true|false       include compact state snapshots\n  --seed TEXT              reproducible seed\n  --out FILE.jsonl         JSONL output\n`);
+  console.log(`Topoboardgame research self-play runner
+
+Usage:
+  npm run research:selfplay -- --game 2dchess --boundary random --games 1000 --out local-data/selfplay/chess-rbc.jsonl
+
+Supported games:
+  ${SUPPORTED_RESEARCH_GAMES.join(', ')}
+
+Common options:
+  --game GAME              2dchess | 3dchess | 2dgo | 2dreversi | 3dgo | 3dreversi | 2djump | 3djump | 4djump | 2dhex | 3dhex | 4dhex
+  --boundary MODE          boundary/topology mode
+  --lattice LATTICE        square/honeycomb/triangular/sc/bcc/fcc/hcp/hexagonal/axis where supported
+  --size N                 board size
+  --games N                number of games
+  --maxPlies N             maximum plies per game
+  --depthA N --depthB N    robot strengths
+  --botA builtin|random|externalA|linear
+  --botB builtin|random|externalB|linear
+  --externalA "cmd ..."    persistent JSONL robot process
+  --externalB "cmd ..."
+  --record moves|games     moves writes one line per move plus game footer; games writes one line per game
+  --state true|false       include compact state snapshots
+  --seed TEXT              reproducible seed
+  --out FILE.jsonl         JSONL output
+`);
 }

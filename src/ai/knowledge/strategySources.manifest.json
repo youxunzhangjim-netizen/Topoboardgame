@@ -43,6 +43,16 @@
       "notes": "Use for exact chess endgame probing when available and piece count is within the configured tablebase limit."
     },
     {
+      "id": "alphazero-paper",
+      "name": "AlphaZero self-play reinforcement learning paper",
+      "url": "https://arxiv.org/abs/1712.01815",
+      "localPath": "",
+      "license": "Research paper metadata only; no model weights or paper text are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as design guidance for policy/value self-play, search priors, and keeping rules-only variants trained by local self-play."
+    },
+    {
       "id": "katago-official",
       "name": "KataGo official project",
       "url": "https://github.com/lightvector/KataGo",
@@ -51,6 +61,16 @@
       "redistributionAllowed": false,
       "dataType": "ENGINE",
       "notes": "Use as a local Go teacher/baseline through GTP or analysis JSON for normal boards and derived features."
+    },
+    {
+      "id": "katago-selfplay-paper",
+      "name": "Accelerating Self-Play Learning in Go",
+      "url": "https://arxiv.org/abs/1902.10565",
+      "localPath": "",
+      "license": "Research paper metadata only; no model weights or paper text are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used to prioritize ownership/value estimates, auxiliary board features, and efficient self-play learning for Go-style robots."
     },
     {
       "id": "cwi-go-games",
@@ -83,6 +103,56 @@
       "notes": "Use locally downloaded WTHOR files to derive Reversi opening statistics."
     },
     {
+      "id": "mohex-paper",
+      "name": "MoHex 2.0 pattern-based MCTS Hex player",
+      "url": "https://webdocs.cs.ualberta.ca/~mmueller/ps/2013/2013-CG-Mohex2.0.pdf",
+      "localPath": "",
+      "license": "Research paper metadata only; no paper text or engine code is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as guidance for Hex search priors, learned-pattern style scoring, and virtual connection awareness."
+    },
+    {
+      "id": "benzene-hex",
+      "name": "Benzene Hex framework",
+      "url": "https://benzene.sourceforge.net/",
+      "localPath": "models/external/benzene/",
+      "license": "LGPL project; code is not bundled here unless reviewed separately.",
+      "redistributionAllowed": false,
+      "dataType": "ENGINE",
+      "notes": "Reference for Hex alpha-beta, MCTS, virtual connection, and solving concepts."
+    },
+    {
+      "id": "neurohex-paper",
+      "name": "NeuroHex deep Q-learning Hex agent",
+      "url": "https://arxiv.org/abs/1604.07097",
+      "localPath": "",
+      "license": "Research paper metadata only; no model weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as a non-bundled reference for Hex self-play policy learning."
+    },
+    {
+      "id": "go-on-graphs",
+      "name": "Go on Graphs rules reference",
+      "url": "https://who.rocq.inria.fr/Laurent.Viennot/gog/rules.html",
+      "localPath": "",
+      "license": "Rules/reference metadata only.",
+      "redistributionAllowed": false,
+      "dataType": "RULES",
+      "notes": "Used to reinforce that topology Go liberties and captures must be graph-neighbor based."
+    },
+    {
+      "id": "graph-go-common-fate",
+      "name": "Learning on Graphs in the Game of Go",
+      "url": "https://www.herbrich.me/papers/go.pdf",
+      "localPath": "",
+      "license": "Research paper metadata only; no paper text is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as guidance for graph-based Go position features."
+    },
+    {
       "id": "pettingzoo-chinese-checkers",
       "name": "PettingZoo Chinese Checkers environment",
       "url": "https://github.com/noahadhikari/pettingzoo-chinese-checkers",
@@ -101,6 +171,36 @@
       "redistributionAllowed": false,
       "dataType": "JSON",
       "notes": "Reference for two-player minimax-style Chinese Checkers ideas."
+    },
+    {
+      "id": "chinese-checkers-mcts-rl",
+      "name": "Chinese Checkers heuristics, MCTS, and reinforcement learning reference",
+      "url": "https://ar5iv.labs.arxiv.org/html/1903.01747",
+      "localPath": "",
+      "license": "Research paper metadata only; no paper text or model weights are bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used for jump-chain progress, heuristic rollouts, and self-play guidance for Jump robots."
+    },
+    {
+      "id": "chinese-checkers-uct-endgame",
+      "name": "UCT enhancements with a Chinese Checkers endgame database",
+      "url": "https://www.cs.du.edu/~sturtevant/papers/UCT-endgame.pdf",
+      "localPath": "",
+      "license": "Research paper metadata only; no database is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as guidance for target-camp endgame heuristics and lookup-style future work."
+    },
+    {
+      "id": "chinese-checkers-strong-solving",
+      "name": "On Strongly Solving Chinese Checkers",
+      "url": "https://webdocs.cs.ualberta.ca/~nathanst/papers/sturtevant2019chinesecheckers.pdf",
+      "localPath": "",
+      "license": "Research paper metadata only; no solver data is bundled.",
+      "redistributionAllowed": false,
+      "dataType": "PAPER",
+      "notes": "Used as guidance for exact rules, scalable board sizes, and endgame safety checks."
     },
     {
       "id": "topoboardgame-local-notes",

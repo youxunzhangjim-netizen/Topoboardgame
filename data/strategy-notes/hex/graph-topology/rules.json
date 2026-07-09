@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "id": "hex-graph-topology-zone-distance",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "On curved or wrapped Hex boards, evaluate connection by explicit target zones and graph neighbors, not by screen distance or ordinary flat-board edges.",
+      "features": ["targetZoneDistance", "graphNeighbors", "screenDistanceIgnored", "connectionDistance"],
+      "weight": 1.8,
+      "sourceIds": ["mohex-paper", "benzene-hex", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "hex-graph-topology-camp-respect",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "Robots must not occupy the opponent's marked camp only to block a target side; choose legal cut points outside forbidden camp cells.",
+      "features": ["opponentCampForbidden", "legalCutPoint", "targetZoneDistance", "dualPurposeBlock"],
+      "weight": 2.0,
+      "sourceIds": ["topoboardgame-local-notes"]
+    },
+    {
+      "id": "hex-graph-topology-virtual-connection",
+      "game": "hex",
+      "phase": "middlegame",
+      "boardFamily": "graph-topology",
+      "description": "Virtual connection ideas still transfer to topology boards when they are computed on the real graph: shared empty connectors and resilient bridge pairs should improve move ranking.",
+      "features": ["virtualConnection", "bridgeTemplate", "graphNeighbors", "cutResistance"],
+      "weight": 1.65,
+      "sourceIds": ["mohex-paper", "benzene-hex"]
+    }
+  ]
+}

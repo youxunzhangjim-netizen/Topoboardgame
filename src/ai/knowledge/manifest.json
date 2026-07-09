@@ -33,6 +33,14 @@
       "localPath": "process.env.LOCAL_SYZYGY_PATH"
     },
     {
+      "sourceName": "AlphaZero self-play learning paper",
+      "sourceUrl": "https://arxiv.org/abs/1712.01815",
+      "licenseSummary": "Metadata reference only; no article text, models, or weights are bundled.",
+      "dataType": "paper",
+      "redistributionAllowed": "not_allowed",
+      "localPath": ""
+    },
+    {
       "sourceName": "User-provided Go SGF folder",
       "sourceUrl": "local:data/go/sgf/",
       "licenseSummary": "User is responsible for SGF licensing. Scripts derive joseki/fuseki statistics only.",
@@ -47,6 +55,14 @@
       "dataType": "engine",
       "redistributionAllowed": "not_allowed",
       "localPath": "process.env.KATAGO_PATH"
+    },
+    {
+      "sourceName": "KataGo self-play learning paper",
+      "sourceUrl": "https://arxiv.org/abs/1902.10565",
+      "licenseSummary": "Metadata reference only; no article text, models, or weights are bundled.",
+      "dataType": "paper",
+      "redistributionAllowed": "not_allowed",
+      "localPath": ""
     },
     {
       "sourceName": "User-provided Reversi WTHOR folder",
@@ -65,12 +81,36 @@
       "localPath": "process.env.EDAX_PATH"
     },
     {
+      "sourceName": "MoHex and Benzene Hex search references",
+      "sourceUrl": "https://benzene.sourceforge.net/",
+      "licenseSummary": "Metadata reference only; no external Hex engine code or article text is bundled.",
+      "dataType": "paper/engine",
+      "redistributionAllowed": "not_allowed",
+      "localPath": ""
+    },
+    {
+      "sourceName": "Go-on-graphs rules and graph-feature references",
+      "sourceUrl": "https://who.rocq.inria.fr/Laurent.Viennot/gog/rules.html",
+      "licenseSummary": "Metadata reference only; graph rules are implemented locally.",
+      "dataType": "rules/paper",
+      "redistributionAllowed": "not_allowed",
+      "localPath": ""
+    },
+    {
       "sourceName": "Topoboardgame Chinese Checkers local notes",
       "sourceUrl": "local:data/chinese-checkers/notes/",
       "licenseSummary": "User-authored notes and numeric features only. Do not paste copyrighted articles.",
       "dataType": "notes",
       "redistributionAllowed": "local_only",
       "localPath": "data/chinese-checkers/notes/"
+    },
+    {
+      "sourceName": "Chinese Checkers MCTS and endgame research references",
+      "sourceUrl": "https://ar5iv.labs.arxiv.org/html/1903.01747",
+      "licenseSummary": "Metadata reference only; no article text, solver data, or model weights are bundled.",
+      "dataType": "paper",
+      "redistributionAllowed": "not_allowed",
+      "localPath": ""
     }
   ]
 }

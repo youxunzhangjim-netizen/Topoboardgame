@@ -1,7 +1,7 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-07-09T19:41:53.091Z",
-  "game": "chess",
+  "generatedAt": "2026-07-09T19:41:53.105Z",
+  "game": "hex",
   "boardFamily": "graph-topology",
   "manifest": [
     {
@@ -333,95 +333,57 @@
   ],
   "rules": [
     {
-      "id": "chess-graph-topology-distance-development",
-      "game": "chess",
+      "id": "hex-graph-topology-zone-distance",
+      "game": "hex",
       "phase": "all",
       "boardFamily": "graph-topology",
-      "description": "For nonstandard chess boards, replace fixed center and edge assumptions with graph centrality, shortest-path mobility, king escape regions, and topology-aware attack maps.",
+      "description": "On curved or wrapped Hex boards, evaluate connection by explicit target zones and graph neighbors, not by screen distance or ordinary flat-board edges.",
       "features": [
-        "graphCentrality",
-        "shortestPathMobility",
-        "kingEscapeRegion",
-        "topologyAttackMap"
+        "targetZoneDistance",
+        "graphNeighbors",
+        "screenDistanceIgnored",
+        "connectionDistance"
       ],
-      "weight": 1.25,
+      "weight": 1.8,
       "sourceIds": [
-        "stockfish-official"
+        "mohex-paper",
+        "benzene-hex",
+        "topoboardgame-local-notes"
       ]
     },
     {
-      "id": "chess-graph-topology-opening-transfer-limit",
-      "game": "chess",
-      "phase": "opening",
-      "boardFamily": "graph-topology",
-      "description": "Do not apply standard PGN openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; transfer only activity, safety, material, and graph-distance features.",
-      "features": [
-        "openingBookDisabled",
-        "pieceActivity",
-        "kingSafety",
-        "graphDistance",
-        "material"
-      ],
-      "weight": 1.6,
-      "sourceIds": [
-        "lichess-open-database",
-        "stockfish-official"
-      ]
-    },
-    {
-      "id": "chess-graph-topology-protection-network",
-      "game": "chess",
+      "id": "hex-graph-topology-camp-respect",
+      "game": "hex",
       "phase": "all",
       "boardFamily": "graph-topology",
-      "description": "For topology chess, build attack and defense maps on the actual graph. Protected valuable pieces, safe trades, and king escape regions transfer better than ordinary standard-board opening memorization.",
+      "description": "Robots must not occupy the opponent's marked camp only to block a target side; choose legal cut points outside forbidden camp cells.",
       "features": [
-        "topologyAttackMap",
-        "defendedPiece",
-        "hangingPiecePenalty",
-        "safeTrade",
-        "kingEscapeRegion"
+        "opponentCampForbidden",
+        "legalCutPoint",
+        "targetZoneDistance",
+        "dualPurposeBlock"
       ],
-      "weight": 1.55,
+      "weight": 2,
       "sourceIds": [
-        "stockfish-official"
+        "topoboardgame-local-notes"
       ]
     },
     {
-      "id": "chess-graph-topology-volume-lane-control",
-      "game": "chess",
-      "phase": "opening",
-      "boardFamily": "graph-topology",
-      "description": "For 3D chess, opening play should occupy high-centrality volume lanes, activate long-range pieces on straight graph rays, and keep the king with multiple escape layers instead of copying ordinary 2D opening names.",
-      "features": [
-        "volumeCentrality",
-        "straightRayActivity",
-        "layerEscapeSquare",
-        "pieceCoordination",
-        "openingBookDisabled"
-      ],
-      "weight": 1.55,
-      "sourceIds": [
-        "stockfish-official",
-        "alphazero-paper"
-      ]
-    },
-    {
-      "id": "chess-graph-topology-seam-tactics",
-      "game": "chess",
+      "id": "hex-graph-topology-virtual-connection",
+      "game": "hex",
       "phase": "middlegame",
       "boardFamily": "graph-topology",
-      "description": "On wrapped or twisted chess boards, search seam tactics explicitly: a line that crosses a seam can attack the king or hang a valuable piece even when it appears distant in the rendered view.",
+      "description": "Virtual connection ideas still transfer to topology boards when they are computed on the real graph: shared empty connectors and resilient bridge pairs should improve move ranking.",
       "features": [
-        "seamAttackRay",
-        "wrappedLineOfSight",
-        "topologyAttackMap",
-        "kingSafety",
-        "hangingPiecePenalty"
+        "virtualConnection",
+        "bridgeTemplate",
+        "graphNeighbors",
+        "cutResistance"
       ],
-      "weight": 1.6,
+      "weight": 1.65,
       "sourceIds": [
-        "stockfish-official",
-        "topoboardgame-local-notes"
+        "mohex-paper",
+        "benzene-hex"
       ]
     }
   ],
@@ -429,7 +391,7 @@
   "endgameBook": [],
   "decisionStack": [
     "terminal",
-    "endgame: Syzygy if LOCAL_SYZYGY_PATH exists and piece count <= 7; else Stockfish/local search",
+    "endgame: immediate connection/block checks, virtual-connection cuts, and local connection search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

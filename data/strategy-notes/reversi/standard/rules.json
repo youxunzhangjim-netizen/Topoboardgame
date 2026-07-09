@@ -39,6 +39,26 @@
       "features": ["exactSolver", "parity", "regionControl", "forcedSequence", "finalDiscCount"],
       "weight": 1.65,
       "sourceIds": ["edax-official", "wthor-ffo"]
+    },
+    {
+      "id": "reversi-standard-opening-book-verify",
+      "game": "reversi",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Use WTHOR-derived opening books as candidate priors, but verify mobility, frontier count, and corner access with search before choosing a book move.",
+      "features": ["openingBookLookup", "candidateReplyStats", "mobility", "frontierDiscs", "cornerAccess"],
+      "weight": 1.65,
+      "sourceIds": ["wthor-ffo", "edax-official"]
+    },
+    {
+      "id": "reversi-standard-late-exactness-window",
+      "game": "reversi",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "When empty squares are few, switch from heuristic mobility to exact or near-exact search so parity and forced sequences dominate the evaluation.",
+      "features": ["exactSolver", "emptiesCount", "parity", "forcedSequence", "regionControl"],
+      "weight": 1.8,
+      "sourceIds": ["edax-official"]
     }
   ]
 }

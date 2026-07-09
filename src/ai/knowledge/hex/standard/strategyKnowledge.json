@@ -1,8 +1,8 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-07-09T19:41:53.091Z",
-  "game": "chess",
-  "boardFamily": "graph-topology",
+  "generatedAt": "2026-07-09T19:41:53.104Z",
+  "game": "hex",
+  "boardFamily": "standard",
   "manifest": [
     {
       "id": "User-provided chess PGN folder",
@@ -333,95 +333,76 @@
   ],
   "rules": [
     {
-      "id": "chess-graph-topology-distance-development",
-      "game": "chess",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For nonstandard chess boards, replace fixed center and edge assumptions with graph centrality, shortest-path mobility, king escape regions, and topology-aware attack maps.",
-      "features": [
-        "graphCentrality",
-        "shortestPathMobility",
-        "kingEscapeRegion",
-        "topologyAttackMap"
-      ],
-      "weight": 1.25,
-      "sourceIds": [
-        "stockfish-official"
-      ]
-    },
-    {
-      "id": "chess-graph-topology-opening-transfer-limit",
-      "game": "chess",
+      "id": "hex-standard-opening-center-connection",
+      "game": "hex",
       "phase": "opening",
-      "boardFamily": "graph-topology",
-      "description": "Do not apply standard PGN openings directly on torus, cylinder, polar, Mobius, RP2, 3D, or 4D boards; transfer only activity, safety, material, and graph-distance features.",
+      "boardFamily": "standard",
+      "description": "Opening play should prefer central cells that shorten the player's connection distance while also increasing the opponent's shortest connection distance.",
       "features": [
-        "openingBookDisabled",
-        "pieceActivity",
-        "kingSafety",
-        "graphDistance",
-        "material"
-      ],
-      "weight": 1.6,
-      "sourceIds": [
-        "lichess-open-database",
-        "stockfish-official"
-      ]
-    },
-    {
-      "id": "chess-graph-topology-protection-network",
-      "game": "chess",
-      "phase": "all",
-      "boardFamily": "graph-topology",
-      "description": "For topology chess, build attack and defense maps on the actual graph. Protected valuable pieces, safe trades, and king escape regions transfer better than ordinary standard-board opening memorization.",
-      "features": [
-        "topologyAttackMap",
-        "defendedPiece",
-        "hangingPiecePenalty",
-        "safeTrade",
-        "kingEscapeRegion"
+        "connectionDistance",
+        "centerInfluence",
+        "opponentDistance",
+        "policyPrior"
       ],
       "weight": 1.55,
       "sourceIds": [
-        "stockfish-official"
+        "mohex-paper",
+        "benzene-hex",
+        "neurohex-paper"
       ]
     },
     {
-      "id": "chess-graph-topology-volume-lane-control",
-      "game": "chess",
-      "phase": "opening",
-      "boardFamily": "graph-topology",
-      "description": "For 3D chess, opening play should occupy high-centrality volume lanes, activate long-range pieces on straight graph rays, and keep the king with multiple escape layers instead of copying ordinary 2D opening names.",
+      "id": "hex-standard-virtual-bridge",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Prefer moves that create or complete two-threat bridge structures: two friendly stones with two shared empty connector cells are harder for the opponent to cut.",
       "features": [
-        "volumeCentrality",
-        "straightRayActivity",
-        "layerEscapeSquare",
-        "pieceCoordination",
-        "openingBookDisabled"
+        "virtualConnection",
+        "bridgeTemplate",
+        "sharedConnector",
+        "cutResistance"
       ],
-      "weight": 1.55,
+      "weight": 1.8,
       "sourceIds": [
-        "stockfish-official",
-        "alphazero-paper"
+        "mohex-paper",
+        "benzene-hex"
       ]
     },
     {
-      "id": "chess-graph-topology-seam-tactics",
-      "game": "chess",
+      "id": "hex-standard-cut-and-block",
+      "game": "hex",
       "phase": "middlegame",
-      "boardFamily": "graph-topology",
-      "description": "On wrapped or twisted chess boards, search seam tactics explicitly: a line that crosses a seam can attack the king or hang a valuable piece even when it appears distant in the rendered view.",
+      "boardFamily": "standard",
+      "description": "When the opponent has a short connection path, block on cells that both increase opponent path cost and preserve the player's own path continuity.",
       "features": [
-        "seamAttackRay",
-        "wrappedLineOfSight",
-        "topologyAttackMap",
-        "kingSafety",
-        "hangingPiecePenalty"
+        "opponentDistance",
+        "cutPoint",
+        "connectionDistance",
+        "dualPurposeBlock"
       ],
-      "weight": 1.6,
+      "weight": 1.75,
       "sourceIds": [
-        "stockfish-official",
-        "topoboardgame-local-notes"
+        "mohex-paper",
+        "benzene-hex"
+      ]
+    },
+    {
+      "id": "hex-standard-endgame-forced-connection",
+      "game": "hex",
+      "phase": "endgame",
+      "boardFamily": "standard",
+      "description": "Late search should prioritize immediate wins, immediate blocks, and forced connection sequences over local neighbor count.",
+      "features": [
+        "immediateWin",
+        "immediateBlock",
+        "forcedConnection",
+        "searchDepth"
+      ],
+      "weight": 2,
+      "sourceIds": [
+        "mohex-paper",
+        "benzene-hex"
       ]
     }
   ],
@@ -429,7 +410,7 @@
   "endgameBook": [],
   "decisionStack": [
     "terminal",
-    "endgame: Syzygy if LOCAL_SYZYGY_PATH exists and piece count <= 7; else Stockfish/local search",
+    "endgame: immediate connection/block checks, virtual-connection cuts, and local connection search",
     "opening-book",
     "engine-or-search",
     "difficulty-policy"

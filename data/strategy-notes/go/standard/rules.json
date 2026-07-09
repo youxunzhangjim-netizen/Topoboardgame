@@ -39,6 +39,26 @@
       "features": ["passTiming", "ownTerritoryFillPenalty", "urgentCapture", "atariDefense", "neutralYose"],
       "weight": 1.85,
       "sourceIds": ["katago-official", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "go-standard-policy-value-opening-prior",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Use joseki and fuseki books as priors rather than fixed scripts. Search should compare candidate moves by ownership estimate, group safety, and whole-board value before committing.",
+      "features": ["josekiBookLookup", "policyPrior", "ownershipMap", "groupSafety", "wholeBoardValue"],
+      "weight": 1.65,
+      "sourceIds": ["katago-official", "katago-selfplay-paper", "alphazero-paper"]
+    },
+    {
+      "id": "go-standard-auxiliary-ownership-learning",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Training examples should preserve ownership, score lead, and liberty features because they stabilize move selection better than raw win/loss labels alone.",
+      "features": ["ownershipMap", "scoreLead", "liberties", "territoryInfluenceBalance", "trainingAuxiliaryTargets"],
+      "weight": 1.5,
+      "sourceIds": ["katago-selfplay-paper", "katago-official"]
     }
   ]
 }
