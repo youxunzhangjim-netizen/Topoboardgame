@@ -3211,7 +3211,6 @@ function renderLabsModelCatalog() {
                     <em>${metadata.observables.length} observables</em>
                     <em>${metadata.validationLevel === 'toy' ? 'beginner-friendly' : 'research-focused'}</em>
                 </span>
-                <small>Topologies: flat, torus, Klein, Mobius, RP2, S2, R3, 4D where supported.</small>
             `;
             button.addEventListener('click', () => {
                 const layer = modeLayerForMode(mode);

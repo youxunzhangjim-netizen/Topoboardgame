@@ -119,7 +119,6 @@ const ZH = new Map(Object.entries({
   'observables': '可觀測量',
   'beginner-friendly': '入門友善',
   'research-focused': '研究導向',
-  'Topologies: flat, torus, Klein, Mobius, RP2, S2, R3, 4D where supported.': '拓撲：支援時可使用 flat（開放平面）、torus（環面）、Klein、Mobius、RP2、S2、R3、4D。',
   'Pauli-labeled local operators on topology-aware graph rays with Clifford frame transforms.': '在感知拓撲的圖射線上使用 Pauli 標記的局部算符，並套用 Clifford frame 變換。',
   'Local Pauli insertions on graph sites for comparing operator labels across topologies.': '在圖節點插入局部 Pauli，用來比較不同拓撲上的算符標記。',
   'Worldline-style Pauli operator transport through hops and exchanges on graph topology.': '以世界線方式讓 Pauli 算符在圖拓撲上透過躍遷與交換傳輸。',
