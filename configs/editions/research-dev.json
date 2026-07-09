@@ -8,6 +8,13 @@
   "public": false,
   "steam": false,
   "debug": false,
+  "online": {
+    "enabled": false,
+    "environment": "dev",
+    "pool": "research",
+    "clientKind": "research",
+    "sharedWith": []
+  },
   "features": {
     "stableGames": true,
     "lifeWorld": true,

@@ -23,6 +23,47 @@ const editionConfig = existsSync(editionPath)
     ? JSON.parse(readFileSync(editionPath, 'utf8'))
     : { id: editionId, hiddenRoutes: [], excludePaths: [], features: {} };
 
+function parseEnvFile(filePath) {
+    if (!existsSync(filePath)) return {};
+    const entries = {};
+    const lines = readFileSync(filePath, 'utf8').split(/\r?\n/);
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const equalsIndex = line.indexOf('=');
+        if (equalsIndex <= 0) continue;
+        const key = line.slice(0, equalsIndex).trim();
+        let value = line.slice(equalsIndex + 1).trim();
+        if (
+            (value.startsWith('"') && value.endsWith('"'))
+            || (value.startsWith("'") && value.endsWith("'"))
+        ) {
+            value = value.slice(1, -1);
+        }
+        entries[key] = value;
+    }
+    return entries;
+}
+
+const editionEnvPath = join(root, `.env.${editionId}`);
+const editionEnv = parseEnvFile(editionEnvPath);
+for (const key of Object.keys(editionEnv)) {
+    if (!key.startsWith('VITE_')) {
+        throw new Error(`${editionEnvPath} contains non-public key ${key}. Only VITE_* build flags are allowed.`);
+    }
+}
+for (const [key, value] of Object.entries(editionEnv)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+}
+
+function publicTopoboardEnv() {
+    return Object.fromEntries(
+        Object.entries(process.env)
+            .filter(([key]) => key.startsWith('VITE_TBG_'))
+            .sort(([left], [right]) => left.localeCompare(right))
+    );
+}
+
 function run(args) {
     const commandArgs = process.platform === 'win32'
         ? ['/d', '/s', '/c', 'npm.cmd', ...args]
@@ -81,6 +122,13 @@ function postProcessEdition(output) {
         edition: editionConfig.id || editionId,
         target: editionConfig.target || '',
         features: editionConfig.features || {},
+        buildFlags: publicTopoboardEnv(),
+        online: {
+            clientKind: process.env.VITE_TBG_CLIENT_KIND || '',
+            environment: process.env.VITE_TBG_ONLINE_ENV || '',
+            pool: process.env.VITE_TBG_ONLINE_POOL || '',
+            enabled: process.env.VITE_TBG_ENABLE_ONLINE === 'true'
+        },
         hiddenRoutes: editionConfig.hiddenRoutes || []
     }, null, 2);
     writeFileSync(join(output, 'edition.json'), `${editionJson}\n`);

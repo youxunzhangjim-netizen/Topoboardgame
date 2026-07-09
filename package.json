@@ -97,6 +97,7 @@
     "verify:klein-surface": "node verification/verify-klein-surface.mjs",
     "verify:desktop-save": "node verification/verify-desktop-save.mjs",
     "verify:electron-save": "node verification/verify-electron-save-bridge.mjs",
+    "verify:edition-env": "node verification/verify-edition-env.mjs",
     "verify:jump-surfaces": "node verification/verify-jump-surfaces.mjs",
     "verify:robot-legality": "node verification/verify-robot-move-legality.mjs",
     "verify:jump-ui": "node verification/verify-jump-ui.mjs",

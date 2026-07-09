@@ -11,6 +11,9 @@ dist-debug/
 
 .env
 .env.*
+!.env.web-lite
+!.env.steam-stable
+!.env.research-dev
 *.log
 .codex-*.log
 .vscode/

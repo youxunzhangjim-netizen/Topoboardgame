@@ -58,6 +58,26 @@ The shared helper is:
 
 This helper lets future pages ask whether a feature, Lab tier, route, or feature status should be visible in the current edition. It is intentionally lightweight and does not force a full UI migration.
 
+Public build flags live at the project root:
+
+- `.env.web-lite`
+- `.env.steam-stable`
+- `.env.research-dev`
+
+These files contain only public `VITE_*` flags. Do not put Firebase secrets, Steam credentials, service-account JSON, private API keys, or local machine tokens in them.
+
+## Online Rooms
+
+`web-lite` and `steam-stable` must use the same production online room system:
+
+- `VITE_TBG_ONLINE_ENV=prod`
+- `VITE_TBG_ONLINE_POOL=global`
+- Firestore collection: `rooms`
+
+This is intentional. Website players and Steam players should be able to join the same rooms and matchmaking pool. Do not change only one edition's online environment or pool unless a future release intentionally separates matchmaking.
+
+`research-dev` defaults to online disabled and uses `dev/research` labels for future isolated testing.
+
 ## Build Separation
 
 The source tree is still shared. Build scripts choose the edition and output folder:

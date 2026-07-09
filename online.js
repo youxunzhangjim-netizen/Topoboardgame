@@ -41,6 +41,18 @@ import {
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
 
+const buildEnv = import.meta.env || {};
+const onlineBuildConfig = {
+    edition: String(buildEnv.VITE_TBG_EDITION || 'web-lite'),
+    clientKind: String(buildEnv.VITE_TBG_CLIENT_KIND || 'web'),
+    environment: String(buildEnv.VITE_TBG_ONLINE_ENV || 'prod'),
+    pool: String(buildEnv.VITE_TBG_ONLINE_POOL || 'global'),
+    enabled: String(buildEnv.VITE_TBG_ENABLE_ONLINE ?? 'true').toLowerCase() !== 'false'
+};
+
+// The Firestore collection is intentionally shared by web-lite and
+// steam-stable. VITE_TBG_ONLINE_ENV/POOL are public build labels and safety
+// checks, not a namespace that splits matchmaking pools.
 const roomsPath = 'rooms';
 const usersPath = 'users';
 const authLogPrefix = '[Topoboardgame Firebase/Auth]';
@@ -379,6 +391,13 @@ function installAccountObserver() {
 
 async function ensureFirebaseCore() {
     authLog('ensureFirebaseCore: entered', { hasConfig: hasFirebaseConfig(), hasAuth: Boolean(auth), hasDb: Boolean(db) });
+    if (!onlineBuildConfig.enabled) {
+        return {
+            ok: false,
+            configured: false,
+            error: `Online rooms are disabled for the ${onlineBuildConfig.edition} edition.`
+        };
+    }
     if (!hasFirebaseConfig()) {
         if (!missingFirebaseConfigLogged) {
             missingFirebaseConfigLogged = true;
@@ -2033,6 +2052,7 @@ export function getOnlineState() {
     return {
         initialized,
         configured: hasFirebaseConfig(),
+        build: { ...onlineBuildConfig },
         uid: user?.uid || null,
         roomId,
         playerColor,

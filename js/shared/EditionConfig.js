@@ -8,6 +8,13 @@ export const EDITION_CONFIGS = {
         public: true,
         steam: false,
         debug: false,
+        online: {
+            enabled: true,
+            environment: 'prod',
+            pool: 'global',
+            clientKind: 'web',
+            sharedWith: ['steam-stable']
+        },
         features: {
             stableGames: true,
             lifeWorld: true,
@@ -31,6 +38,13 @@ export const EDITION_CONFIGS = {
         public: true,
         steam: true,
         debug: false,
+        online: {
+            enabled: true,
+            environment: 'prod',
+            pool: 'global',
+            clientKind: 'steam',
+            sharedWith: ['web-lite']
+        },
         features: {
             stableGames: true,
             lifeWorld: true,
@@ -56,6 +70,13 @@ export const EDITION_CONFIGS = {
         public: false,
         steam: false,
         debug: false,
+        online: {
+            enabled: false,
+            environment: 'dev',
+            pool: 'research',
+            clientKind: 'research',
+            sharedWith: []
+        },
         features: {
             stableGames: true,
             lifeWorld: true,
