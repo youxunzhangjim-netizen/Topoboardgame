@@ -1,0 +1,63 @@
+{
+  "schema": "topoboard.edition.v1",
+  "id": "web-lite",
+  "name": "Web Lite",
+  "description": "GitHub Pages website edition with public stable games, Life World, and safe public Labs entry points.",
+  "target": "github-pages",
+  "outputDir": "dist-web",
+  "public": true,
+  "steam": false,
+  "debug": false,
+  "features": {
+    "stableGames": true,
+    "lifeWorld": true,
+    "selectedLabs": true,
+    "researchBridge": false,
+    "researchBoardBuilder": false,
+    "materialDatabase": false,
+    "externalPythonBridge": false,
+    "experimentalBoards": false,
+    "heavyLabs": false,
+    "debugTools": false
+  },
+  "visibleFeatureStatuses": [
+    "stable",
+    "playable"
+  ],
+  "visibleLabTiers": [
+    "simple",
+    "standard"
+  ],
+  "hiddenRoutes": [
+    "labs/board-builder",
+    "labs/phase-diagrams",
+    "labs/publication"
+  ],
+  "excludePaths": [
+    "labs/board-builder",
+    "labs/phase-diagrams",
+    "labs/publication",
+    "docs/ADVANCED_BOARD_AND_LAB_INFRASTRUCTURE_PLAN.md",
+    "docs/FUTURE_EXTERNAL_MATERIAL_AND_MESH_BRIDGE.md",
+    "docs/MATERIAL_BOARD_BUILDER_DESIGN.md",
+    "configs/editions/research-dev.json",
+    "configs/editions/debug-dev.json"
+  ],
+  "forbiddenPublishPaths": [
+    "node_modules",
+    ".git",
+    "local-data",
+    "release",
+    "release-packages",
+    "steamworks",
+    "test-results",
+    "playwright-report"
+  ],
+  "forbiddenPublishPatterns": [
+    "*.jsonl",
+    ".env",
+    ".env.*",
+    "*steam*credential*",
+    "*service-account*"
+  ]
+}

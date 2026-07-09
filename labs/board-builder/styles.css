@@ -1,0 +1,106 @@
+.board-builder-shell {
+    max-width: 1500px;
+}
+
+.board-builder-status {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.status-actions {
+    display: grid;
+    gap: 8px;
+}
+
+.import-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid rgba(225, 232, 225, 0.18);
+    border-radius: 7px;
+    background: rgba(8, 10, 13, 0.82);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.import-button:hover,
+.import-button:focus-within {
+    border-color: rgba(73, 199, 184, 0.72);
+}
+
+.import-button input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.board-builder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.board-builder-grid .panel {
+    min-width: 0;
+}
+
+.disabled-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.disabled-list button {
+    justify-content: space-between;
+    text-align: left;
+}
+
+.disabled-list button > span:first-child {
+    color: inherit;
+    font-size: inherit;
+}
+
+.disabled-list button > span:last-child {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+#boardSpecPreview {
+    width: 100%;
+    min-height: 340px;
+    padding: 12px;
+    border: 1px solid rgba(225, 232, 225, 0.18);
+    border-radius: 7px;
+    background: rgba(5, 8, 12, 0.88);
+    color: #dfe9e5;
+    font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+    resize: vertical;
+}
+
+#validationStatus {
+    justify-self: start;
+}
+
+#validationStatus[data-state="valid"] {
+    border-color: rgba(97, 211, 148, 0.58);
+    color: var(--ok);
+}
+
+#validationStatus[data-state="invalid"] {
+    border-color: rgba(255, 116, 109, 0.58);
+    color: var(--bad);
+}
+
+@media (max-width: 900px) {
+    .board-builder-status,
+    .board-builder-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -111,9 +111,9 @@ const checks = [
       gameModeSelect: ['local', 'robot', 'online'],
       spaceSelect: ['r3', 't2', 'cylinder', 'sphere', 'klein', 'mobius'],
       boundarySelect: ['r3', 't3', 'r3_random', 'rp3'],
-      latticeSelect: ['square', 'hcp', 'honeycomb', 'sphere_coordinate']
+      latticeSelect: ['square', 'bcc', 'fcc', 'honeycomb', 'sphere_coordinate']
     },
-    robotText: [/negamax|alpha|beta|transposition|tt/i, /frontier|anchor|surface|sphere|klein|mobius|rp3|t3|t2|r3_random|hcp/i],
+    robotText: [/negamax|alpha|beta|transposition|tt/i, /frontier|anchor|surface|sphere|klein|mobius|rp3|t3|t2|r3_random|bcc|fcc/i],
     searchFile: '3D/3dreversi/js/robot/Reversi3DRobot.js'
   }
 ];

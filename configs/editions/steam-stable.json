@@ -1,0 +1,59 @@
+{
+  "schema": "topoboard.edition.v1",
+  "id": "steam-stable",
+  "name": "Steam Stable",
+  "description": "Steam desktop edition with stable games, Life World, selected Labs, and no required external research bridge.",
+  "target": "steam-desktop",
+  "outputDir": "dist-steam",
+  "public": true,
+  "steam": true,
+  "debug": false,
+  "features": {
+    "stableGames": true,
+    "lifeWorld": true,
+    "selectedLabs": true,
+    "researchBridge": false,
+    "researchBoardBuilder": false,
+    "materialDatabase": false,
+    "externalPythonBridge": false,
+    "experimentalBoards": false,
+    "heavyLabs": false,
+    "debugTools": false,
+    "desktopSaveFiles": true,
+    "steamCloudReady": true
+  },
+  "visibleFeatureStatuses": [
+    "stable",
+    "playable"
+  ],
+  "visibleLabTiers": [
+    "simple",
+    "standard"
+  ],
+  "hiddenRoutes": [
+    "labs/board-builder"
+  ],
+  "excludePaths": [
+    "labs/board-builder",
+    "docs/FUTURE_EXTERNAL_MATERIAL_AND_MESH_BRIDGE.md",
+    "docs/MATERIAL_BOARD_BUILDER_DESIGN.md",
+    "configs/editions/research-dev.json",
+    "configs/editions/debug-dev.json"
+  ],
+  "forbiddenPublishPaths": [
+    "node_modules",
+    ".git",
+    "local-data",
+    "release-packages",
+    "steamworks",
+    "test-results",
+    "playwright-report"
+  ],
+  "forbiddenPublishPatterns": [
+    "*.jsonl",
+    ".env",
+    ".env.*",
+    "*steam*credential*",
+    "*service-account*"
+  ]
+}

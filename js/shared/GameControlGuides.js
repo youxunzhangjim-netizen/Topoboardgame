@@ -517,7 +517,7 @@ function createGuide(type) {
                 : (guideSection.items || []);
             for (const text of items) {
                 const item = document.createElement('li');
-                item.textContent = String(text);
+                item.textContent = guideText(String(text), lang);
                 list.append(item);
             }
             details.append(summary, list);

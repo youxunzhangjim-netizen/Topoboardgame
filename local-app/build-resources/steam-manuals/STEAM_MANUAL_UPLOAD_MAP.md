@@ -38,4 +38,4 @@ Upload these files in Steamworks under **Game manuals, quick reference guides, a
 
 ## Online Manual
 
-Use the Steam **Basic Info** tab for the online manual URL. Point it to the public Topoboardgame website manual or documentation page.
+Use the Steam **Basic Info** tab only for a documentation/support URL. Do not point Steam store metadata to the playable web launcher. The Steam version is the official desktop release.

@@ -142,8 +142,9 @@
     }
     .workflow-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.5fr);
+      gap: 16px;
+      align-items: stretch;
       margin-top: 28px;
     }
     .workflow-card {
@@ -180,10 +181,95 @@
       font-weight: 950;
       text-transform: uppercase;
     }
+    .research-picker {
+      min-height: 190px;
+      display: grid;
+      gap: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 20px;
+    }
+    .research-picker-header {
+      display: grid;
+      gap: 6px;
+    }
+    .research-picker h2,
+    .research-detail h3 {
+      margin: 0;
+      line-height: 1.16;
+    }
+    .research-picker h2 {
+      font-size: clamp(22px, 3vw, 30px);
+    }
+    .research-picker p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+    .research-picker-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .research-picker label,
+    .detail-label,
+    .formula-caption {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .research-picker select,
+    .research-open-button {
+      min-height: 46px;
+      border: 1px solid rgba(88, 197, 255, 0.34);
+      border-radius: 10px;
+      background: rgba(5, 10, 17, 0.66);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 850;
+    }
+    .research-open-button {
+      display: inline-grid;
+      place-items: center;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .research-detail {
+      display: grid;
+      gap: 9px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 10px;
+      background: rgba(5, 10, 17, 0.42);
+      padding: 14px;
+    }
+    .research-detail h3 {
+      font-size: clamp(20px, 2.4vw, 28px);
+    }
+    .formula-box {
+      overflow-x: auto;
+      border: 1px solid rgba(88, 197, 255, 0.24);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.22);
+      padding: 10px 12px;
+    }
+    .formula-box code {
+      color: #d7f0ff;
+      font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
+      font-size: clamp(15px, 1.7vw, 18px);
+      white-space: nowrap;
+    }
     @media (max-width: 860px) {
       .topbar { align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
       .workflow-grid { grid-template-columns: 1fr; }
       .workflow-card { min-height: 150px; }
+      .research-picker { padding: 16px; }
+      .research-picker-controls { grid-template-columns: 1fr; }
+      .research-open-button { width: 100%; }
       .language-menu { left: auto; right: 0; }
     }
   </style>
@@ -219,26 +305,26 @@
         <span><strong data-i18n="interactiveTitle">Simple / Research Interface</strong><small data-i18n="interactiveDesc">Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.</small></span>
         <span data-i18n="enter">Enter</span>
       </a>
-      <a class="workflow-card" href="./experiments/">
-        <span><strong data-i18n="experimentsTitle">Experiment Builder</strong><small data-i18n="experimentsDesc">Configure models, topology, seeds, observables, batch runs, and reproducible exports.</small></span>
-        <span data-i18n="open">Open</span>
-      </a>
-      <a class="workflow-card" href="./phase-diagrams/">
-        <span><strong data-i18n="phaseTitle">Phase / Regime Scan</strong><small data-i18n="phaseDesc">Generate cautious finite-size regime maps from existing Labs models and observables.</small></span>
-        <span data-i18n="open">Open</span>
-      </a>
-      <a class="workflow-card" href="./topology-compare/">
-        <span><strong data-i18n="topologyTitle">Topology Comparison</strong><small data-i18n="topologyDesc">Run the same local rule across different spaces and compare topology-sensitive observables.</small></span>
-        <span data-i18n="open">Open</span>
-      </a>
-      <a class="workflow-card" href="./validation/">
-        <span><strong data-i18n="validationTitle">Validation & Reproducibility</strong><small data-i18n="validationDesc">Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.</small></span>
-        <span data-i18n="open">Open</span>
-      </a>
-      <a class="workflow-card" href="./publication/">
-        <span><strong data-i18n="publicationTitle">Publication & Dataset Export</strong><small data-i18n="publicationDesc">Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.</small></span>
-        <span data-i18n="open">Open</span>
-      </a>
+      <section class="research-picker" aria-labelledby="researchPickerTitle">
+        <div class="research-picker-header">
+          <h2 id="researchPickerTitle" data-i18n="researchPickerTitle">Research Type</h2>
+          <p data-i18n="researchPickerLead">Choose one deeper research workflow here. Only the selected workflow's purpose, observables, and formal expression are shown at the top.</p>
+        </div>
+        <div class="research-picker-controls">
+          <div>
+            <label for="researchWorkflowSelect" data-i18n="researchTypeLabel">Research type</label>
+            <select id="researchWorkflowSelect"></select>
+          </div>
+          <a id="researchWorkflowOpen" class="research-open-button" href="./experiments/" data-i18n="researchOpen">Open selected research</a>
+        </div>
+        <article class="research-detail" aria-live="polite">
+          <p class="detail-label" data-i18n="selectedResearch">Selected research</p>
+          <h3 id="researchDetailTitle">Experiment Builder</h3>
+          <p id="researchDetailBody">Configure topology, state space, local rule, seed, observables, and reproducible export metadata.</p>
+          <p class="formula-caption" data-i18n="researchFormula">Formal expression</p>
+          <div class="formula-box"><code id="researchDetailFormula">\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O)</code></div>
+        </article>
+      </section>
     </section>
   </main>
   <script>
@@ -248,9 +334,15 @@
         home: 'Home',
         eyebrow: 'Topoboard Labs',
         title: 'Experimental Platform for Discrete Topological Dynamics',
-        lead: 'Start with the interactive Simple / Research workspace, then use the deeper tools for experiment building, phase scans, topology comparison, validation, or publication-ready dataset export.',
+        lead: 'Start with the interactive Simple / Research workspace. Deeper research tools are organized through one research-type selector so the page stays readable.',
         interactiveTitle: 'Simple / Research Interface',
         interactiveDesc: 'Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.',
+        researchPickerTitle: 'Research Type',
+        researchPickerLead: "Choose one deeper research workflow here. Only the selected workflow's purpose, observables, and formal expression are shown at the top.",
+        researchTypeLabel: 'Research type',
+        selectedResearch: 'Selected research',
+        researchFormula: 'Formal expression',
+        researchOpen: 'Open selected research',
         experimentsTitle: 'Experiment Builder',
         experimentsDesc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.',
         phaseTitle: 'Phase / Regime Scan',
@@ -259,6 +351,8 @@
         topologyDesc: 'Run the same local rule across different spaces and compare topology-sensitive observables.',
         validationTitle: 'Validation & Reproducibility',
         validationDesc: 'Audit seeds, hashes, replay metadata, topology invariants, benchmark scope, and warnings.',
+        boardBuilderTitle: 'Research Board Builder',
+        boardBuilderDesc: 'Prepare BoardSpec JSON from safe internal presets, validate imported research boards, and reserve external tool bridges for later.',
         publicationTitle: 'Publication & Dataset Export',
         publicationDesc: 'Package reviewable bundles with README, data dictionary, methods, citation, checksums, and provenance.',
         open: 'Open',
@@ -269,9 +363,15 @@
         home: '\u9996\u9801',
         eyebrow: 'Topoboard Labs',
         title: '\u96e2\u6563\u62d3\u64b2\u52d5\u529b\u5b78\u5be6\u9a57\u5e73\u53f0',
-        lead: '\u5148\u9032\u5165\u53ef\u4e92\u52d5\u7684\u7c21\u55ae / \u7814\u7a76\u5de5\u4f5c\u5340\uff0c\u518d\u4f7f\u7528\u66f4\u6df1\u5165\u7684\u5be6\u9a57\u5efa\u69cb\u3001\u76f8\u5716\u6383\u63cf\u3001\u62d3\u64b2\u6bd4\u8f03\u3001\u9a57\u8b49\u6216\u53ef\u51fa\u7248\u8cc7\u6599\u96c6\u532f\u51fa\u5de5\u5177\u3002',
+        lead: '\u5148\u9032\u5165\u53ef\u4e92\u52d5\u7684\u7c21\u55ae / \u7814\u7a76\u5de5\u4f5c\u5340\u3002\u66f4\u6df1\u5165\u7684\u7814\u7a76\u5de5\u5177\u6536\u5728\u55ae\u4e00\u7814\u7a76\u985e\u578b\u9078\u55ae\u4e2d\uff0c\u9801\u9762\u6703\u66f4\u6e05\u695a\u3002',
         interactiveTitle: '\u7c21\u55ae / \u7814\u7a76\u4ecb\u9762',
         interactiveDesc: '\u5148\u9032\u5165\u53ef\u904a\u73a9\u7684 Labs \u5de5\u4f5c\u5340\u3002\u4e00\u822c\u73a9\u5bb6\u7528\u7c21\u55ae\u6a21\u5f0f\uff0c\u9700\u8981\u5b8c\u6574\u79d1\u5b78\u63a7\u5236\u6642\u518d\u5728\u9802\u90e8\u5207\u5230\u7814\u7a76\u6a21\u5f0f\u3002',
+        researchPickerTitle: '\u7814\u7a76\u985e\u578b',
+        researchPickerLead: '\u5728\u9019\u88e1\u9078\u64c7\u4e00\u500b\u6df1\u5165\u7814\u7a76\u5de5\u4f5c\u6d41\u3002\u9801\u9762\u9802\u90e8\u53ea\u986f\u793a\u76ee\u524d\u9078\u9805\u7684\u76ee\u7684\u3001\u89c0\u6e2c\u91cf\u8207\u5f62\u5f0f\u8868\u793a\u3002',
+        researchTypeLabel: '\u7814\u7a76\u985e\u578b',
+        selectedResearch: '\u76ee\u524d\u9078\u64c7',
+        researchFormula: '\u5f62\u5f0f\u8868\u793a',
+        researchOpen: '\u958b\u555f\u9078\u5b9a\u7814\u7a76',
         experimentsTitle: '\u5be6\u9a57\u5efa\u69cb\u5668',
         experimentsDesc: '\u8a2d\u5b9a\u6a21\u578b\u3001\u62d3\u64b2\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u3001\u6279\u6b21\u57f7\u884c\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u3002',
         phaseTitle: '\u76f8\u5716 / \u5340\u57df\u6383\u63cf',
@@ -280,6 +380,8 @@
         topologyDesc: '\u5728\u4e0d\u540c\u7a7a\u9593\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u4e26\u6bd4\u8f03\u62d3\u64b2\u654f\u611f\u7684\u89c0\u6e2c\u91cf\u3002',
         validationTitle: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
         validationDesc: '\u7a3d\u6838\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u4e2d\u7e7c\u8cc7\u6599\u3001\u62d3\u64b2\u4e0d\u8b8a\u91cf\u3001\u57fa\u6e96\u7bc4\u570d\u8207\u8b66\u544a\u3002',
+        boardBuilderTitle: '\u7814\u7a76\u68cb\u76e4\u5efa\u69cb\u5668',
+        boardBuilderDesc: '\u5f9e\u5b89\u5168\u5167\u90e8\u9810\u8a2d\u6e96\u5099 BoardSpec JSON\uff0c\u9a57\u8b49\u532f\u5165\u7684\u7814\u7a76\u68cb\u76e4\uff0c\u4e26\u5c07\u5916\u90e8\u5de5\u5177\u6a4b\u63a5\u4fdd\u7559\u7d66\u4ee5\u5f8c\u3002',
         publicationTitle: '\u51fa\u7248\u8207\u8cc7\u6599\u96c6\u532f\u51fa',
         publicationDesc: '\u5c01\u88dd\u53ef\u5be9\u67e5 bundle\uff0c\u5305\u542b README\u3001\u8cc7\u6599\u5b57\u5178\u3001\u65b9\u6cd5\u3001\u5f15\u7528\u3001\u6821\u9a57\u78bc\u8207\u4f86\u6e90\u7d00\u9304\u3002',
         open: '\u958b\u555f',
@@ -287,6 +389,87 @@
         language: '\u8a9e\u8a00'
       }
     };
+    const WORKFLOW_STORAGE_KEY = 'topoboard-labs:research-workflow';
+    const WORKFLOWS = {
+      en: [
+        {
+          id: 'experiments',
+          route: './experiments/',
+          title: 'Experiment Builder',
+          body: 'Configure topology, state space, local rule, seed, observables, and reproducible export metadata. Observables are tracked as time series, not game scores.',
+          formula: String.raw`\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O),\quad x_{t+1}=R_{\theta}(x_t;\mathcal{T},\xi_t).`
+        },
+        {
+          id: 'topology',
+          route: './topology-compare/',
+          title: 'Topology Comparison',
+          body: 'Run the same local rule on different spaces and compare how topology changes measured observables such as density, clusters, correlation, or logical state.',
+          formula: String.raw`\Delta O(t)=O_{\mathcal{T}_a}(t)-O_{\mathcal{T}_b}(t),\quad \mathcal{T}_a\ne\mathcal{T}_b.`
+        },
+        {
+          id: 'validation',
+          route: './validation/',
+          title: 'Validation & Reproducibility',
+          body: 'Check seeds, hashes, replay records, topology metadata, limits, warnings, and benchmark scope before treating a run as reproducible.',
+          formula: String.raw`H_{\mathrm{exp}}=H(\mathrm{topology},\mathrm{rule},\mathrm{seed},\mathrm{version}),\quad x_t=\mathrm{Replay}(H_{\mathrm{exp}},t).`
+        }
+      ],
+      zh: [
+        {
+          id: 'experiments',
+          route: './experiments/',
+          title: '\u5be6\u9a57\u5efa\u69cb\u5668',
+          body: '\u8a2d\u5b9a\u62d3\u64b2\u3001\u72c0\u614b\u7a7a\u9593\u3001\u5c40\u90e8\u898f\u5247\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u4e2d\u7e7c\u8cc7\u6599\u3002\u89c0\u6e2c\u91cf\u4ee5\u6642\u9593\u5e8f\u5217\u8ffd\u8e64\uff0c\u4e0d\u662f\u904a\u6232\u5206\u6578\u3002',
+          formula: String.raw`\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O),\quad x_{t+1}=R_{\theta}(x_t;\mathcal{T},\xi_t).`
+        },
+        {
+          id: 'topology',
+          route: './topology-compare/',
+          title: '\u62d3\u64b2\u6bd4\u8f03',
+          body: '\u5728\u4e0d\u540c\u7a7a\u9593\u4e0a\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u6bd4\u8f03\u62d3\u64b2\u5982\u4f55\u6539\u8b8a\u5bc6\u5ea6\u3001\u7c07\u3001\u76f8\u95dc\u6216\u908f\u8f2f\u72c0\u614b\u7b49\u89c0\u6e2c\u91cf\u3002',
+          formula: String.raw`\Delta O(t)=O_{\mathcal{T}_a}(t)-O_{\mathcal{T}_b}(t),\quad \mathcal{T}_a\ne\mathcal{T}_b.`
+        },
+        {
+          id: 'validation',
+          route: './validation/',
+          title: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
+          body: '\u5728\u5c07\u5be6\u9a57\u8996\u70ba\u53ef\u91cd\u73fe\u4e4b\u524d\uff0c\u6aa2\u67e5\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u7d00\u9304\u3001\u62d3\u64b2\u8cc7\u6599\u3001\u9650\u5236\u3001\u8b66\u544a\u8207\u57fa\u6e96\u7bc4\u570d\u3002',
+          formula: String.raw`H_{\mathrm{exp}}=H(\mathrm{topology},\mathrm{rule},\mathrm{seed},\mathrm{version}),\quad x_t=\mathrm{Replay}(H_{\mathrm{exp}},t).`
+        }
+      ]
+    };
+    function getWorkflowSelection() {
+      try { return localStorage.getItem(WORKFLOW_STORAGE_KEY) || 'experiments'; } catch { return 'experiments'; }
+    }
+    function updateResearchWorkflow(language) {
+      const select = document.querySelector('#researchWorkflowSelect');
+      const title = document.querySelector('#researchDetailTitle');
+      const body = document.querySelector('#researchDetailBody');
+      const formula = document.querySelector('#researchDetailFormula');
+      const open = document.querySelector('#researchWorkflowOpen');
+      if (!select || !title || !body || !formula || !open) return;
+      const workflows = WORKFLOWS[language] || WORKFLOWS.en;
+      const current = workflows.find((item) => item.id === select.value) || workflows[0];
+      title.textContent = current.title;
+      body.textContent = current.body;
+      formula.textContent = current.formula;
+      open.href = current.route;
+    }
+    function populateResearchWorkflows(language) {
+      const select = document.querySelector('#researchWorkflowSelect');
+      if (!select) return;
+      const workflows = WORKFLOWS[language] || WORKFLOWS.en;
+      const selected = select.value || getWorkflowSelection();
+      select.textContent = '';
+      workflows.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.title;
+        select.append(option);
+      });
+      select.value = workflows.some((item) => item.id === selected) ? selected : workflows[0].id;
+      updateResearchWorkflow(language);
+    }
     function normalizeLanguage(value) {
       const language = String(value || '').toLowerCase();
       return language === 'zh' || language === 'zh-hant' || language === 'zh_tw' ? 'zh' : 'en';
@@ -314,6 +497,7 @@
         button.setAttribute('aria-label', title);
         button.setAttribute('title', title);
       }
+      populateResearchWorkflows(language);
     }
     const languageButton = document.querySelector('#labsHomeLanguageButton');
     const languageMenu = document.querySelector('#labsHomeLanguageMenu');
@@ -344,6 +528,13 @@
         closeLanguageMenu();
       });
     });
+    const researchWorkflowSelect = document.querySelector('#researchWorkflowSelect');
+    if (researchWorkflowSelect) {
+      researchWorkflowSelect.addEventListener('change', () => {
+        try { localStorage.setItem(WORKFLOW_STORAGE_KEY, researchWorkflowSelect.value); } catch {}
+        updateResearchWorkflow(currentLanguage());
+      });
+    }
     applyLanguage(currentLanguage());
   </script>
 </body>

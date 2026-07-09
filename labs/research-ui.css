@@ -88,6 +88,50 @@ code {
     line-height: 1.45;
 }
 
+.research-formula-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+    gap: 14px;
+    align-items: start;
+    margin: 0 0 18px;
+    padding: 14px;
+    border: 1px solid rgba(119, 200, 235, 0.26);
+    background: rgba(7, 15, 20, 0.68);
+}
+
+.research-formula-panel p {
+    margin: 0;
+}
+
+.research-formula-panel .formula-intro {
+    color: #d6e4df;
+    font-size: 15px;
+    line-height: 1.58;
+}
+
+.research-formula-panel .formula-code {
+    overflow-x: auto;
+    padding: 11px 12px;
+    border: 1px solid rgba(240, 199, 102, 0.32);
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.research-formula-panel code {
+    color: #e6f7ff;
+    font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
+    font-size: clamp(14px, 1.45vw, 18px);
+    white-space: nowrap;
+}
+
+.research-formula-panel .formula-label {
+    display: block;
+    margin: 0 0 6px;
+    color: var(--research-gold);
+    font-size: 13px;
+    font-weight: 850;
+    line-height: 1.4;
+}
+
 .topology-card code {
     font-size: 12px;
 }
@@ -515,6 +559,10 @@ html[lang="zh"] .topology-card {
     .paper-chart {
         grid-template-columns: 42px minmax(0, 1fr);
         padding: 9px;
+    }
+
+    .research-formula-panel {
+        grid-template-columns: 1fr;
     }
 
     .paper-chart-plot {

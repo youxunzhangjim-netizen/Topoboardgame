@@ -73,6 +73,17 @@
             </div>
         </section>
 
+        <section class="research-formula-panel" aria-label="Formal validation model">
+            <div>
+                <p class="eyebrow" data-i18n="formalModel">Formal model</p>
+                <p class="formula-intro" data-i18n="formalValidationText">Validation compares stored experiment hashes, replay state, event logs, and observable summaries before accepting a reproducibility claim.</p>
+            </div>
+            <div class="formula-code">
+                <span class="formula-label" data-i18n="formalExpression">Formal expression</span>
+                <code>H_{\mathrm{exp}}=H(\mathcal{T},R,\mathrm{seed},\mathrm{version}),\quad x_t=\mathrm{Replay}(H_{\mathrm{exp}},t)</code>
+            </div>
+        </section>
+
         <section class="phase-compact-summary validation-summary-strip" aria-live="polite">
             <div><dt data-i18n="loadedType">Loaded type</dt><dd id="loadedTypeText">-</dd></div>
             <div><dt data-i18n="replayStatus">Replay status</dt><dd id="replayStatusText">-</dd></div>

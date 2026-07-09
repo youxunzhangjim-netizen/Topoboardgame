@@ -1,12 +1,20 @@
 export const BOARD_SPEC_SCHEMA = 'topoboard.board.v0';
 export const BOARD_PLAYABLE_KINDS = Object.freeze(['cell', 'vertex', 'edge', 'mixed']);
+export const BOARD_DIMENSIONS = Object.freeze([1, 2, 3, 4]);
 
 function clone(value) {
     if (value == null) return value;
-    try { return structuredClone(value); } catch { return JSON.parse(JSON.stringify(value)); }
+    try {
+        return structuredClone(value);
+    } catch {
+        return JSON.parse(JSON.stringify(value));
+    }
 }
 
-function textMetadata(raw, fallbackId = 'unknown') {
+function metadataText(raw, fallbackId = 'unknown') {
+    if (typeof raw === 'string') {
+        return { id: raw, nameEn: raw, nameZh: raw };
+    }
     return {
         id: String(raw?.id || fallbackId),
         nameEn: String(raw?.nameEn || raw?.name || fallbackId),
@@ -15,26 +23,53 @@ function textMetadata(raw, fallbackId = 'unknown') {
     };
 }
 
+function normalizeDimension(value) {
+    const dimension = Number(value || 2);
+    return BOARD_DIMENSIONS.includes(dimension) ? dimension : 2;
+}
+
+function normalizePlayableKind(value) {
+    return BOARD_PLAYABLE_KINDS.includes(value) ? value : 'vertex';
+}
+
+function normalizeDraw(draw) {
+    if (!draw) return {};
+    return {
+        draw: {
+            x: Number(draw.x),
+            y: Number(draw.y)
+        }
+    };
+}
+
+function normalizePosition3D(raw) {
+    const position = raw?.position3D || raw?.position;
+    if (!position) return {};
+    return {
+        position3D: {
+            x: Number(position.x),
+            y: Number(position.y),
+            z: Number(position.z)
+        }
+    };
+}
+
 function normalizeSite(site, index) {
     return {
-        id: String(site?.id ?? `site:${index}`),
-        coord: clone(site?.coord ?? site?.gameCoord ?? { index }),
-        ...(site?.draw ? { draw: { x: Number(site.draw.x), y: Number(site.draw.y) } } : {}),
-        ...(site?.position3D || site?.position ? {
-            position3D: {
-                x: Number((site.position3D || site.position).x),
-                y: Number((site.position3D || site.position).y),
-                z: Number((site.position3D || site.position).z)
-            }
-        } : {}),
+        id: String(site?.id ?? site?.key ?? `site:${index}`),
+        coord: clone(site?.coord ?? site?.gameCoord ?? site?.logicalCoord ?? { index }),
+        ...normalizeDraw(site?.draw),
+        ...normalizePosition3D(site),
         ...(Array.isArray(site?.tags) ? { tags: site.tags.map(String) } : {})
     };
 }
 
 function normalizeEdge(edge) {
+    const source = Array.isArray(edge) ? edge[0] : edge?.source ?? edge?.from ?? edge?.a;
+    const target = Array.isArray(edge) ? edge[1] : edge?.target ?? edge?.to ?? edge?.b;
     return {
-        source: String(edge?.source),
-        target: String(edge?.target),
+        source: String(source),
+        target: String(target),
         ...(edge?.dir ? { dir: String(edge.dir) } : {}),
         ...(edge?.seam ? { seam: true } : {}),
         ...(Array.isArray(edge?.tags) ? { tags: edge.tags.map(String) } : {})
@@ -42,40 +77,51 @@ function normalizeEdge(edge) {
 }
 
 export function createBoardSpec(raw = {}) {
+    const directions = Array.isArray(raw.directions) ? raw.directions.map(String) : [];
+    const targetZones = raw.targetZones ? clone(raw.targetZones) : {};
+    const metadata = raw.metadata ? clone(raw.metadata) : {};
     return {
         schema: BOARD_SPEC_SCHEMA,
         id: String(raw.id || 'board:unnamed'),
         nameEn: String(raw.nameEn || raw.name || raw.id || 'Unnamed Board'),
         nameZh: String(raw.nameZh || raw.zhName || raw.nameEn || raw.name || raw.id || '未命名棋盤'),
-        dimension: Number(raw.dimension || 2),
-        playableKind: BOARD_PLAYABLE_KINDS.includes(raw.playableKind) ? raw.playableKind : 'vertex',
-        space: textMetadata(raw.space, 'space:unknown'),
-        lattice: textMetadata(raw.lattice, 'lattice:unknown'),
+        dimension: normalizeDimension(raw.dimension),
+        playableKind: normalizePlayableKind(raw.playableKind),
+        space: metadataText(raw.space, 'space:unknown'),
+        lattice: metadataText(raw.lattice, 'lattice:unknown'),
         boundary: {
-            ...textMetadata(raw.boundary, 'boundary:unknown'),
+            ...metadataText(raw.boundary, 'boundary:unknown'),
             ...(raw.boundary?.gluing ? { gluing: clone(raw.boundary.gluing) } : {})
         },
         sites: (Array.isArray(raw.sites) ? raw.sites : []).map(normalizeSite),
         edges: (Array.isArray(raw.edges) ? raw.edges : []).map(normalizeEdge),
-        ...(Array.isArray(raw.directions) ? { directions: raw.directions.map(String) } : {}),
-        ...(raw.targetZones ? { targetZones: clone(raw.targetZones) } : {}),
-        ...(raw.metadata ? { metadata: clone(raw.metadata) } : {})
+        directions,
+        targetZones,
+        metadata
     };
 }
 
+function undirectedKey(a, b) {
+    const source = String(a);
+    const target = String(b);
+    return source < target ? `${source}|${target}` : `${target}|${source}`;
+}
+
 function edgesFromAdjacency(legacyBoard, sites) {
-    const adjacency = legacyBoard?.adjacency;
+    const adjacency = legacyBoard?.adjacency || legacyBoard?.neighbors;
     if (!adjacency) return [];
     const entries = adjacency instanceof Map ? [...adjacency.entries()] : Object.entries(adjacency);
-    const ids = new Set(sites.map((site) => String(site.id)));
+    const siteIds = new Set(sites.map((site) => String(site.id)));
     const seen = new Set();
     const edges = [];
     for (const [sourceRaw, neighborsRaw] of entries) {
         const source = String(sourceRaw);
+        if (!siteIds.has(source)) continue;
         for (const targetRaw of neighborsRaw || []) {
             const target = String(targetRaw);
-            const key = source < target ? `${source}|${target}` : `${target}|${source}`;
-            if (!ids.has(source) || !ids.has(target) || seen.has(key)) continue;
+            if (!siteIds.has(target)) continue;
+            const key = undirectedKey(source, target);
+            if (seen.has(key)) continue;
             seen.add(key);
             edges.push({ source, target });
         }
@@ -88,8 +134,12 @@ export function boardSpecFromLegacyBoard(legacyBoard = {}, metadata = {}) {
         ? legacyBoard.sites
         : Array.isArray(legacyBoard.vertices)
             ? legacyBoard.vertices
-            : [];
-    const edges = Array.isArray(legacyBoard.edges) ? legacyBoard.edges : edgesFromAdjacency(legacyBoard, sites);
+            : Array.isArray(legacyBoard.nodes)
+                ? legacyBoard.nodes
+                : [];
+    const edges = Array.isArray(legacyBoard.edges)
+        ? legacyBoard.edges
+        : edgesFromAdjacency(legacyBoard, sites);
     return createBoardSpec({
         id: metadata.id || legacyBoard.id || 'legacy:board',
         nameEn: metadata.nameEn || legacyBoard.nameEn || legacyBoard.name || 'Legacy Board',
@@ -103,12 +153,17 @@ export function boardSpecFromLegacyBoard(legacyBoard = {}, metadata = {}) {
         edges,
         directions: metadata.directions || legacyBoard.directions,
         targetZones: metadata.targetZones || legacyBoard.targetZones,
-        metadata: { legacy: true, ...(legacyBoard.metadata || {}), ...(metadata.metadata || {}) }
+        metadata: {
+            legacy: true,
+            ...(legacyBoard.metadata || {}),
+            ...(metadata.metadata || {})
+        }
     });
 }
 
 export function getSite(boardSpec, siteId) {
-    return boardSpec?.sites?.find((site) => site.id === String(siteId)) || null;
+    const id = String(siteId);
+    return boardSpec?.sites?.find((site) => String(site.id) === id) || null;
 }
 
 export function buildAdjacencyMap(boardSpec) {
@@ -138,12 +193,12 @@ export function importBoardSpec(json) {
 
 export const BOARD_NAMING = Object.freeze({
     spaces: {
-        r2: ['Euclidean Plane R²', '歐氏平面 R²'],
-        r3: ['Euclidean 3-Space R³', '歐氏三維空間 R³'],
-        r4: ['Euclidean 4-Space R⁴', '歐氏四維空間 R⁴'],
-        t2: ['Torus T²', '環面 T²'],
-        s2: ['Sphere S²', '球面 S²'],
-        mobius: ['Möbius Strip', 'Möbius 帶'],
+        r2: ['Euclidean Plane R2', '歐氏平面 R2'],
+        r3: ['Euclidean 3-Space R3', '歐氏三維空間 R3'],
+        r4: ['Euclidean 4-Space R4', '歐氏四維空間 R4'],
+        t2: ['Torus T2', '環面 T2'],
+        s2: ['Sphere S2', '球面 S2'],
+        mobius: ['Mobius Strip', 'Mobius 帶'],
         klein: ['Klein Bottle', 'Klein 瓶']
     },
     lattices: {

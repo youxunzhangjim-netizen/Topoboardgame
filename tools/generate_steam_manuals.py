@@ -482,7 +482,7 @@ Topological Board Game is a board-game and research platform where familiar rule
 
 ## 18. Support
 
-Use the README and Troubleshooting PDF for installation, account, online, and reset help. For online manuals, link the Steam Basic Info tab to the public Topoboardgame website manual page.
+Use the README and Troubleshooting PDF for installation, account, online, and reset help. For Steam Basic Info online manuals, use a documentation-only support URL. Do not link to the playable web launcher. The Steam version is the official desktop release.
 """,
     },
     "Topological_Board_Game_Readme_Troubleshooting_EN": {
@@ -571,7 +571,7 @@ This file is for Steam users who need installation, account, online-room, displa
 
 - Read the Full Manual for detailed rules.
 - Read the Quick Start Guide for short usage steps.
-- Use the online manual link on the Steam Basic Info tab for the latest website documentation.
+- Use the online manual link on the Steam Basic Info tab only for documentation/support. Do not link it to the playable web launcher. The Steam version is the official desktop release.
 """,
     },
     "Topological_Board_Game_Quick_Start_ZH": {
@@ -859,7 +859,7 @@ Topological Board Game 是棋類遊戲與研究平台。熟悉的規則會被放
 
 ## 18. 支援
 
-安裝、帳號、線上與重設請看 README and Troubleshooting PDF。線上手冊可在 Steam Basic Info 分頁連到公開網站手冊頁。
+安裝、帳號、線上與重設請看 README and Troubleshooting PDF。Steam Basic Info 的線上手冊網址只應指向文件／支援頁，不要連到可遊玩的網頁啟動器。Steam 版本是官方桌面版。
 """,
     },
     "Topological_Board_Game_Readme_Troubleshooting_ZH": {
@@ -948,7 +948,7 @@ Topological Board Game 是棋類遊戲與研究平台。熟悉的規則會被放
 
 - 詳細規則請看 Full Manual。
 - 短步驟請看 Quick Start Guide。
-- Steam Basic Info 分頁可連到線上手冊，取得最新網站文件。
+- Steam Basic Info 分頁的線上手冊只用於文件／支援，不要連到可遊玩的網頁啟動器。Steam 版本是官方桌面版。
 """,
     },
 }

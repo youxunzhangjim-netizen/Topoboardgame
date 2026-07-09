@@ -176,4 +176,4 @@ Topological Board Game 是棋類遊戲與研究平台。熟悉的規則會被放
 
 ## 18. 支援
 
-安裝、帳號、線上與重設請看 README and Troubleshooting PDF。線上手冊可在 Steam Basic Info 分頁連到公開網站手冊頁。
+安裝、帳號、線上與重設請看 README and Troubleshooting PDF。Steam Basic Info 的線上手冊網址只應指向文件／支援頁，不要連到可遊玩的網頁啟動器。Steam 版本是官方桌面版。

@@ -304,6 +304,10 @@ export function cancelRunningLab() {
     return getLabPerformanceStats();
 }
 
+export function cancelLab() {
+    return cancelRunningLab();
+}
+
 export function getLabPerformanceStats() {
     const completed = runtime.stats.completedSteps;
     return {

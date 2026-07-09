@@ -176,4 +176,4 @@ Topological Board Game is a board-game and research platform where familiar rule
 
 ## 18. Support
 
-Use the README and Troubleshooting PDF for installation, account, online, and reset help. For online manuals, link the Steam Basic Info tab to the public Topoboardgame website manual page.
+Use the README and Troubleshooting PDF for installation, account, online, and reset help. For Steam Basic Info online manuals, use a documentation-only support URL. Do not link to the playable web launcher. The Steam version is the official desktop release.

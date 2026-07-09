@@ -1,6 +1,12 @@
-# Steam Store Page Draft — Topoboardgame
+# Steam Store Page Draft - Topoboardgame
 
 This is a draft. Do not overclaim unfinished features. Steam review expects store text and screenshots to match the current build.
+
+## External web-link rule
+
+Steam store page must not link to playable web builds.
+
+Do not link the Steam store page to the playable web launcher. If Steam asks for an online manual URL, use a documentation-only support page. The Steam version is the official desktop release.
 
 ## Short description draft
 

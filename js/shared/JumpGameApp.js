@@ -157,6 +157,14 @@ JUMP_ZH_TEXT.set('x-wrap', 'x \u74b0\u7e5e');
 JUMP_ZH_TEXT.set('y-wrap', 'y \u74b0\u7e5e');
 JUMP_ZH_TEXT.set('x-wrap + y-twist', 'x \u74b0\u7e5e + y \u7ffb\u8f49');
 JUMP_ZH_TEXT.set('x/y antipodal', 'x/y \u5c0d\u8e60');
+JUMP_ZH_TEXT.set('Select a move twice to confirm.', '\u9ede\u9078\u8d70\u6cd5\u5f8c\uff0c\u518d\u9ede\u4e00\u6b21\u4ee5\u78ba\u8a8d\u79fb\u52d5\u3002');
+JUMP_ZH_TEXT.set('Selected move', '\u5df2\u9078\u8d70\u6cd5');
+JUMP_ZH_TEXT.set('Select it again to move.', '\u518d\u9ede\u4e00\u6b21\u4ee5\u79fb\u52d5\u3002');
+JUMP_ZH_TEXT.set('Cylinder', '\u5713\u67f1');
+JUMP_ZH_TEXT.set('Torus', '\u74b0\u9762');
+JUMP_ZH_TEXT.set('Sphere', '\u7403\u9762');
+JUMP_ZH_TEXT.set('Online', '\u7dda\u4e0a');
+JUMP_ZH_TEXT.set('Robot', '\u6a5f\u5668\u4eba');
 JUMP_ZH_TEXT.set('Sphere / Shell', '球面 / 球殼');
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, Number(value) || min)); }
@@ -264,6 +272,7 @@ export class JumpGameApp {
     this.sliceProjectionMap = null;
     this.sliceTileRegions = [];
     this.sliceCellSize = 0;
+    this.pendingMoveId = '';
     this.applyInitialSelectValues();
     this.movePicker = this.ensureMovePicker();
     this.translateStaticUI();
@@ -525,6 +534,7 @@ export class JumpGameApp {
     this.game = this.createGame();
     this.selected = null;
     this.legal = [];
+    this.pendingMoveId = '';
     this.history = [];
     this.syncTimerFromSelect(true);
     this.network.gameKey = this.onlineGameKey();
@@ -610,9 +620,10 @@ export class JumpGameApp {
       }
       const move = this.legal.find((candidate) => samePoint(candidate.to, coord));
       if (move) {
+        this.pendingMoveId = '';
         const result = this.game.applyMove(move);
         if (result.ok) {
-          this.history.push(`${this.game.currentPlayer === 'A' ? 'B' : 'A'} ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
+          this.history.push(this.formatHistoryMove(this.game.currentPlayer === 'A' ? 'B' : 'A', move));
           if (result.continueJump) {
             this.selected = move.to;
             this.legal = this.game.legalMovesFrom(move.to, true);
@@ -668,7 +679,15 @@ export class JumpGameApp {
       const button = event.target.closest('button[data-move-id]');
       if (!button || !this.canCurrentUserAct()) return;
       const move = this.legal.find((candidate) => candidate.id === button.dataset.moveId);
-      if (move) this.applyJumpMove(move);
+      if (!move) return;
+      if (this.pendingMoveId !== move.id) {
+        this.pendingMoveId = move.id;
+        this.render();
+        this.setStatus(`${this.t('Selected move', 'Selected move')}: ${this.formatMoveLabel(move)}. ${this.t('Select it again to move.', 'Select it again to move.')}`);
+        return;
+      }
+      this.pendingMoveId = '';
+      this.applyJumpMove(move);
     });
     return {
       panel,
@@ -694,6 +713,7 @@ export class JumpGameApp {
     this.game.endTurn();
     this.selected = null;
     this.legal = [];
+    this.pendingMoveId = '';
     this.afterMove('jump chain stopped');
     return true;
   }
@@ -701,6 +721,7 @@ export class JumpGameApp {
   selectJumpPiece(coord) {
     if (!this.game.isOwn(coord)) return;
     if (this.game.chainFrom && this.selected && !samePoint(this.selected, coord)) return;
+    if (!this.selected || !samePoint(this.selected, coord)) this.pendingMoveId = '';
     this.selected = coord;
     this.game.selected = coord;
     this.legal = this.game.legalMovesFrom(coord, Boolean(this.game.chainFrom));
@@ -708,10 +729,11 @@ export class JumpGameApp {
   }
 
   applyJumpMove(move) {
+    this.pendingMoveId = '';
     const movingPlayer = this.game.currentPlayer;
     const result = this.game.applyMove(move);
     if (!result.ok) return false;
-    this.history.push(`Player ${movingPlayer} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+    this.history.push(this.formatHistoryMove(movingPlayer, move));
     if (result.continueJump) {
       this.selected = move.to;
       this.legal = this.game.legalMovesFrom(move.to, true);
@@ -775,16 +797,22 @@ export class JumpGameApp {
     }
 
     if (!this.selected) {
+      this.pendingMoveId = '';
       if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = this.t('Select a piece', 'Select a piece');
       if (this.movePicker.moves) this.movePicker.moves.innerHTML = `<span class="jump-empty-row">${escapeHtml(this.t('Select a movable piece to list destinations.', 'Select a movable piece to list destinations.'))}</span>`;
       return;
     }
 
-    if (this.movePicker.moveSummary) this.movePicker.moveSummary.textContent = `${this.formatCoord(this.selected)} -> ${this.legal.length} ${this.t('destination', this.legal.length === 1 ? 'destination' : 'destinations')}`;
+    const pendingMove = this.legal.find((move) => move.id === this.pendingMoveId);
+    if (this.movePicker.moveSummary) {
+      this.movePicker.moveSummary.textContent = pendingMove
+        ? `${this.t('Selected move', 'Selected move')}: ${this.formatMoveLabel(pendingMove)}. ${this.t('Select it again to move.', 'Select it again to move.')}`
+        : `${this.formatCoord(this.selected)} -> ${this.legal.length} ${this.t('destination', this.legal.length === 1 ? 'destination' : 'destinations')}. ${this.t('Select a move twice to confirm.', 'Select a move twice to confirm.')}`;
+    }
     if (this.movePicker.moves) {
       this.movePicker.moves.innerHTML = this.legal.length
         ? this.legal.map((move) => `
-          <button class="jump-move-option ${move.type}" type="button" data-move-id="${escapeHtml(move.id)}">
+          <button class="jump-move-option ${move.type}${move.id === this.pendingMoveId ? ' pending' : ''}" type="button" data-move-id="${escapeHtml(move.id)}" aria-pressed="${move.id === this.pendingMoveId}">
             ${escapeHtml(this.formatMoveLabel(move))}
           </button>
         `).join('')
@@ -801,6 +829,10 @@ export class JumpGameApp {
   formatMoveLabel(move) {
     const over = move.over ? ` ${this.t('over', 'over')} ${this.formatCoord(move.over)}` : '';
     return `${this.moveTypeLabel(move.type)} -> ${this.formatCoord(move.to)}${over}`;
+  }
+
+  formatHistoryMove(player, move, actor = 'Player') {
+    return `${this.t(actor, actor)} ${player} ${this.moveTypeLabel(move.type)}: ${move.from.join(',')} -> ${move.to.join(',')}`;
   }
 
   afterMove(label) {
@@ -851,7 +883,7 @@ export class JumpGameApp {
         this.history.push(`Robot ${player} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
         this.game.endTurn();
       } else {
-        this.history.push(`Robot ${player} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+        this.history.push(this.formatHistoryMove(player, move, 'Robot'));
         this.recordJumpRobotMove(player, move, result);
         if (result.continueJump) {
           this.render();
@@ -885,7 +917,7 @@ export class JumpGameApp {
           this.history.push(`Robot ${robotPlayer} skipped rejected move: ${move.from.join(',')} -> ${move.to.join(',')}`);
           this.game.endTurn();
         } else {
-          this.history.push(`Robot ${robotPlayer} ${move.type}: ${move.from.join(',')} -> ${move.to.join(',')}`);
+          this.history.push(this.formatHistoryMove(robotPlayer, move, 'Robot'));
           this.recordJumpRobotMove(robotPlayer, move, result);
           if (result.continueJump) {
             this.render();
@@ -920,7 +952,7 @@ export class JumpGameApp {
         this.game.endTurn();
         break;
       }
-      this.history.push(`Robot ${move.type}: ${move.from.join(',')} → ${move.to.join(',')}`);
+      this.history.push(this.formatHistoryMove('B', move, 'Robot'));
       this.recordJumpRobotMove('B', move, result);
       this.render();
       guard += 1;
@@ -1113,6 +1145,13 @@ export class JumpGameApp {
     return null;
   }
 
+  embeddedSurfaceLift(topology = this.topologySelect?.value || this.config.topology || this.game?.topologyName || '') {
+    const normalized = String(topology).toLowerCase();
+    if (normalized === 'torus' || normalized === '4d-torus') return 0.075;
+    if (normalized === 'cylinder') return 0.065;
+    return 0;
+  }
+
   planarLatticeCoord(coord) {
     const size = Math.max(1, this.game?.size || 1);
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
@@ -1162,20 +1201,17 @@ export class JumpGameApp {
   }
 
   embeddedPoint(coord) {
-    const n = Math.max(1, this.game.size - 1);
     const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    const n = Math.max(1, this.game.size - 1);
     const planar = this.planarLatticeCoord(coord);
     const u = (planar.x / Math.max(1, planar.maxX + 1)) * Math.PI * 2;
     const v = (planar.y / Math.max(1, planar.maxY + 1)) * Math.PI * 2;
     if (topology === 'torus' || topology === '4d-torus') {
-      const R = 1.45;
-      const r = 0.48;
-      return [(R + r * Math.cos(v)) * Math.cos(u), (R + r * Math.cos(v)) * Math.sin(u), r * Math.sin(v)];
+      return this.embeddedSurfacePointAt(topology, u, v).point;
     }
     if (topology === 'cylinder') {
-      const radial = 1.18;
-      const vertical = (coord[1] / Math.max(1, n) - 0.5) * 2.2 + ((coord[3] || 0) / Math.max(1, n) - 0.5) * 0.38;
-      return [radial * Math.cos(u), vertical, radial * Math.sin(u)];
+      const verticalRatio = planar.y / Math.max(1, planar.maxY);
+      return this.embeddedSurfacePointAt(topology, u, verticalRatio).point;
     }
     if (topology === 'mobius') {
       const t = (coord[1] / Math.max(1, n) - 0.5) * 0.9;
@@ -1197,6 +1233,81 @@ export class JumpGameApp {
     }
     const centered = coord.map((value) => (value / Math.max(1, n) - 0.5) * 2);
     return [centered[0] || 0, centered[1] || 0, (centered[2] || 0) + (centered[3] || 0) * 0.55];
+  }
+
+  embeddedSurfaceParameters(coord) {
+    const topology = String(this.topologySelect?.value || this.config.topology || this.game?.topologyName || '').toLowerCase();
+    if (topology !== 'torus' && topology !== 'cylinder') return null;
+    const planar = this.planarLatticeCoord(coord);
+    return {
+      topology,
+      u: (planar.x / Math.max(1, planar.maxX + 1)) * Math.PI * 2,
+      v: topology === 'torus'
+        ? (planar.y / Math.max(1, planar.maxY + 1)) * Math.PI * 2
+        : planar.y / Math.max(1, planar.maxY)
+    };
+  }
+
+  embeddedSurfacePointAt(topology, u, v) {
+    if (topology === 'torus' || topology === '4d-torus') {
+      const majorRadius = 1.45;
+      const minorRadius = 0.48;
+      return {
+        point: [
+          (majorRadius + minorRadius * Math.cos(v)) * Math.cos(u),
+          (majorRadius + minorRadius * Math.cos(v)) * Math.sin(u),
+          minorRadius * Math.sin(v)
+        ],
+        normal: [Math.cos(u) * Math.cos(v), Math.sin(u) * Math.cos(v), Math.sin(v)]
+      };
+    }
+    const radius = 1.18;
+    return {
+      point: [radius * Math.cos(u), (v - 0.5) * 2.2, radius * Math.sin(u)],
+      normal: [Math.cos(u), 0, Math.sin(u)]
+    };
+  }
+
+  liftedEmbeddedSurfacePoint(coord) {
+    const parameters = this.embeddedSurfaceParameters(coord);
+    if (!parameters) {
+      const point = this.embeddedPoint(coord);
+      return { point, normal: this.embeddedSurfaceNormal(coord, point) };
+    }
+    const surface = this.embeddedSurfacePointAt(parameters.topology, parameters.u, parameters.v);
+    const lift = this.embeddedSurfaceLift(parameters.topology);
+    return {
+      point: surface.point.map((value, index) => value + surface.normal[index] * lift),
+      normal: surface.normal
+    };
+  }
+
+  shortestAngleDelta(from, to) {
+    let delta = to - from;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    return delta;
+  }
+
+  projectEmbeddedSurfaceEdge(fromCoord, toCoord) {
+    const from = this.embeddedSurfaceParameters(fromCoord);
+    const to = this.embeddedSurfaceParameters(toCoord);
+    if (!from || !to || from.topology !== to.topology) return null;
+    const du = this.shortestAngleDelta(from.u, to.u);
+    const dv = from.topology === 'torus' ? this.shortestAngleDelta(from.v, to.v) : to.v - from.v;
+    const lift = this.embeddedSurfaceLift(from.topology);
+    const points = [];
+    for (let index = 0; index <= 8; index += 1) {
+      const fraction = index / 8;
+      const surface = this.embeddedSurfacePointAt(
+        from.topology,
+        from.u + du * fraction,
+        from.v + dv * fraction
+      );
+      const point = surface.point.map((value, axis) => value + surface.normal[axis] * lift);
+      points.push(this.projectEmbeddedModelPoint(point, surface.normal));
+    }
+    return points;
   }
 
   rotatePoint3D(point) {
@@ -1227,9 +1338,12 @@ export class JumpGameApp {
       return { x: layout.cx + Math.cos(angle) * r, y: layout.cy + Math.sin(angle) * r, depth: 0 };
     }
     if (this.usesEmbeddedView()) {
-      const model = this.embeddedPoint(coord);
+      const lifted = this.usesOpaqueSurfaceView()
+        ? this.liftedEmbeddedSurfacePoint(coord)
+        : { point: this.embeddedPoint(coord), normal: null };
+      const model = lifted.point;
       const [x, y, z] = this.rotatePoint3D(model);
-      const normal = this.usesOpaqueSurfaceView() ? this.embeddedSurfaceNormal(coord, model) : null;
+      const normal = lifted.normal || (this.usesOpaqueSurfaceView() ? this.embeddedSurfaceNormal(coord, model) : null);
       const rotatedNormal = normal ? this.rotatePoint3D(normal) : null;
       const perspective = 1 / Math.max(0.35, 1 + z * 0.18);
       const baseScale = this.usesOpaqueSurfaceView() ? 0.31 : 0.39;
@@ -1393,9 +1507,20 @@ export class JumpGameApp {
         if (!this.usesEmbeddedView() && Math.hypot(a.x - b.x, a.y - b.y) > Math.min(width, height) / 2) continue;
         const edgeAlpha = this.usesOpaqueSurfaceView() ? Math.min(this.surfaceDrawAlpha(coord), this.surfaceDrawAlpha(next)) : 1;
         if (edgeAlpha <= 0) continue;
+        const surfacePath = this.projectEmbeddedSurfaceEdge(coord, next);
         ctx.save();
         ctx.globalAlpha = edgeAlpha;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.beginPath();
+        if (surfacePath?.length) {
+          surfacePath.forEach((point, index) => {
+            if (index) ctx.lineTo(point.x, point.y);
+            else ctx.moveTo(point.x, point.y);
+          });
+        } else {
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
         ctx.restore();
       }
     }
@@ -1836,6 +1961,7 @@ export class JumpGameApp {
     else this.stopTimer();
     this.selected = null;
     this.legal = [];
+    this.pendingMoveId = '';
     this.updateLabels();
     this.updateR3SliceFilterVisibility();
     this.render();

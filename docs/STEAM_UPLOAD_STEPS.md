@@ -56,4 +56,4 @@ Complete the Steamworks store page checklist and the build checklist. Upload cap
 
 ## 6. Firebase and online play checklist for Steam
 
-For the Steam desktop app, test Firebase flows in the packaged app, not only in Vite. If OAuth popup/redirect is blocked by the desktop shell, keep Visitor mode available and document Google sign-in support for the web build. Confirm Firestore rules allow authenticated users to read/write their own profile and room documents used by `online.js`.
+For the Steam desktop app, test Firebase flows in the packaged app, not only in Vite. If OAuth popup/redirect is blocked by the desktop shell, keep Visitor mode available in the Steam app and document Google sign-in support separately for non-Steam web builds. Confirm Firestore rules allow authenticated users to read/write their own profile and room documents used by `online.js`.

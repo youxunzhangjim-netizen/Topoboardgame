@@ -1,4 +1,4 @@
-name: Deploy Topoboardgame
+name: Deploy Topoboardgame Web Lite
 
 on:
   push:
@@ -28,16 +28,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Build static website
+      - name: Build web-lite dist
         run: |
           npm ci
-          npm run build
-          touch dist/.nojekyll
+          npm run build:web
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist-web
 
   deploy:
     needs: build

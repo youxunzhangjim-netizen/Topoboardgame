@@ -1,11 +1,27 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as viteBuild } from 'vite';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const npm = process.platform === 'win32' ? 'cmd.exe' : 'npm';
+const args = process.argv.slice(2);
+
+function argValue(name, fallback = '') {
+    const index = args.indexOf(name);
+    if (index >= 0 && args[index + 1]) return args[index + 1];
+    const prefix = `${name}=`;
+    const found = args.find((item) => item.startsWith(prefix));
+    return found ? found.slice(prefix.length) : fallback;
+}
+
+const editionId = argValue('--edition', process.env.TOPOBOARD_EDITION || 'steam-stable');
+const outputDir = argValue('--outDir', process.env.TOPOBOARD_OUT_DIR || 'dist');
+const editionPath = join(root, 'configs', 'editions', `${editionId}.json`);
+const editionConfig = existsSync(editionPath)
+    ? JSON.parse(readFileSync(editionPath, 'utf8'))
+    : { id: editionId, hiddenRoutes: [], excludePaths: [], features: {} };
 
 function run(args) {
     const commandArgs = process.platform === 'win32'
@@ -18,11 +34,58 @@ function copy(from, to) {
     if (!existsSync(from)) {
         throw new Error(`Missing build input: ${from}`);
     }
-    cpSync(from, to, { recursive: true });
+    mkdirSync(dirname(to), { recursive: true });
+    cpSync(from, to, { recursive: true, force: true });
 }
 
 function copyIfExists(from, to) {
-    if (existsSync(from)) cpSync(from, to, { recursive: true });
+    if (existsSync(from)) {
+        mkdirSync(dirname(to), { recursive: true });
+        cpSync(from, to, { recursive: true, force: true });
+    }
+}
+
+function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function removeDistPath(output, relativePath) {
+    if (!relativePath) return;
+    rmSync(join(output, relativePath), { recursive: true, force: true });
+}
+
+function removeWorkflowCardByHref(html, href) {
+    const escaped = escapeRegExp(href);
+    return html.replace(new RegExp(`\\s*<a class="workflow-card[^"]*" href="${escaped}">[\\s\\S]*?<\\/a>`, 'g'), '');
+}
+
+function postProcessEdition(output) {
+    for (const relativePath of editionConfig.excludePaths || []) {
+        removeDistPath(output, relativePath);
+    }
+
+    const labsIndex = join(output, 'labs', 'index.html');
+    if (existsSync(labsIndex)) {
+        let html = readFileSync(labsIndex, 'utf8');
+        for (const route of editionConfig.hiddenRoutes || []) {
+            if (route.startsWith('labs/')) {
+                const labsRoute = route.slice('labs/'.length).replace(/\/+$/, '');
+                html = removeWorkflowCardByHref(html, `./${labsRoute}/`);
+            }
+        }
+        writeFileSync(labsIndex, html);
+    }
+
+    const editionJson = JSON.stringify({
+        schema: 'topoboard.built-edition.v1',
+        edition: editionConfig.id || editionId,
+        target: editionConfig.target || '',
+        features: editionConfig.features || {},
+        hiddenRoutes: editionConfig.hiddenRoutes || []
+    }, null, 2);
+    writeFileSync(join(output, 'edition.json'), `${editionJson}\n`);
+    mkdirSync(join(output, 'js', 'shared'), { recursive: true });
+    writeFileSync(join(output, 'js', 'shared', 'edition.json'), `${editionJson}\n`);
 }
 
 run(['run', 'build', '--workspace', '2dchess']);
@@ -45,13 +108,14 @@ await viteBuild({
     }
 });
 
-const output = join(root, 'dist');
+const output = join(root, outputDir);
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 
 copy(launcherOutput, output);
 copyIfExists(join(root, 'favicon.png'), join(output, 'favicon.png'));
 copyIfExists(join(root, 'js'), join(output, 'js'));
+copyIfExists(join(root, 'configs'), join(output, 'configs'));
 copyIfExists(join(root, 'docs'), join(output, 'docs'));
 copyIfExists(join(root, 'labs'), join(output, 'labs'));
 copy(join(root, 'discord'), join(output, 'discord'));
@@ -76,6 +140,8 @@ copy(join(root, 'algebraic', 'dist'), join(output, 'algebraic'));
 copy(join(root, 'life'), join(output, 'life'));
 copyIfExists(join(root, 'spacetime'), join(output, 'spacetime'));
 writeFileSync(join(output, '.nojekyll'), '');
+postProcessEdition(output);
 rmSync(launcherOutput, { recursive: true, force: true });
 
 console.log(`Website bundle ready: ${output}`);
+console.log(`Edition: ${editionConfig.id || editionId}`);

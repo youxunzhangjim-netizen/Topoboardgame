@@ -82,4 +82,4 @@
 
 - 詳細規則請看 Full Manual。
 - 短步驟請看 Quick Start Guide。
-- Steam Basic Info 分頁可連到線上手冊，取得最新網站文件。
+- Steam Basic Info 分頁的線上手冊只用於文件／支援，不要連到可遊玩的網頁啟動器。Steam 版本是官方桌面版。

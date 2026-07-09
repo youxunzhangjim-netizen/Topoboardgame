@@ -82,4 +82,4 @@ This file is for Steam users who need installation, account, online-room, displa
 
 - Read the Full Manual for detailed rules.
 - Read the Quick Start Guide for short usage steps.
-- Use the online manual link on the Steam Basic Info tab for the latest website documentation.
+- Use the online manual link on the Steam Basic Info tab only for documentation/support. Do not link it to the playable web launcher. The Steam version is the official desktop release.

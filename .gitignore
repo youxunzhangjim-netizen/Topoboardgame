@@ -1,5 +1,9 @@
 node_modules/
 dist/
+dist-web/
+dist-steam/
+dist-research/
+dist-debug/
 .launcher-dist/
 
 */node_modules/
@@ -17,6 +21,9 @@ test-results/
 .local-git-backups/
 local-data/
 *.jsonl
+*.jsonl.gz
+training-data/
+self-play/
 .DS_Store
 
 local-models/*.json
@@ -38,3 +45,10 @@ steamworks/content-builder/output/
 
 steamworks/steam_config.local.json
 steamworks/generated/
+steamworks/**/*.vdf.local
+steamworks/**/*credentials*
+steamworks/**/*private*
+steam_appid.txt
+account_name.txt
+steam_credentials.json
+service-account.json

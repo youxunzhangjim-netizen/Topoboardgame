@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="../../favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Board Builder - Topoboard Labs</title>
+    <link rel="stylesheet" href="../experiments/styles.css">
+    <link rel="stylesheet" href="../research-ui.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main class="experiment-shell board-builder-shell">
+        <header class="experiment-topbar">
+            <div class="title-block">
+                <p class="eyebrow">Topoboard Labs</p>
+                <h1 data-i18n="pageTitle">Research Board Builder</h1>
+                <p data-i18n="subtitle">Prepare and validate BoardSpec objects for future research boards. External scientific tool bridges are placeholders only.</p>
+            </div>
+            <nav class="topbar-actions" aria-label="Labs navigation">
+                <a class="nav-link" href="../" data-i18n="home">Labs Home</a>
+                <a class="nav-link" href="../experiments/" data-i18n="experimentBuilder">Experiment Builder</a>
+                <a class="nav-link" href="../topology-compare/" data-i18n="topologyComparison">Topology Comparison</a>
+                <a class="nav-link" href="../validation/" data-i18n="validationSuite">Validation & Reproducibility</a>
+                <div class="labs-language" data-labs-language>
+                    <button id="labsLanguageButton" class="labs-language-button" type="button" aria-expanded="false" aria-controls="labsLanguageMenu" aria-label="Change language" title="Change language">
+                        <svg aria-hidden="true" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M3 12h18"></path>
+                            <path d="M12 3a14 14 0 0 1 0 18"></path>
+                            <path d="M12 3a14 14 0 0 0 0 18"></path>
+                        </svg>
+                        <span data-labs-language-current>En</span>
+                    </button>
+                    <div id="labsLanguageMenu" class="labs-language-menu" hidden>
+                        <span data-labs-language-label>Language</span>
+                        <div class="labs-language-options" aria-label="Language options">
+                            <button type="button" data-labs-lang="en" aria-pressed="true">English</button>
+                            <button type="button" data-labs-lang="zh" aria-pressed="false">中文</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <section class="board-builder-status panel" aria-labelledby="statusTitle">
+            <div>
+                <p class="eyebrow" data-i18n="safeBridge">Safe Bridge</p>
+                <h2 id="statusTitle" data-i18n="statusTitle">BoardSpec JSON workspace</h2>
+                <p data-i18n="statusText">Imported boards are Research/Debug only by default. They are not allowed in online ranked or public rooms, and Labs should not run on them until validation passes.</p>
+            </div>
+            <div class="status-actions">
+                <button id="exportBoardSpecButton" type="button" data-i18n="exportBoardSpec">Export BoardSpec</button>
+                <label class="import-button">
+                    <span data-i18n="importBoardSpec">Import BoardSpec</span>
+                    <input id="importBoardSpecInput" type="file" accept="application/json,.json">
+                </label>
+                <button id="validateBoardButton" type="button" data-i18n="validateBoard">Validate Board</button>
+            </div>
+            <p id="validationStatus" class="status-pill" role="status">Board valid</p>
+        </section>
+
+        <section class="builder-grid board-builder-grid">
+            <section class="panel" aria-labelledby="sourceTitle">
+                <div class="panel-heading"><span>1</span><h2 id="sourceTitle" data-i18n="source">Source</h2></div>
+                <div class="choice-grid">
+                    <button id="manualPresetButton" type="button" aria-pressed="true" data-i18n="manualPreset">Manual preset source</button>
+                    <button id="internalPresetButton" type="button" aria-pressed="true" data-i18n="internalPresets">Existing internal board presets</button>
+                </div>
+                <label>
+                    <span data-i18n="preset">Preset</span>
+                    <select id="boardPresetSelect"></select>
+                </label>
+                <div class="disabled-list" aria-label="Future sources">
+                    <button type="button" disabled><span data-i18n="cifImport">CIF import</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="poscarImport">POSCAR import</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="xyzImport">XYZ import</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="materialsProject">Materials Project</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="optimade">OPTIMADE</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="nomad">NOMAD</span><span data-i18n="futureSuffix">(Future)</span></button>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="spaceTitle">
+                <div class="panel-heading"><span>2</span><h2 id="spaceTitle" data-i18n="space">Space</h2></div>
+                <dl id="spaceSummary" class="metadata-grid"></dl>
+            </section>
+
+            <section class="panel" aria-labelledby="latticeTitle">
+                <div class="panel-heading"><span>3</span><h2 id="latticeTitle" data-i18n="lattice">Lattice / Tiling</h2></div>
+                <dl id="latticeSummary" class="metadata-grid"></dl>
+            </section>
+
+            <section class="panel" aria-labelledby="domainTitle">
+                <div class="panel-heading"><span>4</span><h2 id="domainTitle" data-i18n="domain">Domain / Shape</h2></div>
+                <dl id="domainSummary" class="metadata-grid"></dl>
+            </section>
+
+            <section class="panel" aria-labelledby="boundaryTitle">
+                <div class="panel-heading"><span>5</span><h2 id="boundaryTitle" data-i18n="boundary">Boundary / Gluing</h2></div>
+                <dl id="boundarySummary" class="metadata-grid"></dl>
+            </section>
+
+            <section class="panel" aria-labelledby="defectsTitle">
+                <div class="panel-heading"><span>6</span><h2 id="defectsTitle" data-i18n="defects">Defects</h2></div>
+                <p class="help-text" data-i18n="defectsPlaceholder">Defect editing is reserved for future research workflows.</p>
+            </section>
+
+            <section class="panel" aria-labelledby="compileTitle">
+                <div class="panel-heading"><span>7</span><h2 id="compileTitle" data-i18n="compile">Compile</h2></div>
+                <p id="compileSummary" class="help-text"></p>
+                <div class="disabled-list">
+                    <button type="button" disabled><span data-i18n="gmshMesh">Gmsh mesh</span><span data-i18n="futureSuffix">(Future)</span></button>
+                    <button type="button" disabled><span data-i18n="ovitoExport">OVITO export</span><span data-i18n="futureSuffix">(Future)</span></button>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="exportTitle">
+                <div class="panel-heading"><span>8</span><h2 id="exportTitle" data-i18n="export">Export</h2></div>
+                <p class="help-text" data-i18n="exportHelp">Only BoardSpec JSON export is enabled in this Steam-safe step.</p>
+                <textarea id="boardSpecPreview" readonly spellcheck="false"></textarea>
+            </section>
+        </section>
+    </main>
+
+    <script type="module" src="./BoardBuilder.js"></script>
+</body>
+</html>

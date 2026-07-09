@@ -2,8 +2,65 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+const { DesktopSaveStore } = require('./save-store.cjs');
 
 const isDev = process.env.TOPOBOARDGAME_ELECTRON_DEV === '1';
+let desktopSaveStore = null;
+
+function isTrustedRenderer(event) {
+  const sourceUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
+  if (isDev && /^https?:\/\/(127\.0\.0\.1|localhost):5172(?:\/|$)/.test(sourceUrl)) return true;
+  const distUrl = pathToFileURL(`${path.join(__dirname, '../../dist')}${path.sep}`).href;
+  return sourceUrl.startsWith(distUrl);
+}
+
+function trustedHandle(channel, handler) {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (!isTrustedRenderer(event)) return { ok: false, error: 'untrusted-renderer' };
+    try {
+      return handler(...args);
+    } catch (error) {
+      return { ok: false, error: String(error?.message || error) };
+    }
+  });
+}
+
+function registerDesktopSaveIpc() {
+  const testDocumentsPath = !app.isPackaged && process.env.TOPOBOARDGAME_TEST_DOCUMENTS_PATH;
+  desktopSaveStore = new DesktopSaveStore(testDocumentsPath || app.getPath('documents'));
+
+  ipcMain.on('desktop-save:bootstrap', (event) => {
+    if (!isTrustedRenderer(event)) {
+      event.returnValue = { ok: false, error: 'untrusted-renderer' };
+      return;
+    }
+    event.returnValue = desktopSaveStore.read();
+  });
+
+  ipcMain.on('desktop-save:flush-local-storage', (event, snapshot) => {
+    if (!isTrustedRenderer(event)) {
+      event.returnValue = { ok: false, error: 'untrusted-renderer' };
+      return;
+    }
+    try {
+      event.returnValue = desktopSaveStore.replaceLocalStorage(snapshot);
+    } catch (error) {
+      event.returnValue = { ok: false, error: String(error?.message || error) };
+    }
+  });
+
+  trustedHandle('desktop-save:sync-local-storage', (snapshot) => desktopSaveStore.replaceLocalStorage(snapshot));
+  trustedHandle('desktop-save:save-slot', (slotId, data, metadata) => desktopSaveStore.saveSlot(slotId, data, metadata));
+  trustedHandle('desktop-save:load-slot', (slotId) => desktopSaveStore.loadSlot(slotId));
+  trustedHandle('desktop-save:list-slots', () => desktopSaveStore.listSlots());
+  trustedHandle('desktop-save:remove-slot', (slotId) => desktopSaveStore.removeSlot(slotId));
+  trustedHandle('desktop-save:path', () => ({
+    ok: true,
+    directory: desktopSaveStore.directoryPath,
+    path: desktopSaveStore.filePath
+  }));
+}
 
 function resolveAppIcon() {
   return path.join(__dirname, '../build-resources/icon.png');
@@ -101,6 +158,7 @@ function runStockfish(enginePath, fen, depth) {
 }
 
 app.whenReady().then(() => {
+  registerDesktopSaveIpc();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

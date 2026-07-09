@@ -59,7 +59,7 @@ Google login fails most often for one of these Firebase-side reasons:
    - `youxunzhangjim-netizen.github.io`
    - `localhost`
    - `127.0.0.1`
-   - any custom domain used by the Steam web build or hosted test page
+   - any custom domain used by non-Steam hosted test pages or documentation-only support pages
 4. **Cloud Firestore database missing**: create the default Firestore database.
 5. **Rules not deployed**: run `firebase deploy --only firestore:rules`.
 

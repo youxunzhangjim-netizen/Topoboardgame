@@ -95,8 +95,19 @@ export function validateBoardSpec(boardSpec, options = {}) {
     if (!options.allowDisconnected && sites.length && connectedComponents !== 1) {
         errors.push(`Graph has ${connectedComponents} connected components.`);
     }
-    if (options.renderer === '2d' && !stats.hasDrawPositions) errors.push('2D renderer requires draw positions for every site.');
-    if (options.renderer === '3d' && !stats.has3DPositions) errors.push('3D renderer requires position3D for every site.');
+    const drawPositionsRequired = options.drawPositionsRequired
+        || options.requireDrawPositions
+        || options.renderer === '2d';
+    const positions3DRequired = options.positions3DRequired
+        || options.position3DRequired
+        || options.require3DPositions
+        || options.renderer === '3d';
+    if (drawPositionsRequired && !stats.hasDrawPositions) {
+        errors.push('Draw positions are required for every site.');
+    }
+    if (positions3DRequired && !stats.has3DPositions) {
+        errors.push('3D positions are required for every site.');
+    }
     const debug = options.debug ?? isPerformanceDebugEnabled();
     const siteLimit = options.maxSites ?? STEAM_SAFE_SITE_LIMITS[boardSpec?.dimension] ?? 10000;
     if (!debug && sites.length > siteLimit) errors.push(`Board has ${sites.length} sites; Steam-safe limit is ${siteLimit}.`);
@@ -145,7 +156,13 @@ export function validateBoardSpec(boardSpec, options = {}) {
             if (a && b && a === b) errors.push(`Same-sublattice edge ${edgeKey(edge.source, edge.target)}.`);
         }
     }
-    if (options.targetZonesRequired && !boardSpec?.targetZones) errors.push('targetZones are required.');
+    if (options.targetZonesRequired) {
+        const targetZones = boardSpec?.targetZones;
+        const hasTargetZones = targetZones
+            && typeof targetZones === 'object'
+            && Object.keys(targetZones).length > 0;
+        if (!hasTargetZones) errors.push('targetZones are required.');
+    }
     if (options.directionsRequired && !boardSpec?.directions?.length) errors.push('directions are required.');
 
     const result = { ok: errors.length === 0, errors, warnings, stats };

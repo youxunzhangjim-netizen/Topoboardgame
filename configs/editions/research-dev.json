@@ -1,0 +1,50 @@
+{
+  "schema": "topoboard.edition.v1",
+  "id": "research-dev",
+  "name": "Research Dev",
+  "description": "Future research workbench edition for BoardSpec, safe Labs, and optional external bridges. Not deployed to GitHub Pages.",
+  "target": "local-research",
+  "outputDir": "dist-research",
+  "public": false,
+  "steam": false,
+  "debug": false,
+  "features": {
+    "stableGames": true,
+    "lifeWorld": true,
+    "selectedLabs": true,
+    "researchBridge": true,
+    "researchBoardBuilder": true,
+    "materialDatabase": false,
+    "externalPythonBridge": false,
+    "experimentalBoards": true,
+    "heavyLabs": true,
+    "debugTools": false,
+    "boardSpecImportExport": true
+  },
+  "visibleFeatureStatuses": [
+    "stable",
+    "playable",
+    "experimental",
+    "research",
+    "developing"
+  ],
+  "visibleLabTiers": [
+    "simple",
+    "standard",
+    "research"
+  ],
+  "hiddenRoutes": [],
+  "excludePaths": [],
+  "forbiddenPublishPaths": [
+    "node_modules",
+    ".git",
+    "release",
+    "release-packages"
+  ],
+  "forbiddenPublishPatterns": [
+    ".env",
+    ".env.*",
+    "*steam*credential*",
+    "*service-account*"
+  ]
+}

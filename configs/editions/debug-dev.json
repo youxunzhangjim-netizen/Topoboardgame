@@ -1,0 +1,49 @@
+{
+  "schema": "topoboard.edition.v1",
+  "id": "debug-dev",
+  "name": "Debug Dev",
+  "description": "Internal development edition with debug and suspended features available locally only.",
+  "target": "local-debug",
+  "outputDir": "dist-debug",
+  "public": false,
+  "steam": false,
+  "debug": true,
+  "features": {
+    "stableGames": true,
+    "lifeWorld": true,
+    "selectedLabs": true,
+    "researchBridge": true,
+    "researchBoardBuilder": true,
+    "materialDatabase": false,
+    "externalPythonBridge": false,
+    "experimentalBoards": true,
+    "heavyLabs": true,
+    "debugTools": true,
+    "boardSpecImportExport": true
+  },
+  "visibleFeatureStatuses": [
+    "stable",
+    "playable",
+    "experimental",
+    "research",
+    "developing",
+    "hidden",
+    "suspended"
+  ],
+  "visibleLabTiers": [
+    "simple",
+    "standard",
+    "research",
+    "debug"
+  ],
+  "hiddenRoutes": [],
+  "excludePaths": [],
+  "forbiddenPublishPaths": [
+    "node_modules",
+    ".git"
+  ],
+  "forbiddenPublishPatterns": [
+    ".env",
+    ".env.*"
+  ]
+}

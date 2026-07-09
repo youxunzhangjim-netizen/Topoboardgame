@@ -105,14 +105,14 @@ export function recordMetric(category, name, value, details = null) {
     return metric;
 }
 
-export function recordWarning(category, message, details = null) {
+export function recordWarning(category, message, details = {}) {
     const warning = entry(category, message, details);
     state.warnings.push(warning);
     if (isPerformanceDebugEnabled()) console.warn(`[Topoboard audit:${warning.category}] ${warning.message}`, warning.details || '');
     return warning;
 }
 
-export function recordError(category, message, details = null) {
+export function recordError(category, message, details = {}) {
     const error = entry(category, message, details);
     state.errors.push(error);
     if (isPerformanceDebugEnabled()) console.error(`[Topoboard audit:${error.category}] ${error.message}`, error.details || '');
