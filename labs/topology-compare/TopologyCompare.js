@@ -57,13 +57,13 @@ const I18N = {
         purposeTitle: 'What changes when topology changes?',
         purposeText: 'Compare discrete topological dynamics across spaces while preserving the model, local rule, fixed parameters, seed plan, initial-condition family, and observable set.',
         formalModel: 'Formal model',
-        formalExpression: 'Formal expression',
+        formalExpression: 'Expression',
         formalTopologyText: 'Topology comparison holds the rule and seed plan fixed, then measures how observables change across spaces.',
         guidedDefaults: 'Use guided defaults',
         guidedRun: 'Run guided comparison',
         comparisonMode: 'Comparison mode',
         totalRuns: 'Total runs',
-        selectModel: 'Select model',
+        selectModel: 'Model',
         selectTopologies: 'Reference and comparison topologies',
         topologyHelp: 'Choose one reference topology and one or more comparison topologies. Incompatible entries are disabled with a reason.',
         mapping: 'Initial condition mapping',
@@ -163,13 +163,13 @@ const I18N = {
         purposeTitle: '拓撲改變時，什麼會改變？',
         purposeText: '在保留模型、局部規則、固定參數、seed plan、初始條件家族與觀測量集合時，比較離散拓撲動力學在不同空間中的差異。',
         formalModel: '\u5f62\u5f0f\u6a21\u578b',
-        formalExpression: '\u5f62\u5f0f\u8868\u793a',
+        formalExpression: '\u8868\u793a\u5f0f',
         formalTopologyText: '\u62d3\u64b2\u6bd4\u8f03\u56fa\u5b9a\u898f\u5247\u8207\u7a2e\u5b50\u898f\u5283\uff0c\u518d\u6e2c\u91cf\u89c0\u6e2c\u91cf\u5982\u4f55\u96a8\u7a7a\u9593\u6539\u8b8a\u3002',
         guidedDefaults: '使用引導預設',
         guidedRun: '執行引導比較',
         comparisonMode: '比較模式',
         totalRuns: '總執行數',
-        selectModel: '選擇模型',
+        selectModel: '模型',
         selectTopologies: '參考拓撲與比較拓撲',
         topologyHelp: '選一個參考拓撲與一個以上比較拓撲。不相容項目會停用並顯示原因。',
         mapping: '初始條件映射',
@@ -399,15 +399,11 @@ function renderModelMetadata() {
     const features = modelTopologyFeatureSummary(model);
     const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
-        metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
-        metadataRow(uiText('validation', language), model.validationLevel),
         metadataRow(research.labels.objective, research.objective),
         metadataRow(research.labels.model, research.model),
         metadataRow(research.labels.dynamics, research.dynamics),
         metadataRow(research.labels.ensemble, research.ensemble),
-        metadataRow(research.labels.scope, research.scope),
-        metadataRow(t('availableObservables'), String(model.observables.length)),
-        metadataRow(uiText('compatibleTopologies', language), model.compatibleTopologies.join(', '))
+        metadataRow(research.labels.scope, research.scope)
     );
     els.modelCards.replaceChildren();
     const cards = [

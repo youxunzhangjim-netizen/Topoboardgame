@@ -307,12 +307,12 @@
       </a>
       <section class="research-picker" aria-labelledby="researchPickerTitle">
         <div class="research-picker-header">
-          <h2 id="researchPickerTitle" data-i18n="researchPickerTitle">Research Type</h2>
-          <p data-i18n="researchPickerLead">Choose one deeper research workflow here. Only the selected workflow's purpose, observables, and formal expression are shown at the top.</p>
+          <h2 id="researchPickerTitle" data-i18n="researchPickerTitle">Research Navigation</h2>
+          <p data-i18n="researchPickerLead">Choose one research workflow. The page shows only the selected workflow's purpose, observables, and expression.</p>
         </div>
         <div class="research-picker-controls">
           <div>
-            <label for="researchWorkflowSelect" data-i18n="researchTypeLabel">Research type</label>
+            <label for="researchWorkflowSelect" data-i18n="researchTypeLabel">Research workflow</label>
             <select id="researchWorkflowSelect"></select>
           </div>
           <a id="researchWorkflowOpen" class="research-open-button" href="./experiments/" data-i18n="researchOpen">Open selected research</a>
@@ -321,8 +321,8 @@
           <p class="detail-label" data-i18n="selectedResearch">Selected research</p>
           <h3 id="researchDetailTitle">Experiment Builder</h3>
           <p id="researchDetailBody">Configure topology, state space, local rule, seed, observables, and reproducible export metadata.</p>
-          <p class="formula-caption" data-i18n="researchFormula">Formal expression</p>
-          <div class="formula-box"><code id="researchDetailFormula">\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O)</code></div>
+          <p class="formula-caption" data-i18n="researchFormula">Expression</p>
+          <div class="formula-box"><code id="researchDetailFormula">Experiment ℰ = (Topology 𝒯, State 𝒮, Rule Rθ, Initial x₀, Noise ξ, Observables O)</code></div>
         </article>
       </section>
     </section>
@@ -334,14 +334,14 @@
         home: 'Home',
         eyebrow: 'Topoboard Labs',
         title: 'Experimental Platform for Discrete Topological Dynamics',
-        lead: 'Start with the interactive Simple / Research workspace. Deeper research tools are organized through one research-type selector so the page stays readable.',
+        lead: 'Start with the interactive Simple / Research workspace. Deeper tools are organized through one selected research workflow so the page stays readable.',
         interactiveTitle: 'Simple / Research Interface',
         interactiveDesc: 'Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.',
-        researchPickerTitle: 'Research Type',
-        researchPickerLead: "Choose one deeper research workflow here. Only the selected workflow's purpose, observables, and formal expression are shown at the top.",
-        researchTypeLabel: 'Research type',
+        researchPickerTitle: 'Research Navigation',
+        researchPickerLead: "Choose one research workflow. Only the selected workflow's purpose, observables, and expression are shown here.",
+        researchTypeLabel: 'Research workflow',
         selectedResearch: 'Selected research',
-        researchFormula: 'Formal expression',
+        researchFormula: 'Expression',
         researchOpen: 'Open selected research',
         experimentsTitle: 'Experiment Builder',
         experimentsDesc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.',
@@ -363,14 +363,14 @@
         home: '\u9996\u9801',
         eyebrow: 'Topoboard Labs',
         title: '\u96e2\u6563\u62d3\u64b2\u52d5\u529b\u5b78\u5be6\u9a57\u5e73\u53f0',
-        lead: '\u5148\u9032\u5165\u53ef\u4e92\u52d5\u7684\u7c21\u55ae / \u7814\u7a76\u5de5\u4f5c\u5340\u3002\u66f4\u6df1\u5165\u7684\u7814\u7a76\u5de5\u5177\u6536\u5728\u55ae\u4e00\u7814\u7a76\u985e\u578b\u9078\u55ae\u4e2d\uff0c\u9801\u9762\u6703\u66f4\u6e05\u695a\u3002',
+        lead: '\u5148\u9032\u5165\u53ef\u4e92\u52d5\u7684\u7c21\u55ae / \u7814\u7a76\u5de5\u4f5c\u5340\u3002\u66f4\u6df1\u5165\u7684\u5de5\u5177\u6536\u5728\u55ae\u4e00\u9078\u5b9a\u7814\u7a76\u5de5\u4f5c\u6d41\u4e2d\uff0c\u9801\u9762\u6703\u66f4\u6e05\u695a\u3002',
         interactiveTitle: '\u7c21\u55ae / \u7814\u7a76\u4ecb\u9762',
         interactiveDesc: '\u5148\u9032\u5165\u53ef\u904a\u73a9\u7684 Labs \u5de5\u4f5c\u5340\u3002\u4e00\u822c\u73a9\u5bb6\u7528\u7c21\u55ae\u6a21\u5f0f\uff0c\u9700\u8981\u5b8c\u6574\u79d1\u5b78\u63a7\u5236\u6642\u518d\u5728\u9802\u90e8\u5207\u5230\u7814\u7a76\u6a21\u5f0f\u3002',
-        researchPickerTitle: '\u7814\u7a76\u985e\u578b',
-        researchPickerLead: '\u5728\u9019\u88e1\u9078\u64c7\u4e00\u500b\u6df1\u5165\u7814\u7a76\u5de5\u4f5c\u6d41\u3002\u9801\u9762\u9802\u90e8\u53ea\u986f\u793a\u76ee\u524d\u9078\u9805\u7684\u76ee\u7684\u3001\u89c0\u6e2c\u91cf\u8207\u5f62\u5f0f\u8868\u793a\u3002',
-        researchTypeLabel: '\u7814\u7a76\u985e\u578b',
+        researchPickerTitle: '\u7814\u7a76\u5c0e\u89bd',
+        researchPickerLead: '\u5728\u9019\u88e1\u9078\u64c7\u4e00\u500b\u7814\u7a76\u5de5\u4f5c\u6d41\u3002\u9801\u9762\u53ea\u986f\u793a\u76ee\u524d\u9078\u9805\u7684\u76ee\u7684\u3001\u89c0\u6e2c\u91cf\u8207\u8868\u793a\u5f0f\u3002',
+        researchTypeLabel: '\u7814\u7a76\u5de5\u4f5c\u6d41',
         selectedResearch: '\u76ee\u524d\u9078\u64c7',
-        researchFormula: '\u5f62\u5f0f\u8868\u793a',
+        researchFormula: '\u8868\u793a\u5f0f',
         researchOpen: '\u958b\u555f\u9078\u5b9a\u7814\u7a76',
         experimentsTitle: '\u5be6\u9a57\u5efa\u69cb\u5668',
         experimentsDesc: '\u8a2d\u5b9a\u6a21\u578b\u3001\u62d3\u64b2\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u3001\u6279\u6b21\u57f7\u884c\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u3002',
@@ -397,21 +397,21 @@
           route: './experiments/',
           title: 'Experiment Builder',
           body: 'Configure topology, state space, local rule, seed, observables, and reproducible export metadata. Observables are tracked as time series, not game scores.',
-          formula: String.raw`\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O),\quad x_{t+1}=R_{\theta}(x_t;\mathcal{T},\xi_t).`
+          formula: 'ℰ = (𝒯, 𝒮, Rθ, x₀, ξ, O);  xₜ₊₁ = Rθ(xₜ | 𝒯, ξₜ).'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: 'Topology Comparison',
           body: 'Run the same local rule on different spaces and compare how topology changes measured observables such as density, clusters, correlation, or logical state.',
-          formula: String.raw`\Delta O(t)=O_{\mathcal{T}_a}(t)-O_{\mathcal{T}_b}(t),\quad \mathcal{T}_a\ne\mathcal{T}_b.`
+          formula: 'ΔO(t) = O(𝒯ₐ,t) − O(𝒯ᵦ,t),  with 𝒯ₐ ≠ 𝒯ᵦ.'
         },
         {
           id: 'validation',
           route: './validation/',
           title: 'Validation & Reproducibility',
           body: 'Check seeds, hashes, replay records, topology metadata, limits, warnings, and benchmark scope before treating a run as reproducible.',
-          formula: String.raw`H_{\mathrm{exp}}=H(\mathrm{topology},\mathrm{rule},\mathrm{seed},\mathrm{version}),\quad x_t=\mathrm{Replay}(H_{\mathrm{exp}},t).`
+          formula: 'Hexp = hash(𝒯, rule, seed, version);  xₜ = replay(Hexp,t).'
         }
       ],
       zh: [
@@ -420,21 +420,21 @@
           route: './experiments/',
           title: '\u5be6\u9a57\u5efa\u69cb\u5668',
           body: '\u8a2d\u5b9a\u62d3\u64b2\u3001\u72c0\u614b\u7a7a\u9593\u3001\u5c40\u90e8\u898f\u5247\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u4e2d\u7e7c\u8cc7\u6599\u3002\u89c0\u6e2c\u91cf\u4ee5\u6642\u9593\u5e8f\u5217\u8ffd\u8e64\uff0c\u4e0d\u662f\u904a\u6232\u5206\u6578\u3002',
-          formula: String.raw`\mathcal{E}=(\mathcal{T},\mathcal{S},R_{\theta},x_0,\xi,O),\quad x_{t+1}=R_{\theta}(x_t;\mathcal{T},\xi_t).`
+          formula: 'ℰ = (𝒯, 𝒮, Rθ, x₀, ξ, O);  xₜ₊₁ = Rθ(xₜ | 𝒯, ξₜ).'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: '\u62d3\u64b2\u6bd4\u8f03',
           body: '\u5728\u4e0d\u540c\u7a7a\u9593\u4e0a\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u6bd4\u8f03\u62d3\u64b2\u5982\u4f55\u6539\u8b8a\u5bc6\u5ea6\u3001\u7c07\u3001\u76f8\u95dc\u6216\u908f\u8f2f\u72c0\u614b\u7b49\u89c0\u6e2c\u91cf\u3002',
-          formula: String.raw`\Delta O(t)=O_{\mathcal{T}_a}(t)-O_{\mathcal{T}_b}(t),\quad \mathcal{T}_a\ne\mathcal{T}_b.`
+          formula: 'ΔO(t) = O(𝒯ₐ,t) − O(𝒯ᵦ,t),  𝒯ₐ ≠ 𝒯ᵦ.'
         },
         {
           id: 'validation',
           route: './validation/',
           title: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
           body: '\u5728\u5c07\u5be6\u9a57\u8996\u70ba\u53ef\u91cd\u73fe\u4e4b\u524d\uff0c\u6aa2\u67e5\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u7d00\u9304\u3001\u62d3\u64b2\u8cc7\u6599\u3001\u9650\u5236\u3001\u8b66\u544a\u8207\u57fa\u6e96\u7bc4\u570d\u3002',
-          formula: String.raw`H_{\mathrm{exp}}=H(\mathrm{topology},\mathrm{rule},\mathrm{seed},\mathrm{version}),\quad x_t=\mathrm{Replay}(H_{\mathrm{exp}},t).`
+          formula: 'Hexp = hash(𝒯, rule, seed, version);  xₜ = replay(Hexp,t).'
         }
       ]
     };

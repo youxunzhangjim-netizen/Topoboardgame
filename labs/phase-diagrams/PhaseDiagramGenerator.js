@@ -49,7 +49,7 @@ const PHASE_I18N = {
         guidedTitle: 'Find the Boundary',
         guidedText: 'Choose one model, one topology, two parameters, and one observable. The scan marks transition-like mixed regions without claiming a continuum phase transition.',
         formalModel: 'Formal model',
-        formalExpression: 'Formal expression',
+        formalExpression: 'Expression',
         formalPhaseText: 'A finite scan estimates a regime label from observables over a parameter grid; it does not claim a continuum partition function unless explicitly implemented.',
         guidedDefaults: 'Use safe defaults',
         guidedRun: 'Run small scan',
@@ -163,7 +163,7 @@ const PHASE_I18N = {
         guidedTitle: '尋找邊界',
         guidedText: '選一個模型、一個拓撲、兩個參數與一個觀測量。掃描會標示類轉換的混合區域，但不宣稱連續相變證明。',
         formalModel: '\u5f62\u5f0f\u6a21\u578b',
-        formalExpression: '\u5f62\u5f0f\u8868\u793a',
+        formalExpression: '\u8868\u793a\u5f0f',
         formalPhaseText: '\u6709\u9650\u6383\u63cf\u5f9e\u53c3\u6578\u7db2\u683c\u4e0a\u7684\u89c0\u6e2c\u91cf\u4f30\u8a08\u5340\u57df\u6a19\u7c64\uff1b\u9664\u975e\u660e\u78ba\u5be6\u4f5c\uff0c\u4e0d\u5ba3\u7a31\u8a08\u7b97\u9023\u7e8c\u914d\u5206\u51fd\u6578\u3002',
         guidedDefaults: '使用安全預設',
         guidedRun: '執行小掃描',
@@ -431,17 +431,11 @@ function renderModelMetadata() {
     const support = phaseSupportForModel(model);
     const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
-        metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
-        metadataRow(uiText('validation', language), model.validationLevel),
         metadataRow(research.labels.objective, research.objective),
         metadataRow(research.labels.model, research.model),
         metadataRow(research.labels.dynamics, research.dynamics),
         metadataRow(research.labels.ensemble, research.ensemble),
-        metadataRow(research.labels.scope, research.scope),
-        metadataRow(t('mapTerm'), mapTermForModel(model)),
-        metadataRow(uiText('parameters', language), String(support.sweepableParameters.length)),
-        metadataRow(uiText('observables', language), String(model.observables.length)),
-        metadataRow(uiText('stateSpace', language), text(model.stateSpace, language))
+        metadataRow(research.labels.scope, research.scope)
     );
     els.mapTermValue.textContent = mapTermForModel(model);
     els.regimeMapTitle.textContent = mapTermForModel(model);

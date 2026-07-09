@@ -266,18 +266,13 @@ function renderModelMetadata() {
     const model = selectedModel();
     const research = researchDescription(model.id, language);
     els.modelMetadata.replaceChildren(
-        metadataRow(uiText('family', language), `${model.section} / ${model.family}`),
-        metadataRow(uiText('validation', language), model.validationLevel),
         metadataRow(uiText('stateSpace', language), text(model.stateSpace, language)),
         metadataRow(research.labels.objective, research.objective),
         metadataRow(research.labels.model, research.model),
         metadataRow(research.labels.dynamics, research.dynamics),
         metadataRow(research.labels.ensemble, research.ensemble),
         metadataRow(research.labels.method, research.method),
-        metadataRow(research.labels.scope, research.scope),
-        metadataRow(uiText('modelVersion', language), `${model.id}@${LAB_APP_VERSION}`),
-        metadataRow(uiText('compatibleTopologies', language), model.compatibleTopologies.join(', ')),
-        metadataRow(uiText('observableRegistry', language), `${model.observables.length} ${uiText('observableRegistryValue', language)}`)
+        metadataRow(research.labels.scope, research.scope)
     );
     els.modelWarnings.replaceChildren();
     for (const warning of model.warnings || []) {

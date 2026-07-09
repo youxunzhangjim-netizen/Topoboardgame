@@ -5,8 +5,8 @@ const PROFILES = {
             zh: '在匹配的 J、h、T、初始態、排程與種子下，比較不同邊界識別的有限尺寸能量、磁化、domain 形態與繞行。'
         },
         model: {
-            en: 'Classical graph Ising energy E = -J sum_(ij in E) s_i s_j - h sum_i s_i, with each undirected edge counted once.',
-            zh: '古典圖 Ising 能量 E = -J sum_(ij in E) s_i s_j - h sum_i s_i，每條無向圖邊只計一次。'
+            en: 'Classical graph Ising spins with H(s)=−J∑₍ᵢ,ⱼ₎∈E sᵢsⱼ−h∑ᵢsᵢ; each undirected edge is counted once.',
+            zh: '古典圖 Ising 自旋，H(s)=−J∑₍ᵢ,ⱼ₎∈E sᵢsⱼ−h∑ᵢsᵢ；每條無向邊只計一次。'
         },
         dynamics: {
             en: 'Local or connected-domain proposals; optional seeded Metropolis acceptance p = exp(-Delta E/T) for Delta E > 0, with k_B = 1.',
@@ -181,6 +181,129 @@ const PROFILES = {
     }
 };
 
+const FORMAL_OVERRIDES = {
+    ising_domain_game: {
+        en: {
+            model: 'Spins sᵢ∈{−1,+1} on graph G=(V,E).  H(s)=−J∑₍ᵢ,ⱼ₎∈E sᵢsⱼ − h∑ᵢsᵢ.',
+            dynamics: 'Single-site/domain proposals use ΔH; if T>0, accept uphill moves with p=min(1, exp(−ΔH/T)).',
+            ensemble: 'Reference weight: P(s)∝exp(−H(s)/T).  Z=∑ₛexp(−H(s)/T) is not evaluated here.'
+        },
+        zh: {
+            model: '圖 G=(V,E) 上的自旋 sᵢ∈{−1,+1}。H(s)=−J∑₍ᵢ,ⱼ₎∈E sᵢsⱼ − h∑ᵢsᵢ。',
+            dynamics: '單點或 domain 提案使用 ΔH；若 T>0，升能量步以 p=min(1, exp(−ΔH/T)) 接受。',
+            ensemble: '參考權重：P(s)∝exp(−H(s)/T)。本介面不計算 Z=∑ₛexp(−H(s)/T)。'
+        }
+    },
+    two_phase_competition_game: {
+        en: {
+            model: 'Two labels A/B minimize E=γL − bA·Area(A) − bB·Area(B) + κC, where L is interface length and C is bend cost.',
+            dynamics: 'Nucleation, growth, and boundary flips update local labels; accepted flips lower the finite graph objective unless noise is enabled.',
+            ensemble: 'This is a controlled finite trajectory, not a sampled Gibbs ensemble.'
+        },
+        zh: {
+            model: '兩相 A/B 使用 E=γL − bA·Area(A) − bB·Area(B) + κC；L 為界面長度，C 為彎折代價。',
+            dynamics: '成核、成長與界面翻轉更新局部標記；未開啟噪聲時，接受降低有限圖目標函數的翻轉。',
+            ensemble: '這是受控有限軌跡，不是 Gibbs 系綜取樣。'
+        }
+    },
+    physical_cluster_go: {
+        en: {
+            model: 'Occupancy field nᵢ∈{0,A,B}. Components use graph adjacency N(i); cluster size |C| and wrapping class w(C) are measured.',
+            dynamics: 'Placement and removal update connected components on the board graph; liberties/contacts are graph neighbors.',
+            ensemble: 'Percolation and cluster results are finite-run estimators; no random-cluster partition function is computed.'
+        },
+        zh: {
+            model: '佔據場 nᵢ∈{0,A,B}。連通分量使用圖鄰接 N(i)，並測量 |C| 與繞行類別 w(C)。',
+            dynamics: '放置與移除在棋盤圖上更新連通分量；氣與接觸都來自圖鄰居。',
+            ensemble: 'Percolation 與 cluster 結果是有限執行估計；不計算 random-cluster 配分函數。'
+        }
+    },
+    physical_jump_particles: {
+        en: {
+            model: 'Tokens live on graph sites.  Moves are paths i→j constrained by adjacency, occupancy, exchange parity π, and recombination rules.',
+            dynamics: 'Each event stores a path, exchange, scattering, or recombination record and is replayed deterministically from the seed.',
+            ensemble: 'No kinetic Hamiltonian H=p²/2m+V, master equation, or reaction partition function is solved.'
+        },
+        zh: {
+            model: '粒子位於圖頂點。走法為受鄰接、佔據、交換 parity π 與重組規則限制的路徑 i→j。',
+            dynamics: '每個事件儲存路徑、交換、散射或重組紀錄，並可由種子確定重播。',
+            ensemble: '不求解動能 Hamiltonian H=p²/2m+V、master equation 或反應配分函數。'
+        }
+    },
+    spin_ice_vertex_game: {
+        en: {
+            model: 'Oriented edge spins σₑ=±1 induce vertex charge qᵥ=∑ₑ incident(v) oᵥₑσₑ.  Ice defects are qᵥ≠0.',
+            dynamics: 'Edge, string, and loop flips update σₑ and recompute qᵥ after each accepted event.',
+            ensemble: 'No transfer matrix, dipolar Hamiltonian, or thermal partition function is evaluated.'
+        },
+        zh: {
+            model: '有向邊自旋 σₑ=±1 產生頂點電荷 qᵥ=∑ₑ incident(v) oᵥₑσₑ；qᵥ≠0 為 ice 缺陷。',
+            dynamics: '邊、string 與 loop 翻轉更新 σₑ，並在每個接受事件後重算 qᵥ。',
+            ensemble: '不計算轉移矩陣、dipolar Hamiltonian 或熱配分函數。'
+        }
+    },
+    z2_gauge_loop_game: {
+        en: {
+            model: 'Z₂ edge variables Uₑ∈{+1,−1}; plaquette checks Bₚ=∏ₑ∈∂p Uₑ and Wilson loops Wγ=∏ₑ∈γUₑ.',
+            dynamics: 'Edge/path/loop flips change Uₑ; checks Bₚ and logical loops Wγ are recomputed after each event.',
+            ensemble: 'This is symbolic gauge bookkeeping; no path integral, spectrum, or finite-temperature Z is computed.'
+        },
+        zh: {
+            model: 'Z₂ 邊變數 Uₑ∈{+1,−1}；plaquette 檢查 Bₚ=∏ₑ∈∂p Uₑ，Wilson loop 為 Wγ=∏ₑ∈γUₑ。',
+            dynamics: '邊、路徑或 loop 翻轉改變 Uₑ；每次事件後重算 Bₚ 與邏輯 loop Wγ。',
+            ensemble: '這是符號式 gauge 記帳；不計算路徑積分、能譜或有限溫 Z。'
+        }
+    },
+    physical_clifford_reversi: {
+        en: {
+            model: 'Pauli labels Pᵢ∈{I,X,Y,Z} with owner sector and syndrome checks Sₐ=∏ᵢPᵢ over graph-local supports.',
+            dynamics: 'Recovery and measurement events update a symbolic Clifford frame; seeded errors are replayed deterministically.',
+            ensemble: 'No state vector |ψ⟩, density matrix ρ, or Hamiltonian expectation ⟨H⟩ is computed.'
+        },
+        zh: {
+            model: 'Pauli 標記 Pᵢ∈{I,X,Y,Z} 帶有控制扇區；syndrome 檢查 Sₐ=∏ᵢPᵢ 作用在圖局部支撐上。',
+            dynamics: '復原與測量事件更新符號 Clifford frame；定種子的錯誤可確定重播。',
+            ensemble: '不計算態向量 |ψ⟩、密度矩陣 ρ 或 Hamiltonian 期望值 ⟨H⟩。'
+        }
+    },
+    physical_anyon_jump: {
+        en: {
+            model: 'Charges a,b,c follow fusion rules Nᶜₐᵦ and braid word β.  Worldlines store winding class [γ].',
+            dynamics: 'Hops, exchanges, braids, unbraids, fusion, and measurement update β, fusion channel, and winding metadata.',
+            ensemble: 'No microscopic anyon Hamiltonian, wavefunction, path integral, or thermal partition function is solved.'
+        },
+        zh: {
+            model: '電荷 a,b,c 遵守融合規則 Nᶜₐᵦ 與 braid word β；worldline 儲存繞行類別 [γ]。',
+            dynamics: '躍遷、交換、編織、解編織、融合與測量更新 β、融合通道與繞行資料。',
+            ensemble: '不求解微觀 anyon Hamiltonian、波函數、路徑積分或熱配分函數。'
+        }
+    },
+    physical_virasoro_go: {
+        en: {
+            model: 'Primary insertions φᵢ carry weights hᵢ.  Local OPE uses φᵢφⱼ≈∑ₖ Cᵏᵢⱼ φₖ and truncated Lₙ actions.',
+            dynamics: 'Insertions, contacts, OPE updates, and measurements evolve a finite graph proxy for correlation blocks.',
+            ensemble: 'No continuum action S, exact conformal block, Hilbert-space Hamiltonian, or partition function is computed.'
+        },
+        zh: {
+            model: 'Primary 插入 φᵢ 帶權重 hᵢ。局部 OPE 使用 φᵢφⱼ≈∑ₖ Cᵏᵢⱼ φₖ 與截斷 Lₙ 作用。',
+            dynamics: '插入、接觸、OPE 更新與測量演化有限圖上的 correlation block proxy。',
+            ensemble: '不計算連續作用量 S、精確 conformal block、Hilbert 空間 Hamiltonian 或配分函數。'
+        }
+    },
+    clifford_reversi: {
+        en: {
+            model: 'Symbolic Pauli ray Pᵢ∈{I,X,Y,Z} is transported along graph paths with Clifford table updates C(Pᵢ).',
+            dynamics: 'Placement, transport, exchange, and Clifford transformations update local labels and commutation checks.',
+            ensemble: 'No quantum amplitude, density matrix, Hamiltonian evolution, or partition function is computed.'
+        },
+        zh: {
+            model: '符號 Pauli 射線 Pᵢ∈{I,X,Y,Z} 沿圖路徑傳輸，並以 Clifford 表更新 C(Pᵢ)。',
+            dynamics: '放置、傳輸、交換與 Clifford 轉換更新局部標記與對易檢查。',
+            ensemble: '不計算量子振幅、密度矩陣、Hamiltonian 演化或配分函數。'
+        }
+    }
+};
+
 const LABELS = {
     en: {
         objective: 'Research objective',
@@ -226,12 +349,13 @@ const WARNING_ZH = {
 export function researchDescription(modelId, language = 'en') {
     const lang = String(language).toLowerCase().startsWith('zh') ? 'zh' : 'en';
     const profile = PROFILES[modelId] || PROFILES.clifford_reversi;
+    const formal = FORMAL_OVERRIDES[modelId]?.[lang] || {};
     return {
         labels: LABELS[lang],
         objective: profile.objective[lang],
-        model: profile.model[lang],
-        dynamics: profile.dynamics[lang],
-        ensemble: profile.ensemble[lang],
+        model: formal.model || profile.model[lang],
+        dynamics: formal.dynamics || profile.dynamics[lang],
+        ensemble: formal.ensemble || profile.ensemble[lang],
         method: DEFAULT_METHOD[lang],
         scope: DEFAULT_SCOPE[lang]
     };
