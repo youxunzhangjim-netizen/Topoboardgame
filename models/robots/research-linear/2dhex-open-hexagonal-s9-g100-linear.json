@@ -1,0 +1,191 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-09T20:43:44.027Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.004112302650301957,
+    "board_size": 0.0019479319686056369,
+    "boundary:open": 0.004112302650301957,
+    "coord_0": -0.15427021013660566,
+    "coord_1": 0.42538511160670156,
+    "cross:2dhex:open": 0.004112302650301957,
+    "cross:2dhex:open:hexagonal": 0.004112302650301957,
+    "cross:edge:open": 0.5558551633879711,
+    "dimension": 0.0027415364709688435,
+    "game_is:2dhex": 0.004112302650301957,
+    "game:2dhex": 0.004112302650301957,
+    "hex_center_pressure": -0.0753703601745415,
+    "hex_edge_touch_count": 0.27792758169398557,
+    "hex_occupancy": -0.023135672396799766,
+    "hex_remaining_fraction": 0.027100312338498064,
+    "hex_stone_balance": 0.0629114973639408,
+    "lattice:hexagonal": 0.004112302650301957,
+    "legal_count_log": 0.007080520109666466,
+    "move_bias": 0.004112302650301957,
+    "move_center_closeness": -0.0753703601745415,
+    "move_edge": 0.5558551633879711,
+    "move_near_edge": -0.20905700935880034,
+    "move_type:play": 0.004112302650301957,
+    "player:black": 5.05891387399686,
+    "player:white": -5.095698798310482,
+    "topology:open": 0.004112302650301957
+  },
+  "training": {
+    "examples": 2300,
+    "epochs": 5,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.091539,
+        "examples": 2300,
+        "accuracy": 1,
+        "logLoss": 0.023076,
+        "brier": 0.00054
+      },
+      {
+        "epoch": 2,
+        "loss": 0.01629,
+        "examples": 2300,
+        "accuracy": 1,
+        "logLoss": 0.012017,
+        "brier": 0.000149
+      },
+      {
+        "epoch": 3,
+        "loss": 0.009988,
+        "examples": 2300,
+        "accuracy": 1,
+        "logLoss": 0.008429,
+        "brier": 0.000074
+      },
+      {
+        "epoch": 4,
+        "loss": 0.007473,
+        "examples": 2300,
+        "accuracy": 1,
+        "logLoss": 0.006676,
+        "brier": 0.000047
+      },
+      {
+        "epoch": 5,
+        "loss": 0.006127,
+        "examples": 2300,
+        "accuracy": 1,
+        "logLoss": 0.005646,
+        "brier": 0.000033
+      }
+    ],
+    "featureCount": 26,
+    "input": "local-data/selfplay/2dhex-open-hexagonal-s9-g100-release.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:white",
+        "weight": -5.095699
+      },
+      {
+        "feature": "player:black",
+        "weight": 5.058914
+      },
+      {
+        "feature": "cross:edge:open",
+        "weight": 0.555855
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.555855
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.425385
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": 0.277928
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.209057
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.15427
+      },
+      {
+        "feature": "hex_center_pressure",
+        "weight": -0.07537
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.07537
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": 0.062911
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": 0.0271
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": -0.023136
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.007081
+      },
+      {
+        "feature": "bias",
+        "weight": 0.004112
+      },
+      {
+        "feature": "boundary:open",
+        "weight": 0.004112
+      },
+      {
+        "feature": "cross:2dhex:open",
+        "weight": 0.004112
+      },
+      {
+        "feature": "cross:2dhex:open:hexagonal",
+        "weight": 0.004112
+      },
+      {
+        "feature": "game_is:2dhex",
+        "weight": 0.004112
+      },
+      {
+        "feature": "game:2dhex",
+        "weight": 0.004112
+      },
+      {
+        "feature": "lattice:hexagonal",
+        "weight": 0.004112
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.004112
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.004112
+      },
+      {
+        "feature": "topology:open",
+        "weight": 0.004112
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.002742
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.001948
+      }
+    ]
+  }
+}

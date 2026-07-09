@@ -1,0 +1,201 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-09T20:42:16.584Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.024268360179663707,
+    "board_size": 0.010218265858728127,
+    "boundary:open2d": 0.024268360179663707,
+    "coord_0": -0.12161670722090435,
+    "coord_1": 0.05937866656175882,
+    "cross:2dreversi:open2d": 0.024268360179663707,
+    "cross:2dreversi:open2d:square": 0.024268360179663707,
+    "cross:edge:open2d": 0.06076734149531617,
+    "dimension": 0.01617891487589593,
+    "game_is:2dreversi": 0.024268360179663707,
+    "game:2dreversi": 0.024268360179663707,
+    "lattice:square": 0.024268360179663707,
+    "legal_count_log": 0.29014650516279017,
+    "move_bias": 0.024268360179663707,
+    "move_center_closeness": 0.044384219511810645,
+    "move_corner_or_anchor": 0.09451839746863665,
+    "move_edge": 0.06076734149531617,
+    "move_flips_count": 0.2961070429769746,
+    "move_near_edge": -0.1358087696752874,
+    "move_type:place": 0.024268360179663707,
+    "player:black": 2.689316131410594,
+    "player:white": -2.6663083128678644,
+    "reversi_anchor_move": 0.09451839746863665,
+    "reversi_disc_balance": 0.6928721982965089,
+    "reversi_endgame_phase": -0.1339853785155139,
+    "reversi_near_anchor_risk": 0.12814415260658263,
+    "reversi_occupancy": -0.1339853785155139,
+    "topology:open2d": 0.024268360179663707
+  },
+  "training": {
+    "examples": 5965,
+    "epochs": 5,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.287764,
+        "examples": 5965,
+        "accuracy": 0.9254,
+        "logLoss": 0.279472,
+        "brier": 0.065905
+      },
+      {
+        "epoch": 2,
+        "loss": 0.275371,
+        "examples": 5965,
+        "accuracy": 0.9254,
+        "logLoss": 0.277576,
+        "brier": 0.06554
+      },
+      {
+        "epoch": 3,
+        "loss": 0.276255,
+        "examples": 5965,
+        "accuracy": 0.9254,
+        "logLoss": 0.278032,
+        "brier": 0.06571
+      },
+      {
+        "epoch": 4,
+        "loss": 0.27528,
+        "examples": 5965,
+        "accuracy": 0.9254,
+        "logLoss": 0.265491,
+        "brier": 0.064023
+      },
+      {
+        "epoch": 5,
+        "loss": 0.274235,
+        "examples": 5965,
+        "accuracy": 0.9254,
+        "logLoss": 0.26707,
+        "brier": 0.064192
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/2dreversi-open2d-square-s8-g100-release.jsonl",
+    "gameFilter": "",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:black",
+        "weight": 2.689316
+      },
+      {
+        "feature": "player:white",
+        "weight": -2.666308
+      },
+      {
+        "feature": "reversi_disc_balance",
+        "weight": 0.692872
+      },
+      {
+        "feature": "move_flips_count",
+        "weight": 0.296107
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.290147
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.135809
+      },
+      {
+        "feature": "reversi_endgame_phase",
+        "weight": -0.133985
+      },
+      {
+        "feature": "reversi_occupancy",
+        "weight": -0.133985
+      },
+      {
+        "feature": "reversi_near_anchor_risk",
+        "weight": 0.128144
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.121617
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.094518
+      },
+      {
+        "feature": "reversi_anchor_move",
+        "weight": 0.094518
+      },
+      {
+        "feature": "cross:edge:open2d",
+        "weight": 0.060767
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.060767
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.059379
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.044384
+      },
+      {
+        "feature": "bias",
+        "weight": 0.024268
+      },
+      {
+        "feature": "boundary:open2d",
+        "weight": 0.024268
+      },
+      {
+        "feature": "cross:2dreversi:open2d",
+        "weight": 0.024268
+      },
+      {
+        "feature": "cross:2dreversi:open2d:square",
+        "weight": 0.024268
+      },
+      {
+        "feature": "game_is:2dreversi",
+        "weight": 0.024268
+      },
+      {
+        "feature": "game:2dreversi",
+        "weight": 0.024268
+      },
+      {
+        "feature": "lattice:square",
+        "weight": 0.024268
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.024268
+      },
+      {
+        "feature": "move_type:place",
+        "weight": 0.024268
+      },
+      {
+        "feature": "topology:open2d",
+        "weight": 0.024268
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.016179
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.010218
+      }
+    ]
+  }
+}

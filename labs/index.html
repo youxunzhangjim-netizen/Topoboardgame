@@ -257,12 +257,14 @@
       background: rgba(0, 0, 0, 0.22);
       padding: 10px 12px;
     }
-    .formula-box code {
+    .formula-box .math-expression {
       color: #d7f0ff;
       font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif;
       font-size: clamp(15px, 1.7vw, 18px);
       white-space: nowrap;
     }
+    .formula-box .math-expression var { font-style: italic; }
+    .formula-box .math-expression sub { font-size: 0.72em; }
     @media (max-width: 860px) {
       .topbar { align-items: center; flex-wrap: wrap; margin-bottom: 28px; }
       .workflow-grid { grid-template-columns: 1fr; }
@@ -322,7 +324,7 @@
           <h3 id="researchDetailTitle">Experiment Builder</h3>
           <p id="researchDetailBody">Configure topology, state space, local rule, seed, observables, and reproducible export metadata.</p>
           <p class="formula-caption" data-i18n="researchFormula">Expression</p>
-          <div class="formula-box"><code id="researchDetailFormula">Experiment ℰ = (Topology 𝒯, State 𝒮, Rule Rθ, Initial x₀, Noise ξ, Observables O)</code></div>
+          <div class="formula-box"><div id="researchDetailFormula" class="math-expression">E = (T, S, R<sub>theta</sub>, x<sub>0</sub>, xi, O)</div></div>
         </article>
       </section>
     </section>
@@ -397,21 +399,21 @@
           route: './experiments/',
           title: 'Experiment Builder',
           body: 'Configure topology, state space, local rule, seed, observables, and reproducible export metadata. Observables are tracked as time series, not game scores.',
-          formula: 'ℰ = (𝒯, 𝒮, Rθ, x₀, ξ, O);  xₜ₊₁ = Rθ(xₜ | 𝒯, ξₜ).'
+          formulaHtml: '<var>E</var> = (<var>T</var>, <var>S</var>, R<sub>theta</sub>, x<sub>0</sub>, xi, <var>O</var>), &nbsp; x<sub>t+1</sub> = R<sub>theta</sub>(x<sub>t</sub> | <var>T</var>, xi<sub>t</sub>)'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: 'Topology Comparison',
           body: 'Run the same local rule on different spaces and compare how topology changes measured observables such as density, clusters, correlation, or logical state.',
-          formula: 'ΔO(t) = O(𝒯ₐ,t) − O(𝒯ᵦ,t),  with 𝒯ₐ ≠ 𝒯ᵦ.'
+          formulaHtml: 'Delta O(t) = O(T<sub>0</sub>, t) - O(T<sub>i</sub>, t), &nbsp; T<sub>0</sub> != T<sub>i</sub>'
         },
         {
           id: 'validation',
           route: './validation/',
           title: 'Validation & Reproducibility',
           body: 'Check seeds, hashes, replay records, topology metadata, limits, warnings, and benchmark scope before treating a run as reproducible.',
-          formula: 'Hexp = hash(𝒯, rule, seed, version);  xₜ = replay(Hexp,t).'
+          formulaHtml: 'H<sub>exp</sub> = hash(T, rule, seed, version), &nbsp; x<sub>t</sub> = replay(H<sub>exp</sub>, t)'
         }
       ],
       zh: [
@@ -420,21 +422,21 @@
           route: './experiments/',
           title: '\u5be6\u9a57\u5efa\u69cb\u5668',
           body: '\u8a2d\u5b9a\u62d3\u64b2\u3001\u72c0\u614b\u7a7a\u9593\u3001\u5c40\u90e8\u898f\u5247\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u4e2d\u7e7c\u8cc7\u6599\u3002\u89c0\u6e2c\u91cf\u4ee5\u6642\u9593\u5e8f\u5217\u8ffd\u8e64\uff0c\u4e0d\u662f\u904a\u6232\u5206\u6578\u3002',
-          formula: 'ℰ = (𝒯, 𝒮, Rθ, x₀, ξ, O);  xₜ₊₁ = Rθ(xₜ | 𝒯, ξₜ).'
+          formulaHtml: '<var>E</var> = (<var>T</var>, <var>S</var>, R<sub>theta</sub>, x<sub>0</sub>, xi, <var>O</var>), &nbsp; x<sub>t+1</sub> = R<sub>theta</sub>(x<sub>t</sub> | <var>T</var>, xi<sub>t</sub>)'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: '\u62d3\u64b2\u6bd4\u8f03',
           body: '\u5728\u4e0d\u540c\u7a7a\u9593\u4e0a\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u6bd4\u8f03\u62d3\u64b2\u5982\u4f55\u6539\u8b8a\u5bc6\u5ea6\u3001\u7c07\u3001\u76f8\u95dc\u6216\u908f\u8f2f\u72c0\u614b\u7b49\u89c0\u6e2c\u91cf\u3002',
-          formula: 'ΔO(t) = O(𝒯ₐ,t) − O(𝒯ᵦ,t),  𝒯ₐ ≠ 𝒯ᵦ.'
+          formulaHtml: 'Delta O(t) = O(T<sub>0</sub>, t) - O(T<sub>i</sub>, t), &nbsp; T<sub>0</sub> != T<sub>i</sub>'
         },
         {
           id: 'validation',
           route: './validation/',
           title: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
           body: '\u5728\u5c07\u5be6\u9a57\u8996\u70ba\u53ef\u91cd\u73fe\u4e4b\u524d\uff0c\u6aa2\u67e5\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u7d00\u9304\u3001\u62d3\u64b2\u8cc7\u6599\u3001\u9650\u5236\u3001\u8b66\u544a\u8207\u57fa\u6e96\u7bc4\u570d\u3002',
-          formula: 'Hexp = hash(𝒯, rule, seed, version);  xₜ = replay(Hexp,t).'
+          formulaHtml: 'H<sub>exp</sub> = hash(T, rule, seed, version), &nbsp; x<sub>t</sub> = replay(H<sub>exp</sub>, t)'
         }
       ]
     };
@@ -452,7 +454,7 @@
       const current = workflows.find((item) => item.id === select.value) || workflows[0];
       title.textContent = current.title;
       body.textContent = current.body;
-      formula.textContent = current.formula;
+      formula.innerHTML = current.formulaHtml || '';
       open.href = current.route;
     }
     function populateResearchWorkflows(language) {
