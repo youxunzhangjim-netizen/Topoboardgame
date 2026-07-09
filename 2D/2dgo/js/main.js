@@ -1,5 +1,6 @@
 import { COLORS, GoGameLogic, normalizeTopology, otherColor, valueToColor } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { GoRobotController } from './robot/GoRobot.js';
 import { honeycombBounds, honeycombCells, honeycombPoint } from '../../../js/shared/HoneycombLattice.js';
 import { kagomeBounds, kagomeFaceBounds, kagomeFaceCells, kagomePoint } from '../../../js/shared/KagomeLattice.js';
@@ -1387,7 +1388,18 @@ class Go2DApp {
 
     onlineMatchKey() {
         const settings = this.getNetworkSettings();
-        return [settings.variant, settings.mode, settings.lattice, settings.size, settings.timer].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'go',
+            dimension: 2,
+            boardSpace: settings.mode,
+            topology: settings.mode,
+            lattice: settings.lattice,
+            boundary: settings.mode,
+            size: settings.size,
+            ruleset: 'go',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(this)
+        });
     }
 
     exportNetworkState() {

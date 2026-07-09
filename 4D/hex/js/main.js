@@ -1,5 +1,6 @@
 import HexGame, { HEX_COLORS } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
+import { buildOnlineMatchKey } from '../../../js/shared/OnlineMatchKey.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -904,7 +905,17 @@ window.hexApp = {
         return `hex-4d-${elements.topology.value}-${size}`;
     },
     onlineMatchKey() {
-        return 'hex-4d';
+        return buildOnlineMatchKey({
+            gameFamily: 'hex',
+            dimension: 4,
+            boardSpace: elements.topology.value,
+            topology: elements.topology.value,
+            lattice: 'hypercubic',
+            boundary: elements.topology.value,
+            size,
+            ruleset: 'hex-connection',
+            rulesetVersion: 1
+        });
     },
     newGame,
     setLanguage(nextLanguage) {

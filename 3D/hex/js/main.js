@@ -6,6 +6,7 @@ import {
     createBuckyballSphereGridLines
 } from '../../../js/geometry/SphereBoardGeometry.js';
 import { honeycombBounds, honeycombCells } from '../../../js/shared/HoneycombLattice.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -1756,7 +1757,18 @@ window.hexApp = {
         return `hex-3d-${selectedTopology()}-${elements.lattice.value}-${axisSizes.join('x')}`;
     },
     onlineMatchKey() {
-        return isSpaceTime ? 'hex-3p1' : 'hex-3d';
+        return buildOnlineMatchKey({
+            gameFamily: 'hex',
+            dimension: 3,
+            boardSpace: selectedTopology(),
+            topology: selectedTopology(),
+            lattice: elements.lattice.value,
+            boundary: selectedTopology(),
+            size: axisSizes,
+            ruleset: 'hex-connection',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(window.hexApp)
+        });
     },
     coordFromEvent(event) {
         return nearestSite(event)?.coordinate || null;

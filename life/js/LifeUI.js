@@ -17,6 +17,7 @@ import {
 import { currentLifeLanguage, localizeStaticText, syncLifeLinks, t } from './i18n.js';
 import { FirebaseStateNetworkManager } from '../../js/FirebaseStateNetworkManager.js';
 import { classicKleinBottlePoint } from '../../js/geometry/KleinBottleMath.js';
+import { buildOnlineMatchKey } from '../../js/shared/OnlineMatchKey.js';
 import {
   STEAM_SAFETY_TEXT,
   assessBoardSafety
@@ -1663,30 +1664,38 @@ export class LifeUI {
   }
 
   onlineMatchKey() {
-    const values = [
-      this.onlineGameKey(),
-      this.modeSelect?.value || this.mode?.id || 'life',
-      this.usageModeSelect?.value || 'zero',
-      this.twoPlayerModeSelect?.value || 'seed-war',
-      this.challengeGoalSelect?.value || 'none',
-      this.boardGeometrySelect?.value || 'r2',
-      this.latticeSelect?.value || 'square',
-      this.viewModeSelect?.value || 'flat',
-      this.dimensionSelect?.value || '2',
-      this.boardSizeSelect?.value || '32',
-      this.customRuleActive ? `custom:${serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival })}` : (this.ruleSelect?.value || 'conway'),
-      this.neighborhoodSelect?.value || 'moore',
-      `rad${this.neighborhoodRadiusSelect?.value || 1}`,
-      this.neighborhoodMetricSelect?.value || 'chebyshev',
-      `bn${this.birthNoiseRange?.value || 0}`,
-      `dn${this.deathNoiseRange?.value || 0}`,
-      `en${this.environmentNoiseRange?.value || 0}`,
-      `rn${this.ruleNoiseRange?.value || 0}`,
-      `td${this.topologyDefectNoiseRange?.value || 0}`,
-      `mu${this.mutationRange?.value || 0}`,
-      `age${this.ageRange?.value || 0}`
-    ];
-    return values.join(':');
+    const geometry = this.boardGeometrySelect?.value || 'r2';
+    const rule = this.customRuleActive
+      ? `custom:${serializeLifeBSRule({ birth: this.customRuleBirth, survival: this.customRuleSurvival })}`
+      : (this.ruleSelect?.value || 'conway');
+    return buildOnlineMatchKey({
+      gameFamily: 'life',
+      dimension: this.dimensionSelect?.value || '2',
+      boardSpace: geometry,
+      topology: geometry,
+      lattice: this.latticeSelect?.value || 'square',
+      boundary: this.r3BoundarySelect?.value || geometry,
+      size: this.boardSizeSelect?.value || '32',
+      ruleset: {
+        mode: this.modeSelect?.value || this.mode?.id || 'life',
+        usage: this.usageModeSelect?.value || 'zero',
+        twoPlayer: this.twoPlayerModeSelect?.value || 'seed-war',
+        challenge: this.challengeGoalSelect?.value || 'none',
+        view: this.viewModeSelect?.value || 'flat',
+        rule,
+        neighborhood: this.neighborhoodSelect?.value || 'moore',
+        radius: this.neighborhoodRadiusSelect?.value || 1,
+        metric: this.neighborhoodMetricSelect?.value || 'chebyshev',
+        birthNoise: this.birthNoiseRange?.value || 0,
+        deathNoise: this.deathNoiseRange?.value || 0,
+        environmentNoise: this.environmentNoiseRange?.value || 0,
+        ruleNoise: this.ruleNoiseRange?.value || 0,
+        topologyDefectNoise: this.topologyDefectNoiseRange?.value || 0,
+        mutation: this.mutationRange?.value || 0,
+        age: this.ageRange?.value || 0
+      },
+      rulesetVersion: 1
+    });
   }
 
   readControlValues() {

@@ -3,6 +3,7 @@ import { installReversi3DRobot } from './robot/Reversi3DRobot.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ReversiGame, REVERSI_TOPOLOGIES, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
@@ -2457,7 +2458,18 @@ class Reversi3DApp {
     }
 
     onlineMatchKey() {
-        return ['3dreversi', this.activeTopology(), this.currentLattice(), this.boardSize()].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'reversi',
+            dimension: 3,
+            boardSpace: this.modeSelect?.value || this.activeTopology(),
+            topology: this.activeTopology(),
+            lattice: this.currentLattice(),
+            boundary: this.boundarySelect?.value || this.activeTopology(),
+            size: this.boardSize(),
+            ruleset: 'reversi',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(this)
+        });
     }
 
     exportNetworkState() {

@@ -1,6 +1,7 @@
 import { BoardSetup, BOARD_THEMES, PIECE_GLYPHS, PROMOTION_TYPES, createPiece } from './BoardSetup.js';
 import { PieceMovement, createRandomChessBoundaryState } from './PieceMovement.js';
 import { FirebaseOnlineAdapter } from '../../../online.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
 import { ChessRobotController } from './robot/ChessRobotController.js';
 
@@ -100,11 +101,18 @@ export class ChessGame {
     }
 
     onlineMatchKey() {
-        return [
-            this.onlineGameKey(),
-            this.boundaryCondition,
-            this.timerEnabled ? this.timeLimit : 0
-        ].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'chess',
+            dimension: 2,
+            boardSpace: 'r2',
+            topology: this.boundaryCondition,
+            lattice: 'square',
+            boundary: this.boundaryCondition,
+            size: 8,
+            ruleset: 'chess',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(this)
+        });
     }
 
     getCurrentBoardState() {

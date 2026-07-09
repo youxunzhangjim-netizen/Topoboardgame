@@ -1,5 +1,6 @@
 import { ReversiGame, normalizeReversiSize, normalizeReversiTopology } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import { ReversiRobotController } from './robot/ReversiRobot.js';
@@ -874,7 +875,18 @@ class Reversi2DApp {
     }
 
     onlineMatchKey() {
-        return ['2dreversi', this.boundarySelect.value, this.effectiveLattice(), this.boardSize()].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'reversi',
+            dimension: 2,
+            boardSpace: this.boundarySelect.value,
+            topology: this.boundarySelect.value,
+            lattice: this.effectiveLattice(),
+            boundary: this.boundarySelect.value,
+            size: this.boardSize(),
+            ruleset: 'reversi',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(this)
+        });
     }
 
     exportNetworkState() {

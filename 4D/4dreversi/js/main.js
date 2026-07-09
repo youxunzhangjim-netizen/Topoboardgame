@@ -1,5 +1,6 @@
 import { ReversiGame, normalizeReversiSize, otherReversiColor } from '../../../js/reversi/ReversiGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey } from '../../../js/shared/OnlineMatchKey.js';
 import { installProjectedBoardTouchControls } from '../../../js/shared/ProjectedBoardTouchControls.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 
@@ -713,7 +714,17 @@ class Reversi4DApp {
 
     onlineMatchKey() {
         const { nx, ny, nz, nw } = this.sizes();
-        return ['4dreversi', nx, ny, nz, nw].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'reversi',
+            dimension: 4,
+            boardSpace: 'r4',
+            topology: 'hypercube',
+            lattice: 'hypercubic',
+            boundary: 'hard',
+            size: [nx, ny, nz, nw],
+            ruleset: 'reversi',
+            rulesetVersion: 1
+        });
     }
 
     exportNetworkState() {

@@ -1,5 +1,6 @@
 import { COLORS, FLAT_4D_GO_TOPOLOGY, Flat4DGoGame, otherColor, valueToColor } from './Flat4DGo.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey } from '../../../js/shared/OnlineMatchKey.js';
 import { installGameUILocalizer } from '../../../js/shared/GameUILocalizer.js';
 
 const KOMI = 7.5;
@@ -655,7 +656,17 @@ class Go4DApp {
 
     onlineMatchKey() {
         const { nx, ny, nz, nw } = this.sizes();
-        return ['4dgo', nx, ny, nz, nw].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'go',
+            dimension: 4,
+            boardSpace: 'r4',
+            topology: 'hypercube',
+            lattice: 'hypercubic',
+            boundary: 'hard',
+            size: [nx, ny, nz, nw],
+            ruleset: 'go',
+            rulesetVersion: 1
+        });
     }
 
     exportNetworkState() {

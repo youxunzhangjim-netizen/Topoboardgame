@@ -38,6 +38,7 @@ import {
     sendChatMessage,
     sendMove
 } from '../../online.js';
+import { buildOnlineMatchKey } from '../../js/shared/OnlineMatchKey.js';
 
 const els = {
     labsModelCatalog: document.querySelector('#labsModelCatalog'),
@@ -4353,30 +4354,36 @@ function currentOnlineMatchKey() {
     const base = baseMode(mode);
     const topology = els.topologySelect.value;
     const lattice = els.latticeSelect.value;
-    return [
-        'algebraic',
-        mode,
+    const z = topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '';
+    const w = topology === 'flat_4d_grid' ? els.wSizeInput.value : '';
+    const rulesetDetails = {
+        algebra: base === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
+        anyonSetup: isJumpMode(mode) ? els.anyonSetupSelect.value : '',
+        anyonModel: base === 'anyon_jump' || base === 'anyon_reversi' ? els.anyonModelSelect.value : '',
+        braidMemory: isJumpMode(mode) ? els.braidMemoryModeSelect.value : '',
+        clusterInitialState: mode === 'physical_cluster_go' ? els.clusterInitialStateSelect.value : '',
+        clusterModel: mode === 'physical_cluster_go' ? els.clusterModelSelect.value : '',
+        particleModel: mode === 'physical_jump_particles' ? els.jumpParticleModelSelect.value : '',
+        particleAction: mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : '',
+        update: els.timeUpdateSelect?.value || 'off',
+        noise: els.noiseModeSelect?.value || 'off',
+        applyNoise: els.applyNoiseSelect?.value || '',
+        noiseProbability: els.noiseProbabilityInput?.value || '',
+        noiseSeed: els.noiseSeedInput?.value || '',
+        timeParameter: els.timeParameterInput?.value || ''
+    };
+    return buildOnlineMatchKey({
+        gameFamily: 'algebraic',
+        dimension: topology === 'flat_4d_grid' ? 4 : (topology === 'r3' ? 3 : 2),
+        boardSpace: topology,
         topology,
         lattice,
-        els.widthInput.value,
-        els.heightInput.value,
-        topology === 'r3' || topology === 'flat_4d_grid' ? els.zSizeInput.value : '',
-        topology === 'flat_4d_grid' ? els.wSizeInput.value : '',
-        base === 'clifford_reversi' ? els.cliffordAlgebraSetSelect.value : '',
-        isJumpMode(mode) ? els.anyonSetupSelect.value : '',
-        base === 'anyon_jump' || base === 'anyon_reversi' ? els.anyonModelSelect.value : '',
-        isJumpMode(mode) ? els.braidMemoryModeSelect.value : '',
-        mode === 'physical_cluster_go' ? els.clusterInitialStateSelect.value : '',
-        mode === 'physical_cluster_go' ? els.clusterModelSelect.value : '',
-        mode === 'physical_jump_particles' ? els.jumpParticleModelSelect.value : '',
-        mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : '',
-        els.timeUpdateSelect?.value || 'off',
-        els.noiseModeSelect?.value || 'off',
-        els.applyNoiseSelect?.value || '',
-        els.noiseProbabilityInput?.value || '',
-        els.noiseSeedInput?.value || '',
-        els.timeParameterInput?.value || ''
-    ].join(':');
+        boundary: topology,
+        size: [els.widthInput.value, els.heightInput.value, z, w].filter(Boolean),
+        ruleset: { mode, ...rulesetDetails },
+        rulesetVersion: 1,
+        labsMode: base
+    });
 }
 
 function restoreGoState(state) {

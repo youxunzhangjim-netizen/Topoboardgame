@@ -1244,10 +1244,9 @@ function waitingPlayerProfile(room) {
     return info.waiting || info.white || info.black || null;
 }
 
-function randomizeMatchedPlayerInfo(room, joiningProfile) {
+function randomizeMatchedPlayerInfo(room, joiningProfile, waitingColor = randomPlayerColor()) {
     const waitingProfile = waitingPlayerProfile(room);
     if (!waitingProfile || !joiningProfile || waitingProfile.uid === joiningProfile.uid) return room?.playerInfo || {};
-    const waitingColor = randomPlayerColor();
     return {
         white: waitingColor === 'white' ? waitingProfile : joiningProfile,
         black: waitingColor === 'black' ? waitingProfile : joiningProfile,
@@ -1262,6 +1261,8 @@ function randomizeMatchedPlayers(room, joiningUid) {
     const joiningColor = opposite(waitingColor);
     return {
         color: joiningColor,
+        waitingColor,
+        turn: randomPlayerColor(),
         players: {
             ...(room.players || {}),
             white: waitingColor === 'white' ? waitingUid : joiningUid,
@@ -1550,20 +1551,23 @@ export async function createPrivateRoom(initialBoard) {
 
     const ref = doc(collection(db, roomsPath));
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
-    const initialTurn = hooks.getCurrentTurn?.(board) || board?.currentPlayer || 'white';
     await withTimeout(setDoc(ref, {
         status: 'waiting',
         public: false,
         players: {
-            white: initialTurn === 'white' ? user.uid : null,
-            black: initialTurn === 'black' ? user.uid : null
+            waiting: user.uid,
+            white: null,
+            black: null
         },
         playerInfo: {
-            ...roomPlayerInfoForColor(initialTurn, user),
-            [opposite(initialTurn)]: null,
-            waiting: null
+            waiting: playerProfileForRoom(user),
+            white: null,
+            black: null
         },
-        turn: initialTurn,
+        hostUid: user.uid,
+        // Placeholder required by existing room schema. The real first turn is
+        // randomized when the second player joins.
+        turn: 'white',
         gameKey: hooks.gameKey,
         matchKey: hooks.matchKey,
         board: encodeBoardForFirestore(board),
@@ -1574,10 +1578,10 @@ export async function createPrivateRoom(initialBoard) {
     }), 'Create room');
 
     roomId = ref.id;
-    playerColor = initialTurn;
+    playerColor = null;
     lastLoadedMoveNumber = 0;
     localStorage.setItem(reconnectStorageKey, roomId);
-    status(`Private room ${roomId} created. Waiting for ${opposite(playerColor)}.`);
+    status(`Private room ${roomId} created. Waiting for opponent.`);
     listenToRoom(roomId);
     listenToChat(roomId);
     return { roomId, playerColor };
@@ -1605,16 +1609,37 @@ export async function joinPrivateRoom(rawRoomId) {
             : room.players?.black === user.uid ? 'black' : null;
         if (existingColor) return { room, color: existingColor };
         if (room.public && room.players?.waiting === user.uid) return { room, color: null };
-        if (room.public && room.status === 'waiting') {
+        if (!room.public && room.players?.waiting && room.players.waiting !== user.uid) {
             const assignment = randomizeMatchedPlayers(room, user.uid);
             if (!assignment) throw new Error('Room is full or already finished.');
-            const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user));
+            const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
             const nextRoom = {
                 ...room,
                 status: 'playing',
                 players: assignment.players,
                 playerInfo: nextPlayerInfo,
-                turn: room.turn || 'white'
+                turn: assignment.turn
+            };
+            transaction.update(ref, {
+                players: assignment.players,
+                playerInfo: nextPlayerInfo,
+                status: 'playing',
+                turn: nextRoom.turn,
+                updatedAt: serverTimestamp()
+            });
+            return { room: nextRoom, color: assignment.color };
+        }
+        if (!room.public && room.players?.waiting === user.uid) return { room, color: null };
+        if (room.public && room.status === 'waiting') {
+            const assignment = randomizeMatchedPlayers(room, user.uid);
+            if (!assignment) throw new Error('Room is full or already finished.');
+            const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
+            const nextRoom = {
+                ...room,
+                status: 'playing',
+                players: assignment.players,
+                playerInfo: nextPlayerInfo,
+                turn: assignment.turn
             };
             transaction.update(ref, {
                 players: assignment.players,
@@ -1744,13 +1769,13 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
         if (!roomMatchesCurrentBucket(room)) return null;
         const assignment = randomizeMatchedPlayers(room, user.uid);
         if (!assignment) return null;
-        const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user));
+        const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
         const nextRoom = {
             ...room,
             status: 'playing',
             players: assignment.players,
             playerInfo: nextPlayerInfo,
-            turn: room.turn || initialTurn
+            turn: assignment.turn
         };
         transaction.update(ref, {
             players: assignment.players,

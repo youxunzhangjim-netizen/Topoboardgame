@@ -22,6 +22,7 @@ import {
     valueToColor
 } from './GoGame.js';
 import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { kagomeBounds, kagomePoint } from '../../../js/shared/KagomeLattice.js';
 import {
     createTorusSurfaceData,
@@ -3403,7 +3404,18 @@ class Go3DApp {
 
     onlineMatchKey() {
         const settings = this.getNetworkSettings();
-        return [settings.variant, settings.mode, settings.lattice, settings.size, settings.timer].join(':');
+        return buildOnlineMatchKey({
+            gameFamily: 'go',
+            dimension: 3,
+            boardSpace: settings.mode,
+            topology: settings.mode,
+            lattice: settings.lattice,
+            boundary: settings.boundary || settings.mode,
+            size: settings.size,
+            ruleset: 'go',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(this)
+        });
     }
 
     exportNetworkState() {

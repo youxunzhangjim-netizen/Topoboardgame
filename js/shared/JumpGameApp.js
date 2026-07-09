@@ -1,4 +1,5 @@
 import { FirebaseStateNetworkManager } from '../FirebaseStateNetworkManager.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from './OnlineMatchKey.js';
 import { installProjectedBoardTouchControls } from './ProjectedBoardTouchControls.js';
 import { JumpGameState, chooseJumpRobotMove, coordKey, normalizeJumpLattice, otherPlayer } from './JumpRules.js';
 import { loadLatestJumpTrainedScorer } from './JumpTrainedRobot.js';
@@ -1982,10 +1983,21 @@ export class JumpGameApp {
     const lattice = normalizeJumpLattice(this.latticeSelect?.value || this.config.lattice || 'square', this.effectiveDimensionForTopology(t), t);
     const players = this.playerCountSelect?.value || this.config.playerCount || this.game?.playerCount || 2;
     const s = this.sizeSelect?.value || this.config.size;
-    const timer = this.timerSelect?.value || this.config.timer || this.config.timeLimit || 0;
     const axis = this.axisSelect?.value || 'x';
     const target = this.targetModeSelect?.value || 'opponentHome';
-    return `jump:${this.dimension}d:${t}:players${players}:lattice${lattice}:size${s}:timer${timer}:axis${axis}:target${target}:lab${this.config.labMode || 'none'}`;
+    return buildOnlineMatchKey({
+      gameFamily: 'jump',
+      dimension: this.dimension,
+      boardSpace: t,
+      topology: t,
+      lattice,
+      boundary: t,
+      size: s,
+      ruleset: `jump-players${players}-axis${axis}-target${target}`,
+      rulesetVersion: 1,
+      labsMode: this.config.labMode || 'none',
+      ...currentSpaceTimeMatchFields(this)
+    });
   }
   updateOnlineRoomUI(roomId, color) { if (roomId) this.enterOnlineMode(); this.setOnlineColor(color); }
   setOnlineColor(color) { this.myColor = playerFromOnlineColor(color); }

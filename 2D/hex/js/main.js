@@ -1,6 +1,7 @@
 import HexGame, { HEX_COLORS, otherHexColor } from '../../../js/hex/HexGame.js';
 import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
 import { analyzeHexRobotPosition, chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
+import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { kagomeFaceBounds, kagomeFaceCells } from '../../../js/shared/KagomeLattice.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
@@ -1122,7 +1123,18 @@ window.hexApp = {
         return `hex-2d-${topology}-${selectedLattice()}-${size}`;
     },
     onlineMatchKey() {
-        return isSpaceTime ? 'hex-2p1' : 'hex-2d';
+        return buildOnlineMatchKey({
+            gameFamily: 'hex',
+            dimension: 2,
+            boardSpace: topology,
+            topology,
+            lattice: selectedLattice(),
+            boundary: topology,
+            size,
+            ruleset: 'hex-connection',
+            rulesetVersion: 1,
+            ...currentSpaceTimeMatchFields(window.hexApp)
+        });
     },
     coordFromEvent(event) {
         return nearestCell(event)?.coordinate || null;
