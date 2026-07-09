@@ -64,6 +64,43 @@ function publicTopoboardEnv() {
     );
 }
 
+function boolEnv(name) {
+    return String(process.env[name] || '').toLowerCase() === 'true';
+}
+
+function numberEnv(name, fallback) {
+    const value = Number(process.env[name]);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function runtimeEditionConfig() {
+    const edition = process.env.VITE_TBG_EDITION || editionId || 'web-lite';
+    return {
+        name: edition,
+        clientKind: process.env.VITE_TBG_CLIENT_KIND || 'web',
+        onlineEnv: process.env.VITE_TBG_ONLINE_ENV || 'prod',
+        onlinePool: process.env.VITE_TBG_ONLINE_POOL || 'global',
+        isWebLite: edition === 'web-lite',
+        isSteam: edition === 'steam-stable',
+        isResearch: edition === 'research-dev',
+        enableOnline: boolEnv('VITE_TBG_ENABLE_ONLINE'),
+        enableSteam: boolEnv('VITE_TBG_ENABLE_STEAM'),
+        enableResearchBridge: boolEnv('VITE_TBG_ENABLE_RESEARCH_BRIDGE'),
+        enableResearchBridgeDetection: boolEnv('VITE_TBG_ENABLE_RESEARCH_BRIDGE_DETECTION'),
+        enableMaterialDatabases: boolEnv('VITE_TBG_ENABLE_MATERIAL_DATABASES'),
+        showExperimentalBoards: boolEnv('VITE_TBG_SHOW_EXPERIMENTAL_BOARDS'),
+        showResearchLabs: boolEnv('VITE_TBG_SHOW_RESEARCH_LABS'),
+        maxSites: numberEnv('VITE_TBG_MAX_SITES', 3000)
+    };
+}
+
+function writeRuntimeEditionConfig(output) {
+    const config = runtimeEditionConfig();
+    const source = `export const EDITION = Object.freeze(${JSON.stringify(config, null, 2)});\n`;
+    mkdirSync(join(output, 'js', 'shared'), { recursive: true });
+    writeFileSync(join(output, 'js', 'shared', 'EditionConfig.js'), source);
+}
+
 function run(args) {
     const commandArgs = process.platform === 'win32'
         ? ['/d', '/s', '/c', 'npm.cmd', ...args]
@@ -147,9 +184,10 @@ run(['run', 'build', '--workspace', '4dreversi']);
 run(['run', 'build', '--workspace', 'algebraic-games']);
 
 const launcherOutput = join(root, '.launcher-dist');
+const launcherBase = (process.env.VITE_TBG_EDITION || editionId) === 'web-lite' ? '/Topoboardgame/' : './';
 await viteBuild({
     root,
-    base: './',
+    base: launcherBase,
     build: {
         outDir: launcherOutput,
         emptyOutDir: true
@@ -188,6 +226,7 @@ copy(join(root, 'algebraic', 'dist'), join(output, 'algebraic'));
 copy(join(root, 'life'), join(output, 'life'));
 copyIfExists(join(root, 'spacetime'), join(output, 'spacetime'));
 writeFileSync(join(output, '.nojekyll'), '');
+writeRuntimeEditionConfig(output);
 postProcessEdition(output);
 rmSync(launcherOutput, { recursive: true, force: true });
 

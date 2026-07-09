@@ -1,3 +1,6 @@
+import { getOnlineClientMetadata } from './shared/OnlineConfig.js';
+import { canJoinRoom, formatOnlineStatusMetadata } from './shared/OnlineCompatibility.js';
+
 let onlineApiPromise = null;
 
 function loadOnlineApi() {
@@ -20,6 +23,44 @@ function defaultTurnFromState(state, app) {
     return turn;
 }
 
+function currentUiLanguage() {
+    try {
+        const stored = localStorage.getItem('topoboardgame-language')
+            || localStorage.getItem('language')
+            || document.documentElement.lang
+            || navigator.language
+            || 'en';
+        return String(stored).toLowerCase().startsWith('zh') ? 'zh' : 'en';
+    } catch {
+        return 'en';
+    }
+}
+
+function setConnectionText(el, message, room) {
+    const metadata = getOnlineClientMetadata();
+    const compatibility = room
+        ? canJoinRoom({
+            roomProtocolVersion: metadata.roomProtocolVersion,
+            onlinePool: metadata.onlinePool
+        }, room)
+        : { ok: false, problems: [] };
+    const primary = document.createElement('div');
+    primary.textContent = message;
+    const meta = document.createElement('div');
+    meta.className = 'online-status-meta';
+    meta.textContent = formatOnlineStatusMetadata({
+        ...metadata,
+        includeRoomStatus: Boolean(room),
+        compatible: compatibility.ok,
+        versionMismatch: compatibility.problems.includes('Online protocol version mismatch.')
+    }, currentUiLanguage());
+    meta.style.fontSize = '0.72em';
+    meta.style.lineHeight = '1.25';
+    meta.style.opacity = '0.72';
+    meta.style.marginTop = '0.25rem';
+    el.replaceChildren(primary, meta);
+}
+
 function setConnectionStatus(roomId, room) {
     const el = document.getElementById('connectionStatus');
     if (!el) return;
@@ -27,13 +68,13 @@ function setConnectionStatus(roomId, room) {
     el.classList.remove('disconnected', 'connecting', 'connected');
     if (status === 'playing') {
         el.classList.add('connected');
-        el.textContent = 'Connected';
+        setConnectionText(el, 'Connected', room);
     } else if (roomId || status === 'waiting') {
         el.classList.add('connecting');
-        el.textContent = 'Waiting for opponent';
+        setConnectionText(el, 'Waiting for opponent', room);
     } else {
         el.classList.add('disconnected');
-        el.textContent = 'Disconnected';
+        setConnectionText(el, 'Disconnected', room);
     }
 }
 

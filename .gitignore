@@ -27,6 +27,8 @@ local-data/
 *.jsonl.gz
 training-data/
 self-play/
+python-bridge/
+research-bridge/
 .DS_Store
 
 local-models/*.json

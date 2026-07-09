@@ -190,8 +190,24 @@ export class ChessGame {
     showOnlineStatus(text) {
         const connection = document.getElementById('connectionStatus');
         const colorStatus = document.getElementById('onlineColorStatus');
-        if (connection) connection.textContent = text;
-        if (colorStatus && this.gameMode === 'online') colorStatus.textContent = text;
+        if (connection) {
+            const [primaryText, ...metaParts] = String(text || '').split('\n');
+            if (metaParts.length) {
+                const primary = document.createElement('div');
+                primary.textContent = primaryText;
+                const meta = document.createElement('div');
+                meta.className = 'online-status-meta';
+                meta.textContent = metaParts.join(' ');
+                meta.style.fontSize = '0.72em';
+                meta.style.lineHeight = '1.25';
+                meta.style.opacity = '0.72';
+                meta.style.marginTop = '0.25rem';
+                connection.replaceChildren(primary, meta);
+            } else {
+                connection.textContent = text;
+            }
+        }
+        if (colorStatus && this.gameMode === 'online') colorStatus.textContent = String(text || '').split('\n')[0];
     }
 
     updateOnlineRoomUI(roomId, color, room) {

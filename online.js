@@ -40,8 +40,8 @@ import {
     where
 } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
-import { ONLINE_CONFIG } from './js/shared/OnlineConfig.js';
-import { canJoinRoom, getJoinRoomProblemMessage } from './js/shared/OnlineCompatibility.js';
+import { getOnlineClientMetadata, ONLINE_CONFIG } from './js/shared/OnlineConfig.js';
+import { canJoinRoom, formatOnlineStatusMetadata, getJoinRoomProblemMessage } from './js/shared/OnlineCompatibility.js';
 
 const buildEnv = import.meta.env || {};
 const onlineBuildConfig = {
@@ -1349,8 +1349,26 @@ function publicMatchRoomIds() {
     return ids;
 }
 
+function decorateOnlineStatusText(text) {
+    const raw = String(text || '');
+    if (raw.includes('Online Pool:') || raw.includes('線上池：')) return raw;
+    const compatibility = latestRoom
+        ? canJoinRoom(currentOnlineCompatibilityConfig(), latestRoom)
+        : { ok: false, problems: [] };
+    const metadata = {
+        ...getOnlineClientMetadata(),
+        clientKind: onlineBuildConfig.clientKind,
+        onlinePool: onlineBuildConfig.pool,
+        roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
+        includeRoomStatus: Boolean(latestRoom),
+        compatible: compatibility.ok,
+        versionMismatch: compatibility.problems.includes('Online protocol version mismatch.')
+    };
+    return `${raw}\n${formatOnlineStatusMetadata(metadata, currentLanguageCode())}`;
+}
+
 function status(text) {
-    hooks.showOnlineStatus?.(text);
+    hooks.showOnlineStatus?.(decorateOnlineStatusText(text));
 }
 
 function requireReady() {

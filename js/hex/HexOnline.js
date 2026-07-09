@@ -1,4 +1,6 @@
 import { FirebaseStateNetworkManager } from '../FirebaseStateNetworkManager.js';
+import { getOnlineClientMetadata } from '../shared/OnlineConfig.js';
+import { canJoinRoom, formatOnlineStatusMetadata } from '../shared/OnlineCompatibility.js';
 
 function fallbackText(key, values = {}) {
     const dictionary = {
@@ -23,11 +25,45 @@ function makeText(app) {
     };
 }
 
-function setConnectionText(element, className, message) {
+function currentUiLanguage() {
+    try {
+        const stored = localStorage.getItem('topoboardgame-language')
+            || localStorage.getItem('language')
+            || document.documentElement.lang
+            || navigator.language
+            || 'en';
+        return String(stored).toLowerCase().startsWith('zh') ? 'zh' : 'en';
+    } catch {
+        return 'en';
+    }
+}
+
+function setConnectionText(element, className, message, room = null) {
     if (!element) return;
     element.classList.remove('disconnected', 'connecting', 'connected');
     element.classList.add(className);
-    element.textContent = message;
+    const metadata = getOnlineClientMetadata();
+    const compatibility = room
+        ? canJoinRoom({
+            roomProtocolVersion: metadata.roomProtocolVersion,
+            onlinePool: metadata.onlinePool
+        }, room)
+        : { ok: false, problems: [] };
+    const primary = document.createElement('div');
+    primary.textContent = message;
+    const meta = document.createElement('div');
+    meta.className = 'online-status-meta';
+    meta.textContent = formatOnlineStatusMetadata({
+        ...metadata,
+        includeRoomStatus: Boolean(room),
+        compatible: compatibility.ok,
+        versionMismatch: compatibility.problems.includes('Online protocol version mismatch.')
+    }, currentUiLanguage());
+    meta.style.fontSize = '0.72em';
+    meta.style.lineHeight = '1.25';
+    meta.style.opacity = '0.72';
+    meta.style.marginTop = '0.25rem';
+    element.replaceChildren(primary, meta);
 }
 
 export function createHexOnlineController(app, options = {}) {
@@ -53,11 +89,11 @@ export function createHexOnlineController(app, options = {}) {
     function setOnlineColor(color, roomId = network.roomId, room = null) {
         app.myColor = color || null;
         if (room?.status === 'waiting' || (roomId && !network.isConnected)) {
-            setConnectionText(elements.connectionStatus, 'connecting', text('waitingOpponent'));
+            setConnectionText(elements.connectionStatus, 'connecting', text('waitingOpponent'), room);
             return;
         }
         if (color) {
-            setConnectionText(elements.connectionStatus, 'connected', text('onlineAs', { color: colorName(color) }));
+            setConnectionText(elements.connectionStatus, 'connected', text('onlineAs', { color: colorName(color) }), room);
         } else {
             setConnectionText(elements.connectionStatus, 'disconnected', text('disconnected'));
         }

@@ -33,6 +33,9 @@ jobs:
           npm ci
           npm run build:web
 
+      - name: Verify web-lite dist
+        run: npm run verify:web-dist
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
