@@ -132,6 +132,25 @@ code {
     line-height: 1.4;
 }
 
+.scientific-equation {
+    display: inline-block;
+    margin: 0.08rem 0.12rem;
+    padding: 0.05rem 0.32rem;
+    border: 1px solid rgba(127, 211, 252, 0.28);
+    border-radius: 0.35rem;
+    background: rgba(127, 211, 252, 0.07);
+    color: #f8fafc;
+    font-family: "Cambria Math", "STIX Two Math", "Noto Sans Math", Georgia, serif;
+    font-size: 0.98em;
+    line-height: 1.45;
+    vertical-align: baseline;
+}
+
+.scientific-equation sub,
+.scientific-equation sup {
+    line-height: 0;
+}
+
 .topology-card code {
     font-size: 12px;
 }

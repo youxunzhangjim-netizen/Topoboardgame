@@ -37,6 +37,7 @@ import {
     topologySiteCount
 } from './LabTopologyCompareCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
+import { createScientificMetadataRow } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('../experiments/LabBatchRunner.js');
@@ -340,9 +341,7 @@ function t(key) {
 }
 
 function metadataRow(label, value) {
-    const item = document.createElement('div');
-    item.innerHTML = `<dt>${label}</dt><dd>${value}</dd>`;
-    return item;
+    return createScientificMetadataRow(label, value);
 }
 
 function setLanguage(nextLanguage) {

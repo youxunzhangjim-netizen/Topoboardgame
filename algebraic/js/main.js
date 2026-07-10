@@ -27,6 +27,7 @@ import {
     createPhysicalModeDefinition,
     isPhysicalVariantMode
 } from '../../js/physics/PhysicalGameFramework.js';
+import { setScientificText } from '../../labs/ScientificTextFormatter.js';
 import {
     createPrivateRoom,
     findMatch,
@@ -2658,8 +2659,10 @@ function renderLabScienceIntroduction(mode = selectedMode()) {
     const profileId = LAB_SCIENCE_PROFILE_BY_MODE[mode]
         || LAB_SCIENCE_PROFILE_BY_MODE[baseModeForPhysicalVariant(mode)]
         || 'pauli_transport';
+    if (els.labScienceScopeBadge) {
+        els.labScienceScopeBadge.textContent = labLocalized(science.scope);
+    }
     const bindings = [
-        [els.labScienceScopeBadge, science.scope],
         [els.labScienceSystem, science.system],
         [els.labScienceObjective, LAB_RESEARCH_OBJECTIVES[profileId]],
         [els.labScienceModel, science.model],
@@ -2671,7 +2674,7 @@ function renderLabScienceIntroduction(mode = selectedMode()) {
         [els.labScienceBoundary, science.boundary]
     ];
     for (const [element, value] of bindings) {
-        if (element) element.textContent = labLocalized(value);
+        setScientificText(element, labLocalized(value));
     }
     if (els.labScienceReferences) {
         els.labScienceReferences.replaceChildren();

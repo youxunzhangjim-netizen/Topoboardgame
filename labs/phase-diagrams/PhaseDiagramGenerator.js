@@ -30,6 +30,7 @@ import {
 } from './LabPhaseCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
+import { createScientificMetadataRow, setScientificText } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('../experiments/LabBatchRunner.js');
@@ -365,9 +366,7 @@ function t(key) {
 }
 
 function metadataRow(label, value) {
-    const item = document.createElement('div');
-    item.innerHTML = `<dt>${label}</dt><dd>${value}</dd>`;
-    return item;
+    return createScientificMetadataRow(label, value);
 }
 
 function setLanguage(nextLanguage) {
@@ -710,16 +709,16 @@ function renderPlotMethodology() {
             : `Threshold classification compares mean mu with ${lower} / ${upper} for low, mixed, and high labels. Confidence is max(0.05, 1-sqrt(sigma^2)/(|mu|+1)); failed runs multiply it by the successful-sample fraction.`;
     }
     if (els.phaseMethodValidation) els.phaseMethodValidation.textContent = model.validationLevel;
-    if (els.phaseMethodEquation) els.phaseMethodEquation.textContent = research.model;
-    if (els.phaseMethodParameters) els.phaseMethodParameters.textContent = parameterText;
-    if (els.phaseMethodPartition) els.phaseMethodPartition.textContent = phasePartitionStatement(model.id, research.ensemble);
-    if (els.phaseMethodSampling) els.phaseMethodSampling.textContent = samplingText;
+    setScientificText(els.phaseMethodEquation, research.model);
+    setScientificText(els.phaseMethodParameters, parameterText);
+    setScientificText(els.phaseMethodPartition, phasePartitionStatement(model.id, research.ensemble));
+    setScientificText(els.phaseMethodSampling, samplingText);
     if (els.phaseMethodObservable) {
-        els.phaseMethodObservable.textContent = observable
+        setScientificText(els.phaseMethodObservable, observable
             ? `${observable.name} [${observable.units || 'dimensionless'}]: ${observable.definition} ${observable.physicalMeaning}`
-            : (isZh ? '尚未選擇觀測量。' : 'No observable selected.');
+            : (isZh ? '尚未選擇觀測量。' : 'No observable selected.'));
     }
-    if (els.phaseMethodClassification) els.phaseMethodClassification.textContent = classificationText;
+    setScientificText(els.phaseMethodClassification, classificationText);
     if (els.phaseMethodEncoding) {
         els.phaseMethodEncoding.textContent = isZh
             ? 'Regime map 顯示分類標籤；Heatmap 以連續色階顯示每格平均值；Uncertainty map 顯示 1-confidence。三圖使用完全相同的 X/Y 網格與樣本。'

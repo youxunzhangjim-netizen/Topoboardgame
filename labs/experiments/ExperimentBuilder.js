@@ -27,6 +27,7 @@ import {
 } from './LabBatchCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from './LabLanguageMenu.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
+import { createScientificMetadataRow } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('./LabBatchRunner.js');
@@ -257,9 +258,7 @@ function setBuilderMode(mode) {
 }
 
 function metadataRow(label, value) {
-    const item = document.createElement('div');
-    item.innerHTML = `<dt>${label}</dt><dd>${value}</dd>`;
-    return item;
+    return createScientificMetadataRow(label, value);
 }
 
 function renderModelMetadata() {

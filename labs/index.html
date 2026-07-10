@@ -310,7 +310,7 @@
       <section class="research-picker" aria-labelledby="researchPickerTitle">
         <div class="research-picker-header">
           <h2 id="researchPickerTitle" data-i18n="researchPickerTitle">Research Navigation</h2>
-          <p data-i18n="researchPickerLead">Choose one research workflow. The page shows only the selected workflow's purpose, observables, and expression.</p>
+          <p data-i18n="researchPickerLead">Choose one research workflow. The page shows only the selected workflow's purpose and observables.</p>
         </div>
         <div class="research-picker-controls">
           <div>
@@ -323,8 +323,6 @@
           <p class="detail-label" data-i18n="selectedResearch">Selected research</p>
           <h3 id="researchDetailTitle">Experiment Builder</h3>
           <p id="researchDetailBody">Configure topology, state space, local rule, seed, observables, and reproducible export metadata.</p>
-          <p class="formula-caption" data-i18n="researchFormula">Expression</p>
-          <div class="formula-box"><div id="researchDetailFormula" class="math-expression">E = (T, S, R<sub>theta</sub>, x<sub>0</sub>, xi, O)</div></div>
         </article>
       </section>
     </section>
@@ -340,10 +338,9 @@
         interactiveTitle: 'Simple / Research Interface',
         interactiveDesc: 'Enter the playable Labs workspace first. Use Simple for common players, or switch to Research at the top for full scientific controls.',
         researchPickerTitle: 'Research Navigation',
-        researchPickerLead: "Choose one research workflow. Only the selected workflow's purpose, observables, and expression are shown here.",
+        researchPickerLead: "Choose one research workflow. Only the selected workflow's purpose and observables are shown here.",
         researchTypeLabel: 'Research workflow',
         selectedResearch: 'Selected research',
-        researchFormula: 'Expression',
         researchOpen: 'Open selected research',
         experimentsTitle: 'Experiment Builder',
         experimentsDesc: 'Configure models, topology, seeds, observables, batch runs, and reproducible exports.',
@@ -369,10 +366,9 @@
         interactiveTitle: '\u7c21\u55ae / \u7814\u7a76\u4ecb\u9762',
         interactiveDesc: '\u5148\u9032\u5165\u53ef\u904a\u73a9\u7684 Labs \u5de5\u4f5c\u5340\u3002\u4e00\u822c\u73a9\u5bb6\u7528\u7c21\u55ae\u6a21\u5f0f\uff0c\u9700\u8981\u5b8c\u6574\u79d1\u5b78\u63a7\u5236\u6642\u518d\u5728\u9802\u90e8\u5207\u5230\u7814\u7a76\u6a21\u5f0f\u3002',
         researchPickerTitle: '\u7814\u7a76\u5c0e\u89bd',
-        researchPickerLead: '\u5728\u9019\u88e1\u9078\u64c7\u4e00\u500b\u7814\u7a76\u5de5\u4f5c\u6d41\u3002\u9801\u9762\u53ea\u986f\u793a\u76ee\u524d\u9078\u9805\u7684\u76ee\u7684\u3001\u89c0\u6e2c\u91cf\u8207\u8868\u793a\u5f0f\u3002',
+        researchPickerLead: '\u5728\u9019\u88e1\u9078\u64c7\u4e00\u500b\u7814\u7a76\u5de5\u4f5c\u6d41\u3002\u9801\u9762\u53ea\u986f\u793a\u76ee\u524d\u9078\u9805\u7684\u76ee\u7684\u8207\u89c0\u6e2c\u91cf\u3002',
         researchTypeLabel: '\u7814\u7a76\u5de5\u4f5c\u6d41',
         selectedResearch: '\u76ee\u524d\u9078\u64c7',
-        researchFormula: '\u8868\u793a\u5f0f',
         researchOpen: '\u958b\u555f\u9078\u5b9a\u7814\u7a76',
         experimentsTitle: '\u5be6\u9a57\u5efa\u69cb\u5668',
         experimentsDesc: '\u8a2d\u5b9a\u6a21\u578b\u3001\u62d3\u64b2\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u3001\u6279\u6b21\u57f7\u884c\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u3002',
@@ -398,22 +394,19 @@
           id: 'experiments',
           route: './experiments/',
           title: 'Experiment Builder',
-          body: 'Configure topology, state space, local rule, seed, observables, and reproducible export metadata. Observables are tracked as time series, not game scores.',
-          formulaHtml: '<var>E</var> = (<var>T</var>, <var>S</var>, R<sub>theta</sub>, x<sub>0</sub>, xi, <var>O</var>), &nbsp; x<sub>t+1</sub> = R<sub>theta</sub>(x<sub>t</sub> | <var>T</var>, xi<sub>t</sub>)'
+          body: 'Configure topology, state space, local rule, seed, observables, and reproducible export metadata. Observables are tracked as time series, not game scores.'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: 'Topology Comparison',
-          body: 'Run the same local rule on different spaces and compare how topology changes measured observables such as density, clusters, correlation, or logical state.',
-          formulaHtml: 'Delta O(t) = O(T<sub>0</sub>, t) - O(T<sub>i</sub>, t), &nbsp; T<sub>0</sub> != T<sub>i</sub>'
+          body: 'Run the same local rule on different spaces and compare how topology changes measured observables such as density, clusters, correlation, or logical state.'
         },
         {
           id: 'validation',
           route: './validation/',
           title: 'Validation & Reproducibility',
-          body: 'Check seeds, hashes, replay records, topology metadata, limits, warnings, and benchmark scope before treating a run as reproducible.',
-          formulaHtml: 'H<sub>exp</sub> = hash(T, rule, seed, version), &nbsp; x<sub>t</sub> = replay(H<sub>exp</sub>, t)'
+          body: 'Check seeds, hashes, replay records, topology metadata, limits, warnings, and benchmark scope before treating a run as reproducible.'
         }
       ],
       zh: [
@@ -421,22 +414,19 @@
           id: 'experiments',
           route: './experiments/',
           title: '\u5be6\u9a57\u5efa\u69cb\u5668',
-          body: '\u8a2d\u5b9a\u62d3\u64b2\u3001\u72c0\u614b\u7a7a\u9593\u3001\u5c40\u90e8\u898f\u5247\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u4e2d\u7e7c\u8cc7\u6599\u3002\u89c0\u6e2c\u91cf\u4ee5\u6642\u9593\u5e8f\u5217\u8ffd\u8e64\uff0c\u4e0d\u662f\u904a\u6232\u5206\u6578\u3002',
-          formulaHtml: '<var>E</var> = (<var>T</var>, <var>S</var>, R<sub>theta</sub>, x<sub>0</sub>, xi, <var>O</var>), &nbsp; x<sub>t+1</sub> = R<sub>theta</sub>(x<sub>t</sub> | <var>T</var>, xi<sub>t</sub>)'
+          body: '\u8a2d\u5b9a\u62d3\u64b2\u3001\u72c0\u614b\u7a7a\u9593\u3001\u5c40\u90e8\u898f\u5247\u3001\u7a2e\u5b50\u3001\u89c0\u6e2c\u91cf\u8207\u53ef\u91cd\u73fe\u532f\u51fa\u4e2d\u7e7c\u8cc7\u6599\u3002\u89c0\u6e2c\u91cf\u4ee5\u6642\u9593\u5e8f\u5217\u8ffd\u8e64\uff0c\u4e0d\u662f\u904a\u6232\u5206\u6578\u3002'
         },
         {
           id: 'topology',
           route: './topology-compare/',
           title: '\u62d3\u64b2\u6bd4\u8f03',
-          body: '\u5728\u4e0d\u540c\u7a7a\u9593\u4e0a\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u6bd4\u8f03\u62d3\u64b2\u5982\u4f55\u6539\u8b8a\u5bc6\u5ea6\u3001\u7c07\u3001\u76f8\u95dc\u6216\u908f\u8f2f\u72c0\u614b\u7b49\u89c0\u6e2c\u91cf\u3002',
-          formulaHtml: 'Delta O(t) = O(T<sub>0</sub>, t) - O(T<sub>i</sub>, t), &nbsp; T<sub>0</sub> != T<sub>i</sub>'
+          body: '\u5728\u4e0d\u540c\u7a7a\u9593\u4e0a\u57f7\u884c\u76f8\u540c\u5c40\u90e8\u898f\u5247\uff0c\u6bd4\u8f03\u62d3\u64b2\u5982\u4f55\u6539\u8b8a\u5bc6\u5ea6\u3001\u7c07\u3001\u76f8\u95dc\u6216\u908f\u8f2f\u72c0\u614b\u7b49\u89c0\u6e2c\u91cf\u3002'
         },
         {
           id: 'validation',
           route: './validation/',
           title: '\u9a57\u8b49\u8207\u53ef\u91cd\u73fe\u6027',
-          body: '\u5728\u5c07\u5be6\u9a57\u8996\u70ba\u53ef\u91cd\u73fe\u4e4b\u524d\uff0c\u6aa2\u67e5\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u7d00\u9304\u3001\u62d3\u64b2\u8cc7\u6599\u3001\u9650\u5236\u3001\u8b66\u544a\u8207\u57fa\u6e96\u7bc4\u570d\u3002',
-          formulaHtml: 'H<sub>exp</sub> = hash(T, rule, seed, version), &nbsp; x<sub>t</sub> = replay(H<sub>exp</sub>, t)'
+          body: '\u5728\u5c07\u5be6\u9a57\u8996\u70ba\u53ef\u91cd\u73fe\u4e4b\u524d\uff0c\u6aa2\u67e5\u7a2e\u5b50\u3001\u96dc\u6e4a\u3001\u91cd\u64ad\u7d00\u9304\u3001\u62d3\u64b2\u8cc7\u6599\u3001\u9650\u5236\u3001\u8b66\u544a\u8207\u57fa\u6e96\u7bc4\u570d\u3002'
         }
       ]
     };
@@ -447,14 +437,12 @@
       const select = document.querySelector('#researchWorkflowSelect');
       const title = document.querySelector('#researchDetailTitle');
       const body = document.querySelector('#researchDetailBody');
-      const formula = document.querySelector('#researchDetailFormula');
       const open = document.querySelector('#researchWorkflowOpen');
-      if (!select || !title || !body || !formula || !open) return;
+      if (!select || !title || !body || !open) return;
       const workflows = WORKFLOWS[language] || WORKFLOWS.en;
       const current = workflows.find((item) => item.id === select.value) || workflows[0];
       title.textContent = current.title;
       body.textContent = current.body;
-      formula.innerHTML = current.formulaHtml || '';
       open.href = current.route;
     }
     function populateResearchWorkflows(language) {

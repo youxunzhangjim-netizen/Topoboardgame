@@ -196,14 +196,14 @@ const FORMAL_OVERRIDES = {
     },
     two_phase_competition_game: {
         en: {
-            model: 'Two labels A/B minimize E=γL − bA·Area(A) − bB·Area(B) + κC, where L is interface length and C is bend cost.',
-            dynamics: 'Nucleation, growth, and boundary flips update local labels; accepted flips lower the finite graph objective unless noise is enabled.',
-            ensemble: 'This is a controlled finite trajectory, not a sampled Gibbs ensemble.'
+            model: 'Two labels A/B define a finite phase field φ. The graph energy is E(φ)=γL(φ) − b_A A_A(φ) − b_B A_B(φ) + κC(φ), where L is interface length and C is bend cost.',
+            dynamics: 'Nucleation, growth, and boundary flips update φ locally; accepted flips lower ΔE unless seeded noise or an explicitly stochastic protocol is enabled.',
+            ensemble: 'A thermal reference would use π(φ)=Z^{-1}exp(−E(φ)/T), Z=∑_φ exp(−E(φ)/T). This tool reports controlled finite trajectories instead of sampling that Gibbs ensemble.'
         },
         zh: {
-            model: '兩相 A/B 使用 E=γL − bA·Area(A) − bB·Area(B) + κC；L 為界面長度，C 為彎折代價。',
-            dynamics: '成核、成長與界面翻轉更新局部標記；未開啟噪聲時，接受降低有限圖目標函數的翻轉。',
-            ensemble: '這是受控有限軌跡，不是 Gibbs 系綜取樣。'
+            model: '兩相 A/B 定義有限相場 φ。圖能量為 E(φ)=γL(φ) − b_A A_A(φ) − b_B A_B(φ) + κC(φ)；L 為界面長度，C 為彎折代價。',
+            dynamics: '成核、成長與界面翻轉會局部更新 φ；未開啟定種子噪聲或明確隨機流程時，只接受降低 ΔE 的翻轉。',
+            ensemble: '熱力學參考可寫成 π(φ)=Z^{-1}exp(−E(φ)/T)，Z=∑_φ exp(−E(φ)/T)。本工具回報受控有限軌跡，而不是對該 Gibbs 系綜取樣。'
         }
     },
     physical_cluster_go: {

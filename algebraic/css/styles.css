@@ -2299,6 +2299,25 @@ body[data-mode="z2_gauge_loop_game"] .section-dynamics .control-fields {
     overflow-wrap: anywhere;
 }
 
+.scientific-equation {
+    display: inline-block;
+    margin: 0.08rem 0.12rem;
+    padding: 0.05rem 0.32rem;
+    border: 1px solid rgba(125, 211, 252, 0.3);
+    border-radius: 0.35rem;
+    background: rgba(125, 211, 252, 0.08);
+    color: #f8fafc;
+    font-family: "Cambria Math", "STIX Two Math", "Noto Sans Math", Georgia, serif;
+    font-size: 0.98em;
+    line-height: 1.45;
+    vertical-align: baseline;
+}
+
+.scientific-equation sub,
+.scientific-equation sup {
+    line-height: 0;
+}
+
 .lab-science-references {
     padding-top: 4px;
     border-top: 1px solid rgba(218, 232, 224, 0.13);
