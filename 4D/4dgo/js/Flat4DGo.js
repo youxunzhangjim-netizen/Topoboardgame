@@ -3,6 +3,10 @@ import {
     normalizePauliLabel,
     setPauliLabel
 } from '../../../js/algebra/PauliAlgebra.js';
+import {
+    computeGoAreaScore,
+    detectGoDeadStoneCandidates
+} from '../../../js/go/GoScoring.js';
 
 export const FLAT_4D_GO_TOPOLOGY = 'flat_4d_go';
 
@@ -317,87 +321,34 @@ export class Flat4DGoGame {
     }
 
     detectDeadStoneCandidates(board = this.board) {
-        const dead = new Set();
-        for (const group of this.stoneGroups(board)) {
-            const opponent = otherColor(group.color);
-            const libertyRegions = [];
-            const seenLiberties = new Set();
-            for (const stone of group.stones) {
-                for (const next of this.neighborsFromIndex(stone)) {
-                    if (board[next] !== COLORS.empty || seenLiberties.has(next)) continue;
-                    const info = this.emptyRegionInfo(board, next, group.stoneSet);
-                    for (const point of info.region) seenLiberties.add(point);
-                    libertyRegions.push(info);
-                }
-            }
-            const enclosedByOpponent = libertyRegions.length === 1
-                && libertyRegions.every((info) => info.borderColors.size === 1 && info.borderColors.has(opponent));
-            if (enclosedByOpponent) {
-                for (const stone of group.stones) dead.add(stone);
-            }
-        }
-        return dead;
+        return detectGoDeadStoneCandidates(this.scoringConfig(board));
     }
 
     computeAreaScore() {
-        const deadCandidates = this.detectDeadStoneCandidates(this.board);
-        const scoringBoard = new Uint8Array(this.board);
-        for (const index of deadCandidates) scoringBoard[index] = COLORS.empty;
-        const score = {
-            black: 0,
-            white: this.komi,
-            blackStones: 0,
-            whiteStones: 0,
-            blackTerritory: 0,
-            whiteTerritory: 0,
-            deadBlack: 0,
-            deadWhite: 0,
-            neutral: 0,
+        return computeGoAreaScore(this.scoringConfig(this.board));
+    }
+
+    scoringConfig(board = this.board) {
+        return {
+            board,
+            units: this.playableIndexes(),
+            emptyValue: COLORS.empty,
+            valueAt: (scoringBoard, index) => scoringBoard[index],
+            setValue: (scoringBoard, index, value) => { scoringBoard[index] = value; },
+            cloneBoard: (scoringBoard) => new Uint8Array(scoringBoard),
+            neighborsOf: (index) => this.neighborsFromIndex(index),
+            valueToColor,
+            coordOf: (index) => this.coordFromIndex(index),
             komi: this.komi,
-            scoring: 'graph-area',
-            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; otherwise the region is neutral.'
+            captures: this.captures,
+            isBoundaryUnit: (index) => this.isOpenBoundaryIndex(index)
         };
-        for (const index of deadCandidates) {
-            const color = valueToColor(this.board[index]);
-            if (color === 'black') score.deadBlack++;
-            if (color === 'white') score.deadWhite++;
-        }
-        const visited = new Set();
+    }
 
-        for (let index = 0; index < this.board.length; index++) {
-            const value = scoringBoard[index];
-            if (value === COLORS.black) {
-                score.blackStones++;
-                score.black++;
-            }
-            if (value === COLORS.white) {
-                score.whiteStones++;
-                score.white++;
-            }
-            if (value !== COLORS.empty || visited.has(index)) continue;
-
-            const { region, borderColors } = this.emptyRegionInfo(scoringBoard, index);
-            for (const point of region) visited.add(point);
-
-            if (borderColors.size === 1) {
-                const owner = [...borderColors][0];
-                score[owner] += region.length;
-                score[`${owner}Territory`] += region.length;
-            } else {
-                score.neutral += region.length;
-            }
-        }
-
-        score.black = Number(score.black.toFixed(1));
-        score.white = Number(score.white.toFixed(1));
-        score.neutral = Number(score.neutral.toFixed(1));
-        score.margin = Number(Math.abs(score.black - score.white).toFixed(1));
-        score.deadStones = { black: score.deadBlack, white: score.deadWhite };
-        score.removedDeadStones = [...deadCandidates].map((index) => ({
-            color: valueToColor(this.board[index]),
-            coord: this.coordFromIndex(index)
-        }));
-        return score;
+    isOpenBoundaryIndex(index) {
+        const coord = this.coordFromIndex(index);
+        const sizes = [this.sizes.nx, this.sizes.ny, this.sizes.nz, this.sizes.nw];
+        return coord.some((value, axis) => value === 0 || value === sizes[axis] - 1);
     }
 
     exportState() {

@@ -3,6 +3,10 @@ import {
     createGraphTopology,
     coordsEqual
 } from '../topology/GraphTopologies.js';
+import {
+    computeGoAreaScore,
+    detectGoDeadStoneCandidates
+} from './GoScoring.js';
 
 export const GO_COLORS = Object.freeze({
     empty: 0,
@@ -380,86 +384,27 @@ export class GraphGoGame {
     }
 
     detectDeadStoneCandidates(board = this.board) {
-        const dead = new Set();
-        for (const group of this.stoneGroups(board)) {
-            const opponent = otherGoColor(group.color);
-            const libertyRegions = [];
-            const seenLiberties = new Set();
-            for (const stone of group.stones) {
-                for (const next of this.neighborsFromKey(stone)) {
-                    if (this.valueAtKey(next, board) !== GO_COLORS.empty || seenLiberties.has(next)) continue;
-                    const info = this.emptyRegionInfo(board, next, group.stoneSet);
-                    for (const point of info.region) seenLiberties.add(point);
-                    libertyRegions.push(info);
-                }
-            }
-            const enclosedByOpponent = libertyRegions.length === 1
-                && libertyRegions.every((info) => info.borderColors.size === 1 && info.borderColors.has(opponent));
-            if (enclosedByOpponent) {
-                for (const stone of group.stones) dead.add(stone);
-            }
-        }
-        return dead;
+        return detectGoDeadStoneCandidates(this.scoringConfig(board));
     }
 
     computeAreaScore() {
-        const deadCandidates = this.detectDeadStoneCandidates(this.board);
-        const scoringBoard = new Map(this.board);
-        for (const key of deadCandidates) this.setValueAtKey(scoringBoard, key, GO_COLORS.empty);
-        const score = {
-            black: 0,
-            white: this.komi,
-            blackStones: 0,
-            whiteStones: 0,
-            blackTerritory: 0,
-            whiteTerritory: 0,
-            deadBlack: 0,
-            deadWhite: 0,
-            neutral: 0,
+        return computeGoAreaScore(this.scoringConfig(this.board));
+    }
+
+    scoringConfig(board = this.board) {
+        return {
+            board,
+            units: this.vertexKeys,
+            emptyValue: GO_COLORS.empty,
+            valueAt: (scoringBoard, key) => this.valueAtKey(key, scoringBoard),
+            setValue: (scoringBoard, key, value) => this.setValueAtKey(scoringBoard, key, value),
+            cloneBoard: (scoringBoard) => new Map(scoringBoard),
+            neighborsOf: (key) => this.neighborsFromKey(key),
+            valueToColor: goValueToColor,
+            coordOf: (key) => this.coordFromKey(key),
             komi: this.komi,
-            scoring: 'graph-area',
-            territoryRule: 'Dead-stone candidates fully inside one opponent-owned liberty region are removed first. Empty regions are then territory only when every bordering live stone belongs to one player; otherwise the region is neutral.'
+            captures: this.captures
         };
-        for (const key of deadCandidates) {
-            const color = goValueToColor(this.valueAtKey(key, this.board));
-            if (color === 'black') score.deadBlack++;
-            if (color === 'white') score.deadWhite++;
-        }
-        const visited = new Set();
-
-        for (const key of this.vertexKeys) {
-            const value = this.valueAtKey(key, scoringBoard);
-            if (value === GO_COLORS.black) {
-                score.blackStones++;
-                score.black++;
-            }
-            if (value === GO_COLORS.white) {
-                score.whiteStones++;
-                score.white++;
-            }
-            if (value !== GO_COLORS.empty || visited.has(key)) continue;
-
-            const { region, borderColors } = this.emptyRegionInfo(scoringBoard, key);
-            for (const point of region) visited.add(point);
-
-            if (borderColors.size === 1) {
-                const owner = [...borderColors][0];
-                score[owner] += region.length;
-                score[`${owner}Territory`] += region.length;
-            }
-            else score.neutral += region.length;
-        }
-
-        score.black = Number(score.black.toFixed(1));
-        score.white = Number(score.white.toFixed(1));
-        score.neutral = Number(score.neutral.toFixed(1));
-        score.margin = Number(Math.abs(score.black - score.white).toFixed(1));
-        score.deadStones = { black: score.deadBlack, white: score.deadWhite };
-        score.removedDeadStones = [...deadCandidates].map((key) => ({
-            color: goValueToColor(this.valueAtKey(key, this.board)),
-            coord: this.coordFromKey(key)
-        }));
-        return score;
     }
 
     exportState() {

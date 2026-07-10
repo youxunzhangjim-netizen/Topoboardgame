@@ -96,6 +96,7 @@
     "verify:board-spec-infra": "node verification/verify-board-spec-infra.mjs",
     "verify:safe-labs-infra": "node verification/verify-safe-labs-infra.mjs",
     "verify:vertex-go-boards": "node verification/verify-vertex-go-boards.mjs",
+    "verify:go-scoring": "node verification/verify-go-scoring.mjs",
     "verify:board-stability": "node verification/verify-board-stability-layer.mjs",
     "verify:lab-safety": "node verification/verify-safe-lab-runner.mjs",
     "verify:klein-surface": "node verification/verify-klein-surface.mjs",
