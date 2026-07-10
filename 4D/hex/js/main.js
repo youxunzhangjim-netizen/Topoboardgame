@@ -284,6 +284,17 @@ function updateSliceLabels() {
     renderWSliceButtons();
 }
 
+function setVisibleWSlice(w, { forceStack = true } = {}) {
+    const maxW = Math.max(0, size - 1);
+    const nextW = Math.max(0, Math.min(Math.floor(Number(w) || 0), maxW));
+    elements.sliceW.value = String(nextW);
+    if (forceStack && elements.viewMode.value === 'all_slices') {
+        elements.viewMode.value = 'stack';
+    }
+    updateSliceLabels();
+    drawBoard();
+}
+
 function renderWSliceButtons() {
     if (!elements.wSliceButtons) return;
     elements.wSliceButtons.replaceChildren(...Array.from({ length: size }, (_, w) => {
@@ -291,12 +302,7 @@ function renderWSliceButtons() {
         button.type = 'button';
         button.textContent = `w=${w}`;
         button.setAttribute('aria-pressed', String(Number(elements.sliceW.value) === w));
-        button.addEventListener('click', () => {
-            elements.sliceW.value = String(w);
-            elements.viewMode.value = 'stack';
-            updateSliceLabels();
-            drawBoard();
-        });
+        button.addEventListener('click', () => setVisibleWSlice(w));
         return button;
     }));
 }
@@ -390,6 +396,24 @@ function drawSite(site, ends) {
     context.stroke();
 }
 
+function drawSliceBadge(label, width) {
+    context.save();
+    context.font = '700 14px system-ui, sans-serif';
+    context.textBaseline = 'top';
+    context.textAlign = 'left';
+    const x = 14;
+    const y = 12;
+    const textWidth = context.measureText(label).width;
+    context.fillStyle = 'rgba(8,13,18,0.82)';
+    context.fillRect(x - 8, y - 6, Math.min(width - 24, textWidth + 16), 30);
+    context.strokeStyle = 'rgba(96, 190, 216, 0.45)';
+    context.lineWidth = 1;
+    context.strokeRect(x - 8.5, y - 6.5, Math.min(width - 24, textWidth + 16), 30);
+    context.fillStyle = '#d9edf4';
+    context.fillText(label, x, y);
+    context.restore();
+}
+
 function drawSlice(width, height) {
     const z = Number(elements.sliceZ.value);
     const w = Number(elements.sliceW.value);
@@ -433,6 +457,7 @@ function drawSlice(width, height) {
         }
     }
     for (const site of projectedSites) drawSite(site, ends);
+    drawSliceBadge(`2D z/w slice - z=${z}, w=${w}`, width);
 }
 
 function drawAllSlices(width, height) {
@@ -477,7 +502,7 @@ function drawAllSlices(width, height) {
             context.strokeRect(left + 0.5, top + 0.5, tileWidth - 1, tileHeight - 1);
             context.fillStyle = '#b9cad5';
             context.fillText(`z=${z}, w=${w}`, left + 6, top + titleHeight * 0.5);
-            sliceTileRegions.push({ left, top, width: tileWidth, height: titleHeight, w });
+            sliceTileRegions.push({ left, top, width: tileWidth, height: tileHeight, w });
 
             context.strokeStyle = 'rgba(160,184,198,0.34)';
             context.lineWidth = 0.7;
@@ -606,6 +631,7 @@ function drawStack(width, height) {
     }
     projectedSites.sort((a, b) => a.depth - b.depth);
     for (const site of projectedSites) drawSite(site, ends);
+    drawSliceBadge(`Interactive 3D x/y/z slice - w=${w}`, width);
 }
 
 function projectionPoint(coordinate, width, height) {
@@ -668,6 +694,7 @@ function drawProjection(width, height) {
     projectedSites = [...projected.values()].sort((a, b) => a.depth - b.depth);
     const ends = targetEnds();
     for (const site of projectedSites) drawSite(site, ends);
+    drawSliceBadge(text('stackView'), width);
 }
 
 function drawBoard() {
@@ -804,10 +831,8 @@ elements.canvas.addEventListener('pointerup', (event) => {
     activePointers.delete(event.pointerId);
     resetPointerGesture(event);
     if (tile) {
-        elements.sliceW.value = String(tile.w);
         elements.viewMode.value = 'stack';
-        updateSliceLabels();
-        drawBoard();
+        setVisibleWSlice(tile.w, { forceStack: false });
     } else if (site) {
         playAt(site.coordinate);
     }
@@ -822,10 +847,16 @@ elements.canvas.addEventListener('wheel', (event) => {
     drawBoard();
 }, { passive: false });
 for (const input of [elements.sliceZ, elements.sliceW, elements.rotationX, elements.rotationY, elements.rotation, elements.zoom]) {
-    input.addEventListener('input', () => {
+    const syncInput = () => {
+        if (input === elements.sliceW) {
+            setVisibleWSlice(elements.sliceW.value, { forceStack: false });
+            return;
+        }
         updateSliceLabels();
         drawBoard();
-    });
+    };
+    input.addEventListener('input', syncInput);
+    input.addEventListener('change', syncInput);
 }
 elements.viewMode.addEventListener('change', () => {
     updateSliceLabels();

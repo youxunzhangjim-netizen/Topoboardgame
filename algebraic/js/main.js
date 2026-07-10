@@ -3414,6 +3414,43 @@ function selectedPhysicalProblemId() {
     return String(els.physicalProblemSelect?.value || '').trim();
 }
 
+function applyResearchProblemModelSelection(problemId = selectedPhysicalProblemId()) {
+    if (!problemId || !els.modeSelect) return;
+    const mapping = {
+        ising_domain_wall_topology: {
+            layer: 'algebraic',
+            mode: 'clifford_reversi',
+            algebraSet: 'standard'
+        },
+        toric_code_memory_unbraid: {
+            layer: 'physical',
+            mode: 'physical_anyon_jump'
+        },
+        stabilizer_pauli_recovery: {
+            layer: 'physical',
+            mode: 'physical_clifford_reversi',
+            algebraSet: 'physical'
+        },
+        cft_conformal_block_observables: {
+            layer: 'physical',
+            mode: 'physical_virasoro_go'
+        }
+    };
+    const target = mapping[problemId];
+    if (!target) return;
+    if (els.gameLayerSelect) els.gameLayerSelect.value = target.layer;
+    syncModeCatalogForLayer({ chooseFirst: false });
+    if ([...els.modeSelect.options].some((option) => option.value === target.mode)) {
+        els.modeSelect.value = target.mode;
+    }
+    if (target.algebraSet && els.cliffordAlgebraSetSelect) {
+        els.cliffordAlgebraSetSelect.value = target.algebraSet;
+    }
+    if (els.physicalProblemSelect) {
+        els.physicalProblemSelect.value = problemId;
+    }
+}
+
 function customStabilizerSetupSelected(mode = selectedMode()) {
     return isPhysicalCliffordMode(mode)
         && selectedPhysicalProblemId() === 'stabilizer_pauli_recovery'
@@ -7730,6 +7767,9 @@ els.topologySelect.addEventListener('change', () => {
 });
 
 function handleConfigControlChange(event) {
+    if (event?.currentTarget === els.physicalProblemSelect) {
+        applyResearchProblemModelSelection(els.physicalProblemSelect.value);
+    }
     if (event?.currentTarget === els.cliffordAlgebraSetSelect
         && els.cliffordAlgebraSetSelect.value === 'standard'
         && selectedMode() === 'physical_clifford_reversi') {

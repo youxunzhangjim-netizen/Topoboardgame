@@ -146,11 +146,11 @@ class Go4DApp {
             this.updateViewControls();
             this.render();
         });
-        this.wSliceInput?.addEventListener('input', () => {
-            this.userSelectedWSlice = true;
-            this.updateViewControls();
-            this.render();
+        const syncWSlice = () => this.setVisibleWSlice(this.wSliceInput?.value, {
+            force3D: this.viewModeSelect?.value === 'w_slice'
         });
+        this.wSliceInput?.addEventListener('input', syncWSlice);
+        this.wSliceInput?.addEventListener('change', syncWSlice);
         document.getElementById('passBtn').addEventListener('click', () => this.passTurn());
         document.getElementById('countBtn').addEventListener('click', () => this.agreeCount());
         document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
@@ -346,16 +346,22 @@ class Go4DApp {
             button.type = 'button';
             button.textContent = `w=${w}`;
             button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
-            button.addEventListener('click', () => {
-                this.userSelectedWSlice = true;
-                this.wSliceInput.value = String(w);
-                this.viewModeSelect.value = 'w_slice';
-                this.zoomSelect.value = 'all';
-                this.updateViewControls();
-                this.render();
-            });
+            button.addEventListener('click', () => this.setVisibleWSlice(w));
             return button;
         }));
+    }
+
+    setVisibleWSlice(w, { force3D = true } = {}) {
+        if (!this.wSliceInput) return;
+        const maxW = Math.max(0, this.logic?.sizes?.nw ? this.logic.sizes.nw - 1 : Number(this.wSliceInput.max || 0));
+        const nextW = Math.max(0, Math.min(Math.floor(Number(w) || 0), maxW));
+        this.userSelectedWSlice = true;
+        this.wSliceInput.max = String(maxW);
+        this.wSliceInput.value = String(nextW);
+        if (force3D && this.viewModeSelect) this.viewModeSelect.value = 'w_slice';
+        if (this.zoomSelect) this.zoomSelect.value = 'all';
+        this.updateViewControls();
+        this.render();
     }
 
     updateUI() {
@@ -459,13 +465,7 @@ class Go4DApp {
                 const slice = document.createElement('section');
                 slice.className = `slice-board${onlyLayer ? ' zoomed' : ''}`;
                 slice.innerHTML = `<div class="slice-title">z=${z}, w=${w}</div>`;
-                slice.querySelector('.slice-title').addEventListener('click', () => {
-                    this.wSliceInput.value = String(w);
-                    this.viewModeSelect.value = 'w_slice';
-                    this.zoomSelect.value = 'all';
-                    this.updateViewControls();
-                    this.render();
-                });
+                slice.querySelector('.slice-title').addEventListener('click', () => this.setVisibleWSlice(w));
                 const grid = document.createElement('div');
                 grid.className = 'xy-grid';
                 grid.style.gridTemplateColumns = `repeat(${nx}, 1fr)`;
@@ -506,7 +506,7 @@ class Go4DApp {
         const { nx, ny, nz } = this.logic.sizes;
         this.gridEl.className = 'slice-grid interactive-3d-slice';
         this.gridEl.style.gridTemplateColumns = '';
-        this.gridEl.innerHTML = '<div class="slice-3d-label">Interactive 3D slice · fixed w=' + w + '</div>';
+        this.gridEl.innerHTML = '<div class="slice-3d-label">Interactive 3D x/y/z slice - w=' + w + '</div>';
         const rect = this.gridEl.getBoundingClientRect();
         const width = Math.max(320, rect.width || 720);
         const height = Math.max(500, rect.height || 620);
