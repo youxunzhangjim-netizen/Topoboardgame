@@ -1500,6 +1500,7 @@ function translateValue(text) {
     .replace(/^Empty \(([^)]+)\): not legal for current player\.$/g, '空點（$1）：目前玩家不能下在這裡。')
     .replace(/^(Black|White) stone at \(([^)]+)\)\.$/g, (_match, color, coord) => `${color === 'Black' ? '黑方' : '白方'}棋子在（${coord}）。`)
     .replace(/^That vertex does not bracket any opponent stones\.$/g, '該頂點沒有夾住任何對手棋子。')
+    .replace(/^That site does not bracket any opponent stones\.$/g, '該位置沒有夾住任何對手棋子。')
     .replace(/^Move unavailable\.$/g, '此著法不可用。')
     .replace(/^Pass is only available when the current player has no legal move\.$/g, '只有目前玩家沒有合法著法時才能停手。')
     .replace(/^Pass unavailable\.$/g, '目前不能停手。')

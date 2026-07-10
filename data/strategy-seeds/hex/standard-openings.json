@@ -1,0 +1,8 @@
+{
+  "openingBook": [
+    { "positionHash": "hex-standard-empty-9", "move": "center-cell", "count": 36, "policyPrior": 0.36 },
+    { "positionHash": "hex-standard-empty-11", "move": "center-cell", "count": 40, "policyPrior": 0.38 },
+    { "positionHash": "hex-standard-early-bridge", "move": "virtual-bridge-connector", "count": 24, "policyPrior": 0.28 },
+    { "positionHash": "hex-standard-opponent-short-path", "move": "dual-purpose-cut", "count": 24, "policyPrior": 0.26 }
+  ]
+}

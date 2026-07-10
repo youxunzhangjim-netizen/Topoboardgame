@@ -65,7 +65,6 @@ const JUMP_ZH_TEXT = new Map(Object.entries({
   Board: '棋盤',
   'All 2D z/w slices': '全部 2D z/w 切片',
   '3D x/y/z slice': '3D x/y/z 切片',
-  '4D stacked view': '4D 堆疊視圖',
   'Visible w for 3D slice': '3D 切片的可見 w',
   'Hypercubic / R4': '超立方格 / R4',
   'Choose one w coordinate to inspect its interactive 3D x/y/z board.': '選擇一個 w 座標，檢視可互動的 3D x/y/z 棋盤。',
@@ -1012,7 +1011,10 @@ export class JumpGameApp {
   visibleCoord(coord) {
     if ((this.game?.dimension || this.effectiveDimensionForTopology()) <= 2) return true;
     if (this.dimension === 4 && this.viewModeSelect?.value === 'all_slices') return true;
-    if (this.dimension === 4 && this.viewModeSelect?.value === 'stacked_4d') return true;
+    if (this.dimension === 4 && this.viewModeSelect?.value === 'stacked_4d') {
+      this.viewModeSelect.value = 'w_slice';
+      return false;
+    }
     const { x, y, z, w } = this.r3SliceSettings();
     if (x !== null && coord[0] !== x) return false;
     if (y !== null && coord[1] !== y) return false;
@@ -1051,7 +1053,7 @@ export class JumpGameApp {
   updateR3SliceFilterVisibility() {
     const show = this.isFreeAxis3DBoard();
     const allSlices = this.dimension === 4 && this.viewModeSelect?.value === 'all_slices';
-    const stacked = this.dimension === 4 && this.viewModeSelect?.value === 'stacked_4d';
+    const stacked = false;
     if (this.dimension === 4 && this.sliceInputs?.w) {
       this.sliceInputs.w.max = String(this.game?.size || this.config.size || 5);
       const current = Math.max(1, Math.min(Number(this.sliceInputs.w.value) || 1, Number(this.sliceInputs.w.max)));

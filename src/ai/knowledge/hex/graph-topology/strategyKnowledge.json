@@ -387,8 +387,46 @@
       ]
     }
   ],
-  "openingBook": [],
-  "endgameBook": [],
+  "openingBook": [
+    {
+      "positionHash": "hex-graph-empty-marked-zones",
+      "move": "minimax-target-zone-distance",
+      "count": 34,
+      "policyPrior": 0.34
+    },
+    {
+      "positionHash": "hex-graph-early-camp-safe",
+      "move": "camp-safe-virtual-bridge",
+      "count": 26,
+      "policyPrior": 0.3
+    },
+    {
+      "positionHash": "hex-graph-opponent-zone-threat",
+      "move": "legal-cut-outside-opponent-camp",
+      "count": 24,
+      "policyPrior": 0.28
+    }
+  ],
+  "endgameBook": [
+    {
+      "positionHash": "hex-graph-immediate-zone-win",
+      "move": "complete-marked-zone-connection",
+      "count": 30,
+      "policyPrior": 0.54
+    },
+    {
+      "positionHash": "hex-graph-immediate-zone-block",
+      "move": "block-marked-zone-connection",
+      "count": 28,
+      "policyPrior": 0.44
+    },
+    {
+      "positionHash": "hex-graph-virtual-connector",
+      "move": "fill-graph-bridge-connector",
+      "count": 20,
+      "policyPrior": 0.34
+    }
+  ],
   "decisionStack": [
     "terminal",
     "endgame: immediate connection/block checks, virtual-connection cuts, and local connection search",

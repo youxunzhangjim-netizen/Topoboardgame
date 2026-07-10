@@ -5,10 +5,30 @@
       "game": "go",
       "phase": "opening",
       "boardFamily": "standard",
-      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it.",
-      "features": ["cornerEfficiency", "sideExtension", "shapeStability", "influenceBalance"],
+      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it. This encodes the local proverb 金角銀邊草肚皮 as a weighted prior, not as an absolute rule.",
+      "features": ["cornerEfficiency", "sideExtension", "centerInfluenceCost", "shapeStability", "influenceBalance"],
       "weight": 1.3,
       "sourceIds": ["katago-official", "cwi-go-games"]
+    },
+    {
+      "id": "go-standard-local-tesuji-atari-eyes",
+      "game": "go",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Local reading should score double-atari (雙叫吃), atari defense, making eyes (做眼), false-eye risk, ladders, nets, and snapback-like captures before slow territory moves.",
+      "features": ["doubleAtari", "atariDefense", "eyeShape", "falseEyePenalty", "ladderReading", "netCapture", "snapbackThreat"],
+      "weight": 1.85,
+      "sourceIds": ["katago-official", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "go-standard-shape-extension-jumps",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Shape moves such as one-point jump, knight move, large knight move (大飛), attachment, hane, and pulling/leading moves (引) are evaluated by connection strength, cutting weakness, and sente value.",
+      "features": ["onePointJump", "knightMove", "largeKnightMove", "attachment", "hane", "pullingMove", "connectionValue", "cuttingWeakness", "sente"],
+      "weight": 1.55,
+      "sourceIds": ["katago-official", "topoboardgame-local-notes"]
     },
     {
       "id": "go-standard-middlegame-group-safety",

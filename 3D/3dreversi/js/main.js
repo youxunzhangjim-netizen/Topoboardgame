@@ -2244,7 +2244,7 @@ class Reversi3DApp {
         const actor = this.logic.currentPlayer;
         const result = this.logic.play(coord);
         if (!result.ok) {
-            this.setStatus(result.reason === 'illegal' ? 'That vertex does not bracket any opponent stones.' : 'Move unavailable.');
+            this.setStatus(result.reason === 'illegal' ? 'That site does not bracket any opponent stones.' : 'Move unavailable.');
             this.updateUI();
             return;
         }

@@ -368,6 +368,50 @@
       ]
     },
     {
+      "id": "go-graph-topology-local-reading-transfer",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "Transfer local Go ideas such as double-atari, eye making, ladders, nets, one-point jumps, knight moves, large knight moves, and pulling moves through graph paths and graph cuts instead of board-screen geometry.",
+      "features": [
+        "doubleAtari",
+        "eyeShape",
+        "graphCutValue",
+        "graphLadder",
+        "graphNet",
+        "onePointGraphJump",
+        "knightGraphJump",
+        "largeKnightGraphJump",
+        "pullingMove"
+      ],
+      "weight": 1.72,
+      "sourceIds": [
+        "go-on-graphs",
+        "katago-official",
+        "topoboardgame-local-notes"
+      ]
+    },
+    {
+      "id": "go-graph-topology-corner-side-center-generalization",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "Generalize 金角銀邊草肚皮 by replacing literal corners/sides/center with hard-boundary anchors, seam cycles, graph centrality, and region boundary length. On closed boards, do not invent corner bonuses where no hard corner exists.",
+      "features": [
+        "hardBoundaryAnchor",
+        "seamCycleControl",
+        "graphCentrality",
+        "regionBoundarySize",
+        "cornerBonusDisabledOnClosedBoards"
+      ],
+      "weight": 1.62,
+      "sourceIds": [
+        "go-on-graphs",
+        "katago-selfplay-paper",
+        "topoboardgame-local-notes"
+      ]
+    },
+    {
       "id": "go-graph-topology-endgame-pass-graph-area",
       "game": "go",
       "phase": "endgame",

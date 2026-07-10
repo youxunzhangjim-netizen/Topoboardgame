@@ -407,6 +407,28 @@ class Go4DApp {
         return { group, liberties };
     }
 
+    scoreForDisplay() {
+        if (!this.logic?.score && !this.logic?.scoringPending) return null;
+        return this.logic.score || this.logic.computeAreaScore();
+    }
+
+    scoreViewSets(score) {
+        const dead = new Set();
+        const territory = new Map();
+        for (const entry of score?.removedDeadStones || []) {
+            if (!Array.isArray(entry.coord)) continue;
+            const index = this.logic.indexFromCoord(entry.coord);
+            if (index >= 0) dead.add(index);
+        }
+        for (const owner of ['black', 'white', 'neutral']) {
+            for (const coord of score?.territorySites?.[owner] || []) {
+                const index = this.logic.indexFromCoord(coord);
+                if (index >= 0) territory.set(index, owner);
+            }
+        }
+        return { dead, territory };
+    }
+
     render() {
         const { nx, ny, nz, nw } = this.logic.sizes;
         const zoom = this.zoomSelect.value;
@@ -414,8 +436,9 @@ class Go4DApp {
         const onlyLayer = zoom !== 'all' ? zoom.split(',').map(Number) : null;
         const visibleW = is3DSlice ? Number(this.wSliceInput?.value || 0) : null;
         const { group, liberties } = this.selectionSets();
+        const scoreView = this.scoreViewSets(this.scoreForDisplay());
         if (is3DSlice) {
-            this.render3DSlice(visibleW, group, liberties);
+            this.render3DSlice(visibleW, group, liberties, scoreView);
             return;
         }
         this.gridEl.className = 'slice-grid';
@@ -456,7 +479,9 @@ class Go4DApp {
                         button.classList.toggle('hover', index === this.hoverIndex);
                         button.classList.toggle('group', group.has(index));
                         button.classList.toggle('liberty', liberties.has(index));
-                        if (value) {
+                        const territoryOwner = scoreView.territory.get(index);
+                        if (territoryOwner) button.classList.add(`territory-${territoryOwner}`);
+                        if (value && !scoreView.dead.has(index)) {
                             const stone = document.createElement('span');
                             stone.className = `stone ${valueToColor(value)}`;
                             button.append(stone);
@@ -470,7 +495,7 @@ class Go4DApp {
         }
     }
 
-    render3DSlice(w, group, liberties) {
+    render3DSlice(w, group, liberties, scoreView = { dead: new Set(), territory: new Map() }) {
         const { nx, ny, nz } = this.logic.sizes;
         this.gridEl.className = 'slice-grid interactive-3d-slice';
         this.gridEl.style.gridTemplateColumns = '';
@@ -519,7 +544,9 @@ class Go4DApp {
             button.classList.toggle('hover', index === this.hoverIndex);
             button.classList.toggle('group', group.has(index));
             button.classList.toggle('liberty', liberties.has(index));
-            if (value) {
+            const territoryOwner = scoreView.territory.get(index);
+            if (territoryOwner) button.classList.add(`territory-${territoryOwner}`);
+            if (value && !scoreView.dead.has(index)) {
                 const stone = document.createElement('span');
                 stone.className = `stone ${valueToColor(value)}`;
                 button.append(stone);

@@ -1,0 +1,7 @@
+{
+  "endgameBook": [
+    { "positionHash": "hex-graph-immediate-zone-win", "move": "complete-marked-zone-connection", "count": 30, "policyPrior": 0.54 },
+    { "positionHash": "hex-graph-immediate-zone-block", "move": "block-marked-zone-connection", "count": 28, "policyPrior": 0.44 },
+    { "positionHash": "hex-graph-virtual-connector", "move": "fill-graph-bridge-connector", "count": 20, "policyPrior": 0.34 }
+  ]
+}

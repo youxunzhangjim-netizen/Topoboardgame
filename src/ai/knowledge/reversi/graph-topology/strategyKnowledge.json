@@ -425,6 +425,25 @@
       ]
     },
     {
+      "id": "reversi-graph-topology-face-center-rays",
+      "game": "reversi",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "When a 3D or surface Reversi board declares face-cell play, discs are evaluated at cell centers and bracket rays may include the board's legal diagonal or generalized straight directions. Vertex-only boards must not borrow face-cell diagonals.",
+      "features": [
+        "faceCenterPlayableCells",
+        "legalGraphRay",
+        "diagonalRayGeneralization",
+        "cellCenterOccupancy",
+        "vertexCellSeparation"
+      ],
+      "weight": 1.68,
+      "sourceIds": [
+        "edax-official",
+        "topoboardgame-local-notes"
+      ]
+    },
+    {
       "id": "reversi-graph-topology-cycle-parity",
       "game": "reversi",
       "phase": "endgame",

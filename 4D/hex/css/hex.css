@@ -2,7 +2,8 @@
 [hidden] { display: none !important; }
 
 .board-panel-4d {
-    min-height: clamp(640px, calc(100vh - 150px), 980px);
+    height: clamp(640px, calc(100vh - 150px), 980px);
+    min-height: 520px;
     background: #070b10;
     overflow: hidden;
 }

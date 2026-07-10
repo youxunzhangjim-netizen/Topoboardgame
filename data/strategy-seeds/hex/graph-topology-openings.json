@@ -1,0 +1,7 @@
+{
+  "openingBook": [
+    { "positionHash": "hex-graph-empty-marked-zones", "move": "minimax-target-zone-distance", "count": 34, "policyPrior": 0.34 },
+    { "positionHash": "hex-graph-early-camp-safe", "move": "camp-safe-virtual-bridge", "count": 26, "policyPrior": 0.3 },
+    { "positionHash": "hex-graph-opponent-zone-threat", "move": "legal-cut-outside-opponent-camp", "count": 24, "policyPrior": 0.28 }
+  ]
+}

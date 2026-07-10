@@ -32,6 +32,8 @@ function verifyDeadStoneInsideTerritory() {
     assert.equal(score.blackTerritory, 9, 'black should receive the whole enclosed empty region after dead removal');
     assert.equal(score.whiteStones, 0, 'dead white stone must not count as a live area stone');
     assert.equal(score.black, 25, 'black area should be stones plus territory');
+    assert.deepEqual(score.removedDeadStones, [{ color: 'white', coord: [2, 2] }], 'removed stone should be exposed for scoring overlays');
+    assert.ok(score.territorySites.black.some((coord) => coord.join(',') === '2,2'), 'removed dead stone site should be painted as black territory');
 }
 
 function verifyTwoEyeGroupSurvives() {

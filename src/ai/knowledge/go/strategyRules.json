@@ -7,7 +7,12 @@
   "features": [
     { "name": "liberties", "weight": 1.1, "appliesTo": ["standard", "topology-transfer"], "description": "Graph liberties of own and opponent groups." },
     { "name": "territoryPotential", "weight": 1.2, "appliesTo": ["standard", "topology-transfer"], "description": "Empty-region control from graph flood-fill." },
-    { "name": "captureThreat", "weight": 1.5, "appliesTo": ["standard", "topology-transfer"], "description": "Immediate atari/capture opportunity." }
+    { "name": "captureThreat", "weight": 1.5, "appliesTo": ["standard", "topology-transfer"], "description": "Immediate atari/capture opportunity." },
+    { "name": "doubleAtari", "weight": 1.65, "appliesTo": ["standard", "topology-transfer"], "description": "Double-atari / 雙叫吃 patterns from local graph reading." },
+    { "name": "eyeShape", "weight": 1.55, "appliesTo": ["standard", "topology-transfer"], "description": "Making eyes / 做眼, false-eye risk, and group life safety." },
+    { "name": "cornerSideCenterPrior", "weight": 1.25, "appliesTo": ["standard"], "description": "金角銀邊草肚皮 as a weighted opening prior for boards with true corners and sides." },
+    { "name": "graphBoundaryAnchorPrior", "weight": 1.25, "appliesTo": ["topology-transfer"], "description": "Generalized corner/side value using hard boundaries, seams, and graph centrality on topology boards." },
+    { "name": "shapeJumps", "weight": 1.35, "appliesTo": ["standard", "topology-transfer"], "description": "One-point jump, knight move, large knight move / 大飛, and pulling / 引 shape features." }
   ]
 }
 

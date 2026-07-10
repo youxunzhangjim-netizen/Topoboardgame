@@ -1,0 +1,7 @@
+{
+  "endgameBook": [
+    { "positionHash": "hex-standard-immediate-win", "move": "complete-connection", "count": 32, "policyPrior": 0.55 },
+    { "positionHash": "hex-standard-immediate-block", "move": "block-opponent-connection", "count": 28, "policyPrior": 0.45 },
+    { "positionHash": "hex-standard-forced-bridge", "move": "fill-forced-bridge-connector", "count": 20, "policyPrior": 0.34 }
+  ]
+}

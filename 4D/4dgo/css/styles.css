@@ -162,6 +162,9 @@ body {
 .stone.white { background: radial-gradient(circle at 34% 26%, #ffffff 0 18%, #edf4f7 45%, #b5c3ca 78%); border: 1px solid rgba(37, 50, 58, 0.34); }
 .vertex.hover,
 .vertex.group { box-shadow: inset 0 0 0 999px rgba(72, 199, 244, 0.18); }
+.vertex.territory-black { box-shadow: inset 0 0 0 999px rgba(15, 23, 42, 0.58); }
+.vertex.territory-white { box-shadow: inset 0 0 0 999px rgba(248, 250, 252, 0.52); }
+.vertex.territory-neutral { box-shadow: inset 0 0 0 999px rgba(148, 163, 184, 0.34); }
 .vertex.liberty {
     box-shadow: inset 0 0 0 999px rgba(34, 197, 94, 0.34);
     outline: 2px solid rgba(74, 222, 128, 0.92);

@@ -719,6 +719,7 @@ class Go2DApp {
         }
 
         this.drawTerritoryMarkers(rect);
+        const hiddenDeadStones = this.scoreDeadCoordSet();
 
         if (this.hoverCoord && this.logic.board[this.logic.indexFromCoord(this.hoverCoord)] === COLORS.empty && !this.logic.gameOver) {
             const p = this.coordToPixel(this.hoverCoord);
@@ -734,6 +735,7 @@ class Go2DApp {
             const color = valueToColor(value);
             const coord = this.logic.coordFromIndex(index);
             if (this.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
+            if (hiddenDeadStones.has(coord.join(','))) continue;
             const p = this.coordToPixel(coord);
             const radius = this.stoneRadius(rect);
             this.drawStone(p.x, p.y, radius, color);
@@ -775,6 +777,14 @@ class Go2DApp {
             }
         }
         ctx.restore();
+    }
+
+    scoreDeadCoordSet() {
+        if (!this.logic.scoringPending && !this.logic.score) return new Set();
+        const score = this.logic.score || this.logic.computeAreaScore();
+        return new Set((score?.removedDeadStones || [])
+            .filter((entry) => Array.isArray(entry.coord))
+            .map((entry) => entry.coord.join(',')));
     }
 
     drawPolarGrid(rect) {

@@ -208,7 +208,7 @@ class Reversi4DApp {
             this.render();
         });
         this.gridEl.addEventListener('wheel', (event) => {
-            if (!['stacked_4d', 'w_slice'].includes(this.viewModeSelect?.value)) return;
+            if (this.viewModeSelect?.value !== 'w_slice') return;
             event.preventDefault();
             const factor = event.deltaY < 0 ? 1.08 : 0.92;
             this.view.zoom = Math.max(0.35, Math.min(2.8, this.view.zoom * factor));
@@ -218,7 +218,7 @@ class Reversi4DApp {
         installProjectedBoardTouchControls({
             element: this.gridEl,
             view: this.view,
-            isEnabled: () => ['stacked_4d', 'w_slice'].includes(this.viewModeSelect?.value),
+            isEnabled: () => this.viewModeSelect?.value === 'w_slice',
             rotationScale: 0.22,
             syncControls: () => {
                 if (this.viewControls.rotX) this.viewControls.rotX.value = String(Math.round(this.view.rotX));
@@ -302,10 +302,10 @@ class Reversi4DApp {
     }
 
     updateViewControls() {
+        if (this.viewModeSelect?.value === 'stacked_4d') this.viewModeSelect.value = 'w_slice';
         const is3DSlice = this.viewModeSelect?.value === 'w_slice';
-        const isStacked = this.viewModeSelect?.value === 'stacked_4d';
         if (this.wSliceGroup) this.wSliceGroup.hidden = !is3DSlice;
-        if (this.stackedViewControls) this.stackedViewControls.hidden = !isStacked && !is3DSlice;
+        if (this.stackedViewControls) this.stackedViewControls.hidden = !is3DSlice;
         if (this.wSliceValue && this.wSliceInput) this.wSliceValue.textContent = this.wSliceInput.value;
         this.renderWSliceButtons();
     }
@@ -399,11 +399,7 @@ class Reversi4DApp {
     render() {
         const { width, height, depth, wSize } = this.logic.topology;
         const zoom = this.zoomSelect.value;
-        const isStacked = this.viewModeSelect?.value === 'stacked_4d';
-        if (isStacked) {
-            this.renderStacked4D();
-            return;
-        }
+        if (this.viewModeSelect?.value === 'stacked_4d') this.viewModeSelect.value = 'w_slice';
         const is3DSlice = this.viewModeSelect?.value === 'w_slice';
         const onlyLayer = zoom !== 'all' ? zoom.split(',').map(Number) : null;
         const visibleW = is3DSlice ? Number(this.wSliceInput?.value || 0) : null;

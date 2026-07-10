@@ -1344,6 +1344,8 @@ class Go3DRenderer {
     renderStones(logic) {
         this.buildBoard(logic);
         this.clearGroup(this.stoneGroup);
+        const score = this.scoreForDisplay(logic);
+        const hiddenDeadStones = this.scoreDeadCoordSet(score);
         const black = [];
         const white = [];
         const ageRings = [];
@@ -1352,6 +1354,7 @@ class Go3DRenderer {
             if (!value) continue;
             const coord = logic.coordFromIndex(index);
             if (this.app?.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
+            if (hiddenDeadStones.has(coord.join(','))) continue;
             if (!this.coordVisible(coord)) continue;
             const positions = this.positionsForCoord(coord, logic);
             if (value === COLORS.black) black.push(...positions);
@@ -1365,10 +1368,63 @@ class Go3DRenderer {
                 });
             }
         }
+        this.addTerritoryMarkers(logic, score);
         this.addStoneInstances(black, 'black', logic);
         this.addStoneInstances(white, 'white', logic);
         this.addAgeRings(ageRings, logic);
         this.addLastMoveMarker(logic);
+    }
+
+    scoreForDisplay(logic) {
+        if (!logic?.score && !logic?.scoringPending) return null;
+        return logic.score || logic.computeAreaScore();
+    }
+
+    scoreDeadCoordSet(score) {
+        return new Set((score?.removedDeadStones || [])
+            .filter((entry) => Array.isArray(entry.coord))
+            .map((entry) => entry.coord.join(',')));
+    }
+
+    addTerritoryMarkers(logic, score) {
+        if (!score?.territorySites) return;
+        const markerSize = isR3LikeTopology(logic.topology)
+            ? (logic.size <= 9 ? 0.135 : logic.size <= 13 ? 0.105 : 0.075)
+            : (logic.size <= 9 ? 0.115 : logic.size <= 13 ? 0.09 : 0.07);
+        const geometry = new THREE.BoxGeometry(markerSize, markerSize, markerSize);
+        const styles = [
+            ['black', 0x111827, 0.64],
+            ['white', 0xf8fafc, 0.74],
+            ['neutral', 0x94a3b8, 0.46]
+        ];
+        const matrix = new THREE.Matrix4();
+        for (const [owner, color, opacity] of styles) {
+            const coords = score.territorySites[owner] || [];
+            const positions = [];
+            for (const coord of coords) {
+                const index = logic.indexFromCoord(coord);
+                if (index < 0) continue;
+                if (this.app?.isSpaceTimeIndexVisible?.(index, coord) === false) continue;
+                if (!this.coordVisible(coord)) continue;
+                positions.push(...this.positionsForCoord(coord, logic));
+            }
+            if (!positions.length) continue;
+            const material = new THREE.MeshBasicMaterial({
+                color,
+                transparent: true,
+                opacity,
+                depthTest: true,
+                depthWrite: false
+            });
+            const markers = new THREE.InstancedMesh(geometry, material, positions.length);
+            positions.forEach((position, markerIndex) => {
+                matrix.makeTranslation(position.x, position.y, position.z);
+                markers.setMatrixAt(markerIndex, matrix);
+            });
+            markers.renderOrder = 9;
+            markers.userData.scoreMarker = true;
+            this.stoneGroup.add(markers);
+        }
     }
 
     addLastMoveMarker(logic) {

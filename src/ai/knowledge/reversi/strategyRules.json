@@ -8,7 +8,9 @@
     { "name": "mobility", "weight": 1.4, "appliesTo": ["standard", "topology-transfer"], "description": "Legal move differential." },
     { "name": "frontierDiscs", "weight": -0.8, "appliesTo": ["standard", "topology-transfer"], "description": "Discs adjacent to empty sites." },
     { "name": "cornerOrAnchor", "weight": 2.0, "appliesTo": ["standard"], "description": "Corner and stable-anchor ownership where the topology has corners." },
-    { "name": "parity", "weight": 0.6, "appliesTo": ["standard", "topology-transfer"], "description": "Endgame parity and region-control feature." }
+    { "name": "parity", "weight": 0.6, "appliesTo": ["standard", "topology-transfer"], "description": "Endgame parity and region-control feature." },
+    { "name": "faceCenterRayGeneralization", "weight": 1.15, "appliesTo": ["topology-transfer"], "description": "For face-cell Reversi boards, use the board's legal straight and diagonal/generalized ray directions from cell centers." },
+    { "name": "vertexCellSeparation", "weight": 1.1, "appliesTo": ["topology-transfer"], "description": "Do not mix vertex-playable and face-cell-playable directions when ranking Reversi moves." }
   ]
 }
 
