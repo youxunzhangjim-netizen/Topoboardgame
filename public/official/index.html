@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Topological Board Game Official Support</title>
-  <meta name="description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <meta name="description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, Discord, and contact.">
   <link rel="canonical" href="https://youxunzhangjim-netizen.github.io/Topoboardgame/official/">
   <meta property="og:title" content="Topological Board Game Official Support">
-  <meta property="og:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <meta property="og:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, Discord, and contact.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/official/">
   <meta property="og:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Topological Board Game Official Support">
-  <meta name="twitter:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <meta name="twitter:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, Discord, and contact.">
   <meta name="twitter:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
   <script type="application/ld+json">
     {
@@ -56,8 +56,17 @@
       line-height: 1.6;
     }
 
-    a { color: var(--blue); font-weight: 800; text-decoration: none; }
-    a:hover, a:focus-visible { color: var(--gold); outline: none; }
+    a {
+      color: var(--blue);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: var(--gold);
+      outline: none;
+    }
 
     main {
       width: min(1120px, calc(100% - 32px));
@@ -65,9 +74,68 @@
       padding: 36px 0 56px;
     }
 
+    .language-switch {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 10;
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+    }
+
+    .language-button {
+      width: 40px;
+      height: 40px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .language-button svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 1.9;
+    }
+
+    .language-menu {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(148, 213, 255, 0.22);
+      border-radius: 12px;
+      background: rgba(7, 14, 24, 0.94);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+    }
+
+    .language-menu[hidden] { display: none; }
+
+    .language-menu button {
+      min-width: 46px;
+      min-height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .language-menu button[aria-pressed="true"] {
+      color: #ffe7ac;
+      background: rgba(112, 215, 255, 0.1);
+    }
+
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
+      grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
       gap: 28px;
       align-items: center;
       padding: clamp(22px, 4vw, 42px);
@@ -79,7 +147,7 @@
 
     .hero img {
       width: 100%;
-      max-width: 240px;
+      max-width: 220px;
       justify-self: center;
       border-radius: 24px;
       box-shadow: 0 24px 80px rgba(83, 176, 255, 0.18);
@@ -94,7 +162,8 @@
       text-transform: uppercase;
     }
 
-    h1, h2 {
+    h1,
+    h2 {
       margin: 0;
       line-height: 1.1;
     }
@@ -118,8 +187,7 @@
     }
 
     .link-grid,
-    .section-grid,
-    .screenshots {
+    .section-grid {
       display: grid;
       gap: 16px;
     }
@@ -157,32 +225,6 @@
       padding-left: 20px;
     }
 
-    .screenshots {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    figure {
-      margin: 0;
-      overflow: hidden;
-      border: 1px solid rgba(238, 247, 251, 0.14);
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.22);
-    }
-
-    figure img {
-      width: 100%;
-      display: block;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-    }
-
-    figcaption {
-      padding: 10px 12px 12px;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 700;
-    }
-
     .privacy-note {
       border-left: 3px solid var(--gold);
       padding-left: 14px;
@@ -195,101 +237,257 @@
     }
 
     @media (max-width: 780px) {
-      main { width: min(100% - 20px, 1120px); padding-top: 20px; }
-      .hero { grid-template-columns: 1fr; }
-      .hero img { max-width: 180px; order: -1; }
-      .link-grid, .screenshots { grid-template-columns: 1fr; }
+      main {
+        width: min(100% - 20px, 1120px);
+        padding-top: 64px;
+      }
+
+      .language-switch {
+        top: 12px;
+        right: 12px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero img {
+        max-width: 164px;
+        order: -1;
+      }
+
+      .link-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="language-switch">
+    <button id="officialLanguageButton" class="language-button" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Change language">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M3 12h18"></path>
+        <path d="M12 3a14 14 0 0 1 0 18"></path>
+        <path d="M12 3a14 14 0 0 0 0 18"></path>
+      </svg>
+    </button>
+    <div id="officialLanguageMenu" class="language-menu" role="menu" hidden>
+      <button type="button" data-lang="en" role="menuitemradio">En</button>
+      <button type="button" data-lang="zh-Hant" role="menuitemradio">繁中</button>
+      <button type="button" data-lang="zh-Hans" role="menuitemradio">简中</button>
+    </div>
+  </div>
+
   <main>
     <header class="hero">
       <div>
-        <p class="kicker">Official information page</p>
-        <h1>Topological Board Game</h1>
-        <p class="lead">A free experimental abstract strategy game where board games, Life systems, and scientific Labs are explored across different lattices, dimensions, boundaries, and topologies.</p>
+        <p class="kicker" data-i18n="kicker">Official information page</p>
+        <h1 data-i18n="title">Topological Board Game</h1>
+        <p class="lead" data-i18n="lead">A free experimental abstract strategy game where board games, Life systems, and scientific Labs are explored across different lattices, dimensions, boundaries, and topologies.</p>
       </div>
-      <img src="../brand/topoboardgame-icon-512.png" alt="Topological Board Game neon cup icon">
+      <img src="../brand/topoboardgame-icon-512.png" alt="Topological Board Game neon cup icon" data-i18n-alt="iconAlt">
     </header>
 
     <nav class="link-grid" aria-label="Official links">
       <a class="link-card" href="https://store.steampowered.com/app/4894560/" rel="noopener noreferrer">
-        <strong>Steam</strong><br>
-        <span>The Steam version is the official desktop release.</span>
+        <strong data-i18n="steamTitle">Steam</strong><br>
+        <span data-i18n="steamBody">The Steam version is the official desktop release.</span>
       </a>
       <a class="link-card" href="../discord/">
-        <strong>Discord</strong><br>
-        <span>Community, support, bug reports, and development discussion.</span>
-      </a>
-      <a class="link-card" href="https://github.com/youxunzhangjim-netizen/Topoboardgame" rel="noopener noreferrer">
-        <strong>GitHub</strong><br>
-        <span>Source repository, issues, documentation, and release history.</span>
+        <strong data-i18n="discordTitle">Discord</strong><br>
+        <span data-i18n="discordBody">Community, support, bug reports, and development discussion.</span>
       </a>
       <a class="link-card" href="mailto:youxunzhangjim@gmail.com?subject=Topological%20Board%20Game%20support">
-        <strong>Contact</strong><br>
-        <span>Email support and feedback for Topological Board Game.</span>
+        <strong data-i18n="contactTitle">Contact</strong><br>
+        <span data-i18n="contactBody">Email support and feedback for Topological Board Game.</span>
+      </a>
+      <a class="link-card" href="#privacy">
+        <strong data-i18n="privacyTitle">Privacy</strong><br>
+        <span data-i18n="privacyBodyShort">Privacy notes for website and desktop builds.</span>
       </a>
     </nav>
 
     <section id="about">
-      <h2>About This Game</h2>
-      <p>Topological Board Game is an experimental strategy and research-play platform. It includes familiar board-game families such as Chess, Go, Reversi, Jump / Chinese Checkers, and Hex, then changes the board space: flat boards, cylinders, tori, spheres, higher-dimensional grids, periodic boundaries, twisted boundaries, and research-oriented discrete topological dynamics.</p>
-      <p>Life World explores cellular automata, artificial life, evolution, ecology, species interaction, mutation, noise, and topology-dependent growth. Topoboard Labs focuses on physics, mathematics, information, graph dynamics, and reproducible experiments.</p>
-      <p>This page is intentionally non-playable: it contains official project information, screenshots, privacy notes, and support links only.</p>
-    </section>
-
-    <section>
-      <h2>中文簡介</h2>
-      <p lang="zh-Hant">Topological Board Game 是免費的實驗性抽象策略棋盤遊戲與研究遊玩平台，結合棋類、Life 世界、細胞自動機、拓撲、數學、物理、生物啟發系統與 Topoboard Labs。</p>
-      <p lang="zh-Hans">Topological Board Game 是免费的实验性抽象策略棋盘游戏与研究游玩平台，结合棋类、Life 世界、细胞自动机、拓扑、数学、物理、生物启发系统与 Topoboard Labs。</p>
-    </section>
-
-    <section id="screenshots">
-      <h2>Screenshots</h2>
-      <div class="screenshots">
-        <figure>
-          <img src="../screenshots/01_torus_chess_en_1920x1080.png" alt="Torus Chess screenshot">
-          <figcaption>Torus Chess with boundary-aware strategy.</figcaption>
-        </figure>
-        <figure>
-          <img src="../screenshots/02_torus_triangular_go_en_1920x1080.png" alt="Torus triangular Go screenshot">
-          <figcaption>Go on a torus with triangular lattice geometry.</figcaption>
-        </figure>
-        <figure>
-          <img src="../screenshots/03_2d_honeycomb_reversi_en_1920x1080.png" alt="Honeycomb Reversi screenshot">
-          <figcaption>Honeycomb Reversi with graph-like local structure.</figcaption>
-        </figure>
-        <figure>
-          <img src="../screenshots/04_3d_jump_tilted_en_1920x1080.png" alt="3D Jump screenshot">
-          <figcaption>3D Jump with rotatable spatial boards.</figcaption>
-        </figure>
-        <figure>
-          <img src="../screenshots/05_sphere_geodesic_hex_en_1920x1080.png" alt="Sphere Geodesic Hex screenshot">
-          <figcaption>Hex on a geodesic sphere with colored target regions.</figcaption>
-        </figure>
-      </div>
+      <h2 data-i18n="aboutTitle">About This Game</h2>
+      <p data-i18n="aboutP1">Topological Board Game is an experimental strategy and research-play platform. It includes familiar board-game families such as Chess, Go, Reversi, Jump / Chinese Checkers, and Hex, then changes the board space: flat boards, cylinders, tori, spheres, higher-dimensional grids, periodic boundaries, twisted boundaries, and research-oriented discrete topological dynamics.</p>
+      <p data-i18n="aboutP2">Life World explores cellular automata, artificial life, evolution, ecology, species interaction, mutation, noise, and topology-dependent growth. Topoboard Labs focuses on physics, mathematics, information, graph dynamics, and reproducible experiments.</p>
+      <p data-i18n="aboutP3">This page is intentionally non-playable: it contains official project information, privacy notes, and support links only.</p>
     </section>
 
     <section id="support">
-      <h2>Support</h2>
+      <h2 data-i18n="supportTitle">Support</h2>
       <ul>
-        <li>Steam desktop release: <a href="https://store.steampowered.com/app/4894560/" rel="noopener noreferrer">Steam app page</a></li>
-        <li>Community and bug reports: <a href="../discord/">Discord page</a></li>
-        <li>Source and issue tracking: <a href="https://github.com/youxunzhangjim-netizen/Topoboardgame" rel="noopener noreferrer">GitHub repository</a></li>
-        <li>Email: <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a></li>
+        <li><span data-i18n="supportSteam">Steam desktop release:</span> <a href="https://store.steampowered.com/app/4894560/" rel="noopener noreferrer" data-i18n="supportSteamLink">Steam app page</a></li>
+        <li><span data-i18n="supportDiscord">Community and bug reports:</span> <a href="../discord/" data-i18n="supportDiscordLink">Discord page</a></li>
+        <li><span data-i18n="supportEmail">Email:</span> <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a></li>
       </ul>
     </section>
 
     <section id="privacy">
-      <h2>Privacy</h2>
-      <p class="privacy-note">Topological Board Game uses only public client configuration in website builds. Do not put private API keys, Materials Project keys, Steam credentials, or other secrets in frontend files. Online rooms may use Firebase/Firestore configuration that is intended to be public client configuration, while security is controlled by Firestore rules.</p>
-      <p>For the full repository privacy text, see <a href="https://github.com/youxunzhangjim-netizen/Topoboardgame/blob/main/PRIVACY_POLICY.md" rel="noopener noreferrer">PRIVACY_POLICY.md on GitHub</a>.</p>
+      <h2 data-i18n="privacyTitleFull">Privacy Policy</h2>
+      <p class="privacy-note" data-i18n="privacyP1">Topological Board Game uses only public client configuration in website builds. Do not put private API keys, Materials Project keys, Steam credentials, or other secrets in frontend files. Online rooms may use Firebase/Firestore configuration that is intended to be public client configuration, while security is controlled by Firestore rules.</p>
+      <p data-i18n="privacyP2">For privacy or account-support questions, contact the developer by email. This official page does not contain a playable canvas, embedded game, or outside play button.</p>
     </section>
 
     <footer>
-      <p>Copyright © 2026 You-Xun Zhang / Topological Board Game.</p>
+      <p data-i18n="footer">Copyright © 2026 You-Xun Zhang / Topological Board Game.</p>
     </footer>
   </main>
+
+  <script>
+    const STRINGS = {
+      en: {
+        pageTitle: "Topological Board Game Official Support",
+        metaDescription: "Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, Discord, and contact.",
+        iconAlt: "Topological Board Game neon cup icon",
+        kicker: "Official information page",
+        title: "Topological Board Game",
+        lead: "A free experimental abstract strategy game where board games, Life systems, and scientific Labs are explored across different lattices, dimensions, boundaries, and topologies.",
+        steamTitle: "Steam",
+        steamBody: "The Steam version is the official desktop release.",
+        discordTitle: "Discord",
+        discordBody: "Community, support, bug reports, and development discussion.",
+        contactTitle: "Contact",
+        contactBody: "Email support and feedback for Topological Board Game.",
+        privacyTitle: "Privacy",
+        privacyBodyShort: "Privacy notes for website and desktop builds.",
+        aboutTitle: "About This Game",
+        aboutP1: "Topological Board Game is an experimental strategy and research-play platform. It includes familiar board-game families such as Chess, Go, Reversi, Jump / Chinese Checkers, and Hex, then changes the board space: flat boards, cylinders, tori, spheres, higher-dimensional grids, periodic boundaries, twisted boundaries, and research-oriented discrete topological dynamics.",
+        aboutP2: "Life World explores cellular automata, artificial life, evolution, ecology, species interaction, mutation, noise, and topology-dependent growth. Topoboard Labs focuses on physics, mathematics, information, graph dynamics, and reproducible experiments.",
+        aboutP3: "This page is intentionally non-playable: it contains official project information, privacy notes, and support links only.",
+        supportTitle: "Support",
+        supportSteam: "Steam desktop release:",
+        supportSteamLink: "Steam app page",
+        supportDiscord: "Community and bug reports:",
+        supportDiscordLink: "Discord page",
+        supportEmail: "Email:",
+        privacyTitleFull: "Privacy Policy",
+        privacyP1: "Topological Board Game uses only public client configuration in website builds. Do not put private API keys, Materials Project keys, Steam credentials, or other secrets in frontend files. Online rooms may use Firebase/Firestore configuration that is intended to be public client configuration, while security is controlled by Firestore rules.",
+        privacyP2: "For privacy or account-support questions, contact the developer by email. This official page does not contain a playable canvas, embedded game, or outside play button.",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      },
+      "zh-Hant": {
+        pageTitle: "Topological Board Game 官方支援",
+        metaDescription: "Topological Board Game 的官方非遊玩資訊頁：Steam 桌面版、支援、隱私、Discord 與聯絡方式。",
+        iconAlt: "Topological Board Game 霓虹杯圖示",
+        kicker: "官方資訊頁",
+        title: "Topological Board Game",
+        lead: "一款免費的實驗性抽象策略遊戲，讓棋類、Life 系統與科學 Labs 在不同晶格、維度、邊界與拓撲空間中展開。",
+        steamTitle: "Steam",
+        steamBody: "Steam 版是官方桌面發行版。",
+        discordTitle: "Discord",
+        discordBody: "社群、支援、錯誤回報與開發討論。",
+        contactTitle: "聯絡",
+        contactBody: "以電子郵件提供 Topological Board Game 的支援與回饋。",
+        privacyTitle: "隱私",
+        privacyBodyShort: "網站版與桌面版的隱私說明。",
+        aboutTitle: "遊戲介紹",
+        aboutP1: "Topological Board Game 是實驗性策略與研究遊玩平台。它包含 Chess、Go、Reversi、Jump／中國跳棋與 Hex 等熟悉的棋類家族，並改變棋盤所在空間：平面、圓柱、環面、球面、高維格點、週期邊界、扭轉邊界，以及研究取向的離散拓撲動力學。",
+        aboutP2: "Life World 探索細胞自動機、人工生命、演化、生態、物種互動、突變、噪聲與依賴拓撲的成長。Topoboard Labs 聚焦於物理、數學、資訊、圖動力學與可重現實驗。",
+        aboutP3: "此頁故意設計為不可遊玩：只提供官方專案資訊、隱私說明與支援連結。",
+        supportTitle: "支援",
+        supportSteam: "Steam 桌面發行版：",
+        supportSteamLink: "Steam 應用程式頁面",
+        supportDiscord: "社群與錯誤回報：",
+        supportDiscordLink: "Discord 頁面",
+        supportEmail: "電子郵件：",
+        privacyTitleFull: "隱私政策",
+        privacyP1: "Topological Board Game 的網站建置只使用公開的客戶端設定。不要把私人 API 金鑰、Materials Project 金鑰、Steam 憑證或其他機密放進前端檔案。線上房間可能使用本來就屬於公開客戶端設定的 Firebase／Firestore 設定，而安全性由 Firestore rules 控制。",
+        privacyP2: "如有隱私或帳號支援問題，請以電子郵件聯絡開發者。此官方頁不包含可遊玩的 canvas、嵌入式遊戲或外部遊玩按鈕。",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      },
+      "zh-Hans": {
+        pageTitle: "Topological Board Game 官方支持",
+        metaDescription: "Topological Board Game 的官方非游玩信息页：Steam 桌面版、支持、隐私、Discord 与联系方式。",
+        iconAlt: "Topological Board Game 霓虹杯图标",
+        kicker: "官方信息页",
+        title: "Topological Board Game",
+        lead: "一款免费的实验性抽象策略游戏，让棋类、Life 系统与科学 Labs 在不同晶格、维度、边界与拓扑空间中展开。",
+        steamTitle: "Steam",
+        steamBody: "Steam 版是官方桌面发行版。",
+        discordTitle: "Discord",
+        discordBody: "社区、支持、错误反馈与开发讨论。",
+        contactTitle: "联系",
+        contactBody: "通过电子邮件提供 Topological Board Game 的支持与反馈。",
+        privacyTitle: "隐私",
+        privacyBodyShort: "网站版与桌面版的隐私说明。",
+        aboutTitle: "游戏介绍",
+        aboutP1: "Topological Board Game 是实验性策略与研究游玩平台。它包含 Chess、Go、Reversi、Jump／中国跳棋与 Hex 等熟悉的棋类家族，并改变棋盘所在空间：平面、圆柱、环面、球面、高维格点、周期边界、扭转边界，以及研究取向的离散拓扑动力学。",
+        aboutP2: "Life World 探索细胞自动机、人工生命、演化、生态、物种互动、突变、噪声与依赖拓扑的成长。Topoboard Labs 聚焦于物理、数学、信息、图动力学与可重现实验。",
+        aboutP3: "此页故意设计为不可游玩：只提供官方项目信息、隐私说明与支持链接。",
+        supportTitle: "支持",
+        supportSteam: "Steam 桌面发行版：",
+        supportSteamLink: "Steam 应用页面",
+        supportDiscord: "社区与错误反馈：",
+        supportDiscordLink: "Discord 页面",
+        supportEmail: "电子邮件：",
+        privacyTitleFull: "隐私政策",
+        privacyP1: "Topological Board Game 的网站构建只使用公开的客户端配置。不要把私人 API 密钥、Materials Project 密钥、Steam 凭证或其他机密放进前端文件。在线房间可能使用本来就属于公开客户端配置的 Firebase／Firestore 设置，而安全性由 Firestore rules 控制。",
+        privacyP2: "如有隐私或账号支持问题，请通过电子邮件联系开发者。此官方页不包含可游玩的 canvas、嵌入式游戏或外部游玩按钮。",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      }
+    };
+
+    const STORAGE_KEY = "topological-boardgame-official-language";
+    const button = document.getElementById("officialLanguageButton");
+    const menu = document.getElementById("officialLanguageMenu");
+    const languageButtons = Array.from(menu.querySelectorAll("[data-lang]"));
+
+    function setLanguage(lang) {
+      const nextLang = STRINGS[lang] ? lang : "en";
+      const strings = STRINGS[nextLang];
+      document.documentElement.lang = nextLang;
+      document.title = strings.pageTitle;
+      const description = document.querySelector('meta[name="description"]');
+      if (description) description.setAttribute("content", strings.metaDescription);
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        if (strings[key]) node.textContent = strings[key];
+      });
+      document.querySelectorAll("[data-i18n-alt]").forEach((node) => {
+        const key = node.getAttribute("data-i18n-alt");
+        if (strings[key]) node.setAttribute("alt", strings[key]);
+      });
+      languageButtons.forEach((item) => {
+        item.setAttribute("aria-pressed", item.dataset.lang === nextLang ? "true" : "false");
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, nextLang);
+      } catch (error) {
+        /* Ignore private browsing storage failures. */
+      }
+    }
+
+    function closeMenu() {
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+    }
+
+    button.addEventListener("click", () => {
+      const nextOpen = menu.hidden;
+      menu.hidden = !nextOpen;
+      button.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+    });
+
+    languageButtons.forEach((item) => {
+      item.addEventListener("click", () => {
+        setLanguage(item.dataset.lang);
+        closeMenu();
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".language-switch")) closeMenu();
+    });
+
+    let initialLanguage = "en";
+    try {
+      initialLanguage = localStorage.getItem(STORAGE_KEY) || "en";
+    } catch (error) {
+      initialLanguage = "en";
+    }
+    setLanguage(initialLanguage);
+  </script>
 </body>
 </html>
