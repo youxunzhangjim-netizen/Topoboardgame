@@ -2,6 +2,13 @@
 
 Playable graph board games on flat, periodic, twisted, spherical, projective, 3D, and 4D topologies.
 
+## Support
+
+Topological Board Game is free. Optional donations help support development, documentation, server costs, stability work, research tools, and future Labs.
+
+- Support page: https://youxunzhangjim-netizen.github.io/Topoboardgame/support/
+- GitHub Sponsors: GITHUB_SPONSORS_URL_HERE
+
 ## Algebraic Physical Modes
 
 The algebraic app includes normal game modes and physical variants beside them. Physical variants export a shared research record:

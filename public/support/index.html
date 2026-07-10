@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Topological Board Game</title>
+  <meta name="description" content="Optional ways to support development of Topological Board Game.">
+  <link rel="canonical" href="https://youxunzhangjim-netizen.github.io/Topoboardgame/support/">
+  <meta property="og:title" content="Support Topological Board Game">
+  <meta property="og:description" content="Optional ways to support development of Topological Board Game.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/support/">
+  <meta property="og:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Support Topological Board Game">
+  <meta name="twitter:description" content="Optional ways to support development of Topological Board Game.">
+  <meta name="twitter:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(13, 22, 34, 0.9);
+      --line: rgba(148, 213, 255, 0.22);
+      --text: #eef7fb;
+      --muted: #b8c9d4;
+      --gold: #f4c95d;
+      --blue: #70d7ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 76% 8%, rgba(112, 215, 255, 0.18), transparent 34%),
+        linear-gradient(135deg, #06101d, #0d1724 54%, #050910);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--blue);
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: var(--gold);
+      outline: none;
+    }
+
+    main {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 38px 0 56px;
+    }
+
+    .language-switch {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 10;
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+    }
+
+    .language-button {
+      width: 40px;
+      height: 40px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .language-button svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 1.9;
+    }
+
+    .language-menu {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(7, 14, 24, 0.94);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+    }
+
+    .language-menu[hidden] { display: none; }
+
+    .language-menu button {
+      min-width: 46px;
+      min-height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .language-menu button[aria-pressed="true"] {
+      color: #ffe7ac;
+      background: rgba(112, 215, 255, 0.1);
+    }
+
+    .hero,
+    section {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+    }
+
+    .hero {
+      padding: clamp(24px, 5vw, 48px);
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(34px, 6vw, 72px);
+      max-width: 840px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: #f7d886;
+      font-size: clamp(22px, 3vw, 34px);
+    }
+
+    .lead {
+      max-width: 830px;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 21px);
+      font-weight: 650;
+    }
+
+    section {
+      margin-top: 18px;
+      padding: clamp(18px, 3vw, 28px);
+    }
+
+    .donation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .donation-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 12px 16px;
+      border: 1px solid rgba(112, 215, 255, 0.42);
+      border-radius: 12px;
+      background: rgba(112, 215, 255, 0.08);
+      color: #effbff;
+      font-weight: 950;
+      text-align: center;
+    }
+
+    .empty-note {
+      margin: 16px 0 0;
+      padding: 14px 16px;
+      border: 1px solid rgba(244, 201, 93, 0.34);
+      border-radius: 12px;
+      color: #ffe7ac;
+      background: rgba(244, 201, 93, 0.08);
+      font-weight: 850;
+    }
+
+    .steam-note {
+      border-left: 3px solid var(--gold);
+      padding-left: 14px;
+      color: var(--muted);
+    }
+
+    footer {
+      padding: 22px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 700px) {
+      main {
+        width: min(100% - 20px, 980px);
+        padding-top: 64px;
+      }
+
+      .language-switch {
+        top: 12px;
+        right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="language-switch">
+    <button id="supportLanguageButton" class="language-button" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Change language">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M3 12h18"></path>
+        <path d="M12 3a14 14 0 0 1 0 18"></path>
+        <path d="M12 3a14 14 0 0 0 0 18"></path>
+      </svg>
+    </button>
+    <div id="supportLanguageMenu" class="language-menu" role="menu" hidden>
+      <button type="button" data-lang="en" role="menuitemradio">En</button>
+      <button type="button" data-lang="zh-Hant" role="menuitemradio">繁中</button>
+      <button type="button" data-lang="zh-Hans" role="menuitemradio">简中</button>
+    </div>
+  </div>
+
+  <main>
+    <header class="hero">
+      <p class="kicker" data-i18n="kicker">Project Support</p>
+      <h1 data-i18n="title">Support Topological Board Game</h1>
+      <p class="lead" data-i18n="lead">Topological Board Game is free. Donations are optional and help support development, documentation, server costs, research tools, stability work, and future Labs.</p>
+    </header>
+
+    <section aria-labelledby="donationsTitle">
+      <h2 id="donationsTitle" data-i18n="donationsTitle">Optional Donation</h2>
+      <p data-i18n="donationsBody">Donation links only appear here when real support URLs are configured. Donations do not unlock gameplay advantages and are never required.</p>
+      <div id="donationLinks" class="donation-grid" aria-live="polite"></div>
+      <p id="donationEmpty" class="empty-note" data-i18n="donationEmpty">Donation links are being prepared.</p>
+    </section>
+
+    <section aria-labelledby="steamNoteTitle">
+      <h2 id="steamNoteTitle" data-i18n="steamNoteTitle">Steam note</h2>
+      <p class="steam-note" data-i18n="steamNote">The Steam version does not require external donations. If Steam-native supporter content is added in the future, it will use Steam-supported systems.</p>
+    </section>
+
+    <section aria-labelledby="contactTitle">
+      <h2 id="contactTitle" data-i18n="contactTitle">Contact</h2>
+      <p><span data-i18n="contactBody">For support questions, account questions, or development feedback, email:</span> <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a></p>
+      <p><a href="../official/" data-i18n="officialLink">Official / Support information</a></p>
+    </section>
+
+    <footer>
+      <p data-i18n="footer">Copyright © 2026 You-Xun Zhang / Topological Board Game.</p>
+    </footer>
+  </main>
+
+  <script type="module">
+    import { getEnabledDonationLinks } from "../js/shared/SupportLinks.js";
+
+    const STRINGS = {
+      en: {
+        pageTitle: "Support Topological Board Game",
+        metaDescription: "Optional ways to support development of Topological Board Game.",
+        kicker: "專案支持",
+        title: "Support Topological Board Game",
+        lead: "Topological Board Game is free. Donations are optional and help support development, documentation, server costs, research tools, stability work, and future Labs.",
+        donationsTitle: "Optional Donation",
+        donationsBody: "Donation links only appear here when real support URLs are configured. Donations do not unlock gameplay advantages and are never required.",
+        donationEmpty: "Donation links are being prepared.",
+        steamNoteTitle: "Steam 說明",
+        steamNote: "The Steam version does not require external donations. If Steam-native supporter content is added in the future, it will use Steam-supported systems.",
+        contactTitle: "Contact",
+        contactBody: "For support questions, account questions, or development feedback, email:",
+        officialLink: "Official / Support information",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      },
+      "zh-Hant": {
+        pageTitle: "支持《Topological Board Game》",
+        metaDescription: "支持 Topological Board Game 開發的自願方式。",
+        kicker: "项目支持",
+        title: "支持《Topological Board Game》",
+        lead: "《Topological Board Game》是免費遊戲。捐款完全自願，會用於支援開發、文件、伺服器成本、研究工具、穩定性改進與未來 Labs。",
+        donationsTitle: "自願捐款",
+        donationsBody: "只有在設定真實支持連結時，捐款按鈕才會顯示在此處。捐款不會解鎖玩法優勢，也永遠不是必要條件。",
+        donationEmpty: "捐款連結準備中。",
+        steamNoteTitle: "Steam 说明",
+        steamNote: "Steam 版本不需要外部捐款。若未來加入 Steam 原生支持內容，將使用 Steam 支援的系統。",
+        contactTitle: "聯絡",
+        contactBody: "如有支援、帳號或開發回饋問題，請寄信至：",
+        officialLink: "官方／支援資訊",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      },
+      "zh-Hans": {
+        pageTitle: "支持《Topological Board Game》",
+        metaDescription: "支持 Topological Board Game 开发的自愿方式。",
+        kicker: "Project Support",
+        title: "支持《Topological Board Game》",
+        lead: "《Topological Board Game》是免费游戏。捐款完全自愿，会用于支持开发、文档、服务器成本、研究工具、稳定性改进与未来 Labs。",
+        donationsTitle: "自愿捐款",
+        donationsBody: "只有在设置真实支持链接时，捐款按钮才会显示在此处。捐款不会解锁玩法优势，也永远不是必要条件。",
+        donationEmpty: "捐款链接准备中。",
+        steamNoteTitle: "Steam note",
+        steamNote: "Steam 版本不需要外部捐款。若未来加入 Steam 原生支持内容，将使用 Steam 支持的系统。",
+        contactTitle: "联系",
+        contactBody: "如有支持、账号或开发反馈问题，请发送邮件至：",
+        officialLink: "官方／支持信息",
+        footer: "Copyright © 2026 You-Xun Zhang / Topological Board Game."
+      }
+    };
+
+    const STORAGE_KEY = "topological-boardgame-support-language";
+    const button = document.getElementById("supportLanguageButton");
+    const menu = document.getElementById("supportLanguageMenu");
+    const languageButtons = Array.from(menu.querySelectorAll("[data-lang]"));
+    const donationLinks = document.getElementById("donationLinks");
+    const donationEmpty = document.getElementById("donationEmpty");
+
+    function renderDonationLinks() {
+      const enabledLinks = getEnabledDonationLinks();
+      donationLinks.replaceChildren();
+      donationEmpty.hidden = enabledLinks.length > 0;
+      enabledLinks.forEach((link) => {
+        const anchor = document.createElement("a");
+        anchor.className = "donation-link";
+        anchor.href = link.url;
+        anchor.rel = "noopener noreferrer";
+        anchor.textContent = link.label;
+        donationLinks.append(anchor);
+      });
+    }
+
+    function setLanguage(lang) {
+      const nextLang = STRINGS[lang] ? lang : "en";
+      const strings = STRINGS[nextLang];
+      document.documentElement.lang = nextLang;
+      document.title = strings.pageTitle;
+      const description = document.querySelector('meta[name="description"]');
+      if (description) description.setAttribute("content", strings.metaDescription);
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        if (strings[key]) node.textContent = strings[key];
+      });
+      languageButtons.forEach((item) => {
+        item.setAttribute("aria-pressed", item.dataset.lang === nextLang ? "true" : "false");
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, nextLang);
+      } catch (error) {
+        /* Ignore private browsing storage failures. */
+      }
+    }
+
+    function closeMenu() {
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+    }
+
+    button.addEventListener("click", () => {
+      const nextOpen = menu.hidden;
+      menu.hidden = !nextOpen;
+      button.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+    });
+
+    languageButtons.forEach((item) => {
+      item.addEventListener("click", () => {
+        setLanguage(item.dataset.lang);
+        closeMenu();
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".language-switch")) closeMenu();
+    });
+
+    let initialLanguage = "en";
+    try {
+      initialLanguage = localStorage.getItem(STORAGE_KEY) || "en";
+    } catch (error) {
+      initialLanguage = "en";
+    }
+
+    renderDonationLinks();
+    setLanguage(initialLanguage);
+  </script>
+</body>
+</html>

@@ -110,10 +110,10 @@ body::before {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     color: rgba(237, 244, 246, 0.68);
-    font-size: 11px;
-    font-weight: 900;
+    font-size: clamp(13px, 1.05vw, 15px);
+    font-weight: 950;
     line-height: 1.3;
 }
 
@@ -121,6 +121,7 @@ body::before {
     color: rgba(125, 211, 252, 0.86);
     text-decoration: none;
     pointer-events: auto;
+    text-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
 }
 
 .launcher-official-links a:hover,
@@ -1178,7 +1179,7 @@ h1 {
 
     .launcher-official-links,
     .launcher-author {
-        font-size: 10px;
+        font-size: 12px;
     }
 
     .launcher-shell {
