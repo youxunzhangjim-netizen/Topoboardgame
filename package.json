@@ -106,6 +106,7 @@
     "verify:online-crossplay": "node verification/verify-online-crossplay-config.mjs",
     "verify:jump-surfaces": "node verification/verify-jump-surfaces.mjs",
     "verify:robot-legality": "node verification/verify-robot-move-legality.mjs",
+    "verify:hex-robot-strategy": "node verification/verify-hex-robot-strategy.mjs",
     "verify:jump-ui": "node verification/verify-jump-ui.mjs",
     "verify:steam-safe": "node verification/verify-steam-safe-build.mjs",
     "clean:release": "node scripts/package-release.mjs clean",

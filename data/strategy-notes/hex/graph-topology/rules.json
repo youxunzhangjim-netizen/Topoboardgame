@@ -29,6 +29,26 @@
       "features": ["virtualConnection", "bridgeTemplate", "graphNeighbors", "cutResistance"],
       "weight": 1.65,
       "sourceIds": ["mohex-paper", "benzene-hex"]
+    },
+    {
+      "id": "hex-graph-topology-shortest-zone-corridor",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "For 3D, wrapped, sphere, trefoil, and marked-zone Hex boards, shortest-path and cut-corridor analysis must use declared graph edges and target-zone predicates instead of flat-board coordinates.",
+      "features": ["targetZoneDistance", "shortestCorridor", "graphCut", "markedZones", "dimensionIndependent"],
+      "weight": 1.95,
+      "sourceIds": ["mohex-paper", "benzene-hex", "topoboardgame-local-notes"]
+    },
+    {
+      "id": "hex-graph-topology-component-merge",
+      "game": "hex",
+      "phase": "middlegame",
+      "boardFamily": "graph-topology",
+      "description": "Prefer moves that merge multiple friendly graph components or connect both target-front distance maps, because topology boards can make screen-near groups graph-far and screen-far groups graph-near.",
+      "features": ["componentMerge", "twoFrontConnection", "graphNeighbors", "screenDistanceIgnored"],
+      "weight": 1.7,
+      "sourceIds": ["benzene-hex", "topoboardgame-local-notes"]
     }
   ]
 }

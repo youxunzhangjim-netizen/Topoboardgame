@@ -2,12 +2,27 @@ import { HEX_COLORS, otherHexColor } from './HexGame.js';
 
 const WIN_SCORE = 100000;
 const BLOCKED_DISTANCE = 999;
+const DISTANCE_EPSILON = 1e-9;
 
 const LEVELS = Object.freeze({
     1: { depth: 0, candidateCap: 18, timeMs: 80 },
     2: { depth: 1, candidateCap: 24, timeMs: 180 },
     3: { depth: 2, candidateCap: 30, timeMs: 420 },
     4: { depth: 3, candidateCap: 36, timeMs: 850 }
+});
+
+const HEX_RESEARCH_PRIORS = Object.freeze({
+    openingCenter: 42,
+    openingConnectionPressure: 72,
+    shortestCorridor: 46,
+    nearShortestCorridor: 24,
+    opponentCut: 58,
+    bridgePair: 38,
+    virtualConnector: 18,
+    componentMerge: 32,
+    goalTouch: 12,
+    overfilledCampPenalty: -26,
+    isolatedEdgePenalty: -18
 });
 
 function now() {
@@ -68,46 +83,63 @@ function hasConnection(board, topology, color) {
     return false;
 }
 
-function connectionDistance(board, topology, coordinates, color) {
-    const zone = topology.goalZones[color];
-    const opponent = otherHexColor(color);
+function cellCost(board, topology, coordinate, color) {
+    if (typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(coordinate, color)) return Infinity;
+    const cell = colorAt(board, topology, coordinate);
+    if (cell === otherHexColor(color)) return Infinity;
+    return cell === color ? 0 : 1;
+}
+
+function weightedGoalSearch(board, topology, coordinates, color, sourcePredicate, targetPredicate = null) {
     const distances = new Map();
     const queue = [];
     const push = (coordinate, distance) => {
         const key = keyOf(topology, coordinate);
-        if (!key || distance >= (distances.get(key) ?? Infinity)) return;
+        if (!key || distance + DISTANCE_EPSILON >= (distances.get(key) ?? Infinity)) return;
         distances.set(key, distance);
         queue.push({ coordinate, distance });
     };
-    const costOf = (coordinate) => {
-        if (typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(coordinate, color)) return Infinity;
-        const cell = colorAt(board, topology, coordinate);
-        if (cell === opponent) return Infinity;
-        return cell === color ? 0 : 1;
-    };
+
     for (const coordinate of coordinates) {
-        if (!zone.start(coordinate)) continue;
-        const cost = costOf(coordinate);
+        if (!sourcePredicate(coordinate)) continue;
+        const cost = cellCost(board, topology, coordinate, color);
         if (Number.isFinite(cost)) push(coordinate, cost);
     }
+
     let best = Infinity;
     while (queue.length) {
         queue.sort((a, b) => b.distance - a.distance);
         const { coordinate, distance } = queue.pop();
         const key = keyOf(topology, coordinate);
-        if (distance !== distances.get(key)) continue;
-        if (distance >= best) continue;
-        if (zone.end(coordinate)) {
+        if (Math.abs(distance - (distances.get(key) ?? Infinity)) > DISTANCE_EPSILON) continue;
+        if (targetPredicate && distance >= best) continue;
+        if (targetPredicate?.(coordinate)) {
             best = Math.min(best, distance);
             continue;
         }
         for (const neighbor of topology.neighbors(coordinate)) {
-            const cost = costOf(neighbor);
+            const cost = cellCost(board, topology, neighbor, color);
             if (!Number.isFinite(cost)) continue;
             push(neighbor, distance + cost);
         }
     }
-    return Number.isFinite(best) ? best : BLOCKED_DISTANCE;
+
+    return { distances, best: Number.isFinite(best) ? best : BLOCKED_DISTANCE };
+}
+
+function connectionProfile(board, topology, coordinates, color) {
+    const zone = topology.goalZones[color];
+    const fromStart = weightedGoalSearch(board, topology, coordinates, color, zone.start, zone.end);
+    const fromEnd = weightedGoalSearch(board, topology, coordinates, color, zone.end, zone.start);
+    return {
+        start: fromStart.distances,
+        end: fromEnd.distances,
+        best: fromStart.best
+    };
+}
+
+function connectionDistance(board, topology, coordinates, color) {
+    return connectionProfile(board, topology, coordinates, color).best;
 }
 
 function modelCenterScore(topology, coordinate) {
@@ -129,6 +161,105 @@ function neighborScore(board, topology, coordinate, color) {
         else empty += 1;
     }
     return own * 12 + enemy * 5 + empty * 0.4;
+}
+
+function boardPhase(board, coordinates) {
+    const occupied = board.size;
+    const total = Math.max(1, coordinates.length);
+    if (occupied <= Math.max(2, Math.floor(total * 0.04))) return 'opening';
+    if (occupied >= Math.floor(total * 0.72)) return 'endgame';
+    return 'middlegame';
+}
+
+function profileCellSlack(profile, topology, coordinate, cost) {
+    const key = keyOf(topology, coordinate);
+    if (!key) return Infinity;
+    const start = profile.start.get(key);
+    const end = profile.end.get(key);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return Infinity;
+    return start + end - cost - profile.best;
+}
+
+function corridorMembershipScore(profile, topology, coordinate, cost, own = true) {
+    const slack = profileCellSlack(profile, topology, coordinate, cost);
+    if (!Number.isFinite(slack)) return 0;
+    if (slack <= 0) return own ? HEX_RESEARCH_PRIORS.shortestCorridor : HEX_RESEARCH_PRIORS.opponentCut;
+    if (slack <= 1) return own ? HEX_RESEARCH_PRIORS.nearShortestCorridor : HEX_RESEARCH_PRIORS.opponentCut * 0.55;
+    if (slack <= 2) return own ? 10 : 14;
+    return 0;
+}
+
+function frontConnectionScore(board, topology, coordinate, color, profile) {
+    const key = keyOf(topology, coordinate);
+    if (!key) return 0;
+    const neighbors = topology.neighbors(coordinate);
+    let bestStart = Infinity;
+    let bestEnd = Infinity;
+    let ownCount = 0;
+    let emptyOnPath = 0;
+    for (const neighbor of neighbors) {
+        const neighborKey = keyOf(topology, neighbor);
+        if (!neighborKey) continue;
+        bestStart = Math.min(bestStart, profile.start.get(neighborKey) ?? Infinity);
+        bestEnd = Math.min(bestEnd, profile.end.get(neighborKey) ?? Infinity);
+        if (colorAt(board, topology, neighbor) === color) ownCount += 1;
+        else if (colorAt(board, topology, neighbor) === null) {
+            const slack = profileCellSlack(profile, topology, neighbor, 1);
+            if (Number.isFinite(slack) && slack <= 1) emptyOnPath += 1;
+        }
+    }
+    let score = 0;
+    if (Number.isFinite(bestStart) && Number.isFinite(bestEnd)) {
+        score += Math.max(0, HEX_RESEARCH_PRIORS.openingConnectionPressure - (bestStart + bestEnd) * 9);
+    }
+    if (ownCount >= 2) score += HEX_RESEARCH_PRIORS.componentMerge + ownCount * 6;
+    if (emptyOnPath >= 2) score += HEX_RESEARCH_PRIORS.virtualConnector;
+    return score;
+}
+
+function connectedOwnComponentCount(board, topology, seeds, color) {
+    const seenSeeds = new Set();
+    let components = 0;
+    for (const seed of seeds) {
+        const seedKey = keyOf(topology, seed);
+        if (!seedKey || seenSeeds.has(seedKey) || colorAt(board, topology, seed) !== color) continue;
+        components += 1;
+        const queue = [seed];
+        seenSeeds.add(seedKey);
+        for (let index = 0; index < queue.length; index += 1) {
+            for (const neighbor of topology.neighbors(queue[index])) {
+                const neighborKey = keyOf(topology, neighbor);
+                if (!neighborKey || seenSeeds.has(neighborKey) || colorAt(board, topology, neighbor) !== color) continue;
+                seenSeeds.add(neighborKey);
+                queue.push(neighbor);
+            }
+        }
+    }
+    return components;
+}
+
+function componentMergeScore(board, topology, coordinate, color) {
+    const ownNeighbors = topology.neighbors(coordinate)
+        .filter((neighbor) => colorAt(board, topology, neighbor) === color);
+    const components = connectedOwnComponentCount(board, topology, ownNeighbors, color);
+    return components >= 2 ? HEX_RESEARCH_PRIORS.componentMerge * (components - 1) : 0;
+}
+
+function goalContactScore(topology, coordinate, color) {
+    const zone = topology.goalZones[color];
+    let score = 0;
+    if (zone.start(coordinate)) score += HEX_RESEARCH_PRIORS.goalTouch;
+    if (zone.end(coordinate)) score += HEX_RESEARCH_PRIORS.goalTouch;
+    return score;
+}
+
+function openingShapeScore(board, topology, coordinates, coordinate, color, profile) {
+    if (boardPhase(board, coordinates) !== 'opening') return 0;
+    const center = modelCenterScore(topology, coordinate) * 2.2;
+    const path = corridorMembershipScore(profile, topology, coordinate, cellCost(board, topology, coordinate, color), true);
+    const touch = goalContactScore(topology, coordinate, color);
+    const edgePenalty = touch && board.size <= 2 ? HEX_RESEARCH_PRIORS.isolatedEdgePenalty : 0;
+    return HEX_RESEARCH_PRIORS.openingCenter + center + path * 0.75 + edgePenalty;
 }
 
 function commonEmptyConnectorCount(board, topology, first, second, color) {
@@ -156,7 +287,7 @@ function virtualConnectionScore(board, topology, coordinate, color) {
     for (let i = 0; i < ownNeighbors.length; i += 1) {
         for (let j = i + 1; j < ownNeighbors.length; j += 1) {
             const commonEmpty = commonEmptyConnectorCount(board, topology, ownNeighbors[i], ownNeighbors[j], color);
-            score += commonEmpty >= 2 ? 34 : commonEmpty === 1 ? 18 : 8;
+            score += commonEmpty >= 2 ? HEX_RESEARCH_PRIORS.bridgePair : commonEmpty === 1 ? 18 : 8;
         }
     }
 
@@ -179,34 +310,90 @@ function virtualConnectionScore(board, topology, coordinate, color) {
     return score;
 }
 
+function researchKnowledgeScore(board, topology, coordinates, coordinate, color, context = null) {
+    const opponent = otherHexColor(color);
+    const profiles = context || {};
+    const ownBefore = profiles.ownProfile || connectionProfile(board, topology, coordinates, color);
+    const opponentBefore = profiles.opponentProfile || connectionProfile(board, topology, coordinates, opponent);
+    const emptyCost = cellCost(board, topology, coordinate, color);
+    if (!Number.isFinite(emptyCost)) return -WIN_SCORE;
+
+    const ownCorridor = corridorMembershipScore(ownBefore, topology, coordinate, emptyCost, true);
+    const opponentCut = corridorMembershipScore(opponentBefore, topology, coordinate, cellCost(board, topology, coordinate, opponent), false);
+    const frontScore = frontConnectionScore(board, topology, coordinate, color, ownBefore);
+    const mergeScore = componentMergeScore(board, topology, coordinate, color);
+    const openingScore = openingShapeScore(board, topology, coordinates, coordinate, color, ownBefore);
+    const goalScore = goalContactScore(topology, coordinate, color);
+
+    let ownImprovement = 0;
+    let opponentDamage = 0;
+    const useAfterProfiles = coordinates.length <= 900 || board.size <= 24;
+    if (useAfterProfiles) {
+        setColor(board, topology, coordinate, color);
+        const ownAfter = connectionProfile(board, topology, coordinates, color);
+        const opponentAfter = connectionProfile(board, topology, coordinates, opponent);
+        setColor(board, topology, coordinate, null);
+        ownImprovement = Math.max(-8, Math.min(8, ownBefore.best - ownAfter.best));
+        opponentDamage = Math.max(-8, Math.min(8, opponentAfter.best - opponentBefore.best));
+    }
+    const campPenalty = typeof topology.isOpponentCamp === 'function' && topology.isOpponentCamp(coordinate, opponent)
+        ? HEX_RESEARCH_PRIORS.overfilledCampPenalty
+        : 0;
+
+    return ownImprovement * 150
+        + opponentDamage * 118
+        + ownCorridor
+        + opponentCut
+        + frontScore
+        + mergeScore
+        + openingScore
+        + goalScore
+        + campPenalty;
+}
+
 function evaluateBoard(board, topology, coordinates, rootColor) {
     if (hasConnection(board, topology, rootColor)) return WIN_SCORE;
     const opponent = otherHexColor(rootColor);
     if (hasConnection(board, topology, opponent)) return -WIN_SCORE;
-    const rootDistance = connectionDistance(board, topology, coordinates, rootColor);
-    const opponentDistance = connectionDistance(board, topology, coordinates, opponent);
+    const rootProfile = connectionProfile(board, topology, coordinates, rootColor);
+    const opponentProfile = connectionProfile(board, topology, coordinates, opponent);
+    const rootDistance = rootProfile.best;
+    const opponentDistance = opponentProfile.best;
     let stoneScore = 0;
     let centerScore = 0;
+    let pathScore = 0;
     for (const [key, color] of board) {
         const coordinate = topology.coordinate(key);
         const sign = color === rootColor ? 1 : -1;
         stoneScore += sign * 3;
         centerScore += sign * modelCenterScore(topology, coordinate);
+        const profile = color === rootColor ? rootProfile : opponentProfile;
+        pathScore += sign * corridorMembershipScore(profile, topology, coordinate, 0, true) * 0.35;
     }
-    return (opponentDistance - rootDistance) * 115 + stoneScore + centerScore * 2;
+    return (opponentDistance - rootDistance) * 125 + stoneScore + centerScore * 2 + pathScore;
 }
 
 function winRate(score) {
     return 1 / (1 + Math.exp(-Math.max(-900, Math.min(900, score)) / 220));
 }
 
-function scoreMove(board, topology, coordinates, coordinate, color) {
+function createScoreContext(board, topology, coordinates, color) {
+    const opponent = otherHexColor(color);
+    return {
+        ownProfile: connectionProfile(board, topology, coordinates, color),
+        opponentProfile: connectionProfile(board, topology, coordinates, opponent)
+    };
+}
+
+function scoreMove(board, topology, coordinates, coordinate, color, context = null) {
+    const researchScore = researchKnowledgeScore(board, topology, coordinates, coordinate, color, context);
     setColor(board, topology, coordinate, color);
     const ownWin = hasConnection(board, topology, color);
     const ownDistance = connectionDistance(board, topology, coordinates, color);
     const opponentDistance = connectionDistance(board, topology, coordinates, otherHexColor(color));
     const score = (ownWin ? WIN_SCORE / 2 : 0)
         + (opponentDistance - ownDistance) * 120
+        + researchScore
         + neighborScore(board, topology, coordinate, color)
         + virtualConnectionScore(board, topology, coordinate, color)
         + modelCenterScore(topology, coordinate) * 3;
@@ -215,10 +402,11 @@ function scoreMove(board, topology, coordinates, coordinate, color) {
 }
 
 function rankedMoves(board, topology, coordinates, color, cap) {
+    const context = createScoreContext(board, topology, coordinates, color);
     return emptyCoordinates(board, topology, coordinates, color)
         .map((coordinate) => ({
             coordinate,
-            score: scoreMove(board, topology, coordinates, coordinate, color)
+            score: scoreMove(board, topology, coordinates, coordinate, color, context)
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, cap)

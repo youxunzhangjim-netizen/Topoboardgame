@@ -39,6 +39,36 @@
       "features": ["immediateWin", "immediateBlock", "forcedConnection", "searchDepth"],
       "weight": 2.0,
       "sourceIds": ["mohex-paper", "benzene-hex"]
+    },
+    {
+      "id": "hex-standard-mustplay-cut-corridor",
+      "game": "hex",
+      "phase": "middlegame",
+      "boardFamily": "standard",
+      "description": "Treat empty cells on the opponent's shortest or near-shortest connection corridor as mustplay-style cut candidates, but prefer cuts that also lie on the robot's own connection corridor.",
+      "features": ["mustplayRegion", "opponentShortestCorridor", "dualPurposeCut", "connectionDistance"],
+      "weight": 1.9,
+      "sourceIds": ["mohex-paper", "benzene-hex"]
+    },
+    {
+      "id": "hex-standard-resistance-proxy",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Approximate electrical-resistance style influence by rewarding moves that connect low-cost fronts from both target sides and create multiple near-shortest routes instead of a single fragile line.",
+      "features": ["resistanceProxy", "twoFrontConnection", "nearShortestPaths", "cutResistance"],
+      "weight": 1.6,
+      "sourceIds": ["mohex-paper", "benzene-hex", "neurohex-paper"]
+    },
+    {
+      "id": "hex-standard-pattern-prior-search",
+      "game": "hex",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Use pattern-style priors to order alpha-beta candidates: center pressure in the opening, bridge completion, component merging, and forced local replies before lower-value local adjacency.",
+      "features": ["patternPrior", "candidateOrdering", "bridgeTemplate", "componentMerge", "alphaBetaOrdering"],
+      "weight": 1.7,
+      "sourceIds": ["mohex-paper", "benzene-hex", "neurohex-paper"]
     }
   ]
 }
