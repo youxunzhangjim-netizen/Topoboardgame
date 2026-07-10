@@ -59,6 +59,7 @@ class Reversi4DApp {
         };
         this.suppressClickUntil = 0;
         this.pendingMoveChoiceKey = '';
+        this.userSelectedWSlice = false;
         this.logic = this.createLogic();
         this.network = new FirebaseStateNetworkManager(this, { gameKey: this.onlineGameKey(), matchKey: this.onlineMatchKey() });
         this.bindEvents();
@@ -153,15 +154,16 @@ class Reversi4DApp {
             this.render();
         });
         this.wSliceInput?.addEventListener('input', () => {
+            this.userSelectedWSlice = true;
             this.updateViewControls();
             this.render();
         });
         document.getElementById('passBtn').addEventListener('click', () => this.passTurn());
         document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
         this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
-        document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
-        document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
-        document.getElementById('joinRoomBtn')?.addEventListener('click', () => this.network.joinRoom(this.roomIdInput.value));
+        document.getElementById('createRoomBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.createRoom(); });
+        document.getElementById('findMatchBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.findMatch(); });
+        document.getElementById('joinRoomBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.joinRoom(this.roomIdInput.value); });
         this.copyLinkBtn?.addEventListener('click', async () => {
             if (!this.shareLinkInput?.value) return;
             await navigator.clipboard?.writeText(this.shareLinkInput.value);
@@ -235,6 +237,7 @@ class Reversi4DApp {
         this.selectedKey = '';
         this.hoverKey = '';
         this.pendingMoveChoiceKey = '';
+        this.userSelectedWSlice = false;
         this.pieceAges = {};
         this.noiseTick = 0;
         this.updateZoomOptions();
@@ -295,8 +298,11 @@ class Reversi4DApp {
         }
         this.zoomSelect.value = [...this.zoomSelect.options].some((option) => option.value === current) ? current : 'all';
         if (this.wSliceInput) {
-            this.wSliceInput.max = String(Math.max(0, this.logic.topology.wSize - 1));
-            this.wSliceInput.value = String(Math.min(Number(this.wSliceInput.value) || 0, this.logic.topology.wSize - 1));
+            const maxW = Math.max(0, this.logic.topology.wSize - 1);
+            const centerW = Math.floor(maxW / 2);
+            const currentW = Math.min(Number(this.wSliceInput.value) || 0, maxW);
+            this.wSliceInput.max = String(maxW);
+            this.wSliceInput.value = String(this.userSelectedWSlice ? currentW : centerW);
         }
         this.updateViewControls();
     }
@@ -319,6 +325,7 @@ class Reversi4DApp {
             button.textContent = `w=${w}`;
             button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
             button.addEventListener('click', () => {
+                this.userSelectedWSlice = true;
                 this.wSliceInput.value = String(w);
                 this.viewModeSelect.value = 'w_slice';
                 this.zoomSelect.value = 'all';
@@ -679,6 +686,11 @@ class Reversi4DApp {
             this.network?.close?.({ silent: true });
             this.setOnlineColor(null);
         }
+    }
+
+    enterOnlineMode() {
+        if (this.gameModeSelect) this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
     }
 
     setOnlineColor(color, roomId = this.network?.roomId) {

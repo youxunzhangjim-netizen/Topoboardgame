@@ -267,6 +267,7 @@ export class JumpGameApp {
       z: document.getElementById('r3FilterZ') || document.getElementById('sliceZInput'),
       w: document.getElementById('sliceWInput')
     };
+    this.userSelectedWSlice = false;
     this.sliceFilterEl = document.getElementById('r3FilterControl');
     this.focusOwnPieces = false;
     this.sliceProjectionMap = null;
@@ -451,8 +452,14 @@ export class JumpGameApp {
       this.render();
     });
     for (const input of Object.values(this.sliceInputs || {})) {
-      input?.addEventListener('input', () => this.refreshR3SliceFilter());
-      input?.addEventListener('change', () => this.refreshR3SliceFilter());
+      input?.addEventListener('input', () => {
+        if (input === this.sliceInputs?.w) this.userSelectedWSlice = true;
+        this.refreshR3SliceFilter();
+      });
+      input?.addEventListener('change', () => {
+        if (input === this.sliceInputs?.w) this.userSelectedWSlice = true;
+        this.refreshR3SliceFilter();
+      });
     }
     this.viewControls.focusOwn?.addEventListener('click', () => {
       this.focusOwnPieces = !this.focusOwnPieces;
@@ -1056,8 +1063,14 @@ export class JumpGameApp {
     const stacked = false;
     if (this.dimension === 4 && this.sliceInputs?.w) {
       this.sliceInputs.w.max = String(this.game?.size || this.config.size || 5);
-      const current = Math.max(1, Math.min(Number(this.sliceInputs.w.value) || 1, Number(this.sliceInputs.w.max)));
-      this.sliceInputs.w.value = String(current);
+      const maxW = Number(this.sliceInputs.w.max) || 1;
+      const defaultW = Math.max(1, Math.ceil(maxW / 2));
+      const current = Math.max(1, Math.min(Number(this.sliceInputs.w.value) || defaultW, maxW));
+      if (!this.userSelectedWSlice && this.viewModeSelect?.value === 'w_slice') {
+        this.sliceInputs.w.value = String(defaultW);
+      } else {
+        this.sliceInputs.w.value = String(current);
+      }
     }
     this.renderWSliceButtons();
     if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show || allSlices || stacked;
@@ -1076,6 +1089,7 @@ export class JumpGameApp {
       button.textContent = `w=${w}`;
       button.setAttribute('aria-pressed', String(selected === w));
       button.addEventListener('click', () => {
+        this.userSelectedWSlice = true;
         this.sliceInputs.w.value = String(w + 1);
         if (this.viewModeSelect) this.viewModeSelect.value = 'w_slice';
         this.updateViewControls();

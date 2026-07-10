@@ -339,9 +339,12 @@ function renderHistory() {
 
 function fitCanvas() {
     const rect = elements.canvas.getBoundingClientRect();
+    const parentRect = elements.canvas.parentElement?.getBoundingClientRect?.() || rect;
     renderDpr = Math.min(2, window.devicePixelRatio || 1);
-    const width = Math.max(320, Math.round(rect.width));
-    const height = Math.max(380, Math.round(rect.height));
+    const fallbackWidth = parentRect.width || Math.min(window.innerWidth || 960, 1180);
+    const fallbackHeight = parentRect.height || Math.max(520, Math.min((window.innerHeight || 760) - 160, 900));
+    const width = Math.max(320, Math.round(rect.width || fallbackWidth));
+    const height = Math.max(520, Math.round(rect.height || fallbackHeight));
     if (elements.canvas.width !== Math.round(width * renderDpr) || elements.canvas.height !== Math.round(height * renderDpr)) {
         elements.canvas.width = Math.round(width * renderDpr);
         elements.canvas.height = Math.round(height * renderDpr);
@@ -547,11 +550,11 @@ function drawStack(width, height) {
     const ends = targetEnds();
     projectedSites = [];
     const drawnEdges = new Set();
-    context.strokeStyle = 'rgba(160,184,198,0.24)';
-    context.lineWidth = 0.85;
+    context.strokeStyle = 'rgba(178,206,222,0.42)';
+    context.lineWidth = Math.max(0.9, Math.min(1.35, width / 900));
 
     for (let z = 0; z < size; z += 1) {
-        context.fillStyle = z % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(66,199,223,0.025)';
+        context.fillStyle = z % 2 === 0 ? 'rgba(255,255,255,0.045)' : 'rgba(66,199,223,0.05)';
         const layerCorners = [[0, 0, z, w], [size - 1, 0, z, w], [size - 1, size - 1, z, w], [0, size - 1, z, w]]
             .map((coord) => stackPoint(coord, width, height));
         context.beginPath();
@@ -559,6 +562,24 @@ function drawStack(width, height) {
         context.closePath();
         context.fill();
         context.stroke();
+    }
+
+    const targetQuads = [
+        { axis: 0, value: 0, color: 'rgba(66,199,223,0.105)' },
+        { axis: 0, value: ends.x, color: 'rgba(66,199,223,0.105)' },
+        { axis: 1, value: 0, color: 'rgba(232,180,76,0.105)' },
+        { axis: 1, value: ends.y, color: 'rgba(232,180,76,0.105)' }
+    ];
+    for (const target of targetQuads) {
+        const corners = target.axis === 0
+            ? [[target.value, 0, 0, w], [target.value, size - 1, 0, w], [target.value, size - 1, size - 1, w], [target.value, 0, size - 1, w]]
+            : [[0, target.value, 0, w], [size - 1, target.value, 0, w], [size - 1, target.value, size - 1, w], [0, target.value, size - 1, w]];
+        const points = corners.map((coord) => stackPoint(coord, width, height));
+        context.beginPath();
+        points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+        context.closePath();
+        context.fillStyle = target.color;
+        context.fill();
     }
 
     for (let z = 0; z < size; z += 1) {

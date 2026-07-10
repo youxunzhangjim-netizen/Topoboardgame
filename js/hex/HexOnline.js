@@ -134,6 +134,11 @@ export function createHexOnlineController(app, options = {}) {
         }
     }
 
+    function enterOnlineMode() {
+        if (elements.mode) elements.mode.value = 'online';
+        updateMode({ closeWhenLocal: false });
+    }
+
     function renderOnlineChatMessages(messages = []) {
         if (!elements.chatMessages) return;
         elements.chatMessages.replaceChildren();
@@ -170,7 +175,10 @@ export function createHexOnlineController(app, options = {}) {
 
     function joinRoomFromInput() {
         const roomId = elements.roomId?.value.trim();
-        if (roomId) network.joinRoom(roomId);
+        if (roomId) {
+            enterOnlineMode();
+            network.joinRoom(roomId);
+        }
     }
 
     function tryJoinSharedRoomFromUrl() {
@@ -190,8 +198,8 @@ export function createHexOnlineController(app, options = {}) {
     }
 
     elements.mode?.addEventListener('change', () => updateMode());
-    elements.findMatch?.addEventListener('click', () => network.findMatch());
-    elements.createRoom?.addEventListener('click', () => network.createRoom());
+    elements.findMatch?.addEventListener('click', () => { enterOnlineMode(); network.findMatch(); });
+    elements.createRoom?.addEventListener('click', () => { enterOnlineMode(); network.createRoom(); });
     elements.joinRoom?.addEventListener('click', joinRoomFromInput);
     elements.chatSend?.addEventListener('click', sendChat);
     elements.chatInput?.addEventListener('keydown', (event) => {

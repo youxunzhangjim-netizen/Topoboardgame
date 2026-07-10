@@ -56,6 +56,7 @@ class Go4DApp {
         this.myColor = null;
         this.selectedIndex = -1;
         this.hoverIndex = -1;
+        this.userSelectedWSlice = false;
         this.stoneAges = {};
         this.noiseTick = 0;
         this.logic = this.createLogic();
@@ -146,6 +147,7 @@ class Go4DApp {
             this.render();
         });
         this.wSliceInput?.addEventListener('input', () => {
+            this.userSelectedWSlice = true;
             this.updateViewControls();
             this.render();
         });
@@ -154,9 +156,9 @@ class Go4DApp {
         document.getElementById('newGameBtn').addEventListener('click', () => this.resetGame({ broadcast: true }));
         document.getElementById('surrenderBtn').addEventListener('click', () => this.surrender());
         this.gameModeSelect?.addEventListener('change', () => this.updateOnlineControls());
-        document.getElementById('createRoomBtn')?.addEventListener('click', () => this.network.createRoom());
-        document.getElementById('findMatchBtn')?.addEventListener('click', () => this.network.findMatch());
-        document.getElementById('joinRoomBtn')?.addEventListener('click', () => this.network.joinRoom(this.roomIdInput.value));
+        document.getElementById('createRoomBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.createRoom(); });
+        document.getElementById('findMatchBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.findMatch(); });
+        document.getElementById('joinRoomBtn')?.addEventListener('click', () => { this.enterOnlineMode(); this.network.joinRoom(this.roomIdInput.value); });
         this.copyLinkBtn?.addEventListener('click', async () => {
             if (!this.shareLinkInput?.value) return;
             await navigator.clipboard?.writeText(this.shareLinkInput.value);
@@ -223,6 +225,7 @@ class Go4DApp {
         this.logic = this.createLogic();
         this.selectedIndex = -1;
         this.hoverIndex = -1;
+        this.userSelectedWSlice = false;
         this.stoneAges = {};
         this.noiseTick = 0;
         this.updateZoomOptions();
@@ -311,8 +314,11 @@ class Go4DApp {
         }
         this.zoomSelect.value = [...this.zoomSelect.options].some((option) => option.value === current) ? current : 'all';
         if (this.wSliceInput) {
-            this.wSliceInput.max = String(Math.max(0, this.logic.sizes.nw - 1));
-            this.wSliceInput.value = String(Math.min(Number(this.wSliceInput.value) || 0, this.logic.sizes.nw - 1));
+            const maxW = Math.max(0, this.logic.sizes.nw - 1);
+            const centerW = Math.floor(maxW / 2);
+            const currentW = Math.min(Number(this.wSliceInput.value) || 0, maxW);
+            this.wSliceInput.max = String(maxW);
+            this.wSliceInput.value = String(this.userSelectedWSlice ? currentW : centerW);
         }
         this.updateViewControls();
     }
@@ -341,6 +347,7 @@ class Go4DApp {
             button.textContent = `w=${w}`;
             button.setAttribute('aria-pressed', String(Number(this.wSliceInput.value) === w));
             button.addEventListener('click', () => {
+                this.userSelectedWSlice = true;
                 this.wSliceInput.value = String(w);
                 this.viewModeSelect.value = 'w_slice';
                 this.zoomSelect.value = 'all';
@@ -654,6 +661,11 @@ class Go4DApp {
             this.network?.close?.({ silent: true });
             this.setOnlineColor(null);
         }
+    }
+
+    enterOnlineMode() {
+        if (this.gameModeSelect) this.gameModeSelect.value = 'online';
+        this.updateOnlineControls();
     }
 
     setOnlineColor(color, roomId = this.network?.roomId) {

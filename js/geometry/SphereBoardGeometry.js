@@ -1,11 +1,66 @@
-import * as THREE from 'three';
-
 const PHI = (1 + Math.sqrt(5)) / 2;
+
+class Vec3 {
+    constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    clone() {
+        return new Vec3(this.x, this.y, this.z);
+    }
+
+    length() {
+        return Math.hypot(this.x, this.y, this.z);
+    }
+
+    normalize() {
+        const length = this.length() || 1;
+        this.x /= length;
+        this.y /= length;
+        this.z /= length;
+        return this;
+    }
+
+    multiplyScalar(value) {
+        this.x *= value;
+        this.y *= value;
+        this.z *= value;
+        return this;
+    }
+
+    add(vector) {
+        this.x += vector.x;
+        this.y += vector.y;
+        this.z += vector.z;
+        return this;
+    }
+
+    addScaledVector(vector, scale) {
+        this.x += vector.x * scale;
+        this.y += vector.y * scale;
+        this.z += vector.z * scale;
+        return this;
+    }
+
+    dot(vector) {
+        return this.x * vector.x + this.y * vector.y + this.z * vector.z;
+    }
+
+    crossVectors(a, b) {
+        this.x = a.y * b.z - a.z * b.y;
+        this.y = a.z * b.x - a.x * b.z;
+        this.z = a.x * b.y - a.y * b.x;
+        return this;
+    }
+}
+
 const ICOSAHEDRON_VERTICES = Object.freeze([
     [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
     [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
     [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1]
-].map(([x, y, z]) => new THREE.Vector3(x, y, z).normalize()));
+].map(([x, y, z]) => new Vec3(x, y, z).normalize()));
 
 const ICOSAHEDRON_FACES = Object.freeze([
     [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
@@ -20,10 +75,10 @@ function clamp(value, min, max) {
 
 function projectedBasis(normal) {
     const reference = Math.abs(normal.y) < 0.9
-        ? new THREE.Vector3(0, 1, 0)
-        : new THREE.Vector3(1, 0, 0);
+        ? new Vec3(0, 1, 0)
+        : new Vec3(1, 0, 0);
     const tangentA = reference.clone().addScaledVector(normal, -reference.dot(normal)).normalize();
-    const tangentB = new THREE.Vector3().crossVectors(normal, tangentA).normalize();
+    const tangentB = new Vec3().crossVectors(normal, tangentA).normalize();
     return { tangentA, tangentB };
 }
 
