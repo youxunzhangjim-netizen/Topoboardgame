@@ -10,7 +10,7 @@ export const SUPPORT_LINKS = Object.freeze({
   githubSponsors: "",
   koFi: "",
   patreon: "",
-  buyMeACoffee: "BUY_ME_A_COFFEE_URL_HERE",
+  buyMeACoffee: "",
   customDonation: ""
 });
 

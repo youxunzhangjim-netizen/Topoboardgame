@@ -7,9 +7,8 @@ Playable graph board games on flat, periodic, twisted, spherical, projective, 3D
 Topological Board Game is free. Optional donations help support development, documentation, server costs, stability work, research tools, and future Labs.
 
 - Support page: https://youxunzhangjim-netizen.github.io/Topoboardgame/support/
-- Buy Me a Coffee: BUY_ME_A_COFFEE_URL_HERE
 
-GitHub Sponsors can be added later as a future option if direct payout becomes available.
+Donation links are temporarily hidden until the support account is ready. Buy Me a Coffee is the planned primary support option. GitHub Sponsors can be added later as a future option if direct payout becomes available.
 
 ## Algebraic Physical Modes
 

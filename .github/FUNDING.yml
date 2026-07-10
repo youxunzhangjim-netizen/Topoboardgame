@@ -10,5 +10,6 @@
 # patreon: YOUR_PATREON_USERNAME
 # buy_me_a_coffee: YOUR_BUYMEACOFFEE_USERNAME
 
-custom:
-  - "BUY_ME_A_COFFEE_URL_HERE"
+# Enable after the support account is ready:
+# custom:
+#   - "BUY_ME_A_COFFEE_URL_HERE"

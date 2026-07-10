@@ -244,15 +244,8 @@
     <header class="hero">
       <p class="kicker" data-i18n="kicker">Project Support</p>
       <h1 data-i18n="title">Support Topological Board Game</h1>
-      <p class="lead" data-i18n="lead">Topological Board Game is free. Donations are optional and help support development, documentation, server costs, stability work, research tools, and future Labs.</p>
+      <p class="lead" data-i18n="lead">Topological Board Game is free. Donation links are temporarily hidden while the support account is being prepared.</p>
     </header>
-
-    <section aria-labelledby="donationsTitle">
-      <h2 id="donationsTitle" data-i18n="donationsTitle">Optional Donation</h2>
-      <p data-i18n="donationsBody">Donation links only appear here when real support URLs are configured. Donations do not unlock gameplay advantages and are never required.</p>
-      <div id="donationLinks" class="donation-grid" aria-live="polite"></div>
-      <p id="donationEmpty" class="empty-note" data-i18n="donationEmpty">Donation links are being prepared.</p>
-    </section>
 
     <section aria-labelledby="steamNoteTitle">
       <h2 id="steamNoteTitle" data-i18n="steamNoteTitle">Steam note</h2>
@@ -270,20 +263,15 @@
     </footer>
   </main>
 
-  <script type="module">
-    import { getEnabledDonationLinks } from "../js/shared/SupportLinks.js";
-
+  <script>
     const STRINGS = {
       en: {
         pageTitle: "Support Topological Board Game",
         metaDescription: "Optional ways to support development of Topological Board Game.",
         kicker: "Project Support",
         title: "Support Topological Board Game",
-        lead: "Topological Board Game is free. Donations are optional and help support development, documentation, server costs, stability work, research tools, and future Labs.",
-        donationsTitle: "Optional Donation",
-        donationsBody: "Donation links only appear here when real support URLs are configured. Donations do not unlock gameplay advantages and are never required.",
-        donationEmpty: "Donation links are being prepared.",
-        steamNoteTitle: "Steam 說明",
+        lead: "Topological Board Game is free. Donation links are temporarily hidden while the support account is being prepared.",
+        steamNoteTitle: "Steam note",
         steamNote: "The Steam version does not require external donations. If Steam-native supporter content is added in the future, it will use Steam-supported systems.",
         contactTitle: "Contact",
         contactBody: "For support questions, account questions, or development feedback, email:",
@@ -295,11 +283,8 @@
         metaDescription: "支持 Topological Board Game 開發的自願方式。",
         kicker: "專案支持",
         title: "支持《Topological Board Game》",
-        lead: "《Topological Board Game》是免費遊戲。捐款完全自願，會用於支援開發、文件、伺服器成本、穩定性改進、研究工具與未來 Labs。",
-        donationsTitle: "自願捐款",
-        donationsBody: "只有在設定真實支持連結時，捐款按鈕才會顯示在此處。捐款不會解鎖玩法優勢，也永遠不是必要條件。",
-        donationEmpty: "捐款連結準備中。",
-        steamNoteTitle: "Steam 说明",
+        lead: "《Topological Board Game》是免費遊戲。支持帳號準備完成前，捐款連結會暫時隱藏。",
+        steamNoteTitle: "Steam 說明",
         steamNote: "Steam 版本不需要外部捐款。若未來加入 Steam 原生支持內容，將使用 Steam 支援的系統。",
         contactTitle: "聯絡",
         contactBody: "如有支援、帳號或開發回饋問題，請寄信至：",
@@ -311,11 +296,8 @@
         metaDescription: "支持 Topological Board Game 开发的自愿方式。",
         kicker: "项目支持",
         title: "支持《Topological Board Game》",
-        lead: "《Topological Board Game》是免费游戏。捐款完全自愿，会用于支持开发、文档、服务器成本、稳定性改进、研究工具与未来 Labs。",
-        donationsTitle: "自愿捐款",
-        donationsBody: "只有在设置真实支持链接时，捐款按钮才会显示在此处。捐款不会解锁玩法优势，也永远不是必要条件。",
-        donationEmpty: "捐款链接准备中。",
-        steamNoteTitle: "Steam note",
+        lead: "《Topological Board Game》是免费游戏。支持账号准备完成前，捐款链接会暂时隐藏。",
+        steamNoteTitle: "Steam 说明",
         steamNote: "Steam 版本不需要外部捐款。若未来加入 Steam 原生支持内容，将使用 Steam 支持的系统。",
         contactTitle: "联系",
         contactBody: "如有支持、账号或开发反馈问题，请发送邮件至：",
@@ -328,29 +310,9 @@
     const button = document.getElementById("supportLanguageButton");
     const menu = document.getElementById("supportLanguageMenu");
     const languageButtons = Array.from(menu.querySelectorAll("[data-lang]"));
-    const donationLinks = document.getElementById("donationLinks");
-    const donationEmpty = document.getElementById("donationEmpty");
-
-    let currentLanguage = "en";
-
-    function renderDonationLinks() {
-      const enabledLinks = getEnabledDonationLinks();
-      donationLinks.replaceChildren();
-      donationEmpty.hidden = enabledLinks.length > 0;
-      enabledLinks.forEach((link) => {
-        const anchor = document.createElement("a");
-        anchor.className = "donation-link";
-        anchor.href = link.url;
-        anchor.rel = "noopener noreferrer";
-        anchor.textContent = currentLanguage === "en" ? link.label : (link.labelZh || link.label);
-        donationLinks.append(anchor);
-      });
-    }
-
     function setLanguage(lang) {
       const nextLang = STRINGS[lang] ? lang : "en";
       const strings = STRINGS[nextLang];
-      currentLanguage = nextLang;
       document.documentElement.lang = nextLang;
       document.title = strings.pageTitle;
       const description = document.querySelector('meta[name="description"]');
@@ -367,7 +329,6 @@
       } catch (error) {
         /* Ignore private browsing storage failures. */
       }
-      renderDonationLinks();
     }
 
     function closeMenu() {
