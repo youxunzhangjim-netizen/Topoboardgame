@@ -185,6 +185,7 @@ const elements = {
     sliceZValue: document.getElementById('sliceZValue'),
     sliceWValue: document.getElementById('sliceWValue'),
     wSliceButtons: document.getElementById('wSliceButtons'),
+    threeDViewControls: document.getElementById('threeDViewControls'),
     rotationX: document.getElementById('rotationX'),
     rotationY: document.getElementById('rotationY'),
     rotation: document.getElementById('projectionRotation'),
@@ -276,11 +277,14 @@ function newGame() {
 }
 
 function updateSliceLabels() {
+    const is3DInteractiveView = elements.viewMode.value === 'stack' || elements.viewMode.value === 'projection';
     elements.sliceZValue.textContent = elements.sliceZ.value;
     elements.sliceWValue.textContent = elements.sliceW.value;
     elements.sliceZ.closest('label').hidden = elements.viewMode.value !== 'slice';
     elements.sliceW.closest('label').hidden = elements.viewMode.value === 'all_slices';
     elements.sliceControls.hidden = elements.viewMode.value === 'all_slices';
+    if (elements.threeDViewControls) elements.threeDViewControls.hidden = !is3DInteractiveView;
+    if (elements.resetView) elements.resetView.hidden = !is3DInteractiveView;
     renderWSliceButtons();
 }
 

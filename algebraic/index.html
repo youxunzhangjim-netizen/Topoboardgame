@@ -171,7 +171,7 @@
                             <option value="triangular">Triangular</option>
                         </select>
                     </label>
-                    <label id="physicalProblemControl">
+                    <label id="physicalProblemControl" hidden aria-hidden="true">
                         Research Problem
                         <select id="physicalProblemSelect">
                             <option value="" selected>None</option>
@@ -1349,7 +1349,7 @@
                         <div><span>Successful Unbraids</span><strong id="qecUnbraidSuccess">0</strong></div>
                         <div><span>Failed Unbraids</span><strong id="qecUnbraidFail">0</strong></div>
                     </div>
-                    <p id="qecObservableSummary">Select the toric-code memory physical problem to begin.</p>
+                    <p id="qecObservableSummary">Choose Topological Memory Worldlines to show QEC observables.</p>
                 </section>
 
                 <section class="qec-observable-panel" id="stabilizerObservablePanel" hidden>
@@ -1364,7 +1364,7 @@
                         <div><span>Measurement Errors</span><strong id="stabilizerMeasurementErrors">0</strong></div>
                         <div><span>Vacuum</span><strong id="stabilizerVacuumState">Not recovered</strong></div>
                     </div>
-                    <p id="stabilizerObservableSummary">Select the Pauli error-correction / recovery physical problem to begin.</p>
+                    <p id="stabilizerObservableSummary">Choose Pauli-Frame Recovery Operators to show stabilizer observables.</p>
                 </section>
 
                 <section id="timeEvolutionPanel" hidden>

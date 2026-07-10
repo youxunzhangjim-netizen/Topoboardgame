@@ -3414,6 +3414,25 @@ function selectedPhysicalProblemId() {
     return String(els.physicalProblemSelect?.value || '').trim();
 }
 
+function defaultResearchProblemForMode(mode = selectedMode()) {
+    const normalizedMode = normalizeMode(mode) || mode;
+    if (normalizedMode === 'physical_anyon_jump') return 'toric_code_memory_unbraid';
+    if (normalizedMode === 'physical_clifford_reversi') return 'stabilizer_pauli_recovery';
+    if (normalizedMode === 'physical_virasoro_go') return 'cft_conformal_block_observables';
+    return '';
+}
+
+function syncDefaultResearchProblemForModel(mode = selectedMode()) {
+    if (!els.physicalProblemSelect) return;
+    const defaultProblem = defaultResearchProblemForMode(mode);
+    if (!defaultProblem) return;
+    const option = [...els.physicalProblemSelect.options].find((entry) => entry.value === defaultProblem);
+    if (!option) return;
+    option.hidden = false;
+    option.disabled = false;
+    els.physicalProblemSelect.value = selectedPhysicalProblemId() || defaultProblem;
+}
+
 function applyResearchProblemModelSelection(problemId = selectedPhysicalProblemId()) {
     if (!problemId || !els.modeSelect) return;
     const mapping = {
@@ -3694,6 +3713,10 @@ function syncModeControls() {
     const isPhysicalClifford = base === 'clifford_reversi'
         && (els.cliffordAlgebraSetSelect.value === 'physical' || mode === 'physical_clifford_reversi');
     const isStandardClifford = isClifford && !isPhysicalClifford;
+    if (els.physicalProblemControl) {
+        els.physicalProblemControl.hidden = true;
+        els.physicalProblemControl.setAttribute('aria-hidden', 'true');
+    }
     if (els.modeSelect.value !== mode) els.modeSelect.value = mode;
     if (mode === 'physical_clifford_reversi') els.cliffordAlgebraSetSelect.value = 'physical';
     if (els.modeControl) els.modeControl.hidden = false;
@@ -3792,6 +3815,7 @@ function syncModeControls() {
                 : isPhysicalClifford ? ['', 'stabilizer_pauli_recovery'] : [''],
             ''
         );
+        syncDefaultResearchProblemForModel(mode);
     }
     const qecProblem = isAnyon && selectedPhysicalProblemId() === 'toric_code_memory_unbraid';
     els.qecPairsEControl.hidden = !qecProblem;

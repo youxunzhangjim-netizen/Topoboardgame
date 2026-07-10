@@ -852,6 +852,8 @@ const ZH = new Map(Object.entries({
   'Discrete graph estimators only; these are not exact continuum CFT conformal blocks.': '這些僅為離散圖估計量，不是精確的連續 CFT 共形塊。',
   'Select the toric-code memory physical problem to begin.': '選擇 Toric Code 記憶物理問題以開始。',
   'Select the Pauli error-correction / recovery physical problem to begin.': '選擇 Pauli 糾錯／恢復物理問題以開始。',
+  'Choose Topological Memory Worldlines to show QEC observables.': '選擇拓撲記憶世界線模型即可顯示 QEC 可觀測量。',
+  'Choose Pauli-Frame Recovery Operators to show stabilizer observables.': '選擇 Pauli-frame 恢復算符模型即可顯示 stabilizer 可觀測量。',
   'Algebraic operator sandboxes - Clifford': '代數算符沙盒 - Clifford',
   'Algebraic operator sandboxes - Anyon': '代數算符沙盒 - Anyon',
   'Algebraic operator sandboxes - Virasoro': '代數算符沙盒 - Virasoro',

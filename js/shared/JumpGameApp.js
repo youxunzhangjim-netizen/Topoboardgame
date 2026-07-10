@@ -253,6 +253,7 @@ export class JumpGameApp {
     this.trainedRobotScorer = null;
     this.view = { rotX: -26, rotY: 32, rotZ: 0, zoom: 1, drag: null };
     this.viewControls = {
+      panel: document.querySelector('.view-settings'),
       rotX: document.getElementById('viewRotateX'),
       rotY: document.getElementById('viewRotateY'),
       rotZ: document.getElementById('viewRotateZ'),
@@ -1061,6 +1062,7 @@ export class JumpGameApp {
     const show = this.isFreeAxis3DBoard();
     const allSlices = this.dimension === 4 && this.viewModeSelect?.value === 'all_slices';
     const stacked = false;
+    const show3DViewPanel = this.dimension === 3 || (this.dimension === 4 && this.viewModeSelect?.value === 'w_slice');
     if (this.dimension === 4 && this.sliceInputs?.w) {
       this.sliceInputs.w.max = String(this.game?.size || this.config.size || 5);
       const maxW = Number(this.sliceInputs.w.max) || 1;
@@ -1073,6 +1075,7 @@ export class JumpGameApp {
       }
     }
     this.renderWSliceButtons();
+    if (this.viewControls.panel) this.viewControls.panel.hidden = !show3DViewPanel;
     if (this.sliceFilterEl) this.sliceFilterEl.hidden = !show || allSlices || stacked;
     if (this.viewControls.focusOwn) this.viewControls.focusOwn.hidden = !show;
     this.viewControls.cameraPad?.classList.toggle('is-visible', show);
