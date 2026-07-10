@@ -1,6 +1,6 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-07-09T19:41:53.094Z",
+  "generatedAt": "2026-07-10T19:13:25.186Z",
   "game": "go",
   "boardFamily": "standard",
   "manifest": [
@@ -337,7 +337,7 @@
       "game": "go",
       "phase": "opening",
       "boardFamily": "standard",
-      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it. This encodes the local proverb 金角銀邊草肚皮 as a weighted prior, not as an absolute rule.",
+      "description": "Fuseki candidates prefer efficient corner claims, side extensions, stable shape, and influence only when the whole-board balance supports it. This encodes the proverb jin jiao, yin bian, cao du pi as a weighted prior, not as an absolute rule.",
       "features": [
         "cornerEfficiency",
         "sideExtension",
@@ -356,7 +356,7 @@
       "game": "go",
       "phase": "middlegame",
       "boardFamily": "standard",
-      "description": "Local reading should score double-atari (雙叫吃), atari defense, making eyes (做眼), false-eye risk, ladders, nets, and snapback-like captures before slow territory moves.",
+      "description": "Local reading should score double-atari, atari defense, making eyes, false-eye risk, ladders, nets, and snapback-like captures before slow territory moves.",
       "features": [
         "doubleAtari",
         "atariDefense",
@@ -377,7 +377,7 @@
       "game": "go",
       "phase": "all",
       "boardFamily": "standard",
-      "description": "Shape moves such as one-point jump, knight move, large knight move (大飛), attachment, hane, and pulling/leading moves (引) are evaluated by connection strength, cutting weakness, and sente value.",
+      "description": "Shape moves such as one-point jump, knight move, large knight move, attachment, hane, and pulling/leading moves are evaluated by connection strength, cutting weakness, and sente value.",
       "features": [
         "onePointJump",
         "knightMove",
@@ -489,6 +489,47 @@
       "sourceIds": [
         "katago-selfplay-paper",
         "katago-official"
+      ]
+    },
+    {
+      "id": "go-standard-professional-local-reading",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "standard",
+      "description": "Robot ranking should read urgent local tactics first: capture groups in atari, save own atari groups, avoid self-atari, connect weak groups, cut opponent groups, and avoid filling true eyes unless the capture value justifies it.",
+      "features": [
+        "atariCapture",
+        "atariDefense",
+        "selfAtariPenalty",
+        "connectWeakGroups",
+        "cutOpponentGroups",
+        "eyeFillPenalty"
+      ],
+      "weight": 2.05,
+      "sourceIds": [
+        "katago-official",
+        "katago-selfplay-paper",
+        "topoboardgame-local-notes"
+      ]
+    },
+    {
+      "id": "go-standard-joseki-book-as-prior",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "standard",
+      "description": "Professional joseki and fuseki knowledge is used as a policy prior, not as a forced line. Search may override it when capture, group safety, ownership, or whole-board value is better.",
+      "features": [
+        "josekiPrior",
+        "fusekiPrior",
+        "policyPrior",
+        "searchOverride",
+        "wholeBoardValue"
+      ],
+      "weight": 1.72,
+      "sourceIds": [
+        "katago-official",
+        "cwi-go-games",
+        "topoboardgame-local-notes"
       ]
     }
   ],

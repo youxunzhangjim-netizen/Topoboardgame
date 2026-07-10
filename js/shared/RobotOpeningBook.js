@@ -361,6 +361,49 @@ function goCornerTargets(dims, phase) {
   return targets;
 }
 
+function localGoGraphShapeScore(logic, move, player) {
+  if (!move?.coord || typeof logic?.indexFromCoord !== 'function' || typeof logic?.neighborsFromIndex !== 'function') return 0;
+  const index = logic.indexFromCoord(move.coord);
+  if (!Number.isInteger(index) || index < 0) return 0;
+  const ownValue = player === 'white' ? 2 : 1;
+  const enemyValue = player === 'white' ? 1 : 2;
+  const seenOwn = new Set();
+  const seenEnemy = new Set();
+  let ownWeak = 0;
+  let enemyWeak = 0;
+  let ownGroups = 0;
+  let enemyGroups = 0;
+  let emptyNeighbors = 0;
+  for (const next of logic.neighborsFromIndex(index)) {
+    if (!isPlayable(logic, next)) continue;
+    const value = boardValueAt(logic, next);
+    if (value === ownValue && !seenOwn.has(next)) {
+      const group = logic.getGroupAndLiberties?.(logic.board, next);
+      if (group) {
+        for (const stone of group.group) seenOwn.add(stone);
+        ownGroups += 1;
+        if (group.liberties.size <= 2) ownWeak += 1;
+      }
+    } else if (value === enemyValue && !seenEnemy.has(next)) {
+      const group = logic.getGroupAndLiberties?.(logic.board, next);
+      if (group) {
+        for (const stone of group.group) seenEnemy.add(stone);
+        enemyGroups += 1;
+        if (group.liberties.size <= 2) enemyWeak += 1;
+      }
+    } else if (!value) {
+      emptyNeighbors += 1;
+    }
+  }
+  let score = 0;
+  if (ownWeak) score += 22 * ownWeak;
+  if (enemyWeak) score += 25 * enemyWeak;
+  if (ownGroups >= 2) score += 18 + 6 * (ownGroups - 2);
+  if (enemyGroups >= 2) score += 16 + 5 * (enemyGroups - 2);
+  if (emptyNeighbors <= 1 && !move.captured) score -= 16;
+  return score;
+}
+
 function localGoKnowledgeScore(logic, move, player) {
   const names = [];
   const strategy = LOCAL_STRATEGY_BOOKS.go;
@@ -385,6 +428,38 @@ function localGoKnowledgeScore(logic, move, player) {
   if ((move.captured || 0) > 0 || move.opponentTerritoryInvasion) {
     score += 10 * yose.ownershipSwing;
     appendKnowledgeName(names, 'local ownershipSwing');
+  }
+  const graphStrategy = localGoGraphShapeScore(logic, move, player);
+  if (Math.abs(graphStrategy) >= 8) {
+    score += 0.42 * graphStrategy;
+    appendKnowledgeName(names, graphStrategy > 0 ? 'graph tesuji/shape' : 'shape risk');
+  }
+  return { score, names };
+}
+
+function goTopologyOpeningAdjustment(logic, move, dims, minEdge, centerDistance) {
+  const topology = String(logic?.topology?.topology || logic?.topology || '').toLowerCase();
+  const lattice = String(logic?.topology?.lattice || logic?.lattice || '').toLowerCase();
+  const closed = /pbc|t2|t3|torus|sphere|rp2|klein|mobius/.test(topology);
+  let score = 0;
+  const names = [];
+  if (closed) {
+    if (minEdge <= 0) score += 18;
+    score += Math.max(0, 24 - centerDistance * (dims.length === 3 ? 1.1 : 1.5));
+    appendKnowledgeName(names, 'closed-board graph balance');
+  } else if (minEdge === 1 || minEdge === 2) {
+    score += 10;
+    appendKnowledgeName(names, 'hard-boundary efficient extension');
+  }
+  if (lattice === 'honeycomb') {
+    score += 8;
+    appendKnowledgeName(names, 'honeycomb liberty safety');
+  } else if (lattice === 'triangular') {
+    score += 5;
+    appendKnowledgeName(names, 'triangular high-degree influence');
+  } else if (lattice === 'bcc' || lattice === 'fcc' || lattice === 'hcp') {
+    score += 7;
+    appendKnowledgeName(names, '3D lattice junction control');
   }
   return { score, names };
 }
@@ -412,11 +487,14 @@ export function chooseGoOpeningBookMove(logic, legalMoves, player = logic?.curre
     if (move.opponentTerritoryInvasion) score += 14;
     if ((move.captured || 0) > 0) score += Math.min(36, move.captured * 12);
     if (String(logic?.topology || '').includes('sphere') && move.coord.length === 2) score += 8;
+    const topologyAdjustment = goTopologyOpeningAdjustment(logic, move, dims, minEdge, centerDistance);
+    score += topologyAdjustment.score;
     const local = localGoKnowledgeScore(logic, move, player);
     score += local.score;
     if (!best || score > best.score) {
       const baseName = target?.name || 'early board opportunity';
-      best = { move, score, name: openingName(baseName, local.names), knowledge: local.names };
+      const knowledge = [...topologyAdjustment.names, ...local.names];
+      best = { move, score, name: openingName(baseName, knowledge), knowledge };
     }
   }
   if (!best || best.score < 70) return null;

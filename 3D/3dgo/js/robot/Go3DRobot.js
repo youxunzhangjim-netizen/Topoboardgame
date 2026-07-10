@@ -1,6 +1,7 @@
 import { GoGameLogic, COLORS, otherColor, valueToColor } from '../GoGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 import { chooseGoOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
+import { explainGoStrategicMove, scoreGoStrategicMove } from '../../../../js/shared/GoStrategyHeuristics.js';
 
 const TOPOLOGY_INFLUENCE = new Set(['t3', 'r3_random', 't2', 'cylinder', 'sphere_latitude_ring', 'klein_bottle', 'mobius_strip', 'rp2']);
 const BUDGET = { 1: 80, 2: 200, 3: 420, 4: 760 };
@@ -320,6 +321,7 @@ function movePrior(logic, move, player) {
   if (move.ownTerritoryFill) score -= ownTerritoryFillPenalty(logic, move);
   if (move.opponentTerritoryInvasion) score += Math.min(14, Math.max(0, Number(move.regionSize) || 0));
   if (move.neutralRegion) score += Math.min(8, Math.max(0, Number(move.regionSize) || 0) * 0.25);
+  score += scoreGoStrategicMove(logic, move, player, { COLORS, valueToColor, otherColor });
   score += basicShapeScore(logic, move, player);
   score += territoryProtectionMoveScore(logic, move, player);
   const idx = trial.indexFromCoord(move.coord);
@@ -345,6 +347,7 @@ function staticMovePrior(logic, move, player) {
   if (move.ownTerritoryFill) score -= ownTerritoryFillPenalty(logic, move);
   if (move.opponentTerritoryInvasion) score += Math.min(16, Math.max(0, Number(move.regionSize) || 0));
   if (move.neutralRegion) score += Math.min(10, Math.max(0, Number(move.regionSize) || 0) * 0.18);
+  score += scoreGoStrategicMove(logic, move, player, { COLORS, valueToColor, otherColor });
   score += basicShapeScore(logic, move, player);
   score += topologyStaticBonus(logic, move.coord);
   score += centerInfluence(logic, move.coord);
@@ -706,6 +709,9 @@ function moveReason(logic, move, beforeScore, afterScore) {
   if (logic.topology === 'mobius_strip') reasons.push('checks Mobius twisted seam');
   if (logic.topology === 'rp2') reasons.push('checks RP2 antipodal boundary');
   if (logic.lattice !== 'sc' && logic.lattice !== 'square') reasons.push(`uses ${logic.lattice.toUpperCase()} lattice liberties`);
+  for (const reason of explainGoStrategicMove(logic, move, logic.currentPlayer, { COLORS, valueToColor, otherColor })) {
+    if (!reasons.includes(reason)) reasons.push(reason);
+  }
   return reasons.length ? reasons : ['best MCTS/root-search candidate'];
 }
 function render(panel, a) {

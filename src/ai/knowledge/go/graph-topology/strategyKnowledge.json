@@ -1,6 +1,6 @@
 {
   "schema": "topoboardgame.ai.strategy_knowledge.v1",
-  "generatedAt": "2026-07-09T19:41:53.095Z",
+  "generatedAt": "2026-07-10T19:13:25.188Z",
   "game": "go",
   "boardFamily": "graph-topology",
   "manifest": [
@@ -346,7 +346,8 @@
       ],
       "weight": 1.5,
       "sourceIds": [
-        "katago-official"
+        "katago-official",
+        "go-on-graphs"
       ]
     },
     {
@@ -364,7 +365,7 @@
       "weight": 1.65,
       "sourceIds": [
         "katago-official",
-        "cwi-go-games"
+        "katago-selfplay-paper"
       ]
     },
     {
@@ -396,7 +397,7 @@
       "game": "go",
       "phase": "opening",
       "boardFamily": "graph-topology",
-      "description": "Generalize 金角銀邊草肚皮 by replacing literal corners/sides/center with hard-boundary anchors, seam cycles, graph centrality, and region boundary length. On closed boards, do not invent corner bonuses where no hard corner exists.",
+      "description": "Generalize corner-side-center wisdom by replacing literal corners/sides/center with hard-boundary anchors, seam cycles, graph centrality, and region boundary length. On closed boards, do not invent corner bonuses where no hard corner exists.",
       "features": [
         "hardBoundaryAnchor",
         "seamCycleControl",
@@ -467,6 +468,47 @@
         "go-on-graphs",
         "katago-selfplay-paper",
         "topoboardgame-local-notes"
+      ]
+    },
+    {
+      "id": "go-graph-topology-tactical-prior",
+      "game": "go",
+      "phase": "all",
+      "boardFamily": "graph-topology",
+      "description": "Graph-topology robots should score atari captures, atari saves, self-atari avoidance, connection, cut points, and eye-shape by playable graph adjacency only. Visual closeness is not a liberty.",
+      "features": [
+        "atariCapture",
+        "atariDefense",
+        "selfAtariPenalty",
+        "graphConnection",
+        "graphCut",
+        "eyeShape",
+        "visualDistanceIgnored"
+      ],
+      "weight": 2,
+      "sourceIds": [
+        "go-on-graphs",
+        "katago-selfplay-paper",
+        "topoboardgame-local-notes"
+      ]
+    },
+    {
+      "id": "go-graph-topology-closed-board-opening",
+      "game": "go",
+      "phase": "opening",
+      "boardFamily": "graph-topology",
+      "description": "Closed boards such as torus, sphere, RP2, Mobius, and Klein bottle should replace edge/corner opening priors with graph-balance, seam-cycle, and high-degree-junction control.",
+      "features": [
+        "closedBoardOpening",
+        "seamCycleControl",
+        "highDegreeJunction",
+        "graphBalance",
+        "noFakeCorners"
+      ],
+      "weight": 1.78,
+      "sourceIds": [
+        "go-on-graphs",
+        "katago-selfplay-paper"
       ]
     }
   ],

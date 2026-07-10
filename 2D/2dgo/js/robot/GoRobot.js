@@ -1,6 +1,7 @@
 import { COLORS, GoGameLogic, otherColor, valueToColor } from '../GoGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 import { chooseGoOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
+import { explainGoStrategicMove, scoreGoStrategicMove } from '../../../../js/shared/GoStrategyHeuristics.js';
 
 const MCTS_BUDGET_BY_LEVEL = { 1: 90, 2: 220, 3: 520, 4: 900 };
 const TIME_BY_LEVEL_MS = { 1: 180, 2: 430, 3: 850, 4: 1400 };
@@ -648,6 +649,7 @@ function quickMoveScore(logic, move, player) {
         if (color === otherColor(player)) enemyNeighbors += 1;
     }
     score += 1.0 * friendlyNeighbors + 1.4 * enemyNeighbors;
+    score += scoreGoStrategicMove(logic, move, player, { COLORS, valueToColor, otherColor });
     score += basicGoShapeScore(logic, move, player);
     score += territoryProtectionMoveScore(logic, move, player);
     return score;
@@ -1030,6 +1032,9 @@ function explainGoMove(before, after, move, player, score) {
     if (before.topology === 'random') reasons.push('uses legal neighborhoods from the fixed 2D RBC map');
     if (before.lattice === 'honeycomb') reasons.push('honeycomb groups need extra liberty safety');
     if (before.lattice === 'triangular') reasons.push('triangular lattice gives higher local degree, so influence spreads faster');
+    for (const reason of explainGoStrategicMove(before, move, player, { COLORS, valueToColor, otherColor })) {
+        if (!reasons.includes(reason)) reasons.push(reason);
+    }
     if (score < -15) reasons.push('bad because opponent replies reduce the searched value');
     if (!reasons.length) reasons.push('keeps the searched position stable');
     return reasons;
