@@ -27,7 +27,7 @@ import {
 } from './LabBatchCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from './LabLanguageMenu.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
-import { createScientificMetadataRow } from '../ScientificTextFormatter.js';
+import { createScientificMetadataRow, formatScientificText } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('./LabBatchRunner.js');
@@ -422,14 +422,16 @@ function renderObservables() {
         const checked = selected.has(observable.id);
         const card = document.createElement('article');
         card.className = 'observable-card';
+        const definition = language === 'zh' ? zhObservableDefinition(observable) : observable.definition;
+        const limitations = language === 'zh' ? uiText('finiteGraphLimitation', language) : observable.limitations.join(' ');
         card.innerHTML = `
             <label>
                 <input type="checkbox" value="${observable.id}" ${checked ? 'checked' : ''}>
                 <span>${observable.name}</span>
             </label>
-            <small><strong>${uiText('definition', language)}:</strong> ${language === 'zh' ? zhObservableDefinition(observable) : observable.definition}</small>
-            <small>${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}</small>
-            <small><strong>${uiText('cost', language)}:</strong> ${observable.computationalCost}; <strong>${uiText('limitations', language)}:</strong> ${language === 'zh' ? uiText('finiteGraphLimitation', language) : observable.limitations.join(' ')}</small>
+            <small><strong>${uiText('definition', language)}:</strong> ${formatScientificText(definition)}</small>
+            <small>${formatScientificText(`${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}`)}</small>
+            <small><strong>${uiText('cost', language)}:</strong> ${formatScientificText(observable.computationalCost)}; <strong>${uiText('limitations', language)}:</strong> ${formatScientificText(limitations)}</small>
         `;
         card.querySelector('input').addEventListener('change', (event) => {
             if (builderMode !== 'compare' || !event.target.checked) return;

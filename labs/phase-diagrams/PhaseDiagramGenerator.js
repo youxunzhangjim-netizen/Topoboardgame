@@ -30,7 +30,7 @@ import {
 } from './LabPhaseCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
 import { researchDescription, researchWarning } from '../LabResearchDescriptions.js';
-import { createScientificMetadataRow, setScientificText } from '../ScientificTextFormatter.js';
+import { createScientificMetadataRow, formatScientificText, setScientificText } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('../experiments/LabBatchRunner.js');
@@ -615,13 +615,14 @@ function renderObservables() {
         const primary = observable.id === els.classificationObservableSelect.value;
         const card = document.createElement('article');
         card.className = `observable-card${primary ? ' is-disabled' : ''}`;
+        const definition = language === 'zh' ? observable.physicalMeaning : observable.definition;
         card.innerHTML = `
             <label>
                 <input type="checkbox" value="${observable.id}" ${previousAux.has(observable.id) ? 'checked' : ''} ${primary ? 'disabled' : ''}>
                 <span>${observable.name}</span>
             </label>
-            <small>${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}</small>
-            <small>${language === 'zh' ? observable.physicalMeaning : observable.definition}</small>
+            <small>${formatScientificText(`${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}`)}</small>
+            <small>${formatScientificText(definition)}</small>
         `;
         els.auxObservableList.append(card);
     }

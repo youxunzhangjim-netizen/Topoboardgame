@@ -37,7 +37,7 @@ import {
     topologySiteCount
 } from './LabTopologyCompareCore.js';
 import { installLabLanguageMenu, syncLabLanguageMenu } from '../experiments/LabLanguageMenu.js';
-import { createScientificMetadataRow } from '../ScientificTextFormatter.js';
+import { createScientificMetadataRow, formatScientificText } from '../ScientificTextFormatter.js';
 
 async function runBatchSequentialLazy(...args) {
     const { runBatchSequential } = await import('../experiments/LabBatchRunner.js');
@@ -571,10 +571,11 @@ function renderObservablesAndDetectors() {
         const card = document.createElement('article');
         card.className = 'observable-card';
         const checked = previousObservables.has(observable.id) || (!previousObservables.size && model.observables.indexOf(observable) < 2);
+        const definition = language === 'zh' ? observable.physicalMeaning : observable.definition;
         card.innerHTML = `
             <label><input type="checkbox" value="${observable.id}" ${checked ? 'checked' : ''}> <span>${observable.name}</span></label>
-            <small>${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}</small>
-            <small>${language === 'zh' ? observable.physicalMeaning : observable.definition}</small>
+            <small>${formatScientificText(`${observable.category} / ${observable.estimatorType} / ${observable.validationLevel}`)}</small>
+            <small>${formatScientificText(definition)}</small>
         `;
         card.querySelector('input').addEventListener('change', updateRunEstimate);
         els.observableList.append(card);
@@ -586,8 +587,8 @@ function renderObservablesAndDetectors() {
         card.className = 'observable-card';
         card.innerHTML = `
             <label><input type="checkbox" value="${detector.id}" ${checked ? 'checked' : ''}> <span>${text(detector.label, language)}</span></label>
-            <small>${detector.eventType} / ${detector.exactness}</small>
-            <small>${detector.limitations.join(' ')}</small>
+            <small>${formatScientificText(`${detector.eventType} / ${detector.exactness}`)}</small>
+            <small>${formatScientificText(detector.limitations.join(' '))}</small>
         `;
         els.detectorList.append(card);
     }

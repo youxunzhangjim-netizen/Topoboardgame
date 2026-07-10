@@ -27,7 +27,7 @@ import {
     createPhysicalModeDefinition,
     isPhysicalVariantMode
 } from '../../js/physics/PhysicalGameFramework.js';
-import { setScientificText } from '../../labs/ScientificTextFormatter.js';
+import { formatScientificText, setScientificText } from '../../labs/ScientificTextFormatter.js';
 import {
     createPrivateRoom,
     findMatch,
@@ -2882,8 +2882,8 @@ function renderLabObservableMethods(mode = selectedMode()) {
         const value = sample.values[spec.id];
         card.innerHTML = `
             <div><strong>${labLocalized(spec.name)}</strong><output>${formatObservableValue(value)} ${spec.units}</output></div>
-            <p><b>${currentLabLanguage() === 'zh' ? '定義' : 'Definition'}:</b> ${labLocalized(spec.definition)}</p>
-            <p><b>${currentLabLanguage() === 'zh' ? '意義' : 'Meaning'}:</b> ${labLocalized(spec.meaning)}</p>
+            <p><b>${currentLabLanguage() === 'zh' ? '定義' : 'Definition'}:</b> ${formatScientificText(labLocalized(spec.definition))}</p>
+            <p><b>${currentLabLanguage() === 'zh' ? '意義' : 'Meaning'}:</b> ${formatScientificText(labLocalized(spec.meaning))}</p>
         `;
         card.addEventListener('click', () => {
             els.labObservableFigureSelect.value = spec.id;
@@ -3234,7 +3234,7 @@ function updateLabWorkspace() {
     const topology = topologyIdentity();
     const experimentHash = currentExperimentHash(mode);
     if (els.labHeaderModelName) els.labHeaderModelName.textContent = MODE_LABELS[mode];
-    if (els.labHeaderDescription) els.labHeaderDescription.textContent = metadata.description;
+    setScientificText(els.labHeaderDescription, metadata.description);
     if (els.labValidationBadge) {
         els.labValidationBadge.textContent = metadata.validationLevel;
         els.labValidationBadge.dataset.level = metadata.validationLevel;
@@ -3242,14 +3242,14 @@ function updateLabWorkspace() {
     if (els.labModelFamilyBadge) els.labModelFamilyBadge.textContent = `${metadata.section} / ${metadata.family}`;
     if (els.labExperimentHashBadge) els.labExperimentHashBadge.textContent = experimentHash;
     if (els.labAppVersionBadge) els.labAppVersionBadge.textContent = `v${LAB_APP_VERSION}`;
-    if (els.labStateLocalStates) els.labStateLocalStates.textContent = metadata.stateSpace.localStates;
-    if (els.labStateEncoding) els.labStateEncoding.textContent = metadata.stateSpace.encoding;
-    if (els.labStateConstraints) els.labStateConstraints.textContent = metadata.stateSpace.constraints;
-    if (els.labStateInterpretation) els.labStateInterpretation.textContent = metadata.stateSpace.interpretation;
-    if (els.labRuleName) els.labRuleName.textContent = metadata.rule.name;
-    if (els.labRuleNeighborhood) els.labRuleNeighborhood.textContent = metadata.rule.neighborhood;
-    if (els.labRuleSchedule) els.labRuleSchedule.textContent = metadata.rule.schedule;
-    if (els.labRuleDeterminism) els.labRuleDeterminism.textContent = metadata.rule.deterministic;
+    setScientificText(els.labStateLocalStates, metadata.stateSpace.localStates);
+    setScientificText(els.labStateEncoding, metadata.stateSpace.encoding);
+    setScientificText(els.labStateConstraints, metadata.stateSpace.constraints);
+    setScientificText(els.labStateInterpretation, metadata.stateSpace.interpretation);
+    setScientificText(els.labRuleName, metadata.rule.name);
+    setScientificText(els.labRuleNeighborhood, metadata.rule.neighborhood);
+    setScientificText(els.labRuleSchedule, metadata.rule.schedule);
+    setScientificText(els.labRuleDeterminism, metadata.rule.deterministic);
     if (els.labRuleHash) els.labRuleHash.textContent = currentRuleHash(mode);
     if (els.labInitialPreset) els.labInitialPreset.textContent = currentInitialConditionText(mode);
     if (els.labInitialSeed) els.labInitialSeed.textContent = els.noiseSeedInput?.value || 'topology-seed';
@@ -3270,9 +3270,9 @@ function updateLabWorkspace() {
                     : 'computed from graph adjacency when adapter data is available';
     }
     if (els.labTopologyHash) els.labTopologyHash.textContent = topology.hash;
-    if (els.labResearchAssumptions) els.labResearchAssumptions.textContent = metadata.assumptions;
-    if (els.labResearchApproximation) els.labResearchApproximation.textContent = metadata.approximation;
-    if (els.labResearchValidation) els.labResearchValidation.textContent = metadata.validation;
+    setScientificText(els.labResearchAssumptions, metadata.assumptions);
+    setScientificText(els.labResearchApproximation, metadata.approximation);
+    setScientificText(els.labResearchValidation, metadata.validation);
     if (els.labResearchReferences) els.labResearchReferences.textContent = 'References placeholder; attach benchmark notes before raising validation level.';
     renderLabScienceIntroduction(mode);
     renderLabObservableMethods(mode);

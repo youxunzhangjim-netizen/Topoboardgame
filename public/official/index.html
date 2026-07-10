@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topological Board Game Official Support</title>
+  <meta name="description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <link rel="canonical" href="https://youxunzhangjim-netizen.github.io/Topoboardgame/official/">
+  <meta property="og:title" content="Topological Board Game Official Support">
+  <meta property="og:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/official/">
+  <meta property="og:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Topological Board Game Official Support">
+  <meta name="twitter:description" content="Official non-playable information page for Topological Board Game: Steam desktop release, support, privacy, screenshots, Discord, GitHub, and contact.">
+  <meta name="twitter:image" content="https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Topological Board Game",
+      "applicationCategory": "Game",
+      "operatingSystem": "Windows, Web",
+      "url": "https://youxunzhangjim-netizen.github.io/Topoboardgame/official/",
+      "image": "https://youxunzhangjim-netizen.github.io/Topoboardgame/brand/topoboardgame-icon-1024.png",
+      "description": "A free experimental abstract strategy game where board games, Life systems, and scientific Labs are played across different lattices, dimensions, boundaries, and topologies.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(13, 22, 34, 0.9);
+      --line: rgba(148, 213, 255, 0.22);
+      --text: #eef7fb;
+      --muted: #b8c9d4;
+      --gold: #f4c95d;
+      --blue: #70d7ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 78% 10%, rgba(112, 215, 255, 0.2), transparent 32%),
+        linear-gradient(135deg, #06101d, #0d1724 52%, #050910);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a { color: var(--blue); font-weight: 800; text-decoration: none; }
+    a:hover, a:focus-visible { color: var(--gold); outline: none; }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
+      gap: 28px;
+      align-items: center;
+      padding: clamp(22px, 4vw, 42px);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(7, 14, 24, 0.78);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero img {
+      width: 100%;
+      max-width: 240px;
+      justify-self: center;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(83, 176, 255, 0.18);
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1, h2 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(34px, 6vw, 72px);
+      max-width: 860px;
+    }
+
+    h2 {
+      color: #f7d886;
+      font-size: clamp(22px, 3vw, 34px);
+      margin-bottom: 12px;
+    }
+
+    .lead {
+      max-width: 860px;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 21px);
+      font-weight: 650;
+    }
+
+    .link-grid,
+    .section-grid,
+    .screenshots {
+      display: grid;
+      gap: 16px;
+    }
+
+    .link-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin: 26px 0;
+    }
+
+    .link-card,
+    section {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .link-card {
+      padding: 16px;
+      min-height: 96px;
+    }
+
+    .link-card span,
+    section p,
+    li {
+      color: var(--muted);
+    }
+
+    section {
+      padding: clamp(18px, 3vw, 28px);
+      margin-top: 18px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .screenshots {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    figure {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid rgba(238, 247, 251, 0.14);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    figure img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    figcaption {
+      padding: 10px 12px 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .privacy-note {
+      border-left: 3px solid var(--gold);
+      padding-left: 14px;
+    }
+
+    footer {
+      padding: 22px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 780px) {
+      main { width: min(100% - 20px, 1120px); padding-top: 20px; }
+      .hero { grid-template-columns: 1fr; }
+      .hero img { max-width: 180px; order: -1; }
+      .link-grid, .screenshots { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Official information page</p>
+        <h1>Topological Board Game</h1>
+        <p class="lead">A free experimental abstract strategy game where board games, Life systems, and scientific Labs are explored across different lattices, dimensions, boundaries, and topologies.</p>
+      </div>
+      <img src="../brand/topoboardgame-icon-512.png" alt="Topological Board Game neon cup icon">
+    </header>
+
+    <nav class="link-grid" aria-label="Official links">
+      <a class="link-card" href="https://store.steampowered.com/app/4894560/" rel="noopener noreferrer">
+        <strong>Steam</strong><br>
+        <span>The Steam version is the official desktop release.</span>
+      </a>
+      <a class="link-card" href="../discord/">
+        <strong>Discord</strong><br>
+        <span>Community, support, bug reports, and development discussion.</span>
+      </a>
+      <a class="link-card" href="https://github.com/youxunzhangjim-netizen/Topoboardgame" rel="noopener noreferrer">
+        <strong>GitHub</strong><br>
+        <span>Source repository, issues, documentation, and release history.</span>
+      </a>
+      <a class="link-card" href="mailto:youxunzhangjim@gmail.com?subject=Topological%20Board%20Game%20support">
+        <strong>Contact</strong><br>
+        <span>Email support and feedback for Topological Board Game.</span>
+      </a>
+    </nav>
+
+    <section id="about">
+      <h2>About This Game</h2>
+      <p>Topological Board Game is an experimental strategy and research-play platform. It includes familiar board-game families such as Chess, Go, Reversi, Jump / Chinese Checkers, and Hex, then changes the board space: flat boards, cylinders, tori, spheres, higher-dimensional grids, periodic boundaries, twisted boundaries, and research-oriented discrete topological dynamics.</p>
+      <p>Life World explores cellular automata, artificial life, evolution, ecology, species interaction, mutation, noise, and topology-dependent growth. Topoboard Labs focuses on physics, mathematics, information, graph dynamics, and reproducible experiments.</p>
+      <p>This page is intentionally non-playable: it contains official project information, screenshots, privacy notes, and support links only.</p>
+    </section>
+
+    <section>
+      <h2>中文簡介</h2>
+      <p lang="zh-Hant">Topological Board Game 是免費的實驗性抽象策略棋盤遊戲與研究遊玩平台，結合棋類、Life 世界、細胞自動機、拓撲、數學、物理、生物啟發系統與 Topoboard Labs。</p>
+      <p lang="zh-Hans">Topological Board Game 是免费的实验性抽象策略棋盘游戏与研究游玩平台，结合棋类、Life 世界、细胞自动机、拓扑、数学、物理、生物启发系统与 Topoboard Labs。</p>
+    </section>
+
+    <section id="screenshots">
+      <h2>Screenshots</h2>
+      <div class="screenshots">
+        <figure>
+          <img src="../screenshots/01_torus_chess_en_1920x1080.png" alt="Torus Chess screenshot">
+          <figcaption>Torus Chess with boundary-aware strategy.</figcaption>
+        </figure>
+        <figure>
+          <img src="../screenshots/02_torus_triangular_go_en_1920x1080.png" alt="Torus triangular Go screenshot">
+          <figcaption>Go on a torus with triangular lattice geometry.</figcaption>
+        </figure>
+        <figure>
+          <img src="../screenshots/03_2d_honeycomb_reversi_en_1920x1080.png" alt="Honeycomb Reversi screenshot">
+          <figcaption>Honeycomb Reversi with graph-like local structure.</figcaption>
+        </figure>
+        <figure>
+          <img src="../screenshots/04_3d_jump_tilted_en_1920x1080.png" alt="3D Jump screenshot">
+          <figcaption>3D Jump with rotatable spatial boards.</figcaption>
+        </figure>
+        <figure>
+          <img src="../screenshots/05_sphere_geodesic_hex_en_1920x1080.png" alt="Sphere Geodesic Hex screenshot">
+          <figcaption>Hex on a geodesic sphere with colored target regions.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="support">
+      <h2>Support</h2>
+      <ul>
+        <li>Steam desktop release: <a href="https://store.steampowered.com/app/4894560/" rel="noopener noreferrer">Steam app page</a></li>
+        <li>Community and bug reports: <a href="../discord/">Discord page</a></li>
+        <li>Source and issue tracking: <a href="https://github.com/youxunzhangjim-netizen/Topoboardgame" rel="noopener noreferrer">GitHub repository</a></li>
+        <li>Email: <a href="mailto:youxunzhangjim@gmail.com">youxunzhangjim@gmail.com</a></li>
+      </ul>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <p class="privacy-note">Topological Board Game uses only public client configuration in website builds. Do not put private API keys, Materials Project keys, Steam credentials, or other secrets in frontend files. Online rooms may use Firebase/Firestore configuration that is intended to be public client configuration, while security is controlled by Firestore rules.</p>
+      <p>For the full repository privacy text, see <a href="https://github.com/youxunzhangjim-netizen/Topoboardgame/blob/main/PRIVACY_POLICY.md" rel="noopener noreferrer">PRIVACY_POLICY.md on GitHub</a>.</p>
+    </section>
+
+    <footer>
+      <p>Copyright © 2026 You-Xun Zhang / Topological Board Game.</p>
+    </footer>
+  </main>
+</body>
+</html>
