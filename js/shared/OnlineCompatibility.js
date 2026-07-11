@@ -15,6 +15,10 @@ const TEXT = Object.freeze({
     en: "Room settings do not match this game mode.",
     zh: "房間設定與目前遊戲模式不一致。"
   },
+  "Room is full.": {
+    en: "Room is full.",
+    zh: "房間已滿。"
+  },
   "Website and Steam players can join the same compatible rooms.": {
     en: "Website and Steam players can join the same compatible rooms.",
     zh: "網站版與 Steam 版玩家可以加入相容的同一房間。"
@@ -57,7 +61,23 @@ function languageKey(lang = "en") {
   return lang === "zh" || lang === "zh-TW" || lang === "zh-Hant" ? "zh" : "en";
 }
 
-export function canJoinRoom(localConfig, room) {
+function roomOccupantUids(room = {}) {
+  return new Set([
+    room.players?.waiting,
+    room.players?.white,
+    room.players?.black
+  ].filter(Boolean));
+}
+
+function isFullForLocalPlayer(localConfig = {}, room = {}) {
+  const uid = localConfig.uid || localConfig.playerUid || "";
+  const occupants = roomOccupantUids(room);
+  if (uid && occupants.has(uid)) return false;
+  if (room.status === "waiting") return false;
+  return Boolean(room.players?.white && room.players?.black);
+}
+
+export function canJoinRoom(localConfig = {}, room) {
   const problems = [];
 
   if (!room) {
@@ -78,6 +98,10 @@ export function canJoinRoom(localConfig, room) {
 
   if (room && localConfig.matchKey && room.matchKey && room.matchKey !== localConfig.matchKey) {
     problems.push("Room settings do not match this game mode.");
+  }
+
+  if (room && (localConfig.uid || localConfig.playerUid) && isFullForLocalPlayer(localConfig, room)) {
+    problems.push("Room is full.");
   }
 
   // Do NOT reject because clientKind differs.

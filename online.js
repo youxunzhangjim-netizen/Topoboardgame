@@ -58,6 +58,9 @@ const onlineBuildConfig = {
 // checks, not a namespace that splits matchmaking pools.
 const roomsPath = 'rooms';
 const usersPath = 'users';
+const movesCollectionName = 'moves';
+const chatCollectionName = 'chat';
+const legacyChatCollectionName = 'messages';
 const authLogPrefix = '[Topoboardgame Firebase/Auth]';
 const requiredFirebaseEnvNames = [
     'VITE_FIREBASE_API_KEY',
@@ -999,7 +1002,24 @@ function playerProfileForRoom(currentUser = user) {
         defaultLanguage: profile.defaultLanguage || 'en',
         showEmail: Boolean(profile.showEmail),
         publicEmail: profile.showEmail ? (profile.publicEmail || '') : '',
-        allowRobotLearning: profile.allowRobotLearning !== false
+        allowRobotLearning: profile.allowRobotLearning !== false,
+        // Metadata only. This is intentionally not part of matchKey.
+        clientKind: onlineBuildConfig.clientKind,
+        edition: onlineBuildConfig.edition
+    };
+}
+
+function playerClientForRoom(currentUser = user) {
+    if (!currentUser?.uid) return null;
+    return {
+        uid: currentUser.uid,
+        clientKind: onlineBuildConfig.clientKind,
+        edition: onlineBuildConfig.edition,
+        onlinePool: onlineBuildConfig.pool,
+        onlineEnv: onlineBuildConfig.environment,
+        roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
+        appVersion: globalThis.__TBG_VERSION__?.version || 'unknown',
+        buildCommit: globalThis.__TBG_VERSION__?.commit || 'unknown'
     };
 }
 
@@ -1342,6 +1362,11 @@ function waitingPlayerProfile(room) {
     return info.waiting || info.white || info.black || null;
 }
 
+function waitingPlayerClient(room) {
+    const info = room?.playerClients || {};
+    return info.waiting || info.white || info.black || null;
+}
+
 function randomizeMatchedPlayerInfo(room, joiningProfile, waitingColor = randomPlayerColor()) {
     const waitingProfile = waitingPlayerProfile(room);
     if (!waitingProfile || !joiningProfile || waitingProfile.uid === joiningProfile.uid) return room?.playerInfo || {};
@@ -1350,6 +1375,20 @@ function randomizeMatchedPlayerInfo(room, joiningProfile, waitingColor = randomP
         black: waitingColor === 'black' ? waitingProfile : joiningProfile,
         waiting: null
     };
+}
+
+function randomizeMatchedPlayerClients(room, joiningClient, waitingColor = randomPlayerColor()) {
+    const waitingClient = waitingPlayerClient(room);
+    if (!waitingClient || !joiningClient || waitingClient.uid === joiningClient.uid) return room?.playerClients || {};
+    return {
+        white: waitingColor === 'white' ? waitingClient : joiningClient,
+        black: waitingColor === 'black' ? waitingClient : joiningClient,
+        waiting: null
+    };
+}
+
+function playerUidsFromPlayers(players = {}) {
+    return [...new Set([players.waiting, players.white, players.black].filter(Boolean))];
 }
 
 function randomizeMatchedPlayers(room, joiningUid) {
@@ -1683,6 +1722,8 @@ export async function createPrivateRoom(initialBoard) {
 
     const ref = doc(collection(db, roomsPath));
     const board = firestoreValue(initialBoard ?? hooks.getCurrentBoardState?.());
+    const profile = playerProfileForRoom(user);
+    const client = playerClientForRoom(user);
     await withTimeout(setDoc(ref, {
         status: 'waiting',
         public: false,
@@ -1692,10 +1733,16 @@ export async function createPrivateRoom(initialBoard) {
             black: null
         },
         playerInfo: {
-            waiting: playerProfileForRoom(user),
+            waiting: profile,
             white: null,
             black: null
         },
+        playerClients: {
+            waiting: client,
+            white: null,
+            black: null
+        },
+        playerUids: [user.uid],
         hostUid: user.uid,
         // Placeholder required by existing room schema. The real first turn is
         // randomized when the second player joins.
@@ -1738,7 +1785,8 @@ function currentOnlineCompatibilityConfig() {
         roomProtocolVersion: ONLINE_CONFIG.roomProtocolVersion,
         onlinePool: onlineBuildConfig.pool,
         gameKey: hooks.gameKey,
-        matchKey: hooks.matchKey
+        matchKey: hooks.matchKey,
+        uid: user?.uid || auth?.currentUser?.uid || ''
     };
 }
 
@@ -1778,16 +1826,21 @@ export async function joinPrivateRoom(rawRoomId) {
             const assignment = randomizeMatchedPlayers(room, user.uid);
             if (!assignment) throw new Error('Room is full or already finished.');
             const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
+            const nextPlayerClients = randomizeMatchedPlayerClients(room, playerClientForRoom(user), assignment.waitingColor);
             const nextRoom = {
                 ...room,
                 status: 'playing',
                 players: assignment.players,
                 playerInfo: nextPlayerInfo,
+                playerClients: nextPlayerClients,
+                playerUids: playerUidsFromPlayers(assignment.players),
                 turn: assignment.turn
             };
             transaction.update(ref, {
                 players: assignment.players,
                 playerInfo: nextPlayerInfo,
+                playerClients: nextPlayerClients,
+                playerUids: playerUidsFromPlayers(assignment.players),
                 status: 'playing',
                 turn: nextRoom.turn,
                 updatedAt: serverTimestamp()
@@ -1799,16 +1852,21 @@ export async function joinPrivateRoom(rawRoomId) {
             const assignment = randomizeMatchedPlayers(room, user.uid);
             if (!assignment) throw new Error('Room is full or already finished.');
             const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
+            const nextPlayerClients = randomizeMatchedPlayerClients(room, playerClientForRoom(user), assignment.waitingColor);
             const nextRoom = {
                 ...room,
                 status: 'playing',
                 players: assignment.players,
                 playerInfo: nextPlayerInfo,
+                playerClients: nextPlayerClients,
+                playerUids: playerUidsFromPlayers(assignment.players),
                 turn: assignment.turn
             };
             transaction.update(ref, {
                 players: assignment.players,
                 playerInfo: nextPlayerInfo,
+                playerClients: nextPlayerClients,
+                playerUids: playerUidsFromPlayers(assignment.players),
                 status: 'playing',
                 turn: nextRoom.turn,
                 updatedAt: serverTimestamp()
@@ -1824,6 +1882,8 @@ export async function joinPrivateRoom(rawRoomId) {
         transaction.update(ref, {
             [`players.${openColor}`]: user.uid,
             [`playerInfo.${openColor}`]: playerProfileForRoom(user),
+            [`playerClients.${openColor}`]: playerClientForRoom(user),
+            playerUids: playerUidsFromPlayers({ ...(room.players || {}), [openColor]: user.uid }),
             status: 'playing',
             updatedAt: serverTimestamp()
         });
@@ -1832,7 +1892,9 @@ export async function joinPrivateRoom(rawRoomId) {
                 ...room,
                 status: 'playing',
                 players: { ...room.players, [openColor]: user.uid },
-                playerInfo: { ...(room.playerInfo || {}), [openColor]: playerProfileForRoom(user) }
+                playerInfo: { ...(room.playerInfo || {}), [openColor]: playerProfileForRoom(user) },
+                playerClients: { ...(room.playerClients || {}), [openColor]: playerClientForRoom(user) },
+                playerUids: playerUidsFromPlayers({ ...(room.players || {}), [openColor]: user.uid })
             },
             color: openColor
         };
@@ -1890,6 +1952,8 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) {
             if (!allowCreate) return null;
+            const profile = playerProfileForRoom(user);
+            const client = playerClientForRoom(user);
             const room = {
                 status: 'waiting',
                 public: true,
@@ -1899,10 +1963,16 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
                     black: null
                 },
                 playerInfo: {
-                    waiting: playerProfileForRoom(user),
+                    waiting: profile,
                     white: null,
                     black: null
                 },
+                playerClients: {
+                    waiting: client,
+                    white: null,
+                    black: null
+                },
+                playerUids: [user.uid],
                 hostUid: user.uid,
                 turn: initialTurn,
                 gameKey: hooks.gameKey,
@@ -1936,16 +2006,21 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
         const assignment = randomizeMatchedPlayers(room, user.uid);
         if (!assignment) return null;
         const nextPlayerInfo = randomizeMatchedPlayerInfo(room, playerProfileForRoom(user), assignment.waitingColor);
+        const nextPlayerClients = randomizeMatchedPlayerClients(room, playerClientForRoom(user), assignment.waitingColor);
         const nextRoom = {
             ...room,
             status: 'playing',
             players: assignment.players,
             playerInfo: nextPlayerInfo,
+            playerClients: nextPlayerClients,
+            playerUids: playerUidsFromPlayers(assignment.players),
             turn: assignment.turn
         };
         transaction.update(ref, {
             players: assignment.players,
             playerInfo: nextPlayerInfo,
+            playerClients: nextPlayerClients,
+            playerUids: playerUidsFromPlayers(assignment.players),
             status: 'playing',
             turn: nextRoom.turn,
             updatedAt: serverTimestamp()
@@ -2084,7 +2159,7 @@ export async function sendMove(move) {
     if (!roomId || !playerColor) throw new Error('Join a room before moving.');
     const ref = roomReference();
 
-    await withTimeout(runTransaction(db, async (transaction) => {
+    const logEntry = await withTimeout(runTransaction(db, async (transaction) => {
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists()) throw new Error('Room not found.');
         const room = snapshot.data();
@@ -2114,25 +2189,56 @@ export async function sendMove(move) {
             },
             updatedAt: serverTimestamp()
         });
+        return {
+            moveNumber: (Number(room.moveNumber) || 0) + 1,
+            lastMove,
+            nextTurn
+        };
     }), 'Send move');
+
+    try {
+        await withTimeout(addDoc(collection(db, roomsPath, roomId, movesCollectionName), {
+            gameKey: hooks.gameKey,
+            matchKey: hooks.matchKey,
+            moveNumber: logEntry.moveNumber,
+            player: playerColor,
+            uid: user.uid,
+            nextTurn: logEntry.nextTurn,
+            move: firestoreValue(logEntry.lastMove),
+            createdAt: serverTimestamp()
+        }), 'Write move log');
+    } catch (error) {
+        authWarn('sendMove: compact move log write failed', authErrorSummary(error));
+    }
 }
 
-export function listenToChat(id = roomId) {
-    requireReady();
-    const normalized = normalizeRoomId(id);
-    if (!normalized) return null;
-    unsubscribeChat?.();
+function subscribeChatCollection(normalized, collectionName, onError) {
     const messagesQuery = query(
-        collection(db, roomsPath, normalized, 'messages'),
+        collection(db, roomsPath, normalized, collectionName),
         orderBy('createdAt', 'asc'),
         limit(100)
     );
-    unsubscribeChat = onSnapshot(messagesQuery, (snapshot) => {
+    return onSnapshot(messagesQuery, (snapshot) => {
         hooks.onChatMessages?.(snapshot.docs.map((message) => ({
             id: message.id,
             ...message.data()
         })));
-    }, (error) => {
+    }, onError);
+}
+
+export function listenToChat(id = roomId, { useLegacy = false } = {}) {
+    requireReady();
+    const normalized = normalizeRoomId(id);
+    if (!normalized) return null;
+    unsubscribeChat?.();
+    const collectionName = useLegacy ? legacyChatCollectionName : chatCollectionName;
+    unsubscribeChat = subscribeChatCollection(normalized, collectionName, (error) => {
+        if (!useLegacy) {
+            authWarn('listenToChat: chat collection failed; trying legacy messages collection', authErrorSummary(error));
+            unsubscribeChat?.();
+            listenToChat(normalized, { useLegacy: true });
+            return;
+        }
         status(`Chat connection failed: ${error.message}`);
     });
     return unsubscribeChat;
@@ -2143,7 +2249,7 @@ export async function sendChatMessage(text) {
     const message = String(text || '').trim().slice(0, 240);
     if (!roomId || !playerColor) throw new Error('Join a room before chatting.');
     if (!message) return false;
-    await withTimeout(addDoc(collection(db, roomsPath, roomId, 'messages'), {
+    await withTimeout(addDoc(collection(db, roomsPath, roomId, chatCollectionName), {
         text: message,
         uid: user.uid,
         player: playerColor,
@@ -2201,11 +2307,19 @@ export async function leaveRoom({ updateRemote = true, forget = true } = {}) {
                 if (color) {
                     updates[`players.${color}`] = null;
                     updates[`playerInfo.${color}`] = null;
+                    updates[`playerClients.${color}`] = null;
                 }
                 if (waiting) {
                     updates['players.waiting'] = null;
                     updates['playerInfo.waiting'] = null;
+                    updates['playerClients.waiting'] = null;
                 }
+                const nextPlayers = {
+                    ...(room.players || {}),
+                    ...(color ? { [color]: null } : {}),
+                    ...(waiting ? { waiting: null } : {})
+                };
+                updates.playerUids = playerUidsFromPlayers(nextPlayers);
                 transaction.update(ref, updates);
             });
         } catch {

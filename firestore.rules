@@ -139,7 +139,7 @@ service cloud.firestore {
       function validRoomPlayerProfile(profile, uid) {
         return profile is map
           && profile.keys().hasAll(["uid", "displayName", "accountKind", "photoURL"])
-          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "defaultLanguage", "showEmail", "publicEmail", "allowRobotLearning"])
+          && profile.keys().hasOnly(["uid", "displayName", "accountKind", "photoURL", "joinedDate", "bio", "location", "favoriteGame", "defaultLanguage", "showEmail", "publicEmail", "allowRobotLearning", "clientKind", "edition"])
           && profile.uid == uid
           && profile.displayName is string
           && profile.displayName.size() > 0
@@ -149,6 +149,8 @@ service cloud.firestore {
           && validOptionalRoomProfileString(profile, "location", 40)
           && validOptionalRoomProfileString(profile, "favoriteGame", 40)
           && validOptionalRoomProfileString(profile, "defaultLanguage", 12)
+          && validOptionalRoomProfileString(profile, "clientKind", 20)
+          && validOptionalRoomProfileString(profile, "edition", 40)
           && validOptionalRoomProfileBool(profile, "showEmail")
           && validOptionalRoomProfileBool(profile, "allowRobotLearning")
           && validOptionalRoomProfileString(profile, "publicEmail", 120)
@@ -419,6 +421,55 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 240;
+        allow update, delete: if false;
+      }
+
+      match /chat/{messageId} {
+        function roomData() {
+          return get(/databases/$(database)/documents/rooms/$(roomId)).data;
+        }
+
+        function isRoomPlayer() {
+          return request.auth != null
+            && (
+              roomData().players.white == request.auth.uid
+              || roomData().players.black == request.auth.uid
+            );
+        }
+
+        allow read: if isRoomPlayer();
+        allow create: if isRoomPlayer()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 240
+          && request.resource.data.player is string
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() <= 120;
+        allow update, delete: if false;
+      }
+
+      match /moves/{moveId} {
+        function roomData() {
+          return get(/databases/$(database)/documents/rooms/$(roomId)).data;
+        }
+
+        function isRoomPlayer() {
+          return request.auth != null
+            && (
+              roomData().players.white == request.auth.uid
+              || roomData().players.black == request.auth.uid
+            );
+        }
+
+        allow read: if isRoomPlayer();
+        allow create: if isRoomPlayer()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.player is string
+          && request.resource.data.moveNumber is number
+          && request.resource.data.gameKey == roomData().gameKey
+          && request.resource.data.matchKey == roomData().matchKey
+          && request.resource.data.move is map;
         allow update, delete: if false;
       }
     }
