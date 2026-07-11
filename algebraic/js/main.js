@@ -28,18 +28,62 @@ import {
     isPhysicalVariantMode
 } from '../../js/physics/PhysicalGameFramework.js';
 import { formatScientificText, setScientificText } from '../../labs/ScientificTextFormatter.js';
-import {
-    createPrivateRoom,
-    findMatch,
-    getOnlineState,
-    initOnline,
-    joinPrivateRoom,
-    leaveRoom,
-    reconnectRoom,
-    sendChatMessage,
-    sendMove
-} from '../../online.js';
 import { buildOnlineMatchKey } from '../../js/shared/OnlineMatchKey.js';
+
+let onlineApiPromise = null;
+let lastOnlineImportError = '';
+
+function loadOnlineApi() {
+    if (!onlineApiPromise) {
+        onlineApiPromise = import('../../online.js').catch((error) => {
+            lastOnlineImportError = String(error?.message || error || 'Online service is unavailable.');
+            return null;
+        });
+    }
+    return onlineApiPromise;
+}
+
+function offlineOnlineState() {
+    return {
+        initialized: false,
+        configured: false,
+        build: {},
+        uid: null,
+        roomId: '',
+        playerColor: null,
+        room: null,
+        onlineStatus: 'offline-unavailable',
+        onlineError: lastOnlineImportError
+    };
+}
+
+async function callOnlineApi(name, fallback, ...args) {
+    const api = await loadOnlineApi();
+    if (api?.[name]) return api[name](...args);
+    if (typeof fallback === 'function') return fallback(...args);
+    return { ok: false, error: lastOnlineImportError || 'Online unavailable. Local experiments still work.' };
+}
+
+function getOnlineState() {
+    return globalThis.TopoboardgameLabsOnlineApi?.getOnlineState?.() || offlineOnlineState();
+}
+
+async function initOnline(options = {}) {
+    const api = await loadOnlineApi();
+    if (api) {
+        globalThis.TopoboardgameLabsOnlineApi = api;
+        return api.initOnline(options);
+    }
+    return { ok: false, configured: false, error: lastOnlineImportError || 'Online unavailable. Local experiments still work.' };
+}
+
+const createPrivateRoom = (...args) => callOnlineApi('createPrivateRoom', null, ...args);
+const findMatch = (...args) => callOnlineApi('findMatch', null, ...args);
+const joinPrivateRoom = (...args) => callOnlineApi('joinPrivateRoom', null, ...args);
+const leaveRoom = (...args) => callOnlineApi('leaveRoom', () => ({ ok: true }), ...args);
+const reconnectRoom = (...args) => callOnlineApi('reconnectRoom', null, ...args);
+const sendChatMessage = (...args) => callOnlineApi('sendChatMessage', null, ...args);
+const sendMove = (...args) => callOnlineApi('sendMove', null, ...args);
 
 const els = {
     labsModelCatalog: document.querySelector('#labsModelCatalog'),

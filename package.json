@@ -110,6 +110,8 @@
     "verify:hex-robot-strategy": "node verification/verify-hex-robot-strategy.mjs",
     "verify:go-robot-strategy": "node verification/verify-go-robot-strategy.mjs",
     "verify:jump-ui": "node verification/verify-jump-ui.mjs",
+    "verify:steam-smoke": "node verification/steam-smoke-test.mjs",
+    "verify:steam-package": "node verification/verify-steam-package.mjs",
     "verify:steam-safe": "node verification/verify-steam-safe-build.mjs",
     "clean:release": "node scripts/package-release.mjs clean",
     "pack:web-lite": "npm run build && node scripts/package-release.mjs web-lite",
@@ -148,7 +150,20 @@
       "LICENSE.md",
       "COMMERCIAL_LICENSE_REQUEST.md",
       "THIRD_PARTY_NOTICES.md",
-      "STEAM_RELEASE_CHECKLIST.md"
+      "STEAM_RELEASE_CHECKLIST.md",
+      "!node_modules/**/*",
+      "!local-data/**/*",
+      "!research-data/**/*",
+      "!training-data/**/*",
+      "!selfplay/**/*",
+      "!test-results/**/*",
+      "!playwright-report/**/*",
+      "!steamworks/sdk/**/*",
+      "!**/*.jsonl",
+      "!**/*.steamguard",
+      "!**/.env",
+      "!**/.env.*",
+      "!steamworks/steam_config.local.json"
     ],
     "extraMetadata": {
       "main": "local-app/electron/main.cjs"

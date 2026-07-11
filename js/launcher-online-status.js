@@ -1,11 +1,3 @@
-import {
-    getAccountState,
-    initAccountSession,
-    initOnline,
-    subscribeAccountState,
-    subscribeWaitingRooms
-} from '../online.js';
-
 const ACTIVE_ROOM_TTL_MS = 5 * 60 * 1000;
 let lastRooms = [];
 let lastError = null;
@@ -13,6 +5,17 @@ let unsubscribeWaitingRooms = null;
 let startPromise = null;
 let watchdogTimer = 0;
 let watchGeneration = 0;
+let onlineApiPromise = null;
+
+function loadOnlineApi() {
+    if (!onlineApiPromise) {
+        onlineApiPromise = import('../online.js').catch((error) => {
+            lastError = new Error(`Online unavailable. Local play is still available. ${error?.message || error}`);
+            return null;
+        });
+    }
+    return onlineApiPromise;
+}
 
 function timestampToMillis(value) {
     if (!value) return 0;
@@ -62,18 +65,23 @@ async function startWatching() {
     }, 10000);
 
     startPromise = (async () => {
-        const ready = await initOnline({
+        const api = await loadOnlineApi();
+        if (!api) {
+            stopWatching(lastError || new Error('Online unavailable. Local play is still available.'));
+            return;
+        }
+        const ready = await api.initOnline({
             gameKey: 'launcher',
             matchKey: 'launcher',
             showOnlineStatus: () => {}
         });
         clearWatchdog();
-        if (generation !== watchGeneration || !getAccountState().uid) return;
+        if (generation !== watchGeneration || !api.getAccountState().uid) return;
         if (!ready.ok) {
             stopWatching(new Error(ready.error || 'Online service is not configured.'));
             return;
         }
-        unsubscribeWaitingRooms = subscribeWaitingRooms((rooms, error) => {
+        unsubscribeWaitingRooms = api.subscribeWaitingRooms((rooms, error) => {
             lastRooms = rooms || [];
             lastError = error || null;
             publishFreshRooms();
@@ -90,13 +98,18 @@ async function startWatching() {
     }
 }
 
-subscribeAccountState((state) => {
-    if (state?.uid) {
-        startWatching();
-    } else {
-        stopWatching(new Error('Sign in as Visitor or Google to check online rooms.'));
+loadOnlineApi().then((api) => {
+    if (!api) {
+        stopWatching(lastError || new Error('Online unavailable. Local play is still available.'));
+        return;
     }
+    api.subscribeAccountState((state) => {
+        if (state?.uid) {
+            startWatching();
+        } else {
+            stopWatching(new Error('Sign in as Visitor or Google to check online rooms.'));
+        }
+    });
+    api.initAccountSession().catch((error) => stopWatching(error));
 });
-
-initAccountSession().catch((error) => stopWatching(error));
 window.setInterval(publishFreshRooms, 30000);

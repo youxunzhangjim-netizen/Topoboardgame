@@ -1,23 +1,95 @@
-import {
-    changeAccountPassword,
-    deleteCurrentAccount,
-    initAccountSession,
-    deleteFriend,
-    deleteRecentGame,
-    listFriends,
-    listRecentGames,
-    registerWithEmailPassword,
-    saveFriendFromProfile,
-    sendAccountPasswordReset,
-    signInAsVisitor,
-    signInWithEmailPassword,
-    signInWithGoogleAccount,
-    signOutToGuest,
-    subscribeAccountState,
-    updateUserProfileInfo
-} from '../online.js';
-
 const LOG_PREFIX = '[Topoboardgame Auth]';
+let onlineApiPromise = null;
+let lastOnlineImportError = '';
+
+function offlineAccountState() {
+    return {
+        configured: false,
+        ready: false,
+        onlineStatus: 'offline-unavailable',
+        onlineError: lastOnlineImportError,
+        accountKind: 'offline-guest',
+        signedIn: false,
+        isGoogle: false,
+        isEmail: false,
+        isVisitor: false,
+        isGuest: true,
+        isOfflineGuest: true,
+        isAnonymous: false,
+        displayName: 'Offline Guest',
+        canEditDisplayName: false,
+        canEditProfile: false,
+        joinedDate: '',
+        bio: '',
+        location: '',
+        favoriteGame: '',
+        defaultLanguage: 'en',
+        showEmail: false,
+        publicEmail: '',
+        allowRobotLearning: true,
+        accountEmail: '',
+        photoURL: null,
+        emailVerified: false,
+        profilePath: '',
+        profileSynced: false,
+        profileError: lastOnlineImportError
+    };
+}
+
+function onlineUnavailableError() {
+    return new Error(lastOnlineImportError || 'Online login is unavailable. Local play still works.');
+}
+
+function loadOnlineApi() {
+    if (!onlineApiPromise) {
+        onlineApiPromise = import('../online.js')
+            .catch((error) => {
+                lastOnlineImportError = String(error?.message || error || 'Online login is unavailable.');
+                warnAuth('online.js could not be loaded; launcher stays in Offline Guest mode', {
+                    error: lastOnlineImportError
+                });
+                return null;
+            });
+    }
+    return onlineApiPromise;
+}
+
+async function callOnlineApi(name, fallback, ...args) {
+    const api = await loadOnlineApi();
+    if (api?.[name]) return api[name](...args);
+    if (typeof fallback === 'function') return fallback(...args);
+    throw onlineUnavailableError();
+}
+
+function subscribeAccountState(listener) {
+    let active = true;
+    let remoteUnsubscribe = null;
+    listener(offlineAccountState());
+    loadOnlineApi().then((api) => {
+        if (!active || !api?.subscribeAccountState) return;
+        remoteUnsubscribe = api.subscribeAccountState(listener);
+    });
+    return () => {
+        active = false;
+        remoteUnsubscribe?.();
+    };
+}
+
+const initAccountSession = (...args) => callOnlineApi('initAccountSession', () => offlineAccountState(), ...args);
+const signInAsVisitor = (...args) => callOnlineApi('signInAsVisitor', null, ...args);
+const signInWithGoogleAccount = (...args) => callOnlineApi('signInWithGoogleAccount', null, ...args);
+const signInWithEmailPassword = (...args) => callOnlineApi('signInWithEmailPassword', null, ...args);
+const registerWithEmailPassword = (...args) => callOnlineApi('registerWithEmailPassword', null, ...args);
+const sendAccountPasswordReset = (...args) => callOnlineApi('sendAccountPasswordReset', null, ...args);
+const changeAccountPassword = (...args) => callOnlineApi('changeAccountPassword', null, ...args);
+const deleteCurrentAccount = (...args) => callOnlineApi('deleteCurrentAccount', null, ...args);
+const signOutToGuest = (...args) => callOnlineApi('signOutToGuest', () => offlineAccountState(), ...args);
+const updateUserProfileInfo = (...args) => callOnlineApi('updateUserProfileInfo', null, ...args);
+const listRecentGames = (...args) => callOnlineApi('listRecentGames', () => [], ...args);
+const deleteRecentGame = (...args) => callOnlineApi('deleteRecentGame', () => false, ...args);
+const listFriends = (...args) => callOnlineApi('listFriends', () => [], ...args);
+const saveFriendFromProfile = (...args) => callOnlineApi('saveFriendFromProfile', () => null, ...args);
+const deleteFriend = (...args) => callOnlineApi('deleteFriend', () => false, ...args);
 
 const TEXT = {
     en: {

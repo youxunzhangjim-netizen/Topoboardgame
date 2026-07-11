@@ -1,6 +1,6 @@
 import { BoardSetup, BOARD_THEMES, PIECE_GLYPHS, PROMOTION_TYPES, createPiece } from './BoardSetup.js';
 import { PieceMovement, createRandomChessBoundaryState } from './PieceMovement.js';
-import { FirebaseOnlineAdapter } from '../../../online.js';
+import { FirebaseStateNetworkManager } from '../../../js/FirebaseStateNetworkManager.js';
 import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { applyLanguage, hasTranslation, setLanguage, t } from './i18n.js';
 import { ChessRobotController } from './robot/ChessRobotController.js';
@@ -36,7 +36,10 @@ export class ChessGame {
         this.promotionResolver = null;
 
         this.movement = new PieceMovement(this);
-        this.network = new FirebaseOnlineAdapter(this);
+        this.network = new FirebaseStateNetworkManager(this, {
+            gameKey: this.onlineGameKey(),
+            matchKey: this.onlineMatchKey()
+        });
         this.robot = new ChessRobotController(this);
 
         this.init();

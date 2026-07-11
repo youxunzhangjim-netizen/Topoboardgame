@@ -68,6 +68,36 @@ const requiredFirebaseEnvNames = [
     'VITE_FIREBASE_APP_ID'
 ];
 let missingFirebaseConfigLogged = false;
+let onlineStatus = 'offline-unavailable';
+let lastOnlineError = '';
+const onlineDebugEvents = [];
+
+function pushOnlineDebugEvent(level, step, payload = undefined) {
+    const event = {
+        time: new Date().toISOString(),
+        level,
+        step,
+        payload: payload === undefined ? null : payload
+    };
+    onlineDebugEvents.push(event);
+    if (onlineDebugEvents.length > 80) onlineDebugEvents.shift();
+    try {
+        globalThis.dispatchEvent?.(new CustomEvent('topoboardgame:online-debug', { detail: event }));
+    } catch {
+        // Ignore non-browser contexts.
+    }
+}
+
+function setOnlineAvailability(statusValue, error = '') {
+    onlineStatus = statusValue || 'offline-unavailable';
+    lastOnlineError = String(error || '');
+    pushOnlineDebugEvent(
+        onlineStatus === 'ready' ? 'info' : 'warn',
+        onlineStatus,
+        lastOnlineError ? { error: lastOnlineError } : undefined
+    );
+    notifyAccountListeners();
+}
 
 function authLog(step, payload = undefined) {
     try {
@@ -343,8 +373,18 @@ function profileWriteStateForUser(currentUser) {
 
 function getFirebaseAppInstance() {
     if (firebaseApp) return firebaseApp;
-    firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    return firebaseApp;
+    try {
+        firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+        return firebaseApp;
+    } catch (error) {
+        const message = String(error?.message || error || 'Firebase initialization failed.');
+        firestoreInitError = message;
+        firestoreReady = false;
+        initialized = false;
+        setOnlineAvailability('offline-unavailable', message);
+        authError('Firebase initialization failed; local play remains available.', authErrorSummary(error));
+        throw error;
+    }
 }
 
 function notifyAccountListeners() {
@@ -393,52 +433,74 @@ function installAccountObserver() {
 }
 
 async function ensureFirebaseCore() {
-    authLog('ensureFirebaseCore: entered', { hasConfig: hasFirebaseConfig(), hasAuth: Boolean(auth), hasDb: Boolean(db) });
-    if (!onlineBuildConfig.enabled) {
-        return {
-            ok: false,
-            configured: false,
-            error: `Online rooms are disabled for the ${onlineBuildConfig.edition} edition.`
-        };
-    }
-    if (!hasFirebaseConfig()) {
-        if (!missingFirebaseConfigLogged) {
-            missingFirebaseConfigLogged = true;
-            authLog('Firebase config is not present in this local preview; online login and rooms stay disabled until VITE_FIREBASE_* values are provided.', {
-                required: requiredFirebaseEnvNames,
-                optional: ['VITE_FIREBASE_MEASUREMENT_ID']
-            });
+    try {
+        authLog('ensureFirebaseCore: entered', { hasConfig: hasFirebaseConfig(), hasAuth: Boolean(auth), hasDb: Boolean(db) });
+        if (!onlineBuildConfig.enabled) {
+            const error = `Online rooms are disabled for the ${onlineBuildConfig.edition} edition.`;
+            setOnlineAvailability('offline-unavailable', error);
+            return {
+                ok: false,
+                configured: false,
+                onlineStatus,
+                error
+            };
         }
-        return {
-            ok: false,
-            configured: false,
-            error: `Online service is not configured in this build. Set ${requiredFirebaseEnvNames.join(', ')} in Vercel or .env.local.`
-        };
-    }
-    const app = getFirebaseAppInstance();
-    if (!auth) {
-        try {
-            auth = initializeAuth(app, {
-                persistence: browserSessionPersistence,
-                popupRedirectResolver: browserPopupRedirectResolver
-            });
-        } catch {
-            auth = getAuth(app);
-            try {
-                await setPersistence(auth, browserSessionPersistence);
-            } catch {
-                // Fall back to Firebase's default persistence if local storage is blocked.
+        if (!hasFirebaseConfig()) {
+            if (!missingFirebaseConfigLogged) {
+                missingFirebaseConfigLogged = true;
+                authLog('Firebase config is not present in this local preview; online login and rooms stay disabled until VITE_FIREBASE_* values are provided.', {
+                    required: requiredFirebaseEnvNames,
+                    optional: ['VITE_FIREBASE_MEASUREMENT_ID']
+                });
             }
+            const error = `Online service is not configured in this build. Set ${requiredFirebaseEnvNames.join(', ')} in Vercel or .env.local.`;
+            setOnlineAvailability('offline-unavailable', error);
+            return {
+                ok: false,
+                configured: false,
+                onlineStatus,
+                error
+            };
         }
-        installAccountObserver();
+        const app = getFirebaseAppInstance();
+        if (!auth) {
+            try {
+                auth = initializeAuth(app, {
+                    persistence: browserSessionPersistence,
+                    popupRedirectResolver: browserPopupRedirectResolver
+                });
+            } catch {
+                auth = getAuth(app);
+                try {
+                    await setPersistence(auth, browserSessionPersistence);
+                } catch {
+                    // Fall back to Firebase's default persistence if local storage is blocked.
+                }
+            }
+            installAccountObserver();
+        }
+        if (!db) {
+            db = initializeFirestore(app, {
+                experimentalAutoDetectLongPolling: true
+            });
+        }
+        setOnlineAvailability('firebase-ready', '');
+        authLog('ensureFirebaseCore: ready', { hasAuth: Boolean(auth), hasDb: Boolean(db), currentUser: authUserSummary(auth?.currentUser || null) });
+        return { ok: true, configured: true, onlineStatus, auth, db };
+    } catch (error) {
+        const message = String(error?.message || error || 'Online service is unavailable.');
+        firestoreInitError = message;
+        firestoreReady = false;
+        initialized = false;
+        setOnlineAvailability('offline-unavailable', message);
+        authError('ensureFirebaseCore failed; local play remains available.', authErrorSummary(error));
+        return {
+            ok: false,
+            configured: hasFirebaseConfig(),
+            onlineStatus,
+            error: message
+        };
     }
-    if (!db) {
-        db = initializeFirestore(app, {
-            experimentalAutoDetectLongPolling: true
-        });
-    }
-    authLog('ensureFirebaseCore: ready', { hasAuth: Boolean(auth), hasDb: Boolean(db), currentUser: authUserSummary(auth?.currentUser || null) });
-    return { ok: true, configured: true, auth, db };
 }
 
 function publicUserProfile(currentUser) {
@@ -557,6 +619,9 @@ export function getAccountState() {
     return {
         configured: hasFirebaseConfig(),
         ready: Boolean(auth),
+        onlineStatus,
+        onlineError: lastOnlineError,
+        onlineEnabled: onlineBuildConfig.enabled,
         uid: currentUser?.uid || null,
         accountKind: accountKindForUser(currentUser),
         signedIn,
@@ -586,6 +651,22 @@ export function getAccountState() {
     };
 }
 
+export function getOnlineAvailability() {
+    return {
+        ok: onlineStatus === 'ready',
+        onlineStatus,
+        onlineError: lastOnlineError,
+        configured: hasFirebaseConfig(),
+        enabled: onlineBuildConfig.enabled,
+        firestoreReady,
+        initialized
+    };
+}
+
+export function getOnlineDebugLog() {
+    return [...onlineDebugEvents];
+}
+
 export function subscribeAccountState(listener) {
     accountListeners.add(listener);
     listener(getAccountState());
@@ -593,23 +674,37 @@ export function subscribeAccountState(listener) {
 }
 
 export async function initAccountSession({ autoVisitor = false } = {}) {
-    const ready = await ensureFirebaseCore();
+    let ready;
+    try {
+        ready = await ensureFirebaseCore();
+    } catch (error) {
+        const message = String(error?.message || error || 'Online service is unavailable.');
+        setOnlineAvailability('offline-unavailable', message);
+        notifyAccountListeners();
+        return getAccountState();
+    }
     if (!ready.ok) {
         notifyAccountListeners();
         return getAccountState();
     }
-    await waitForInitialAuthState();
-    await completePendingGoogleRedirect();
-    if (autoVisitor && !auth.currentUser) {
-        const result = await signInAnonymously(auth);
-        user = result.user || auth.currentUser || await waitForAuth(auth);
-    } else {
-        user = auth.currentUser || null;
-    }
-    if (user?.isAnonymous) {
-        await upsertVisitorUserProfile(user, { source: autoVisitor ? 'visitor-session' : 'account-session' });
-    } else if (user) {
-        await upsertSignedInUserProfile(user, { source: 'account-session' });
+    try {
+        await waitForInitialAuthState();
+        await completePendingGoogleRedirect();
+        if (autoVisitor && !auth.currentUser) {
+            const result = await signInAnonymously(auth);
+            user = result.user || auth.currentUser || await waitForAuth(auth);
+        } else {
+            user = auth.currentUser || null;
+        }
+        if (user?.isAnonymous) {
+            await upsertVisitorUserProfile(user, { source: autoVisitor ? 'visitor-session' : 'account-session' });
+        } else if (user) {
+            await upsertSignedInUserProfile(user, { source: 'account-session' });
+        }
+    } catch (error) {
+        const message = String(error?.message || error || 'Online account session is unavailable.');
+        setOnlineAvailability('offline-unavailable', message);
+        authWarn('initAccountSession failed; local play remains available.', authErrorSummary(error));
     }
     notifyAccountListeners();
     return getAccountState();
@@ -1505,8 +1600,10 @@ export async function initOnline(options = {}) {
     };
 
     if (!hasFirebaseConfig()) {
-        status('Online service is not configured in this build.');
-        return { ok: false, configured: false, error: 'Online service is not configured in this build.' };
+        const error = 'Online service is not configured in this build.';
+        setOnlineAvailability('offline-unavailable', error);
+        status(error);
+        return { ok: false, configured: false, onlineStatus, error };
     }
     if (initializationPromise) return initializationPromise;
     if (initialized) {
@@ -1524,41 +1621,54 @@ export async function initOnline(options = {}) {
     }
 
     initializationPromise = (async () => {
-        const core = await ensureFirebaseCore();
-        if (!core.ok) {
-            const error = core.error || 'Online service is not configured in this build.';
-            status(error);
-            return { ok: false, configured: core.configured, error };
-        }
-        await waitForInitialAuthState();
-        await completePendingGoogleRedirect();
-        status(auth.currentUser && !auth.currentUser.isAnonymous ? 'Using your Google account for online play...' : 'Preparing visitor mode for online play...');
-        if (!auth.currentUser) {
-            const result = await signInAnonymously(auth);
-            user = result.user || auth.currentUser || await waitForAuth(auth);
-        } else {
-            user = auth.currentUser;
-        }
-        user = await ensureDistinctTabIdentity();
-        if (user?.isAnonymous) {
-            await upsertVisitorUserProfile(user, { source: 'online-init' });
-        } else if (user) {
-            await upsertSignedInUserProfile(user, { source: 'online-init' });
-        }
-        notifyAccountListeners();
-        initialized = true;
         try {
-            await verifyFirestoreService();
-            firestoreReady = true;
-            firestoreInitError = '';
+            const core = await ensureFirebaseCore();
+            if (!core.ok) {
+                const error = core.error || 'Online service is not configured in this build.';
+                status(error);
+                return { ok: false, configured: core.configured, onlineStatus, error };
+            }
+            await waitForInitialAuthState();
+            await completePendingGoogleRedirect();
+            status(auth.currentUser && !auth.currentUser.isAnonymous ? 'Using your Google account for online play...' : 'Preparing visitor mode for online play...');
+            if (!auth.currentUser) {
+                const result = await signInAnonymously(auth);
+                user = result.user || auth.currentUser || await waitForAuth(auth);
+            } else {
+                user = auth.currentUser;
+            }
+            user = await ensureDistinctTabIdentity();
+            if (user?.isAnonymous) {
+                await upsertVisitorUserProfile(user, { source: 'online-init' });
+            } else if (user) {
+                await upsertSignedInUserProfile(user, { source: 'online-init' });
+            }
+            notifyAccountListeners();
+            initialized = true;
+            try {
+                await verifyFirestoreService();
+                firestoreReady = true;
+                firestoreInitError = '';
+            } catch (error) {
+                firestoreReady = false;
+                firestoreInitError = error.message;
+                setOnlineAvailability('offline-unavailable', firestoreInitError);
+                status(firestoreInitError);
+                return { ok: false, configured: true, onlineStatus, error: firestoreInitError };
+            }
+            setOnlineAvailability('ready', '');
+            status('Online ready.');
+            return { ok: true, user, roomId, playerColor, onlineStatus };
         } catch (error) {
+            const message = String(error?.message || error || 'Online service is unavailable.');
+            initialized = false;
             firestoreReady = false;
-            firestoreInitError = error.message;
-            status(firestoreInitError);
-            return { ok: false, configured: true, error: firestoreInitError };
+            firestoreInitError = message;
+            setOnlineAvailability('offline-unavailable', message);
+            status(`Online unavailable. Local play is still available. ${message}`);
+            authError('initOnline failed; local play remains available.', authErrorSummary(error));
+            return { ok: false, configured: hasFirebaseConfig(), onlineStatus, error: message };
         }
-        status('Online ready.');
-        return { ok: true, user, roomId, playerColor };
     })();
     try {
         return await initializationPromise;

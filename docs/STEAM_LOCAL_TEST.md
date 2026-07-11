@@ -32,6 +32,21 @@ If a white screen appears, open DevTools Console and copy the first red error. A
 
 ## Smoke Test
 
+Automated checks:
+
+```powershell
+npm run build:steam
+npm run verify:steam-smoke
+npm run desktop:dir
+npm run verify:steam-package
+```
+
+Manual fallback checklist:
+
+```text
+docs/MANUAL_STEAM_SMOKE_TEST.md
+```
+
 1. Launch the unpacked exe.
 2. Open at least one 2D game, one 3D game, one 4D game, Life World, and Labs.
 3. Confirm each page renders controls and board content.

@@ -116,16 +116,21 @@ export class FirebaseStateNetworkManager {
         return {
             gameKey: this.gameKey,
             matchKey: this.matchKey,
-            getCurrentBoardState: () => cloneState(app.exportNetworkState?.() || app.exportState?.()),
-            loadBoardState: (state) => app.importNetworkState?.(cloneState(state)) || app.importState?.(cloneState(state)),
+            getCurrentBoardState: () => cloneState(app.exportNetworkState?.() || app.exportState?.() || app.getCurrentBoardState?.()),
+            loadBoardState: (state) => app.importNetworkState?.(cloneState(state))
+                || app.importState?.(cloneState(state))
+                || app.loadBoardState?.(cloneState(state)),
             applyMove: (state, move, color) => {
+                if (typeof app.applyMoveToBoardState === 'function') {
+                    return cloneState(app.applyMoveToBoardState(cloneState(state), move, color));
+                }
                 if (!state || !move?.boardState) return null;
                 const expectedTurn = defaultTurnFromState(state, app);
                 if (expectedTurn !== color) return null;
                 return cloneState(move.boardState);
             },
-            renderBoard: () => app.updateUI?.() || app.render?.(),
-            showOnlineStatus: (text) => app.setStatus?.(text),
+            renderBoard: () => app.renderBoard?.() || app.updateUI?.() || app.render?.(),
+            showOnlineStatus: (text) => app.showOnlineStatus?.(text) || app.setStatus?.(text),
             getCurrentTurn: (state) => defaultTurnFromState(state, app),
             getTurnFromBoard: (state) => defaultTurnFromState(state, app),
             onRoomChanged: ({ roomId, playerColor, room }) => {
@@ -242,7 +247,7 @@ export class FirebaseStateNetworkManager {
             if (!this.onlineApi) return false;
             await this.onlineApi.sendMove({
                 type: move.type || 'state_update',
-                boardState: this.app.exportNetworkState?.() || this.app.exportState?.()
+                boardState: this.app.exportNetworkState?.() || this.app.exportState?.() || this.app.getCurrentBoardState?.()
             });
             return true;
         } catch (error) {
@@ -271,5 +276,37 @@ export class FirebaseStateNetworkManager {
         this.myColor = null;
         setConnectionStatus('', null);
         setRoomInfo('');
+    }
+
+    persistState() {
+        return this.sendState({ type: 'state_update' });
+    }
+
+    sendMove(move = {}) {
+        return this.sendState({
+            ...move,
+            type: move.type || 'move'
+        });
+    }
+
+    sendMessage(message = {}) {
+        if (message?.type === 'chat') return this.sendChat(message);
+        if (message?.type === 'newGame') {
+            this.setOnlineMessage('Start a new online room for a rematch.');
+            return false;
+        }
+        return this.sendState(message);
+    }
+
+    refreshStatus() {
+        if (this.isConnected) {
+            this.setOnlineMessage(`Connected${this.myColor ? ` as ${this.myColor}` : ''}.`);
+            return;
+        }
+        this.setOnlineMessage('Offline. Local play is available.');
+    }
+
+    setStatus(_state, text) {
+        this.setOnlineMessage(text || 'Offline. Local play is available.');
     }
 }
