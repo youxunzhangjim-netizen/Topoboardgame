@@ -2,6 +2,8 @@
 
 Use this checklist before uploading a new Steam build.
 
+`npm run desktop:dir` builds the `steam-stable` bundle into `dist-steam/app` before packaging the unpacked desktop app.
+
 ## Windows Debug Run
 
 In PowerShell:

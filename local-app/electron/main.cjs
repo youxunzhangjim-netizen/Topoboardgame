@@ -37,7 +37,15 @@ function logLine(message, details = {}) {
 }
 
 function distRoot() {
-  return path.resolve(__dirname, '../../dist');
+  return path.resolve(__dirname, '../../dist-steam/app');
+}
+
+function packagedIndexPath() {
+  return path.join(distRoot(), 'index.html');
+}
+
+function preloadPath() {
+  return path.join(__dirname, 'preload.cjs');
 }
 
 function mimeType(filePath) {
@@ -81,6 +89,15 @@ function safeResolveDistPath(requestUrl) {
 
 function startPackagedStaticServer() {
   if (appServer) return Promise.resolve(appBaseUrl);
+  const indexPath = packagedIndexPath();
+  const currentPreloadPath = preloadPath();
+  logLine('Loading Electron app from:', { indexPath, distRoot: distRoot(), preloadPath: currentPreloadPath });
+  if (!fs.existsSync(indexPath)) {
+    return Promise.reject(new Error(`Missing Steam build index.html: ${indexPath}`));
+  }
+  if (!fs.existsSync(currentPreloadPath)) {
+    return Promise.reject(new Error(`Missing Electron preload file: ${currentPreloadPath}`));
+  }
   return new Promise((resolve, reject) => {
     const server = http.createServer((request, response) => {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -134,7 +151,7 @@ function isTrustedRenderer(event) {
   const sourceUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
   if (isDev && /^https?:\/\/(127\.0\.0\.1|localhost):5172(?:\/|$)/.test(sourceUrl)) return true;
   if (appBaseUrl && sourceUrl.startsWith(appBaseUrl)) return true;
-  const distUrl = pathToFileURL(`${path.join(__dirname, '../../dist')}${path.sep}`).href;
+  const distUrl = pathToFileURL(`${distRoot()}${path.sep}`).href;
   return sourceUrl.startsWith(distUrl);
 }
 
@@ -247,7 +264,7 @@ async function createWindow() {
     title: 'Topoboardgame',
     icon: resolveAppIcon(),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: preloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true

@@ -1,12 +1,24 @@
 import { defineConfig, loadEnv } from 'vite';
 
+function editionName(mode, env) {
+  return env.VITE_TBG_EDITION || mode || 'web-lite';
+}
+
 function editionBase(mode, env) {
-  const edition = env.VITE_TBG_EDITION || mode || 'web-lite';
-  return edition === 'web-lite' ? '/Topoboardgame/' : './';
+  return editionName(mode, env) === 'web-lite' ? '/Topoboardgame/' : './';
+}
+
+function editionOutDir(mode, env) {
+  const edition = editionName(mode, env);
+  if (edition === 'steam-stable') return 'dist-steam/app';
+  if (edition === 'research-dev') return 'dist-research';
+  return 'dist-web';
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  const edition = editionName(mode, env);
+  const isSteam = edition === 'steam-stable';
   return {
     base: editionBase(mode, env),
     server: {
@@ -18,6 +30,8 @@ export default defineConfig(({ mode }) => {
       port: 4173
     },
     build: {
+      outDir: editionOutDir(mode, env),
+      sourcemap: isSteam,
       chunkSizeWarningLimit: 900,
       rollupOptions: {
         output: {

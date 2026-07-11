@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as viteBuild } from 'vite';
 
@@ -173,6 +173,46 @@ function postProcessEdition(output) {
     writeFileSync(join(output, 'js', 'shared', 'edition.json'), `${editionJson}\n`);
 }
 
+function walkHtmlFiles(directory, files = []) {
+    for (const entry of readdirSync(directory)) {
+        const fullPath = join(directory, entry);
+        const stats = statSync(fullPath);
+        if (stats.isDirectory()) {
+            walkHtmlFiles(fullPath, files);
+        } else if (entry.toLowerCase().endsWith('.html')) {
+            files.push(fullPath);
+        }
+    }
+    return files;
+}
+
+function posixPath(value) {
+    return String(value).replace(/\\/g, '/');
+}
+
+function relativeScriptPath(htmlPath, scriptPath) {
+    let pathFromHtml = posixPath(relative(dirname(htmlPath), scriptPath));
+    if (!pathFromHtml.startsWith('.')) pathFromHtml = `./${pathFromHtml}`;
+    return pathFromHtml;
+}
+
+function injectSteamErrorOverlay(output) {
+    const overlayPath = join(output, 'js', 'shared', 'SteamErrorOverlay.js');
+    if (!existsSync(overlayPath)) return;
+    for (const htmlPath of walkHtmlFiles(output)) {
+        let html = readFileSync(htmlPath, 'utf8');
+        if (html.includes('SteamErrorOverlay.js')) continue;
+        const scriptPath = relativeScriptPath(htmlPath, overlayPath);
+        const scriptTag = `<script src="${scriptPath}"></script>`;
+        if (/<head([^>]*)>/i.test(html)) {
+            html = html.replace(/<head([^>]*)>/i, `<head$1>\n    ${scriptTag}`);
+        } else {
+            html = `${scriptTag}\n${html}`;
+        }
+        writeFileSync(htmlPath, html);
+    }
+}
+
 run(['run', 'build', '--workspace', '2dchess']);
 run(['run', 'build', '--workspace', '2dgo']);
 run(['run', 'build', '--workspace', '2dreversi']);
@@ -228,6 +268,9 @@ copyIfExists(join(root, 'spacetime'), join(output, 'spacetime'));
 writeFileSync(join(output, '.nojekyll'), '');
 writeRuntimeEditionConfig(output);
 postProcessEdition(output);
+if ((process.env.VITE_TBG_EDITION || editionId) === 'steam-stable') {
+    injectSteamErrorOverlay(output);
+}
 rmSync(launcherOutput, { recursive: true, force: true });
 
 console.log(`Website bundle ready: ${output}`);
