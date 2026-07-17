@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { ReversiGame } from '../../../js/reversi/ReversiGame.js';
+import { REVERSI_COLORS, ReversiGame, getReversiDirections, stepReversiRay } from '../../../js/reversi/ReversiGame.js';
 
 const r3 = new ReversiGame({ topology: 'r3', size: 8 });
 assert.equal(r3.topology.dimension, 3);
@@ -43,6 +43,25 @@ assert.ok(r3RandomA.legalMoves('black').length > 0);
 const t2 = new ReversiGame({ topology: 't2', size: 8 });
 assert.deepEqual(t2.topology.step([0, 0], [-1, 0]), [7, 0]);
 assert.deepEqual(t2.topology.step([0, 0], [0, -1]), [0, 7]);
+
+const t2Honeycomb = new ReversiGame({ topology: 't2', lattice: 'honeycomb', size: 8 });
+assert.equal(getReversiDirections(t2Honeycomb.topology, [4, 4]).length, 6, 'T2 honeycomb Reversi has six declared edge-sharing rays.');
+assert.equal(stepReversiRay(t2Honeycomb.topology, [4, 4], [1, 1]), null, 'T2 honeycomb corner-looking direction is not legal.');
+assert.deepEqual(stepReversiRay(t2Honeycomb.topology, [0, 4], [-1, 0]), [7, 4], 'T2 honeycomb seam works only through an explicitly declared axial ray.');
+t2Honeycomb.board = new Map();
+t2Honeycomb.currentPlayer = REVERSI_COLORS.BLACK;
+t2Honeycomb.set([5, 5], { color: REVERSI_COLORS.WHITE });
+t2Honeycomb.set([6, 6], { color: REVERSI_COLORS.BLACK });
+assert.deepEqual(t2Honeycomb.previewMove([4, 4], REVERSI_COLORS.BLACK), [], 'T2 honeycomb visual diagonal/corner line does not flip.');
+t2Honeycomb.board = new Map();
+t2Honeycomb.set([5, 4], { color: REVERSI_COLORS.WHITE });
+t2Honeycomb.set([6, 4], { color: REVERSI_COLORS.BLACK });
+assert.deepEqual(t2Honeycomb.previewMove([4, 4], REVERSI_COLORS.BLACK), [[5, 4]], 'T2 honeycomb valid edge-sharing ray flips.');
+
+const cylinderHoneycomb = new ReversiGame({ topology: 'cylinder', lattice: 'honeycomb', size: 8 });
+assert.equal(getReversiDirections(cylinderHoneycomb.topology, [4, 4]).length, 6, 'Cylinder honeycomb Reversi has six declared edge-sharing rays.');
+assert.equal(stepReversiRay(cylinderHoneycomb.topology, [4, 4], [1, 1]), null, 'Cylinder honeycomb corner-looking direction is not legal.');
+assert.deepEqual(stepReversiRay(cylinderHoneycomb.topology, [0, 4], [-1, 0]), [7, 4], 'Cylinder honeycomb wrapped seam is a declared edge-sharing ray.');
 
 const sphere = new ReversiGame({ topology: 'sphere', size: 8 });
 assert.deepEqual(sphere.topology.step([0, 3], [-1, 0]), [7, 3]);

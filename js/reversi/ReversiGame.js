@@ -93,7 +93,87 @@ export function normalizeRP2(x, y, width, height) {
 }
 
 function coordinateKey(coord) {
-    return coord.join(',');
+    return Array.isArray(coord) ? coord.join(',') : String(coord);
+}
+
+function coordFromSiteId(siteId) {
+    if (Array.isArray(siteId)) return siteId.map(Number);
+    if (typeof siteId === 'string' && siteId.includes(',')) {
+        const coord = siteId.split(',').map(Number);
+        return coord.every(Number.isFinite) ? coord : siteId;
+    }
+    return siteId;
+}
+
+function sameCoord(a, b) {
+    if (Array.isArray(a) && Array.isArray(b)) {
+        return a.length === b.length && a.every((value, index) => Number(value) === Number(b[index]));
+    }
+    return String(a) === String(b);
+}
+
+function directionKey(direction) {
+    if (Array.isArray(direction)) return direction.map((value) => Number(value) || 0).join(',');
+    if (direction && typeof direction === 'object') return JSON.stringify(direction);
+    return String(direction);
+}
+
+function sameDirection(a, b) {
+    return directionKey(a) === directionKey(b);
+}
+
+function cloneDirection(direction) {
+    if (Array.isArray(direction)) return [...direction];
+    if (direction && typeof direction === 'object') return { ...direction };
+    return direction;
+}
+
+function siteKeyFor(boardSpec, coord) {
+    return typeof boardSpec?.key === 'function' ? boardSpec.key(coord) : coordinateKey(coord);
+}
+
+function neighborKeyFor(boardSpec, neighbor) {
+    if (neighbor == null) return '';
+    if (typeof neighbor === 'string' || typeof neighbor === 'number') return String(neighbor);
+    if (Array.isArray(neighbor)) return siteKeyFor(boardSpec, neighbor);
+    if (neighbor.id != null) return String(neighbor.id);
+    if (neighbor.siteId != null) return String(neighbor.siteId);
+    if (neighbor.coord != null) return siteKeyFor(boardSpec, neighbor.coord);
+    if (neighbor.target != null) return String(neighbor.target);
+    return siteKeyFor(boardSpec, neighbor);
+}
+
+function adjacencyFor(boardSpec, coord) {
+    const key = siteKeyFor(boardSpec, coord);
+    if (typeof boardSpec?.neighbors === 'function') {
+        const byCoord = boardSpec.neighbors(coord);
+        if (Array.isArray(byCoord)) return byCoord;
+        const byKey = boardSpec.neighbors(key);
+        if (Array.isArray(byKey)) return byKey;
+    }
+    if (boardSpec?.adjacency instanceof Map) {
+        return boardSpec.adjacency.get(key) || boardSpec.adjacency.get(coord) || null;
+    }
+    if (boardSpec?.adjacency && typeof boardSpec.adjacency === 'object') {
+        return boardSpec.adjacency[key] || null;
+    }
+    return null;
+}
+
+function hasDeclaredReversiStep(boardSpec, from, to, direction) {
+    if (typeof boardSpec?.hasReversiEdge === 'function') return boardSpec.hasReversiEdge(from, to, direction);
+    if (typeof boardSpec?.hasEdge === 'function') return boardSpec.hasEdge(from, to, direction);
+
+    const outgoing = adjacencyFor(boardSpec, from);
+    if (!outgoing) return true;
+
+    const fromKey = siteKeyFor(boardSpec, from);
+    const toKey = siteKeyFor(boardSpec, to);
+    if (!outgoing.some((neighbor) => neighborKeyFor(boardSpec, neighbor) === toKey)) return false;
+
+    const incoming = adjacencyFor(boardSpec, to);
+    if (!incoming) return true;
+    return incoming.some((neighbor) => neighborKeyFor(boardSpec, neighbor) === fromKey);
 }
 
 function isPolarCenter(coord) {
@@ -337,6 +417,50 @@ const HONEYCOMB_DIRECTIONS = Object.freeze([
     Object.freeze([1, -1]),
     Object.freeze([-1, 1])
 ]);
+
+function isHoneycombLikeReversiBoard(boardSpec) {
+    const lattice = String(boardSpec?.lattice || boardSpec?.latticeType || '').toLowerCase();
+    return lattice === 'honeycomb' ||
+        lattice === 'hex_cell_grid' ||
+        lattice === 'honeycomb_graph' ||
+        lattice.includes('honeycomb') ||
+        lattice.includes('hex-cell');
+}
+
+export function getReversiDirections(boardSpec, siteId) {
+    const coord = coordFromSiteId(siteId);
+    if (typeof boardSpec?.getReversiDirections === 'function') {
+        return boardSpec.getReversiDirections(coord).map(cloneDirection);
+    }
+    if (typeof boardSpec?.directionsFor === 'function') {
+        return boardSpec.directionsFor(coord).map(cloneDirection);
+    }
+    if (Array.isArray(boardSpec?.directions)) {
+        return boardSpec.directions.map(cloneDirection);
+    }
+    return [];
+}
+
+export function stepReversiRay(boardSpec, siteId, direction) {
+    const coord = coordFromSiteId(siteId);
+    const declaredDirections = getReversiDirections(boardSpec, coord);
+    const declaredDirection = declaredDirections.find((candidate) => sameDirection(candidate, direction));
+    if (!declaredDirection) return null;
+
+    const next = typeof boardSpec?.step === 'function'
+        ? boardSpec.step(coord, declaredDirection)
+        : null;
+    if (next == null) return null;
+    if (typeof boardSpec?.contains === 'function' && !boardSpec.contains(next)) return null;
+
+    if (isHoneycombLikeReversiBoard(boardSpec)) {
+        // Honeycomb Reversi uses only declared lattice/graph rays. Visual
+        // corner crossing is not a legal Reversi direction.
+        if (!hasDeclaredReversiStep(boardSpec, coord, next, declaredDirection)) return null;
+    }
+
+    return Array.isArray(next) ? [...next] : next;
+}
 
 function oddRowOffsetToAxial(coord = [0, 0]) {
     const row = Number(coord[1]) || 0;
@@ -797,7 +921,7 @@ export class ReversiGame {
         const seen = new Set([this.key(origin)]);
         let current = origin;
         for (let step = 0; step <= this.topology.totalVertices; step += 1) {
-            const next = this.topology.step(current, direction);
+            const next = stepReversiRay(this.topology, current, direction);
             if (!next) return [];
             const key = this.key(next);
             if (seen.has(key)) return [];
@@ -820,7 +944,7 @@ export class ReversiGame {
         if (!normalized || this.get(normalized) || this.gameOver) return [];
         const flips = [];
         const seen = new Set();
-        for (const direction of this.topology.directionsFor(coord)) {
+        for (const direction of getReversiDirections(this.topology, normalized)) {
             for (const capture of this.collectRay(normalized, direction, color)) {
                 const key = this.key(capture);
                 if (!seen.has(key)) {

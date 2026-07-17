@@ -22,6 +22,37 @@ import {
   STEAM_SAFETY_TEXT,
   assessBoardSafety
 } from '../../js/shared/SteamSafetyLimits.js';
+import {
+  LIFE_INITIAL_PATTERN_CATEGORIES,
+  generateLifeInitialPattern,
+  getLifeInitialPattern,
+  lifeInitialPatternDescription,
+  lifeInitialPatternName,
+  listLifeInitialPatterns
+} from '../../js/life/presets/LifeInitialPatternLibrary.js';
+import {
+  addDefect,
+  createDefectLayer,
+  exportDefectLayer,
+  importDefectLayer,
+  isSiteBlocked,
+  isSitePinned
+} from '../../js/life/research/LifeDefectLayer.js';
+import {
+  generateCrackLine,
+  generateEdgeDislocation2D,
+  generateGrainBoundary,
+  generateInclusion,
+  generateRandomDefectField,
+  generateVacancyCluster
+} from '../../js/life/research/LifeDefectGenerators.js';
+import { computeLifeObservables } from '../../js/life/research/LifeResearchObservables.js';
+import {
+  applyLifeResearchSafetyLimits,
+  fallbackToSafePattern,
+  safetyMessagesFor,
+  validateDefectLayer
+} from '../../js/life/research/LifeResearchSafety.js';
 
 const COLORS = { 1: '#38bdf8', 2: '#ef4444', 3: '#22c55e', 4: '#f5b647' };
 const SQRT3 = Math.sqrt(3);
@@ -262,6 +293,84 @@ const LIFE_WORLD_EXTRA_I18N = Object.freeze({
     neighborhoodFallbackRadius: 'Lattice nearest 固定為半徑 1，因此半徑已重設為 1。',
     neighborhoodPreviewUnavailable: '預覽只顯示 2D 鄰域；引擎仍會使用列出的鄰居數。'
   }
+});
+
+Object.assign(LIFE_WORLD_EXTRA_I18N.en, {
+  initialPattern: 'Initial Pattern',
+  patternCategory: 'Pattern Category',
+  researchInitialConditions: 'Research Initial Conditions',
+  applyInitialPattern: 'Apply Initial Pattern',
+  width: 'Width',
+  angle: 'Angle',
+  density: 'Density',
+  initialPatternSpecies: 'Species',
+  noiseAmplitude: 'Noise',
+  initialPatternSeed: 'Seed',
+  boundaryRoughness: 'Boundary roughness',
+  defectLayer: 'Defect Layer',
+  latticeBreakingDefects: 'Lattice-Breaking Defects',
+  showDefectOverlay: 'Show Defect Overlay',
+  defectGenerator: 'Defect generator',
+  applyDefects: 'Apply Defects',
+  clearDefects: 'Clear Defects',
+  exportDefectLayer: 'Export Defect Layer',
+  vacancyClusterInitial: 'Vacancy Cluster',
+  defectPair: 'Defect Pair',
+  dislocationDipole2d: 'Dislocation Dipole',
+  crackSeed: 'Crack Seed',
+  grainBoundarySeed: 'Grain Boundary Seed',
+  impurityPatch: 'Impurity Patch',
+  randomDefectField: 'Random Defect Field',
+  defectLayerIdle: 'Defect layer is inactive.',
+  defectLayerApplied: 'Defect layer applied: {count} defects.',
+  defectLayerCleared: 'Defect layer cleared.',
+  defectLayerExported: 'Defect layer exported to Pattern JSON.',
+  defectUnsupported: 'This defect generator is not supported for the current board.',
+  boardTooLargePattern: 'This board is large; reduce the size before applying this research pattern.',
+  domainCount: 'Domain Count',
+  interfaceLength: 'Interface Length',
+  defectCount: 'Defect Count',
+  crackLength: 'Crack Length',
+  dislocationCores: 'Dislocation Cores'
+});
+
+Object.assign(LIFE_WORLD_EXTRA_I18N.zh, {
+  initialPattern: '初始圖案',
+  patternCategory: '圖案分類',
+  researchInitialConditions: '研究初始條件',
+  applyInitialPattern: '套用初始圖案',
+  width: '寬度',
+  angle: '角度',
+  density: '密度',
+  initialPatternSpecies: '物種',
+  noiseAmplitude: '噪聲',
+  initialPatternSeed: '種子',
+  boundaryRoughness: '邊界粗糙度',
+  defectLayer: '缺陷層',
+  latticeBreakingDefects: '破壞晶格的缺陷',
+  showDefectOverlay: '顯示缺陷疊層',
+  defectGenerator: '缺陷產生器',
+  applyDefects: '套用缺陷',
+  clearDefects: '清除缺陷',
+  exportDefectLayer: '匯出缺陷層',
+  vacancyClusterInitial: '空位團簇',
+  defectPair: '缺陷對',
+  dislocationDipole2d: '位錯偶極',
+  crackSeed: '裂縫種子',
+  grainBoundarySeed: '晶界種子',
+  impurityPatch: '雜質片區',
+  randomDefectField: '隨機缺陷場',
+  defectLayerIdle: '缺陷層未啟用。',
+  defectLayerApplied: '已套用缺陷層：{count} 個缺陷。',
+  defectLayerCleared: '已清除缺陷層。',
+  defectLayerExported: '缺陷層已匯出到 Pattern JSON。',
+  defectUnsupported: '目前棋盤不支援這個缺陷產生器。',
+  boardTooLargePattern: '此棋盤較大；請降低尺寸後再套用研究圖案。',
+  domainCount: '相域數',
+  interfaceLength: '界面長度',
+  defectCount: '缺陷數',
+  crackLength: '裂縫長度',
+  dislocationCores: '位錯核心'
 });
 
 function readParams() { return new URLSearchParams(window.location.search); }
@@ -585,6 +694,29 @@ export class LifeUI {
     this.patternSelect = root.getElementById('patternSelect');
     this.patternDescription = root.getElementById('patternDescription');
     this.patternWarning = root.getElementById('patternWarning');
+    this.playInitialPatternSelect = root.getElementById('playInitialPatternSelect');
+    this.playInitialPatternDescription = root.getElementById('playInitialPatternDescription');
+    this.applyPlayInitialPatternButton = root.getElementById('applyPlayInitialPatternButton');
+    this.initialPatternCategorySelect = root.getElementById('initialPatternCategorySelect');
+    this.initialPatternSelect = root.getElementById('initialPatternSelect');
+    this.initialPatternDescription = root.getElementById('initialPatternDescription');
+    this.initialPatternWarning = root.getElementById('initialPatternWarning');
+    this.applyInitialPatternButton = root.getElementById('applyInitialPatternButton');
+    this.initialPatternRadiusInput = root.getElementById('initialPatternRadiusInput');
+    this.initialPatternWidthInput = root.getElementById('initialPatternWidthInput');
+    this.initialPatternAngleInput = root.getElementById('initialPatternAngleInput');
+    this.initialPatternDensityInput = root.getElementById('initialPatternDensityInput');
+    this.initialPatternSpeciesInput = root.getElementById('initialPatternSpeciesInput');
+    this.initialPatternNoiseInput = root.getElementById('initialPatternNoiseInput');
+    this.initialPatternSeedInput = root.getElementById('initialPatternSeedInput');
+    this.initialPatternRoughnessInput = root.getElementById('initialPatternRoughnessInput');
+    this.defectLayerEnabledCheckbox = root.getElementById('defectLayerEnabledCheckbox');
+    this.showDefectOverlayCheckbox = root.getElementById('showDefectOverlayCheckbox');
+    this.defectGeneratorSelect = root.getElementById('defectGeneratorSelect');
+    this.applyDefectLayerButton = root.getElementById('applyDefectLayerButton');
+    this.clearDefectsButton = root.getElementById('clearDefectsButton');
+    this.exportDefectLayerButton = root.getElementById('exportDefectLayerButton');
+    this.defectLayerStatus = root.getElementById('defectLayerStatus');
     this.geometryInfoCard = root.getElementById('geometryInfoCard');
     this.geometryInfoTitle = root.getElementById('geometryInfoTitle');
     this.geometryInfoDimension = root.getElementById('geometryInfoDimension');
@@ -611,7 +743,8 @@ export class LifeUI {
       'MeanAge', 'AgeDistribution', 'ClusterCount', 'LargestCluster', 'ComponentSizeDistribution',
       'Entropy', 'Correlation', 'CenterOfMass', 'RadiusOfActivity', 'BoundingBoxMeasure',
       'ExtinctionTime', 'SurvivalTime', 'Oscillation', 'RecurrencePeriodEstimate', 'FrontVelocity',
-      'CompressionRatioProxy', 'DetectedStructures'
+      'CompressionRatioProxy', 'DetectedStructures', 'DomainCount', 'InterfaceLength', 'DefectCount',
+      'CrackLength', 'DislocationCores'
     ].map((name) => [name, root.getElementById(`obs${name}`)]));
     this.scoreA = root.getElementById('scoreA');
     this.scoreB = root.getElementById('scoreB');
@@ -715,7 +848,11 @@ export class LifeUI {
     this.performanceBenchmarkResult = null;
     this.topologyCompareResult = null;
     this.experimentNotebookEntries = [];
+    this.defectLayer = createDefectLayer({ enabled: false });
+    this.showDefectOverlay = true;
+    this.lastInitialPatternId = '';
     this.engine = createLifeEngine(modeToEngineConfig(this.mode));
+    this.engine.setDefectLayer?.(this.defectLayer);
   }
 
   install() {
@@ -770,6 +907,8 @@ export class LifeUI {
     this.installCustomRuleDesigner();
     this.installNeighborhoodLaboratory();
     this.installPatternLibrary();
+    this.installInitialPatternControls();
+    this.installDefectLayerControls();
     this.installOnlineControls();
 
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
@@ -1177,6 +1316,364 @@ export class LifeUI {
     }
   }
 
+  installInitialPatternControls() {
+    this.populateInitialPatternControls();
+    this.playInitialPatternSelect?.addEventListener('change', () => this.updateInitialPatternDescriptions());
+    this.initialPatternCategorySelect?.addEventListener('change', () => this.populateResearchInitialPatternSelect());
+    this.initialPatternSelect?.addEventListener('change', () => this.updateInitialPatternDescriptions());
+    this.applyPlayInitialPatternButton?.addEventListener('click', () => this.applyInitialPattern(this.playInitialPatternSelect?.value || 'random_uniform', { mode: 'normal' }));
+    this.applyInitialPatternButton?.addEventListener('click', () => this.applyInitialPattern(this.initialPatternSelect?.value || 'random_uniform', { mode: 'research' }));
+  }
+
+  populateInitialPatternControls() {
+    if (this.playInitialPatternSelect) {
+      const simplePatterns = listLifeInitialPatterns({
+        simpleOnly: true,
+        dimension: this.engine?.dimension || Number(this.dimensionSelect?.value) || 2
+      });
+      this.playInitialPatternSelect.innerHTML = simplePatterns.map((pattern) => {
+        return `<option value="${pattern.id}">${lifeInitialPatternName(pattern, this.language)}</option>`;
+      }).join('');
+    }
+
+    if (this.initialPatternCategorySelect) {
+      const previous = this.initialPatternCategorySelect.value || 'all';
+      this.initialPatternCategorySelect.innerHTML = [
+        `<option value="all">${this.language === 'zh' ? '全部' : 'All'}</option>`,
+        ...LIFE_INITIAL_PATTERN_CATEGORIES.map((category) => {
+          const label = this.language === 'zh' ? category.nameZh : category.nameEn;
+          return `<option value="${category.id}">${label}</option>`;
+        })
+      ].join('');
+      this.initialPatternCategorySelect.value = [...this.initialPatternCategorySelect.options].some((option) => option.value === previous)
+        ? previous
+        : 'all';
+    }
+
+    this.populateResearchInitialPatternSelect();
+  }
+
+  populateResearchInitialPatternSelect() {
+    if (!this.initialPatternSelect) {
+      this.updateInitialPatternDescriptions();
+      return;
+    }
+    const previous = this.initialPatternSelect.value || 'random_uniform';
+    const category = this.initialPatternCategorySelect?.value || 'all';
+    const patterns = listLifeInitialPatterns({
+      category,
+      dimension: this.engine?.dimension || Number(this.dimensionSelect?.value) || 2
+    });
+    this.initialPatternSelect.innerHTML = patterns.map((pattern) => {
+      return `<option value="${pattern.id}">${lifeInitialPatternName(pattern, this.language)}</option>`;
+    }).join('');
+    this.initialPatternSelect.value = patterns.some((pattern) => pattern.id === previous)
+      ? previous
+      : (patterns[0]?.id || 'random_uniform');
+    this.updateInitialPatternDescriptions();
+  }
+
+  updateInitialPatternDescriptions() {
+    const playPattern = getLifeInitialPattern(this.playInitialPatternSelect?.value || 'random_uniform');
+    if (this.playInitialPatternDescription && playPattern) {
+      this.playInitialPatternDescription.textContent = lifeInitialPatternDescription(playPattern, this.language);
+    }
+    const researchPattern = getLifeInitialPattern(this.initialPatternSelect?.value || 'random_uniform');
+    if (this.initialPatternDescription && researchPattern) {
+      this.initialPatternDescription.textContent = lifeInitialPatternDescription(researchPattern, this.language);
+    }
+    if (this.initialPatternWarning) this.initialPatternWarning.textContent = '';
+  }
+
+  currentInitialPatternParams() {
+    return {
+      radius: Number(this.initialPatternRadiusInput?.value) || 6,
+      width: Number(this.initialPatternWidthInput?.value) || 4,
+      angle: Number(this.initialPatternAngleInput?.value) || 0,
+      density: Number(this.initialPatternDensityInput?.value) || 0.22,
+      species: Math.max(1, Number(this.initialPatternSpeciesInput?.value) || this.activePlacementSpecies()),
+      noiseAmplitude: Number(this.initialPatternNoiseInput?.value) || 0,
+      seed: this.initialPatternSeedInput?.value || 'life-research-seed',
+      boundaryRoughness: Number(this.initialPatternRoughnessInput?.value) || 0
+    };
+  }
+
+  currentLifeBoardDescriptor() {
+    return {
+      dimension: this.engine.dimension,
+      size: this.engine.size.slice(),
+      topology: this.engine.topology?.boundary || this.topologySelect?.value || 'open',
+      lattice: this.engine.lattice || this.latticeSelect?.value || 'square'
+    };
+  }
+
+  applyInitialPattern(patternId = 'random_uniform', options = {}) {
+    this.stop();
+    this.applyControls(false);
+    const params = this.currentInitialPatternParams();
+    let activePatternId = patternId;
+    let pattern = getLifeInitialPattern(activePatternId);
+    if (!pattern) return;
+    const board = this.currentLifeBoardDescriptor();
+    const mode = options.mode || 'normal';
+    let safety = applyLifeResearchSafetyLimits({
+      board,
+      pattern,
+      params,
+      mode,
+      language: this.language
+    });
+    const safetyText = safetyMessagesFor(safety, this.language).join(' ');
+
+    if (safety.requiresConfirmation && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmMessage = this.language === 'zh'
+        ? '此研究棋盤非常大，可能運行緩慢。是否繼續？'
+        : 'This research board is very large and may run slowly. Continue?';
+      if (!window.confirm(confirmMessage)) return;
+    }
+
+    if (!safety.ok) {
+      const canFallback = safety.errors.every((issue) => issue.key === 'unsupportedPattern');
+      if (!canFallback) {
+        if (this.initialPatternWarning) this.initialPatternWarning.textContent = safetyText || lifeWorldText('boardTooLargePattern', this.language);
+        return;
+      }
+      const fallback = fallbackToSafePattern(safety.errors[0]);
+      activePatternId = fallback.patternId;
+      pattern = getLifeInitialPattern(activePatternId);
+      if (this.initialPatternWarning) {
+        const fallbackName = lifeInitialPatternName(pattern, this.language);
+        this.initialPatternWarning.textContent = `${safetyText} ${this.language === 'zh' ? '已改用' : 'Using'} ${fallbackName}.`;
+      }
+      safety = applyLifeResearchSafetyLimits({ board, pattern, params, mode, language: this.language });
+      if (!safety.ok) return;
+    } else if (this.initialPatternWarning) {
+      this.initialPatternWarning.textContent = safetyText;
+    }
+
+    let result = null;
+    try {
+      result = generateLifeInitialPattern(activePatternId, {
+        board,
+        params
+      });
+    } catch (error) {
+      const fallback = fallbackToSafePattern(error?.message);
+      activePatternId = fallback.patternId;
+      pattern = getLifeInitialPattern(activePatternId);
+      try {
+        result = generateLifeInitialPattern(activePatternId, { board, params });
+        if (this.initialPatternWarning) {
+          this.initialPatternWarning.textContent = `${error?.message || lifeWorldText('defectUnsupported', this.language)} ${this.language === 'zh' ? '已改用安全初始圖案。' : 'A safe initial pattern was used.'}`;
+        }
+      } catch (fallbackError) {
+        if (this.initialPatternWarning) this.initialPatternWarning.textContent = fallbackError?.message || lifeWorldText('defectUnsupported', this.language);
+        return;
+      }
+    }
+    this.engine.clear();
+    for (const entry of result.cells || []) {
+      this.engine.setCell(entry.position, {
+        state: entry.state ?? 1,
+        species: entry.species || params.species || 1,
+        age: entry.age || 1,
+        energy: entry.energy ?? 1,
+        health: entry.health ?? 1
+      });
+    }
+    if (result.defectLayer) {
+      this.defectLayer = result.defectLayer;
+      this.defectLayer.enabled = Boolean(this.defectLayerEnabledCheckbox?.checked || pattern.category === 'defects');
+      const defectSafety = validateDefectLayer(board, this.defectLayer, { mode, language: this.language });
+      if (!defectSafety.ok) {
+        this.defectLayer.enabled = false;
+        this.setDefectStatus(`${this.language === 'zh' ? '已停用缺陷層以保持模擬安全。' : 'Defect layer disabled to keep the simulation safe.'} ${safetyMessagesFor(defectSafety, this.language).join(' ')}`);
+      }
+      if (this.defectLayerEnabledCheckbox) this.defectLayerEnabledCheckbox.checked = this.defectLayer.enabled;
+      if (this.defectLayer.enabled) this.setDefectStatus(lifeWorldText('defectLayerApplied', this.language, { count: this.defectLayer.defects.length }));
+    }
+    this.syncDefectLayerToEngine();
+    this.lastInitialPatternId = activePatternId;
+    this.afterStateChange();
+  }
+
+  installDefectLayerControls() {
+    if (!this.defectLayerEnabledCheckbox) return;
+    this.defectLayerEnabledCheckbox.addEventListener('change', () => {
+      this.defectLayer.enabled = Boolean(this.defectLayerEnabledCheckbox.checked);
+      this.syncDefectLayerToEngine();
+      this.setDefectStatus(this.defectLayer.enabled
+        ? lifeWorldText('defectLayerApplied', this.language, { count: this.defectLayer.defects.length })
+        : lifeWorldText('defectLayerIdle', this.language));
+      this.draw();
+    });
+    this.showDefectOverlayCheckbox?.addEventListener('change', () => {
+      this.showDefectOverlay = Boolean(this.showDefectOverlayCheckbox.checked);
+      this.draw();
+    });
+    this.applyDefectLayerButton?.addEventListener('click', () => this.applySelectedDefectGenerator());
+    this.clearDefectsButton?.addEventListener('click', () => this.clearDefectLayer());
+    this.exportDefectLayerButton?.addEventListener('click', () => this.exportCurrentDefectLayer());
+    this.setDefectStatus(lifeWorldText('defectLayerIdle', this.language));
+  }
+
+  setDefectStatus(message = '') {
+    if (this.defectLayerStatus) this.defectLayerStatus.textContent = message;
+  }
+
+  syncDefectLayerToEngine() {
+    if (!this.defectLayer) this.defectLayer = createDefectLayer({ enabled: false });
+    this.engine.setDefectLayer?.(this.defectLayer);
+  }
+
+  currentDefectGeneratorOptions() {
+    const size = this.engine.size;
+    const dimension = this.engine.dimension;
+    const center = size.map((value) => Math.floor(value / 2));
+    const board = this.lifeDefectBoardSnapshot();
+    return {
+      board,
+      sites: board.sites,
+      edges: board.edges,
+      center,
+      radius: Math.max(2, Number(this.initialPatternRadiusInput?.value) || Math.floor(Math.min(...size) / 6)),
+      thickness: Math.max(1, Number(this.initialPatternWidthInput?.value) || 2),
+      density: Math.max(0, Math.min(0.5, Number(this.initialPatternDensityInput?.value) || 0.08)),
+      seed: this.initialPatternSeedInput?.value || 'life-defect-seed',
+      dimension
+    };
+  }
+
+  lifeDefectBoardSnapshot() {
+    const sites = [];
+    const edges = [];
+    this.engine.eachPosition((position) => sites.push({ id: position.join(','), coord: position.slice() }));
+    for (const site of sites) {
+      for (const neighbor of this.engine.getNeighborPositions(site.coord)) {
+        const a = site.id;
+        const b = neighbor.join(',');
+        if (a < b) edges.push({ source: a, target: b });
+      }
+    }
+    return {
+      dimension: this.engine.dimension,
+      size: this.engine.size.slice(),
+      sites,
+      edges
+    };
+  }
+
+  applySelectedDefectGenerator() {
+    const type = this.defectGeneratorSelect?.value || 'vacancy_cluster_initial';
+    const preflight = applyLifeResearchSafetyLimits({
+      board: this.currentLifeBoardDescriptor(),
+      pattern: getLifeInitialPattern('random_clustered'),
+      defectLayer: this.defectLayer,
+      mode: 'research',
+      language: this.language
+    });
+    if (preflight.requiresConfirmation && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmMessage = this.language === 'zh'
+        ? '此研究棋盤非常大，可能運行緩慢。是否繼續？'
+        : 'This research board is very large and may run slowly. Continue?';
+      if (!window.confirm(confirmMessage)) return;
+    }
+    if (!preflight.ok) {
+      this.setDefectStatus(safetyMessagesFor(preflight, this.language).join(' ') || lifeWorldText('boardTooLargePattern', this.language));
+      return;
+    }
+    const options = this.currentDefectGeneratorOptions();
+    let defect = null;
+    try {
+      if (type === 'vacancy_cluster_initial') {
+        defect = generateVacancyCluster({ ...options, shape: options.dimension >= 3 ? 'sphere' : 'disk' });
+      } else if (type === 'defect_pair') {
+        const left = options.center.map((value, axis) => axis === 0 ? Math.max(1, value - options.radius) : value);
+        const right = options.center.map((value, axis) => axis === 0 ? Math.min((this.engine.size[0] || 1) - 2, value + options.radius) : value);
+        defect = generateRandomDefectField({ sites: options.sites, densityVacancy: 0, densityImpurity: 0, densityPinned: 0, seed: options.seed });
+        defect.affectedSites = [left.join(','), right.join(',')];
+        defect.parameters.impuritySites = defect.affectedSites.slice();
+        defect.nameEn = 'Defect Pair';
+        defect.nameZh = '缺陷對';
+      } else if (type === 'dislocation_dipole_2d') {
+        if (this.engine.dimension !== 2) throw new Error(lifeWorldText('defectUnsupported', this.language));
+        defect = generateEdgeDislocation2D({
+          board: options.board,
+          core: options.center,
+          burgersVector: [1, 0],
+          halfPlaneLength: options.radius * 2,
+          orientation: Number(this.initialPatternAngleInput?.value) || 0,
+          seed: options.seed
+        });
+      } else if (type === 'crack_seed') {
+        const start = options.center.map((value, axis) => axis === 0 ? value - options.radius * 2 : value);
+        const end = options.center.map((value, axis) => axis === 0 ? value + options.radius * 2 : value);
+        defect = generateCrackLine({ sites: options.sites, edges: options.edges, start, end, thickness: options.thickness, jaggedness: 0.15, seed: options.seed });
+      } else if (type === 'grain_boundary_seed') {
+        defect = generateGrainBoundary({
+          sites: options.sites,
+          edges: options.edges,
+          lineOrPlane: { point: options.center, normal: [1, -1, 0, 0].slice(0, options.dimension) },
+          orientationA: 0,
+          orientationB: 1,
+          interactionStrength: 0.5,
+          seed: options.seed
+        });
+      } else if (type === 'impurity_patch') {
+        defect = generateInclusion({
+          sites: options.sites,
+          center: options.center,
+          radius: options.radius,
+          modifierType: 'impurity',
+          ruleModifier: { birthNoise: 0.02 },
+          seed: options.seed
+        });
+      } else {
+        defect = generateRandomDefectField({
+          sites: options.sites,
+          densityVacancy: options.density,
+          densityImpurity: options.density,
+          densityPinned: options.density / 3,
+          seed: options.seed
+        });
+      }
+      if (!this.defectLayer) this.defectLayer = createDefectLayer({ enabled: true });
+      this.defectLayer.enabled = true;
+      addDefect(this.defectLayer, defect);
+      const defectSafety = validateDefectLayer(this.currentLifeBoardDescriptor(), this.defectLayer, { mode: 'research', language: this.language });
+      if (!defectSafety.ok) {
+        this.defectLayer.enabled = false;
+        if (this.defectLayerEnabledCheckbox) this.defectLayerEnabledCheckbox.checked = false;
+        this.syncDefectLayerToEngine();
+        this.setDefectStatus(`${this.language === 'zh' ? '已停用缺陷層以保持模擬安全。' : 'Defect layer disabled to keep the simulation safe.'} ${safetyMessagesFor(defectSafety, this.language).join(' ')}`);
+        this.draw();
+        return;
+      }
+      if (this.defectLayerEnabledCheckbox) this.defectLayerEnabledCheckbox.checked = true;
+      this.syncDefectLayerToEngine();
+      this.setDefectStatus(lifeWorldText('defectLayerApplied', this.language, { count: this.defectLayer.defects.length }));
+      this.afterStateChange();
+    } catch (error) {
+      this.setDefectStatus(error?.message || lifeWorldText('defectUnsupported', this.language));
+    }
+  }
+
+  clearDefectLayer() {
+    this.defectLayer = createDefectLayer({ enabled: false });
+    if (this.defectLayerEnabledCheckbox) this.defectLayerEnabledCheckbox.checked = false;
+    this.syncDefectLayerToEngine();
+    this.setDefectStatus(lifeWorldText('defectLayerCleared', this.language));
+    this.draw();
+    this.updateReadout();
+  }
+
+  exportCurrentDefectLayer() {
+    if (!this.defectLayer) return;
+    const payload = exportDefectLayer(this.defectLayer);
+    if (this.patternJson) this.patternJson.value = JSON.stringify({ defectLayer: payload }, null, 2);
+    this.setDefectStatus(lifeWorldText('defectLayerExported', this.language));
+  }
+
   maxNeighborCount() {
     return this.estimatedNeighborCount(this.resolveNeighborhoodControls({ applyFallback: false }));
   }
@@ -1553,11 +2050,13 @@ export class LifeUI {
       lattice,
       rule
     });
+    this.syncDefectLayerToEngine();
     if (!preserve) this.engine.clear();
     this.draw();
     this.updateReadout();
     this.updateNeighborhoodLaboratory();
     this.populatePatternLibrary();
+    this.populateInitialPatternControls();
     this.updateGeometryInfoCard();
     this.updateTopologyCompareRuleSummary();
   }
@@ -1585,6 +2084,7 @@ export class LifeUI {
   seedRandom() {
     this.applyControls(true);
     this.engine.randomSeed({ density: this.usageModeSelect.value === 'two' ? 0.08 : (Number(this.speciesSelect.value) > 1 ? 0.22 : 0.18), speciesCount: Number(this.speciesSelect.value) || 1 });
+    this.syncDefectLayerToEngine();
     this.afterStateChange();
   }
 
@@ -2404,6 +2904,13 @@ export class LifeUI {
       ? { min: shapeSignature.min, max: shapeSignature.max, width: shapeSignature.width, height: shapeSignature.height }
       : null;
     obs.detectedStructures = this.classifyDetectedStructures(obs, hash, shapeSignature);
+    const researchObs = computeLifeObservables(this.engine, this.engine, this.defectLayer, {
+      history: this.history,
+      frontVelocity: obs.frontVelocity,
+      extinctionTime: this.extinctionTime,
+      oscillationPeriod: obs.oscillationPeriod
+    });
+    Object.assign(obs, researchObs);
     this.history.push(structuredClone(obs));
     if (this.history.length > 220) this.history.shift();
     this.draw(); this.updateReadout(obs); this.updateChallengeStatus(obs); this.drawPlots();
@@ -2423,6 +2930,11 @@ export class LifeUI {
     this.obs.ClusterCount.textContent = String(obs.clusterCount || 0);
     this.obs.LargestCluster.textContent = String(obs.largestClusterSize || 0);
     this.obs.ComponentSizeDistribution.textContent = compactObject(obs.connectedComponentSizeDistribution, 0);
+    if (this.obs.DomainCount) this.obs.DomainCount.textContent = String(obs.domain_count ?? 0);
+    if (this.obs.InterfaceLength) this.obs.InterfaceLength.textContent = String(obs.interface_length ?? 0);
+    if (this.obs.DefectCount) this.obs.DefectCount.textContent = String(obs.defect_count ?? 0);
+    if (this.obs.CrackLength) this.obs.CrackLength.textContent = String(obs.crack_length ?? 0);
+    if (this.obs.DislocationCores) this.obs.DislocationCores.textContent = String(obs.dislocation_core_count ?? 0);
     this.obs.Entropy.textContent = formatNumber(obs.entropy);
     this.obs.Correlation.textContent = formatNumber(obs.spatialCorrelation);
     this.obs.CenterOfMass.textContent = compactVector(obs.centerOfMass, 2);
@@ -3042,6 +3554,78 @@ export class LifeUI {
     ctx.restore();
   }
 
+  flatCellCenter(position, view) {
+    const x = Number(position[0] || 0);
+    const y = this.engine.dimension === 1 ? 0 : Number(position[1] || 0);
+    const polygon = this.engine.dimension === 2 && this.flatLatticeKind() !== 'square'
+      ? this.flatCellPolygon(x, y, view, 0)
+      : null;
+    if (polygon) {
+      return {
+        x: polygon.reduce((sum, point) => sum + point[0], 0) / polygon.length,
+        y: polygon.reduce((sum, point) => sum + point[1], 0) / polygon.length
+      };
+    }
+    return {
+      x: view.originX + (x + 0.5) * view.sx,
+      y: this.engine.dimension === 1
+        ? view.originY + view.boardHeight * 0.5
+        : view.originY + (y + 0.5) * view.sy
+    };
+  }
+
+  drawDefectOverlay(ctx, width, height, view) {
+    if (!this.showDefectOverlay || !this.defectLayer?.enabled) return;
+    if (this.engine.dimension > 2) return;
+    const minCell = Math.max(4, Math.min(view.sx, view.sy));
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (const edge of this.defectLayer.modifiedEdges.values()) {
+      if (!edge?.blocked) continue;
+      const source = edge.source.split(',').map(Number);
+      const target = edge.target.split(',').map(Number);
+      const a = this.flatCellCenter(source, view);
+      const b = this.flatCellCenter(target, view);
+      if ((a.x < -20 && b.x < -20) || (a.x > width + 20 && b.x > width + 20) || (a.y < -20 && b.y < -20) || (a.y > height + 20 && b.y > height + 20)) continue;
+      ctx.strokeStyle = 'rgba(2, 6, 12, 0.86)';
+      ctx.lineWidth = Math.max(2, minCell * 0.14);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
+    this.engine.eachPosition((position) => {
+      if (position.length > 2) return;
+      const center = this.flatCellCenter(position, view);
+      if (center.x < -16 || center.x > width + 16 || center.y < -16 || center.y > height + 16) return;
+      const blocked = isSiteBlocked(this.defectLayer, position);
+      const pinned = isSitePinned(this.defectLayer, position);
+      if (!blocked && !pinned) return;
+      const r = Math.max(3, Math.min(10, minCell * 0.22));
+      if (blocked) {
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.lineWidth = Math.max(1.4, r * 0.32);
+        ctx.beginPath();
+        ctx.moveTo(center.x - r, center.y - r);
+        ctx.lineTo(center.x + r, center.y + r);
+        ctx.moveTo(center.x + r, center.y - r);
+        ctx.lineTo(center.x - r, center.y + r);
+        ctx.stroke();
+      }
+      if (pinned) {
+        ctx.strokeStyle = 'rgba(245, 182, 71, 0.95)';
+        ctx.lineWidth = Math.max(1.5, r * 0.26);
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, r * 1.15, 0, TAU);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
   draw() {
     this.resizeCanvas();
     const ctx = this.context;
@@ -3117,6 +3701,7 @@ export class LifeUI {
       this.drawFlatGridLines(ctx, width, height, flatView);
       this.drawFlatBoundary(ctx, width, height, flatView);
     }
+    this.drawDefectOverlay(ctx, width, height, flatView);
     ctx.restore();
   }
 
@@ -4303,6 +4888,22 @@ export class LifeUI {
       'clusterCount',
       'largestClusterSize',
       'connectedComponentSizeDistribution',
+      'domain_count',
+      'cluster_count',
+      'largest_cluster_size',
+      'interface_length',
+      'domain_wall_length',
+      'droplet_area_or_volume',
+      'droplet_radius_estimate',
+      'roughness_of_domain_wall',
+      'defect_count',
+      'vacancy_count',
+      'pinned_site_count',
+      'crack_length',
+      'grain_boundary_length',
+      'dislocation_core_count',
+      'defect_distance_to_domain_wall',
+      'entropy_density_approx',
       'entropy',
       'spatialCorrelation',
       'speciesSpatialCorrelation',
@@ -4345,6 +4946,10 @@ export class LifeUI {
       metadata,
       currentObservables: this.currentObservableSample(),
       observableTimeSeries: this.history.map((item) => structuredClone(item)),
+      research: {
+        initialPatternId: this.lastInitialPatternId || null,
+        defectLayer: this.defectLayer ? exportDefectLayer(this.defectLayer) : null
+      },
       experiment: {
         generation: this.engine.generation,
         historyLength: this.history.length,
@@ -4391,6 +4996,10 @@ export class LifeUI {
         current: this.currentObservableSample(),
         historyLength: this.history.length
       },
+      research: {
+        initialPatternId: this.lastInitialPatternId || null,
+        defectLayer: this.defectLayer ? exportDefectLayer(this.defectLayer) : null
+      },
       state: this.engine.exportState()
     };
     this.patternJson.value = JSON.stringify(payload, null, 2);
@@ -4401,6 +5010,12 @@ export class LifeUI {
       const payload = JSON.parse(this.patternJson.value); const state = payload.state || payload;
       const importedRule = structuredClone(state.rule || {});
       this.engine.importState(state);
+      this.defectLayer = this.engine.defectLayer || createDefectLayer({ enabled: false });
+      if (payload.research?.defectLayer || payload.defectLayer || state.defectLayer) {
+        this.defectLayer = importDefectLayer(payload.research?.defectLayer || payload.defectLayer || state.defectLayer);
+        if (this.defectLayerEnabledCheckbox) this.defectLayerEnabledCheckbox.checked = Boolean(this.defectLayer.enabled);
+      }
+      this.syncDefectLayerToEngine();
       this.dimensionSelect.value = String(this.engine.dimension); this.boardSizeSelect.value = String(this.engine.size[0]); this.topologySelect.value = this.engine.topology.boundary; this.neighborhoodSelect.value = this.engine.neighborhoodType; this.neighborhoodRadiusSelect.value = String(this.engine.neighborhoodRadius || 1); this.neighborhoodMetricSelect.value = this.engine.neighborhoodMetric || this.neighborhoodMetricFromType(this.engine.neighborhoodType); this.latticeSelect.value = this.engine.lattice || this.latticeSelect.value;
       if (payload.geometry) {
         const geometry = findLifeGeometry(payload.geometry === 'klein' && payload.viewMode === 'surface3d' ? 'klein_surface' : payload.geometry);
@@ -4437,6 +5052,7 @@ export class LifeUI {
       this.updateGeometryInfoCard();
       this.updateNeighborhoodLaboratory();
       this.populatePatternLibrary();
+      this.populateInitialPatternControls();
       this.history = []; this.stateHashes = new Map(); this.extinctionTime = null; this.afterStateChange();
     } catch (error) { this.challengeStatus.textContent = `${t('importFailed', this.language)}: ${error.message}`; }
   }

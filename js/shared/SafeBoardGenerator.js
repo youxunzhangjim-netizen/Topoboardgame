@@ -9,6 +9,7 @@ import {
     recordWarning,
     startTimer
 } from './PerformanceAudit.js';
+import { submitComputeTask } from './ComputeTaskScheduler.js';
 
 export const SAFE_BOARD_FALLBACK_MESSAGE = Object.freeze({
     en: 'The selected board could not be loaded safely. A stable fallback was loaded.',
@@ -229,4 +230,41 @@ export function generateBoardSafely(generatorFn, params = {}, options = {}) {
         recordError('board generation', `${config.id} generator threw.`, { message, durationMs });
         return fallbackResult(config, params, errors, warnings, error);
     }
+}
+
+export async function generateBoardSafelyAsync(generatorFn, params = {}, options = {}) {
+    const config = normalizeOptions(options);
+    const scheduled = await submitComputeTask({
+        id: `safe-board:${config.id}`,
+        type: 'board_generate',
+        allowGenericWorker: false,
+        language: options.language,
+        signal: options.signal,
+        estimate: {
+            siteCount: options.estimatedSites ?? params.estimatedSites ?? params.siteCount ?? params.sites ?? 0,
+            edgeCount: options.estimatedEdges ?? params.estimatedEdges ?? params.edgeCount ?? params.edges ?? 0,
+            durationMs: config.timeoutWarningMs
+        },
+        onProgress: options.onProgress,
+        runChunked: async (context) => {
+            context.progress({ completed: 0, total: 2 });
+            await context.yieldToUI();
+            context.throwIfAborted();
+            const result = generateBoardSafely(generatorFn, params, options);
+            context.throwIfAborted();
+            context.progress({ completed: 2, total: 2 });
+            return result;
+        },
+        runSync: () => generateBoardSafely(generatorFn, params, options)
+    });
+
+    if (scheduled.ok) return scheduled.value;
+    return {
+        ok: false,
+        boardSpec: null,
+        usedFallback: false,
+        errors: [scheduled.message || scheduled.error?.message || String(scheduled.error || 'Board generation failed.')],
+        warnings: [],
+        stats: emptyStats()
+    };
 }

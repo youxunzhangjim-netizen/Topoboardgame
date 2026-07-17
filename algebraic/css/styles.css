@@ -1293,6 +1293,60 @@ h2 {
     pointer-events: none;
 }
 
+.cell.exchange-active {
+    outline: 2px solid rgba(242, 196, 100, 0.92);
+    outline-offset: -4px;
+    box-shadow: inset 0 0 0 2px rgba(66, 198, 255, 0.26), 0 0 22px rgba(242, 196, 100, 0.24);
+}
+
+.cell.exchange-active::before {
+    content: "";
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    top: 50%;
+    height: 48%;
+    border: 2px solid rgba(242, 196, 100, 0.72);
+    border-left-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.cell.exchange-counterclockwise::before {
+    transform: scaleX(-1);
+}
+
+.cell.exchange-clockwise .anyon,
+.cell.exchange-clockwise .stone,
+.cell.exchange-clockwise .majorana-mode-token {
+    animation: braidExchangeClockwise 560ms ease-in-out;
+}
+
+.cell.exchange-counterclockwise .anyon,
+.cell.exchange-counterclockwise .stone,
+.cell.exchange-counterclockwise .majorana-mode-token {
+    animation: braidExchangeCounterclockwise 560ms ease-in-out;
+}
+
+.exchange-badge {
+    position: absolute;
+    right: 3px;
+    top: 4px;
+    z-index: 4;
+    min-width: 22px;
+    padding: 1px 5px;
+    border: 1px solid rgba(242, 196, 100, 0.92);
+    border-radius: 999px;
+    background: rgba(44, 31, 9, 0.92);
+    color: #fff0b6;
+    font-size: clamp(8px, 0.9vw, 11px);
+    font-weight: 1000;
+    line-height: 1.2;
+    pointer-events: none;
+}
+
 .cell.fusion-site::after {
     content: "";
     position: absolute;
@@ -1425,6 +1479,65 @@ h2 {
 .anyon {
     inset: 18%;
     font-size: clamp(10px, 1.65vw, 18px);
+}
+
+.majorana-mode-token {
+    position: absolute;
+    inset: 11%;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    z-index: 2;
+    background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9), rgba(64, 224, 255, 0.78) 32%, rgba(5, 15, 24, 0.96) 72%);
+    border: 2px solid rgba(139, 225, 255, 0.88);
+    box-shadow: 0 0 18px rgba(66, 198, 255, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    color: #ecfeff;
+    font-size: clamp(10px, 1.55vw, 18px);
+    font-weight: 1000;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.majorana-mode-token.sector-b {
+    background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.96), rgba(242, 196, 100, 0.86) 34%, rgba(31, 22, 8, 0.96) 74%);
+    border-color: rgba(242, 196, 100, 0.9);
+    box-shadow: 0 0 18px rgba(242, 196, 100, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.majorana-mode-token.selected,
+.cell.majorana-selected .majorana-mode-token {
+    outline: 3px solid rgba(66, 230, 138, 0.95);
+    outline-offset: 2px;
+}
+
+.majorana-mode-token.braided {
+    box-shadow: 0 0 0 3px rgba(242, 196, 100, 0.32), 0 0 20px rgba(242, 196, 100, 0.3);
+}
+
+.majorana-gamma {
+    transform: translateY(-0.12em);
+}
+
+.majorana-flavor,
+.majorana-channel {
+    position: absolute;
+    min-width: 1.6em;
+    padding: 1px 4px;
+    border-radius: 999px;
+    background: rgba(4, 8, 12, 0.82);
+    color: #fff2b8;
+    font-size: 0.48em;
+    border: 1px solid rgba(242, 196, 100, 0.55);
+}
+
+.majorana-flavor {
+    left: -0.15em;
+    bottom: -0.2em;
+}
+
+.majorana-channel {
+    right: -0.15em;
+    bottom: -0.2em;
 }
 
 .stone.jump-particle-site {
@@ -1774,6 +1887,30 @@ h2 {
     }
     45% {
         box-shadow: inset 0 0 0 3px rgba(255, 115, 115, 0.82), 0 0 24px rgba(255, 115, 115, 0.42);
+    }
+}
+
+@keyframes braidExchangeClockwise {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    45% {
+        transform: translate(13%, -15%) scale(1.05);
+    }
+    70% {
+        transform: translate(-7%, 7%) scale(0.98);
+    }
+}
+
+@keyframes braidExchangeCounterclockwise {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    45% {
+        transform: translate(-13%, -15%) scale(1.05);
+    }
+    70% {
+        transform: translate(7%, 7%) scale(0.98);
     }
 }
 

@@ -14,6 +14,7 @@ let desktopSaveStore = null;
 let appServer = null;
 let appBaseUrl = '';
 let pendingLogLines = [];
+let steamComputeService = null;
 
 function logLine(message, details = {}) {
   const suffix = Object.keys(details).length ? ` ${JSON.stringify(details)}` : '';
@@ -202,6 +203,34 @@ function registerDesktopSaveIpc() {
   }));
 }
 
+async function getSteamComputeService() {
+  if (steamComputeService) return steamComputeService;
+  const serviceUrl = pathToFileURL(path.join(__dirname, '../compute/SteamComputeService.js')).href;
+  const module = await import(serviceUrl);
+  steamComputeService = module.createSteamComputeService({ maxWorkers: Number(process.env.TBG_STEAM_COMPUTE_WORKERS || 3) });
+  logLine('steam-compute-service-ready', steamComputeService.getStatus());
+  return steamComputeService;
+}
+
+function registerComputeIpc() {
+  trustedHandle('compute:run-job', async (job) => {
+    const service = await getSteamComputeService();
+    return service.runJob(job || {});
+  });
+  trustedHandle('compute:cancel-job', async (jobId) => {
+    if (!steamComputeService) return { ok: false, error: 'compute-service-not-started' };
+    return steamComputeService.cancelJob(jobId);
+  });
+  trustedHandle('compute:status', async () => {
+    try {
+      const service = await getSteamComputeService();
+      return service.getStatus();
+    } catch (error) {
+      return { ok: false, available: false, error: String(error?.message || error) };
+    }
+  });
+}
+
 function resolveAppIcon() {
   return path.join(__dirname, '../build-resources/icon.png');
 }
@@ -369,12 +398,17 @@ function runStockfish(enginePath, fen, depth) {
 
 app.whenReady().then(() => {
   registerDesktopSaveIpc();
+  registerComputeIpc();
   createWindowSafely();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindowSafely(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => {
+  if (steamComputeService) {
+    try { steamComputeService.destroy(); } catch {}
+    steamComputeService = null;
+  }
   if (appServer) {
     try { appServer.close(); } catch {}
     appServer = null;

@@ -77,3 +77,9 @@ contextBridge.exposeInMainWorld('TopoboardgameLocalApp', {
   flushSave: () => ipcRenderer.invoke('desktop-save:sync-local-storage', captureLocalStorage()),
   getSavePath: () => ipcRenderer.invoke('desktop-save:path')
 });
+
+contextBridge.exposeInMainWorld('topoboardCompute', {
+  runJob: (job) => ipcRenderer.invoke('compute:run-job', job),
+  cancelJob: (jobId) => ipcRenderer.invoke('compute:cancel-job', jobId),
+  getStatus: () => ipcRenderer.invoke('compute:status')
+});

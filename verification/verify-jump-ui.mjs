@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 
 const baseUrl = process.env.TOPOBOARDGAME_TEST_URL || 'http://127.0.0.1:5172';
 const output = path.resolve('test-results', 'jump-ui');

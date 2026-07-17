@@ -42,6 +42,7 @@ import {
 import { firebaseConfig, hasFirebaseConfig } from './firebaseConfig.js';
 import { getOnlineClientMetadata, ONLINE_CONFIG } from './js/shared/OnlineConfig.js';
 import { canJoinRoom, formatOnlineStatusMetadata, getJoinRoomProblemMessage } from './js/shared/OnlineCompatibility.js';
+import { assertFirestorePayloadSafe } from './js/shared/FirestorePayloadGuard.js';
 
 const buildEnv = import.meta.env || {};
 const onlineBuildConfig = {
@@ -1427,6 +1428,32 @@ function encodeBoardForFirestore(value) {
     return JSON.stringify(firestoreValue(value ?? null));
 }
 
+function assertOnlineFirestorePayload(value, context, options = {}) {
+    const result = assertFirestorePayloadSafe(value, {
+        context,
+        language: currentLanguageCode(),
+        ...options
+    });
+    if (result.warnings.length) {
+        authWarn('Firestore payload warning', { context, warnings: result.warnings, sizeBytes: result.sizeBytes });
+    }
+    return result;
+}
+
+function encodeBoardForFirestoreSafe(value, context) {
+    // Online rooms keep only compact current state. Research BoardSpecs,
+    // meshes, raw logs, and large timelines belong in local JSON exports.
+    assertOnlineFirestorePayload(value ?? null, `${context} source`, { blockForbiddenKeys: true });
+    const encoded = encodeBoardForFirestore(value);
+    assertOnlineFirestorePayload({ board: encoded }, context);
+    return encoded;
+}
+
+function compactOnlineWriteDoc(docValue, context, options = {}) {
+    assertOnlineFirestorePayload(docValue, context, options);
+    return docValue;
+}
+
 function decodeBoardFromFirestore(value) {
     if (typeof value !== 'string') return value;
     try {
@@ -1750,7 +1777,7 @@ export async function createPrivateRoom(initialBoard) {
         gameKey: hooks.gameKey,
         matchKey: hooks.matchKey,
         ...onlineRoomCompatibilityMetadata(),
-        board: encodeBoardForFirestore(board),
+        board: encodeBoardForFirestoreSafe(board, `rooms/${ref.id}/board`),
         moveNumber: 0,
         lastMove: null,
         createdAt: serverTimestamp(),
@@ -1978,7 +2005,7 @@ async function claimPublicMatchRoom(id, board, initialTurn, { allowCreate = fals
                 gameKey: hooks.gameKey,
                 matchKey: hooks.matchKey,
                 ...onlineRoomCompatibilityMetadata(),
-                board: encodeBoardForFirestore(board),
+                board: encodeBoardForFirestoreSafe(board, `rooms/${id}/board`),
                 moveNumber: 0,
                 lastMove: null,
                 createdAt: serverTimestamp(),
@@ -2179,7 +2206,7 @@ export async function sendMove(move) {
             || nextBoard?.currentPlayer
             || opposite(playerColor);
         transaction.update(ref, {
-            board: encodeBoardForFirestore(nextBoard),
+            board: encodeBoardForFirestoreSafe(nextBoard, `rooms/${roomId}/board`),
             turn: nextTurn,
             moveNumber: (Number(room.moveNumber) || 0) + 1,
             lastMove: {
@@ -2197,7 +2224,7 @@ export async function sendMove(move) {
     }), 'Send move');
 
     try {
-        await withTimeout(addDoc(collection(db, roomsPath, roomId, movesCollectionName), {
+        const moveDoc = compactOnlineWriteDoc({
             gameKey: hooks.gameKey,
             matchKey: hooks.matchKey,
             moveNumber: logEntry.moveNumber,
@@ -2206,7 +2233,8 @@ export async function sendMove(move) {
             nextTurn: logEntry.nextTurn,
             move: firestoreValue(logEntry.lastMove),
             createdAt: serverTimestamp()
-        }), 'Write move log');
+        }, `rooms/${roomId}/${movesCollectionName}`);
+        await withTimeout(addDoc(collection(db, roomsPath, roomId, movesCollectionName), moveDoc), 'Write move log');
     } catch (error) {
         authWarn('sendMove: compact move log write failed', authErrorSummary(error));
     }
@@ -2249,13 +2277,14 @@ export async function sendChatMessage(text) {
     const message = String(text || '').trim().slice(0, 240);
     if (!roomId || !playerColor) throw new Error('Join a room before chatting.');
     if (!message) return false;
-    await withTimeout(addDoc(collection(db, roomsPath, roomId, chatCollectionName), {
+    const chatDoc = compactOnlineWriteDoc({
         text: message,
         uid: user.uid,
         player: playerColor,
         displayName: displayNameForUser(user),
         createdAt: serverTimestamp()
-    }), 'Send chat');
+    }, `rooms/${roomId}/${chatCollectionName}`);
+    await withTimeout(addDoc(collection(db, roomsPath, roomId, chatCollectionName), chatDoc), 'Send chat');
     return true;
 }
 

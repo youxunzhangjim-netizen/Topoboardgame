@@ -132,6 +132,18 @@
             <p class="pattern-warning" id="patternWarning" role="status"></p>
           </section>
 
+          <section class="pattern-library-panel initial-pattern-panel" data-life-control-view="play" aria-labelledby="playInitialPatternTitle">
+            <div class="compact-section-heading">
+              <h3 id="playInitialPatternTitle" data-life-extra-i18n="initialPattern">Initial Pattern</h3>
+            </div>
+            <div class="control-row">
+              <label for="playInitialPatternSelect" data-life-extra-i18n="initialPattern">Initial Pattern</label>
+              <select id="playInitialPatternSelect"></select>
+            </div>
+            <p class="pattern-description" id="playInitialPatternDescription"></p>
+            <button class="life-button" id="applyPlayInitialPatternButton" type="button" data-life-extra-i18n="applyInitialPattern">Apply Initial Pattern</button>
+          </section>
+
           <section class="life-online-controls" aria-label="Online Life room controls" data-life-i18n-label="onlineLifeRoomControls" data-life-control-view="play">
             <div class="control-row">
               <label for="lifePlayModeSelect" data-life-i18n="connection">Connection</label>
@@ -264,6 +276,63 @@
                 <button class="life-button primary" id="applyCustomRuleButton" type="button" data-life-extra-i18n="applyCustomRule">Apply custom rule</button>
               </div>
             </details>
+            <section class="pattern-library-panel initial-pattern-panel research-initial-panel" aria-labelledby="researchInitialPatternTitle">
+              <div class="compact-section-heading">
+                <h3 id="researchInitialPatternTitle" data-life-extra-i18n="researchInitialConditions">Research Initial Conditions</h3>
+              </div>
+              <div class="control-row">
+                <label for="initialPatternCategorySelect" data-life-extra-i18n="patternCategory">Pattern Category</label>
+                <select id="initialPatternCategorySelect"></select>
+              </div>
+              <div class="control-row">
+                <label for="initialPatternSelect" data-life-extra-i18n="initialPattern">Initial Pattern</label>
+                <select id="initialPatternSelect"></select>
+              </div>
+              <div class="initial-pattern-params">
+                <label><span data-life-extra-i18n="radius">Radius</span><input id="initialPatternRadiusInput" type="number" min="1" max="128" step="1" value="6" /></label>
+                <label><span data-life-extra-i18n="width">Width</span><input id="initialPatternWidthInput" type="number" min="1" max="128" step="1" value="4" /></label>
+                <label><span data-life-extra-i18n="angle">Angle</span><input id="initialPatternAngleInput" type="number" min="-180" max="180" step="5" value="0" /></label>
+                <label><span data-life-extra-i18n="density">Density</span><input id="initialPatternDensityInput" type="number" min="0" max="1" step="0.01" value="0.22" /></label>
+                <label><span data-life-extra-i18n="initialPatternSpecies">Species</span><input id="initialPatternSpeciesInput" type="number" min="1" max="4" step="1" value="1" /></label>
+                <label><span data-life-extra-i18n="noiseAmplitude">Noise</span><input id="initialPatternNoiseInput" type="number" min="0" max="1" step="0.01" value="0.08" /></label>
+                <label><span data-life-extra-i18n="initialPatternSeed">Seed</span><input id="initialPatternSeedInput" type="text" autocomplete="off" value="life-research-seed" /></label>
+                <label><span data-life-extra-i18n="boundaryRoughness">Boundary roughness</span><input id="initialPatternRoughnessInput" type="number" min="0" max="1" step="0.01" value="0.12" /></label>
+              </div>
+              <p class="pattern-description" id="initialPatternDescription"></p>
+              <p class="pattern-warning" id="initialPatternWarning" role="status"></p>
+              <button class="life-button primary" id="applyInitialPatternButton" type="button" data-life-extra-i18n="applyInitialPattern">Apply Initial Pattern</button>
+            </section>
+            <section class="pattern-library-panel defect-layer-panel" aria-labelledby="defectLayerTitle">
+              <div class="compact-section-heading">
+                <h3 id="defectLayerTitle" data-life-extra-i18n="defectLayer">Defect Layer</h3>
+              </div>
+              <label class="defect-toggle-row">
+                <input id="defectLayerEnabledCheckbox" type="checkbox" />
+                <span data-life-extra-i18n="latticeBreakingDefects">Lattice-Breaking Defects</span>
+              </label>
+              <label class="defect-toggle-row">
+                <input id="showDefectOverlayCheckbox" type="checkbox" checked />
+                <span data-life-extra-i18n="showDefectOverlay">Show Defect Overlay</span>
+              </label>
+              <div class="control-row">
+                <label for="defectGeneratorSelect" data-life-extra-i18n="defectGenerator">Defect generator</label>
+                <select id="defectGeneratorSelect">
+                  <option value="vacancy_cluster_initial" data-life-extra-i18n="vacancyClusterInitial">Vacancy Cluster</option>
+                  <option value="defect_pair" data-life-extra-i18n="defectPair">Defect Pair</option>
+                  <option value="dislocation_dipole_2d" data-life-extra-i18n="dislocationDipole2d">Dislocation Dipole</option>
+                  <option value="crack_seed" data-life-extra-i18n="crackSeed">Crack Seed</option>
+                  <option value="grain_boundary_seed" data-life-extra-i18n="grainBoundarySeed">Grain Boundary Seed</option>
+                  <option value="impurity_patch" data-life-extra-i18n="impurityPatch">Impurity Patch</option>
+                  <option value="random_defect_field" data-life-extra-i18n="randomDefectField">Random Defect Field</option>
+                </select>
+              </div>
+              <div class="life-button-row">
+                <button class="life-button primary" id="applyDefectLayerButton" type="button" data-life-extra-i18n="applyDefects">Apply Defects</button>
+                <button class="life-button" id="clearDefectsButton" type="button" data-life-extra-i18n="clearDefects">Clear Defects</button>
+                <button class="life-button" id="exportDefectLayerButton" type="button" data-life-extra-i18n="exportDefectLayer">Export Defect Layer</button>
+              </div>
+              <p class="defect-layer-status" id="defectLayerStatus" role="status" data-life-extra-i18n="defectLayerIdle">Defect layer is inactive.</p>
+            </section>
             <div class="control-row">
               <label for="neighborhoodSelect" data-life-i18n="neighborhood">Neighborhood</label>
               <select id="neighborhoodSelect">
@@ -416,6 +485,11 @@
         <article><span data-life-i18n="clusterCount">Cluster count</span><strong id="obsClusterCount">0</strong></article>
         <article><span data-life-i18n="largestCluster">Largest cluster</span><strong id="obsLargestCluster">0</strong></article>
         <article><span data-life-i18n="componentSizeDistribution">Component size distribution</span><strong id="obsComponentSizeDistribution">—</strong></article>
+        <article><span data-life-extra-i18n="domainCount">Domain Count</span><strong id="obsDomainCount">0</strong></article>
+        <article><span data-life-extra-i18n="interfaceLength">Interface Length</span><strong id="obsInterfaceLength">0</strong></article>
+        <article><span data-life-extra-i18n="defectCount">Defect Count</span><strong id="obsDefectCount">0</strong></article>
+        <article><span data-life-extra-i18n="crackLength">Crack Length</span><strong id="obsCrackLength">0</strong></article>
+        <article><span data-life-extra-i18n="dislocationCores">Dislocation Cores</span><strong id="obsDislocationCores">0</strong></article>
         <article><span data-life-i18n="entropy">Entropy</span><strong id="obsEntropy">0</strong></article>
         <article><span data-life-i18n="correlation">Spatial correlation</span><strong id="obsCorrelation">0</strong></article>
         <article><span data-life-i18n="centerOfMass">Center of mass</span><strong id="obsCenterOfMass">—</strong></article>

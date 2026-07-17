@@ -668,13 +668,27 @@ export class Algebraic3DBoard {
     }
 
     addAnyon(token) {
+        const isMajorana = this.game?.mode === 'majorana_modes';
         const group = this.baseEntity(token.coord, token.owner, 0.96);
-        const sprite = labelSprite(anyonSymbol(token.anyonType), {
+        const label = isMajorana
+            ? String(token.gammaLabel || token.id).replace(/^gamma_/, '\u03b3')
+            : anyonSymbol(token.anyonType);
+        const sprite = labelSprite(label, {
             foreground: token.owner === 'black' ? '#8be1ff' : '#18222d',
             background: token.owner === 'black' ? 'rgba(4,8,12,.9)' : 'rgba(246,248,251,.92)'
         });
         sprite.position.y = this.entityRadius() * 1.85;
         group.add(sprite);
+        if (isMajorana) {
+            const channel = token.fusionChannel || token.hiddenFusionState?.currentChannel || '';
+            const info = labelSprite(`F${token.flavor ?? 0}${channel ? ` ${channel}` : ''}`, {
+                foreground: '#f6c85f',
+                background: 'rgba(8,12,18,.76)',
+                scale: 0.28
+            });
+            info.position.y = -this.entityRadius() * 1.5;
+            group.add(info);
+        }
         if (token.isBraided || Number(token.braidParity || 0) === 1) {
             const pancake = new THREE.Mesh(
                 new THREE.CylinderGeometry(this.entityRadius() * 1.38, this.entityRadius() * 1.38, 0.045, 42),
@@ -712,7 +726,7 @@ export class Algebraic3DBoard {
         );
         mesh.castShadow = true;
         group.add(mesh);
-        const entity = this.game?.mode === 'anyon_jump'
+        const entity = this.game?.mode === 'anyon_jump' || this.game?.mode === 'majorana_modes'
             ? this.game.tokenAt?.(coord)
             : this.game?.getStone?.(coord);
         this.addAgeRing(group, entity, radius);

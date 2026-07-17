@@ -687,6 +687,56 @@ h1 {
   color: #bbf7d0;
 }
 
+.research-initial-panel,
+.defect-layer-panel {
+  grid-column: 1 / -1;
+}
+
+.initial-pattern-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 9px;
+}
+
+.initial-pattern-params label,
+.defect-toggle-row {
+  display: grid;
+  gap: 5px;
+  color: rgba(226, 236, 238, 0.78);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.initial-pattern-params input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 9px;
+  background: rgba(2, 6, 12, 0.72);
+  color: var(--text);
+  padding: 7px 9px;
+  font: inherit;
+}
+
+.defect-toggle-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.defect-toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+
+.defect-layer-status {
+  margin: 0;
+  color: #fde68a;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
 .pattern-tools {
   display: grid;
   gap: 10px;

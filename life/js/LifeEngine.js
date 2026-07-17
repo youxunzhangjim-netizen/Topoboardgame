@@ -10,6 +10,14 @@ import {
 import { applyRule, createCell, emptyCell, cloneCell, isAlive } from './rules.js';
 import { getRulePreset } from './presets.js';
 import { computeObservables } from './observables.js';
+import {
+  applyDefectLayerToNeighborhood,
+  exportDefectLayer,
+  getLocalRuleModifier,
+  importDefectLayer,
+  isSiteBlocked,
+  isSitePinned
+} from '../../js/life/research/LifeDefectLayer.js';
 
 /**
  * Rendering-independent cellular automaton engine.
@@ -37,6 +45,7 @@ export class LifeEngine {
     this.neighborhoodMetric = options.neighborhoodMetric || options.metric || metricForNeighborhood(this.neighborhoodType);
     this.lattice = normalizeLattice(options.lattice || (this.dimension >= 3 ? 'sc' : 'square'), this.dimension);
     this.rule = options.rule ? structuredClone(options.rule) : getRulePreset(options.preset || 'conway');
+    this.defectLayer = options.defectLayer || null;
     this.rng = options.rng || Math.random;
     this.generation = 0;
     this.lastStep = { births: 0, deaths: 0, mutations: 0, events: {} };
@@ -88,6 +97,10 @@ export class LifeEngine {
   setCell(position, cell) {
     const mapped = this.topology.map(position);
     if (!mapped) return false;
+    if (this.defectLayer?.enabled && isSiteBlocked(this.defectLayer, mapped) && isAlive(cell)) {
+      this.cells[this.index(mapped)] = emptyCell();
+      return false;
+    }
     this.cells[this.index(mapped)] = createCell(cell);
     return true;
   }
@@ -120,6 +133,7 @@ export class LifeEngine {
       neighborhoodMetric: this.neighborhoodMetric,
       lattice: this.lattice,
       rule: this.rule,
+      defectLayer: this.defectLayer,
       rng: this.rng
     });
     copy.generation = this.generation;
@@ -169,7 +183,17 @@ export class LifeEngine {
     if (options.lattice || options.dimension) this.lattice = normalizeLattice(options.lattice || this.lattice, this.dimension);
     if (options.rule) this.rule = structuredClone(options.rule);
     if (options.preset) this.rule = getRulePreset(options.preset);
+    if ('defectLayer' in options) this.defectLayer = options.defectLayer || null;
     if (options.rng) this.rng = options.rng;
+  }
+
+  setDefectLayer(defectLayer = null) {
+    this.defectLayer = defectLayer;
+    if (this.defectLayer?.enabled) {
+      this.eachPosition((position, i) => {
+        if (isSiteBlocked(this.defectLayer, position)) this.cells[i] = emptyCell();
+      });
+    }
   }
 
   countNeighborCells(position) {
@@ -177,10 +201,11 @@ export class LifeEngine {
   }
 
   getNeighborPositions(position) {
-    return this.topology.getNeighbors(position, this.dimension, this.neighborhoodType, this.lattice, {
+    const neighbors = this.topology.getNeighbors(position, this.dimension, this.neighborhoodType, this.lattice, {
       radius: this.neighborhoodRadius,
       metric: this.neighborhoodMetric
     });
+    return applyDefectLayerToNeighborhood(this, this.defectLayer, position, neighbors);
   }
 
   getNeighborhoodInfo(position = null) {
@@ -203,13 +228,33 @@ export class LifeEngine {
 
     this.eachPosition((position, i) => {
       const cell = this.cells[i] || emptyCell();
+      if (isSiteBlocked(this.defectLayer, position)) {
+        next[i] = emptyCell();
+        metadata.events.defect_blocked = (metadata.events.defect_blocked || 0) + 1;
+        return;
+      }
+
+      const localModifier = getLocalRuleModifier(this.defectLayer, position);
+      if (isSitePinned(this.defectLayer, position) || localModifier?.pinned) {
+        const fixedState = Number(localModifier?.fixedState ?? cell.state ?? 0);
+        const fixedSpecies = Number(localModifier?.fixedSpecies ?? cell.species ?? 1);
+        next[i] = fixedState
+          ? createCell({ ...cell, state: 1, species: fixedSpecies || 1, age: Math.max(1, Number(cell.age || 1)) })
+          : emptyCell();
+        metadata.events.pinned_site = (metadata.events.pinned_site || 0) + 1;
+        return;
+      }
+
       const neighborCells = this.countNeighborCells(position);
+      const localRule = localModifier?.ruleModifier
+        ? { ...this.rule, ...localModifier.ruleModifier }
+        : this.rule;
       const result = applyRule({
         cell,
         position,
         neighborCells,
         engine: this,
-        rule: this.rule,
+        rule: localRule,
         rng: this.rng
       });
 
@@ -286,6 +331,10 @@ export class LifeEngine {
     }
 
     for (let i = 0; i < this.cells.length; i += 1) {
+      if (isSiteBlocked(this.defectLayer, this.positionFromIndex(i))) {
+        this.cells[i] = emptyCell();
+        continue;
+      }
       if (this.rng() < density) {
         this.cells[i] = createCell({
           state: 1,
@@ -322,6 +371,7 @@ export class LifeEngine {
       rule: structuredClone(this.rule),
       generation: this.generation,
       metadata: this.getExperimentMetadata(),
+      defectLayer: this.defectLayer?.enabled ? exportDefectLayer(this.defectLayer) : null,
       cells: this.cells.map(cloneCell)
     };
   }
@@ -335,6 +385,7 @@ export class LifeEngine {
     this.neighborhoodMetric = state.neighborhoodMetric || state.metric || metricForNeighborhood(this.neighborhoodType);
     this.lattice = normalizeLattice(state.lattice || (this.dimension >= 3 ? 'sc' : 'square'), this.dimension);
     this.rule = structuredClone(state.rule || getRulePreset('conway'));
+    this.defectLayer = state.defectLayer ? importDefectLayer(state.defectLayer) : null;
     this.generation = Number(state.generation || 0);
     this.cells = (state.cells || []).map(cloneCell);
     while (this.cells.length < this.volume()) this.cells.push(emptyCell());

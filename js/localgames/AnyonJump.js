@@ -34,6 +34,13 @@ import {
     createPhysicalProblem,
     topologyOptionsForPhysicalProblem
 } from '../physics/PhysicalProblems.js';
+import {
+    addOperatorEdge,
+    addOperatorNode,
+    createOperatorGraphSpec,
+    exportOperatorGraph,
+    removeOperatorNode
+} from '../labs/OperatorGraphSpec.js';
 
 export const ANYON_JUMP_MODE = 'anyon_jump';
 
@@ -59,6 +66,21 @@ function cloneValue(value) {
 
 function cloneBraidWord(word = []) {
     return Array.isArray(word) ? word.map((entry) => ({ ...entry })) : [];
+}
+
+function operatorSiteId(coord) {
+    return `site:${coordKey(coord)}`;
+}
+
+function operatorWorldlineEdgeId(tokenId, from, to, tick, suffix = '') {
+    return [
+        'worldline',
+        tokenId,
+        coordKey(from),
+        coordKey(to),
+        tick,
+        suffix
+    ].filter((entry) => entry !== '').join(':');
 }
 
 function positiveModulo(value, modulus) {
@@ -116,6 +138,22 @@ export class AnyonJumpGame {
         this.currentPlayer = options.currentPlayer || 'black';
         this.tokens = new Map();
         this.worldlines = new Map();
+        this.operatorGraph = createOperatorGraphSpec({
+            id: `${this.mode}:${this.topology.name}:${this.topology.sizes.join('x')}:operator-graph`,
+            nameEn: 'Anyon braiding operator graph',
+            nameZh: '任意子編織算子圖',
+            baseBoardId: this.topology.name,
+            baseBoardSpecRef: {
+                topology: this.topology.name,
+                sizes: [...this.topology.sizes],
+                dimensions: this.topology.dimensions,
+                lattice: this.topology.lattice || 'graph'
+            },
+            metadata: {
+                labMode: this.mode,
+                interpretation: 'The board is the substrate; anyons, braid worldlines, fusion channels, and measurements live in this operator graph.'
+            }
+        });
         this.braidTokens = { black: 0, white: 0 };
         this.score = { black: 0, white: 0 };
         this.energy = {
@@ -234,7 +272,44 @@ export class AnyonJumpGame {
         attachBraidedCaptureState(token, {}, this.config);
         this.tokens.set(tokenId, token);
         this.worldlines.set(tokenId, [cloneCoord(normalized)]);
+        this.syncOperatorNode(token);
         return token;
+    }
+
+    syncOperatorNode(token) {
+        if (!this.operatorGraph || !token) return null;
+        return addOperatorNode(this.operatorGraph, {
+            id: token.id,
+            kind: 'particle',
+            label: token.anyonType,
+            flavor: token.owner,
+            charge: token.anyonType,
+            state: {
+                owner: token.owner,
+                anyonType: token.anyonType,
+                braidParity: token.braidParity || 0,
+                braidWord: cloneBraidWord(token.braidWord),
+                fusionChannel: fusionChannelState(token),
+                phase: this.phaseSnapshot(token)
+            },
+            position: { coord: cloneCoord(token.coord) },
+            attachedBoardSiteId: operatorSiteId(token.coord),
+            tags: ['anyon', 'braidable', token.owner]
+        });
+    }
+
+    syncOperatorNodes() {
+        for (const token of this.tokens.values()) this.syncOperatorNode(token);
+    }
+
+    recordOperatorHistory(entry = {}) {
+        if (!this.operatorGraph) return null;
+        const normalized = {
+            tick: this.moveNumber,
+            ...cloneValue(entry)
+        };
+        this.operatorGraph.history.push(normalized);
+        return normalized;
     }
 
     excitationCost(type) {
@@ -294,6 +369,7 @@ export class AnyonJumpGame {
         const gap = this.excitationGap(token.anyonType);
         const recovered = Math.max(0, gap * (1 - this.dropLossRate));
         this.tokens.delete(token.id);
+        removeOperatorNode(this.operatorGraph, token.id);
         this.energy[player] += recovered;
         const entanglement = this.enforceEntanglementDistance();
         this.moveNumber++;
@@ -311,6 +387,13 @@ export class AnyonJumpGame {
             entanglement
         };
         this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: 'recombine',
+            eventId: `event:${event.number}:drop:${tokenId}`,
+            tokenId,
+            coord: cloneCoord(token.coord),
+            recovered
+        });
         this.currentPlayer = otherOwner(player);
         this.physicalProblem?.record?.(this, { type: 'drop', event });
         return { ok: true, event };
@@ -325,6 +408,7 @@ export class AnyonJumpGame {
         if (after === '1') return { ok: false, error: 'Choose a non-vacuum algebra label.' };
         token.anyonType = after;
         token.energy = Math.max(Number(token.energy) || 0, this.excitationGap(after));
+        this.syncOperatorNode(token);
         token.measurementHistory.push({
             type: 'set_algebra_label',
             before,
@@ -345,6 +429,14 @@ export class AnyonJumpGame {
             consumeTurn
         };
         this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: 'set_operator_label',
+            eventId: `event:${event.number}:set:${tokenId}`,
+            tokenId,
+            before,
+            after,
+            coord: cloneCoord(token.coord)
+        });
         this.physicalProblem?.record?.(this, { type: 'set_algebra', event });
         return { ok: true, event };
     }
@@ -461,6 +553,8 @@ export class AnyonJumpGame {
             if (!adjacent) {
                 actions.push({
                     kind: 'move',
+                    action: 'transport_excitation',
+                    legacyKind: 'move',
                     tokenId: id,
                     from: cloneCoord(token.coord),
                     to: one.coord,
@@ -469,6 +563,30 @@ export class AnyonJumpGame {
                     over: null
                 });
                 continue;
+            }
+            if (this.canExchangePair(id, adjacent.id).ok) {
+                actions.push({
+                    kind: 'exchange_pair_clockwise',
+                    legacyKind: 'exchange',
+                    tokenId: id,
+                    targetId: adjacent.id,
+                    from: cloneCoord(token.coord),
+                    to: one.coord,
+                    path: [cloneCoord(token.coord), one.coord],
+                    directions: [direction],
+                    over: adjacent.id
+                });
+                actions.push({
+                    kind: 'exchange_pair_counterclockwise',
+                    legacyKind: 'exchange',
+                    tokenId: id,
+                    targetId: adjacent.id,
+                    from: cloneCoord(token.coord),
+                    to: one.coord,
+                    path: [cloneCoord(token.coord), one.coord],
+                    directions: [direction],
+                    over: adjacent.id
+                });
             }
             if (movementPenaltyActive(token, this.config)) continue;
             const two = this.topology.step(one.coord, direction);
@@ -480,6 +598,8 @@ export class AnyonJumpGame {
             if (!landingOccupant || canLandForFusion) {
                 actions.push({
                     kind: 'jump',
+                    action: 'transport_excitation',
+                    legacyKind: 'jump',
                     tokenId: id,
                     from: cloneCoord(token.coord),
                     over: adjacent.id,
@@ -496,7 +616,7 @@ export class AnyonJumpGame {
     dedupeActions(actions) {
         const seen = new Set();
         return actions.filter((action) => {
-            const key = `${action.kind}:${coordKey(action.to)}:${action.over || ''}`;
+            const key = `${action.kind}:${coordKey(action.to)}:${action.over || ''}:${action.targetId || ''}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
@@ -660,6 +780,240 @@ export class AnyonJumpGame {
         };
     }
 
+    areAdjacentTokens(first, second) {
+        if (!first || !second) return false;
+        return this.graphDistance(first.coord, second.coord, 1) === 1;
+    }
+
+    canExchangePair(firstId, secondId, player = this.currentPlayer) {
+        const first = this.tokens.get(firstId);
+        const second = this.tokens.get(secondId);
+        if (!first || !second) return { ok: false, error: 'Select two known modes.' };
+        if (first.id === second.id) return { ok: false, error: 'Select two different modes.' };
+        if (first.owner !== player) return { ok: false, error: 'Choose one of your own modes first.' };
+        if (movementPenaltyActive(first, this.config)) return { ok: false, error: 'This mode is temporarily shielded from braiding.' };
+        if (!this.areAdjacentTokens(first, second)) return { ok: false, error: 'Braiding requires two adjacent modes connected by an exchange edge.' };
+        return { ok: true, first, second };
+    }
+
+    exchangePair(firstId, secondId, { clockwise = true, player = this.currentPlayer } = {}) {
+        const allowed = this.canExchangePair(firstId, secondId, player);
+        if (!allowed.ok) return allowed;
+        const { first, second } = allowed;
+        const firstFrom = cloneCoord(first.coord);
+        const secondFrom = cloneCoord(second.coord);
+        const sign = clockwise ? 1 : -1;
+        const direction = secondFrom.map((value, axis) => value - firstFrom[axis]);
+        const generator = this.braidGeneratorFor(first, second.id, {
+            path: [firstFrom, secondFrom],
+            direction,
+            sign
+        });
+        const beforeFirstType = first.anyonType;
+        const beforeSecondType = second.anyonType;
+        const firstBraid = this.applyBraid(first, {
+            reason: 'exchange_pair',
+            kind: clockwise ? 'exchange_pair_clockwise' : 'exchange_pair_counterclockwise',
+            targetId: second.id,
+            target: second,
+            path: [firstFrom, secondFrom],
+            direction,
+            sign,
+            index: generator.index,
+            tick: this.moveNumber
+        });
+        const secondBraid = this.applyBraid(second, {
+            reason: 'exchange_pair',
+            kind: clockwise ? 'exchange_pair_clockwise' : 'exchange_pair_counterclockwise',
+            targetId: first.id,
+            target: first,
+            path: [secondFrom, firstFrom],
+            direction: direction.map((value) => -value),
+            sign,
+            index: generator.index,
+            tick: this.moveNumber
+        });
+
+        first.coord = secondFrom;
+        first.vertex = cloneCoord(secondFrom);
+        second.coord = firstFrom;
+        second.vertex = cloneCoord(firstFrom);
+        this.worldlines.get(first.id)?.push(cloneCoord(secondFrom));
+        this.worldlines.get(second.id)?.push(cloneCoord(firstFrom));
+        this.moveNumber++;
+        this.syncOperatorNode(first);
+        this.syncOperatorNode(second);
+        const directionLabel = clockwise ? 'clockwise' : 'counterclockwise';
+        const worldlineA = addOperatorEdge(this.operatorGraph, {
+            id: operatorWorldlineEdgeId(first.id, firstFrom, secondFrom, this.moveNumber, directionLabel),
+            source: first.id,
+            target: first.id,
+            kind: 'worldline',
+            orientation: directionLabel,
+            state: {
+                from: operatorSiteId(firstFrom),
+                to: operatorSiteId(secondFrom),
+                braidGenerator: generator
+            },
+            tags: ['exchange', directionLabel]
+        });
+        const worldlineB = addOperatorEdge(this.operatorGraph, {
+            id: operatorWorldlineEdgeId(second.id, secondFrom, firstFrom, this.moveNumber, directionLabel),
+            source: second.id,
+            target: second.id,
+            kind: 'worldline',
+            orientation: directionLabel,
+            state: {
+                from: operatorSiteId(secondFrom),
+                to: operatorSiteId(firstFrom),
+                braidGenerator: { ...generator, targetId: first.id }
+            },
+            tags: ['exchange', directionLabel]
+        });
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player,
+            kind: clockwise ? 'exchange_pair_clockwise' : 'exchange_pair_counterclockwise',
+            action: clockwise ? 'exchange_pair_clockwise' : 'exchange_pair_counterclockwise',
+            legacyKind: 'braid_exchange',
+            tokenId: first.id,
+            targetId: second.id,
+            pair: [first.id, second.id],
+            from: firstFrom,
+            to: secondFrom,
+            swapped: {
+                [first.id]: { from: firstFrom, to: secondFrom, beforeType: beforeFirstType, afterType: first.anyonType },
+                [second.id]: { from: secondFrom, to: firstFrom, beforeType: beforeSecondType, afterType: second.anyonType }
+            },
+            path: [firstFrom, secondFrom],
+            direction,
+            braidGenerator: generator,
+            braidWord: cloneBraidWord(first.braidWord),
+            braid: firstBraid,
+            braidEvents: [firstBraid, secondBraid],
+            worldlineEdges: [worldlineA.id, worldlineB.id],
+            operatorGraphAction: 'exchange_pair',
+            messageEn: clockwise
+                ? 'Exchanged two modes clockwise.'
+                : 'Exchanged two modes counterclockwise.',
+            messageZh: clockwise
+                ? '已順時針交換兩個模式。'
+                : '已逆時針交換兩個模式。'
+        };
+        this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: event.action,
+            eventId: `event:${event.number}:${event.action}:${first.id}:${second.id}`,
+            pair: event.pair,
+            braidGenerator: generator,
+            worldlineEdges: event.worldlineEdges
+        });
+        this.currentPlayer = otherOwner(player);
+        event.noise = this.maybeApplyNoise('after_move', player);
+        event.time = this.maybeApplyTime('after_move', player);
+        this.physicalProblem?.record?.(this, { type: event.action, event });
+        return { ok: true, event };
+    }
+
+    exchange_pair_clockwise(firstId, secondId, options = {}) {
+        return this.exchangePair(firstId, secondId, { ...options, clockwise: true });
+    }
+
+    exchange_pair_counterclockwise(firstId, secondId, options = {}) {
+        return this.exchangePair(firstId, secondId, { ...options, clockwise: false });
+    }
+
+    braid_word_append(generator = {}, tokenId = generator.tokenId || generator.movingTokenId || '') {
+        const token = this.tokens.get(tokenId) || [...this.tokens.values()].find((entry) => entry.owner === this.currentPlayer);
+        if (!token) return { ok: false, error: 'Select a mode before appending a braid generator.' };
+        const targetId = String(generator.targetId || token.braidedWith?.[token.braidedWith.length - 1] || '');
+        const applied = this.applyBraid(token, {
+            reason: 'manual_braid_word_append',
+            targetId,
+            path: [cloneCoord(token.coord)],
+            sign: generator.sign,
+            index: generator.index,
+            tick: this.moveNumber
+        });
+        this.syncOperatorNode(token);
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player: token.owner,
+            kind: 'braid_word_append',
+            action: 'braid_word_append',
+            tokenId: token.id,
+            braid: applied,
+            braidWord: cloneBraidWord(token.braidWord)
+        };
+        this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: 'braid_word_append',
+            eventId: `event:${this.moveNumber}:braid-word:${token.id}`,
+            tokenId: token.id,
+            braidWord: cloneBraidWord(token.braidWord)
+        });
+        return { ok: true, event };
+    }
+
+    undo_last_braid(tokenId = '') {
+        const token = this.tokens.get(tokenId) || [...this.tokens.values()].find((entry) => entry.owner === this.currentPlayer);
+        if (!token) return { ok: false, error: 'Select a mode with braid memory.' };
+        if (!token.braidWord?.length && !token.braidHistory?.length) return { ok: false, error: 'No braid generator is available to undo.' };
+        const removed = token.braidWord?.pop?.() || null;
+        token.braidHistory?.pop?.();
+        token.braidParity = token.braidWord?.length ? token.braidParity : 0;
+        this.syncOperatorNode(token);
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player: token.owner,
+            kind: 'undo_last_braid',
+            action: 'undo_last_braid',
+            tokenId: token.id,
+            removed,
+            braidWord: cloneBraidWord(token.braidWord)
+        };
+        this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: 'undo_last_braid',
+            eventId: `event:${this.moveNumber}:undo-braid:${token.id}`,
+            tokenId: token.id,
+            removed
+        });
+        return { ok: true, event };
+    }
+
+    reset_braid_word(tokenId = '') {
+        const targets = tokenId
+            ? [this.tokens.get(tokenId)].filter(Boolean)
+            : [...this.tokens.values()].filter((entry) => entry.owner === this.currentPlayer);
+        if (!targets.length) return { ok: false, error: 'No braid word target is available.' };
+        for (const token of targets) {
+            token.braidWord = [];
+            token.braidParity = 0;
+            token.braidHistory = [];
+            token.braidedWith = [];
+            this.syncOperatorNode(token);
+        }
+        const event = {
+            mode: this.mode,
+            number: this.moveNumber,
+            player: this.currentPlayer,
+            kind: 'reset_braid_word',
+            action: 'reset_braid_word',
+            tokenIds: targets.map((token) => token.id)
+        };
+        this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: 'reset_braid_word',
+            eventId: `event:${this.moveNumber}:reset-braid-word`,
+            tokenIds: event.tokenIds
+        });
+        return { ok: true, event };
+    }
+
     canAttemptUnbraid(token, target) {
         if (!target) return { ok: true };
         if (target.owner === token.owner && !this.config.allowFriendlyUnbraid) {
@@ -752,14 +1106,20 @@ export class AnyonJumpGame {
         const normalizedTo = this.topology.normalize(toCoord);
         if (!normalizedTo) return { ok: false, error: 'Target is outside this graph.' };
         const action = this.legalActionsForToken(tokenId)
-            .find((candidate) => coordsEqual(candidate.to, normalizedTo));
-        if (!action) return { ok: false, error: 'Choose an adjacent empty point or a legal jump landing.' };
+            .find((candidate) => coordsEqual(candidate.to, normalizedTo) && candidate.legacyKind !== 'exchange');
+        if (!action) return { ok: false, error: 'Choose an adjacent empty point or a legal transport target.' };
         return this.applyAction(action);
     }
 
     applyAction(action, options = {}) {
         const token = this.tokens.get(action.tokenId);
         if (!token) return { ok: false, error: 'Unknown token.' };
+        if (action.legacyKind === 'exchange') {
+            return this.exchangePair(action.tokenId, action.targetId, {
+                clockwise: action.kind !== 'exchange_pair_counterclockwise',
+                player: token.owner
+            });
+        }
 
         const edges = this.pathEdgesFromCoords(action.path, action.directions);
         const beforeType = token.anyonType;
@@ -767,6 +1127,22 @@ export class AnyonJumpGame {
         token.coord = cloneCoord(action.to);
         token.vertex = token.coord;
         this.worldlines.get(token.id)?.push(...action.path.slice(1).map(cloneCoord));
+        this.syncOperatorNode(token);
+        for (let index = 1; index < action.path.length; index++) {
+            addOperatorEdge(this.operatorGraph, {
+                id: operatorWorldlineEdgeId(token.id, action.path[index - 1], action.path[index], this.moveNumber + 1, String(index)),
+                source: token.id,
+                target: token.id,
+                kind: 'worldline',
+                orientation: 'directed',
+                state: {
+                    from: operatorSiteId(action.path[index - 1]),
+                    to: operatorSiteId(action.path[index]),
+                    legacyKind: action.legacyKind || action.kind
+                },
+                tags: ['transport', action.legacyKind || action.kind]
+            });
+        }
 
         const jumped = action.over ? this.tokens.get(action.over) : null;
         const braidEvents = detectTopologyBraidEvents({
@@ -789,6 +1165,8 @@ export class AnyonJumpGame {
 
         const fusion = this.resolveFusion(token.id);
         const entanglement = this.enforceEntanglementDistance();
+        const updatedToken = this.tokens.get(action.tokenId);
+        if (updatedToken) this.syncOperatorNode(updatedToken);
         const winding = sumHomology(edges);
         this.topologicalSectors.push({ number: this.moveNumber + 1, tokenId: action.tokenId, winding });
         this.moveNumber++;
@@ -797,6 +1175,8 @@ export class AnyonJumpGame {
             number: this.moveNumber,
             player: token.owner,
             kind: action.kind,
+            action: action.action || action.kind,
+            legacyKind: action.legacyKind || action.kind,
             tokenId: action.tokenId,
             from: action.from,
             to: action.to,
@@ -813,10 +1193,17 @@ export class AnyonJumpGame {
                 .map((edge) => ({ from: edge.from, to: edge.to, automorphism: this.topology.seamTransform(edge) }))
         };
         this.history.unshift(event);
+        this.recordOperatorHistory({
+            action: action.action || action.kind,
+            eventId: `event:${event.number}:${action.action || action.kind}:${action.tokenId}`,
+            tokenId: action.tokenId,
+            path: action.path.map(cloneCoord),
+            braidEvents: braidEvents.map(cloneValue)
+        });
         if (!options.keepTurn) this.currentPlayer = otherOwner(token.owner);
         event.noise = this.maybeApplyNoise('after_move', token.owner);
         event.time = this.maybeApplyTime('after_move', token.owner);
-        this.physicalProblem?.record?.(this, { type: action.kind, event });
+        this.physicalProblem?.record?.(this, { type: action.action || action.kind, event });
         return { ok: true, event };
     }
 
@@ -833,7 +1220,7 @@ export class AnyonJumpGame {
             const normalized = this.topology.normalize(destination);
             const action = normalized
                 ? this.legalActionsForToken(tokenId).find((candidate) =>
-                    candidate.kind === 'jump' && coordsEqual(candidate.to, normalized))
+                    candidate.legacyKind === 'jump' && coordsEqual(candidate.to, normalized))
                 : null;
             if (!action) {
                 return {
@@ -1049,6 +1436,8 @@ export class AnyonJumpGame {
         if (fusion.resolved === '1') {
             this.tokens.delete(token.id);
             this.tokens.delete(other.id);
+            removeOperatorNode(this.operatorGraph, token.id);
+            removeOperatorNode(this.operatorGraph, other.id);
             outcome.removed = [token.id, other.id];
             if (this.config.setupMode === 'excitation') {
                 const firstRecovered = this.excitationGap(token.anyonType) * (1 - this.dropLossRate);
@@ -1062,6 +1451,8 @@ export class AnyonJumpGame {
             mergeBraidMemory(token, other, this.config);
             token.anyonType = fusion.resolved;
             this.tokens.delete(other.id);
+            removeOperatorNode(this.operatorGraph, other.id);
+            this.syncOperatorNode(token);
             outcome.replaced = { id: token.id, anyonType: fusion.resolved };
         }
         this.fusionOutcomes.push(outcome);
@@ -1089,6 +1480,7 @@ export class AnyonJumpGame {
             tokens: [...this.tokens.values()].map((token) => this.tokenSnapshot(token)),
             fusionSites: [...this.fusionSites].map((key) => key.split(',').map(Number)),
             worldlines: Object.fromEntries([...this.worldlines.entries()].map(([id, path]) => [id, path.map(cloneCoord)])),
+            operatorGraph: JSON.parse(exportOperatorGraph(this.operatorGraph)),
             braidHistories: this.braidHistories(),
             braidEventLog: this.braidEventLog.map(cloneValue),
             unbraidAttempts: this.unbraidAttempts.map(cloneValue),

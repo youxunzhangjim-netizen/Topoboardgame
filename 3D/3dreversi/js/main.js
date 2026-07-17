@@ -2310,12 +2310,12 @@ class Reversi3DApp {
             r3_random: '3D RBC is the random boundary condition on the R3 board. It uses one fixed seeded random map from each cube-boundary exit to another boundary point.',
             rp3: 'RP3 is an antipodal boundary condition on the R3 board: exiting one cube face enters the opposite face with the other two coordinates reversed.',
             t2: lattice === HONEYCOMB_LATTICE
-                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Reversi stones occupy face centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify torus crossings.'
+                ? 'T2 honeycomb uses a zigzag nanotube-style hexagon net wrapped on a torus. Honeycomb Reversi flips only along connected lattice/graph rays. Use 2D Cut View to verify torus crossings.'
                 : lattice === KAGOME_LATTICE
                 ? 'T2 Kagome uses a staggered triangle-hexagon graph wrapped on the torus. Reversi stones occupy visible graph sites.'
                 : 'T2 is rendered as a solid rotatable torus. Reversi stones occupy face cells and both board directions wrap on the surface.',
             cylinder: lattice === HONEYCOMB_LATTICE
-                ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Reversi stones occupy face-cell centers; bracket rays follow only directly shared hex-cell edges. Use 2D Cut View to verify cylinder crossings.'
+                ? 'Cylinder honeycomb wraps zigzag hexagon rings around the circumference, like a carbon nanotube. Honeycomb Reversi flips only along connected lattice/graph rays. Use 2D Cut View to verify cylinder crossings.'
                 : lattice === KAGOME_LATTICE
                 ? 'Cylinder Kagome winds alternating triangle and hexagon graph links around the cylinder. Top and bottom remain open.'
                 : 'Cylinder Reversi uses face cells on the surface: left-right wraps around the circumference while top and bottom remain open.',

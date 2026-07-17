@@ -8,6 +8,7 @@ import {
     recordWarning,
     startTimer
 } from '../shared/PerformanceAudit.js';
+import { submitComputeTask } from '../shared/ComputeTaskScheduler.js';
 import { STEAM_LAB_LIMITS } from '../shared/SteamSafetyLimits.js';
 
 export const SAFE_LAB_DEFAULTS = Object.freeze({
@@ -165,13 +166,6 @@ function validateLabResources(lab, params, options) {
     return { ok: errors.length === 0, errors, validation, sites: rawSites, edges: rawEdges, stateVariables };
 }
 
-function nextFrame() {
-    return new Promise((resolve) => {
-        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
-        else setTimeout(resolve, 0);
-    });
-}
-
 function callLabAction(lab, action) {
     if (typeof action === 'function') return action(lab);
     if (typeof lab?.step === 'function') return lab.step(action);
@@ -260,30 +254,63 @@ export async function runManyStepsSafely(lab, count, options = {}) {
     runtime.cancelled = false;
     const results = [];
     let completed = 0;
-    try {
-        while (completed < total) {
-            if (runtime.cancelled || runId !== runtime.activeRunId) {
-                runtime.stats.cancelledRuns += 1;
-                return { ok: false, cancelled: true, completed, results, messages: [warning('cancelled', config)] };
+    const scheduled = await submitComputeTask({
+        id: options.taskId || `safe-lab:${options.labId || 'lab'}:${runId}`,
+        type: 'lab_step',
+        allowGenericWorker: false,
+        language: options.language,
+        signal: options.signal,
+        estimate: {
+            steps: total,
+            siteCount: runtime.stats.sites,
+            edgeCount: runtime.stats.edges,
+            operations: Math.max(1, total) * Math.max(1, runtime.stats.sites || runtime.stats.stateVariables || 1)
+        },
+        onProgress: options.onProgress,
+        runChunked: async (context) => {
+            try {
+                while (completed < total) {
+                    context.throwIfAborted();
+                    if (runtime.cancelled || runId !== runtime.activeRunId) {
+                        runtime.stats.cancelledRuns += 1;
+                        return { ok: false, cancelled: true, completed, results, messages: [warning('cancelled', config)] };
+                    }
+                    if (runtime.paused) return { ok: false, paused: true, completed, results, messages: [warning('paused', config)] };
+                    const end = Math.min(total, completed + chunkSize);
+                    while (completed < end) {
+                        context.throwIfAborted();
+                        const action = typeof options.actionFactory === 'function'
+                            ? options.actionFactory(completed, lab)
+                            : options.action;
+                        const result = await runLabStepSafely(lab, action, { ...config, ignorePause: false });
+                        results.push(result);
+                        if (!result.ok) return { ...result, completed, results };
+                        completed += 1;
+                    }
+                    context.progress({ completed, total });
+                    if (config.yieldToUI && completed < total) await context.yieldToUI();
+                }
+                return { ok: true, cancelled: false, completed, results, messages: [] };
+            } finally {
+                if (runId === runtime.activeRunId) runtime.running = false;
             }
-            if (runtime.paused) return { ok: false, paused: true, completed, results, messages: [warning('paused', config)] };
-            const end = Math.min(total, completed + chunkSize);
-            while (completed < end) {
-                const action = typeof options.actionFactory === 'function'
-                    ? options.actionFactory(completed, lab)
-                    : options.action;
-                const result = await runLabStepSafely(lab, action, { ...config, ignorePause: false });
-                results.push(result);
-                if (!result.ok) return { ...result, completed, results };
-                completed += 1;
-            }
-            options.onProgress?.({ completed, total });
-            if (config.yieldToUI && completed < total) await nextFrame();
         }
-        return { ok: true, cancelled: false, completed, results, messages: [] };
-    } finally {
-        if (runId === runtime.activeRunId) runtime.running = false;
+    });
+
+    if (scheduled.ok) return scheduled.value;
+    if (runId === runtime.activeRunId) runtime.running = false;
+    if (scheduled.cancelled) {
+        runtime.stats.cancelledRuns += 1;
+        return { ok: false, cancelled: true, completed, results, messages: [warning('cancelled', config)] };
     }
+    return {
+        ok: false,
+        failed: true,
+        completed,
+        results,
+        error: scheduled.error,
+        messages: scheduled.message ? [{ key: 'compute', message: scheduled.message }] : []
+    };
 }
 
 export function pauseLab() {

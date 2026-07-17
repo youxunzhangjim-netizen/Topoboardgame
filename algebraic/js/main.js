@@ -13,6 +13,12 @@ import { SpinIceVertexGame } from '../../js/localgames/SpinIceVertexGame.js';
 import { Z2GaugeLoopGame } from '../../js/localgames/Z2GaugeLoopGame.js';
 import { PhysicalClusterGoGame } from '../../js/localgames/PhysicalClusterGo.js';
 import { PhysicalJumpParticlesGame } from '../../js/localgames/PhysicalJumpParticlesGame.js';
+import { MajoranaLab } from '../../js/labs/majorana/MajoranaLab.js';
+import { renderMajoranaMode } from '../../js/labs/majorana/MajoranaRenderer.js';
+import {
+    formatResearchInitialSettingValue,
+    resolveResearchInitialSettings
+} from '../../js/labs/ResearchInitialSettings.js';
 import {
     braidWordToText,
     nextRequiredUnbraidGenerator,
@@ -125,6 +131,17 @@ const els = {
     labInitialPreset: document.querySelector('#labInitialPreset'),
     labInitialSeed: document.querySelector('#labInitialSeed'),
     labManualEditState: document.querySelector('#labManualEditState'),
+    labInitialOperatorPreset: document.querySelector('#labInitialOperatorPreset'),
+    labInitialOperatorTypes: document.querySelector('#labInitialOperatorTypes'),
+    labInitialFlavors: document.querySelector('#labInitialFlavors'),
+    labAllowedActions: document.querySelector('#labAllowedActions'),
+    labAllowedFusionRules: document.querySelector('#labAllowedFusionRules'),
+    labAllowedExchangeRules: document.querySelector('#labAllowedExchangeRules'),
+    labBoundaryOperators: document.querySelector('#labBoundaryOperators'),
+    labMeasurementOperators: document.querySelector('#labMeasurementOperators'),
+    labConservedQuantities: document.querySelector('#labConservedQuantities'),
+    labStochasticMode: document.querySelector('#labStochasticMode'),
+    labRandomSeed: document.querySelector('#labRandomSeed'),
     labTopologyDimension: document.querySelector('#labTopologyDimension'),
     labBoundaryCondition: document.querySelector('#labBoundaryCondition'),
     labTopologyInvariants: document.querySelector('#labTopologyInvariants'),
@@ -248,6 +265,10 @@ const els = {
     cliffordAlgebraSetSelect: document.querySelector('#cliffordAlgebraSetSelect'),
     physicalCliffordControls: document.querySelector('#physicalCliffordControls'),
     anyonAlgebraControls: document.querySelector('#anyonAlgebraControls'),
+    majoranaControls: document.querySelector('#majoranaControls'),
+    majoranaActionSelect: document.querySelector('#majoranaActionSelect'),
+    majoranaFlavorSelect: document.querySelector('#majoranaFlavorSelect'),
+    majoranaParitySelect: document.querySelector('#majoranaParitySelect'),
     virasoroAlgebraControls: document.querySelector('#virasoroAlgebraControls'),
     cftReversiControls: document.querySelector('#cftReversiControls'),
     cftModelControl: document.querySelector('#cftModelControl'),
@@ -474,6 +495,7 @@ const MODE_LABELS = {
     physical_virasoro_jump: 'Physical Virasoro Worldlines',
     anyon_jump: 'Anyon Fusion & Braiding Worldlines',
     physical_anyon_jump: 'Topological Memory Worldlines',
+    majorana_modes: 'Majorana Modes',
     ising_domain_game: 'Spin & Phase Domain Experiment',
     two_phase_competition_game: 'Two-Phase Competition Experiment',
     physical_cluster_go: 'Physical Cluster Field',
@@ -640,6 +662,28 @@ const LAB_MODEL_METADATA = Object.freeze({
     physical_anyon_reversi: {
         extends: 'anyon_reversi',
         description: 'Physical anyon charge grid for local fusion and charge-sector observables.'
+    },
+    majorana_modes: {
+        section: 'Topological Matter',
+        family: 'Majorana / Ising Anyons',
+        validationLevel: 'toy',
+        description: 'Symbolic Majorana zero-mode pair creation, exchange, merge, split, and parity measurement on a graph substrate.',
+        stateSpace: {
+            localStates: 'Empty graph sites and active/inactive Majorana modes gamma_i with flavor labels 0..7 and pair-parity metadata.',
+            encoding: 'operator graph node plus attached board-site id',
+            constraints: 'Pair creation requires empty sites; braids require adjacent active modes; merge/split updates symbolic parity and fusion records.',
+            interpretation: 'Discrete toy model for operator manipulation; not physical experimental accuracy.'
+        },
+        rule: {
+            name: 'Majorana pair, exchange, fusion, and parity toy update',
+            neighborhood: 'Graph adjacency from the selected topology substrate.',
+            schedule: 'Manual event-driven operator-graph update',
+            deterministic: 'Deterministic except optional stochastic parity selection.'
+        },
+        observables: ['Mode count', 'Active pair count', 'Braid word length', 'Total parity', 'Fusion channel counts', 'Recent braid unitary symbols'],
+        assumptions: 'Symbolic Majorana/Ising fusion and exchange rules on finite graphs.',
+        approximation: 'Toy operator algebra; no Hamiltonian spectrum, state-vector evolution, or experimental calibration.',
+        validation: 'Use for education and prototyping only; benchmark separately before research-grade claims.'
     },
     physical_virasoro_go: {
         section: 'Field Theory',
@@ -925,6 +969,49 @@ const LAB_SCIENCE_PROFILES = Object.freeze({
             { label: 'Nayak et al., Non-Abelian Anyons and Topological Quantum Computation', url: 'https://arxiv.org/abs/0707.1889' }
         ]
     },
+    majorana_modes: {
+        scope: { en: 'Discrete toy operator graph', zh: '離散玩具算子圖' },
+        system: {
+            en: 'A finite graph hosts symbolic Majorana modes gamma_i attached to graph sites. The toy algebra records gamma_i^2 = 1 and {gamma_i, gamma_j} = 2 delta_ij as symbolic labels rather than a quantum state vector.',
+            zh: '有限圖上的格點附著符號式 Majorana 模式 gamma_i。此玩具代數只把 gamma_i^2 = 1 與 {gamma_i, gamma_j} = 2 delta_ij 記錄成符號標籤，不儲存量子態向量。'
+        },
+        model: {
+            en: 'Clockwise exchange of adjacent modes applies gamma_i -> gamma_j and gamma_j -> -gamma_i. Counterclockwise exchange applies gamma_i -> -gamma_j and gamma_j -> gamma_i. The event log records the symbolic unitary U_ij = exp(pi gamma_i gamma_j / 4) for clockwise exchanges.',
+            zh: '相鄰模式的順時針交換使用 gamma_i -> gamma_j、gamma_j -> -gamma_i；逆時針交換使用 gamma_i -> -gamma_j、gamma_j -> gamma_i。事件紀錄會為順時針交換記下符號式么正 U_ij = exp(pi gamma_i gamma_j / 4)。'
+        },
+        hamiltonian: {
+            en: 'No Hamiltonian is evaluated. Merge and parity measurement use the symbolic pair operator p_ij = i gamma_i gamma_j; even parity maps to fusion channel 1 and odd parity maps to psi.',
+            zh: '此模式不計算 Hamiltonian。合併與奇偶測量使用符號式成對算子 p_ij = i gamma_i gamma_j；偶奇偶映到融合通道 1，奇奇偶映到 psi。'
+        },
+        evolution: {
+            en: 'Manual events create pairs, exchange adjacent modes, merge, split, and measure parity. Each accepted event updates the operator graph and appends a replayable history entry.',
+            zh: '手動事件可建立成對模式、交換相鄰模式、合併、分裂與測量奇偶。每個接受的事件都會更新算子圖並加入可重播歷史。'
+        },
+        partition: {
+            en: 'No thermal ensemble, path integral, partition function Z, or many-body spectrum is sampled. Outputs are deterministic symbolic event observables unless stochastic parity is explicitly enabled.',
+            zh: '不抽樣熱系綜、路徑積分、配分函數 Z 或多體能譜。除非明確啟用隨機奇偶，輸出都是確定性的符號事件觀測量。'
+        },
+        measurements: {
+            en: 'Mode count, active pair count, braid-word length, total parity when defined, fusion-channel counts, parity measurements, and recent symbolic unitary labels.',
+            zh: '可觀測量包含模式數、活躍成對數、編織字長度、可定義時的總奇偶、融合通道計數、奇偶測量與最近的符號式么正標籤。'
+        },
+        implementation: {
+            en: 'The board is only an embedding substrate. The Lab state is an OperatorGraphSpec containing operator nodes, fusion-channel edges, measurement nodes, and worldline edges.',
+            zh: '棋盤只作為嵌入基底；Lab 狀態是 OperatorGraphSpec，包含算子節點、融合通道邊、測量節點與 worldline 邊。'
+        },
+        boundary: {
+            en: 'This is a discrete toy model for manipulating operator labels. It does not claim experimental accuracy, device calibration, topological protection, or a physical Majorana hardware simulation.',
+            zh: '這是用來操作算子標籤的離散玩具模型；不宣稱實驗精度、裝置校準、拓撲保護或實體 Majorana 硬體模擬。'
+        },
+        references: [
+            { label: 'Kitaev, Unpaired Majorana fermions in quantum wires', url: 'https://arxiv.org/abs/cond-mat/0010440' },
+            { label: 'Nayak et al., Non-Abelian Anyons and Topological Quantum Computation', url: 'https://arxiv.org/abs/0707.1889' }
+        ]
+    },
+    majorana_modes: {
+        en: 'Compare symbolic Majorana braid words, parity measurements, and fusion-channel records across the same graph topology without claiming physical experimental accuracy.',
+        zh: '在同一圖拓撲上比較符號式 Majorana 編織字、奇偶測量與融合通道紀錄；不宣稱物理實驗精度。'
+    },
     cft_graph: {
         scope: { en: 'Discrete CFT-inspired estimator', zh: '離散 CFT 啟發式估計器' },
         system: {
@@ -1204,6 +1291,7 @@ const LAB_SCIENCE_PROFILE_BY_MODE = Object.freeze({
     anyon_jump: 'anyon_dynamics',
     physical_anyon_reversi: 'anyon_dynamics',
     physical_anyon_jump: 'anyon_dynamics',
+    majorana_modes: 'majorana_modes',
     physical_virasoro_go: 'cft_graph',
     physical_virasoro_reversi: 'cft_graph',
     virasoro_jump: 'cft_graph',
@@ -1287,6 +1375,12 @@ const LAB_OBSERVABLE_SPECS = Object.freeze({
         observableSpec('word-length', 'averageBraidWordLength', 'Mean braid-word length', '平均 braid word 長度', 'Mean number of stored braid generators per token.', '每個 token 儲存的 braid generator 數量平均。', 'generators/token', 'Symbolic braid-memory complexity.', '符號式編織記憶複雜度。'),
         observableSpec('winding', 'sectorChanges', 'Topology-sector events', '拓撲扇區事件', 'Number of recorded noncontractible winding-sector changes.', '已記錄不可收縮繞行扇區變化數。', 'events', 'Topology-sensitive worldline activity.', '拓撲敏感 worldline 活動。')
     ],
+    majorana_modes: [
+        observableSpec('mode-count', 'activeModeCount', 'Mode count', '模式數量', 'Number of active Majorana modes in the operator graph.', '算子圖中仍然活躍的 Majorana 模式數量。', 'count', 'Current symbolic mode population.', '目前符號模式數量。'),
+        observableSpec('active-pairs', 'activePairCount', 'Active pair count', '活躍成對數', 'Number of active parity-linked Majorana pairs.', '仍活躍且帶有奇偶配對資料的 Majorana 成對數。', 'pairs', 'Remaining manipulable pairs.', '仍可操作的成對模式。'),
+        observableSpec('braid-word', 'braidWordLength', 'Braid word length', '編織字長度', 'Number of recorded exchange generators.', '已記錄的交換生成元數量。', 'generators', 'Symbolic exchange history length.', '符號式交換歷史長度。'),
+        observableSpec('total-parity', 'totalParity', 'Total parity', '總奇偶', 'Product parity of active defined pairs, when available.', '可定義時，活躍成對模式的奇偶乘積。', 'sector', 'Coarse parity sector.', '粗略奇偶扇區。')
+    ],
     cft_graph: [
         observableSpec('entropy', 'entanglementEntropyEstimate', 'Entropy estimator', '熵估計量', 'Finite-graph interval estimator returned by the selected CFT rule.', '所選 CFT 規則回傳的有限圖區間估計量。', 'dimensionless estimator', 'Relative interval complexity; not exact continuum entropy.', '相對區間複雜度；不是精確連續熵。'),
         observableSpec('wall', 'domainWallLength', 'Domain-wall length', 'Domain wall 長度', 'Count of graph edges joining opposite source signs.', '連接相反源正負號的圖邊數。', 'edges', 'Discrete interface geometry.', '離散界面幾何。'),
@@ -1341,6 +1435,7 @@ const LAB_GUIDE_LABELS = Object.freeze({
     'z2-gauge': { en: 'Z2 Gauge Guide Book', zh: 'Z2 Gauge 指南書' },
     'cft-reversi': { en: 'CFT OPE Guide Book', zh: 'CFT OPE 指南書' },
     anyon: { en: 'Anyon Guide Book', zh: 'Anyon 指南書' },
+    majorana: { en: 'Majorana Guide Book', zh: 'Majorana 指南書' },
     virasoro: { en: 'Virasoro / CFT Field Guide Book', zh: 'Virasoro / CFT Field 指南書' }
 });
 const LAB_SHARED_DEVICE_GUIDE = Object.freeze({
@@ -2202,6 +2297,78 @@ const LAB_GUIDE_BOOKS = Object.freeze({
             ]
         }
     },
+    majorana: {
+        en: {
+            title: 'Majorana Modes Guide',
+            subtitle: 'A discrete toy operator-graph lab for Majorana pair creation, exchange, merge, split, and parity measurement.',
+            sections: [
+                {
+                    heading: 'Scope',
+                    items: [
+                        'This is a symbolic toy model for operator manipulation on a graph substrate; it is not a calibrated physical simulation.',
+                        'The board supplies adjacency and positions, while the Lab state is an operator graph of Majorana modes, fusion records, measurements, and worldlines.'
+                    ]
+                },
+                {
+                    heading: 'Actions',
+                    items: [
+                        'Create Pair chooses two empty sites and creates two active Majorana modes with Flavor 0 through Flavor 7 and an initial parity.',
+                        'Braid Clockwise and Braid Counterclockwise exchange adjacent active modes, animate curved exchange arcs, and append a braid generator to the braid word.',
+                        'Merge measures a pair parity and records fusion channel 1 for even or psi for odd; Split creates a new pair from a selected source.'
+                    ]
+                },
+                {
+                    heading: 'Toy algebra',
+                    items: [
+                        'Clockwise exchange uses gamma_i -> gamma_j and gamma_j -> -gamma_i, with symbolic unitary U_ij = exp(pi gamma_i gamma_j / 4).',
+                        'Counterclockwise exchange uses gamma_i -> -gamma_j and gamma_j -> gamma_i. Fusion follows sigma x sigma = 1 + psi, sigma x psi = sigma, and psi x psi = 1.'
+                    ]
+                },
+                {
+                    heading: 'Observables',
+                    items: [
+                        'Track mode count, active pair count, braid-word length, total parity when defined, fusion-channel counts, and recent unitary symbols.',
+                        'Use the export and replay tools for reproducible symbolic event histories.'
+                    ]
+                }
+            ]
+        },
+        zh: {
+            title: 'Majorana 模式指南',
+            subtitle: '用於 Majorana 成對建立、交換、合併、分裂與奇偶測量的離散玩具算子圖 Lab。',
+            sections: [
+                {
+                    heading: '範圍',
+                    items: [
+                        '這是圖基底上的符號式算子操作玩具模型；不是經校準的物理實驗模擬。',
+                        '棋盤只提供鄰接與位置；Lab 狀態是由 Majorana 模式、融合紀錄、測量與 worldline 組成的算子圖。'
+                    ]
+                },
+                {
+                    heading: '動作',
+                    items: [
+                        '建立成對模式會選擇兩個空格點，並用 Flavor 0 到 Flavor 7 與初始奇偶建立兩個活躍 Majorana 模式。',
+                        '順時針編織與逆時針編織會交換相鄰活躍模式、顯示弧線交換動畫，並把生成元加入編織字。',
+                        '合併會測量成對奇偶並記錄融合通道：偶奇偶為 1，奇奇偶為 psi；分裂會從所選來源建立新成對模式。'
+                    ]
+                },
+                {
+                    heading: '玩具代數',
+                    items: [
+                        '順時針交換使用 gamma_i -> gamma_j 與 gamma_j -> -gamma_i，並記錄符號式 U_ij = exp(pi gamma_i gamma_j / 4)。',
+                        '逆時針交換使用 gamma_i -> -gamma_j 與 gamma_j -> gamma_i。融合規則為 sigma x sigma = 1 + psi、sigma x psi = sigma、psi x psi = 1。'
+                    ]
+                },
+                {
+                    heading: '觀測量',
+                    items: [
+                        '可追蹤模式數量、活躍成對數、編織字長度、可定義時的總奇偶、融合通道計數與最近的么正符號。',
+                        '可用匯出與回放工具保存可重現的符號事件歷史。'
+                    ]
+                }
+            ]
+        }
+    },
     virasoro: {
         en: {
             title: 'Virasoro / CFT Field Insertion Guide',
@@ -2360,12 +2527,16 @@ const MODE_SELECT_CATALOG = [...els.modeSelect.querySelectorAll('optgroup')].map
 
 let game = null;
 let selectedToken = '';
+let selectedMajoranaModeId = '';
+let selectedMajoranaSite = null;
 let selectedPhysicalCoord = null;
 let selectedJumpParticleCoord = null;
 let selectedCFTCoords = [];
 let hoverCoord = null;
 let lastCancellation = null;
 let lastWrongUnbraid = null;
+let anyonInputLocked = false;
+let anyonExchangeAnimation = null;
 let applyingRemoteState = false;
 let onlineReady = null;
 let statusHoldUntil = 0;
@@ -2425,6 +2596,9 @@ applyURLSelectParam(els.cftInitialStateSelect, 'cftInitialState', 'cftReversiIni
 applyURLSelectParam(els.jumpParticleModelSelect, 'jumpParticleModel', 'model');
 applyURLSelectParam(els.jumpParticleActionSelect, 'jumpParticleAction', 'action');
 applyURLSelectParam(els.virasoroMaxModeSelect, 'virasoroN', 'virasoroMaxMode');
+applyURLSelectParam(els.majoranaActionSelect, 'majoranaAction', 'action');
+applyURLSelectParam(els.majoranaFlavorSelect, 'majoranaFlavor', 'flavor');
+applyURLSelectParam(els.majoranaParitySelect, 'majoranaParity', 'parity');
 
 function modeLayerForMode(mode = '') {
     const normalized = normalizeMode(mode) || mode;
@@ -2497,6 +2671,7 @@ function normalizeMode(value) {
     const mode = String(value || '').toLowerCase();
     if (Object.hasOwn(MODE_LABELS, mode)) return mode;
     if (mode === 'anyon' || mode === 'anyon_jump_chess' || mode === 'anyon_fusion_braiding') return 'anyon_jump';
+    if (mode === 'majorana' || mode === 'majorana_lab' || mode === 'majorana_modes_lab') return 'majorana_modes';
     if (mode === 'anyon_reversi_game') return 'anyon_reversi';
     if (mode === 'z2_gauge' || mode === 'z2_gauge_loop' || mode === 'toric_code_loop') return 'z2_gauge_loop_game';
     if (mode === 'spin_ice_vertex' || mode === 'spin_ice') return 'spin_ice_vertex_game';
@@ -2976,6 +3151,7 @@ function currentInitialConditionText(mode = selectedMode()) {
     if (baseMode(mode) === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical') {
         return selectedOptionText(els.physicalInitialStateSelect);
     }
+    if (isMajoranaMode(mode)) return `Default Majorana pair / ${selectedOptionText(els.majoranaParitySelect)}`;
     if (isJumpMode(mode)) return selectedOptionText(els.anyonSetupSelect) || 'Standard worldline seed';
     return 'Standard seeded configuration';
 }
@@ -2991,6 +3167,7 @@ function currentActionText(mode = selectedMode()) {
     if (baseMode(mode) === 'clifford_reversi' && els.cliffordAlgebraSetSelect?.value === 'physical') {
         return selectedOptionText(els.physicalActionSelect);
     }
+    if (isMajoranaMode(mode)) return selectedOptionText(els.majoranaActionSelect) || 'Create Pair';
     if (isJumpMode(mode)) return selectedOptionText(els.anyonActionSelect) || 'Move / braid';
     return selectedOptionText(els.transformSelect) || 'Local update';
 }
@@ -3272,6 +3449,39 @@ function renderLabsModelCatalog() {
     }
 }
 
+function labStochasticModeEnabled() {
+    const value = String(els.noiseModeSelect?.value || '').toLowerCase();
+    return Boolean(value && value !== 'off' && value !== 'none' && value !== 'disabled' && value !== '0');
+}
+
+function setLabInitialSettingText(element, value) {
+    if (!element) return;
+    element.textContent = formatResearchInitialSettingValue(value, { empty: 'None / 無' });
+}
+
+function renderResearchInitialSettings(mode = selectedMode()) {
+    const settings = resolveResearchInitialSettings(mode, {
+        stochasticMode: labStochasticModeEnabled(),
+        randomSeed: els.noiseSeedInput?.value || 'topology-seed'
+    });
+    if (els.labInitialOperatorPreset) {
+        els.labInitialOperatorPreset.textContent = `${settings.labelEn || settings.id} / ${settings.labelZh || settings.id}`;
+    }
+    setLabInitialSettingText(els.labInitialOperatorTypes, settings.initialOperatorTypes);
+    setLabInitialSettingText(els.labInitialFlavors, [
+        ...(settings.flavors || []),
+        ...(settings.charges?.length ? [`charges: ${settings.charges.join(', ')}`] : [])
+    ]);
+    setLabInitialSettingText(els.labAllowedActions, settings.allowedActions);
+    setLabInitialSettingText(els.labAllowedFusionRules, settings.allowedFusionRules);
+    setLabInitialSettingText(els.labAllowedExchangeRules, settings.allowedExchangeRules);
+    setLabInitialSettingText(els.labBoundaryOperators, settings.boundaryOperators);
+    setLabInitialSettingText(els.labMeasurementOperators, settings.measurementOperators);
+    setLabInitialSettingText(els.labConservedQuantities, settings.conservedQuantities);
+    setLabInitialSettingText(els.labStochasticMode, settings.stochasticMode ? 'On / 開啟' : 'Off / 關閉');
+    setLabInitialSettingText(els.labRandomSeed, settings.randomSeed);
+}
+
 function updateLabWorkspace() {
     const mode = selectedMode();
     const metadata = resolvedLabMetadata(mode);
@@ -3318,6 +3528,7 @@ function updateLabWorkspace() {
     setScientificText(els.labResearchApproximation, metadata.approximation);
     setScientificText(els.labResearchValidation, metadata.validation);
     if (els.labResearchReferences) els.labResearchReferences.textContent = 'References placeholder; attach benchmark notes before raising validation level.';
+    renderResearchInitialSettings(mode);
     renderLabScienceIntroduction(mode);
     renderLabObservableMethods(mode);
     document.querySelectorAll('.labs-model-card').forEach((card) => {
@@ -3379,6 +3590,10 @@ function isReversiMode(mode = game?.mode || selectedMode()) {
 
 function isAnyonReversiMode(mode = game?.mode || selectedMode()) {
     return baseMode(mode) === 'anyon_reversi';
+}
+
+function isMajoranaMode(mode = game?.mode || selectedMode()) {
+    return (normalizeMode(mode) || mode) === 'majorana_modes';
 }
 
 function isCliffordJumpMode(mode = game?.mode || selectedMode()) {
@@ -3750,13 +3965,14 @@ function syncModeControls() {
     const isAnyon = base === 'anyon_jump';
     const isJump = isJumpMode(mode);
     const isAnyonReversi = isAnyonReversiMode(mode);
+    const isMajorana = isMajoranaMode(mode);
     const isCliffordJump = isCliffordJumpMode(mode);
     const isVirasoroJump = isVirasoroJumpMode(mode);
-    const usesAnyonControls = isJump || isAnyonReversi;
+    const usesAnyonControls = (isJump || isAnyonReversi) && !isMajorana;
     const usesFreeAnyonModel = isAnyon || isAnyonReversi;
     const isVirasoroGo = isPhysicalVirasoroGoMode(mode);
     const isCFTReversi = base === 'physical_virasoro_reversi';
-    const isClifford = !isIsing && !isTwoPhase && !isCluster && !isJumpParticles && !isSpinIce && !isZ2Gauge && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
+    const isClifford = !isMajorana && !isIsing && !isTwoPhase && !isCluster && !isJumpParticles && !isSpinIce && !isZ2Gauge && (base === 'clifford_reversi' || isCliffordGoMode(mode) || isCliffordJump);
     const isPhysicalClifford = base === 'clifford_reversi'
         && (els.cliffordAlgebraSetSelect.value === 'physical' || mode === 'physical_clifford_reversi');
     const isStandardClifford = isClifford && !isPhysicalClifford;
@@ -3771,6 +3987,7 @@ function syncModeControls() {
     if (els.cliffordAlgebraSetControl) els.cliffordAlgebraSetControl.hidden = isCliffordGoMode(mode) || isCliffordJump;
     if (els.physicalCliffordControls) els.physicalCliffordControls.hidden = !isPhysicalClifford;
     if (els.anyonAlgebraControls) els.anyonAlgebraControls.hidden = !usesAnyonControls;
+    if (els.majoranaControls) els.majoranaControls.hidden = !isMajorana;
     if (els.virasoroAlgebraControls) els.virasoroAlgebraControls.hidden = true;
     if (els.cftReversiControls) els.cftReversiControls.hidden = !isVirasoroGo && !isCFTReversi && !isVirasoroJump;
     for (const control of [
@@ -3891,7 +4108,9 @@ function syncModeControls() {
     } else {
         setAllowedSelectValues(
             els.noiseModeSelect,
-            isJump
+            isMajorana
+                ? ['off', 'measurement_error', 'field_noise', 'custom']
+                : isJump
                 ? ['off', 'anyon_pair_creation', 'measurement_error', 'field_noise', 'custom']
                 : isAnyonReversi ? ['off', 'measurement_error', 'field_noise']
                 : ['off', 'pauli', 'measurement_error', 'field_noise', 'custom']
@@ -3989,9 +4208,9 @@ function syncModeControls() {
             isVirasoroGo ? 'two_point' : 'line_parity'
         );
     }
-    els.passButton.hidden = isJump;
+    els.passButton.hidden = isJump || isMajorana;
     els.countButton.hidden = !isGoMode(mode);
-    els.measureButton.hidden = isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
+    els.measureButton.hidden = isMajorana || isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge || isGoMode(mode) || isPhysicalClifford || isCFTReversi;
     els.unbraidHintButton.hidden = !isJump;
     els.dynamicsSection.hidden = isVirasoroGo || isCFTReversi;
     setAllowedSelectValues(
@@ -4012,10 +4231,10 @@ function syncModeControls() {
                 : ['1,0', '-1,0', '0,1', '0,-1'],
         '1,0'
     );
-    const usesObservableCards = isJump || isCFTReversi || isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge;
+    const usesObservableCards = isJump || isMajorana || isCFTReversi || isIsing || isTwoPhase || isCluster || isJumpParticles || isSpinIce || isZ2Gauge;
     if (els.blackBraidCard) els.blackBraidCard.hidden = !usesObservableCards;
     if (els.whiteBraidCard) els.whiteBraidCard.hidden = !usesObservableCards;
-    if (els.braidEventSection) els.braidEventSection.hidden = !isJump;
+    if (els.braidEventSection) els.braidEventSection.hidden = !isJump && !isMajorana;
     const rulesMode = isIsing ? 'ising-domain'
         : isTwoPhase ? 'two-phase'
         : isCluster ? 'physical-cluster-go'
@@ -4025,6 +4244,7 @@ function syncModeControls() {
         : isPhysicalClifford ? 'physical-clifford'
         : isCFTReversi ? 'cft-reversi'
         : isVirasoroGo || isVirasoroJump ? 'virasoro'
+        : isMajorana ? 'majorana'
         : isAnyon || isAnyonReversi ? 'anyon'
         : 'clifford';
     for (const section of els.rulesSections || []) {
@@ -4186,6 +4406,14 @@ function anyonConfig() {
     };
 }
 
+function majoranaConfig() {
+    return {
+        flavor: Math.max(0, Math.min(7, Number(els.majoranaFlavorSelect?.value || 0))),
+        parity: els.majoranaParitySelect?.value || 'even',
+        stochasticParity: els.noiseModeSelect?.value !== 'off'
+    };
+}
+
 function isingConfig() {
     return {
         J: Number(els.isingJInput?.value ?? 1),
@@ -4314,6 +4542,8 @@ function createGame() {
     const mode = syncModeControls();
     const base = baseMode(mode);
     selectedToken = '';
+    selectedMajoranaModeId = '';
+    selectedMajoranaSite = null;
     selectedPhysicalCoord = null;
     selectedJumpParticleCoord = null;
     selectedCFTCoords = [];
@@ -4364,7 +4594,8 @@ function createGame() {
         cluster: clusterConfig(),
         spinIce: spinIceConfig(),
         z2Gauge: z2GaugeConfig(),
-        jumpParticles: jumpParticlesConfig()
+        jumpParticles: jumpParticlesConfig(),
+        majorana: majoranaConfig()
     };
     if (physicalProblem) options.physicalProblem = physicalProblem;
     if (mode === 'ising_domain_game') game = new IsingDomainGame(options);
@@ -4373,6 +4604,7 @@ function createGame() {
     else if (mode === 'physical_jump_particles') game = new PhysicalJumpParticlesGame(options);
     else if (mode === 'spin_ice_vertex_game') game = new SpinIceVertexGame(options);
     else if (mode === 'z2_gauge_loop_game') game = new Z2GaugeLoopGame(options);
+    else if (mode === 'majorana_modes') game = new MajoranaLab(options);
     else if (base === 'anyon_jump') game = new AnyonJumpGame(options);
     else if (base === 'clifford_jump') game = new CliffordJumpGame(options);
     else if (base === 'virasoro_jump') game = new VirasoroJumpGame(options);
@@ -4473,6 +4705,9 @@ function currentOnlineMatchKey() {
         clusterModel: mode === 'physical_cluster_go' ? els.clusterModelSelect.value : '',
         particleModel: mode === 'physical_jump_particles' ? els.jumpParticleModelSelect.value : '',
         particleAction: mode === 'physical_jump_particles' ? els.jumpParticleActionSelect.value : '',
+        majoranaAction: mode === 'majorana_modes' ? els.majoranaActionSelect?.value || '' : '',
+        majoranaFlavor: mode === 'majorana_modes' ? els.majoranaFlavorSelect?.value || '' : '',
+        majoranaParity: mode === 'majorana_modes' ? els.majoranaParitySelect?.value || '' : '',
         update: els.timeUpdateSelect?.value || 'off',
         noise: els.noiseModeSelect?.value || 'off',
         applyNoise: els.applyNoiseSelect?.value || '',
@@ -5174,6 +5409,28 @@ function renderBoard() {
     renderFlatBoard();
 }
 
+function majoranaLegalTargetKeys() {
+    if (!game || !isMajoranaMode(game.mode)) return new Set();
+    const action = els.majoranaActionSelect?.value || 'create_pair';
+    if (action === 'create_pair') {
+        return new Set(game.legalMoves().map(coordKey));
+    }
+    if (action === 'split') {
+        return new Set([
+            ...game.legalMoves().map(coordKey),
+            ...[...game.modes.values()]
+                .filter((mode) => mode.active)
+                .map((mode) => coordKey(mode.position))
+        ]);
+    }
+    if (selectedMajoranaModeId) {
+        return new Set(game.legalActionsForToken(selectedMajoranaModeId).map((actionEntry) => coordKey(actionEntry.to)));
+    }
+    return new Set([...game.modes.values()]
+        .filter((mode) => mode.active)
+        .map((mode) => coordKey(mode.position)));
+}
+
 function renderFlatBoard() {
     const [width, height] = game.topology.sizes;
     const honeycombNodes = game.topology.lattice === 'honeycomb';
@@ -5209,6 +5466,7 @@ function renderFlatBoard() {
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey))
         : new Set();
+    const legalMajoranaTargets = majoranaLegalTargetKeys();
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
@@ -5251,10 +5509,23 @@ function renderFlatBoard() {
         if (honeycombNodes || hexCells) {
             applySpecialLatticeCellLayout(cell, coord, width, height, game.topology.lattice);
         }
-        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key)) cell.classList.add('legal');
+        if (legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalMajoranaTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key)) cell.classList.add('legal');
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
+        const majoranaMode = isMajoranaMode(game.mode) ? game.modeAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
         if (braidTrail.has(key)) cell.classList.add('braid-trail');
+        if (anyonExchangeAnimation) {
+            const endpoints = [
+                coordKey(anyonExchangeAnimation.fromA),
+                coordKey(anyonExchangeAnimation.fromB)
+            ];
+            if (endpoints.includes(key)) {
+                cell.classList.add(
+                    'exchange-active',
+                    anyonExchangeAnimation.clockwise ? 'exchange-clockwise' : 'exchange-counterclockwise'
+                );
+            }
+        }
         if (token) {
             const status = braidStatusForToken(token);
             cell.classList.add(`braid-status-${status}`);
@@ -5277,6 +5548,7 @@ function renderFlatBoard() {
         if (isPhysicalJumpParticlesMode(game.mode) && selectedJumpParticleCoord && coordKey(selectedJumpParticleCoord) === key) {
             cell.classList.add('cft-selected-region');
         }
+        if (majoranaMode?.id === selectedMajoranaModeId) cell.classList.add('majorana-selected');
         if (isJumpMode(game.mode) && game.isFusionSite(coord)) cell.classList.add('fusion-site');
         if (isPhysicalVirasoroGoMode(game.mode)) {
             const stress = game.stressAt(coord);
@@ -5325,10 +5597,14 @@ function renderFlatBoard() {
         else if (isZ2GaugeLoopMode(game.mode)) renderZ2GaugeVertex(cell, coord);
         else if (isCFTReversiMode(game.mode)) renderCFTStone(cell, coord);
         else if (isReversiMode(game.mode)) renderReversiStone(cell, coord);
+        else if (isMajoranaMode(game.mode)) renderMajoranaMode(cell, coord, game, {
+            selectedModeId: selectedMajoranaModeId,
+            exchangeAnimation: anyonExchangeAnimation
+        });
         else if (isJumpMode(game.mode)) renderAnyonToken(cell, coord);
         else renderGoStone(cell, coord);
 
-        appendAgeRing(cell, token || goStone || game.getStone?.(coord));
+        appendAgeRing(cell, token || majoranaMode || goStone || game.getStone?.(coord));
 
         if (isCFTMode(game.mode)) renderStress(cell, coord);
 
@@ -5345,6 +5621,16 @@ function renderFlatBoard() {
         }
 
         if (isZ2GaugeLoopMode(game.mode)) renderZ2GaugeEdges(cell, coord);
+
+        if (anyonExchangeAnimation && [
+            coordKey(anyonExchangeAnimation.fromA),
+            coordKey(anyonExchangeAnimation.fromB)
+        ].includes(key)) {
+            const badge = document.createElement('span');
+            badge.className = 'exchange-badge';
+            badge.textContent = anyonExchangeAnimation.clockwise ? '\u03c3\u1d62' : '\u03c3\u1d62\u207b\u00b9';
+            cell.append(badge);
+        }
 
         const coordNode = document.createElement('span');
         coordNode.className = 'coord';
@@ -5394,6 +5680,9 @@ function algebraic3DViewState() {
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey)
         : [];
+    const legalMajorana = isMajoranaMode(game.mode)
+        ? [...majoranaLegalTargetKeys()]
+        : [];
     const virasoroPreview = currentVirasoroPreview();
     const cftPreview = currentCFTPreview();
     const legalGo = isGoMode(game.mode)
@@ -5421,11 +5710,12 @@ function algebraic3DViewState() {
         ? game.legalMoves().map((move) => coordKey(move.coord))
         : [];
     return {
-        selectedToken,
+        selectedToken: isMajoranaMode(game.mode) ? selectedMajoranaModeId : selectedToken,
         legalKeys: new Set([
             ...legalReversi,
             ...legalAnyon.map((action) => coordKey(action.to)),
             ...legalAnyonExciteTargets,
+            ...legalMajorana,
             ...legalGo,
             ...legalIsing,
             ...legalTwoPhase,
@@ -5444,10 +5734,13 @@ function algebraic3DViewState() {
         ]),
         trailKeys: braidTrailCells(),
         physicsView: els.physicsViewSelect.value,
-        paths: isJumpMode(game.mode)
+        paths: isJumpMode(game.mode) || isMajoranaMode(game.mode)
             ? [
                 ...legalAnyon.map((action) => action.path),
-                ...(game.braidEventLog || []).map((event) => event.path)
+                ...(isMajoranaMode(game.mode) && selectedMajoranaModeId
+                    ? game.legalActionsForToken(selectedMajoranaModeId).map((action) => action.path)
+                    : []),
+                ...(game.braidEventLog || []).map((event) => event.path || [event.fromA, event.fromB].filter(Boolean))
             ]
             : isCFTReversiMode(game.mode) && game.lastFlippedPath?.length
                 ? [game.lastFlippedPath]
@@ -5485,6 +5778,7 @@ function updateBoardHighlights() {
             .filter((coord) => !game.tokenAt(coord))
             .map(coordKey))
         : new Set();
+    const legalMajoranaTargets = majoranaLegalTargetKeys();
     const jumpPath = new Set(legalAnyon.flatMap((action) => action.path.map(coordKey)));
     const braidTrail = braidTrailCells();
     const cancelTargetId = cancelTargetForSelectedToken();
@@ -5522,9 +5816,17 @@ function updateBoardHighlights() {
         const key = cell.dataset.key;
         const coord = JSON.parse(cell.dataset.coord);
         const token = isJumpMode(game.mode) ? game.tokenAt(coord) : null;
+        const majoranaMode = isMajoranaMode(game.mode) ? game.modeAt(coord) : null;
         const goStone = isGoMode(game.mode) ? game.getStone(coord) : null;
-        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key));
+        cell.classList.toggle('legal', legalReversi.has(key) || legalAnyonTargets.has(key) || legalAnyonExciteTargets.has(key) || legalMajoranaTargets.has(key) || legalGoTargets.has(key) || legalIsingTargets.has(key) || legalTwoPhaseTargets.has(key) || legalClusterTargets.has(key) || legalJumpParticleTargets.has(key) || legalSpinIceTargets.has(key) || legalZ2GaugeTargets.has(key));
         cell.classList.toggle('braid-trail', braidTrail.has(key));
+        const exchangeEndpoint = Boolean(anyonExchangeAnimation && [
+            coordKey(anyonExchangeAnimation.fromA),
+            coordKey(anyonExchangeAnimation.fromB)
+        ].includes(key));
+        cell.classList.toggle('exchange-active', exchangeEndpoint);
+        cell.classList.toggle('exchange-clockwise', Boolean(exchangeEndpoint && anyonExchangeAnimation?.clockwise));
+        cell.classList.toggle('exchange-counterclockwise', Boolean(exchangeEndpoint && anyonExchangeAnimation && !anyonExchangeAnimation.clockwise));
         for (const status of ['trivial', 'braided', 'partially_unbraided']) {
             cell.classList.toggle(`braid-status-${status}`, Boolean(token && braidStatusForToken(token) === status));
         }
@@ -5533,6 +5835,7 @@ function updateBoardHighlights() {
         cell.classList.toggle('wrong-unbraid', Boolean(token && warningTargets.has(token.id)));
         cell.classList.toggle('cancellation-flash', Boolean(token && lastCancellation && [lastCancellation.movingTokenId, lastCancellation.targetId].includes(token.id)));
         cell.classList.toggle('wrong-unbraid-flash', Boolean(token && lastWrongUnbraid && [lastWrongUnbraid.movingTokenId, lastWrongUnbraid.targetId].includes(token.id)));
+        cell.classList.toggle('majorana-selected', Boolean(majoranaMode?.id === selectedMajoranaModeId));
         cell.classList.toggle('preview-flip', previewFlips.has(key));
         cell.classList.toggle('jump-path', jumpPath.has(key));
         cell.classList.toggle('stress-preview', virasoroAffected.has(key));
@@ -5575,7 +5878,7 @@ function wrongUnbraidTargetIds() {
 }
 
 function braidTrailCells() {
-    if (!isJumpMode(game?.mode)) return new Set();
+    if (!isJumpMode(game?.mode) && !isMajoranaMode(game?.mode)) return new Set();
     const cells = new Set();
     for (const event of game.braidEventLog || []) {
         for (const coord of event.path || []) cells.add(coordKey(coord));
@@ -6439,11 +6742,76 @@ function executeAnyonExcite(coord, anyonType) {
 
 function executeAnyonSelect(token) {
     selectedToken = token.id;
-    els.statusText.textContent = `Selected ${token.id} (${jumpTypeDisplay(token.anyonType)}). Click an empty site to move, another token to braid/unbraid, or use Recombine / Recover.`;
+    els.statusText.textContent = `Selected ${token.id} (${jumpTypeDisplay(token.anyonType)}). Click an empty site to transport, or choose an adjacent mode to exchange/braid.`;
     render();
 }
 
-function executeAnyonTargetToken(token) {
+function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function canExchangeSelectedWith(token) {
+    if (!selectedToken || !token || typeof game.canExchangePair !== 'function') {
+        return { ok: false, error: 'Select two modes first.' };
+    }
+    return game.canExchangePair(selectedToken, token.id, game.currentPlayer);
+}
+
+async function executeAnyonExchange(token, clockwise = true) {
+    if (anyonInputLocked) return;
+    if (!selectedToken) {
+        els.statusText.textContent = 'Select one of your anyons first.';
+        return;
+    }
+    const selected = game.tokens.get(selectedToken);
+    if (!selected || !token) {
+        els.statusText.textContent = 'Select two known modes.';
+        return;
+    }
+    const allowed = canExchangeSelectedWith(token);
+    if (!allowed.ok) {
+        els.statusText.textContent = allowed.error;
+        return;
+    }
+    anyonInputLocked = true;
+    closeActionPalette();
+    const movingTokenId = selectedToken;
+    const targetId = token.id;
+    anyonExchangeAnimation = {
+        movingTokenId,
+        targetId,
+        fromA: [...selected.coord],
+        fromB: [...token.coord],
+        clockwise,
+        startedAt: Date.now(),
+        duration: 560
+    };
+    els.statusText.textContent = clockwise
+        ? 'Braiding exchange: clockwise pair exchange is being applied.'
+        : 'Braiding exchange: counterclockwise pair exchange is being applied.';
+    algebraic3d?.setInteractionLocked?.(true);
+    render();
+    await sleep(560);
+    const method = clockwise ? 'exchange_pair_clockwise' : 'exchange_pair_counterclockwise';
+    const result = game[method](movingTokenId, targetId, { player: game.currentPlayer });
+    anyonExchangeAnimation = null;
+    anyonInputLocked = false;
+    algebraic3d?.setInteractionLocked?.(false);
+    if (result.ok) {
+        selectedToken = '';
+        hoverCoord = null;
+        lastCancellation = null;
+        lastWrongUnbraid = null;
+        els.statusText.textContent = result.event.messageEn || (clockwise
+            ? 'Exchanged two modes clockwise.'
+            : 'Exchanged two modes counterclockwise.');
+    } else {
+        els.statusText.textContent = result.error || 'Rewrite failed.';
+    }
+    render();
+}
+
+function executeAnyonUnbraidAttempt(token) {
     if (!selectedToken) {
         els.statusText.textContent = 'Select one of your anyons first.';
         return;
@@ -6477,6 +6845,41 @@ function executeAnyonTargetToken(token) {
     render();
 }
 
+function showAnyonPairActionPalette(token, coord, event = null) {
+    const exchangeStatus = canExchangeSelectedWith(token);
+    const selected = selectedToken ? game.tokens.get(selectedToken) : null;
+    const expected = selected ? nextRequiredUnbraidGenerator(selected.braidWord) : null;
+    const canAttemptInverse = Boolean(selected && (selected.isBraided || Number(selected.braidParity || 0) === 1));
+    showActionPalette(coord, event, {
+        title: `${selectedToken || '?'} \u2194 ${token.id}`,
+        status: exchangeStatus.ok
+            ? 'Braiding is an exchange operation, not a jump. Choose the exchange orientation.'
+            : exchangeStatus.error,
+        items: [
+            {
+                label: 'Braid Clockwise',
+                detail: 'Exchange adjacent modes and append \u03c3_i.',
+                disabled: !exchangeStatus.ok,
+                onChoose: () => { void executeAnyonExchange(token, true); }
+            },
+            {
+                label: 'Braid Counterclockwise',
+                detail: 'Exchange adjacent modes and append \u03c3_i^-1.',
+                disabled: !exchangeStatus.ok,
+                onChoose: () => { void executeAnyonExchange(token, false); }
+            },
+            {
+                label: 'Apply Inverse Generator',
+                detail: expected?.targetId === token.id
+                    ? `Try ${braidWordToText([expected])}.`
+                    : 'Try an inverse/unbraid update against this target.',
+                disabled: !canAttemptInverse,
+                onChoose: () => executeAnyonUnbraidAttempt(token)
+            }
+        ]
+    });
+}
+
 function executeAnyonMove(coord) {
     if (!selectedToken) {
         els.statusText.textContent = 'Select one of your anyons first.';
@@ -6497,13 +6900,19 @@ function executeAnyonMove(coord) {
         if (result.event.fusion?.blocked) {
             els.statusText.textContent = `Capture blocked: ${result.event.fusion.reason}.`;
         } else if (result.event.entanglement?.length) {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
+            const actionLabel = result.event.action === 'transport_excitation'
+                ? 'Transport'
+                : capitalize(result.event.action || result.event.kind);
+            els.statusText.textContent = `${actionLabel} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
         } else if (result.event.braid?.unbraid?.successfulPartialUnbraid) {
-            els.statusText.textContent = 'Inverse jump shortened the braid word.';
+            els.statusText.textContent = 'Inverse transport shortened the braid word.';
         } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
-            els.statusText.textContent = 'Jump recorded a nontrivial braid token.';
+            els.statusText.textContent = 'Transport recorded a nontrivial braid token.';
         } else {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
+            const actionLabel = result.event.action === 'transport_excitation'
+                ? 'Transport'
+                : capitalize(result.event.action || result.event.kind);
+            els.statusText.textContent = `${actionLabel} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
         }
     } else {
         els.statusText.textContent = result.error;
@@ -6549,7 +6958,7 @@ function showOwnedJumpTokenPalette(token, coord, event, { excitationMode = false
     const items = [
         {
             label: 'Select / Move',
-            detail: 'Use this piece for hop, jump, braid, or unbraid.',
+            detail: 'Use this mode for transport, pair exchange, braid, or unbraid.',
             onChoose: () => executeAnyonSelect(token)
         },
         ...jumpSetTypeItems(token)
@@ -6580,7 +6989,7 @@ function handleAnyonExcitationClick(coord, event = null) {
     const token = game.tokenAt(coord);
     if (token) {
         if (selectedToken && token.id !== selectedToken) {
-            executeAnyonTargetToken(token);
+            showAnyonPairActionPalette(token, coord, event);
             return;
         }
         if (token.owner === game.currentPlayer) {
@@ -6609,6 +7018,176 @@ function handleAnyonExcitationClick(coord, event = null) {
     });
 }
 
+function selectedMajoranaFlavor() {
+    return Math.max(0, Math.min(7, Number(els.majoranaFlavorSelect?.value || 0)));
+}
+
+function selectedMajoranaParity() {
+    return els.majoranaParitySelect?.value || 'even';
+}
+
+function selectedMajoranaAction() {
+    return els.majoranaActionSelect?.value || 'create_pair';
+}
+
+function majoranaCoordLabel(coord) {
+    return game?.topology?.displayCoord?.(coord) || (Array.isArray(coord) ? coord.join(',') : String(coord ?? 'site'));
+}
+
+function clearMajoranaSelection() {
+    selectedMajoranaModeId = '';
+    selectedMajoranaSite = null;
+}
+
+function handleMajoranaResult(result, fallbackMessage = 'Majorana action completed.') {
+    if (result?.ok) {
+        els.statusText.textContent = result.event?.messageEn || fallbackMessage;
+        hoverCoord = null;
+    } else {
+        els.statusText.textContent = result?.error || 'Majorana action failed.';
+    }
+    render();
+}
+
+function executeMajoranaCreatePairAt(coord) {
+    const occupied = game.modeAt(coord);
+    if (occupied) {
+        els.statusText.textContent = 'Create Pair requires an empty site.';
+        return;
+    }
+    if (!selectedMajoranaSite) {
+        selectedMajoranaSite = [...coord];
+        selectedMajoranaModeId = '';
+        els.statusText.textContent = `First pair site selected at ${majoranaCoordLabel(coord)}. Choose a second empty site.`;
+        render();
+        return;
+    }
+    const first = selectedMajoranaSite;
+    const result = game.create_pair(
+        selectedMajoranaFlavor(),
+        first,
+        coord,
+        selectedMajoranaParity()
+    );
+    clearMajoranaSelection();
+    handleMajoranaResult(result, 'Created Majorana pair.');
+}
+
+async function executeMajoranaExchange(targetMode, clockwise = true) {
+    const sourceMode = game.getMode(selectedMajoranaModeId);
+    if (!sourceMode || !targetMode) {
+        els.statusText.textContent = 'Select two active Majorana modes.';
+        return;
+    }
+    const allowed = game.canExchangePair(sourceMode.id, targetMode.id);
+    if (!allowed.ok) {
+        els.statusText.textContent = allowed.error || 'Majorana braiding requires adjacent active modes.';
+        return;
+    }
+    anyonInputLocked = true;
+    anyonExchangeAnimation = {
+        movingTokenId: sourceMode.id,
+        targetId: targetMode.id,
+        fromA: [...sourceMode.position],
+        fromB: [...targetMode.position],
+        clockwise,
+        startedAt: performance.now(),
+        duration: 620,
+        label: clockwise ? '\u03c3\u1d62' : '\u03c3\u1d62\u207b\u00b9'
+    };
+    els.statusText.textContent = clockwise
+        ? 'Braiding exchange: clockwise Majorana exchange is being applied.'
+        : 'Braiding exchange: counterclockwise Majorana exchange is being applied.';
+    algebraic3d?.setInteractionLocked?.(true);
+    render();
+    await sleep(620);
+    const result = clockwise
+        ? game.braid_clockwise(sourceMode.id, targetMode.id)
+        : game.braid_counterclockwise(sourceMode.id, targetMode.id);
+    anyonExchangeAnimation = null;
+    anyonInputLocked = false;
+    algebraic3d?.setInteractionLocked?.(false);
+    clearMajoranaSelection();
+    handleMajoranaResult(result, clockwise
+        ? 'Exchanged two modes clockwise.'
+        : 'Exchanged two modes counterclockwise.');
+}
+
+function executeMajoranaPairAction(targetMode) {
+    if (!targetMode?.active) {
+        els.statusText.textContent = 'Choose an active Majorana mode.';
+        return;
+    }
+    if (!selectedMajoranaModeId) {
+        selectedMajoranaModeId = targetMode.id;
+        selectedMajoranaSite = null;
+        els.statusText.textContent = `${targetMode.id} selected. Choose an adjacent mode for ${selectedOptionText(els.majoranaActionSelect)}.`;
+        render();
+        return;
+    }
+    if (selectedMajoranaModeId === targetMode.id) {
+        clearMajoranaSelection();
+        els.statusText.textContent = 'Majorana selection cleared.';
+        render();
+        return;
+    }
+    const action = selectedMajoranaAction();
+    if (action === 'braid_clockwise') {
+        void executeMajoranaExchange(targetMode, true);
+        return;
+    }
+    if (action === 'braid_counterclockwise') {
+        void executeMajoranaExchange(targetMode, false);
+        return;
+    }
+    const selected = game.getMode(selectedMajoranaModeId);
+    if (!selected) {
+        clearMajoranaSelection();
+        els.statusText.textContent = 'Selected Majorana mode no longer exists.';
+        render();
+        return;
+    }
+    if (action === 'merge') {
+        const result = game.merge(selected.id, targetMode.id, selectedMajoranaParity());
+        clearMajoranaSelection();
+        handleMajoranaResult(result, 'Merged Majorana modes.');
+        return;
+    }
+    if (action === 'measure_parity') {
+        const result = game.measure_parity(selected.id, targetMode.id);
+        clearMajoranaSelection();
+        handleMajoranaResult(result, 'Measured Majorana parity.');
+        return;
+    }
+    els.statusText.textContent = 'Choose a Majorana action first.';
+}
+
+function executeMajoranaSplit(source) {
+    const result = game.split(source?.id || source, selectedMajoranaFlavor(), selectedMajoranaParity());
+    clearMajoranaSelection();
+    handleMajoranaResult(result, 'Split source into a new Majorana pair.');
+}
+
+function handleMajoranaClick(coord) {
+    const action = selectedMajoranaAction();
+    const mode = game.modeAt(coord);
+    if (action === 'create_pair') {
+        executeMajoranaCreatePairAt(coord);
+        return;
+    }
+    if (action === 'split') {
+        executeMajoranaSplit(mode || coord);
+        return;
+    }
+    if (!mode) {
+        els.statusText.textContent = selectedMajoranaModeId
+            ? 'Choose another active Majorana mode for this operation.'
+            : 'Choose an active Majorana mode first.';
+        return;
+    }
+    executeMajoranaPairAction(mode);
+}
+
 function handleCellPointerActivation(coord, event = null) {
     if (!isAnyonInteractionMode()) {
         handleCellClick(coord, event);
@@ -6624,6 +7203,10 @@ function handleCellPointerActivation(coord, event = null) {
 function handleCellClick(coord, event = null) {
     cancelAnyonClickTimer();
     closeActionPalette();
+    if (anyonInputLocked) {
+        els.statusText.textContent = 'Braiding exchange is still resolving.';
+        return;
+    }
     if (isOnlineExperimentMode()) {
         const online = getOnlineState();
         if (online.room?.status !== 'playing') {
@@ -6661,6 +7244,10 @@ function handleCellClick(coord, event = null) {
     }
     if (isZ2GaugeLoopMode(game.mode)) {
         handleZ2GaugeClick(coord);
+        return;
+    }
+    if (isMajoranaMode(game.mode)) {
+        handleMajoranaClick(coord);
         return;
     }
     if (isCFTReversiMode(game.mode)) {
@@ -6735,37 +7322,11 @@ function handleCellClick(coord, event = null) {
         }
         if (excitationMode && anyonTurnAction !== 'move') {
             els.statusText.textContent = anyonTurnAction === 'excite'
-                ? 'Excite targets an empty vertex. Choose Move / Braid to unbraid or move existing anyons.'
+                ? 'Excite targets an empty vertex. Choose Transport / Exchange to act on existing anyons.'
                 : 'Recombine / Recover targets one of your own anyons.';
             return;
         }
-        const selected = game.tokens.get(selectedToken);
-        const path = selected ? [selected.coord, coord] : [];
-        const direction = selected ? coord.map((value, axis) => value - selected.coord[axis]) : [];
-        const expected = selected ? nextRequiredUnbraidGenerator(selected.braidWord) : null;
-        const exactInverse = expected?.targetId === token.id
-            ? { sign: expected.sign, index: expected.index }
-            : {};
-        const result = game.attemptUnbraid(selectedToken, token.id, { path, direction, ...exactInverse });
-        if (result.ok) {
-            if (result.event.unbraid.successfulPartialUnbraid || result.event.unbraid.fullyUnbraided) {
-                lastCancellation = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
-                lastWrongUnbraid = null;
-            } else {
-                lastWrongUnbraid = { movingTokenId: selectedToken, targetId: token.id, tick: Date.now() };
-                lastCancellation = null;
-            }
-            selectedToken = '';
-            hoverCoord = null;
-            els.statusText.textContent = result.event.unbraid.fullyUnbraided
-                ? 'Full inverse sequence completed; token is unbraided.'
-                : result.event.unbraid.successfulPartialUnbraid
-                    ? 'Correct inverse generator applied; braid word shortened.'
-                    : 'Wrong unbraid path/order; braid word grew.';
-        } else {
-            els.statusText.textContent = result.error;
-        }
-        render();
+        showAnyonPairActionPalette(token, coord, event);
         return;
     }
 
@@ -6831,13 +7392,19 @@ function handleCellClick(coord, event = null) {
         if (result.event.fusion?.blocked) {
             els.statusText.textContent = `Capture blocked: ${result.event.fusion.reason}.`;
         } else if (result.event.entanglement?.length) {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
+            const actionLabel = result.event.action === 'transport_excitation'
+                ? 'Transport'
+                : capitalize(result.event.action || result.event.kind);
+            els.statusText.textContent = `${actionLabel} completed; ${result.event.entanglement.length} fusion channel decohered beyond the finite entanglement distance.`;
         } else if (result.event.braid?.unbraid?.successfulPartialUnbraid) {
-            els.statusText.textContent = 'Inverse jump shortened the braid word.';
+            els.statusText.textContent = 'Inverse transport shortened the braid word.';
         } else if (result.event.braid?.effect?.effect === 'add_braid_token') {
-            els.statusText.textContent = 'Jump recorded a nontrivial braid token.';
+            els.statusText.textContent = 'Transport recorded a nontrivial braid token.';
         } else {
-            els.statusText.textContent = `${capitalize(result.event.kind)} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
+            const actionLabel = result.event.action === 'transport_excitation'
+                ? 'Transport'
+                : capitalize(result.event.action || result.event.kind);
+            els.statusText.textContent = `${actionLabel} completed${result.event.noise?.length ? `; ${result.event.noise.length} noise rolls logged` : ''}${result.event.time?.applied ? `; time clock ${result.event.time.phase} applied` : ''}.`;
         }
     } else {
         els.statusText.textContent = result.error;
@@ -6883,6 +7450,10 @@ function handleCellDoubleClick(coord, event = null) {
     closeActionPalette();
     if (isAnyonReversiMode(game.mode)) {
         showAnyonReversiPalette(coord, event);
+        return;
+    }
+    if (isMajoranaMode(game.mode)) {
+        handleMajoranaClick(coord, event);
         return;
     }
     if (isJumpMode(game.mode)) {
@@ -7087,6 +7658,19 @@ function renderStats() {
         els.whiteBraid.textContent = `${observables.syndromeWeight} / ${observables.logicalSector}`;
         return;
     }
+    if (isMajoranaMode(game.mode)) {
+        const observables = game.computePhysicalObservables();
+        const channels = observables.fusionChannelCounts || {};
+        els.blackCountLabel.textContent = 'Active Modes';
+        els.whiteCountLabel.textContent = 'Active Pairs';
+        els.blackBraidLabel.textContent = 'Braid Word';
+        els.whiteBraidLabel.textContent = 'Fusion Channels';
+        els.blackCount.textContent = observables.activeModeCount;
+        els.whiteCount.textContent = observables.activePairCount;
+        els.blackBraid.textContent = observables.braidWordLength;
+        els.whiteBraid.textContent = `1:${channels['1'] || 0} \u03c8:${channels['\u03c8'] || 0}`;
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const counts = game.counts();
         if (isAnyonReversiMode(game.mode)) {
@@ -7265,6 +7849,20 @@ function updateStatus() {
         }
         return;
     }
+    if (isMajoranaMode(game.mode)) {
+        const observables = game.computePhysicalObservables();
+        const action = selectedMajoranaAction().replaceAll('_', ' ');
+        const selected = selectedMajoranaModeId
+            ? ` Selected ${selectedMajoranaModeId}.`
+            : selectedMajoranaSite
+                ? ` First pair site ${majoranaCoordLabel(selectedMajoranaSite)}.`
+                : '';
+        const recent = observables.recentBraidUnitarySymbols?.length
+            ? ` Recent ${observables.recentBraidUnitarySymbols.at(-1)}.`
+            : '';
+        els.statusText.textContent = `Majorana Modes toy lab: ${action}. Modes=${observables.activeModeCount}, pairs=${observables.activePairCount}, braid word=${observables.braidWordLength}, total parity=${observables.totalParity}.${selected}${recent}`;
+        return;
+    }
     if (isReversiMode(game.mode)) {
         const preview = currentReversiPreview();
         if (isAnyonReversiMode(game.mode)) {
@@ -7325,7 +7923,7 @@ function updateStatus() {
             return;
         }
         if (anyonTurnAction === 'excite') {
-            els.statusText.textContent = `Excite ${jumpTypeDisplay(els.anyonExcitationTypeSelect.value)}: click an empty vertex. Choose Move / Braid to move ${selectedToken}.`;
+            els.statusText.textContent = `Excite ${jumpTypeDisplay(els.anyonExcitationTypeSelect.value)}: click an empty vertex. Choose Transport / Exchange to act on ${selectedToken}.`;
             return;
         }
         const inverse = token && ((token.braidParity || 0) === 1 || token.isBraided)
@@ -7351,12 +7949,20 @@ function updateStatus() {
             ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Click an owned anyon to recombine and recover energy.`
             : game.config?.setupMode === 'excitation'
             ? `${capitalize(game.currentPlayer)} energy ${formatNumber(game.energy?.[game.currentPlayer] || 0)}. Select an owned anyon to move/braid, or choose Excite Anyon.`
-            : 'Select an anyon, then hop to a neighbor or exchange around an occupied vertex.';
+            : 'Select an anyon, then transport to a neighbor or exchange with an adjacent braidable mode.';
     }
 }
 
 function renderLegend() {
-    const items = isPhysicalCliffordMode(game.mode)
+    const items = isMajoranaMode(game.mode)
+        ? [
+            'Majorana modes are symbolic operator nodes attached to graph sites',
+            'Create Pair uses Flavor 0-7 and an even, odd, or random parity',
+            'Braiding is an exchange operation, not a jump-over-piece move',
+            'Merge records parity p = i gamma_i gamma_j and fusion channel 1 or psi',
+            'This is a discrete toy model, not a physical experimental simulation'
+        ]
+        : isPhysicalCliffordMode(game.mode)
         ? [
             els.physicsViewSelect.value === 'physics' ? 'Physics labels: coefficient and Pauli' : 'Game labels: owner sectors',
             'Black = positive sector; white = negative sector',
@@ -7535,6 +8141,21 @@ function renderHistory() {
             const observables = event.observables || {};
             const measurement = update.measurement ? `; measured ${update.measurement.check} ${update.measurement.value > 0 ? '+1' : '-1'}` : '';
             item.textContent = `#${event.number} ${event.player} ${event.action || event.type}; edges ${event.affectedEdges?.length || 0}; syndrome ${observables.syndromeWeight ?? 0}; sector ${observables.logicalSector || 'trivial'}${measurement}.`;
+        } else if (isMajoranaMode(game.mode)) {
+            if (event.kind === 'create_pair') {
+                item.textContent = `#${event.number} create pair ${event.modeIds?.join(' / ')} flavor ${event.flavor}; parity ${event.parity}; channel ${event.fusionChannel}.`;
+            } else if (event.kind === 'braid_clockwise' || event.kind === 'braid_counterclockwise') {
+                const generator = event.generator ? braidWordToText([event.generator]) : event.kind;
+                item.textContent = `#${event.number} ${event.kind.replaceAll('_', ' ')} ${event.modeA}<->${event.modeB}; ${generator}; ${event.generator?.unitarySymbol || ''}.`;
+            } else if (event.kind === 'merge') {
+                item.textContent = `#${event.number} merge ${event.modeA} / ${event.modeB}; parity ${event.parity}; fusion ${event.fusionChannel}.`;
+            } else if (event.kind === 'split') {
+                item.textContent = `#${event.number} split ${event.source}; new ${event.modeIds?.join(' / ')}; parity ${event.parity}; channel ${event.fusionChannel}.`;
+            } else if (event.kind === 'measure_parity') {
+                item.textContent = `#${event.number} measured parity ${event.modeA} / ${event.modeB}: ${event.parity}; channel ${event.fusionChannel}.`;
+            } else {
+                item.textContent = `#${event.number} Majorana ${event.kind || event.type}.`;
+            }
         } else if (event.type === 'measurement') {
             item.textContent = `measurement ${event.measurement.type}: ${event.measurement.reported}${event.measurement.error ? ' with error' : ''}.`;
         } else if (event.type === 'noise') {
@@ -7592,7 +8213,8 @@ function renderHistory() {
                         ? ` fusion ${event.fusion.input.join('x')}=${event.fusion.resolved}`
                         : '';
                 const time = event.time?.applied ? ` t${event.time.after.tick} phase ${event.time.phase}` : '';
-                item.textContent = `#${event.number} ${event.player} ${event.kind} ${event.tokenId} -> ${event.to.join(',')}${braid}${unbraid}${anyonPhase}${channel}${fusion}${time}.`;
+                const actionName = event.action || event.kind;
+                item.textContent = `#${event.number} ${event.player} ${actionName} ${event.tokenId} -> ${event.to.join(',')}${braid}${unbraid}${anyonPhase}${channel}${fusion}${time}.`;
             }
         }
         els.historyList.append(item);
@@ -7622,10 +8244,11 @@ function renderStochasticLog() {
 function renderBraidEventLog() {
     if (!els.braidEventList) return;
     els.braidEventList.innerHTML = '';
-    const events = isJumpMode(game.mode) ? [...(game.braidEventLog || [])].slice(-18).reverse() : [];
+    const supportsBraidLog = isJumpMode(game.mode) || isMajoranaMode(game.mode);
+    const events = supportsBraidLog ? [...(game.braidEventLog || [])].slice(-18).reverse() : [];
     if (!events.length) {
         const item = document.createElement('li');
-        item.textContent = isJumpMode(game.mode)
+        item.textContent = supportsBraidLog
             ? 'No braid or unbraid events yet.'
             : 'Braid memory is available in Jump modes.';
         els.braidEventList.append(item);
@@ -7980,6 +8603,13 @@ els.anyonActionSelect.addEventListener('change', () => {
     syncModeControls();
     render();
 });
+els.majoranaActionSelect?.addEventListener('change', () => {
+    clearMajoranaSelection();
+    syncModeControls();
+    render();
+});
+els.majoranaFlavorSelect?.addEventListener('change', render);
+els.majoranaParitySelect?.addEventListener('change', render);
 els.anyonExcitationTypeSelect.addEventListener('change', render);
 els.cftActionSelect.addEventListener('change', () => {
     selectedCFTCoords = [];

@@ -211,6 +211,7 @@ export function simplifyBraidWord(word = [], config = {}) {
 
 export function braidGeneratorToText(generator, { displayBase = 1 } = {}) {
     if (!generator) return '';
+    if (generator.symbol) return String(generator.symbol);
     const normalized = createBraidGenerator(generator);
     const index = normalized.index + displayBase;
     return normalized.sign < 0 ? `σ${index}^-1` : `σ${index}`;

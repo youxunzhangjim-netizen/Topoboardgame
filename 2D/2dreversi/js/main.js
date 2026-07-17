@@ -781,7 +781,7 @@ class Reversi2DApp {
         const topology = this.boundarySelect.value;
         this.boundaryEl.textContent = topology === 'polar' ? 'Polar Center' : topology === 'random' ? '2D RBC' : topology === 'klein' ? 'Klein' : topology === 'cylinder' ? 'Cylinder x-wrap' : topology === 'pbc' ? 'PBC x/y' : 'Standard';
         const latticeText = this.logic.topology.lattice === 'honeycomb'
-            ? ' Honeycomb uses regular hexagonal cells. Stones occupy cell centers and bracket along six axial rays.'
+            ? ' Honeycomb Reversi flips only along connected lattice/graph rays. 蜂巢圖黑白棋只沿連續的晶格／圖邊射線翻子。'
             : this.logic.topology.lattice === 'kagome'
             ? ' Kagome uses a staggered triangle-hexagon graph. Stones occupy graph sites and bracket along visible Kagome links.'
             : topology === 'polar'
