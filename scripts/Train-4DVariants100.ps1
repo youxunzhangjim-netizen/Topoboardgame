@@ -2,6 +2,7 @@ param(
   [int]$Games = 100,
   [int]$Epochs = 8,
   [int]$Depth = 1,
+  [int]$MaxPlies = 32,
   [switch]$SkipPromote
 )
 
@@ -33,7 +34,7 @@ function Invoke-Native($ScriptBlock) {
   }
 }
 
-function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null) {
+function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $MaxPliesOverride = $null) {
   $Jobs.Add([ordered]@{
     Game = $Game
     Boundary = $Boundary
@@ -41,6 +42,7 @@ function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $nul
     Size = $Size
     Depth = if ($null -ne $DepthOverride) { $DepthOverride } else { $Depth }
     Epochs = if ($null -ne $EpochOverride) { $EpochOverride } else { $Epochs }
+    MaxPlies = if ($null -ne $MaxPliesOverride) { $MaxPliesOverride } else { $MaxPlies }
   }) | Out-Null
 }
 
@@ -49,11 +51,11 @@ $jobs = New-Object System.Collections.Generic.List[object]
 # Current headless self-play supports 4D Jump and 4D Hex. 4D Go/Reversi UI
 # exists, but those games do not yet expose research/selfplay adapters.
 foreach ($boundary in @("hypercube", "cylinder", "4d-torus", "cube", "projection")) {
-  Add-Job $jobs "4djump" $boundary "jump4d" 4 1 8
+  Add-Job $jobs "4djump" $boundary "jump4d" 3 1 8 24
 }
 
 foreach ($boundary in @("open", "torus")) {
-  Add-Job $jobs "4dhex" $boundary "axis" 4 2 8
+  Add-Job $jobs "4dhex" $boundary "axis" 4 1 8 64
 }
 
 Write-Log "Started 4D robot training: $($jobs.Count) variants, $Games games each."
@@ -75,6 +77,7 @@ try {
         --lattice $job.Lattice `
         --size $job.Size `
         --games $Games `
+        --maxPlies $job.MaxPlies `
         --depthA $job.Depth `
         --depthB $job.Depth `
         --record moves `

@@ -2,6 +2,7 @@ param(
   [int]$Games = 100,
   [int]$Epochs = 8,
   [int]$Depth = 1,
+  [int]$MaxPlies = 180,
   [switch]$SkipPromote
 )
 
@@ -33,7 +34,7 @@ function Invoke-Native($ScriptBlock) {
   }
 }
 
-function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $PlayerCount = $null) {
+function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $PlayerCount = $null, $MaxPliesOverride = $null) {
   $Jobs.Add([ordered]@{
     Game = $Game
     Boundary = $Boundary
@@ -42,6 +43,7 @@ function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $nul
     Depth = if ($null -ne $DepthOverride) { $DepthOverride } else { $Depth }
     Epochs = if ($null -ne $EpochOverride) { $EpochOverride } else { $Epochs }
     PlayerCount = $PlayerCount
+    MaxPlies = if ($null -ne $MaxPliesOverride) { $MaxPliesOverride } else { $MaxPlies }
   }) | Out-Null
 }
 
@@ -49,7 +51,7 @@ $jobs = New-Object System.Collections.Generic.List[object]
 
 # 2D Chess boundaries.
 foreach ($boundary in @("standard", "open", "periodic", "reflection", "random")) {
-  Add-Job $jobs "2dchess" $boundary "square" 8 2 8
+  Add-Job $jobs "2dchess" $boundary "square" 8 2 8 $null 160
 }
 
 # 2D Go boards and current stable lattices. Kagome is excluded from this release
@@ -108,6 +110,7 @@ try {
         "--lattice", $job.Lattice,
         "--size", $job.Size,
         "--games", $Games,
+        "--maxPlies", $job.MaxPlies,
         "--depthA", $job.Depth,
         "--depthB", $job.Depth,
         "--record", "moves",

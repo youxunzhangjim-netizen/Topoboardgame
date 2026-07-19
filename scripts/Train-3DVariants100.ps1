@@ -2,6 +2,7 @@ param(
   [int]$Games = 100,
   [int]$Epochs = 8,
   [int]$Depth = 1,
+  [int]$MaxPlies = 220,
   [switch]$SkipPromote
 )
 
@@ -33,7 +34,7 @@ function Invoke-Native($ScriptBlock) {
   }
 }
 
-function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null) {
+function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $MaxPliesOverride = $null) {
   $Jobs.Add([ordered]@{
     Game = $Game
     Boundary = $Boundary
@@ -41,6 +42,7 @@ function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $nul
     Size = $Size
     Depth = if ($null -ne $DepthOverride) { $DepthOverride } else { $Depth }
     Epochs = if ($null -ne $EpochOverride) { $EpochOverride } else { $Epochs }
+    MaxPlies = if ($null -ne $MaxPliesOverride) { $MaxPliesOverride } else { $MaxPlies }
   }) | Out-Null
 }
 
@@ -48,7 +50,7 @@ $jobs = New-Object System.Collections.Generic.List[object]
 
 # 3D Chess: current headless 3D chess spaces.
 foreach ($boundary in @("r3", "t3", "reflection", "r3_random", "t2", "sphere", "mobius", "rp2")) {
-  Add-Job $jobs "3dchess" $boundary "chess3d" 8 1 8
+  Add-Job $jobs "3dchess" $boundary "chess3d" 8 1 8 180
 }
 
 # 3D Go volume boards: R3/T3/RBC with cubic-family lattices.
@@ -82,11 +84,11 @@ foreach ($boundary in @("t2", "cylinder", "mobius", "klein")) {
     Add-Job $jobs "3dreversi" $boundary $lattice 8 2 8
   }
 }
-Add-Job $jobs "3dreversi" "sphere" "square" 8 2 8
+Add-Job $jobs "3dreversi" "sphere" "square" 8 2 8 220
 
 # 3D Jump boards.
 foreach ($boundary in @("cube", "cylinder", "torus", "sphere")) {
-  Add-Job $jobs "3djump" $boundary "jump3d" 6 1 8
+  Add-Job $jobs "3djump" $boundary "jump3d" 6 1 8 180
 }
 
 # 3D Hex volume and surface boards. Trefoil is deliberately omitted from this
@@ -124,6 +126,7 @@ try {
         --lattice $job.Lattice `
         --size $job.Size `
         --games $Games `
+        --maxPlies $job.MaxPlies `
         --depthA $job.Depth `
         --depthB $job.Depth `
         --record moves `
