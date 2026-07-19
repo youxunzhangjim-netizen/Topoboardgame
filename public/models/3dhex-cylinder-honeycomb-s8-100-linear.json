@@ -1,0 +1,220 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:10:35.567Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.06973264074231755,
+    "board_size": 0.029361137582474998,
+    "boundary:cylinder": 0.06973264074231755,
+    "coord_0": -0.3650026148951177,
+    "coord_1": 0.17309418994530765,
+    "cross:3dhex:cylinder": 0.06973264074231755,
+    "cross:3dhex:cylinder:honeycomb": 0.06973264074231755,
+    "cross:edge:cylinder": 0.06973264074231755,
+    "dimension": 0.06973264074231755,
+    "game_is:3dhex": 0.06973264074231755,
+    "game:3dhex": 0.06973264074231755,
+    "hex_center_pressure": 0.3351437462237769,
+    "hex_edge_touch_count": -0.03350284061794098,
+    "hex_occupancy": 0.0835630837314938,
+    "hex_remaining_fraction": -0.013128690475442418,
+    "hex_stone_balance": 0.0018924532221525606,
+    "lattice:honeycomb": 0.06973264074231755,
+    "legal_count_log": -0.2679294643338263,
+    "move_bias": 0.06973264074231755,
+    "move_center_closeness": 0.3351437462237769,
+    "move_corner_or_anchor": -0.06581945416783445,
+    "move_edge": 0.06973264074231755,
+    "move_near_edge": 0.06973264074231755,
+    "move_type:play": 0.06973264074231755,
+    "player:black": 1.031029405906228,
+    "player:white": -0.9689980656183116,
+    "topology:cylinder": 0.06973264074231755
+  },
+  "training": {
+    "examples": 4487,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.60945,
+        "examples": 4487,
+        "accuracy": 0.7401,
+        "logLoss": 0.614013,
+        "brier": 0.205102
+      },
+      {
+        "epoch": 2,
+        "loss": 0.599207,
+        "examples": 4487,
+        "accuracy": 0.7468,
+        "logLoss": 0.567568,
+        "brier": 0.189638
+      },
+      {
+        "epoch": 3,
+        "loss": 0.604573,
+        "examples": 4487,
+        "accuracy": 0.7468,
+        "logLoss": 0.565466,
+        "brier": 0.188936
+      },
+      {
+        "epoch": 4,
+        "loss": 0.605021,
+        "examples": 4487,
+        "accuracy": 0.7326,
+        "logLoss": 0.647575,
+        "brier": 0.218351
+      },
+      {
+        "epoch": 5,
+        "loss": 0.600502,
+        "examples": 4487,
+        "accuracy": 0.7468,
+        "logLoss": 0.609631,
+        "brier": 0.202985
+      },
+      {
+        "epoch": 6,
+        "loss": 0.604669,
+        "examples": 4487,
+        "accuracy": 0.7468,
+        "logLoss": 0.589641,
+        "brier": 0.198295
+      },
+      {
+        "epoch": 7,
+        "loss": 0.607722,
+        "examples": 4487,
+        "accuracy": 0.7468,
+        "logLoss": 0.595839,
+        "brier": 0.200415
+      },
+      {
+        "epoch": 8,
+        "loss": 0.605197,
+        "examples": 4487,
+        "accuracy": 0.6505,
+        "logLoss": 0.647164,
+        "brier": 0.222033
+      }
+    ],
+    "featureCount": 27,
+    "input": "local-data/selfplay/3dhex-cylinder-honeycomb-s8-100.jsonl",
+    "gameFilter": "3dhex",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "player:black",
+        "weight": 1.031029
+      },
+      {
+        "feature": "player:white",
+        "weight": -0.968998
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.365003
+      },
+      {
+        "feature": "hex_center_pressure",
+        "weight": 0.335144
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.335144
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.267929
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.173094
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": 0.083563
+      },
+      {
+        "feature": "bias",
+        "weight": 0.069733
+      },
+      {
+        "feature": "boundary:cylinder",
+        "weight": 0.069733
+      },
+      {
+        "feature": "cross:3dhex:cylinder",
+        "weight": 0.069733
+      },
+      {
+        "feature": "cross:3dhex:cylinder:honeycomb",
+        "weight": 0.069733
+      },
+      {
+        "feature": "cross:edge:cylinder",
+        "weight": 0.069733
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.069733
+      },
+      {
+        "feature": "game_is:3dhex",
+        "weight": 0.069733
+      },
+      {
+        "feature": "game:3dhex",
+        "weight": 0.069733
+      },
+      {
+        "feature": "lattice:honeycomb",
+        "weight": 0.069733
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.069733
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.069733
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.069733
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.069733
+      },
+      {
+        "feature": "topology:cylinder",
+        "weight": 0.069733
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.065819
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": -0.033503
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.029361
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": -0.013129
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": 0.001892
+      }
+    ]
+  }
+}

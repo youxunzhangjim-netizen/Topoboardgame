@@ -1,0 +1,220 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T03:48:00.274Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.00067085345984451,
+    "board_size": -0.00021184814323085848,
+    "boundary:mobius": -0.00067085345984451,
+    "coord_0": 0.024878116417319174,
+    "coord_1": 0.00757385510463544,
+    "cross:3dgo:mobius": -0.00067085345984451,
+    "cross:3dgo:mobius:square": -0.00067085345984451,
+    "cross:edge:mobius": -0.001752923744431156,
+    "dimension": -0.00044723586351418673,
+    "game_is:3dgo": -0.00067085345984451,
+    "game:3dgo": -0.00067085345984451,
+    "go_capture_balance": 0.000058486729843771026,
+    "go_empty_fraction": -0.00067085345984451,
+    "go_pass_count": -0.05926156598787242,
+    "lattice:square": -0.00067085345984451,
+    "legal_count_log": 0.0007319361527523379,
+    "move_bias": -0.00067085345984451,
+    "move_center_closeness": -0.019152028845119195,
+    "move_corner_or_anchor": -0.020493634483315405,
+    "move_edge": -0.001752923744431156,
+    "move_is_pass": -0.0017141684171094107,
+    "move_near_edge": -0.003514374236285465,
+    "move_type:pass": -0.0017141684171094107,
+    "move_type:play": 0.0012025528154844662,
+    "player:black": -0.002843983445292279,
+    "player:white": 0.002094887156338346,
+    "topology:mobius": -0.00067085345984451
+  },
+  "training": {
+    "examples": 1597,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.693497,
+        "examples": 1597,
+        "accuracy": 0.9956,
+        "logLoss": 0.694071,
+        "brier": 0.002496
+      },
+      {
+        "epoch": 2,
+        "loss": 0.693537,
+        "examples": 1597,
+        "accuracy": 0.5942,
+        "logLoss": 0.693121,
+        "brier": 0.002022
+      },
+      {
+        "epoch": 3,
+        "loss": 0.693504,
+        "examples": 1597,
+        "accuracy": 0.0163,
+        "logLoss": 0.693279,
+        "brier": 0.002101
+      },
+      {
+        "epoch": 4,
+        "loss": 0.693495,
+        "examples": 1597,
+        "accuracy": 0.7013,
+        "logLoss": 0.693136,
+        "brier": 0.002029
+      },
+      {
+        "epoch": 5,
+        "loss": 0.693469,
+        "examples": 1597,
+        "accuracy": 0.4953,
+        "logLoss": 0.693116,
+        "brier": 0.00202
+      },
+      {
+        "epoch": 6,
+        "loss": 0.693501,
+        "examples": 1597,
+        "accuracy": 0.4941,
+        "logLoss": 0.693117,
+        "brier": 0.00202
+      },
+      {
+        "epoch": 7,
+        "loss": 0.693506,
+        "examples": 1597,
+        "accuracy": 0.5529,
+        "logLoss": 0.693107,
+        "brier": 0.002015
+      },
+      {
+        "epoch": 8,
+        "loss": 0.693445,
+        "examples": 1597,
+        "accuracy": 0.3081,
+        "logLoss": 0.693129,
+        "brier": 0.002026
+      }
+    ],
+    "featureCount": 27,
+    "input": "local-data/selfplay/3dgo-mobius-square-s6-100.jsonl",
+    "gameFilter": "3dgo",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "go_pass_count",
+        "weight": -0.059262
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.024878
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.020494
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.019152
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.007574
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.003514
+      },
+      {
+        "feature": "player:black",
+        "weight": -0.002844
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.002095
+      },
+      {
+        "feature": "cross:edge:mobius",
+        "weight": -0.001753
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.001753
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": -0.001714
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": -0.001714
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.001203
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.000732
+      },
+      {
+        "feature": "bias",
+        "weight": -0.000671
+      },
+      {
+        "feature": "boundary:mobius",
+        "weight": -0.000671
+      },
+      {
+        "feature": "cross:3dgo:mobius",
+        "weight": -0.000671
+      },
+      {
+        "feature": "cross:3dgo:mobius:square",
+        "weight": -0.000671
+      },
+      {
+        "feature": "game_is:3dgo",
+        "weight": -0.000671
+      },
+      {
+        "feature": "game:3dgo",
+        "weight": -0.000671
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": -0.000671
+      },
+      {
+        "feature": "lattice:square",
+        "weight": -0.000671
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.000671
+      },
+      {
+        "feature": "topology:mobius",
+        "weight": -0.000671
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.000447
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.000212
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": 0.000058
+      }
+    ]
+  }
+}

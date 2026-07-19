@@ -1,0 +1,83 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:02:38.904Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {},
+  "training": {
+    "examples": 1171,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 2,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 3,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 4,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 5,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 6,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 7,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 8,
+        "loss": 0.693147,
+        "examples": 1171,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      }
+    ],
+    "featureCount": 26,
+    "input": "local-data/selfplay/3dreversi-klein-square-s8-100.jsonl",
+    "gameFilter": "3dreversi",
+    "modeFilter": "",
+    "topWeights": []
+  }
+}

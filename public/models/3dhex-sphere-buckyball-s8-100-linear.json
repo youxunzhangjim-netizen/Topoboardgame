@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:10:56.275Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.022951533462130195,
+    "board_size": 0.009663812018830315,
+    "boundary:sphere": 0.022951533462130195,
+    "coord_0": 0.10062503918614416,
+    "coord_1": -0.427107620961535,
+    "cross:3dhex:sphere": 0.022951533462130195,
+    "cross:3dhex:sphere:buckyball": 0.022951533462130195,
+    "cross:edge:sphere": 0.022951533462130195,
+    "dimension": 0.022951533462130195,
+    "game_is:3dhex": 0.022951533462130195,
+    "game:3dhex": 0.022951533462130195,
+    "hex_center_pressure": 0.1268204651125209,
+    "hex_closed_surface_goal": 0.022951533462130195,
+    "hex_edge_touch_count": 0.15226607853578927,
+    "hex_occupancy": 0.0030643175546367024,
+    "hex_remaining_fraction": 0.02019391965880007,
+    "hex_stone_balance": 0.0003136065342443678,
+    "lattice:buckyball": 0.022951533462130195,
+    "legal_count_log": -0.46861921502577225,
+    "move_bias": 0.022951533462130195,
+    "move_center_closeness": 0.1268204651125209,
+    "move_corner_or_anchor": 0.03602497821027413,
+    "move_edge": 0.022951533462130195,
+    "move_near_edge": 0.022951533462130195,
+    "move_type:play": 0.022951533462130195,
+    "player:black": 0.18631888532505658,
+    "player:white": -0.16057682244975274,
+    "topology:sphere": 0.022951533462130195
+  },
+  "training": {
+    "examples": 4295,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.724409,
+        "examples": 4295,
+        "accuracy": 0.4941,
+        "logLoss": 0.709586,
+        "brier": 0.234297
+      },
+      {
+        "epoch": 2,
+        "loss": 0.725159,
+        "examples": 4295,
+        "accuracy": 0.5518,
+        "logLoss": 0.774537,
+        "brier": 0.26244
+      },
+      {
+        "epoch": 3,
+        "loss": 0.724709,
+        "examples": 4295,
+        "accuracy": 0.5665,
+        "logLoss": 0.686731,
+        "brier": 0.223811
+      },
+      {
+        "epoch": 4,
+        "loss": 0.724706,
+        "examples": 4295,
+        "accuracy": 0.458,
+        "logLoss": 0.732217,
+        "brier": 0.244041
+      },
+      {
+        "epoch": 5,
+        "loss": 0.727447,
+        "examples": 4295,
+        "accuracy": 0.5662,
+        "logLoss": 0.701194,
+        "brier": 0.230577
+      },
+      {
+        "epoch": 6,
+        "loss": 0.726896,
+        "examples": 4295,
+        "accuracy": 0.4482,
+        "logLoss": 0.781392,
+        "brier": 0.264264
+      },
+      {
+        "epoch": 7,
+        "loss": 0.729594,
+        "examples": 4295,
+        "accuracy": 0.5835,
+        "logLoss": 0.678455,
+        "brier": 0.219942
+      },
+      {
+        "epoch": 8,
+        "loss": 0.723284,
+        "examples": 4295,
+        "accuracy": 0.5823,
+        "logLoss": 0.681674,
+        "brier": 0.221556
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/3dhex-sphere-buckyball-s8-100.jsonl",
+    "gameFilter": "3dhex",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "legal_count_log",
+        "weight": -0.468619
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.427108
+      },
+      {
+        "feature": "player:black",
+        "weight": 0.186319
+      },
+      {
+        "feature": "player:white",
+        "weight": -0.160577
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": 0.152266
+      },
+      {
+        "feature": "hex_center_pressure",
+        "weight": 0.12682
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.12682
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.100625
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.036025
+      },
+      {
+        "feature": "bias",
+        "weight": 0.022952
+      },
+      {
+        "feature": "boundary:sphere",
+        "weight": 0.022952
+      },
+      {
+        "feature": "cross:3dhex:sphere",
+        "weight": 0.022952
+      },
+      {
+        "feature": "cross:3dhex:sphere:buckyball",
+        "weight": 0.022952
+      },
+      {
+        "feature": "cross:edge:sphere",
+        "weight": 0.022952
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.022952
+      },
+      {
+        "feature": "game_is:3dhex",
+        "weight": 0.022952
+      },
+      {
+        "feature": "game:3dhex",
+        "weight": 0.022952
+      },
+      {
+        "feature": "hex_closed_surface_goal",
+        "weight": 0.022952
+      },
+      {
+        "feature": "lattice:buckyball",
+        "weight": 0.022952
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.022952
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.022952
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.022952
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.022952
+      },
+      {
+        "feature": "topology:sphere",
+        "weight": 0.022952
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": 0.020194
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.009664
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": 0.003064
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": 0.000314
+      }
+    ]
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:10:44.975Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.028651542459447094,
+    "board_size": 0.012063817907177633,
+    "boundary:mobius": 0.028651542459447094,
+    "coord_0": -0.1938963527686956,
+    "coord_1": 0.1154762912556763,
+    "cross:3dhex:mobius": 0.028651542459447094,
+    "cross:3dhex:mobius:triangular": 0.028651542459447094,
+    "cross:edge:mobius": 0.028651542459447094,
+    "dimension": 0.028651542459447094,
+    "game_is:3dhex": 0.028651542459447094,
+    "game:3dhex": 0.028651542459447094,
+    "hex_center_pressure": -0.09851713397529818,
+    "hex_closed_surface_goal": 0.028651542459447094,
+    "hex_edge_touch_count": -0.3604173956805193,
+    "hex_occupancy": 0.0867973735157673,
+    "hex_remaining_fraction": -0.05722481919352898,
+    "hex_stone_balance": -0.000003515443853510921,
+    "lattice:triangular": 0.028651542459447094,
+    "legal_count_log": -0.2896887810477656,
+    "move_bias": 0.028651542459447094,
+    "move_center_closeness": -0.09851713397529818,
+    "move_corner_or_anchor": 0.5867678579990732,
+    "move_edge": 0.028651542459447094,
+    "move_near_edge": 0.028651542459447094,
+    "move_type:play": 0.028651542459447094,
+    "player:black": 0.03310062207196263,
+    "player:white": 0.0018000224544347902,
+    "topology:mobius": 0.028651542459447094
+  },
+  "training": {
+    "examples": 4022,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.751795,
+        "examples": 4022,
+        "accuracy": 0.506,
+        "logLoss": 0.793323,
+        "brier": 0.29485
+      },
+      {
+        "epoch": 2,
+        "loss": 0.749045,
+        "examples": 4022,
+        "accuracy": 0.506,
+        "logLoss": 0.728418,
+        "brier": 0.266818
+      },
+      {
+        "epoch": 3,
+        "loss": 0.747499,
+        "examples": 4022,
+        "accuracy": 0.5005,
+        "logLoss": 0.708186,
+        "brier": 0.257374
+      },
+      {
+        "epoch": 4,
+        "loss": 0.747024,
+        "examples": 4022,
+        "accuracy": 0.506,
+        "logLoss": 0.747808,
+        "brier": 0.275591
+      },
+      {
+        "epoch": 5,
+        "loss": 0.747888,
+        "examples": 4022,
+        "accuracy": 0.4958,
+        "logLoss": 0.711443,
+        "brier": 0.258938
+      },
+      {
+        "epoch": 6,
+        "loss": 0.748278,
+        "examples": 4022,
+        "accuracy": 0.506,
+        "logLoss": 0.710056,
+        "brier": 0.258245
+      },
+      {
+        "epoch": 7,
+        "loss": 0.751174,
+        "examples": 4022,
+        "accuracy": 0.506,
+        "logLoss": 0.915274,
+        "brier": 0.338362
+      },
+      {
+        "epoch": 8,
+        "loss": 0.751849,
+        "examples": 4022,
+        "accuracy": 0.5082,
+        "logLoss": 0.692311,
+        "brier": 0.249585
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/3dhex-mobius-triangular-s8-100.jsonl",
+    "gameFilter": "3dhex",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.586768
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": -0.360417
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.289689
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.193896
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.115476
+      },
+      {
+        "feature": "hex_center_pressure",
+        "weight": -0.098517
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.098517
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": 0.086797
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": -0.057225
+      },
+      {
+        "feature": "player:black",
+        "weight": 0.033101
+      },
+      {
+        "feature": "bias",
+        "weight": 0.028652
+      },
+      {
+        "feature": "boundary:mobius",
+        "weight": 0.028652
+      },
+      {
+        "feature": "cross:3dhex:mobius",
+        "weight": 0.028652
+      },
+      {
+        "feature": "cross:3dhex:mobius:triangular",
+        "weight": 0.028652
+      },
+      {
+        "feature": "cross:edge:mobius",
+        "weight": 0.028652
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.028652
+      },
+      {
+        "feature": "game_is:3dhex",
+        "weight": 0.028652
+      },
+      {
+        "feature": "game:3dhex",
+        "weight": 0.028652
+      },
+      {
+        "feature": "hex_closed_surface_goal",
+        "weight": 0.028652
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": 0.028652
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.028652
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.028652
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.028652
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.028652
+      },
+      {
+        "feature": "topology:mobius",
+        "weight": 0.028652
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.012064
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.0018
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": -0.000004
+      }
+    ]
+  }
+}

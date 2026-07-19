@@ -105,8 +105,11 @@ async function runOneGame({ adapter, gameIndex, gameSeed }) {
       if (!fallbackApply.ok) throw new Error(`No legal fallback move at game ${gameIndex}, ply ${ply}`);
       chosen.move = fallback;
       chosen.warning = `bot returned illegal move; fallback used (${apply.error})`;
+    } else if (apply.move) {
+      chosen.move = apply.move;
+      if (apply.warning) chosen.warning = apply.warning;
     }
-    lastScore = Number(chosen.score || adapter.evaluate(player) || 0);
+    lastScore = Number(chosen.score ?? adapter.evaluate(player) ?? 0);
     const recordLine = {
       type: 'move',
       schema: 'topoboardgame.selfplay.v1',

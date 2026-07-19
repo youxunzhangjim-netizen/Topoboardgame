@@ -3,6 +3,7 @@ param(
   [int]$Epochs = 8,
   [int]$Depth = 1,
   [int]$MaxPlies = 220,
+  [switch]$ResumeExisting,
   [switch]$SkipPromote
 )
 
@@ -34,7 +35,7 @@ function Invoke-Native($ScriptBlock) {
   }
 }
 
-function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $MaxPliesOverride = $null) {
+function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $MaxPliesOverride = $null, $BotAOverride = $null, $BotBOverride = $null) {
   $Jobs.Add([ordered]@{
     Game = $Game
     Boundary = $Boundary
@@ -43,6 +44,8 @@ function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $nul
     Depth = if ($null -ne $DepthOverride) { $DepthOverride } else { $Depth }
     Epochs = if ($null -ne $EpochOverride) { $EpochOverride } else { $Epochs }
     MaxPlies = if ($null -ne $MaxPliesOverride) { $MaxPliesOverride } else { $MaxPlies }
+    BotA = if ($null -ne $BotAOverride) { $BotAOverride } else { "builtin" }
+    BotB = if ($null -ne $BotBOverride) { $BotBOverride } else { "builtin" }
   }) | Out-Null
 }
 
@@ -56,7 +59,7 @@ foreach ($boundary in @("r3", "t3", "reflection", "r3_random", "t2", "sphere", "
 # 3D Go volume boards: R3/T3/RBC with cubic-family lattices.
 foreach ($boundary in @("r3", "t3", "r3_random")) {
   foreach ($lattice in @("sc", "bcc", "fcc", "hcp")) {
-    Add-Job $jobs "3dgo" $boundary $lattice 5 1 8
+    Add-Job $jobs "3dgo" $boundary $lattice 4 1 8 16 "random" "random"
   }
 }
 
@@ -64,47 +67,47 @@ foreach ($boundary in @("r3", "t3", "r3_random")) {
 # because Steam stabilization treats it as a separately validated vertex board.
 foreach ($boundary in @("t2", "cylinder", "mobius")) {
   foreach ($lattice in @("square", "honeycomb", "triangular")) {
-    Add-Job $jobs "3dgo" $boundary $lattice 8 1 8
+    Add-Job $jobs "3dgo" $boundary $lattice 6 1 8 16 "random" "random"
   }
 }
 foreach ($lattice in @("sphere_coordinate", "buckyball")) {
-  Add-Job $jobs "3dgo" "sphere" $lattice 8 1 8
+  Add-Job $jobs "3dgo" "sphere" $lattice 6 1 8 16 "random" "random"
 }
 
 # 3D Reversi volume boards: standard, periodic, random, and RP3 with straight-line lattices.
 foreach ($boundary in @("r3", "t3", "r3_random", "rp3")) {
   foreach ($lattice in @("square", "bcc", "fcc")) {
-    Add-Job $jobs "3dreversi" $boundary $lattice 6 2 8
+    Add-Job $jobs "3dreversi" $boundary $lattice 6 1 8 12 "random" "random"
   }
 }
 
 # 3D Reversi surface boards where the headless logic is stable.
 foreach ($boundary in @("t2", "cylinder", "mobius", "klein")) {
   foreach ($lattice in @("square", "honeycomb")) {
-    Add-Job $jobs "3dreversi" $boundary $lattice 8 2 8
+    Add-Job $jobs "3dreversi" $boundary $lattice 8 1 8 12 "random" "random"
   }
 }
-Add-Job $jobs "3dreversi" "sphere" "square" 8 2 8 220
+Add-Job $jobs "3dreversi" "sphere" "square" 8 1 8 12 "random" "random"
 
 # 3D Jump boards.
 foreach ($boundary in @("cube", "cylinder", "torus", "sphere")) {
-  Add-Job $jobs "3djump" $boundary "jump3d" 6 1 8 180
+  Add-Job $jobs "3djump" $boundary "jump3d" 6 1 8 40 "random" "random"
 }
 
 # 3D Hex volume and surface boards. Trefoil is deliberately omitted from this
 # release training batch because its gameplay target zones are still specialized.
 foreach ($boundary in @("open", "torus", "r3_random")) {
   foreach ($lattice in @("axis", "bcc", "fcc", "hcp")) {
-    Add-Job $jobs "3dhex" $boundary $lattice 5 2 8
+    Add-Job $jobs "3dhex" $boundary $lattice 5 1 8 80 "random" "random"
   }
 }
 foreach ($boundary in @("t2", "cylinder", "mobius", "klein")) {
   foreach ($lattice in @("square", "honeycomb", "triangular")) {
-    Add-Job $jobs "3dhex" $boundary $lattice 8 2 8
+    Add-Job $jobs "3dhex" $boundary $lattice 8 1 8 80 "random" "random"
   }
 }
 foreach ($lattice in @("sphere_coordinate", "buckyball")) {
-  Add-Job $jobs "3dhex" "sphere" $lattice 8 2 8
+  Add-Job $jobs "3dhex" "sphere" $lattice 8 1 8 80 "random" "random"
 }
 
 Write-Log "Started 3D robot training: $($jobs.Count) variants, $Games games each."
@@ -118,6 +121,12 @@ try {
     $data = "local-data/selfplay/$stem.jsonl"
     $model = "local-models/$stem-linear.json"
 
+    if ($ResumeExisting -and (Test-Path -LiteralPath $model)) {
+      $completed += 1
+      Write-Log "Skipping existing model $completed/$($jobs.Count): $stem"
+      continue
+    }
+
     Write-Log "Self-play: $stem"
     Invoke-Native {
       & npm.cmd run research:selfplay -- `
@@ -127,6 +136,8 @@ try {
         --size $job.Size `
         --games $Games `
         --maxPlies $job.MaxPlies `
+        --botA $job.BotA `
+        --botB $job.BotB `
         --depthA $job.Depth `
         --depthB $job.Depth `
         --record moves `

@@ -163,10 +163,10 @@ function create3DGoAdapter(options = {}) {
     komi: Number.isFinite(Number(options.komi)) ? Number(options.komi) : 7.5,
     randomBoundarySeed: options.seed || ''
   });
-  return makeGoAdapter({ kind: '3dgo', logic, otherColor: otherGo3DColor, choose: chooseGo3DRobotMove, analyze: analyzeGo3DPosition });
+  return makeGoAdapter({ kind: '3dgo', logic, otherColor: otherGo3DColor, choose: chooseGo3DRobotMove, analyze: analyzeGo3DPosition, sampledLegalMoves: true });
 }
 
-function makeGoAdapter({ kind, logic, otherColor, choose, analyze }) {
+function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalMoves = false }) {
   return {
     kind,
     options: { topology: logic.topology, lattice: logic.lattice, size: logic.size, dimension: logic.dimension, komi: logic.komi },
@@ -176,15 +176,29 @@ function makeGoAdapter({ kind, logic, otherColor, choose, analyze }) {
       if (!logic.gameOver && logic.scoringPending) finishGoScoring(logic);
       return logic.winner || '';
     },
-    legalMoves: () => goLegalMoves(logic, logic.currentPlayer),
+    legalMoves: () => sampledLegalMoves ? sampledGoLegalMoves(logic, logic.currentPlayer) : goLegalMoves(logic, logic.currentPlayer),
     serializeState: () => compactGoState(logic),
     evaluate: () => analyze(logic, 1).currentScore,
     chooseBuiltin: (level = 1) => choose(logic, level),
     analyze: (level = 1) => analyze(logic, level),
     applyMove(move) {
-      const legal = goLegalMoves(logic, logic.currentPlayer);
+      const legal = sampledLegalMoves ? sampledGoLegalMoves(logic, logic.currentPlayer) : goLegalMoves(logic, logic.currentPlayer);
       const chosen = matchGoMove(legal, move);
       if (!chosen) return { ok: false, error: 'illegal-move' };
+      if (sampledLegalMoves) {
+        if (chosen.type === 'pass') return { ok: Boolean(logic.pass(logic.currentPlayer)?.ok), move: chosen, result: { ok: true, passed: true } };
+        const result = logic.tryPlay(chosen.coord, logic.currentPlayer);
+        if (logic.scoringPending && !logic.gameOver) finishGoScoring(logic);
+        if (result?.ok) return { ok: true, move: chosen, result };
+        for (const fallback of legal) {
+          if (fallback.type === 'pass' || fallback.id === chosen.id) continue;
+          const fallbackResult = logic.tryPlay(fallback.coord, logic.currentPlayer);
+          if (logic.scoringPending && !logic.gameOver) finishGoScoring(logic);
+          if (fallbackResult?.ok) return { ok: true, move: fallback, result: fallbackResult, warning: result?.reason || result?.error || 'sampled-go-fallback' };
+        }
+        const passResult = logic.pass(logic.currentPlayer);
+        return { ok: Boolean(passResult?.ok), move: { type: 'pass', id: 'pass', label: 'Pass' }, result: passResult, warning: result?.reason || result?.error || 'sampled-go-pass-fallback' };
+      }
       const result = chosen.type === 'pass' ? logic.pass(logic.currentPlayer) : logic.tryPlay(chosen.coord, logic.currentPlayer);
       if (logic.scoringPending && !logic.gameOver) finishGoScoring(logic);
       return { ok: Boolean(result?.ok), move: chosen, result };
@@ -205,21 +219,32 @@ function createReversiAdapter(options = {}) {
   });
   const choose = is3D ? chooseReversi3DRobotMove : chooseReversiRobotMove;
   const analyze = is3D ? analyzeReversi3DPosition : analyzeReversiPosition;
+  const sampledLegalMoves = is3D;
   return {
     kind: is3D ? '3dreversi' : '2dreversi',
     options: { topology: logic.topology.topology, lattice: logic.topology.lattice, size: logic.topology.size, dimension: logic.topology.dimension },
     currentPlayer: () => logic.currentPlayer,
     isTerminal: () => Boolean(logic.gameOver),
     winner: () => logic.winner || '',
-    legalMoves: () => logic.legalMoves(logic.currentPlayer).map((move) => ({ ...move, id: logic.key(move.coord), label: `(${move.coord.join(',')})` })),
+    legalMoves: () => (sampledLegalMoves ? sampledReversiLegalMoves(logic, logic.currentPlayer) : logic.legalMoves(logic.currentPlayer).map((move) => ({ ...move, id: logic.key(move.coord), label: `(${move.coord.join(',')})` }))),
     serializeState: () => compactReversiState(logic),
     evaluate: () => analyze(logic, 1).currentScore,
     chooseBuiltin: (depth = 2) => choose(logic, depth),
     analyze: (depth = 2) => analyze(logic, depth),
     applyMove(move) {
-      const legal = logic.legalMoves(logic.currentPlayer).map((m) => ({ ...m, id: logic.key(m.coord) }));
+      const legal = sampledLegalMoves ? sampledReversiLegalMoves(logic, logic.currentPlayer) : logic.legalMoves(logic.currentPlayer).map((m) => ({ ...m, id: logic.key(m.coord) }));
       const chosen = matchReversiMove(legal, move);
       if (!chosen) return { ok: false, error: 'illegal-move' };
+      if (sampledLegalMoves) {
+        const result = applySampledReversiMove(logic, chosen.coord, logic.currentPlayer);
+        if (result.ok) return { ok: true, move: chosen, result };
+        for (const fallback of legal) {
+          if (fallback.id === chosen.id) continue;
+          const fallbackResult = applySampledReversiMove(logic, fallback.coord, logic.currentPlayer);
+          if (fallbackResult.ok) return { ok: true, move: fallback, result: fallbackResult, warning: result.reason || 'sampled-reversi-fallback' };
+        }
+        return { ok: false, error: result.reason || 'illegal-move' };
+      }
       const result = logic.play(chosen.coord, logic.currentPlayer);
       return { ok: Boolean(result?.ok), move: chosen, result };
     },
@@ -487,6 +512,97 @@ function goLegalMoves(logic, player) {
   }
   moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
   return moves;
+}
+
+function sampledGoLegalMoves(logic, player, limit = 24) {
+  const coords = playableCoords(logic);
+  const moves = [];
+  if (!coords.length) return [{ type: 'pass', id: 'pass', label: 'Pass' }];
+  const stride = firstCoprimeStride(coords.length, 17 + (logic.moveNumber || 0) * 2);
+  const start = Math.abs(hashText(`${player}:${logic.moveNumber || 0}:${logic.positionHistory?.[logic.positionHistory.length - 1] || ''}`)) % coords.length;
+  const maxAttempts = Math.min(coords.length, Math.max(limit * 8, 48));
+  for (let attempt = 0; attempt < maxAttempts && moves.length < limit; attempt += 1) {
+    const coord = coords[(start + attempt * stride) % coords.length];
+    const index = logic.indexFromCoord(coord);
+    if (index < 0 || logic.board[index] !== 0) continue;
+    const hasEmptyNeighbor = logic.neighborsFromCoord(coord)
+      .some((neighbor) => logic.board[logic.indexFromCoord(neighbor)] === 0);
+    if (!hasEmptyNeighbor && moves.length > Math.floor(limit / 2)) continue;
+    moves.push({ type: 'play', coord, id: coord.join(','), label: `(${coord.join(',')})`, captured: 0 });
+  }
+  moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
+  return moves;
+}
+
+function sampledReversiLegalMoves(logic, player, limit = 24) {
+  const coords = logic.topology.allCoords();
+  const moves = [];
+  if (!coords.length) return moves;
+  const stride = firstCoprimeStride(coords.length, 19 + (logic.moveHistory?.length || 0) * 2);
+  const start = Math.abs(hashText(`${player}:${logic.moveHistory?.length || 0}:${logic.board?.size || 0}`)) % coords.length;
+  const maxAttempts = Math.min(coords.length, Math.max(limit * 10, 64));
+  for (let attempt = 0; attempt < maxAttempts && moves.length < limit; attempt += 1) {
+    const coord = coords[(start + attempt * stride) % coords.length];
+    if (logic.get(coord)) continue;
+    const flips = logic.previewMove(coord, player);
+    if (flips.length) moves.push({ coord, flips, id: logic.key(coord), label: `(${coord.join(',')})` });
+  }
+  if (!moves.length) {
+    for (const coord of coords) {
+      if (logic.get(coord)) continue;
+      const flips = logic.previewMove(coord, player);
+      if (flips.length) moves.push({ coord, flips, id: logic.key(coord), label: `(${coord.join(',')})` });
+      if (moves.length >= Math.min(limit, 8)) break;
+    }
+  }
+  return moves;
+}
+
+function applySampledReversiMove(logic, coord, color) {
+  if (logic.gameOver || color !== logic.currentPlayer) return { ok: false, reason: 'turn' };
+  const normalized = logic.topology.normalize(coord);
+  const flips = logic.previewMove(normalized, color);
+  if (!flips.length) return { ok: false, reason: 'illegal' };
+  logic.set(normalized, { color });
+  for (const flip of flips) logic.set(flip, { color });
+  logic.lastFlipped = flips.map((flip) => logic.key(flip));
+  logic.moveHistory.unshift({
+    type: 'move',
+    number: logic.moveHistory.filter((entry) => entry.type === 'move').length + 1,
+    color,
+    coord: normalized,
+    flipped: flips.length,
+    trainingFastPath: true
+  });
+  logic.currentPlayer = otherReversiColor(color);
+  return { ok: true, coord: normalized, flipped: flips.length };
+}
+
+function firstCoprimeStride(length, preferred) {
+  if (length <= 1) return 1;
+  let stride = Math.max(1, Math.floor(preferred) % length);
+  while (greatestCommonDivisor(stride, length) !== 1) stride = (stride + 1) % length || 1;
+  return stride;
+}
+
+function greatestCommonDivisor(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) {
+    const next = x % y;
+    x = y;
+    y = next;
+  }
+  return x || 1;
+}
+
+function hashText(text) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash | 0;
 }
 
 function hexLegalMoves(game) {

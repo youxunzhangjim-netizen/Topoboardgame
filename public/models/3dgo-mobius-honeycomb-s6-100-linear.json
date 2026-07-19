@@ -1,0 +1,220 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T03:48:01.575Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.0003555261580133434,
+    "board_size": 0.00011227124991288488,
+    "boundary:mobius": 0.0003555261580133434,
+    "coord_0": -0.00888972763469522,
+    "coord_1": -0.007938369983430992,
+    "cross:3dgo:mobius": 0.0003555261580133434,
+    "cross:3dgo:mobius:honeycomb": 0.0003555261580133434,
+    "cross:edge:mobius": -0.001685362609874424,
+    "dimension": 0.000237017557184277,
+    "game_is:3dgo": 0.0003555261580133434,
+    "game:3dgo": 0.0003555261580133434,
+    "go_capture_balance": 0.0005055817090555588,
+    "go_empty_fraction": 0.0003555261580133434,
+    "go_pass_count": 0.04692911291327004,
+    "lattice:honeycomb": 0.0003555261580133434,
+    "legal_count_log": 0.0009307250702718702,
+    "move_bias": 0.0003555261580133434,
+    "move_center_closeness": 0.008753637750974343,
+    "move_corner_or_anchor": -0.00018518648455667695,
+    "move_edge": -0.001685362609874424,
+    "move_is_pass": 0.001711155205558841,
+    "move_near_edge": 0.004743591979160886,
+    "move_type:pass": 0.001711155205558841,
+    "move_type:play": -0.0012758627749957369,
+    "player:black": -0.005416061750790499,
+    "player:white": 0.0057822612043815416,
+    "topology:mobius": 0.0003555261580133434
+  },
+  "training": {
+    "examples": 1592,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.693361,
+        "examples": 1592,
+        "accuracy": 0.5603,
+        "logLoss": 0.693138,
+        "brier": 0.001252
+      },
+      {
+        "epoch": 2,
+        "loss": 0.693365,
+        "examples": 1592,
+        "accuracy": 0.483,
+        "logLoss": 0.693143,
+        "brier": 0.001254
+      },
+      {
+        "epoch": 3,
+        "loss": 0.693354,
+        "examples": 1592,
+        "accuracy": 0.4454,
+        "logLoss": 0.693136,
+        "brier": 0.001251
+      },
+      {
+        "epoch": 4,
+        "loss": 0.693354,
+        "examples": 1592,
+        "accuracy": 0.5559,
+        "logLoss": 0.693195,
+        "brier": 0.00128
+      },
+      {
+        "epoch": 5,
+        "loss": 0.693359,
+        "examples": 1592,
+        "accuracy": 0.5182,
+        "logLoss": 0.69315,
+        "brier": 0.001258
+      },
+      {
+        "epoch": 6,
+        "loss": 0.693365,
+        "examples": 1592,
+        "accuracy": 0.4221,
+        "logLoss": 0.693136,
+        "brier": 0.001251
+      },
+      {
+        "epoch": 7,
+        "loss": 0.693415,
+        "examples": 1592,
+        "accuracy": 0.4805,
+        "logLoss": 0.693138,
+        "brier": 0.001252
+      },
+      {
+        "epoch": 8,
+        "loss": 0.693397,
+        "examples": 1592,
+        "accuracy": 0.5371,
+        "logLoss": 0.693133,
+        "brier": 0.001249
+      }
+    ],
+    "featureCount": 27,
+    "input": "local-data/selfplay/3dgo-mobius-honeycomb-s6-100.jsonl",
+    "gameFilter": "3dgo",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "go_pass_count",
+        "weight": 0.046929
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.00889
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.008754
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.007938
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.005782
+      },
+      {
+        "feature": "player:black",
+        "weight": -0.005416
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.004744
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": 0.001711
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": 0.001711
+      },
+      {
+        "feature": "cross:edge:mobius",
+        "weight": -0.001685
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.001685
+      },
+      {
+        "feature": "move_type:play",
+        "weight": -0.001276
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": 0.000931
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": 0.000506
+      },
+      {
+        "feature": "bias",
+        "weight": 0.000356
+      },
+      {
+        "feature": "boundary:mobius",
+        "weight": 0.000356
+      },
+      {
+        "feature": "cross:3dgo:mobius",
+        "weight": 0.000356
+      },
+      {
+        "feature": "cross:3dgo:mobius:honeycomb",
+        "weight": 0.000356
+      },
+      {
+        "feature": "game_is:3dgo",
+        "weight": 0.000356
+      },
+      {
+        "feature": "game:3dgo",
+        "weight": 0.000356
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.000356
+      },
+      {
+        "feature": "lattice:honeycomb",
+        "weight": 0.000356
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.000356
+      },
+      {
+        "feature": "topology:mobius",
+        "weight": 0.000356
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.000237
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.000185
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.000112
+      }
+    ]
+  }
+}

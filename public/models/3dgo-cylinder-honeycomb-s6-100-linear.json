@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T03:47:57.594Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": -0.0019549961567365036,
+    "board_size": -0.0006173662813396786,
+    "boundary:cylinder": -0.0019549961567365036,
+    "coord_0": -0.007143904619606395,
+    "coord_1": -0.007796647248390276,
+    "coord_2": 0.06504604629877506,
+    "cross:3dgo:cylinder": -0.0019549961567365036,
+    "cross:3dgo:cylinder:honeycomb": -0.0019549961567365036,
+    "cross:edge:cylinder": -0.010406204965284403,
+    "dimension": -0.0013033314228231068,
+    "game_is:3dgo": -0.0019549961567365036,
+    "game:3dgo": -0.0019549961567365036,
+    "go_capture_balance": -0.0001347399863751836,
+    "go_empty_fraction": -0.0019549961567365036,
+    "go_pass_count": -0.19525008820840803,
+    "lattice:honeycomb": -0.0019549961567365036,
+    "legal_count_log": -0.0010615941930464377,
+    "move_bias": -0.0019549961567365036,
+    "move_center_closeness": -0.03437144253112935,
+    "move_corner_or_anchor": 0.03602341336717984,
+    "move_edge": -0.010406204965284403,
+    "move_is_pass": -0.022083950901804192,
+    "move_near_edge": 0.021400698985615228,
+    "move_type:pass": -0.022083950901804192,
+    "move_type:play": 0.021400698985615228,
+    "player:black": -0.028218751922409233,
+    "player:white": 0.02656194572441728,
+    "topology:cylinder": -0.0019549961567365036
+  },
+  "training": {
+    "examples": 1575,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.693803,
+        "examples": 1575,
+        "accuracy": 0.9917,
+        "logLoss": 0.694497,
+        "brier": 0.004324
+      },
+      {
+        "epoch": 2,
+        "loss": 0.693589,
+        "examples": 1575,
+        "accuracy": 0.5543,
+        "logLoss": 0.693066,
+        "brier": 0.00361
+      },
+      {
+        "epoch": 3,
+        "loss": 0.693599,
+        "examples": 1575,
+        "accuracy": 0.3911,
+        "logLoss": 0.692984,
+        "brier": 0.003569
+      },
+      {
+        "epoch": 4,
+        "loss": 0.693651,
+        "examples": 1575,
+        "accuracy": 0.3981,
+        "logLoss": 0.69296,
+        "brier": 0.003557
+      },
+      {
+        "epoch": 5,
+        "loss": 0.693617,
+        "examples": 1575,
+        "accuracy": 0.5994,
+        "logLoss": 0.692962,
+        "brier": 0.003558
+      },
+      {
+        "epoch": 6,
+        "loss": 0.693588,
+        "examples": 1575,
+        "accuracy": 0.5873,
+        "logLoss": 0.692976,
+        "brier": 0.003565
+      },
+      {
+        "epoch": 7,
+        "loss": 0.693553,
+        "examples": 1575,
+        "accuracy": 0.4908,
+        "logLoss": 0.692979,
+        "brier": 0.003567
+      },
+      {
+        "epoch": 8,
+        "loss": 0.693665,
+        "examples": 1575,
+        "accuracy": 0.4984,
+        "logLoss": 0.692973,
+        "brier": 0.003564
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/3dgo-cylinder-honeycomb-s6-100.jsonl",
+    "gameFilter": "3dgo",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "go_pass_count",
+        "weight": -0.19525
+      },
+      {
+        "feature": "coord_2",
+        "weight": 0.065046
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.036023
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.034371
+      },
+      {
+        "feature": "player:black",
+        "weight": -0.028219
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.026562
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": -0.022084
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": -0.022084
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.021401
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.021401
+      },
+      {
+        "feature": "cross:edge:cylinder",
+        "weight": -0.010406
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.010406
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.007797
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.007144
+      },
+      {
+        "feature": "bias",
+        "weight": -0.001955
+      },
+      {
+        "feature": "boundary:cylinder",
+        "weight": -0.001955
+      },
+      {
+        "feature": "cross:3dgo:cylinder",
+        "weight": -0.001955
+      },
+      {
+        "feature": "cross:3dgo:cylinder:honeycomb",
+        "weight": -0.001955
+      },
+      {
+        "feature": "game_is:3dgo",
+        "weight": -0.001955
+      },
+      {
+        "feature": "game:3dgo",
+        "weight": -0.001955
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": -0.001955
+      },
+      {
+        "feature": "lattice:honeycomb",
+        "weight": -0.001955
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.001955
+      },
+      {
+        "feature": "topology:cylinder",
+        "weight": -0.001955
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.001303
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.001062
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.000617
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": -0.000135
+      }
+    ]
+  }
+}
