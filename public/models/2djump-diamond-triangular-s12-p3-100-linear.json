@@ -1,0 +1,83 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:30:00.382Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {},
+  "training": {
+    "examples": 10000,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 2,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 3,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 4,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 5,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 6,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 7,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      },
+      {
+        "epoch": 8,
+        "loss": 0.693147,
+        "examples": 10000,
+        "accuracy": 1,
+        "logLoss": 0.693147,
+        "brier": 0
+      }
+    ],
+    "featureCount": 30,
+    "input": "local-data/selfplay/2djump-diamond-triangular-s12-p3-100.jsonl",
+    "gameFilter": "2djump",
+    "modeFilter": "",
+    "topWeights": []
+  }
+}

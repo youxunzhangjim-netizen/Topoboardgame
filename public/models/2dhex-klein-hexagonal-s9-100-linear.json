@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:31:23.210Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.0004775721899314758,
+    "board_size": 0.00022621830521512773,
+    "boundary:klein": 0.0004775721899314758,
+    "coord_0": -0.15572926137507942,
+    "coord_1": -0.4847500817237944,
+    "cross:2dhex:klein": 0.0004775721899314758,
+    "cross:2dhex:klein:hexagonal": 0.0004775721899314758,
+    "cross:edge:klein": -0.05781195833812974,
+    "dimension": 0.0003183816191447003,
+    "game_is:2dhex": 0.0004775721899314758,
+    "game:2dhex": 0.0004775721899314758,
+    "hex_center_pressure": 0.26788615453798886,
+    "hex_closed_surface_goal": 0.0004775721899314758,
+    "hex_edge_touch_count": 0.051423076978570945,
+    "hex_occupancy": 0.06961274717030189,
+    "hex_remaining_fraction": -0.06836349340121078,
+    "hex_stone_balance": 0.0003556670306433601,
+    "lattice:hexagonal": 0.0004775721899314758,
+    "legal_count_log": -0.08452605626582049,
+    "move_bias": 0.0004775721899314758,
+    "move_center_closeness": 0.26788615453798886,
+    "move_corner_or_anchor": 0.1805011996315099,
+    "move_edge": -0.05781195833812974,
+    "move_near_edge": 0.2917917535446837,
+    "move_type:play": 0.0004775721899314758,
+    "player:black": 0.02698276489557036,
+    "player:white": -0.028808280466819786,
+    "topology:klein": 0.0004775721899314758
+  },
+  "training": {
+    "examples": 4807,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.73752,
+        "examples": 4807,
+        "accuracy": 0.4951,
+        "logLoss": 0.755911,
+        "brier": 0.279009
+      },
+      {
+        "epoch": 2,
+        "loss": 0.743454,
+        "examples": 4807,
+        "accuracy": 0.507,
+        "logLoss": 0.705367,
+        "brier": 0.255865
+      },
+      {
+        "epoch": 3,
+        "loss": 0.73937,
+        "examples": 4807,
+        "accuracy": 0.5084,
+        "logLoss": 0.697339,
+        "brier": 0.252052
+      },
+      {
+        "epoch": 4,
+        "loss": 0.739984,
+        "examples": 4807,
+        "accuracy": 0.5066,
+        "logLoss": 0.70136,
+        "brier": 0.254015
+      },
+      {
+        "epoch": 5,
+        "loss": 0.7441,
+        "examples": 4807,
+        "accuracy": 0.5217,
+        "logLoss": 0.697363,
+        "brier": 0.251939
+      },
+      {
+        "epoch": 6,
+        "loss": 0.741632,
+        "examples": 4807,
+        "accuracy": 0.5097,
+        "logLoss": 0.712852,
+        "brier": 0.259386
+      },
+      {
+        "epoch": 7,
+        "loss": 0.738311,
+        "examples": 4807,
+        "accuracy": 0.4951,
+        "logLoss": 0.812506,
+        "brier": 0.302416
+      },
+      {
+        "epoch": 8,
+        "loss": 0.740494,
+        "examples": 4807,
+        "accuracy": 0.5215,
+        "logLoss": 0.694367,
+        "brier": 0.250594
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/2dhex-klein-hexagonal-s9-100.jsonl",
+    "gameFilter": "2dhex",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "coord_1",
+        "weight": -0.48475
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.291792
+      },
+      {
+        "feature": "hex_center_pressure",
+        "weight": 0.267886
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": 0.267886
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.180501
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.155729
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.084526
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": 0.069613
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": -0.068363
+      },
+      {
+        "feature": "cross:edge:klein",
+        "weight": -0.057812
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.057812
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": 0.051423
+      },
+      {
+        "feature": "player:white",
+        "weight": -0.028808
+      },
+      {
+        "feature": "player:black",
+        "weight": 0.026983
+      },
+      {
+        "feature": "bias",
+        "weight": 0.000478
+      },
+      {
+        "feature": "boundary:klein",
+        "weight": 0.000478
+      },
+      {
+        "feature": "cross:2dhex:klein",
+        "weight": 0.000478
+      },
+      {
+        "feature": "cross:2dhex:klein:hexagonal",
+        "weight": 0.000478
+      },
+      {
+        "feature": "game_is:2dhex",
+        "weight": 0.000478
+      },
+      {
+        "feature": "game:2dhex",
+        "weight": 0.000478
+      },
+      {
+        "feature": "hex_closed_surface_goal",
+        "weight": 0.000478
+      },
+      {
+        "feature": "lattice:hexagonal",
+        "weight": 0.000478
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.000478
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.000478
+      },
+      {
+        "feature": "topology:klein",
+        "weight": 0.000478
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": 0.000356
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.000318
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.000226
+      }
+    ]
+  }
+}

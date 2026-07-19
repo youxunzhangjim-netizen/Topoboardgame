@@ -3,6 +3,7 @@ param(
   [int]$Epochs = 8,
   [int]$Depth = 1,
   [int]$MaxPlies = 180,
+  [switch]$ResumeExisting,
   [switch]$SkipPromote
 )
 
@@ -34,7 +35,7 @@ function Invoke-Native($ScriptBlock) {
   }
 }
 
-function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $PlayerCount = $null, $MaxPliesOverride = $null) {
+function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $null, $EpochOverride = $null, $PlayerCount = $null, $MaxPliesOverride = $null, $BotA = "random", $BotB = "random") {
   $Jobs.Add([ordered]@{
     Game = $Game
     Boundary = $Boundary
@@ -44,6 +45,8 @@ function Add-Job($Jobs, $Game, $Boundary, $Lattice, $Size, $DepthOverride = $nul
     Epochs = if ($null -ne $EpochOverride) { $EpochOverride } else { $Epochs }
     PlayerCount = $PlayerCount
     MaxPlies = if ($null -ne $MaxPliesOverride) { $MaxPliesOverride } else { $MaxPlies }
+    BotA = $BotA
+    BotB = $BotB
   }) | Out-Null
 }
 
@@ -51,41 +54,41 @@ $jobs = New-Object System.Collections.Generic.List[object]
 
 # 2D Chess boundaries.
 foreach ($boundary in @("standard", "open", "periodic", "reflection", "random")) {
-  Add-Job $jobs "2dchess" $boundary "square" 8 2 8 $null 160
+  Add-Job $jobs "2dchess" $boundary "square" 8 1 8 $null 80
 }
 
 # 2D Go boards and current stable lattices. Kagome is excluded from this release
 # batch because the public UI currently hides it.
 foreach ($boundary in @("open2d", "cylinder", "pbc", "klein", "random")) {
   foreach ($lattice in @("square", "honeycomb", "triangular")) {
-    Add-Job $jobs "2dgo" $boundary $lattice 9 1 8
+    Add-Job $jobs "2dgo" $boundary $lattice 9 1 8 $null 90
   }
 }
-Add-Job $jobs "2dgo" "polar" "square" 9 1 8
+Add-Job $jobs "2dgo" "polar" "square" 9 1 8 $null 90
 
 # 2D Reversi: stable square and honeycomb boards.
 foreach ($boundary in @("open2d", "cylinder", "pbc", "klein", "random")) {
   foreach ($lattice in @("square", "honeycomb")) {
-    Add-Job $jobs "2dreversi" $boundary $lattice 8 2 8
+    Add-Job $jobs "2dreversi" $boundary $lattice 8 1 8 $null 70
   }
 }
 
 # 2D Jump, including Chinese Checkers-style diamond openings and topology variants.
 foreach ($lattice in @("triangular", "square")) {
-  Add-Job $jobs "2djump" "diamond" $lattice 12 1 8 2
-  Add-Job $jobs "2djump" "diamond" $lattice 12 1 8 3
+  Add-Job $jobs "2djump" "diamond" $lattice 12 1 8 2 100
+  Add-Job $jobs "2djump" "diamond" $lattice 12 1 8 3 100
 }
 foreach ($boundary in @("plane", "polar", "cylinder", "torus", "mobius", "klein", "rp2", "sphere")) {
   $lattices = if ($boundary -eq "polar") { @("square") } else { @("square", "triangular") }
   foreach ($lattice in $lattices) {
-    Add-Job $jobs "2djump" $boundary $lattice 8 1 8 $null
+    Add-Job $jobs "2djump" $boundary $lattice 8 1 8 $null 80
   }
 }
 
 # 2D Hex. Kagome is excluded from this release batch because the public UI hides it.
 foreach ($boundary in @("open", "cylinder", "torus", "mobius", "klein", "rp2", "random")) {
   foreach ($lattice in @("hexagonal", "square", "triangular")) {
-    Add-Job $jobs "2dhex" $boundary $lattice 9 2 8
+    Add-Job $jobs "2dhex" $boundary $lattice 9 1 8 $null 100
   }
 }
 
@@ -101,6 +104,12 @@ try {
     $data = "local-data/selfplay/$stem.jsonl"
     $model = "local-models/$stem-linear.json"
 
+    if ($ResumeExisting -and (Test-Path $model)) {
+      $completed += 1
+      Write-Log "Skipping existing model $completed/$($jobs.Count): $stem"
+      continue
+    }
+
     Write-Log "Self-play: $stem"
     Invoke-Native {
       $args = @(
@@ -111,6 +120,8 @@ try {
         "--size", $job.Size,
         "--games", $Games,
         "--maxPlies", $job.MaxPlies,
+        "--botA", $job.BotA,
+        "--botB", $job.BotB,
         "--depthA", $job.Depth,
         "--depthB", $job.Depth,
         "--record", "moves",

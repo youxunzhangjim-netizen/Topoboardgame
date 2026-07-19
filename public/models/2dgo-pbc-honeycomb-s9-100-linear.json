@@ -1,107 +1,107 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-10T07:01:23.618Z",
+  "createdAt": "2026-07-19T04:24:38.261Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": 0.01414821732871499,
-    "board_size": 0.006701784177134991,
-    "boundary:pbc": 0.01414821732871499,
-    "coord_0": 0.030472112545948324,
-    "coord_1": 0.19356442824241632,
-    "cross:2dgo:pbc": 0.01414821732871499,
-    "cross:2dgo:pbc:honeycomb": 0.01414821732871499,
-    "cross:capture:pbc": 0.15312149578227927,
-    "cross:edge:pbc": -0.03266147436387858,
-    "dimension": 0.009432149601882267,
-    "game_is:2dgo": 0.01414821732871499,
-    "game:2dgo": 0.01414821732871499,
-    "go_capture_balance": 10.698353824511617,
-    "go_empty_fraction": 0.01414821732871499,
-    "go_pass_count": 1.5315073386165239,
-    "lattice:honeycomb": 0.01414821732871499,
-    "legal_count_log": 0.4048753476868195,
-    "move_bias": 0.01414821732871499,
-    "move_capture_count": 1.062660280319476,
-    "move_center_closeness": 0.1013238083215865,
-    "move_corner_or_anchor": 0.07418459513923313,
-    "move_edge": -0.03266147436387858,
-    "move_is_pass": -0.2479943582187999,
-    "move_near_edge": 0.1738506143762813,
-    "move_type:pass": -0.2479943582187999,
-    "move_type:play": 0.13432162497398084,
-    "player:black": -2.0335015981088564,
-    "player:white": 2.042256117215947,
-    "topology:pbc": 0.01414821732871499
+    "bias": -0.03102854118605732,
+    "board_size": -0.01469772350317631,
+    "boundary:pbc": -0.03102854118605732,
+    "coord_0": 0.006580481034800726,
+    "coord_1": -0.07193491518489646,
+    "cross:2dgo:pbc": -0.03102854118605732,
+    "cross:2dgo:pbc:honeycomb": -0.03102854118605732,
+    "cross:capture:pbc": -0.01333261842100281,
+    "cross:edge:pbc": 0.026726574453326962,
+    "dimension": -0.020685704466884912,
+    "game_is:2dgo": -0.03102854118605732,
+    "game:2dgo": -0.03102854118605732,
+    "go_capture_balance": 0.17236443428457776,
+    "go_empty_fraction": -0.03102854118605732,
+    "go_pass_count": 0.008942992523106812,
+    "lattice:honeycomb": -0.03102854118605732,
+    "legal_count_log": 0.1072670954684877,
+    "move_bias": -0.03102854118605732,
+    "move_capture_count": 0.031493632082535916,
+    "move_center_closeness": -0.061785055724562166,
+    "move_corner_or_anchor": 0.09858006812424107,
+    "move_edge": 0.026726574453326962,
+    "move_is_pass": -0.006158110551608451,
+    "move_near_edge": -0.13668492697198645,
+    "move_type:pass": -0.006158110551608451,
+    "move_type:play": -0.036848478157807514,
+    "player:black": -0.2669035512284758,
+    "player:white": 0.23410591786654988,
+    "topology:pbc": -0.03102854118605732
   },
   "training": {
-    "examples": 8591,
+    "examples": 8646,
     "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
     "history": [
       {
         "epoch": 1,
-        "loss": 0.413831,
-        "examples": 8591,
-        "accuracy": 0.8609,
-        "logLoss": 0.377102,
-        "brier": 0.112161
+        "loss": 0.696255,
+        "examples": 8646,
+        "accuracy": 0.679,
+        "logLoss": 0.692808,
+        "brier": 0.044225
       },
       {
         "epoch": 2,
-        "loss": 0.383521,
-        "examples": 8591,
-        "accuracy": 0.8663,
-        "logLoss": 0.368919,
-        "brier": 0.109107
+        "loss": 0.696367,
+        "examples": 8646,
+        "accuracy": 0.8961,
+        "logLoss": 0.699029,
+        "brier": 0.047265
       },
       {
         "epoch": 3,
-        "loss": 0.371004,
-        "examples": 8591,
-        "accuracy": 0.8677,
-        "logLoss": 0.357822,
-        "brier": 0.106055
+        "loss": 0.696795,
+        "examples": 8646,
+        "accuracy": 0.4858,
+        "logLoss": 0.690335,
+        "brier": 0.043007
       },
       {
         "epoch": 4,
-        "loss": 0.364267,
-        "examples": 8591,
-        "accuracy": 0.8715,
-        "logLoss": 0.34585,
-        "brier": 0.101907
+        "loss": 0.696931,
+        "examples": 8646,
+        "accuracy": 0.7065,
+        "logLoss": 0.691529,
+        "brier": 0.043602
       },
       {
         "epoch": 5,
-        "loss": 0.361189,
-        "examples": 8591,
-        "accuracy": 0.8746,
-        "logLoss": 0.342634,
-        "brier": 0.10067
+        "loss": 0.696384,
+        "examples": 8646,
+        "accuracy": 0.356,
+        "logLoss": 0.692726,
+        "brier": 0.04419
       },
       {
         "epoch": 6,
-        "loss": 0.355117,
-        "examples": 8591,
-        "accuracy": 0.8761,
-        "logLoss": 0.338158,
-        "brier": 0.099654
+        "loss": 0.696843,
+        "examples": 8646,
+        "accuracy": 0.4574,
+        "logLoss": 0.690586,
+        "brier": 0.04313
       },
       {
         "epoch": 7,
-        "loss": 0.352704,
-        "examples": 8591,
-        "accuracy": 0.8767,
-        "logLoss": 0.355995,
-        "brier": 0.103855
+        "loss": 0.697041,
+        "examples": 8646,
+        "accuracy": 0.546,
+        "logLoss": 0.690611,
+        "brier": 0.043134
       },
       {
         "epoch": 8,
-        "loss": 0.350907,
-        "examples": 8591,
-        "accuracy": 0.8787,
-        "logLoss": 0.365556,
-        "brier": 0.106166
+        "loss": 0.696766,
+        "examples": 8646,
+        "accuracy": 0.0893,
+        "logLoss": 0.717336,
+        "brier": 0.055793
       }
     ],
     "featureCount": 29,
@@ -110,120 +110,120 @@
     "modeFilter": "",
     "topWeights": [
       {
-        "feature": "go_capture_balance",
-        "weight": 10.698354
+        "feature": "player:black",
+        "weight": -0.266904
       },
       {
         "feature": "player:white",
-        "weight": 2.042256
+        "weight": 0.234106
       },
       {
-        "feature": "player:black",
-        "weight": -2.033502
-      },
-      {
-        "feature": "go_pass_count",
-        "weight": 1.531507
-      },
-      {
-        "feature": "move_capture_count",
-        "weight": 1.06266
-      },
-      {
-        "feature": "legal_count_log",
-        "weight": 0.404875
-      },
-      {
-        "feature": "move_is_pass",
-        "weight": -0.247994
-      },
-      {
-        "feature": "move_type:pass",
-        "weight": -0.247994
-      },
-      {
-        "feature": "coord_1",
-        "weight": 0.193564
+        "feature": "go_capture_balance",
+        "weight": 0.172364
       },
       {
         "feature": "move_near_edge",
-        "weight": 0.173851
+        "weight": -0.136685
       },
       {
-        "feature": "cross:capture:pbc",
-        "weight": 0.153121
-      },
-      {
-        "feature": "move_type:play",
-        "weight": 0.134322
-      },
-      {
-        "feature": "move_center_closeness",
-        "weight": 0.101324
+        "feature": "legal_count_log",
+        "weight": 0.107267
       },
       {
         "feature": "move_corner_or_anchor",
-        "weight": 0.074185
+        "weight": 0.09858
       },
       {
-        "feature": "cross:edge:pbc",
-        "weight": -0.032661
+        "feature": "coord_1",
+        "weight": -0.071935
       },
       {
-        "feature": "move_edge",
-        "weight": -0.032661
+        "feature": "move_center_closeness",
+        "weight": -0.061785
       },
       {
-        "feature": "coord_0",
-        "weight": 0.030472
+        "feature": "move_type:play",
+        "weight": -0.036848
+      },
+      {
+        "feature": "move_capture_count",
+        "weight": 0.031494
       },
       {
         "feature": "bias",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "boundary:pbc",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "cross:2dgo:pbc",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "cross:2dgo:pbc:honeycomb",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "game_is:2dgo",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "game:2dgo",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "go_empty_fraction",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "lattice:honeycomb",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "move_bias",
-        "weight": 0.014148
+        "weight": -0.031029
       },
       {
         "feature": "topology:pbc",
-        "weight": 0.014148
+        "weight": -0.031029
+      },
+      {
+        "feature": "cross:edge:pbc",
+        "weight": 0.026727
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.026727
       },
       {
         "feature": "dimension",
-        "weight": 0.009432
+        "weight": -0.020686
       },
       {
         "feature": "board_size",
-        "weight": 0.006702
+        "weight": -0.014698
+      },
+      {
+        "feature": "cross:capture:pbc",
+        "weight": -0.013333
+      },
+      {
+        "feature": "go_pass_count",
+        "weight": 0.008943
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.00658
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": -0.006158
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": -0.006158
       }
     ]
   }

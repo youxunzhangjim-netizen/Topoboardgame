@@ -1,0 +1,225 @@
+{
+  "schema": "topoboardgame.ml.linear_policy_value.v1",
+  "createdAt": "2026-07-19T04:29:09.445Z",
+  "modelType": "linear-logistic-policy-value",
+  "weights": {
+    "bias": 0.023577179925312036,
+    "board_size": 0.009927242339092344,
+    "boundary:cylinder": 0.023577179925312036,
+    "coord_0": -0.10650581384260739,
+    "coord_1": -0.007134160792987119,
+    "cross:2dreversi:cylinder": 0.023577179925312036,
+    "cross:2dreversi:cylinder:honeycomb": 0.023577179925312036,
+    "cross:edge:cylinder": 0.05824769766673739,
+    "dimension": 0.015718127809268668,
+    "game_is:2dreversi": 0.023577179925312036,
+    "game:2dreversi": 0.023577179925312036,
+    "lattice:honeycomb": 0.023577179925312036,
+    "legal_count_log": -0.03435636794516076,
+    "move_bias": 0.023577179925312036,
+    "move_center_closeness": -0.15736502592210996,
+    "move_corner_or_anchor": 0.10097160117935386,
+    "move_edge": 0.05824769766673739,
+    "move_flips_count": 1.6359356212679983,
+    "move_near_edge": -0.11395203466696746,
+    "move_type:place": 0.023577179925312036,
+    "player:black": -0.29047000444689985,
+    "player:white": 0.3205028518579566,
+    "reversi_anchor_move": 0.10097160117935386,
+    "reversi_disc_balance": 2.7494083895139934,
+    "reversi_endgame_phase": -0.24653499381875946,
+    "reversi_occupancy": -0.24653499381875946,
+    "reversi_topology_cycle_candidate": 0.05824769766673739,
+    "topology:cylinder": 0.023577179925312036
+  },
+  "training": {
+    "examples": 5956,
+    "epochs": 8,
+    "lr": 0.04,
+    "l2": 0.0005,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 0.721399,
+        "examples": 5956,
+        "accuracy": 0.5737,
+        "logLoss": 0.674339,
+        "brier": 0.235699
+      },
+      {
+        "epoch": 2,
+        "loss": 0.711846,
+        "examples": 5956,
+        "accuracy": 0.5776,
+        "logLoss": 0.673914,
+        "brier": 0.235524
+      },
+      {
+        "epoch": 3,
+        "loss": 0.709149,
+        "examples": 5956,
+        "accuracy": 0.5106,
+        "logLoss": 0.740091,
+        "brier": 0.265488
+      },
+      {
+        "epoch": 4,
+        "loss": 0.709678,
+        "examples": 5956,
+        "accuracy": 0.5908,
+        "logLoss": 0.671353,
+        "brier": 0.234164
+      },
+      {
+        "epoch": 5,
+        "loss": 0.710532,
+        "examples": 5956,
+        "accuracy": 0.5908,
+        "logLoss": 0.671141,
+        "brier": 0.234121
+      },
+      {
+        "epoch": 6,
+        "loss": 0.707531,
+        "examples": 5956,
+        "accuracy": 0.5222,
+        "logLoss": 0.715628,
+        "brier": 0.254741
+      },
+      {
+        "epoch": 7,
+        "loss": 0.708038,
+        "examples": 5956,
+        "accuracy": 0.5944,
+        "logLoss": 0.667691,
+        "brier": 0.232498
+      },
+      {
+        "epoch": 8,
+        "loss": 0.707326,
+        "examples": 5956,
+        "accuracy": 0.59,
+        "logLoss": 0.666511,
+        "brier": 0.231971
+      }
+    ],
+    "featureCount": 28,
+    "input": "local-data/selfplay/2dreversi-cylinder-honeycomb-s8-100.jsonl",
+    "gameFilter": "2dreversi",
+    "modeFilter": "",
+    "topWeights": [
+      {
+        "feature": "reversi_disc_balance",
+        "weight": 2.749408
+      },
+      {
+        "feature": "move_flips_count",
+        "weight": 1.635936
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.320503
+      },
+      {
+        "feature": "player:black",
+        "weight": -0.29047
+      },
+      {
+        "feature": "reversi_endgame_phase",
+        "weight": -0.246535
+      },
+      {
+        "feature": "reversi_occupancy",
+        "weight": -0.246535
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.157365
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.113952
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.106506
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.100972
+      },
+      {
+        "feature": "reversi_anchor_move",
+        "weight": 0.100972
+      },
+      {
+        "feature": "cross:edge:cylinder",
+        "weight": 0.058248
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.058248
+      },
+      {
+        "feature": "reversi_topology_cycle_candidate",
+        "weight": 0.058248
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.034356
+      },
+      {
+        "feature": "bias",
+        "weight": 0.023577
+      },
+      {
+        "feature": "boundary:cylinder",
+        "weight": 0.023577
+      },
+      {
+        "feature": "cross:2dreversi:cylinder",
+        "weight": 0.023577
+      },
+      {
+        "feature": "cross:2dreversi:cylinder:honeycomb",
+        "weight": 0.023577
+      },
+      {
+        "feature": "game_is:2dreversi",
+        "weight": 0.023577
+      },
+      {
+        "feature": "game:2dreversi",
+        "weight": 0.023577
+      },
+      {
+        "feature": "lattice:honeycomb",
+        "weight": 0.023577
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.023577
+      },
+      {
+        "feature": "move_type:place",
+        "weight": 0.023577
+      },
+      {
+        "feature": "topology:cylinder",
+        "weight": 0.023577
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.015718
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.009927
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.007134
+      }
+    ]
+  }
+}
