@@ -118,18 +118,18 @@ if (!families.has('go')) {
       report.results.push(runKataGoMatch({
         level,
         robotSide: 'black',
-        botA: 'builtin',
-        botB: 'externalB',
-        externalSide: 'externalB'
+        botA: 'externalA',
+        botB: 'builtin',
+        externalSide: 'externalA'
       }));
     }
     if (sides.includes('white')) {
       report.results.push(runKataGoMatch({
         level,
         robotSide: 'white',
-        botA: 'externalA',
-        botB: 'builtin',
-        externalSide: 'externalA'
+        botA: 'builtin',
+        botB: 'externalB',
+        externalSide: 'externalB'
       }));
     }
   }
@@ -145,18 +145,18 @@ if (!families.has('reversi')) {
       report.results.push(runEdaxMatch({
         level,
         robotSide: 'black',
-        botA: 'builtin',
-        botB: 'externalB',
-        externalSide: 'externalB'
+        botA: 'externalA',
+        botB: 'builtin',
+        externalSide: 'externalA'
       }));
     }
     if (sides.includes('white')) {
       report.results.push(runEdaxMatch({
         level,
         robotSide: 'white',
-        botA: 'externalA',
-        botB: 'builtin',
-        externalSide: 'externalA'
+        botA: 'builtin',
+        botB: 'externalB',
+        externalSide: 'externalB'
       }));
     }
   }
