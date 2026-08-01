@@ -314,10 +314,10 @@ function openingBias(move, opening) {
 }
 function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
   stats.nodes += 1;
-  if (timeUp(stats)) return { score: evaluate(game, state, rootColor), move: null };
-  if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
+  if (timeUp(stats)) return { score: evaluate(game, state, color), move: null };
+  if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, color), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
-  if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
+  if (!moves.length) return { score: evaluate(game, state, color) - 500, move: null };
   const cap = searchMoveCap(depth, moves.length, false, stats.complexity || 1);
   let bestMove = moves[0];
   let bestScore = -Infinity;
@@ -335,10 +335,10 @@ function negamax(game, state, depth, alpha, beta, color, rootColor, stats) {
 async function negamaxAsync(game, state, depth, alpha, beta, color, rootColor, stats) {
   stats.nodes += 1;
   if ((stats.nodes & 31) === 0) await maybeYield(stats);
-  if (timeUp(stats)) return { score: evaluate(game, state, rootColor), move: null };
-  if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, rootColor), move: null };
+  if (timeUp(stats)) return { score: evaluate(game, state, color), move: null };
+  if (depth <= 0 || state.gameOver) return { score: evaluate(game, state, color), move: null };
   const moves = legalMovesFor(game, state, color).sort((a, b) => moveOrderingScore(b) - moveOrderingScore(a));
-  if (!moves.length) return { score: evaluate(game, state, rootColor) - (color === rootColor ? 500 : -500), move: null };
+  if (!moves.length) return { score: evaluate(game, state, color) - 500, move: null };
   const cap = searchMoveCap(depth, moves.length, false, stats.complexity || 1);
   let bestMove = moves[0];
   let bestScore = -Infinity;

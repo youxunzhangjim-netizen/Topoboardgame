@@ -149,7 +149,14 @@ function create2DGoAdapter(options = {}) {
     komi: Number.isFinite(Number(options.komi)) ? Number(options.komi) : 7.5,
     randomBoundarySeed: options.seed || ''
   });
-  return makeGoAdapter({ kind: '2dgo', logic, otherColor: otherGo2DColor, choose: chooseGoRobotMove, analyze: analyzeGoPosition });
+  return makeGoAdapter({
+    kind: '2dgo',
+    logic,
+    otherColor: otherGo2DColor,
+    choose: chooseGoRobotMove,
+    analyze: analyzeGoPosition,
+    fastLegalMoves: Boolean(options.fastLegalMoves)
+  });
 }
 
 function create3DGoAdapter(options = {}) {
@@ -166,7 +173,12 @@ function create3DGoAdapter(options = {}) {
   return makeGoAdapter({ kind: '3dgo', logic, otherColor: otherGo3DColor, choose: chooseGo3DRobotMove, analyze: analyzeGo3DPosition, sampledLegalMoves: true });
 }
 
-function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalMoves = false }) {
+function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalMoves = false, fastLegalMoves = false }) {
+  const listMoves = () => sampledLegalMoves
+    ? sampledGoLegalMoves(logic, logic.currentPlayer)
+    : fastLegalMoves
+      ? fastGoLegalMoves(logic)
+      : goLegalMoves(logic, logic.currentPlayer);
   return {
     kind,
     options: { topology: logic.topology, lattice: logic.lattice, size: logic.size, dimension: logic.dimension, komi: logic.komi },
@@ -176,13 +188,25 @@ function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalM
       if (!logic.gameOver && logic.scoringPending) finishGoScoring(logic);
       return logic.winner || '';
     },
-    legalMoves: () => sampledLegalMoves ? sampledGoLegalMoves(logic, logic.currentPlayer) : goLegalMoves(logic, logic.currentPlayer),
+    legalMoves: listMoves,
     serializeState: () => compactGoState(logic),
     evaluate: () => analyze(logic, 1).currentScore,
     chooseBuiltin: (level = 1) => choose(logic, level),
     analyze: (level = 1) => analyze(logic, level),
     applyMove(move) {
-      const legal = sampledLegalMoves ? sampledGoLegalMoves(logic, logic.currentPlayer) : goLegalMoves(logic, logic.currentPlayer);
+      const direct = normalizeGoMove(move);
+      if (direct) {
+        const result = direct.type === 'pass'
+          ? logic.pass(logic.currentPlayer)
+          : logic.tryPlay(direct.coord, logic.currentPlayer);
+        if (logic.scoringPending && !logic.gameOver) finishGoScoring(logic);
+        if (result?.ok) return { ok: true, move: direct, result };
+        if (fastLegalMoves) {
+          const passResult = logic.pass(logic.currentPlayer);
+          return { ok: Boolean(passResult?.ok), move: { type: 'pass', id: 'pass', label: 'Pass' }, result: passResult, warning: result?.reason || result?.error || 'fast-go-pass-fallback' };
+        }
+      }
+      const legal = listMoves();
       const chosen = matchGoMove(legal, move);
       if (!chosen) return { ok: false, error: 'illegal-move' };
       if (sampledLegalMoves) {
@@ -464,7 +488,17 @@ function compactGoState(logic) {
     passCount: logic.passCount,
     gameOver: logic.gameOver,
     scoringPending: logic.scoringPending,
-    board: Array.from(logic.board)
+    board: Array.from(logic.board),
+    moveHistory: Array.isArray(logic.moveHistory)
+      ? logic.moveHistory
+        .filter((entry) => entry?.type === 'play' || entry?.type === 'pass')
+        .map((entry) => ({
+          type: entry.type,
+          color: entry.color,
+          coord: Array.isArray(entry.coord) ? [...entry.coord] : undefined,
+          number: entry.number
+        }))
+      : []
   };
 }
 
@@ -478,7 +512,17 @@ function compactReversiState(logic) {
     counts: logic.counts(),
     gameOver: logic.gameOver,
     winner: logic.winner,
-    board: [...logic.board.entries()]
+    board: [...logic.board.entries()],
+    moveHistory: Array.isArray(logic.moveHistory)
+      ? logic.moveHistory
+        .filter((entry) => entry?.type === 'move')
+        .map((entry) => ({
+          type: 'move',
+          color: entry.color,
+          coord: Array.isArray(entry.coord) ? [...entry.coord] : undefined,
+          number: entry.number
+        }))
+      : []
   };
 }
 
@@ -512,6 +556,29 @@ function goLegalMoves(logic, player) {
   }
   moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
   return moves;
+}
+
+function fastGoLegalMoves(logic) {
+  const moves = [];
+  for (const coord of playableCoords(logic)) {
+    const index = logic.indexFromCoord(coord);
+    if (index >= 0 && logic.board[index] === 0) {
+      moves.push({ type: 'play', coord, id: coord.join(','), label: `(${coord.join(',')})`, trainingFastPath: true });
+    }
+  }
+  moves.push({ type: 'pass', id: 'pass', label: 'Pass' });
+  return moves;
+}
+
+function normalizeGoMove(move) {
+  if (!move) return null;
+  if (move.type === 'pass' || move.id === 'pass' || move === 'pass') return { type: 'pass', id: 'pass', label: 'Pass' };
+  if (Array.isArray(move.coord)) return { ...move, type: move.type || 'play', id: move.id || move.coord.join(','), label: move.label || `(${move.coord.join(',')})` };
+  if (typeof move.id === 'string') {
+    const coord = move.id.split(',').map(Number);
+    if (coord.every(Number.isFinite)) return { ...move, type: move.type || 'play', coord, id: move.id, label: move.label || `(${move.id})` };
+  }
+  return null;
 }
 
 function sampledGoLegalMoves(logic, player, limit = 24) {

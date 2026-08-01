@@ -63,6 +63,7 @@ try {
       size: numberArg(args, 'size', defaultSize(game), { min: 3, max: 30 }),
       playerCount: numberArg(args, 'playerCount', defaultPlayerCount(game), { min: 2, max: 3 }),
       komi: Number(args.komi),
+      fastLegalMoves: boolArg(args, 'fastLegalMoves', false),
       seed: gameSeed
     });
     const gameRecord = await runOneGame({ adapter, gameIndex, gameSeed });

@@ -256,7 +256,16 @@ function sameReversiMove(a, b) {
 function makeContext(depth, analysisMode) {
     const d = clampDepth(depth);
     const start = now();
-    return { nodes: 0, nodeLimit: NODE_LIMIT_BY_DEPTH[d] || 52000, deadline: start + (analysisMode ? 1.35 : 1) * (TIME_BY_DEPTH_MS[d] || 430), truncated: false, tt: new Map(), timeUp() { return now() >= this.deadline; } };
+    return {
+        nodes: 0,
+        nodeLimit: NODE_LIMIT_BY_DEPTH[d] || 52000,
+        deadline: start + (analysisMode ? 1.35 : 1) * (TIME_BY_DEPTH_MS[d] || 430),
+        truncated: false,
+        tt: new Map(),
+        history: new Map(),
+        killers: Array.from({ length: 20 }, () => []),
+        timeUp() { return now() >= this.deadline; }
+    };
 }
 
 function adjustedDepth(logic, depth) {
@@ -269,35 +278,50 @@ function adjustedDepth(logic, depth) {
 
 function negamax(logic, depth, alpha, beta, player, rootPlayer, context, ply = 0) {
     context.nodes += 1;
-    if ((context.nodes & 127) === 0 && (context.nodes >= context.nodeLimit || context.timeUp())) { context.truncated = true; return evaluateReversi(logic, rootPlayer); }
-    if (logic.gameOver || depth <= 0) return evaluateReversi(logic, rootPlayer);
-    const hash = `${depth}:${player}:${logic.currentPlayer}:${hashBoard(logic)}`;
+    if ((context.nodes & 127) === 0 && (context.nodes >= context.nodeLimit || context.timeUp())) { context.truncated = true; return evaluateReversi(logic, player); }
+    if (logic.gameOver || depth <= 0) return evaluateReversi(logic, player);
+    const hash = `${player}:${logic.currentPlayer}:${hashBoard(logic)}`;
     const cached = context.tt.get(hash);
-    if (cached !== undefined) return cached;
-    let moves = orderMoves(logic.legalMoves(player), logic, player);
+    if (cached && cached.depth >= depth) {
+        if (cached.flag === 'exact') return cached.score;
+        if (cached.flag === 'lower' && cached.score >= beta) return cached.score;
+        if (cached.flag === 'upper' && cached.score <= alpha) return cached.score;
+    }
+    let moves = orderMoves(logic.legalMoves(player), logic, player, context, ply, cached?.move);
     if (!moves.length) {
         const passClone = cloneReversi(logic);
         const pass = passClone.pass();
-        if (!pass.ok) return evaluateReversi(logic, rootPlayer);
+        if (!pass.ok) return evaluateReversi(logic, player);
         return -negamax(passClone, depth - 1, -beta, -alpha, otherReversiColor(player), rootPlayer, context, ply + 1);
     }
     if (moves.length > 28 && depth >= 3) moves = moves.slice(0, 28);
+    const originalAlpha = alpha;
     let best = -INF;
+    let bestMove = moves[0] || null;
     for (const move of moves) {
         const clone = cloneReversi(logic);
         clone.play(move.coord, player);
         const score = -negamax(clone, depth - 1, -beta, -alpha, otherReversiColor(player), rootPlayer, context, ply + 1);
-        if (score > best) best = score;
+        if (score > best) { best = score; bestMove = move; }
         alpha = Math.max(alpha, score);
-        if (alpha >= beta || context.truncated) break;
+        if (alpha >= beta || context.truncated) {
+            rememberReversiCutoff(context, ply, move, depth);
+            break;
+        }
     }
-    context.tt.set(hash, best);
+    let flag = 'exact';
+    if (best <= originalAlpha) flag = 'upper';
+    else if (best >= beta) flag = 'lower';
+    context.tt.set(hash, { depth, score: best, move: bestMove, flag });
     return best;
 }
 
-function orderMoves(moves, logic, player) { return moves.slice().sort((a, b) => quickMoveScore(b, logic, player) - quickMoveScore(a, logic, player)); }
-function quickMoveScore(move, logic, player) {
+function orderMoves(moves, logic, player, context = null, ply = 0, preferredMove = null) {
+    return moves.slice().sort((a, b) => quickMoveScore(b, logic, player, context, ply, preferredMove) - quickMoveScore(a, logic, player, context, ply, preferredMove));
+}
+function quickMoveScore(move, logic, player, context = null, ply = 0, preferredMove = null) {
     let score = 0;
+    if (preferredMove && sameReversiMove(move, preferredMove)) score += 1000000;
     const counts = logic.counts();
     const emptyRatio = counts.empty / Math.max(1, logic.topology.totalVertices);
     const flipCount = move.flips?.length || 0;
@@ -313,7 +337,20 @@ function quickMoveScore(move, logic, player) {
     score += stabilityMoveBonus(logic, clone, move, player);
     score += 5 * (clone.legalMoves(player).length - logic.legalMoves(player).length);
     score -= 7 * clone.legalMoves(otherReversiColor(player)).length;
+    if (context) {
+        const key = logic.key(move.coord);
+        score += context.history.get(key) || 0;
+        if ((context.killers[ply] || []).some((killer) => sameReversiMove(killer, move))) score += 1600;
+    }
     return score;
+}
+function rememberReversiCutoff(context, ply, move, depth) {
+    if (!context || !move?.coord) return;
+    const list = context.killers[ply] || (context.killers[ply] = []);
+    if (!list.some((item) => sameReversiMove(item, move))) list.unshift({ coord: [...move.coord] });
+    if (list.length > 2) list.pop();
+    const key = move.coord.join(',');
+    context.history.set(key, (context.history.get(key) || 0) + depth * depth);
 }
 
 function evaluateReversi(logic, player) {

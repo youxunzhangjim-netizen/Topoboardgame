@@ -46,7 +46,8 @@ export function trainLinearModel(examples, options = {}) {
   const l2 = Number(options.l2) || 0.0005;
   const seed = options.seed || 'linear-train';
   const rng = new ResearchRng(seed);
-  const weights = Object.create(null);
+  const baseModel = options.baseModel || null;
+  const weights = Object.assign(Object.create(null), cloneWeights(baseModel?.weights || options.initialWeights || {}));
   const indices = examples.map((_, i) => i);
   const history = [];
   for (let epoch = 0; epoch < epochs; epoch += 1) {
@@ -76,6 +77,15 @@ export function trainLinearModel(examples, options = {}) {
       epochs,
       lr,
       l2,
+      warmStarted: Boolean(baseModel || options.initialWeights),
+      baseModel: baseModel ? {
+        schema: baseModel.schema || '',
+        createdAt: baseModel.createdAt || '',
+        modelType: baseModel.modelType || '',
+        sourcePath: options.baseModelPath || '',
+        trainingInput: baseModel.training?.input || '',
+        examples: baseModel.training?.examples ?? null
+      } : null,
       history,
       featureCount: Object.keys(weights).length
     }
@@ -155,4 +165,13 @@ function shuffle(items, rng) {
     const j = Math.floor(rng.next() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
   }
+}
+
+function cloneWeights(weights) {
+  const cloned = Object.create(null);
+  for (const [key, value] of Object.entries(weights || {})) {
+    const n = Number(value);
+    if (Number.isFinite(n)) cloned[key] = n;
+  }
+  return cloned;
 }
