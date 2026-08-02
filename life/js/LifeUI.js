@@ -65,6 +65,11 @@ const BOARD_OPACITY_LEVELS = Object.freeze([1, 0.7, 0.35, 0]);
 const BOARD_OPACITY_KEYS = Object.freeze(['boardOpacity100', 'boardOpacity70', 'boardOpacity35', 'boardOpacity0']);
 const LIFE_CONTROL_TAB_STORAGE_KEY = 'topoboard-life-world-control-view';
 const EXPERIMENT_NOTEBOOK_STORAGE_KEY = 'topoboard-life-world-experiment-notebook';
+
+function normalizeLifeUsageMode(value) {
+  // Keep older saved URLs/states that used "zero" playable by routing them to the sandbox mode.
+  return value === 'two' ? 'two' : 'one';
+}
 const R3_BOUNDARY_OPTIONS = Object.freeze([
   { value: 'open', labelKey: 'r3BoundaryOpen', infoId: 'r3' },
   { value: 'torus', labelKey: 'r3BoundaryPeriodic', infoId: 't3' },
@@ -1953,10 +1958,10 @@ export class LifeUI {
   }
 
   applyUsageMode() {
-    const usage = this.usageModeSelect.value;
+    const usage = normalizeLifeUsageMode(this.usageModeSelect.value);
+    if (this.usageModeSelect.value !== usage) this.usageModeSelect.value = usage;
     document.body.dataset.lifeUsage = usage;
     if (usage === 'two') { this.speciesSelect.value = String(Math.max(2, Number(this.speciesSelect.value) || 2)); this.activePlayerSelect.value = '1'; }
-    if (usage === 'one' && this.challengeGoalSelect.value === 'none') this.challengeGoalSelect.value = 'survive';
     this.applyTwoPlayerMode();
     this.applyControls(true);
     this.updateChallengeStatus();
@@ -2178,7 +2183,7 @@ export class LifeUI {
       size: this.boardSizeSelect?.value || '32',
       ruleset: {
         mode: this.modeSelect?.value || this.mode?.id || 'life',
-        usage: this.usageModeSelect?.value || 'zero',
+        usage: normalizeLifeUsageMode(this.usageModeSelect?.value),
         twoPlayer: this.twoPlayerModeSelect?.value || 'seed-war',
         challenge: this.challengeGoalSelect?.value || 'none',
         view: this.viewModeSelect?.value || 'flat',
@@ -2220,6 +2225,10 @@ export class LifeUI {
         if (geometry.id === 'r3' && !controls.topologySelect) {
           this.syncBoundaryControlsForGeometry(geometry, legacyGeometryBoundary(value, geometry.topology));
         }
+        return;
+      }
+      if (key === 'usageModeSelect') {
+        this[key].value = normalizeLifeUsageMode(value);
         return;
       }
       this[key].value = String(value);
@@ -2291,7 +2300,8 @@ export class LifeUI {
 
   updateOnlineControls(message = '') {
     if (!this.lifePlayModeSelect) return;
-    const usage = this.usageModeSelect?.value || 'zero';
+    const usage = normalizeLifeUsageMode(this.usageModeSelect?.value);
+    if (this.usageModeSelect && this.usageModeSelect.value !== usage) this.usageModeSelect.value = usage;
     if (usage !== 'two' && this.lifePlayModeSelect.value !== 'local') {
       this.lifePlayModeSelect.value = 'local';
     }
@@ -2969,8 +2979,7 @@ export class LifeUI {
   }
 
   updateChallengeStatus(obs = this.engine.getObservables()) {
-    const usage = this.usageModeSelect.value;
-    if (usage === 'zero') { this.challengeStatus.textContent = `${t('status', this.language)}: ${t('running', this.language)}`; return; }
+    const usage = normalizeLifeUsageMode(this.usageModeSelect.value);
     if (usage === 'two') {
       const scores = this.computeScores(obs);
       const lead = scores.a === scores.b ? t('tie', this.language) : (scores.a > scores.b ? t('playerA', this.language) : t('playerB', this.language));
@@ -4645,7 +4654,7 @@ export class LifeUI {
       mode: {
         id: this.mode.id,
         title: modeTitle(this.mode, this.language),
-        usage: this.usageModeSelect?.value || 'zero'
+        usage: normalizeLifeUsageMode(this.usageModeSelect?.value)
       },
       duplicateOf: overrides.duplicateOf || null
     };
@@ -4938,7 +4947,7 @@ export class LifeUI {
       mode: {
         id: this.mode.id,
         title: modeTitle(this.mode, this.language),
-        usage: this.usageModeSelect.value,
+        usage: normalizeLifeUsageMode(this.usageModeSelect.value),
         twoPlayerMode: this.twoPlayerModeSelect.value,
         challengeGoal: this.challengeGoalSelect.value
       },
@@ -4987,7 +4996,7 @@ export class LifeUI {
       geometry: this.boardGeometrySelect.value,
       lattice: this.latticeSelect.value,
       viewMode: this.viewModeSelect.value,
-      usage: this.usageModeSelect.value,
+      usage: normalizeLifeUsageMode(this.usageModeSelect.value),
       twoPlayerMode: this.twoPlayerModeSelect.value,
       challengeGoal: this.challengeGoalSelect.value,
       customRule,

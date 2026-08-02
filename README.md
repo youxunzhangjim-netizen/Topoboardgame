@@ -468,8 +468,7 @@ The engine has no DOM/canvas/Firebase dependency and can be reused by future AI,
 The Life page supports:
 
 ```text
-Zero-player simulation
-One-player challenge
+One-player sandbox/challenge
 Two-player competition
 ```
 

@@ -89,11 +89,10 @@ console.log(engine.getObservables());
 
 ## Playable UI and research panel
 
-`life/world.html` now supports three usage modes:
+`life/world.html` now supports two public usage modes:
 
 ```text
-Zero-player simulation
-One-player challenge
+One-player sandbox/challenge
 Two-player competition
 ```
 

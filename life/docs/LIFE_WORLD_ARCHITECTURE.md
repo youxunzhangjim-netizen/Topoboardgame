@@ -36,7 +36,7 @@ Beginner controls currently include:
 - Draw, Erase, Inspect.
 - Grid toggle and board opacity cycling.
 - Mode selection.
-- Usage mode: zero-player simulation, one-player challenge, two-player competition.
+- Usage mode: one-player sandbox/challenge or two-player competition.
 - Active player and species selection.
 - Blocks per side.
 - Local / online / robot connection controls.

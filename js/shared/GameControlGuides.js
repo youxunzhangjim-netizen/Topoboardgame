@@ -76,13 +76,13 @@ const GUIDES = Object.freeze({
         items: [
             'Use Draw, Erase, and Inspect to edit the board. Click or drag cells; zoom in when you need to edit the smallest blocks.',
             'Use Start, Step, Reset, and Random seed to run or rebuild the world. Grid On/Off changes only the guide grid view.',
-            'Choose zero-player, one-player, or two-player mode. In two-player mode, choose Local, Online, or Robot; online room controls appear only for Online.',
+            'Choose one-player sandbox or two-player competition. In two-player mode, choose Local, Online, or Robot; online room controls appear only for Online.',
             'Advanced settings change topology, lattice, dimension, rule preset, noise, mutation, and age before or during exploration.'
         ],
         zhItems: [
             '用 Draw、Erase、Inspect 編輯棋盤。可點擊或拖曳細胞；需要畫最小格時可放大。',
             '用 Start、Step、Reset、Random seed 運行或重建世界。Grid On/Off 只切換輔助格線。',
-            '選 zero-player、one-player 或 two-player。two-player 中再選 Local、Online 或 Robot；只有 Online 會顯示房間控制。',
+            '選單人沙盒或雙人競賽。雙人模式中再選 Local、Online 或 Robot；只有 Online 會顯示房間控制。',
             'Advanced settings 可調整拓撲、晶格、維度、規則、噪聲、突變與年齡。'
         ]
     },

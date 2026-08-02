@@ -756,8 +756,6 @@ h1 {
   padding: 10px;
 }
 
-body[data-life-usage="zero"] .one-player-only,
-body[data-life-usage="zero"] .two-player-only,
 body[data-life-usage="one"] .two-player-only,
 body[data-life-usage="two"] .one-player-only {
   display: none !important;
