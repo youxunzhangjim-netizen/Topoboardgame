@@ -1,303 +1,303 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-08-01T09:05:11.191Z",
+  "createdAt": "2026-08-01T15:08:38.171Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": -0.006322387045034761,
-    "board_size": -0.0026620600324730945,
-    "boundary:forbidden": -0.007888551092540153,
+    "bias": -0.03712910462850001,
+    "board_size": -0.015633320891143714,
+    "boundary:forbidden": -0.037173674739734396,
     "boundary:open": 0.08738944757164513,
-    "chess_material_balance": -1.3059516430158156,
-    "chess_piece_count_balance": 3.06372050154713,
-    "chess_piece:bb": -0.03290723702377875,
-    "chess_piece:bk": -0.00039514919031467257,
-    "chess_piece:bn": -0.44140541014641765,
-    "chess_piece:bp": -0.17244789018719814,
-    "chess_piece:bq": -0.5625958956674495,
-    "chess_piece:br": -0.0257672258215751,
-    "chess_piece:wb": -0.1454346380818443,
-    "chess_piece:wk": -0.00039514919031467257,
-    "chess_piece:wn": -0.3238720567951706,
-    "chess_piece:wp": 0.4649103178593049,
-    "chess_piece:wq": 0.4715728308338275,
-    "chess_piece:wr": -0.10670858056708345,
-    "chess_total_pieces": -0.37983823994798444,
-    "coord_0": 0.22264270896589497,
-    "coord_1": 0.7648773406943695,
-    "cross:2dchess:forbidden": -0.007888551092540153,
+    "chess_material_balance": -2.1672131879426755,
+    "chess_piece_count_balance": 2.9265718247848493,
+    "chess_piece:bb": 0.25270727251667535,
+    "chess_piece:bk": -0.0023205690392812508,
+    "chess_piece:bn": 0.14252107452779592,
+    "chess_piece:bp": 0.12758658498870432,
+    "chess_piece:bq": -0.6419605425575234,
+    "chess_piece:br": 0.03072487007559053,
+    "chess_piece:wb": 0.021752848869087592,
+    "chess_piece:wk": -0.0023205690392812508,
+    "chess_piece:wn": -0.2363800663881171,
+    "chess_piece:wp": 0.025883714683790103,
+    "chess_piece:wq": -0.049706498197707005,
+    "chess_piece:wr": -0.03077264378459687,
+    "chess_total_pieces": -0.03289385583454238,
+    "coord_0": -0.0016270533994542685,
+    "coord_1": 0.2725652233367565,
+    "cross:2dchess:forbidden": -0.037173674739734396,
     "cross:2dchess:open": 0.08738944757164513,
-    "cross:capture:forbidden": 0.27392137534027877,
+    "cross:capture:forbidden": 0.2569011901239718,
     "cross:capture:open": 0.22119829390474866,
-    "cross:edge:forbidden": -0.16104358296824933,
+    "cross:edge:forbidden": -0.0653115381964316,
     "cross:edge:open": -0.2499195665774886,
-    "dimension": -0.0042149268041523445,
-    "game_is:2dchess": -0.006322387045034761,
-    "game:2dchess": -0.006322387045034761,
-    "lattice:none": -0.006322387045034761,
-    "legal_count_log": 1.0683980826599289,
-    "move_bias": -0.006322387045034761,
-    "move_capture_count": 0.04064031480251102,
-    "move_captures_piece:B": -0.18335670641499194,
-    "move_captures_piece:N": -0.35115564495830154,
-    "move_captures_piece:P": 0.2140467148661392,
-    "move_captures_piece:Q": 0.6498769724168886,
-    "move_captures_piece:R": 0.23491214649547387,
-    "move_castling": 1.1020180960242687,
-    "move_center_closeness": -1.426298988598407,
-    "move_corner_or_anchor": 0.1645861638636152,
-    "move_distance_manhattan": -0.21370941939354254,
-    "move_edge": -0.2207193843064594,
-    "move_is_long_range": 0.4629695105419799,
-    "move_near_edge": -0.44075645035466865,
-    "move_piece:B": 0.44406438640561025,
-    "move_piece:K": 0.07796865430943839,
-    "move_piece:N": -0.09469198654467377,
-    "move_piece:P": -0.2515263241771776,
-    "move_piece:Q": -0.15560360267712708,
-    "move_piece:R": -0.024171223806798873,
-    "move_promotion": -0.16761340818409487,
-    "move_type:move": -0.006322387045034761,
-    "player:black": 0.24911107979913555,
-    "player:white": -0.23626997534082417,
-    "topology:forbidden": -0.007888551092540153,
+    "dimension": -0.024752748795368547,
+    "game_is:2dchess": -0.03712910462850001,
+    "game:2dchess": -0.03712910462850001,
+    "lattice:none": -0.03712910462850001,
+    "legal_count_log": 1.6371712822223898,
+    "move_bias": -0.03712910462850001,
+    "move_capture_count": 0.03274446912599543,
+    "move_captures_piece:B": -0.1766091348108133,
+    "move_captures_piece:N": -0.18029593946806774,
+    "move_captures_piece:P": 0.377748904460404,
+    "move_captures_piece:Q": 0.3642456826133437,
+    "move_captures_piece:R": 0.21528055611079538,
+    "move_castling": 1.5073383087188676,
+    "move_center_closeness": -0.4702806508527133,
+    "move_corner_or_anchor": 0.33355322072286253,
+    "move_distance_manhattan": -0.8111289022289208,
+    "move_edge": -0.08097976512349273,
+    "move_is_long_range": 0.9536409802095331,
+    "move_near_edge": -0.43389290385244816,
+    "move_piece:B": -0.052950974817236915,
+    "move_piece:K": 0.42236489730997584,
+    "move_piece:N": -0.7097937700781226,
+    "move_piece:P": -0.10268253305701963,
+    "move_piece:Q": 0.5141831374440675,
+    "move_piece:R": -0.2434193587977849,
+    "move_promotion": 0.35933595080731856,
+    "move_type:move": -0.03712910462850001,
+    "player:black": -0.43043435029133575,
+    "player:white": 0.35396233982231984,
+    "topology:forbidden": -0.037173674739734396,
     "topology:open": 0.08738944757164513
   },
   "training": {
-    "examples": 19151,
+    "examples": 16949,
     "epochs": 12,
     "lr": 0.035,
     "l2": 0.0005,
     "warmStarted": true,
     "baseModel": {
       "schema": "topoboardgame.ml.linear_policy_value.v1",
-      "createdAt": "2026-07-19T04:20:33.886Z",
+      "createdAt": "2026-08-01T09:05:11.191Z",
       "modelType": "linear-logistic-policy-value",
-      "sourcePath": "C:\\Users\\jim90\\Downloads\\Topoboardgame-realistic-labs-redesign-code\\Topoboardgame\\public\\models\\2dchess-open-square-s8-100-linear.json",
-      "trainingInput": "local-data/selfplay/2dchess-open-square-s8-100.jsonl",
-      "examples": 1233
+      "sourcePath": "local-models/2dchess-standard-stockfish-teacher-linear.json",
+      "trainingInput": "local-data\\selfplay\\public-teachers\\2026-08-01T08-26-50-741Z\\2dchess-forbidden-square-s8-combined.jsonl",
+      "examples": 19151
     },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.669691,
-        "examples": 19151,
-        "accuracy": 0.4106,
-        "logLoss": 0.681205,
-        "brier": 0.107942
+        "loss": 0.67681,
+        "examples": 16949,
+        "accuracy": 0.5332,
+        "logLoss": 0.695289,
+        "brier": 0.200067
       },
       {
         "epoch": 2,
-        "loss": 0.661427,
-        "examples": 19151,
-        "accuracy": 0.6669,
-        "logLoss": 0.652171,
-        "brier": 0.094443
+        "loss": 0.673108,
+        "examples": 16949,
+        "accuracy": 0.6206,
+        "logLoss": 0.648969,
+        "brier": 0.179763
       },
       {
         "epoch": 3,
-        "loss": 0.660309,
-        "examples": 19151,
-        "accuracy": 0.579,
-        "logLoss": 0.649803,
-        "brier": 0.093395
+        "loss": 0.673104,
+        "examples": 16949,
+        "accuracy": 0.6074,
+        "logLoss": 0.652601,
+        "brier": 0.181621
       },
       {
         "epoch": 4,
-        "loss": 0.660832,
-        "examples": 19151,
-        "accuracy": 0.7439,
-        "logLoss": 0.672051,
-        "brier": 0.103031
+        "loss": 0.67347,
+        "examples": 16949,
+        "accuracy": 0.6396,
+        "logLoss": 0.693551,
+        "brier": 0.198105
       },
       {
         "epoch": 5,
-        "loss": 0.659881,
-        "examples": 19151,
-        "accuracy": 0.6783,
-        "logLoss": 0.656255,
-        "brier": 0.096413
+        "loss": 0.67303,
+        "examples": 16949,
+        "accuracy": 0.5389,
+        "logLoss": 0.675425,
+        "brier": 0.192064
       },
       {
         "epoch": 6,
-        "loss": 0.660005,
-        "examples": 19151,
-        "accuracy": 0.7754,
-        "logLoss": 0.67844,
-        "brier": 0.106508
+        "loss": 0.673584,
+        "examples": 16949,
+        "accuracy": 0.6138,
+        "logLoss": 0.650932,
+        "brier": 0.180948
       },
       {
         "epoch": 7,
-        "loss": 0.659969,
-        "examples": 19151,
-        "accuracy": 0.6315,
-        "logLoss": 0.647053,
-        "brier": 0.092207
+        "loss": 0.672442,
+        "examples": 16949,
+        "accuracy": 0.5626,
+        "logLoss": 0.662534,
+        "brier": 0.186059
       },
       {
         "epoch": 8,
-        "loss": 0.659809,
-        "examples": 19151,
-        "accuracy": 0.5595,
-        "logLoss": 0.650818,
-        "brier": 0.094061
+        "loss": 0.674633,
+        "examples": 16949,
+        "accuracy": 0.5449,
+        "logLoss": 0.669942,
+        "brier": 0.189911
       },
       {
         "epoch": 9,
-        "loss": 0.659727,
-        "examples": 19151,
-        "accuracy": 0.6771,
-        "logLoss": 0.652273,
-        "brier": 0.094363
+        "loss": 0.671679,
+        "examples": 16949,
+        "accuracy": 0.6148,
+        "logLoss": 0.750566,
+        "brier": 0.222476
       },
       {
         "epoch": 10,
-        "loss": 0.659608,
-        "examples": 19151,
-        "accuracy": 0.611,
-        "logLoss": 0.648627,
-        "brier": 0.092813
+        "loss": 0.672459,
+        "examples": 16949,
+        "accuracy": 0.6167,
+        "logLoss": 0.671452,
+        "brier": 0.190302
       },
       {
         "epoch": 11,
-        "loss": 0.660214,
-        "examples": 19151,
-        "accuracy": 0.5839,
-        "logLoss": 0.647085,
-        "brier": 0.092285
+        "loss": 0.671804,
+        "examples": 16949,
+        "accuracy": 0.6492,
+        "logLoss": 0.684058,
+        "brier": 0.194436
       },
       {
         "epoch": 12,
-        "loss": 0.65987,
-        "examples": 19151,
-        "accuracy": 0.5481,
-        "logLoss": 0.656739,
-        "brier": 0.096712
+        "loss": 0.672113,
+        "examples": 16949,
+        "accuracy": 0.6212,
+        "logLoss": 0.651274,
+        "brier": 0.180777
       }
     ],
     "featureCount": 58,
-    "input": "local-data\\selfplay\\public-teachers\\2026-08-01T08-26-50-741Z\\2dchess-forbidden-square-s8-combined.jsonl",
+    "input": "local-data\\selfplay\\public-teachers\\2026-08-01T14-35-49-607Z\\2dchess-forbidden-square-s8-combined.jsonl",
     "gameFilter": "2dchess",
     "modeFilter": "",
     "topWeights": [
       {
         "feature": "chess_piece_count_balance",
-        "weight": 3.063721
-      },
-      {
-        "feature": "move_center_closeness",
-        "weight": -1.426299
+        "weight": 2.926572
       },
       {
         "feature": "chess_material_balance",
-        "weight": -1.305952
-      },
-      {
-        "feature": "move_castling",
-        "weight": 1.102018
+        "weight": -2.167213
       },
       {
         "feature": "legal_count_log",
-        "weight": 1.068398
+        "weight": 1.637171
       },
       {
-        "feature": "coord_1",
-        "weight": 0.764877
-      },
-      {
-        "feature": "move_captures_piece:Q",
-        "weight": 0.649877
-      },
-      {
-        "feature": "chess_piece:bq",
-        "weight": -0.562596
-      },
-      {
-        "feature": "chess_piece:wq",
-        "weight": 0.471573
-      },
-      {
-        "feature": "chess_piece:wp",
-        "weight": 0.46491
+        "feature": "move_castling",
+        "weight": 1.507338
       },
       {
         "feature": "move_is_long_range",
-        "weight": 0.46297
+        "weight": 0.953641
       },
       {
-        "feature": "move_piece:B",
-        "weight": 0.444064
+        "feature": "move_distance_manhattan",
+        "weight": -0.811129
       },
       {
-        "feature": "chess_piece:bn",
-        "weight": -0.441405
+        "feature": "move_piece:N",
+        "weight": -0.709794
+      },
+      {
+        "feature": "chess_piece:bq",
+        "weight": -0.641961
+      },
+      {
+        "feature": "move_piece:Q",
+        "weight": 0.514183
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.470281
       },
       {
         "feature": "move_near_edge",
-        "weight": -0.440756
+        "weight": -0.433893
       },
       {
-        "feature": "chess_total_pieces",
-        "weight": -0.379838
+        "feature": "player:black",
+        "weight": -0.430434
       },
       {
-        "feature": "move_captures_piece:N",
-        "weight": -0.351156
+        "feature": "move_piece:K",
+        "weight": 0.422365
       },
       {
-        "feature": "chess_piece:wn",
-        "weight": -0.323872
+        "feature": "move_captures_piece:P",
+        "weight": 0.377749
+      },
+      {
+        "feature": "move_captures_piece:Q",
+        "weight": 0.364246
+      },
+      {
+        "feature": "move_promotion",
+        "weight": 0.359336
+      },
+      {
+        "feature": "player:white",
+        "weight": 0.353962
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.333553
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.272565
       },
       {
         "feature": "cross:capture:forbidden",
-        "weight": 0.273921
+        "weight": 0.256901
       },
       {
-        "feature": "move_piece:P",
-        "weight": -0.251526
+        "feature": "chess_piece:bb",
+        "weight": 0.252707
       },
       {
         "feature": "cross:edge:open",
         "weight": -0.24992
       },
       {
-        "feature": "player:black",
-        "weight": 0.249111
+        "feature": "move_piece:R",
+        "weight": -0.243419
       },
       {
-        "feature": "player:white",
-        "weight": -0.23627
-      },
-      {
-        "feature": "move_captures_piece:R",
-        "weight": 0.234912
-      },
-      {
-        "feature": "coord_0",
-        "weight": 0.222643
+        "feature": "chess_piece:wn",
+        "weight": -0.23638
       },
       {
         "feature": "cross:capture:open",
         "weight": 0.221198
       },
       {
-        "feature": "move_edge",
-        "weight": -0.220719
+        "feature": "move_captures_piece:R",
+        "weight": 0.215281
       },
       {
-        "feature": "move_captures_piece:P",
-        "weight": 0.214047
-      },
-      {
-        "feature": "move_distance_manhattan",
-        "weight": -0.213709
+        "feature": "move_captures_piece:N",
+        "weight": -0.180296
       },
       {
         "feature": "move_captures_piece:B",
-        "weight": -0.183357
+        "weight": -0.176609
+      },
+      {
+        "feature": "chess_piece:bn",
+        "weight": 0.142521
       },
       {
         "feature": "chess_piece:bp",
-        "weight": -0.172448
+        "weight": 0.127587
       }
     ]
   }

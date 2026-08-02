@@ -61,8 +61,8 @@ export function resultLabelForPlayer({ winner, player }) {
   if (!w || ['unknown', ''].includes(w)) return null;
   if (['draw', 'tie'].includes(w)) return 0.5;
   if (w === p) return 1;
-  if (w === 'sidea') return ['white', 'black'].includes(p) ? (p === 'white' || p === 'black' ? 1 : null) : null;
-  if (w === 'sideb') return ['white', 'black'].includes(p) ? (p === 'white' || p === 'black' ? 0 : null) : null;
+  if (w === 'sidea') return sideIndex(p) === 0 ? 1 : 0;
+  if (w === 'sideb') return sideIndex(p) === 1 ? 1 : 0;
   return 0;
 }
 

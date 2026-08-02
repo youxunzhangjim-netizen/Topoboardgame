@@ -6,6 +6,7 @@ const INF = 1e9;
 const NODE_LIMIT_BY_DEPTH = { 1: 9000, 2: 22000, 3: 52000, 4: 90000, 5: 130000 };
 const TIME_BY_DEPTH_MS = { 1: 70, 2: 180, 3: 430, 4: 850, 5: 1400 };
 const ROOT_CAP_BY_DEPTH = { 1: 80, 2: 42, 3: 30, 4: 24, 5: 20 };
+const EXACT_ENDGAME_EMPTY_BY_DEPTH = { 1: 4, 2: 6, 3: 9, 4: 12, 5: 14 };
 
 export class ReversiRobotController {
     constructor(app) {
@@ -220,11 +221,12 @@ export function analyzeReversiPosition(logic, depth = 3) {
 function searchRoot(logic, depth = 3, analysisMode = false) {
     const player = logic.currentPlayer;
     const maxDepth = adjustedDepth(logic, depth);
+    const exactEndgame = shouldUseExactEndgame(logic, depth);
     const currentScore = evaluateReversi(logic, player);
     let ordered = orderMoves(logic.legalMoves(player), logic, player).slice(0, ROOT_CAP_BY_DEPTH[clampDepth(depth)] || 28);
     const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
     if (opening && !ordered.some((move) => sameReversiMove(move, opening.move))) ordered = [opening.move, ...ordered];
-    const context = makeContext(depth, analysisMode);
+    const context = makeContext(depth, analysisMode, exactEndgame, logic.counts().empty || 0);
     if (!ordered.length) return { best: null, results: [], currentScore, nodes: 0, completedDepth: 0, truncated: false };
     let best = null;
     let completedDepth = 0;
@@ -253,13 +255,16 @@ function sameReversiMove(a, b) {
     return Array.isArray(a?.coord) && Array.isArray(b?.coord) && a.coord.length === b.coord.length && a.coord.every((value, index) => Number(value) === Number(b.coord[index]));
 }
 
-function makeContext(depth, analysisMode) {
+function makeContext(depth, analysisMode, exactEndgame = false, emptyCount = 0) {
     const d = clampDepth(depth);
     const start = now();
+    const exactNodeLimit = Math.min(1_400_000, Math.max(180000, 62000 * Math.max(1, Number(emptyCount) || 1)));
+    const exactTimeMs = analysisMode ? 5200 : 3400;
     return {
         nodes: 0,
-        nodeLimit: NODE_LIMIT_BY_DEPTH[d] || 52000,
-        deadline: start + (analysisMode ? 1.35 : 1) * (TIME_BY_DEPTH_MS[d] || 430),
+        nodeLimit: exactEndgame ? exactNodeLimit : NODE_LIMIT_BY_DEPTH[d] || 52000,
+        deadline: start + (exactEndgame ? exactTimeMs : (analysisMode ? 1.35 : 1) * (TIME_BY_DEPTH_MS[d] || 430)),
+        exactEndgame,
         truncated: false,
         tt: new Map(),
         history: new Map(),
@@ -271,9 +276,18 @@ function makeContext(depth, analysisMode) {
 function adjustedDepth(logic, depth) {
     const d = clampDepth(depth);
     const empty = logic.counts().empty || 0;
+    if (shouldUseExactEndgame(logic, depth)) return Math.max(d, empty);
     if (empty <= 8) return Math.max(d, empty);
-    if (empty <= 12) return Math.max(d, Math.min(6, empty));
+    if (empty <= 12) return Math.max(d, Math.min(8, empty));
     return d;
+}
+
+function shouldUseExactEndgame(logic, depth) {
+    const empty = logic.counts().empty || 0;
+    const total = logic.topology?.totalVertices || 0;
+    if (total > 100 || empty <= 0) return false;
+    const d = clampDepth(depth);
+    return empty <= (EXACT_ENDGAME_EMPTY_BY_DEPTH[d] || 6);
 }
 
 function negamax(logic, depth, alpha, beta, player, rootPlayer, context, ply = 0) {
@@ -294,7 +308,7 @@ function negamax(logic, depth, alpha, beta, player, rootPlayer, context, ply = 0
         if (!pass.ok) return evaluateReversi(logic, player);
         return -negamax(passClone, depth - 1, -beta, -alpha, otherReversiColor(player), rootPlayer, context, ply + 1);
     }
-    if (moves.length > 28 && depth >= 3) moves = moves.slice(0, 28);
+    if (!context.exactEndgame && moves.length > 28 && depth >= 3) moves = moves.slice(0, 28);
     const originalAlpha = alpha;
     let best = -INF;
     let bestMove = moves[0] || null;
@@ -331,6 +345,7 @@ function quickMoveScore(move, logic, player, context = null, ply = 0, preferredM
     if (isXSquareDanger(logic, move.coord)) score -= 55;
     if (isCSquareDanger(logic, move.coord)) score -= 38;
     if (isFrontierCoord(logic, move.coord)) score -= 10;
+    score += endgameParityMoveBonus(logic, move, player);
     const clone = cloneReversi(logic);
     const play = clone.play(move.coord, player);
     if (!play.ok) return -INF;
@@ -342,6 +357,23 @@ function quickMoveScore(move, logic, player, context = null, ply = 0, preferredM
         score += context.history.get(key) || 0;
         if ((context.killers[ply] || []).some((killer) => sameReversiMove(killer, move))) score += 1600;
     }
+    return score;
+}
+
+function endgameParityMoveBonus(logic, move, player) {
+    const counts = logic.counts();
+    if (counts.empty > Math.max(18, logic.topology.totalVertices * 0.24)) return 0;
+    const clone = cloneReversi(logic);
+    const play = clone.play(move.coord, player);
+    if (!play.ok) return -INF;
+    const opponent = otherReversiColor(player);
+    const opponentMobility = clone.legalMoves(opponent).length;
+    const ownFollowupMobility = clone.legalMoves(player).length;
+    let score = 0;
+    if (opponentMobility === 0) score += 58;
+    else if (opponentMobility <= 2) score += 16;
+    score += (counts.empty % 2 === 1 ? 10 : -5) * (opponentMobility <= ownFollowupMobility ? 1 : -0.45);
+    score += Math.max(-18, Math.min(18, play.flipped || 0));
     return score;
 }
 function rememberReversiCutoff(context, ply, move, depth) {

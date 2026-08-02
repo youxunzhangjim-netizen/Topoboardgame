@@ -649,9 +649,41 @@ function quickMoveScore(logic, move, player) {
         if (color === otherColor(player)) enemyNeighbors += 1;
     }
     score += 1.0 * friendlyNeighbors + 1.4 * enemyNeighbors;
+    score += tacticalMoveUrgency(logic, move, player);
     score += scoreGoStrategicMove(logic, move, player, { COLORS, valueToColor, otherColor });
     score += basicGoShapeScore(logic, move, player);
     score += territoryProtectionMoveScore(logic, move, player);
+    return score;
+}
+
+function tacticalMoveUrgency(logic, move, player) {
+    if (!move?.coord || move.type === 'pass') return 0;
+    const index = logic.indexFromCoord(move.coord);
+    if (index < 0) return 0;
+    const opponent = otherColor(player);
+    const ownGroups = adjacentGroupInfos(logic, index, player);
+    const enemyGroups = adjacentGroupInfos(logic, index, opponent);
+    let score = 0;
+
+    // Public Go engines teach this priority very bluntly: urgent local life/death
+    // beats slow influence. Captures, saving atari, and connecting weak groups
+    // should enter candidate ordering before rollout noise can bury them.
+    for (const group of enemyGroups) {
+        if (group.liberties <= 1) score += 112 + 7 * group.size;
+        else if (group.liberties === 2) score += 42 + 2.5 * group.size;
+    }
+    for (const group of ownGroups) {
+        if (group.liberties <= 1) score += 106 + 6 * group.size;
+        else if (group.liberties === 2) score += 38 + 2 * group.size;
+    }
+    if (ownGroups.length >= 2) score += 28 + 9 * (ownGroups.length - 2);
+    if ((move.captured || 0) > 0) score += 72 + 13 * (move.captured || 0);
+    if ((move.liberties || 0) <= 1 && !(move.captured || 0)) score -= 105;
+    else if ((move.liberties || 0) === 2 && logic.lattice === 'honeycomb') score -= 28;
+
+    const eye = localEyeInfo(logic, index, player);
+    if (eye.cutsNearby >= 3 && ownGroups.length >= 2) score += 24;
+    if (eye.ownEye && !eye.falseEyeRisk && !eye.fakeEye && move.ownTerritoryFill) score -= 96;
     return score;
 }
 
