@@ -85,6 +85,7 @@
     "ai:selfplay:reversi": "node --experimental-strip-types scripts/ai/train/selfPlayReversi.ts",
     "ai:selfplay:jump": "node --experimental-strip-types scripts/ai/train/selfPlayChineseCheckers.ts",
     "ai:teacher:standard2d": "node scripts/ai/train/trainStandard2DWithPublicTeachers.mjs",
+    "ai:train-week": "node scripts/ai/train/weekRobotTraining.mjs",
     "ai:evaluate": "node --experimental-strip-types scripts/ai/train/evaluateBots.ts",
     "desktop:dir": "npm run build:steam && electron-builder --dir --config.electronDist=node_modules/electron/dist",
     "desktop:package": "npm run build:steam && electron-builder",
