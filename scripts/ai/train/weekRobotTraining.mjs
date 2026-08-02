@@ -59,7 +59,7 @@ function standardTeacherJobs() {
     publicModel: 'public/models/2dchess-standard-stockfish-teacher-linear.json',
     localModel: 'local-models/2dchess-standard-stockfish-teacher-linear.json',
     command: [
-      'npm.cmd', 'run', 'ai:teacher:standard2d', '--',
+      process.execPath, 'scripts/ai/train/trainStandard2DWithPublicTeachers.mjs',
       '--families', 'chess',
       '--games', String(standardTeacherGames),
       '--stockfishDepth', String(chessTeacherDepth),
@@ -67,7 +67,7 @@ function standardTeacherJobs() {
       '--epochs', String(chessTeacherEpochs),
       '--progressEvery', String(Math.max(1, Math.floor(standardTeacherGames / 20)))
     ],
-    verify: ['npm.cmd', 'run', 'verify:robot-legality']
+    verify: [process.execPath, 'verification/verify-robot-move-legality.mjs']
   }];
   for (const size of teacherGoSizes) {
     jobs.push({
@@ -75,7 +75,7 @@ function standardTeacherJobs() {
       publicModel: `public/models/2dgo-open2d-square-s${size}-katago-teacher-linear.json`,
       localModel: `local-models/2dgo-open2d-square-s${size}-katago-teacher-linear.json`,
       command: [
-        'npm.cmd', 'run', 'ai:teacher:standard2d', '--',
+        process.execPath, 'scripts/ai/train/trainStandard2DWithPublicTeachers.mjs',
         '--families', 'go',
         '--games', String(standardTeacherGames),
         '--goSizes', String(size),
@@ -86,7 +86,7 @@ function standardTeacherJobs() {
         '--progressEvery', String(Math.max(1, Math.floor(standardTeacherGames / 20))),
         '--katagoTimeoutMs', arg('katagoTimeoutMs', '60000')
       ],
-      verify: ['npm.cmd', 'run', 'verify:go-robot-strategy']
+      verify: [process.execPath, 'verification/verify-go-robot-strategy.mjs']
     });
   }
   return jobs;
@@ -134,7 +134,7 @@ function variantJobsFromLocalModels() {
           ...(existsSync(join(repoRoot, 'local-models', spec.fileName)) ? ['--baseModel', `local-models/${spec.fileName}`] : []),
           '--seed', `week-train:${spec.stem}:${stamp}`
         ],
-        verify: ['npm.cmd', 'run', 'verify:robot-legality']
+        verify: [process.execPath, 'verification/verify-robot-move-legality.mjs']
       };
     });
 }
@@ -194,6 +194,7 @@ function runCommand(command, label) {
   if (dryRun) return;
   const result = spawnSync(command[0], command.slice(1), { cwd: repoRoot, encoding: 'utf8', maxBuffer: 1024 * 1024 * 256 });
   logOutput(label, result);
+  if (result.error) log(`[${label}:error] ${result.error.stack || result.error}`);
   if (result.status !== 0) throw new Error(`${label} failed with exit ${result.status}`);
 }
 
