@@ -1,6 +1,6 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T03:20:53.031Z",
+  "createdAt": "2026-08-03T20:45:01.535Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {},
   "training": {
@@ -8,6 +8,15 @@
     "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T03:20:53.031Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/3dchess-sphere-chess3d-s8-100-linear.json",
+      "trainingInput": "local-data/selfplay/3dchess-sphere-chess3d-s8-100.jsonl",
+      "examples": 100
+    },
     "history": [
       {
         "epoch": 1,
@@ -74,8 +83,8 @@
         "brier": 0
       }
     ],
-    "featureCount": 25,
-    "input": "local-data/selfplay/3dchess-sphere-chess3d-s8-100.jsonl",
+    "featureCount": 24,
+    "input": "local-data/selfplay/week-robot-training/2026-08-02T08-01-46-651Z/3dchess-sphere-chess3d-s8.jsonl",
     "gameFilter": "3dchess",
     "modeFilter": "",
     "topWeights": []
