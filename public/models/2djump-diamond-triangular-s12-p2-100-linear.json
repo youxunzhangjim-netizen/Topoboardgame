@@ -1,83 +1,234 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T04:29:56.964Z",
+  "createdAt": "2026-08-03T16:31:33.908Z",
   "modelType": "linear-logistic-policy-value",
-  "weights": {},
+  "weights": {
+    "bias": -0.00823131034922156,
+    "board_size": -0.005198722759050553,
+    "boundary:diamond": -0.00823131034922156,
+    "coord_0": 0.14982856055316077,
+    "coord_1": 0.017143580662658333,
+    "cross:2djump:diamond": -0.00823131034922156,
+    "cross:2djump:diamond:triangular": -0.00823131034922156,
+    "cross:edge:diamond": -0.019524630805417467,
+    "dimension": -0.005487542976583883,
+    "game_is:2djump": -0.00823131034922156,
+    "game:2djump": -0.00823131034922156,
+    "jump_move_distance": -0.271238565877928,
+    "jump_player_count": -0.005487542976583883,
+    "jump_uses_bridge": 0.06416848526820391,
+    "lattice:triangular": -0.00823131034922156,
+    "legal_count_log": -0.4149365086502101,
+    "move_bias": -0.00823131034922156,
+    "move_center_closeness": -0.02105303763837479,
+    "move_corner_or_anchor": -0.10837263266148166,
+    "move_edge": -0.019524630805417467,
+    "move_is_jump": 0.06416848526820391,
+    "move_is_step": -0.06561265153369547,
+    "move_near_edge": -0.005744735982135093,
+    "move_type:jump": 0.06416848526820391,
+    "move_type:step": -0.06561265153369547,
+    "player:A": 0.40610935818533905,
+    "player:B": -0.405011720782967,
+    "topology:diamond": -0.00823131034922156
+  },
   "training": {
-    "examples": 10000,
+    "examples": 16043,
     "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T04:29:56.964Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/2djump-diamond-triangular-s12-p2-100-linear.json",
+      "trainingInput": "local-data/selfplay/2djump-diamond-triangular-s12-p2-100.jsonl",
+      "examples": 10000
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.721499,
+        "examples": 16043,
+        "accuracy": 0.5058,
+        "logLoss": 0.736023,
+        "brier": 0.266689
       },
       {
         "epoch": 2,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.722428,
+        "examples": 16043,
+        "accuracy": 0.4981,
+        "logLoss": 0.84134,
+        "brier": 0.311334
       },
       {
         "epoch": 3,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.722544,
+        "examples": 16043,
+        "accuracy": 0.6012,
+        "logLoss": 0.683652,
+        "brier": 0.244663
       },
       {
         "epoch": 4,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.719827,
+        "examples": 16043,
+        "accuracy": 0.6059,
+        "logLoss": 0.679006,
+        "brier": 0.242759
       },
       {
         "epoch": 5,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.720054,
+        "examples": 16043,
+        "accuracy": 0.5986,
+        "logLoss": 0.675232,
+        "brier": 0.241057
       },
       {
         "epoch": 6,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.721014,
+        "examples": 16043,
+        "accuracy": 0.519,
+        "logLoss": 0.700961,
+        "brier": 0.252917
       },
       {
         "epoch": 7,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.721166,
+        "examples": 16043,
+        "accuracy": 0.5403,
+        "logLoss": 0.688615,
+        "brier": 0.247447
       },
       {
         "epoch": 8,
-        "loss": 0.693147,
-        "examples": 10000,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.722194,
+        "examples": 16043,
+        "accuracy": 0.5675,
+        "logLoss": 0.690262,
+        "brier": 0.247958
       }
     ],
     "featureCount": 28,
-    "input": "local-data/selfplay/2djump-diamond-triangular-s12-p2-100.jsonl",
+    "input": "local-data/selfplay/week-robot-training/2026-08-02T08-01-46-651Z/2djump-diamond-triangular-s12-p2.jsonl",
     "gameFilter": "2djump",
     "modeFilter": "",
-    "topWeights": []
+    "topWeights": [
+      {
+        "feature": "legal_count_log",
+        "weight": -0.414937
+      },
+      {
+        "feature": "player:A",
+        "weight": 0.406109
+      },
+      {
+        "feature": "player:B",
+        "weight": -0.405012
+      },
+      {
+        "feature": "jump_move_distance",
+        "weight": -0.271239
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.149829
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": -0.108373
+      },
+      {
+        "feature": "move_is_step",
+        "weight": -0.065613
+      },
+      {
+        "feature": "move_type:step",
+        "weight": -0.065613
+      },
+      {
+        "feature": "jump_uses_bridge",
+        "weight": 0.064168
+      },
+      {
+        "feature": "move_is_jump",
+        "weight": 0.064168
+      },
+      {
+        "feature": "move_type:jump",
+        "weight": 0.064168
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.021053
+      },
+      {
+        "feature": "cross:edge:diamond",
+        "weight": -0.019525
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.019525
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.017144
+      },
+      {
+        "feature": "bias",
+        "weight": -0.008231
+      },
+      {
+        "feature": "boundary:diamond",
+        "weight": -0.008231
+      },
+      {
+        "feature": "cross:2djump:diamond",
+        "weight": -0.008231
+      },
+      {
+        "feature": "cross:2djump:diamond:triangular",
+        "weight": -0.008231
+      },
+      {
+        "feature": "game_is:2djump",
+        "weight": -0.008231
+      },
+      {
+        "feature": "game:2djump",
+        "weight": -0.008231
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": -0.008231
+      },
+      {
+        "feature": "move_bias",
+        "weight": -0.008231
+      },
+      {
+        "feature": "topology:diamond",
+        "weight": -0.008231
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.005745
+      },
+      {
+        "feature": "dimension",
+        "weight": -0.005488
+      },
+      {
+        "feature": "jump_player_count",
+        "weight": -0.005488
+      },
+      {
+        "feature": "board_size",
+        "weight": -0.005199
+      }
+    ]
   }
 }
