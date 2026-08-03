@@ -1,229 +1,238 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T04:22:19.115Z",
+  "createdAt": "2026-08-03T10:32:21.606Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": 0.026306682862763563,
-    "board_size": 0.012461054765165347,
-    "boundary:open2d": 0.026306682862763563,
-    "coord_0": 0.011468643604459903,
-    "coord_1": 0.03499631995197905,
-    "cross:2dgo:open2d": 0.026306682862763563,
-    "cross:2dgo:open2d:triangular": 0.026306682862763563,
-    "cross:capture:open2d": 0.1430105137298026,
-    "cross:edge:open2d": -0.042385235379218525,
-    "dimension": 0.017537797344069756,
-    "game_is:2dgo": 0.026306682862763563,
-    "game:2dgo": 0.026306682862763563,
-    "go_capture_balance": 0.1070112010629406,
-    "go_empty_fraction": 0.026306682862763563,
-    "go_pass_count": 0.013838864561015277,
-    "lattice:triangular": 0.026306682862763563,
-    "legal_count_log": 0.07956499968141763,
-    "move_bias": 0.026306682862763563,
-    "move_capture_count": -0.19168285193114237,
-    "move_center_closeness": 0.10305498227967723,
-    "move_corner_or_anchor": -0.004976491177201591,
-    "move_edge": -0.042385235379218525,
-    "move_is_pass": 0.0005490923395371772,
-    "move_near_edge": 0.06434416368558513,
-    "move_type:pass": 0.0005490923395371772,
-    "move_type:play": 0.03945037655650235,
-    "player:black": -0.4058106190689481,
-    "player:white": 0.42935071973924926,
-    "topology:open2d": 0.026306682862763563
+    "bias": 0.00003945556161892494,
+    "board_size": 0.000018689468250052986,
+    "boundary:open2d": 0.00003945556161892494,
+    "coord_0": 0.11288992033563193,
+    "coord_1": -0.1850797244378979,
+    "cross:2dgo:open2d": 0.00003945556161892494,
+    "cross:2dgo:open2d:triangular": 0.00003945556161892494,
+    "cross:capture:open2d": 0.18254731938005775,
+    "cross:edge:open2d": 0.027089577376638294,
+    "dimension": 0.000026303720897782335,
+    "game_is:2dgo": 0.00003945556161892494,
+    "game:2dgo": 0.00003945556161892494,
+    "go_capture_balance": 6.807498729927697,
+    "go_empty_fraction": 0.00003945556161892494,
+    "go_pass_count": 1.96517209206414,
+    "lattice:triangular": 0.00003945556161892494,
+    "legal_count_log": -0.03949672078439436,
+    "move_bias": 0.00003945556161892494,
+    "move_capture_count": 1.0350795427771031,
+    "move_center_closeness": 0.4006927367635129,
+    "move_corner_or_anchor": 0.17211856978668735,
+    "move_edge": 0.027089577376638294,
+    "move_is_pass": -0.2826300109537733,
+    "move_near_edge": 0.4140340164766045,
+    "move_type:pass": -0.2826300109537733,
+    "move_type:play": 0.10224145978268742,
+    "player:black": -2.9011762813748856,
+    "player:white": 2.9058684479593766,
+    "topology:open2d": 0.00003945556161892494
   },
   "training": {
-    "examples": 8747,
+    "examples": 7679,
     "epochs": 8,
-    "lr": 0.04,
+    "lr": 0.05,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T04:22:19.115Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/2dgo-open2d-triangular-s9-100-linear.json",
+      "trainingInput": "local-data/selfplay/2dgo-open2d-triangular-s9-100.jsonl",
+      "examples": 8747
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.677733,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.669591,
-        "brier": 0.042815
+        "loss": 0.23138,
+        "examples": 7679,
+        "accuracy": 0.9424,
+        "logLoss": 0.223039,
+        "brier": 0.053896
       },
       {
         "epoch": 2,
-        "loss": 0.676982,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.672711,
-        "brier": 0.044233
+        "loss": 0.220099,
+        "examples": 7679,
+        "accuracy": 0.9432,
+        "logLoss": 0.207807,
+        "brier": 0.051562
       },
       {
         "epoch": 3,
-        "loss": 0.677139,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.675068,
-        "brier": 0.045386
+        "loss": 0.214982,
+        "examples": 7679,
+        "accuracy": 0.9437,
+        "logLoss": 0.203179,
+        "brier": 0.050477
       },
       {
         "epoch": 4,
-        "loss": 0.676595,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.670282,
-        "brier": 0.043136
+        "loss": 0.21245,
+        "examples": 7679,
+        "accuracy": 0.945,
+        "logLoss": 0.200856,
+        "brier": 0.049511
       },
       {
         "epoch": 5,
-        "loss": 0.676951,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.671454,
-        "brier": 0.043663
+        "loss": 0.210814,
+        "examples": 7679,
+        "accuracy": 0.9456,
+        "logLoss": 0.209655,
+        "brier": 0.050203
       },
       {
         "epoch": 6,
-        "loss": 0.676338,
-        "examples": 8747,
-        "accuracy": 0.609,
-        "logLoss": 0.670023,
-        "brier": 0.043021
+        "loss": 0.208456,
+        "examples": 7679,
+        "accuracy": 0.9462,
+        "logLoss": 0.198822,
+        "brier": 0.048714
       },
       {
         "epoch": 7,
-        "loss": 0.676717,
-        "examples": 8747,
-        "accuracy": 0.6126,
-        "logLoss": 0.682871,
-        "brier": 0.048843
+        "loss": 0.207683,
+        "examples": 7679,
+        "accuracy": 0.948,
+        "logLoss": 0.203755,
+        "brier": 0.048923
       },
       {
         "epoch": 8,
-        "loss": 0.676359,
-        "examples": 8747,
-        "accuracy": 0.8478,
-        "logLoss": 0.696918,
-        "brier": 0.055655
+        "loss": 0.207209,
+        "examples": 7679,
+        "accuracy": 0.9482,
+        "logLoss": 0.203335,
+        "brier": 0.048722
       }
     ],
     "featureCount": 29,
-    "input": "local-data/selfplay/2dgo-open2d-triangular-s9-100.jsonl",
+    "input": "local-data/selfplay/week-robot-training/2026-08-02T08-01-46-651Z/2dgo-open2d-triangular-s9.jsonl",
     "gameFilter": "2dgo",
     "modeFilter": "",
     "topWeights": [
       {
+        "feature": "go_capture_balance",
+        "weight": 6.807499
+      },
+      {
         "feature": "player:white",
-        "weight": 0.429351
+        "weight": 2.905868
       },
       {
         "feature": "player:black",
-        "weight": -0.405811
-      },
-      {
-        "feature": "move_capture_count",
-        "weight": -0.191683
-      },
-      {
-        "feature": "cross:capture:open2d",
-        "weight": 0.143011
-      },
-      {
-        "feature": "go_capture_balance",
-        "weight": 0.107011
-      },
-      {
-        "feature": "move_center_closeness",
-        "weight": 0.103055
-      },
-      {
-        "feature": "legal_count_log",
-        "weight": 0.079565
-      },
-      {
-        "feature": "move_near_edge",
-        "weight": 0.064344
-      },
-      {
-        "feature": "cross:edge:open2d",
-        "weight": -0.042385
-      },
-      {
-        "feature": "move_edge",
-        "weight": -0.042385
-      },
-      {
-        "feature": "move_type:play",
-        "weight": 0.03945
-      },
-      {
-        "feature": "coord_1",
-        "weight": 0.034996
-      },
-      {
-        "feature": "bias",
-        "weight": 0.026307
-      },
-      {
-        "feature": "boundary:open2d",
-        "weight": 0.026307
-      },
-      {
-        "feature": "cross:2dgo:open2d",
-        "weight": 0.026307
-      },
-      {
-        "feature": "cross:2dgo:open2d:triangular",
-        "weight": 0.026307
-      },
-      {
-        "feature": "game_is:2dgo",
-        "weight": 0.026307
-      },
-      {
-        "feature": "game:2dgo",
-        "weight": 0.026307
-      },
-      {
-        "feature": "go_empty_fraction",
-        "weight": 0.026307
-      },
-      {
-        "feature": "lattice:triangular",
-        "weight": 0.026307
-      },
-      {
-        "feature": "move_bias",
-        "weight": 0.026307
-      },
-      {
-        "feature": "topology:open2d",
-        "weight": 0.026307
-      },
-      {
-        "feature": "dimension",
-        "weight": 0.017538
+        "weight": -2.901176
       },
       {
         "feature": "go_pass_count",
-        "weight": 0.013839
+        "weight": 1.965172
       },
       {
-        "feature": "board_size",
-        "weight": 0.012461
+        "feature": "move_capture_count",
+        "weight": 1.03508
       },
       {
-        "feature": "coord_0",
-        "weight": 0.011469
+        "feature": "move_near_edge",
+        "weight": 0.414034
       },
       {
-        "feature": "move_corner_or_anchor",
-        "weight": -0.004976
+        "feature": "move_center_closeness",
+        "weight": 0.400693
       },
       {
         "feature": "move_is_pass",
-        "weight": 0.000549
+        "weight": -0.28263
       },
       {
         "feature": "move_type:pass",
-        "weight": 0.000549
+        "weight": -0.28263
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.18508
+      },
+      {
+        "feature": "cross:capture:open2d",
+        "weight": 0.182547
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.172119
+      },
+      {
+        "feature": "coord_0",
+        "weight": 0.11289
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.102241
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.039497
+      },
+      {
+        "feature": "cross:edge:open2d",
+        "weight": 0.02709
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.02709
+      },
+      {
+        "feature": "bias",
+        "weight": 0.000039
+      },
+      {
+        "feature": "boundary:open2d",
+        "weight": 0.000039
+      },
+      {
+        "feature": "cross:2dgo:open2d",
+        "weight": 0.000039
+      },
+      {
+        "feature": "cross:2dgo:open2d:triangular",
+        "weight": 0.000039
+      },
+      {
+        "feature": "game_is:2dgo",
+        "weight": 0.000039
+      },
+      {
+        "feature": "game:2dgo",
+        "weight": 0.000039
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.000039
+      },
+      {
+        "feature": "lattice:triangular",
+        "weight": 0.000039
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.000039
+      },
+      {
+        "feature": "topology:open2d",
+        "weight": 0.000039
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.000026
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.000019
       }
     ]
   }
