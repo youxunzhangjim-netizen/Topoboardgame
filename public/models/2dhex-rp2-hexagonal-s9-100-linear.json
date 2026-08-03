@@ -1,224 +1,233 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T04:31:31.076Z",
+  "createdAt": "2026-08-03T16:19:39.486Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": -0.019026069169986292,
-    "board_size": -0.009012344548715726,
-    "boundary:rp2": -0.019026069169986292,
-    "coord_0": 0.018968463377457313,
-    "coord_1": -0.060647667199054255,
-    "cross:2dhex:rp2": -0.019026069169986292,
-    "cross:2dhex:rp2:hexagonal": -0.019026069169986292,
-    "cross:edge:rp2": -0.09353305099971483,
-    "dimension": -0.012684052455347256,
-    "game_is:2dhex": -0.019026069169986292,
-    "game:2dhex": -0.019026069169986292,
-    "hex_center_pressure": 0.04328866081694221,
-    "hex_closed_surface_goal": -0.019026069169986292,
-    "hex_edge_touch_count": -0.06644408266101696,
-    "hex_occupancy": -0.10644699660431052,
-    "hex_remaining_fraction": 0.08833459235171473,
-    "hex_stone_balance": -0.000009593520931118244,
-    "lattice:hexagonal": -0.019026069169986292,
-    "legal_count_log": -0.0727109469285708,
-    "move_bias": -0.019026069169986292,
-    "move_center_closeness": 0.04328866081694221,
+    "bias": 0.056555465543574136,
+    "board_size": 0.02678941914054232,
+    "boundary:rp2": 0.056555465543574136,
+    "coord_0": -0.5785757942717156,
+    "coord_1": -0.2701212617651363,
+    "cross:2dhex:rp2": 0.056555465543574136,
+    "cross:2dhex:rp2:hexagonal": 0.056555465543574136,
+    "cross:edge:rp2": 0.3021425336931284,
+    "dimension": 0.0377036625475379,
+    "game_is:2dhex": 0.056555465543574136,
+    "game:2dhex": 0.056555465543574136,
+    "hex_center_pressure": -0.5486902553530958,
+    "hex_closed_surface_goal": 0.056555465543574136,
+    "hex_edge_touch_count": 0.13170604835079355,
+    "hex_occupancy": -0.059291800827290554,
+    "hex_remaining_fraction": 0.11556619150760222,
+    "hex_stone_balance": -0.05738809529488315,
+    "lattice:hexagonal": 0.056555465543574136,
+    "legal_count_log": -0.014123897364916087,
+    "move_bias": 0.056555465543574136,
+    "move_center_closeness": -0.5486902553530958,
     "move_corner_or_anchor": -0.036766099816575075,
-    "move_edge": -0.09353305099971483,
-    "move_near_edge": 0.24064526784962373,
-    "move_type:play": -0.019026069169986292,
-    "player:black": -0.017814242587612977,
-    "player:white": 0.0007770549919909227,
-    "topology:rp2": -0.019026069169986292
+    "move_edge": 0.3021425336931284,
+    "move_near_edge": 1.0504950436254024,
+    "move_type:play": 0.056555465543574136,
+    "player:black": -4.585448196046095,
+    "player:white": 4.64831486269907,
+    "topology:rp2": 0.056555465543574136
   },
   "training": {
-    "examples": 5056,
+    "examples": 1000,
     "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T04:31:31.076Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/2dhex-rp2-hexagonal-s9-100-linear.json",
+      "trainingInput": "local-data/selfplay/2dhex-rp2-hexagonal-s9-100.jsonl",
+      "examples": 5056
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.74235,
-        "examples": 5056,
-        "accuracy": 0.5134,
-        "logLoss": 0.706134,
-        "brier": 0.256269
+        "loss": 0.15689,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.051231,
+        "brier": 0.002987
       },
       {
         "epoch": 2,
-        "loss": 0.737281,
-        "examples": 5056,
-        "accuracy": 0.4949,
-        "logLoss": 0.71923,
-        "brier": 0.262681
+        "loss": 0.035901,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.026136,
+        "brier": 0.000842
       },
       {
         "epoch": 3,
-        "loss": 0.745241,
-        "examples": 5056,
-        "accuracy": 0.4939,
-        "logLoss": 0.71609,
-        "brier": 0.26109
+        "loss": 0.021299,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.017598,
+        "brier": 0.000372
       },
       {
         "epoch": 4,
-        "loss": 0.742161,
-        "examples": 5056,
-        "accuracy": 0.5051,
-        "logLoss": 0.879731,
-        "brier": 0.325866
+        "loss": 0.015374,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.01352,
+        "brier": 0.000217
       },
       {
         "epoch": 5,
-        "loss": 0.738169,
-        "examples": 5056,
-        "accuracy": 0.5051,
-        "logLoss": 0.805973,
-        "brier": 0.299609
+        "loss": 0.012174,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.011004,
+        "brier": 0.000152
       },
       {
         "epoch": 6,
-        "loss": 0.742006,
-        "examples": 5056,
-        "accuracy": 0.5051,
-        "logLoss": 0.710998,
-        "brier": 0.258655
+        "loss": 0.01015,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.009363,
+        "brier": 0.000108
       },
       {
         "epoch": 7,
-        "loss": 0.741336,
-        "examples": 5056,
-        "accuracy": 0.5051,
-        "logLoss": 0.734507,
-        "brier": 0.269616
+        "loss": 0.008784,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.008218,
+        "brier": 0.000083
       },
       {
         "epoch": 8,
-        "loss": 0.741202,
-        "examples": 5056,
-        "accuracy": 0.4885,
-        "logLoss": 0.700346,
-        "brier": 0.25357
+        "loss": 0.007786,
+        "examples": 1000,
+        "accuracy": 1,
+        "logLoss": 0.007356,
+        "brier": 0.000068
       }
     ],
     "featureCount": 28,
-    "input": "local-data/selfplay/2dhex-rp2-hexagonal-s9-100.jsonl",
+    "input": "local-data/selfplay/week-robot-training/2026-08-02T08-01-46-651Z/2dhex-rp2-hexagonal-s9.jsonl",
     "gameFilter": "2dhex",
     "modeFilter": "",
     "topWeights": [
       {
+        "feature": "player:white",
+        "weight": 4.648315
+      },
+      {
+        "feature": "player:black",
+        "weight": -4.585448
+      },
+      {
         "feature": "move_near_edge",
-        "weight": 0.240645
+        "weight": 1.050495
       },
       {
-        "feature": "hex_occupancy",
-        "weight": -0.106447
-      },
-      {
-        "feature": "cross:edge:rp2",
-        "weight": -0.093533
-      },
-      {
-        "feature": "move_edge",
-        "weight": -0.093533
-      },
-      {
-        "feature": "hex_remaining_fraction",
-        "weight": 0.088335
-      },
-      {
-        "feature": "legal_count_log",
-        "weight": -0.072711
-      },
-      {
-        "feature": "hex_edge_touch_count",
-        "weight": -0.066444
-      },
-      {
-        "feature": "coord_1",
-        "weight": -0.060648
+        "feature": "coord_0",
+        "weight": -0.578576
       },
       {
         "feature": "hex_center_pressure",
-        "weight": 0.043289
+        "weight": -0.54869
       },
       {
         "feature": "move_center_closeness",
-        "weight": 0.043289
+        "weight": -0.54869
+      },
+      {
+        "feature": "cross:edge:rp2",
+        "weight": 0.302143
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.302143
+      },
+      {
+        "feature": "coord_1",
+        "weight": -0.270121
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": 0.131706
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": 0.115566
+      },
+      {
+        "feature": "hex_occupancy",
+        "weight": -0.059292
+      },
+      {
+        "feature": "hex_stone_balance",
+        "weight": -0.057388
+      },
+      {
+        "feature": "bias",
+        "weight": 0.056555
+      },
+      {
+        "feature": "boundary:rp2",
+        "weight": 0.056555
+      },
+      {
+        "feature": "cross:2dhex:rp2",
+        "weight": 0.056555
+      },
+      {
+        "feature": "cross:2dhex:rp2:hexagonal",
+        "weight": 0.056555
+      },
+      {
+        "feature": "game_is:2dhex",
+        "weight": 0.056555
+      },
+      {
+        "feature": "game:2dhex",
+        "weight": 0.056555
+      },
+      {
+        "feature": "hex_closed_surface_goal",
+        "weight": 0.056555
+      },
+      {
+        "feature": "lattice:hexagonal",
+        "weight": 0.056555
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.056555
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.056555
+      },
+      {
+        "feature": "topology:rp2",
+        "weight": 0.056555
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.037704
       },
       {
         "feature": "move_corner_or_anchor",
         "weight": -0.036766
       },
       {
-        "feature": "bias",
-        "weight": -0.019026
-      },
-      {
-        "feature": "boundary:rp2",
-        "weight": -0.019026
-      },
-      {
-        "feature": "cross:2dhex:rp2",
-        "weight": -0.019026
-      },
-      {
-        "feature": "cross:2dhex:rp2:hexagonal",
-        "weight": -0.019026
-      },
-      {
-        "feature": "game_is:2dhex",
-        "weight": -0.019026
-      },
-      {
-        "feature": "game:2dhex",
-        "weight": -0.019026
-      },
-      {
-        "feature": "hex_closed_surface_goal",
-        "weight": -0.019026
-      },
-      {
-        "feature": "lattice:hexagonal",
-        "weight": -0.019026
-      },
-      {
-        "feature": "move_bias",
-        "weight": -0.019026
-      },
-      {
-        "feature": "move_type:play",
-        "weight": -0.019026
-      },
-      {
-        "feature": "topology:rp2",
-        "weight": -0.019026
-      },
-      {
-        "feature": "coord_0",
-        "weight": 0.018968
-      },
-      {
-        "feature": "player:black",
-        "weight": -0.017814
-      },
-      {
-        "feature": "dimension",
-        "weight": -0.012684
-      },
-      {
         "feature": "board_size",
-        "weight": -0.009012
+        "weight": 0.026789
       },
       {
-        "feature": "player:white",
-        "weight": 0.000777
-      },
-      {
-        "feature": "hex_stone_balance",
-        "weight": -0.00001
+        "feature": "legal_count_log",
+        "weight": -0.014124
       }
     ]
   }
