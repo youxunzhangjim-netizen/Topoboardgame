@@ -1,174 +1,183 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T03:47:49.184Z",
+  "createdAt": "2026-08-06T06:46:07.623Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": -0.025266354385495626,
-    "board_size": -0.005319224523360837,
-    "boundary:r3_random": -0.025266354385495626,
-    "cross:3dgo:r3_random": -0.025266354385495626,
-    "cross:3dgo:r3_random:fcc": -0.025266354385495626,
-    "dimension": -0.025266354385495626,
-    "game_is:3dgo": -0.025266354385495626,
-    "game:3dgo": -0.025266354385495626,
-    "go_empty_fraction": -0.025266354385495626,
-    "go_pass_count": 1.5496908028042242,
-    "lattice:fcc": -0.025266354385495626,
-    "legal_count_log": -0.011403766921058342,
-    "move_bias": -0.025266354385495626,
-    "move_is_pass": -0.025266354385495626,
-    "move_type:pass": -0.025266354385495626,
-    "player:black": -3.124990559773303,
-    "player:white": 3.0993816056084484,
-    "topology:r3_random": -0.025266354385495626
+    "bias": -0.034549686179829654,
+    "board_size": -0.007273607232694831,
+    "boundary:r3_random": -0.034549686179829654,
+    "cross:3dgo:r3_random": -0.034549686179829654,
+    "cross:3dgo:r3_random:fcc": -0.034549686179829654,
+    "dimension": -0.034549686179829654,
+    "game_is:3dgo": -0.034549686179829654,
+    "game:3dgo": -0.034549686179829654,
+    "go_empty_fraction": -0.034549686179829654,
+    "go_pass_count": 1.900052108471317,
+    "lattice:fcc": -0.034549686179829654,
+    "legal_count_log": -0.015593724459776689,
+    "move_bias": -0.034549686179829654,
+    "move_is_pass": -0.034549686179829654,
+    "move_type:pass": -0.034549686179829654,
+    "player:black": -3.835565488068995,
+    "player:white": 3.800104216942634,
+    "topology:r3_random": -0.034549686179829654
   },
   "training": {
     "examples": 200,
     "epochs": 8,
-    "lr": 0.04,
+    "lr": 0.05,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T03:47:49.184Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/3dgo-r3_random-fcc-s4-100-linear.json",
+      "trainingInput": "local-data/selfplay/3dgo-r3_random-fcc-s4-100.jsonl",
+      "examples": 200
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.40281,
+        "loss": 0.027904,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.223349,
-        "brier": 0.042698
+        "logLoss": 0.025789,
+        "brier": 0.000649
       },
       {
         "epoch": 2,
-        "loss": 0.158643,
+        "loss": 0.024396,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.117284,
-        "brier": 0.012408
+        "logLoss": 0.022758,
+        "brier": 0.000506
       },
       {
         "epoch": 3,
-        "loss": 0.096916,
+        "loss": 0.021676,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.078813,
-        "brier": 0.005768
+        "logLoss": 0.020397,
+        "brier": 0.000408
       },
       {
         "epoch": 4,
-        "loss": 0.068864,
+        "loss": 0.019462,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.05962,
-        "brier": 0.003389
+        "logLoss": 0.018551,
+        "brier": 0.00034
       },
       {
         "epoch": 5,
-        "loss": 0.052887,
+        "loss": 0.0178,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.048265,
-        "brier": 0.00228
+        "logLoss": 0.016932,
+        "brier": 0.000282
       },
       {
         "epoch": 6,
-        "loss": 0.043555,
+        "loss": 0.016349,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.039706,
-        "brier": 0.001521
+        "logLoss": 0.015636,
+        "brier": 0.000241
       },
       {
         "epoch": 7,
-        "loss": 0.036976,
+        "loss": 0.015132,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.034007,
-        "brier": 0.001119
+        "logLoss": 0.014523,
+        "brier": 0.000208
       },
       {
         "epoch": 8,
-        "loss": 0.032024,
+        "loss": 0.014086,
         "examples": 200,
         "accuracy": 1,
-        "logLoss": 0.029765,
-        "brier": 0.00086
+        "logLoss": 0.013582,
+        "brier": 0.000182
       }
     ],
     "featureCount": 18,
-    "input": "local-data/selfplay/3dgo-r3_random-fcc-s4-100.jsonl",
+    "input": "local-data/selfplay/week-robot-training/2026-08-02T08-01-46-651Z/3dgo-r3_random-fcc-s4.jsonl",
     "gameFilter": "3dgo",
     "modeFilter": "",
     "topWeights": [
       {
         "feature": "player:black",
-        "weight": -3.124991
+        "weight": -3.835565
       },
       {
         "feature": "player:white",
-        "weight": 3.099382
+        "weight": 3.800104
       },
       {
         "feature": "go_pass_count",
-        "weight": 1.549691
+        "weight": 1.900052
       },
       {
         "feature": "bias",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "boundary:r3_random",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "cross:3dgo:r3_random",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "cross:3dgo:r3_random:fcc",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "dimension",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "game_is:3dgo",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "game:3dgo",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "go_empty_fraction",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "lattice:fcc",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "move_bias",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "move_is_pass",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "move_type:pass",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "topology:r3_random",
-        "weight": -0.025266
+        "weight": -0.03455
       },
       {
         "feature": "legal_count_log",
-        "weight": -0.011404
+        "weight": -0.015594
       },
       {
         "feature": "board_size",
-        "weight": -0.005319
+        "weight": -0.007274
       }
     ]
   }
