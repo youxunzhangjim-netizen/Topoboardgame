@@ -1,143 +1,157 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T03:47:43.935Z",
+  "createdAt": "2026-08-07T13:39:20.805Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": 0.00714927123550799,
-    "board_size": 0.0015051074761265751,
-    "boundary:t3": 0.00714927123550799,
-    "coord_0": -0.010934127405413304,
-    "coord_1": 0.032616192958298644,
-    "coord_2": -0.022207664509381497,
-    "cross:3dgo:t3": 0.00714927123550799,
-    "cross:3dgo:t3:fcc": 0.00714927123550799,
-    "cross:edge:t3": -0.05317638391977263,
-    "dimension": 0.00714927123550799,
-    "game_is:3dgo": 0.00714927123550799,
-    "game:3dgo": 0.00714927123550799,
-    "go_empty_fraction": 0.00714927123550799,
+    "bias": -0.012255695282677542,
+    "board_size": -0.002580142505080959,
+    "boundary:t3": -0.012255695282677542,
+    "coord_0": 0.03063832899444205,
+    "coord_1": 0.33098643720175497,
+    "coord_2": 0.2671650114299282,
+    "cross:3dgo:t3": -0.012255695282677542,
+    "cross:3dgo:t3:fcc": -0.012255695282677542,
+    "cross:edge:t3": -0.008892169180507297,
+    "dimension": -0.012255695282677542,
+    "game_is:3dgo": -0.012255695282677542,
+    "game:3dgo": -0.012255695282677542,
+    "go_capture_balance": -1.2390539274725152,
+    "go_empty_fraction": -0.012255695282677542,
     "go_pass_count": 0.0425350152856856,
-    "lattice:fcc": 0.00714927123550799,
-    "legal_count_log": 0.0038821686692205996,
-    "move_bias": 0.00714927123550799,
-    "move_center_closeness": -0.021301303986711168,
-    "move_corner_or_anchor": -0.013962803089256036,
-    "move_edge": -0.05317638391977263,
+    "lattice:fcc": -0.012255695282677542,
+    "legal_count_log": 0.005171821423194325,
+    "move_bias": -0.012255695282677542,
+    "move_center_closeness": -0.039670731463391694,
+    "move_corner_or_anchor": 0.016406895801741997,
+    "move_edge": -0.008892169180507297,
     "move_is_pass": 0.021845194548435826,
-    "move_near_edge": 0.0993556735278145,
+    "move_near_edge": -0.08954079815104422,
     "move_type:pass": 0.021845194548435826,
-    "move_type:play": -0.013594043299523406,
-    "player:black": 0.05180589239635367,
-    "player:white": -0.0448384594956956,
-    "topology:t3": 0.00714927123550799
+    "move_type:play": -0.016443614498350467,
+    "player:black": -5.723578120013904,
+    "player:white": 5.701741622087693,
+    "topology:t3": -0.012255695282677542
   },
   "training": {
-    "examples": 1583,
+    "examples": 8000,
     "epochs": 8,
-    "lr": 0.04,
+    "lr": 0.05,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T03:47:43.935Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/3dgo-t3-fcc-s4-100-linear.json",
+      "trainingInput": "local-data/selfplay/3dgo-t3-fcc-s4-100.jsonl",
+      "examples": 1583
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.693891,
-        "examples": 1583,
-        "accuracy": 0.4915,
-        "logLoss": 0.693089,
-        "brier": 0.004867
+        "loss": 0.029745,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.006249,
+        "brier": 0.000042
       },
       {
         "epoch": 2,
-        "loss": 0.693921,
-        "examples": 1583,
-        "accuracy": 0.4883,
-        "logLoss": 0.692972,
-        "brier": 0.004808
+        "loss": 0.004833,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.003981,
+        "brier": 0.000017
       },
       {
         "epoch": 3,
-        "loss": 0.69385,
-        "examples": 1583,
-        "accuracy": 0.5351,
-        "logLoss": 0.69303,
-        "brier": 0.004837
+        "loss": 0.003614,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.003342,
+        "brier": 0.000012
       },
       {
         "epoch": 4,
-        "loss": 0.693889,
-        "examples": 1583,
-        "accuracy": 0.6058,
-        "logLoss": 0.692962,
-        "brier": 0.004803
+        "loss": 0.003199,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.003087,
+        "brier": 0.00001
       },
       {
         "epoch": 5,
-        "loss": 0.693972,
-        "examples": 1583,
-        "accuracy": 0.5502,
-        "logLoss": 0.692992,
-        "brier": 0.004818
+        "loss": 0.003023,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.002971,
+        "brier": 0.000009
       },
       {
         "epoch": 6,
-        "loss": 0.693855,
-        "examples": 1583,
-        "accuracy": 0.2994,
-        "logLoss": 0.693049,
-        "brier": 0.004847
+        "loss": 0.00294,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.002917,
+        "brier": 0.000009
       },
       {
         "epoch": 7,
-        "loss": 0.693945,
-        "examples": 1583,
-        "accuracy": 0.4611,
-        "logLoss": 0.692957,
-        "brier": 0.004801
+        "loss": 0.002902,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.002892,
+        "brier": 0.000009
       },
       {
         "epoch": 8,
-        "loss": 0.693893,
-        "examples": 1583,
-        "accuracy": 0.9097,
-        "logLoss": 0.693749,
-        "brier": 0.005196
+        "loss": 0.002882,
+        "examples": 8000,
+        "accuracy": 1,
+        "logLoss": 0.002873,
+        "brier": 0.000009
       }
     ],
-    "featureCount": 27,
-    "input": "local-data/selfplay/3dgo-t3-fcc-s4-100.jsonl",
+    "featureCount": 28,
+    "input": "local-data/selfplay/week-robot-training/2026-08-07T13-31-56-579Z/3dgo-t3-fcc-s4.jsonl",
     "gameFilter": "3dgo",
     "modeFilter": "",
     "topWeights": [
       {
-        "feature": "move_near_edge",
-        "weight": 0.099356
-      },
-      {
-        "feature": "cross:edge:t3",
-        "weight": -0.053176
-      },
-      {
-        "feature": "move_edge",
-        "weight": -0.053176
-      },
-      {
         "feature": "player:black",
-        "weight": 0.051806
+        "weight": -5.723578
       },
       {
         "feature": "player:white",
-        "weight": -0.044838
+        "weight": 5.701742
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": -1.239054
+      },
+      {
+        "feature": "coord_1",
+        "weight": 0.330986
+      },
+      {
+        "feature": "coord_2",
+        "weight": 0.267165
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": -0.089541
       },
       {
         "feature": "go_pass_count",
         "weight": 0.042535
       },
       {
-        "feature": "coord_1",
-        "weight": 0.032616
+        "feature": "move_center_closeness",
+        "weight": -0.039671
       },
       {
-        "feature": "coord_2",
-        "weight": -0.022208
+        "feature": "coord_0",
+        "weight": 0.030638
       },
       {
         "feature": "move_is_pass",
@@ -148,72 +162,72 @@
         "weight": 0.021845
       },
       {
-        "feature": "move_center_closeness",
-        "weight": -0.021301
+        "feature": "move_type:play",
+        "weight": -0.016444
       },
       {
         "feature": "move_corner_or_anchor",
-        "weight": -0.013963
-      },
-      {
-        "feature": "move_type:play",
-        "weight": -0.013594
-      },
-      {
-        "feature": "coord_0",
-        "weight": -0.010934
+        "weight": 0.016407
       },
       {
         "feature": "bias",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "boundary:t3",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "cross:3dgo:t3",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "cross:3dgo:t3:fcc",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "dimension",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "game_is:3dgo",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "game:3dgo",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "go_empty_fraction",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "lattice:fcc",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "move_bias",
-        "weight": 0.007149
+        "weight": -0.012256
       },
       {
         "feature": "topology:t3",
-        "weight": 0.007149
+        "weight": -0.012256
+      },
+      {
+        "feature": "cross:edge:t3",
+        "weight": -0.008892
+      },
+      {
+        "feature": "move_edge",
+        "weight": -0.008892
       },
       {
         "feature": "legal_count_log",
-        "weight": 0.003882
+        "weight": 0.005172
       },
       {
         "feature": "board_size",
-        "weight": 0.001505
+        "weight": -0.00258
       }
     ]
   }
