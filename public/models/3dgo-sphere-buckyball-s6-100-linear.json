@@ -1,83 +1,224 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T03:48:05.587Z",
+  "createdAt": "2026-08-07T13:34:56.146Z",
   "modelType": "linear-logistic-policy-value",
-  "weights": {},
+  "weights": {
+    "bias": 0.007129121403412415,
+    "board_size": 0.0022512981188623537,
+    "boundary:sphere_latitude_ring": 0.007129121403412415,
+    "coord_0": -0.026717758596050335,
+    "cross:3dgo:sphere_latitude_ring": 0.007129121403412415,
+    "cross:3dgo:sphere_latitude_ring:buckyball": 0.007129121403412415,
+    "cross:edge:sphere_latitude_ring": 0.0025473556317185285,
+    "dimension": 0.004752749978648883,
+    "game_is:3dgo": 0.007129121403412415,
+    "game:3dgo": 0.007129121403412415,
+    "go_capture_balance": 0.8923468311385303,
+    "go_empty_fraction": 0.007129121403412415,
+    "go_pass_count": 2.1797051951160547,
+    "lattice:buckyball": 0.007129121403412415,
+    "legal_count_log": -0.11062704653744206,
+    "move_bias": 0.007129121403412415,
+    "move_center_closeness": -0.07415317015598655,
+    "move_corner_or_anchor": 0.2161916487398521,
+    "move_edge": 0.0025473556317185285,
+    "move_is_pass": -0.0592297338481935,
+    "move_near_edge": 0.0025473556317185285,
+    "move_type:pass": -0.0592297338481935,
+    "move_type:play": 0.0025473556317185285,
+    "player:black": -2.032859218045001,
+    "player:white": 2.044091653977388,
+    "topology:sphere_latitude_ring": 0.007129121403412415
+  },
   "training": {
-    "examples": 1600,
+    "examples": 6576,
     "epochs": 8,
-    "lr": 0.04,
+    "lr": 0.05,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T03:48:05.587Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/3dgo-sphere-buckyball-s6-100-linear.json",
+      "trainingInput": "local-data/selfplay/3dgo-sphere-buckyball-s6-100.jsonl",
+      "examples": 1600
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.535657,
+        "examples": 6576,
+        "accuracy": 0.851,
+        "logLoss": 0.436295,
+        "brier": 0.13006
       },
       {
         "epoch": 2,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.533099,
+        "examples": 6576,
+        "accuracy": 0.851,
+        "logLoss": 0.443196,
+        "brier": 0.130981
       },
       {
         "epoch": 3,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.535429,
+        "examples": 6576,
+        "accuracy": 0.8397,
+        "logLoss": 0.579577,
+        "brier": 0.162225
       },
       {
         "epoch": 4,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.529427,
+        "examples": 6576,
+        "accuracy": 0.851,
+        "logLoss": 0.44033,
+        "brier": 0.130293
       },
       {
         "epoch": 5,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.534897,
+        "examples": 6576,
+        "accuracy": 0.851,
+        "logLoss": 0.436962,
+        "brier": 0.130478
       },
       {
         "epoch": 6,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.532703,
+        "examples": 6576,
+        "accuracy": 0.8379,
+        "logLoss": 0.522624,
+        "brier": 0.149353
       },
       {
         "epoch": 7,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.533233,
+        "examples": 6576,
+        "accuracy": 0.5847,
+        "logLoss": 0.805601,
+        "brier": 0.239474
       },
       {
         "epoch": 8,
-        "loss": 0.693147,
-        "examples": 1600,
-        "accuracy": 1,
-        "logLoss": 0.693147,
-        "brier": 0
+        "loss": 0.529554,
+        "examples": 6576,
+        "accuracy": 0.851,
+        "logLoss": 0.432321,
+        "brier": 0.129296
       }
     ],
-    "featureCount": 27,
-    "input": "local-data/selfplay/3dgo-sphere-buckyball-s6-100.jsonl",
+    "featureCount": 26,
+    "input": "local-data/selfplay/week-robot-training/2026-08-07T13-31-56-579Z/3dgo-sphere-buckyball-s6.jsonl",
     "gameFilter": "3dgo",
     "modeFilter": "",
-    "topWeights": []
+    "topWeights": [
+      {
+        "feature": "go_pass_count",
+        "weight": 2.179705
+      },
+      {
+        "feature": "player:white",
+        "weight": 2.044092
+      },
+      {
+        "feature": "player:black",
+        "weight": -2.032859
+      },
+      {
+        "feature": "go_capture_balance",
+        "weight": 0.892347
+      },
+      {
+        "feature": "move_corner_or_anchor",
+        "weight": 0.216192
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.110627
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.074153
+      },
+      {
+        "feature": "move_is_pass",
+        "weight": -0.05923
+      },
+      {
+        "feature": "move_type:pass",
+        "weight": -0.05923
+      },
+      {
+        "feature": "coord_0",
+        "weight": -0.026718
+      },
+      {
+        "feature": "bias",
+        "weight": 0.007129
+      },
+      {
+        "feature": "boundary:sphere_latitude_ring",
+        "weight": 0.007129
+      },
+      {
+        "feature": "cross:3dgo:sphere_latitude_ring",
+        "weight": 0.007129
+      },
+      {
+        "feature": "cross:3dgo:sphere_latitude_ring:buckyball",
+        "weight": 0.007129
+      },
+      {
+        "feature": "game_is:3dgo",
+        "weight": 0.007129
+      },
+      {
+        "feature": "game:3dgo",
+        "weight": 0.007129
+      },
+      {
+        "feature": "go_empty_fraction",
+        "weight": 0.007129
+      },
+      {
+        "feature": "lattice:buckyball",
+        "weight": 0.007129
+      },
+      {
+        "feature": "move_bias",
+        "weight": 0.007129
+      },
+      {
+        "feature": "topology:sphere_latitude_ring",
+        "weight": 0.007129
+      },
+      {
+        "feature": "dimension",
+        "weight": 0.004753
+      },
+      {
+        "feature": "cross:edge:sphere_latitude_ring",
+        "weight": 0.002547
+      },
+      {
+        "feature": "move_edge",
+        "weight": 0.002547
+      },
+      {
+        "feature": "move_near_edge",
+        "weight": 0.002547
+      },
+      {
+        "feature": "move_type:play",
+        "weight": 0.002547
+      },
+      {
+        "feature": "board_size",
+        "weight": 0.002251
+      }
+    ]
   }
 }
