@@ -118,6 +118,7 @@
     "verify:jump-surfaces": "node verification/verify-jump-surfaces.mjs",
     "verify:robot-legality": "node verification/verify-robot-move-legality.mjs",
     "verify:robot-levels": "node verification/verify-robot-levels-current-rules.mjs",
+    "verify:chess-robot-strategy": "node verification/verify-chess-robot-strategy.mjs",
     "verify:hex-robot-strategy": "node verification/verify-hex-robot-strategy.mjs",
     "verify:go-robot-strategy": "node verification/verify-go-robot-strategy.mjs",
     "benchmark:public-engines": "node verification/benchmark-standard-robots-vs-public-engines.mjs",

@@ -77,6 +77,7 @@ const LOCAL_ENDGAME_BOOKS = Object.freeze({
   go: Object.freeze({ scoreLead: 2.0, ownershipSwing: 1.4, libertyPressure: 1.0 }),
   reversi: Object.freeze({ enabled: true, maxEmptySquares: 10, fallback: 'local-search' })
 });
+const STANDARD_CHESS_BOUNDARIES = new Set(['forbidden', 'open']);
 
 function coordKey(coord) {
   return Array.isArray(coord) ? coord.join(',') : '';
@@ -191,6 +192,116 @@ function chessMoveKey2D(move) {
   if (!from || !to || !Number.isFinite(Number(from.r)) || !Number.isFinite(Number(from.c))) return '';
   const square = (coord) => `${String.fromCharCode(97 + Number(coord.c))}${8 - Number(coord.r)}`;
   return `${square(from)}${square(to)}`;
+}
+
+function parseChessSquare(square) {
+  const text = String(square || '').trim().toLowerCase();
+  if (!/^[a-h][1-8]$/.test(text)) return null;
+  return { c: text.charCodeAt(0) - 97, r: 8 - Number(text[1]) };
+}
+
+function chessPieceOnSquare(state, square) {
+  const coord = parseChessSquare(square);
+  return coord ? state?.board?.[coord.r]?.[coord.c] || null : null;
+}
+
+function chessSquareHas(state, square, color, type) {
+  const piece = chessPieceOnSquare(state, square);
+  return piece?.color === color && piece?.type === type;
+}
+
+function addChessBookEntry(entries, key, score, name) {
+  entries.push({ key, score, name, positionPlan: true });
+}
+
+function mergeChessBookRows(...rows) {
+  const merged = new Map();
+  for (const row of rows.flat()) {
+    if (!row?.key) continue;
+    const existing = merged.get(row.key);
+    if (!existing || Number(row.score) > Number(existing.score)) merged.set(row.key, row);
+  }
+  return [...merged.values()].sort((a, b) => Number(b.score) - Number(a.score));
+}
+
+function standardChessOpeningRows(state, player) {
+  const boundary = state?.boundaryCondition || 'forbidden';
+  if (!STANDARD_CHESS_BOUNDARIES.has(boundary)) return [];
+  if (!Array.isArray(state?.board?.[0]) || Array.isArray(state?.board?.[0]?.[0])) return [];
+  const ply = inferChessPly(state);
+  if (ply > 11) return [];
+  const entries = [];
+  const add = (key, score, name) => addChessBookEntry(entries, key, score, name);
+
+  if (player === 'white') {
+    if (ply <= 0) {
+      add('e2e4', 320, 'King pawn main line');
+      add('d2d4', 300, "Queen's pawn main line");
+      add('g1f3', 230, 'Reti knight development');
+      add('c2c4', 220, 'English opening');
+      return entries;
+    }
+    if (chessSquareHas(state, 'e4', 'white', 'P')) {
+      if (chessSquareHas(state, 'g1', 'white', 'N')) add('g1f3', 310, 'Develop king knight after e4');
+      if (chessSquareHas(state, 'f1', 'white', 'B')) {
+        if (chessSquareHas(state, 'c6', 'black', 'N')) add('f1b5', 286, 'Spanish bishop pressure');
+        add('f1c4', 270, 'Italian bishop development');
+      }
+      if (chessSquareHas(state, 'b1', 'white', 'N')) add('b1c3', 235, 'Develop queen knight');
+      if (chessSquareHas(state, 'd2', 'white', 'P') && chessSquareHas(state, 'c5', 'black', 'P')) add('d2d4', 246, 'Open Sicilian central break');
+      add('e1g1', 330, 'Castle king side');
+    }
+    if (chessSquareHas(state, 'd4', 'white', 'P')) {
+      if (chessSquareHas(state, 'c2', 'white', 'P')) add('c2c4', 312, "Queen's Gambit space");
+      if (chessSquareHas(state, 'g1', 'white', 'N')) add('g1f3', 278, "Queen's pawn knight development");
+      if (chessSquareHas(state, 'b1', 'white', 'N')) add('b1c3', 266, 'Support the d4/c4 center');
+      if (chessSquareHas(state, 'c1', 'white', 'B')) add('c1g5', 230, 'Develop queen bishop with pressure');
+      if (chessSquareHas(state, 'e2', 'white', 'P')) add('e2e3', 206, 'Solid center support');
+      add('e1g1', 324, 'Castle king side');
+    }
+    if (chessSquareHas(state, 'g1', 'white', 'N')) add('g1f3', 218, 'Develop king knight');
+    if (chessSquareHas(state, 'b1', 'white', 'N')) add('b1c3', 200, 'Develop queen knight');
+    if (chessSquareHas(state, 'f1', 'white', 'B')) add('f1c4', 190, 'Develop light-square bishop');
+    add('e1g1', 250, 'Castle king side');
+    add('e2e4', 186, 'Claim central space');
+    add('d2d4', 184, 'Claim central space');
+    return entries;
+  }
+
+  if (chessSquareHas(state, 'e4', 'white', 'P')) {
+    if (chessSquareHas(state, 'e7', 'black', 'P')) add('e7e5', 320, 'Open game reply');
+    if (chessSquareHas(state, 'c7', 'black', 'P')) add('c7c5', 304, 'Sicilian counterplay');
+    if (chessSquareHas(state, 'e7', 'black', 'P')) add('e7e6', 258, 'French defense structure');
+    if (chessSquareHas(state, 'c7', 'black', 'P')) add('c7c6', 246, 'Caro-Kann structure');
+  }
+  if (chessSquareHas(state, 'd4', 'white', 'P')) {
+    if (chessSquareHas(state, 'd7', 'black', 'P')) add('d7d5', 318, "Queen's pawn reply");
+    if (chessSquareHas(state, 'g8', 'black', 'N')) add('g8f6', 292, 'Indian knight development');
+    if (chessSquareHas(state, 'e7', 'black', 'P')) add('e7e6', 256, "Queen's pawn support");
+    if (chessSquareHas(state, 'c7', 'black', 'P')) add('c7c5', 242, 'Queen-side counterplay');
+  }
+  if (chessSquareHas(state, 'e5', 'black', 'P') && chessSquareHas(state, 'f3', 'white', 'N')) {
+    if (chessSquareHas(state, 'b8', 'black', 'N')) add('b8c6', 318, 'Develop queen knight in open game');
+    if (chessSquareHas(state, 'g8', 'black', 'N')) add('g8f6', 266, 'Develop king knight');
+    if (chessSquareHas(state, 'f8', 'black', 'B')) add('f8c5', 238, 'Active bishop development');
+  }
+  if (chessSquareHas(state, 'c5', 'black', 'P') && chessSquareHas(state, 'f3', 'white', 'N')) {
+    if (chessSquareHas(state, 'd7', 'black', 'P')) add('d7d6', 294, 'Sicilian solid center');
+    if (chessSquareHas(state, 'b8', 'black', 'N')) add('b8c6', 282, 'Sicilian knight development');
+    if (chessSquareHas(state, 'e7', 'black', 'P')) add('e7e6', 260, 'Sicilian flexible setup');
+  }
+  if (chessSquareHas(state, 'd5', 'black', 'P') && chessSquareHas(state, 'c4', 'white', 'P')) {
+    if (chessSquareHas(state, 'e7', 'black', 'P')) add('e7e6', 298, "Queen's Gambit declined");
+    if (chessSquareHas(state, 'c7', 'black', 'P')) add('c7c6', 280, 'Slav structure');
+    if (chessSquareHas(state, 'g8', 'black', 'N')) add('g8f6', 266, 'Develop king knight');
+  }
+  if (chessSquareHas(state, 'g8', 'black', 'N')) add('g8f6', 222, 'Develop king knight');
+  if (chessSquareHas(state, 'b8', 'black', 'N')) add('b8c6', 214, 'Develop queen knight');
+  if (chessSquareHas(state, 'f8', 'black', 'B')) add('f8c5', 196, 'Develop dark-square bishop');
+  add('e8g8', 322, 'Castle king side');
+  add('e7e5', 188, 'Claim central space');
+  add('d7d5', 186, 'Claim central space');
+  return entries;
 }
 
 function inferChessPly(state) {
@@ -316,22 +427,25 @@ function chessDevelopmentOpportunity(state, move, player, legalMoves) {
 export function chooseChessOpeningBookMove(state, legalMoves, player = state?.currentPlayer) {
   if (!Array.isArray(legalMoves) || !legalMoves.length) return null;
   const ply = inferChessPly(state);
-  if (ply > 7) return null;
-  const exactRows = LOCAL_OPENING_BOOKS.chess[`${ply}:${player}`] || [];
+  if (ply > 11) return null;
+  const exactRows = mergeChessBookRows(
+    standardChessOpeningRows(state, player),
+    LOCAL_OPENING_BOOKS.chess[`${ply}:${player}`] || []
+  );
   let best = null;
   for (const move of legalMoves) {
     const exact = exactRows.find((entry) => entry.key === chessMoveKey2D(move));
     const opportunity = chessDevelopmentOpportunity(state, move, player, legalMoves);
     const local = localChessKnowledgeScore(state, move, player, legalMoves);
     const exactScore = exact ? exact.score : 0;
-    const baseScore = exactScore ? exactScore + Math.max(0, opportunity * 0.35) : opportunity;
+    const baseScore = exactScore ? exactScore + Math.max(0, opportunity * 0.45) : opportunity;
     const score = baseScore + local.score;
     if (!best || score > best.score) {
       const baseName = exact?.name || 'Opening development opportunity';
-      best = { move, score, name: openingName(baseName, local.names), exact: Boolean(exact), knowledge: local.names };
+      best = { move, score, name: openingName(baseName, local.names), exact: Boolean(exact), positionPlan: Boolean(exact?.positionPlan), knowledge: local.names };
     }
   }
-  if (!best || best.score < (best.exact ? 80 : 86)) return null;
+  if (!best || best.score < (best.exact ? 100 : 92)) return null;
   return { ...best, ply, source: 'opening-book' };
 }
 

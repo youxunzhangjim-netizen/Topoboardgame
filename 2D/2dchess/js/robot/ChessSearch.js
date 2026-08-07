@@ -38,6 +38,23 @@ export function chooseRobotMoveFromState(inputState, depth = 3) {
     if (!legal.length) return { move: null, score: currentScore, scoreText: formatScore(currentScore), winRate: scoreToWinRate(currentScore), depth: 0, nodes: 0, truncated: false, completedDepth: 0 };
 
     const opening = chooseChessOpeningBookMove(state, allLegal, player);
+    if (shouldTrustChessOpening(state, opening, player, allLegal)) {
+        const next = applyMoveToState(state, opening.move);
+        const score = evaluateState(next, player) + Math.min(120, Math.max(0, opening.score) * 0.25);
+        return {
+            move: opening.move,
+            score,
+            scoreText: formatScore(score),
+            winRate: scoreToWinRate(score),
+            depth: maxDepth,
+            completedDepth: 0,
+            nodes: 1,
+            truncated: false,
+            openingBook: opening.name,
+            openingPly: opening.ply,
+            bookMoveCommitted: true
+        };
+    }
 
     const context = makeSearchContext(maxDepth, DEFAULT_NODE_LIMIT + maxDepth * 22000, TIME_BY_DEPTH_MS[maxDepth] || 420);
     let best = { move: legal[0], score: -INF };
@@ -141,6 +158,9 @@ export function analyzePositionFromState(inputState, depth = 3) {
         }
         row.openingBook = opening.name;
         row.openingPly = opening.ply;
+        row.score += Math.max(40, Math.min(180, Number(opening.score) || 0));
+        row.scoreText = formatScore(row.score);
+        row.winRate = scoreToWinRate(row.score);
         row.reasons = [`Opening book considered: ${opening.name}`, ...row.reasons.filter((reason) => !String(reason).startsWith('Opening book'))];
         results.sort((a, b) => b.score - a.score);
     }
@@ -312,6 +332,27 @@ function onePlyFallback(state, player, legal) {
         if (score > best.score) best = { move, score };
     }
     return best;
+}
+
+function shouldTrustChessOpening(state, opening, player, legalMoves) {
+    if (!opening?.move) return false;
+    if ((opening.ply ?? 99) > 9) return false;
+    if (!['forbidden', 'open'].includes(state.boundaryCondition || 'forbidden')) return opening.exact && opening.score >= 210;
+    if (isInCheck(state, player)) return false;
+    if (hasImmediateChessTacticalEmergency(legalMoves)) return false;
+    return opening.score >= (opening.positionPlan ? 135 : 175);
+}
+
+function hasImmediateChessTacticalEmergency(legalMoves) {
+    for (const move of legalMoves || []) {
+        if (!move?.capture || !move.capturedPiece) continue;
+        const captured = PIECE_VALUES[move.capturedPiece.type] || 0;
+        const attacker = PIECE_VALUES[move.piece?.type] || 0;
+        if (captured >= 900) return true;
+        if (captured >= 500 && captured - attacker >= -80) return true;
+        if (move.promotion) return true;
+    }
+    return false;
 }
 
 function explainMove(before, after, move, player, score) {

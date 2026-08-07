@@ -26,6 +26,7 @@ export function createAnalysisState(game) {
         enPassantTarget: game.enPassantTarget ? { ...game.enPassantTarget } : null,
         halfMoveClock: Number(game.halfMoveClock) || 0,
         positionHistory: Array.isArray(game.positionHistory) ? [...game.positionHistory] : [],
+        moveHistory: Array.isArray(game.moveHistory) ? [...game.moveHistory] : [],
         gameOver: Boolean(game.gameOver),
         winner: null,
         draw: false
@@ -48,6 +49,7 @@ export function normalizeState(state) {
         enPassantTarget: state.enPassantTarget ? { ...state.enPassantTarget } : null,
         halfMoveClock: Number(state.halfMoveClock) || 0,
         positionHistory: Array.isArray(state.positionHistory) ? [...state.positionHistory] : [],
+        moveHistory: Array.isArray(state.moveHistory) ? [...state.moveHistory] : [],
         gameOver: Boolean(state.gameOver),
         winner: state.winner || null,
         draw: Boolean(state.draw)
@@ -135,6 +137,13 @@ export function applyMoveToState(state, move) {
         piece.hasMoved = true;
         next.halfMoveClock = 0;
         next.enPassantTarget = null;
+        next.moveHistory.push({
+            type: 'move',
+            kind: 'suicide',
+            from: { ...from },
+            to: { ...to },
+            piece: move.piece ? { ...move.piece } : null
+        });
         const opponent = opponentOf(piece.color);
         if (piece.type === 'K') {
             next.gameOver = true;
@@ -175,6 +184,15 @@ export function applyMoveToState(state, move) {
     const actualCaptured = captured || enPassantCaptured;
     next.halfMoveClock = actualCaptured || move.piece?.type === 'P' ? 0 : next.halfMoveClock + 1;
     next.enPassantTarget = move.pawnDoubleJump ? { row: to.r, col: to.c } : null;
+    next.moveHistory.push({
+        type: 'move',
+        from: { ...from },
+        to: { ...to },
+        piece: move.piece ? { ...move.piece } : null,
+        capture: Boolean(actualCaptured),
+        castling: move.castling ? structuredClone(move.castling) : null,
+        promotion: promotion || null
+    });
     next.currentPlayer = opponentOf(next.currentPlayer);
 
     return finalizeState(next);
