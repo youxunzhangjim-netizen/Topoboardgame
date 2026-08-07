@@ -124,10 +124,47 @@ function trueEyeCount(config, board, group) {
     return regions.filter((info) => info.borderColors.size === 1 && info.borderColors.has(group.color)).length;
 }
 
-function surroundedByOpponentAfterRemoval(config, board, group) {
-    if (typeof config.isBoundaryUnit === 'function' && group.stones.some((stone) => config.isBoundaryUnit(stone))) {
-        return false;
+function regionPotentialEyeCount(region) {
+    const size = Array.isArray(region?.region) ? region.region.length : 0;
+    if (size <= 0) return 0;
+    if (size <= 3) return 1;
+    // Conservative: do not auto-kill large unsettled eye spaces. They may still
+    // contain enough room to form two eyes after normal life/death play.
+    return 2;
+}
+
+function groupEyeProfile(config, board, group) {
+    const opponent = group.color === 'black' ? 'white' : 'black';
+    const regions = collectLibertyRegions(config, board, group);
+    let trueEyes = 0;
+    let potentialEyes = 0;
+    let falseOrSharedRegions = 0;
+
+    for (const info of regions) {
+        const hasOwn = info.borderColors.has(group.color);
+        const hasOpponent = info.borderColors.has(opponent);
+        if (info.borderColors.size === 1 && hasOwn) {
+            trueEyes += 1;
+            potentialEyes += regionPotentialEyeCount(info);
+            continue;
+        }
+        if (hasOwn && !hasOpponent) {
+            potentialEyes += Math.min(1, regionPotentialEyeCount(info));
+            continue;
+        }
+        falseOrSharedRegions += 1;
     }
+
+    return {
+        trueEyes,
+        potentialEyes,
+        falseOrSharedRegions,
+        libertyRegionCount: regions.length,
+        libertyCount: regions.reduce((sum, info) => sum + info.region.length, 0)
+    };
+}
+
+function surroundedByOpponentAfterRemoval(config, board, group) {
     const opponent = group.color === 'black' ? 'white' : 'black';
     const virtualBoard = config.cloneBoard(board);
     for (const stone of group.stones) config.setValue(virtualBoard, stone, config.emptyValue);
@@ -135,6 +172,23 @@ function surroundedByOpponentAfterRemoval(config, board, group) {
     const start = group.stones[0];
     const info = emptyRegionInfo(config, virtualBoard, start);
     return info.borderColors.size === 1 && info.borderColors.has(opponent);
+}
+
+function isClearlyDeadGroup(config, board, group) {
+    const eyeProfile = groupEyeProfile(config, board, group);
+    if (eyeProfile.trueEyes >= 2) return false;
+    const touchesOpenBoundary = typeof config.isBoundaryUnit === 'function'
+        && group.stones.some((stone) => config.isBoundaryUnit(stone));
+    if (touchesOpenBoundary && eyeProfile.libertyCount > 3) return false;
+    if (!surroundedByOpponentAfterRemoval(config, board, group)) return false;
+
+    // Steam-safe life/death heuristic: if a group is fully inside opponent
+    // territory and has at most one credible eye space, count it as dead before
+    // area scoring. This catches surrounded one-eye and disconnected false-eye
+    // groups without trying to solve arbitrary life-and-death problems.
+    if (eyeProfile.potentialEyes < 2) return true;
+    if (eyeProfile.trueEyes <= 1 && eyeProfile.libertyRegionCount <= 1 && eyeProfile.libertyCount <= 3) return true;
+    return false;
 }
 
 export function detectGoDeadStoneCandidates(rawConfig = {}) {
@@ -150,8 +204,7 @@ export function detectGoDeadStoneCandidates(rawConfig = {}) {
         passes += 1;
         for (const group of stoneGroups(config, workingBoard)) {
             if (group.stones.some((stone) => dead.has(stone))) continue;
-            if (trueEyeCount(config, workingBoard, group) >= 2) continue;
-            if (!surroundedByOpponentAfterRemoval(config, workingBoard, group)) continue;
+            if (!isClearlyDeadGroup(config, workingBoard, group)) continue;
             for (const stone of group.stones) {
                 dead.add(stone);
                 config.setValue(workingBoard, stone, config.emptyValue);

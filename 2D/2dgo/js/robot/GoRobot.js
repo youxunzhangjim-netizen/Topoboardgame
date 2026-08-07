@@ -247,6 +247,17 @@ export function chooseGoRobotMove(logic, depth = 3) {
     const level = clampLevel(depth);
     const profile = searchProfile(logic, level);
     const opening = chooseGoOpeningBookMove(logic, getLegalPlayCandidates(logic, player, { profile, opening: true }), player);
+    if (shouldTrustGoOpening(logic, opening, player)) {
+        return {
+            move: opening.move,
+            score: opening.score,
+            nodes: 0,
+            truncated: false,
+            openingBook: opening.name,
+            openingPly: opening.ply,
+            bookMoveConsidered: undefined
+        };
+    }
     const analysis = analyzeGoPosition(logic, depth, { moveOnly: true });
     const best = analysis.topMoves[0] || null;
     const choseBookMove = opening && sameGoMove(best?.move, opening.move);
@@ -259,6 +270,22 @@ export function chooseGoRobotMove(logic, depth = 3) {
         openingPly: choseBookMove ? opening.ply : undefined,
         bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined
     };
+}
+
+function shouldTrustGoOpening(logic, opening, player) {
+    if (!opening?.move || opening.move.type === 'pass') return false;
+    const ply = Number(logic.moveNumber) || 0;
+    if (ply > 7 || opening.score < 86) return false;
+    return !hasImmediateGoTacticalEmergency(logic, player);
+}
+
+function hasImmediateGoTacticalEmergency(logic, player) {
+    const opponent = otherColor(player);
+    for (const info of allGroups(logic)) {
+        if (info.liberties > 1) continue;
+        if (info.color === player || info.color === opponent) return true;
+    }
+    return false;
 }
 
 export function analyzeGoPosition(logic, depth = 3, options = {}) {
@@ -278,7 +305,7 @@ export function analyzeGoPosition(logic, depth = 3, options = {}) {
         visits: 0,
         total: 0,
         best: -Infinity,
-        prior: (Number(move.prior) || quickMoveScore(logic, move, player)) + (opening && sameGoMove(move, opening.move) ? Math.max(-12, Math.min(12, opening.score / 12)) : 0)
+        prior: (Number(move.prior) || quickMoveScore(logic, move, player)) + (opening && sameGoMove(move, opening.move) ? Math.max(48, Math.min(180, opening.score)) : 0)
     }));
     const budget = profile.budget;
     let simulations = 0;
@@ -755,6 +782,7 @@ function ownTerritoryFillPenalty(logic, move) {
 }
 
 function areaScoreDiff(logic, player) {
+    if (boardFillRatio(logic) < 0.28 && !logic.passCount && !logic.scoringPending) return 0;
     try {
         const area = logic.computeAreaScore();
         return player === 'black' ? area.black - area.white : area.white - area.black;
@@ -888,7 +916,10 @@ function evaluateGo(logic, player) {
     }
     const opponent = otherColor(player);
     let area = { black: 0, white: logic.komi || 7.5 };
-    try { area = logic.computeAreaScore(); } catch { /* keep fallback */ }
+    const phase = boardFillRatio(logic);
+    if (phase > 0.28 || logic.passCount > 0 || logic.scoringPending || (logic.moveNumber || 0) > 0.24 * playablePointCount(logic)) {
+        try { area = logic.computeAreaScore(); } catch { /* keep fallback */ }
+    }
     const areaDiff = player === 'black' ? area.black - area.white : area.white - area.black;
     const captureDiff = (logic.captures[player] || 0) - (logic.captures[opponent] || 0);
     const groupDiff = groupScore(logic, player) - groupScore(logic, opponent);

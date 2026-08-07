@@ -50,6 +50,23 @@ function verifyTwoEyeGroupSurvives() {
     assert.equal(score.whiteStones, 13, 'live white group should count as live area stones');
 }
 
+function verifyOneEyeBoundaryGroupDies() {
+    const game = new Go2D({ size: 5, topology: 'open2d', lattice: 'square', komi: 0 });
+    fill(game, COLORS_2D.white, [[0, 1], [1, 1], [0, 2]]);
+    fill(game, COLORS_2D.black, [
+        [0, 0], [1, 0], [2, 0],
+        [2, 1], [2, 2],
+        [0, 3], [1, 3], [2, 3]
+    ]);
+
+    const score = game.computeAreaScore();
+    assert.equal(score.deadWhite, 3, 'a boundary group fully enclosed with no route to two eyes must be removed');
+    assert.equal(score.whiteStones, 0, 'dead one-eye boundary group must not count as live stones');
+    for (const coord of [[0, 1], [1, 1], [0, 2]]) {
+        assert.ok(score.territorySites.black.some((point) => point.join(',') === coord.join(',')), `removed point ${coord} should become black territory`);
+    }
+}
+
 function verifyMixedBorderNeutral() {
     const game = new Go2D({ size: 5, topology: 'open2d', lattice: 'square', komi: 0 });
     fill(game, COLORS_2D.black, [[0, 1], [0, 2], [0, 3]]);
@@ -92,6 +109,7 @@ function verify4DGraphDeadStone() {
 
 verifyDeadStoneInsideTerritory();
 verifyTwoEyeGroupSurvives();
+verifyOneEyeBoundaryGroupDies();
 verifyMixedBorderNeutral();
 verify3DGraphDeadStone();
 verify4DGraphDeadStone();

@@ -47,6 +47,19 @@ function verifyAtariSavePriority2D() {
   assert.ok(saveScore > unrelatedScore + 35, `save score ${saveScore} should dominate unrelated score ${unrelatedScore}`);
 }
 
+function verifyStandardOpeningUsesCorners2D() {
+  for (const size of [9, 13, 19]) {
+    const game = new Go2D({ size, topology: 'open2d', lattice: 'square' });
+    const robot = chooseGoRobotMove(game, 3);
+    assert.ok(robot.move?.coord, `2D Go robot should choose an opening move on ${size}x${size}`);
+    const [x, y] = robot.move.coord;
+    const minEdge = Math.min(x, y, size - 1 - x, size - 1 - y);
+    const center = Math.floor(size / 2);
+    assert.ok(minEdge >= 1 && minEdge <= 3, `opening ${key(robot.move.coord)} should be a corner/star-family move on ${size}x${size}`);
+    assert.notDeepEqual(robot.move.coord, [center, center], `opening on ${size}x${size} should not start at center`);
+  }
+}
+
 function verifyGraphTopologyMoveIsLegal3D() {
   for (const options of [
     { dimension: 3, size: 4, topology: 'r3', lattice: 'sc' },
@@ -63,6 +76,19 @@ function verifyGraphTopologyMoveIsLegal3D() {
   }
 }
 
+function verifyBuckyballRobotMoveIsLegalAndFast() {
+  const game = new Go3D({ dimension: 2, size: 6, width: 6, height: 6, topology: 'sphere_latitude_ring', lattice: 'buckyball' });
+  const start = performance.now();
+  const robot = chooseGo3DRobotMove(game, 1);
+  const elapsed = performance.now() - start;
+  assert.ok(robot.move, 'buckyball Go robot should return a move');
+  const applied = robot.move.type === 'pass'
+    ? game.pass(game.currentPlayer)
+    : game.tryPlay(robot.move.coord, game.currentPlayer);
+  assert.equal(applied.ok, true, 'buckyball Go robot move should be legal');
+  assert.ok(elapsed < 2500, `buckyball robot should not stall on a tiny graph; elapsed ${elapsed.toFixed(1)}ms`);
+}
+
 function verifyStrategicLayerDoesNotUseVisualDistanceAsLegality() {
   const game = new Go3D({ dimension: 2, width: 5, height: 4, topology: 't2', lattice: 'honeycomb' });
   const move = { type: 'play', coord: game.playableCoords()[0], captured: 0, liberties: 3 };
@@ -72,7 +98,9 @@ function verifyStrategicLayerDoesNotUseVisualDistanceAsLegality() {
 
 verifyAtariCapturePriority2D();
 verifyAtariSavePriority2D();
+verifyStandardOpeningUsesCorners2D();
 verifyGraphTopologyMoveIsLegal3D();
+verifyBuckyballRobotMoveIsLegalAndFast();
 verifyStrategicLayerDoesNotUseVisualDistanceAsLegality();
 
 console.log('Go robot strategy verification passed.');

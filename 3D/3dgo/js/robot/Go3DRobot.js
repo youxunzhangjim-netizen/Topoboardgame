@@ -298,7 +298,10 @@ function evaluate(logic, player = logic.currentPlayer) {
   }
   const opponent = otherColor(player);
   let area = { black: 0, white: 0 };
-  try { area = logic.computeAreaScore?.() || area; } catch {}
+  const phase = boardFillRatio(logic);
+  if (phase > 0.28 || logic.passCount > 0 || logic.scoringPending || (logic.moveNumber || 0) > 0.24 * playablePointCount(logic)) {
+    try { area = logic.computeAreaScore?.() || area; } catch {}
+  }
   const areaDiff = (area[player] || 0) - (area[opponent] || 0);
   const captureDiff = (logic.captures[player] || 0) - (logic.captures[opponent] || 0);
   const sparseLarge = isSparseLargeBoard(logic);
@@ -549,6 +552,7 @@ function ownTerritoryFillPenalty(logic, move) {
 }
 
 function areaScoreDiff(logic, player) {
+  if (boardFillRatio(logic) < 0.28 && !logic.passCount && !logic.scoringPending) return 0;
   try {
     const area = logic.computeAreaScore?.() || {};
     const opponent = otherColor(player);
@@ -656,7 +660,7 @@ export function analyzeGo3DPosition(logic, level = 1) {
     visits: 0,
     total: 0,
     best: -Infinity,
-    prior: (Number(move.prior) || movePrior(logic, move, player)) + (opening && sameMove(move, opening.move) ? Math.max(-12, Math.min(12, opening.score / 12)) : 0)
+    prior: (Number(move.prior) || movePrior(logic, move, player)) + (opening && sameMove(move, opening.move) ? Math.max(48, Math.min(180, opening.score)) : 0)
   }));
   const deadline = now() + profile.timeMs;
   let sims = 0;
@@ -722,6 +726,17 @@ export function chooseGo3DRobotMove(logic, level = 1) {
   const player = logic.currentPlayer;
   const profile = searchProfile(logic, clampLevel(level));
   const opening = chooseGoOpeningBookMove(logic, legalMoves(logic, player, { profile, opening: true }), player);
+  if (shouldTrustGo3DOpening(logic, opening, player)) {
+    return {
+      move: opening.move,
+      score: opening.score,
+      nodes: 0,
+      truncated: false,
+      openingBook: opening.name,
+      openingPly: opening.ply,
+      bookMoveConsidered: undefined
+    };
+  }
   const analysis = analyzeGo3DPosition(logic, level);
   const best = analysis.topMoves[0] || null;
   const choseBookMove = opening && sameMove(best?.move, opening.move);
@@ -734,6 +749,20 @@ export function chooseGo3DRobotMove(logic, level = 1) {
     openingPly: choseBookMove ? opening.ply : undefined,
     bookMoveConsidered: opening && !choseBookMove ? opening.name : undefined
   };
+}
+
+function shouldTrustGo3DOpening(logic, opening, player) {
+  if (!opening?.move || opening.move.type === 'pass') return false;
+  const ply = Number(logic.moveNumber) || 0;
+  if (ply > 7 || opening.score < 84) return false;
+  return !hasImmediateGo3DTacticalEmergency(logic, player);
+}
+
+function hasImmediateGo3DTacticalEmergency(logic, player) {
+  const opponent = otherColor(player);
+  for (const info of groupStats(logic, player)) if (info.liberties <= 1) return true;
+  for (const info of groupStats(logic, opponent)) if (info.liberties <= 1) return true;
+  return false;
 }
 
 export function installGo3DRobot(app) {

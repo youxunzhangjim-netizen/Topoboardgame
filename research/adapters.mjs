@@ -17,6 +17,8 @@ import { chooseGoRobotMove, analyzeGoPosition } from '../2D/2dgo/js/robot/GoRobo
 
 import { GoGameLogic as Go3DLogic, otherColor as otherGo3DColor } from '../3D/3dgo/js/GoGame.js';
 import { chooseGo3DRobotMove, analyzeGo3DPosition } from '../3D/3dgo/js/robot/Go3DRobot.js';
+import { chooseGoOpeningBookMove } from '../js/shared/RobotOpeningBook.js';
+import { scoreGoStrategicMove } from '../js/shared/GoStrategyHeuristics.js';
 
 import { ReversiGame, otherReversiColor } from '../js/reversi/ReversiGame.js';
 import { JumpGameState, chooseJumpRobotMove, otherPlayer as otherJumpPlayer } from '../js/shared/JumpRules.js';
@@ -155,12 +157,13 @@ function create2DGoAdapter(options = {}) {
     otherColor: otherGo2DColor,
     choose: chooseGoRobotMove,
     analyze: analyzeGoPosition,
-    fastLegalMoves: Boolean(options.fastLegalMoves)
+    fastLegalMoves: Boolean(options.fastLegalMoves),
+    fastBuiltin: Boolean(options.fastLegalMoves)
   });
 }
 
 function create3DGoAdapter(options = {}) {
-  const topology = options.boundary || options.topology || 'r3';
+  const topology = normalize3DGoAdapterTopology(options.boundary || options.topology || 'r3');
   const isVolume = ['r3', 't3', 'r3_random'].includes(String(topology).toLowerCase());
   const logic = new Go3DLogic({
     size: clamp(Number(options.size) || 5, 3, 9),
@@ -170,10 +173,31 @@ function create3DGoAdapter(options = {}) {
     komi: Number.isFinite(Number(options.komi)) ? Number(options.komi) : 7.5,
     randomBoundarySeed: options.seed || ''
   });
-  return makeGoAdapter({ kind: '3dgo', logic, otherColor: otherGo3DColor, choose: chooseGo3DRobotMove, analyze: analyzeGo3DPosition, sampledLegalMoves: true });
+  return makeGoAdapter({
+    kind: '3dgo',
+    logic,
+    otherColor: otherGo3DColor,
+    choose: chooseGo3DRobotMove,
+    analyze: analyzeGo3DPosition,
+    sampledLegalMoves: true,
+    fastLegalMoves: Boolean(options.fastLegalMoves),
+    fastBuiltin: Boolean(options.fastLegalMoves)
+  });
 }
 
-function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalMoves = false, fastLegalMoves = false }) {
+function normalize3DGoAdapterTopology(topology) {
+  const value = String(topology || '').toLowerCase();
+  if (['s2', 'sphere', 'sphere_latitude', 'sphere-latitude', 'sphere_latitude_ring'].includes(value)) return 'sphere_latitude_ring';
+  if (['torus', 't2', 'surface_torus'].includes(value)) return 't2';
+  if (['cyl', 'cylinder', 'surface_cylinder'].includes(value)) return 'cylinder';
+  if (['mobius', 'mobius_strip', 'mobius-strip'].includes(value)) return 'mobius_strip';
+  if (['rp2', 'projective_plane'].includes(value)) return 'rp2';
+  if (['rbc', 'random', 'r3_random'].includes(value)) return 'r3_random';
+  if (['pbc', 't3', 'torus3', '3torus'].includes(value)) return 't3';
+  return topology || 'r3';
+}
+
+function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalMoves = false, fastLegalMoves = false, fastBuiltin = false }) {
   const listMoves = () => sampledLegalMoves
     ? sampledGoLegalMoves(logic, logic.currentPlayer)
     : fastLegalMoves
@@ -190,8 +214,8 @@ function makeGoAdapter({ kind, logic, otherColor, choose, analyze, sampledLegalM
     },
     legalMoves: listMoves,
     serializeState: () => compactGoState(logic),
-    evaluate: () => analyze(logic, 1).currentScore,
-    chooseBuiltin: (level = 1) => choose(logic, level),
+    evaluate: () => fastBuiltin ? fastGoTrainingEvaluate(logic, logic.currentPlayer) : analyze(logic, 1).currentScore,
+    chooseBuiltin: (level = 1) => fastBuiltin ? chooseFastGoTrainingMove(logic, level) : choose(logic, level),
     analyze: (level = 1) => analyze(logic, level),
     applyMove(move) {
       const direct = normalizeGoMove(move);
@@ -579,6 +603,159 @@ function normalizeGoMove(move) {
     if (coord.every(Number.isFinite)) return { ...move, type: move.type || 'play', coord, id: move.id, label: move.label || `(${move.id})` };
   }
   return null;
+}
+
+function chooseFastGoTrainingMove(logic, level = 1) {
+  const player = logic.currentPlayer;
+  const moves = fastGoTrainingMoves(logic, player, level);
+  const opening = chooseGoOpeningBookMove(logic, moves, player);
+  if (opening && !hasFastGoEmergency(logic, player) && (Number(logic.moveNumber) || 0) <= 7) {
+    return { move: opening.move, score: opening.score, nodes: moves.length, searched: moves.length, openingBook: opening.name };
+  }
+  let best = null;
+  for (const move of moves) {
+    const score = fastGoTrainingMoveScore(logic, move, player)
+      + (opening && sameGoTrainingMove(move, opening.move) ? Math.max(70, opening.score) : 0)
+      + Math.random() * Math.max(0.4, 2.2 / Math.max(1, level));
+    if (!best || score > best.score) best = { move, score };
+  }
+  return { move: best?.move || { type: 'pass', id: 'pass', label: 'Pass' }, score: best?.score || 0, nodes: moves.length, searched: moves.length, fastTraining: true };
+}
+
+function fastGoTrainingMoves(logic, player, level = 1) {
+  const pointCount = playableCoords(logic).length;
+  const limit = Math.max(28, Math.min(84, 22 + 12 * (Number(level) || 1)));
+  const candidates = pointCount <= 180
+    ? fastGoLegalMoves(logic)
+    : sampledGoLegalMoves(logic, player, limit);
+  const seen = new Set();
+  const moves = [];
+  for (const move of candidates) {
+    const normalized = normalizeGoMove(move);
+    if (!normalized) continue;
+    const id = normalized.id || normalized.coord?.join(',') || 'pass';
+    if (seen.has(id)) continue;
+    seen.add(id);
+    moves.push(normalized);
+  }
+  return moves.length ? moves : [{ type: 'pass', id: 'pass', label: 'Pass' }];
+}
+
+function fastGoTrainingEvaluate(logic, player) {
+  const opponent = otherGoColorName(player);
+  let score = 0;
+  for (let index = 0; index < (logic.board?.length || 0); index += 1) {
+    const value = logic.board[index];
+    if (!value || (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index))) continue;
+    const color = value === 1 ? 'black' : value === 2 ? 'white' : '';
+    const group = logic.getGroupAndLiberties(logic.board, index);
+    const sign = color === player ? 1 : color === opponent ? -1 : 0;
+    score += sign * (2.4 * group.group.size + 1.7 * group.liberties.size - (group.liberties.size <= 1 ? 34 : group.liberties.size === 2 ? 10 : 0));
+  }
+  return score;
+}
+
+function fastGoTrainingMoveScore(logic, move, player) {
+  if (!move || move.type === 'pass') return fastGoPassScore(logic);
+  const preview = fastGoPreview(logic, move.coord, player);
+  if (!preview.ok) return -100000;
+  const opponent = otherGoColorName(player);
+  let score = 0;
+  score += 78 * preview.captured;
+  score += 5.2 * Math.min(8, preview.liberties);
+  if (preview.liberties <= 1 && preview.captured <= 0) score -= 120;
+  const index = logic.indexFromCoord(move.coord);
+  for (const next of logic.neighborsFromIndex(index)) {
+    const value = logic.board[next];
+    if (!value) {
+      score += 1.3;
+      continue;
+    }
+    const color = value === 1 ? 'black' : value === 2 ? 'white' : '';
+    const group = logic.getGroupAndLiberties(logic.board, next);
+    if (color === player) {
+      if (group.liberties.size <= 1) score += 96 + 4 * group.group.size;
+      else if (group.liberties.size === 2) score += 32 + 1.6 * group.group.size;
+      else score += 4;
+    } else if (color === opponent) {
+      if (group.liberties.size <= 1) score += 104 + 4 * group.group.size;
+      else if (group.liberties.size === 2) score += 38 + 1.8 * group.group.size;
+      else score += 3;
+    }
+  }
+  score += scoreGoStrategicMove(logic, { ...move, captured: preview.captured, liberties: preview.liberties }, player);
+  return score;
+}
+
+function fastGoPreview(logic, coord, player) {
+  if (!Array.isArray(coord) || !logic.containsCoord?.(coord)) return { ok: false };
+  const index = logic.indexFromCoord(coord);
+  if (index < 0 || logic.board[index] !== 0) return { ok: false };
+  const ownValue = player === 'white' ? 2 : 1;
+  const enemyValue = player === 'white' ? 1 : 2;
+  const nextBoard = new Uint8Array(logic.board);
+  nextBoard[index] = ownValue;
+  let captured = 0;
+  const checked = new Set();
+  for (const neighbor of logic.neighborsFromIndex(index)) {
+    if (nextBoard[neighbor] !== enemyValue || checked.has(neighbor)) continue;
+    const enemy = logic.getGroupAndLiberties(nextBoard, neighbor);
+    for (const stone of enemy.group) checked.add(stone);
+    if (enemy.liberties.size === 0) {
+      captured += enemy.group.size;
+      for (const stone of enemy.group) nextBoard[stone] = 0;
+    }
+  }
+  const own = logic.getGroupAndLiberties(nextBoard, index);
+  if (own.liberties.size === 0) return { ok: false };
+  try {
+    const serialized = logic.serializeBoard?.(nextBoard);
+    if (serialized && logic.positionSet?.has(serialized)) return { ok: false };
+  } catch {
+    // Keep the fast training path alive; applyMove still enforces final legality.
+  }
+  return { ok: true, captured, liberties: own.liberties.size };
+}
+
+function hasFastGoEmergency(logic, player) {
+  const opponent = otherGoColorName(player);
+  const visited = new Set();
+  for (let index = 0; index < (logic.board?.length || 0); index += 1) {
+    if (visited.has(index) || !logic.board[index] || (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index))) continue;
+    const color = logic.board[index] === 1 ? 'black' : logic.board[index] === 2 ? 'white' : '';
+    if (color !== player && color !== opponent) continue;
+    const group = logic.getGroupAndLiberties(logic.board, index);
+    for (const stone of group.group) visited.add(stone);
+    if (group.liberties.size <= 1) return true;
+  }
+  return false;
+}
+
+function fastGoPassScore(logic) {
+  const fill = boardFillRatioFromLogic(logic);
+  if (logic.passCount > 0 && fill > 0.5) return 25 + 60 * fill;
+  return -90 + 135 * fill;
+}
+
+function boardFillRatioFromLogic(logic) {
+  let playable = 0;
+  let stones = 0;
+  for (let index = 0; index < (logic.board?.length || 0); index += 1) {
+    if (typeof logic.isPlayableIndex === 'function' && !logic.isPlayableIndex(index)) continue;
+    playable += 1;
+    if (logic.board[index]) stones += 1;
+  }
+  return playable ? stones / playable : 0;
+}
+
+function sameGoTrainingMove(a, b) {
+  if (!a || !b) return false;
+  if (a.type === 'pass' || b.type === 'pass') return a.type === b.type;
+  return Array.isArray(a.coord) && Array.isArray(b.coord) && a.coord.length === b.coord.length && a.coord.every((value, index) => Number(value) === Number(b.coord[index]));
+}
+
+function otherGoColorName(player) {
+  return player === 'black' ? 'white' : 'black';
 }
 
 function sampledGoLegalMoves(logic, player, limit = 24) {
