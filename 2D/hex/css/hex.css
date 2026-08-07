@@ -324,6 +324,41 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .robot-move-list li { margin-bottom: 6px; }
 .robot-move-list span { display: block; }
 
+.robot-final-flow h4 {
+    margin: 0 0 6px;
+    color: #e6fbff;
+    font-size: 14px;
+}
+
+.robot-final-bars {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.robot-final-rate-row {
+    display: grid;
+    grid-template-columns: minmax(56px, 0.55fr) minmax(110px, 1fr) 52px;
+    align-items: center;
+    gap: 8px;
+}
+
+.robot-final-rate-track {
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+}
+
+.robot-final-rate-track i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.robot-flow-black { background: linear-gradient(90deg, #54c7e8, #208aa8); }
+.robot-flow-white { background: linear-gradient(90deg, #ffd76a, #d49b15); }
+
 .view-settings {
     display: grid;
     gap: 10px;

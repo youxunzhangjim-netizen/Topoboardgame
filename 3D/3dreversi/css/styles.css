@@ -264,6 +264,45 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
     border: 1px solid rgba(72,199,244,0.2);
 }
 
+.robot-final-flow h4 {
+    margin: 0 0 0.45rem;
+    color: #e0f2fe;
+}
+
+.robot-final-bars {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.7rem 0;
+}
+
+.robot-final-rate-row {
+    display: grid;
+    grid-template-columns: minmax(64px, 0.6fr) minmax(120px, 1fr) 56px;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.robot-final-rate-track {
+    height: 10px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+}
+
+.robot-final-rate-track i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.robot-flow-black {
+    background: linear-gradient(90deg, #0f172a, #475569);
+}
+
+.robot-flow-white {
+    background: linear-gradient(90deg, #f8fafc, #cbd5e1);
+}
+
 /* R3 coordinate plane filter */
 .r3-filter-control { border-color: rgba(125, 211, 252, 0.24); background: rgba(8, 13, 20, 0.58); }
 .r3-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

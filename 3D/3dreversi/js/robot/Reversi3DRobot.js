@@ -1,6 +1,7 @@
 import { ReversiGame, otherReversiColor } from '../../../../js/reversi/ReversiGame.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 import { chooseReversiOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
+import { finalRatesFromWinner, renderFinalWinSummary } from '../../../../js/shared/RobotFinalAnalysis.js';
 
 const INF = 1e9;
 const TIME_MS = { 1: 80, 2: 220, 3: 520, 4: 900 };
@@ -210,6 +211,25 @@ function render(panel, a) {
   panel.innerHTML = `<h3>3D Reversi Robot Analysis</h3><p><strong>${a.player}</strong> to play · score ${a.currentScore.toFixed(1)} · win estimate ${(a.currentWinRate*100).toFixed(1)}% · ${a.topology}/${a.lattice} · nodes ${a.searched}${a.truncated ? ' (time-limited)' : ''}</p><p>Black ${a.counts.black}, White ${a.counts.white}, Empty ${a.counts.empty}; completed depth ${a.completedDepth}</p><h4>Top moves</h4><ol>${a.topMoves.map(r=>`<li><strong>${coordLabel(r.move.coord)}</strong> — ${r.score.toFixed(1)}, ${(r.winRate*100).toFixed(1)}%<br>${r.reasons.join('; ')}</li>`).join('')}</ol><h4>Bad moves</h4><ol>${a.badMoves.map(r=>`<li>${coordLabel(r.move.coord)} — ${r.score.toFixed(1)}<br>${r.reasons.join('; ')}</li>`).join('')}</ol>`;
 }
 
+function renderFinal(panel, logic, resultText = '') {
+  if (!panel || !logic?.gameOver) return;
+  const key = `${logic.moveHistory?.length || 0}:${logic.winner || 'none'}`;
+  if (panel.dataset.finalSummaryKey === key) return;
+  panel.dataset.finalSummaryKey = key;
+  const counts = logic.counts();
+  const rates = finalRatesFromWinner(logic.winner, 'black', 'white');
+  const result = resultText || (logic.winner === 'draw'
+    ? `Draw (Black ${counts.black}, White ${counts.white})`
+    : `${logic.winner === 'black' ? 'Black' : 'White'} wins by ${Math.abs(counts.black - counts.white)} (Black ${counts.black}, White ${counts.white})`);
+  panel.innerHTML = renderFinalWinSummary({
+    title: 'Final winning estimate',
+    result,
+    first: { id: 'black', label: 'Black', rate: rates.first },
+    second: { id: 'white', label: 'White', rate: rates.second },
+    note: 'Reversi result is exact; the bars show the completed local, robot, or online game result.'
+  });
+}
+
 export function chooseReversi3DRobotMove(logic, depth = 3) {
   const player = logic.currentPlayer;
   const opening = chooseReversiOpeningBookMove(logic, logic.legalMoves(player), player);
@@ -267,14 +287,15 @@ export function installReversi3DRobot(app) {
         app.setStatus?.(`Robot ${actor} flipped ${result.flipped} ${result.flipped === 1 ? 'stone' : 'stones'}.`);
         app.updateUI?.();
         app.broadcastState?.();
+        if (app.logic.gameOver) renderFinal(out, app.logic, app.resultText?.());
       }
     }
   }
   function schedule(){ if(isRobot()) window.setTimeout(makeMove,180); }
   panel.querySelector('#reversiRobotMoveBtn')?.addEventListener('click',makeMove); panel.querySelector('#reversiRobotAnalyzeBtn')?.addEventListener('click',()=>render(out,analyzeReversi3DPosition(app.logic,Number(depth.value)||2)));
   side.addEventListener('change',schedule); modeSelect?.addEventListener('change',()=>{ app.updateOnlineControls?.(); schedule(); });
-  const oldPlayAt = app.playAt?.bind(app); if (oldPlayAt) app.playAt = function(...args){ const before = app.logic.currentPlayer; const r = oldPlayAt(...args); if (app.logic.currentPlayer !== before || app.logic.gameOver) schedule(); return r; };
-  const oldPassTurn = app.passTurn?.bind(app); if (oldPassTurn) app.passTurn = function(...args){ const before = app.logic.currentPlayer; const r = oldPassTurn(...args); if (app.logic.currentPlayer !== before || app.logic.gameOver) schedule(); return r; };
-  const oldReset = app.resetGame?.bind(app); if (oldReset) app.resetGame = function(...args){ const r = oldReset(...args); schedule(); return r; };
+  const oldPlayAt = app.playAt?.bind(app); if (oldPlayAt) app.playAt = function(...args){ const before = app.logic.currentPlayer; const r = oldPlayAt(...args); if (app.logic.gameOver) renderFinal(out, app.logic, app.resultText?.()); else if (app.logic.currentPlayer !== before) schedule(); return r; };
+  const oldPassTurn = app.passTurn?.bind(app); if (oldPassTurn) app.passTurn = function(...args){ const before = app.logic.currentPlayer; const r = oldPassTurn(...args); if (app.logic.gameOver) renderFinal(out, app.logic, app.resultText?.()); else if (app.logic.currentPlayer !== before) schedule(); return r; };
+  const oldReset = app.resetGame?.bind(app); if (oldReset) app.resetGame = function(...args){ const r = oldReset(...args); out.dataset.finalSummaryKey = ''; schedule(); return r; };
   schedule();
 }

@@ -275,6 +275,7 @@ export class JumpGameApp {
     this.sliceTileRegions = [];
     this.sliceCellSize = 0;
     this.pendingMoveId = '';
+    this.finalSummaryKey = '';
     this.applyInitialSelectValues();
     this.movePicker = this.ensureMovePicker();
     this.translateStaticUI();
@@ -543,6 +544,7 @@ export class JumpGameApp {
     this.selected = null;
     this.legal = [];
     this.pendingMoveId = '';
+    this.finalSummaryKey = '';
     this.history = [];
     this.syncTimerFromSelect(true);
     this.network.gameKey = this.onlineGameKey();
@@ -1919,6 +1921,7 @@ export class JumpGameApp {
     this.updateTimerDisplay();
     this.syncPieceFocusButton();
     this.renderMovePicker();
+    if (this.game.winner) this.renderFinalWinRateSummary();
   }
 
   resultText() {
@@ -1942,6 +1945,26 @@ export class JumpGameApp {
         : this.t('none', 'none');
       this.analysisEl.textContent = `${this.t('Current player', 'Current player')}: ${this.game.currentPlayer}\n${this.t('Legal moves', 'Legal moves')}: ${this.game.allLegalMoves().length}\n${this.t('Suggested move', 'Suggested move')}: ${suggested}\n${this.t('Player', 'Player')} A ${this.t('progress', 'progress')}: ${a.percentage}%\n${this.t('Player', 'Player')} B ${this.t('progress', 'progress')}: ${b.percentage}%${c ? `\n${this.t('Player', 'Player')} C ${this.t('progress', 'progress')}: ${c.percentage}%` : ''}\n${this.t('Score estimate for A', 'Score estimate for A')}: ${this.game.score('A')}`;
     }
+  }
+
+  renderFinalWinRateSummary() {
+    if (!this.analysisEl || !this.game?.winner) return;
+    const players = ['A', 'B', ...(this.game.playerCount >= 3 ? ['C'] : [])];
+    const key = `${this.game.turnNumber}:${this.game.winner}:${players.join('')}`;
+    if (this.finalSummaryKey === key) return;
+    this.finalSummaryKey = key;
+    const loserRate = players.length > 1 ? 0.1 / (players.length - 1) : 0;
+    const rows = players.map((player) => {
+      const rate = player === this.game.winner ? 99.9 : loserRate;
+      const progress = this.game.targetProgress(player);
+      return `${this.t('Player', 'Player')} ${player} ${this.t('Win estimate', 'Win estimate')}: ${rate.toFixed(1)}% (${progress.filled}/${progress.total})`;
+    });
+    this.analysisEl.textContent = [
+      this.t('Final winning estimate', 'Final winning estimate'),
+      this.resultText(),
+      ...rows,
+      this.t('Exact final result', 'Exact final result')
+    ].join('\n');
   }
 
   setStatus(text) { if (this.statusEl && text) this.statusEl.textContent = text; }

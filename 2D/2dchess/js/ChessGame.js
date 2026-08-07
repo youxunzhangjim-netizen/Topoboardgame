@@ -18,6 +18,8 @@ export class ChessGame {
         this.randomBoundarySeed = '';
         this.randomBoundaryMap = new Map();
         this.gameOver = false;
+        this.winner = null;
+        this.draw = false;
         this.showMoveHints = true;
         this.capturedPieces = { white: [], black: [] };
         this.timerEnabled = true;
@@ -131,6 +133,8 @@ export class ChessGame {
             timeRemaining: { ...this.timeRemaining },
             gameStarted: this.gameStarted,
             gameOver: this.gameOver,
+            winner: this.winner,
+            draw: this.draw,
             moveHistory: [...this.moveHistory],
             capturedPieces: {
                 white: [...this.capturedPieces.white],
@@ -163,6 +167,8 @@ export class ChessGame {
         };
         this.gameStarted = Boolean(state.gameStarted);
         this.gameOver = Boolean(state.gameOver);
+        this.winner = state.winner || null;
+        this.draw = Boolean(state.draw || this.winner === 'draw');
         this.moveHistory = Array.isArray(state.moveHistory) ? [...state.moveHistory] : [];
         this.capturedPieces = {
             white: Array.isArray(state.capturedPieces?.white) ? [...state.capturedPieces.white] : [],
@@ -430,6 +436,8 @@ export class ChessGame {
 
         if (movedType === 'K') {
             this.gameOver = true;
+            this.winner = opponent;
+            this.draw = false;
             if (this.timerInterval) clearInterval(this.timerInterval);
             this.setStatus('status.kingSuicideWin', { color: opponent });
         } else {
@@ -724,6 +732,7 @@ export class ChessGame {
 
     endGame(key, params = {}) {
         this.gameOver = true;
+        this.applyEndGameOutcome(key, params);
         this.clearSelection();
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.setStatus(key, params);
@@ -740,6 +749,8 @@ export class ChessGame {
         this.currentPlayer = 'white';
         this.moveHistory = [];
         this.gameOver = false;
+        this.winner = null;
+        this.draw = false;
         this.capturedPieces = { white: [], black: [] };
         this.gameStarted = false;
         this.enPassantTarget = null;
@@ -771,6 +782,18 @@ export class ChessGame {
         this.updateUI();
         this.robot?.scheduleRobotMoveIfNeeded();
         if (this.gameMode === 'online') this.network.persistState();
+    }
+
+    applyEndGameOutcome(key, params = {}) {
+        const status = String(key || '');
+        const winner = params.color === 'white' || params.color === 'black'
+            ? params.color
+            : status === 'online.opponentSurrendered'
+                ? this.myColor || this.currentPlayer
+                : null;
+        const draw = /stalemate|draw/i.test(status);
+        this.winner = draw ? 'draw' : winner;
+        this.draw = draw;
     }
 
     startTimer() {

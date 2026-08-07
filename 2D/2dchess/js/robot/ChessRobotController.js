@@ -2,6 +2,7 @@ import { chooseRobotMove, analyzePosition } from './ChessSearch.js';
 import { createAnalysisState, getAllLegalMoves, validateMoveStillLegal } from './ChessRobotAdapter.js';
 import { formatScore } from './ChessEvaluator.js';
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
+import { finalRatesFromWinner, renderFinalWinSummary } from '../../../../js/shared/RobotFinalAnalysis.js';
 
 export function robotPromotionForMove(legalMove) {
     return legalMove?.promotion || null;
@@ -17,6 +18,7 @@ export class ChessRobotController {
         this.pendingTimer = null;
         this.worker = null;
         this.workerRequestId = 0;
+        this.finalSummaryKey = '';
     }
 
     attachEventListeners() {
@@ -51,7 +53,12 @@ export class ChessRobotController {
     }
 
     handlePostMove(options = {}) {
+        if (this.game.gameOver) {
+            this.renderFinalWinRateSummary();
+            return;
+        }
         if (options.remote || options.robot) return;
+        this.finalSummaryKey = '';
         this.clearAnalysis();
         this.scheduleRobotMoveIfNeeded();
     }
@@ -120,7 +127,8 @@ export class ChessRobotController {
                     score: result.score,
                     result: this.game.gameOver ? { gameOver: true, winner: this.game.winner || null, draw: Boolean(this.game.draw) } : null
                 });
-                this.setPanelMessage(`Robot played ${legal.label}. Score ${formatScore(result.score)}. Nodes: ${result.nodes}${result.truncated ? ' (limited)' : ''}.`);
+                if (this.game.gameOver) this.renderFinalWinRateSummary();
+                else this.setPanelMessage(`Robot played ${legal.label}. Score ${formatScore(result.score)}. Nodes: ${result.nodes}${result.truncated ? ' (limited)' : ''}.`);
             } else {
                 this.setPanelMessage('Robot move was rejected by the current legal-move validator.');
             }
@@ -184,6 +192,23 @@ export class ChessRobotController {
             <h4>Current piece values</h4>
             <ul class="robot-piece-list">${pieces || '<li>No pieces found.</li>'}</ul>
         `;
+    }
+
+    renderFinalWinRateSummary() {
+        const output = document.getElementById('robotAnalysisOutput');
+        if (!output || !this.game.gameOver) return;
+        const key = `${this.game.moveHistory?.length || 0}:${this.game.winner || 'none'}:${this.game.draw ? 'draw' : 'win'}`;
+        if (this.finalSummaryKey === key) return;
+        this.finalSummaryKey = key;
+        const rates = finalRatesFromWinner(this.game.winner, 'white', 'black');
+        const result = this.game.resolveText?.(this.game.statusKey, this.game.statusParams) || 'Game over';
+        output.innerHTML = renderFinalWinSummary({
+            title: 'Final winning estimate',
+            result,
+            first: { id: 'white', label: 'White', rate: rates.first },
+            second: { id: 'black', label: 'Black', rate: rates.second },
+            note: 'Chess result is exact; the percentage bars are a compact final-result view for local, robot, and online play.'
+        });
     }
 
     clearAnalysis() {

@@ -50,7 +50,8 @@ function assertRobotMove(state, allowedKeys, label) {
 
 for (const boundary of ['forbidden', 'open']) {
   let state = initialState(boundary);
-  assertRobotMove(state, ['e2e4'], `${boundary} first white move`);
+  const firstMove = assertRobotMove(state, ['e2e4'], `${boundary} first white move`);
+  assert.equal(firstMove.move.pawnDoubleJump, true, `${boundary} first white move should use the legal two-square pawn advance`);
 
   state = playByKey(state, 'e2e4');
   assertRobotMove(state, ['e7e5', 'c7c5'], `${boundary} black reply to 1.e4`);
@@ -64,6 +65,12 @@ for (const boundary of ['forbidden', 'open']) {
   state = initialState(boundary);
   state = playByKey(state, 'd2d4');
   assertRobotMove(state, ['d7d5', 'g8f6'], `${boundary} black reply to 1.d4`);
+
+  state = initialState(boundary);
+  for (const key of ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6']) {
+    state = playByKey(state, key);
+  }
+  assertRobotMove(state, ['e1g1'], `${boundary} white castles after normal king-side development`);
 }
 
 console.log('Chess robot opening strategy verification passed.');

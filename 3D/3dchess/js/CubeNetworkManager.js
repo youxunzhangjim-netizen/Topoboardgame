@@ -686,6 +686,8 @@ export class CubeNetworkManager {
             timeRemaining: { ...this.game.timeRemaining },
             gameStarted: this.game.gameStarted,
             gameOver: this.game.gameOver,
+            winner: this.game.winner || null,
+            draw: Boolean(this.game.draw),
             moveHistory: [...this.game.moveHistory],
             capturedPieces: {
                 white: [...this.game.capturedPieces.white],
@@ -714,6 +716,8 @@ export class CubeNetworkManager {
         this.syncClocks(state.timeRemaining || { white: this.game.timeLimit, black: this.game.timeLimit });
         this.game.gameStarted = Boolean(state.gameStarted);
         this.game.gameOver = Boolean(state.gameOver);
+        this.game.winner = state.winner || null;
+        this.game.draw = Boolean(state.draw || state.winner === 'draw');
         this.game.moveHistory = Array.isArray(state.moveHistory) ? [...state.moveHistory] : [];
         this.game.capturedPieces = {
             white: Array.isArray(state.capturedPieces?.white) ? [...state.capturedPieces.white] : [],

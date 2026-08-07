@@ -365,7 +365,7 @@ function localChessKnowledgeScore(state, move, player, legalMoves) {
     appendKnowledgeName(names, 'local development');
   }
   if (move.castling) {
-    score += 56 * weights.kingSafety;
+    score += 140 * weights.kingSafety;
     appendKnowledgeName(names, 'local kingSafety');
   } else if (type === 'K') {
     score -= 32 * weights.kingSafety;
@@ -401,15 +401,15 @@ function chessDevelopmentOpportunity(state, move, player, legalMoves) {
   const afterCenter = manhattan(to, center);
   const ply = inferChessPly(state);
   let score = Math.max(-35, Math.min(45, (beforeCenter - afterCenter) * 12));
-  if (move.castling) score += 124;
+  if (move.castling) score += 230;
   if (move.capturedPiece) score += Math.min(90, Math.max(0, (PIECE_VALUES[move.capturedPiece.type] || 0) / 7));
   if (move.promotion) score += 90;
   if (type === 'P') {
     const is2D = from.length === 2;
     const centralFile = is2D ? Math.abs(from[0] - 3.5) <= 0.75 : Math.abs(from[0] - center[0]) <= 1 && Math.abs((from[2] || 0) - (center[2] || 0)) <= 1;
     const doubleStep = Math.abs(to[1] - from[1]) >= 2;
-    score += centralFile ? (doubleStep ? 78 : 52) : 20;
-    if (ply <= 3 && centralFile) score += 16;
+    score += centralFile ? (doubleStep ? 140 : 52) : (doubleStep ? 44 : 20);
+    if (ply <= 3 && centralFile) score += doubleStep ? 36 : 16;
   } else if ((type === 'N' || type === 'B') && !piece?.hasMoved) {
     score += 70;
   } else if (type === 'Q' && ply < 6 && !move.capturedPiece) {

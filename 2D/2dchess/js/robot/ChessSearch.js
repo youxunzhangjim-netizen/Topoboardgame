@@ -286,8 +286,13 @@ function moveOrderingScore(move, state, player, context = null, ply = 0, preferr
         score += 10000 + 10 * (PIECE_VALUES[move.capturedPiece.type] || 0) - (PIECE_VALUES[move.piece?.type] || 0);
     }
     if (move.promotion) score += 9000 + (PIECE_VALUES[move.promotion] || 0);
-    if (move.castling) score += 2600;
-    if (move.piece?.type === 'P' && [3, 4].includes(move.from?.c) && Math.abs((move.to?.r ?? 0) - (move.from?.r ?? 0)) >= 1) score += 240;
+    if (move.castling) score += 4200;
+    if (move.piece?.type === 'P' && [3, 4].includes(move.from?.c)) {
+        const pawnStep = Math.abs((move.to?.r ?? 0) - (move.from?.r ?? 0));
+        score += pawnStep >= 2 ? 620 : 220;
+    } else if (move.piece?.type === 'P' && Math.abs((move.to?.r ?? 0) - (move.from?.r ?? 0)) >= 2) {
+        score += 160;
+    }
     if (['B', 'N'].includes(move.piece?.type) && isHomeMinor(move)) score += 520;
     if (move.piece?.type === 'Q' && isEarlyPosition(state) && !move.capture) score -= 360;
     if (move.piece?.type === 'K' && isEarlyPosition(state) && !move.castling) score -= 1200;

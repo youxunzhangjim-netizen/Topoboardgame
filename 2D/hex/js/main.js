@@ -3,6 +3,7 @@ import { createHexOnlineController } from '../../../js/hex/HexOnline.js';
 import { analyzeHexRobotPosition, chooseHexRobotMove } from '../../../js/hex/HexRobot.js';
 import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
 import { kagomeFaceBounds, kagomeFaceCells } from '../../../js/shared/KagomeLattice.js';
+import { finalRatesFromWinner, renderFinalWinSummary } from '../../../js/shared/RobotFinalAnalysis.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -47,6 +48,8 @@ const I18N = {
         robotNodes: 'Nodes',
         robotLimited: 'limited',
         robotCurrent: '{player} to move. Score {score}. Win estimate {winRate}%. Nodes {nodes}.',
+        finalWinEstimate: 'Final winning estimate',
+        finalWinNote: 'Hex result is exact; the bars show the completed connection result.',
         robotReason: {
             win: 'winning connection',
             block: 'blocks opponent connection',
@@ -238,6 +241,11 @@ const I18N = {
     }
 };
 
+Object.assign(I18N.zh, {
+    finalWinEstimate: '\u7d42\u5c40\u52dd\u7387\u6458\u8981',
+    finalWinNote: '\u516d\u8cab\u68cb\u7d50\u679c\u5df2\u78ba\u5b9a\uff1b\u9577\u689d\u986f\u793a\u5b8c\u6210\u9023\u7dda\u5f8c\u7684\u7d42\u5c40\u7d50\u679c\u3002'
+});
+
 const elements = {
     canvas: document.getElementById('hexBoard'),
     pageTitle: document.getElementById('pageTitle'),
@@ -288,6 +296,7 @@ let centers = [];
 let hoverKey = null;
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
+let finalSummaryKey = '';
 let renderDpr = 1;
 let onlineController = null;
 
@@ -387,6 +396,21 @@ function renderRobotAnalysis(analysis) {
     `;
 }
 
+function renderFinalWinRateSummary() {
+    if (!elements.robotAnalysis || !game?.winner) return;
+    const key = `${game.moveNumber}:${game.winner}`;
+    if (finalSummaryKey === key) return;
+    finalSummaryKey = key;
+    const rates = finalRatesFromWinner(game.winner, HEX_COLORS.BLACK, HEX_COLORS.WHITE);
+    elements.robotAnalysis.innerHTML = renderFinalWinSummary({
+        title: text('finalWinEstimate'),
+        result: text(game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'),
+        first: { id: HEX_COLORS.BLACK, label: text('black'), rate: rates.first },
+        second: { id: HEX_COLORS.WHITE, label: text('white'), rate: rates.second },
+        note: text('finalWinNote')
+    });
+}
+
 function analyzeRobotPosition() {
     const analysis = analyzeHexRobotPosition(game, { level: robotLevel(), limit: 6 });
     renderRobotAnalysis(analysis);
@@ -414,6 +438,7 @@ function selectedLattice() {
 function newGame(messageKey = 'emptyPrompt') {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
+    finalSummaryKey = '';
     size = selectedSize();
     topology = elements.boundary.value;
     const lattice = selectedLattice();
@@ -893,6 +918,7 @@ function playAt(coordinate) {
     updateReadout();
     renderHistory();
     drawBoard();
+    if (game.winner) renderFinalWinRateSummary();
     onlineController?.broadcastState();
     scheduleRobot();
     return result;
@@ -917,6 +943,7 @@ function resolveScheduledHex(coordinate, player, { instant = false } = {}) {
     updateReadout();
     renderHistory();
     drawBoard();
+    if (game.winner) renderFinalWinRateSummary();
     return result;
 }
 
@@ -974,11 +1001,15 @@ function performRobotMove({ automatic = false } = {}) {
     updateReadout();
     renderHistory();
     drawBoard();
-    setRobotAnalysisMessage(result.ok ? text('robotMoved', {
-        coord: coordLabel(coordinate),
-        score: formatRobotScore(robotMove.score),
-        nodes: robotMove.nodes
-    }) : result.error || text('occupied'));
+    if (result.ok && game.winner) {
+        renderFinalWinRateSummary();
+    } else {
+        setRobotAnalysisMessage(result.ok ? text('robotMoved', {
+            coord: coordLabel(coordinate),
+            score: formatRobotScore(robotMove.score),
+            nodes: robotMove.nodes
+        }) : result.error || text('occupied'));
+    }
     if (result.ok) onlineController?.broadcastState();
     if (result.ok) scheduleRobot();
     return robotMove;

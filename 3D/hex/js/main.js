@@ -7,6 +7,7 @@ import {
 } from '../../../js/geometry/SphereBoardGeometry.js';
 import { honeycombBounds, honeycombCells } from '../../../js/shared/HoneycombLattice.js';
 import { buildOnlineMatchKey, currentSpaceTimeMatchFields } from '../../../js/shared/OnlineMatchKey.js';
+import { finalRatesFromWinner, renderFinalWinSummary } from '../../../js/shared/RobotFinalAnalysis.js';
 
 const LANGUAGE_KEY = 'topological-boardgame:language';
 const params = new URLSearchParams(window.location.search);
@@ -54,6 +55,8 @@ const I18N = {
         robotNodes: 'Nodes',
         robotLimited: 'limited',
         robotCurrent: '{player} to move. Score {score}. Win estimate {winRate}%. Nodes {nodes}.',
+        finalWinEstimate: 'Final winning estimate',
+        finalWinNote: 'Hex result is exact; the bars show the completed connection result.',
         robotReason: {
             win: 'winning connection',
             block: 'blocks opponent connection',
@@ -181,6 +184,8 @@ const I18N = {
         robotNodes: '節點',
         robotLimited: '已限時',
         robotCurrent: '輪到 {player}。分數 {score}，勝率估計 {winRate}%，節點 {nodes}。',
+        finalWinEstimate: '終局勝率摘要',
+        finalWinNote: '六貫棋結果已確定；長條顯示完成連線後的終局結果。',
         robotReason: {
             win: '完成連線',
             block: '阻擋對手連線',
@@ -355,6 +360,7 @@ let projectedSites = [];
 let projectedSurfaceCells = [];
 let statusKey = 'emptyPrompt';
 let robotTimer = null;
+let finalSummaryKey = '';
 let onlineController = null;
 let dragging = false;
 let dragMoved = false;
@@ -462,6 +468,21 @@ function renderRobotAnalysis(analysis) {
     `;
 }
 
+function renderFinalWinRateSummary() {
+    if (!elements.robotAnalysis || !game?.winner) return;
+    const key = `${game.moveNumber}:${game.winner}`;
+    if (finalSummaryKey === key) return;
+    finalSummaryKey = key;
+    const rates = finalRatesFromWinner(game.winner, HEX_COLORS.BLACK, HEX_COLORS.WHITE);
+    elements.robotAnalysis.innerHTML = renderFinalWinSummary({
+        title: text('finalWinEstimate'),
+        result: text(game.winner === HEX_COLORS.BLACK ? 'blackWin' : 'whiteWin'),
+        first: { id: HEX_COLORS.BLACK, label: text('black'), rate: rates.first },
+        second: { id: HEX_COLORS.WHITE, label: text('white'), rate: rates.second },
+        note: text('finalWinNote')
+    });
+}
+
 function analyzeRobotPosition() {
     const analysis = analyzeHexRobotPosition(game, { level: robotLevel(), limit: 6 });
     renderRobotAnalysis(analysis);
@@ -479,6 +500,7 @@ function updateTargetText() {
 function newGame() {
     window.hexApp?.__spaceTimeOnNewGame?.();
     clearTimeout(robotTimer);
+    finalSummaryKey = '';
     const requestedSize = Number(elements.size.value);
     const topology = selectedTopology();
     const lattice = selectedLatticeForTopology(topology);
@@ -1486,6 +1508,7 @@ function playAt(coordinate) {
     updateReadout();
     renderHistory();
     drawBoard();
+    if (game.winner) renderFinalWinRateSummary();
     if (result.ok) onlineController?.broadcastState();
     if (result.ok) scheduleRobot();
     return result;
@@ -1510,6 +1533,7 @@ function resolveScheduledHex(coordinate, player, { instant = false } = {}) {
     updateReadout();
     renderHistory();
     drawBoard();
+    if (game.winner) renderFinalWinRateSummary();
     return result;
 }
 
@@ -1567,11 +1591,15 @@ function performRobotMove({ automatic = false } = {}) {
     updateReadout();
     renderHistory();
     drawBoard();
-    setRobotAnalysisMessage(result.ok ? text('robotMoved', {
-        coord: coordLabel(coordinate),
-        score: formatRobotScore(robotMove.score),
-        nodes: robotMove.nodes
-    }) : result.error || text('occupied'));
+    if (result.ok && game.winner) {
+        renderFinalWinRateSummary();
+    } else {
+        setRobotAnalysisMessage(result.ok ? text('robotMoved', {
+            coord: coordLabel(coordinate),
+            score: formatRobotScore(robotMove.score),
+            nodes: robotMove.nodes
+        }) : result.error || text('occupied'));
+    }
     if (result.ok) onlineController?.broadcastState();
     if (result.ok) scheduleRobot();
     return robotMove;

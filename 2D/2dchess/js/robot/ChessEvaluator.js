@@ -183,10 +183,10 @@ export function openingDevelopmentScore(state, player) {
     }
     if (king) {
         const legalCastles = getLegalMovesForPiece(state, king.r, king.c, player).filter((move) => move.castling);
-        if (legalCastles.length) score += 115;
-        if (king.piece.hasMoved && [2, 6].includes(king.c)) score += 160;
-        else if (king.piece.hasMoved && ownPieces + enemyPieces >= 24) score -= 130;
-        if (!king.piece.hasMoved && ownPieces + enemyPieces >= 26) score -= 52;
+        if (legalCastles.length) score += 190;
+        if (king.piece.hasMoved && [2, 6].includes(king.c)) score += 270;
+        else if (king.piece.hasMoved && ownPieces + enemyPieces >= 24) score -= 150;
+        if (!king.piece.hasMoved && ownPieces + enemyPieces >= 26) score -= 90;
     }
     for (const rookCol of [0, 7]) {
         const rook = getPiece(state, backRank, rookCol);

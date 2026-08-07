@@ -1,5 +1,6 @@
 import { recordRobotLearningMove } from '../../../../js/shared/RobotLearningRecorder.js';
 import { chooseChessOpeningBookMove } from '../../../../js/shared/RobotOpeningBook.js';
+import { finalRatesFromWinner, renderFinalWinSummary } from '../../../../js/shared/RobotFinalAnalysis.js';
 
 const PIECE_VALUES = { K: 20000, Q: 900, R: 500, B: 330, N: 320, P: 100 };
 const PROMOTION_TYPES = ['Q', 'R', 'B', 'N'];
@@ -509,6 +510,29 @@ function renderAnalysis(panel, analysis) {
     <div class="robot-chip-list">${analysis.pieces.map((p) => `<span class="robot-chip">${p.label}: ${p.value}</span>`).join('')}</div>`;
 }
 
+function inferFinalWinner(game) {
+  if (game?.draw || game?.winner === 'draw') return 'draw';
+  return game?.winner === 'white' || game?.winner === 'black' ? game.winner : null;
+}
+
+function renderFinalWinRateSummary(panel, game) {
+  if (!panel || !game?.gameOver) return;
+  const winner = inferFinalWinner(game);
+  const key = `${game.moveHistory?.length || 0}:${winner || 'none'}:${game.draw ? 'draw' : 'win'}`;
+  if (panel.dataset.finalSummaryKey === key) return;
+  panel.dataset.finalSummaryKey = key;
+  const rates = finalRatesFromWinner(winner, 'white', 'black');
+  const result = game.resolveText?.(game.statusKey, game.statusParams) ||
+    (winner === 'draw' ? 'Game drawn.' : winner ? `${winner} wins.` : 'Game over.');
+  panel.innerHTML = renderFinalWinSummary({
+    title: 'Final winning estimate',
+    result,
+    first: { id: 'white', label: 'White', rate: rates.first },
+    second: { id: 'black', label: 'Black', rate: rates.second },
+    note: 'Chess result is exact; the bars show the completed local, robot, or online game result.'
+  });
+}
+
 export function installChess3DRobot(shell) {
   const game = shell?.activeGame || shell || window.game;
   if (!game || game.__robot3dInstalled) return;
@@ -564,6 +588,7 @@ export function installChess3DRobot(shell) {
             score: result.score,
             result: game.gameOver ? { gameOver: true, winner: game.winner || null, draw: Boolean(game.draw) } : null
           });
+          if (game.gameOver) renderFinalWinRateSummary(analysisPanel, game);
         }
       } else if (move) {
         analysisPanel.textContent = 'Robot move was rejected by the current board rules.';
@@ -597,7 +622,10 @@ export function installChess3DRobot(shell) {
   const originalApplyMove = game.applyMove.bind(game);
   game.applyMove = async function patchedApplyMove(...args) {
     const result = await originalApplyMove(...args);
-    if (result) scheduleRobotMove();
+    if (result) {
+      if (game.gameOver) renderFinalWinRateSummary(analysisPanel, game);
+      else scheduleRobotMove();
+    }
     return result;
   };
   scheduleRobotMove();

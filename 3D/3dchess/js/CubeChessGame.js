@@ -87,6 +87,8 @@ export class CubeChessGame {
         this.randomBoundarySeed = '';
         this.randomBoundaryMap = new Map();
         this.gameOver = false;
+        this.winner = null;
+        this.draw = false;
         this.showMoveHints = true;
         this.capturedPieces = { white: [], black: [] };
         this.timerEnabled = false;
@@ -1096,11 +1098,24 @@ export class CubeChessGame {
 
     endGame(key, params = {}) {
         this.gameOver = true;
+        this.applyEndGameOutcome(key, params);
         this.clearSelection();
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.setStatus(key, params);
         this.unlockGameSettings();
         this.updateUI();
+    }
+
+    applyEndGameOutcome(key, params = {}) {
+        const status = String(key || '');
+        const winner = params.color === 'white' || params.color === 'black'
+            ? params.color
+            : status === 'online.opponentSurrendered'
+                ? this.myColor || this.currentPlayer
+                : null;
+        const draw = /stalemate|draw/i.test(status);
+        this.winner = draw ? 'draw' : winner;
+        this.draw = draw;
     }
 
     resetGame({ keepOnline = false, remote = false } = {}) {
@@ -1111,6 +1126,8 @@ export class CubeChessGame {
         this.currentPlayer = 'white';
         this.moveHistory = [];
         this.gameOver = false;
+        this.winner = null;
+        this.draw = false;
         this.capturedPieces = { white: [], black: [] };
         this.gameStarted = false;
         this.pendingMoveTarget = null;
