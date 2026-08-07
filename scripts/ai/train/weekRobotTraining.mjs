@@ -16,6 +16,8 @@ const branch = arg('branch', 'main');
 const durationHours = num('durationHours', 24 * 7, 1, 24 * 30);
 const standardTeacherGames = num('standardTeacherGames', 1000, 1, 100000);
 const variantGames = num('variantGames', 100, 1, 100000);
+const teacherTimeoutMs = num('teacherTimeoutMs', 12 * 60 * 60 * 1000, 1000, 7 * 24 * 60 * 60 * 1000);
+const variantTimeoutMs = num('variantTimeoutMs', 30 * 60 * 1000, 1000, 24 * 60 * 60 * 1000);
 const chessTeacherDepth = num('stockfishDepth', 8, 1, 40);
 const chessTeacherEpochs = num('chessTeacherEpochs', 20, 1, 500);
 const goTeacherEpochs = num('goTeacherEpochs', 10, 1, 500);
@@ -26,11 +28,15 @@ const teacherGoSizes = arg('teacherGoSizes', '9,13,19')
   .filter((value) => Number.isInteger(value) && value >= 5 && value <= 19);
 const goPolicyOnly = !flag('goFullSearch');
 const goTeacherVisits = num('katagoVisits', goPolicyOnly ? 2 : 16, 1, 100000);
+const startAt = arg('startAt', '');
+const startAfter = arg('startAfter', '');
 
 mkdirSync(join(repoRoot, logDir), { recursive: true });
 log(`Topoboardgame week robot training started at ${new Date().toISOString()}`);
 log(`repo=${repoRoot}`);
 log(`dryRun=${dryRun} durationHours=${durationHours} standardTeacherGames=${standardTeacherGames} variantGames=${variantGames}`);
+if (startAt) log(`startAt=${startAt}`);
+if (startAfter) log(`startAfter=${startAfter}`);
 
 const startedAt = Date.now();
 const deadline = startedAt + durationHours * 60 * 60 * 1000;
@@ -40,7 +46,19 @@ const jobs = [
 ];
 
 log(`plannedJobs=${jobs.length}`);
+let skipping = Boolean(startAt || startAfter);
 for (const job of jobs) {
+  if (skipping) {
+    if (startAt && job.id === startAt) {
+      skipping = false;
+    } else if (startAfter && job.id === startAfter) {
+      skipping = false;
+      log(`resume skipped through ${job.id}`);
+      continue;
+    } else {
+      continue;
+    }
+  }
   if (Date.now() >= deadline) {
     log(`deadline reached before ${job.id}; stopping cleanly`);
     break;
@@ -67,7 +85,8 @@ function standardTeacherJobs() {
       '--epochs', String(chessTeacherEpochs),
       '--progressEvery', String(Math.max(1, Math.floor(standardTeacherGames / 20)))
     ],
-    verify: [process.execPath, 'verification/verify-robot-move-legality.mjs']
+    verify: [process.execPath, 'verification/verify-robot-move-legality.mjs'],
+    timeoutMs: teacherTimeoutMs
   }];
   for (const size of teacherGoSizes) {
     jobs.push({
@@ -86,7 +105,8 @@ function standardTeacherJobs() {
         '--progressEvery', String(Math.max(1, Math.floor(standardTeacherGames / 20))),
         '--katagoTimeoutMs', arg('katagoTimeoutMs', '60000')
       ],
-      verify: [process.execPath, 'verification/verify-go-robot-strategy.mjs']
+      verify: [process.execPath, 'verification/verify-go-robot-strategy.mjs'],
+      timeoutMs: teacherTimeoutMs
     });
   }
   return jobs;
@@ -134,17 +154,18 @@ function variantJobsFromLocalModels() {
           ...(existsSync(join(repoRoot, 'local-models', spec.fileName)) ? ['--baseModel', `local-models/${spec.fileName}`] : []),
           '--seed', `week-train:${spec.stem}:${stamp}`
         ],
-        verify: [process.execPath, 'verification/verify-robot-move-legality.mjs']
+        verify: [process.execPath, 'verification/verify-robot-move-legality.mjs'],
+        timeoutMs: variantTimeoutMs
       };
     });
 }
 
 function runJob(job) {
   log(`START ${job.id}`);
-  runCommand(job.command, `${job.id}:train`);
-  if (job.after) runCommand(job.after, `${job.id}:fit`);
+  runCommand(job.command, `${job.id}:train`, job.timeoutMs);
+  if (job.after) runCommand(job.after, `${job.id}:fit`, job.timeoutMs);
   promoteOne(job.localModel, job.publicModel);
-  if (job.verify) runCommand(job.verify, `${job.id}:verify`);
+  if (job.verify) runCommand(job.verify, `${job.id}:verify`, job.timeoutMs);
   commitAndPush(job);
   log(`DONE ${job.id}`);
 }
@@ -189,12 +210,18 @@ function parseVariantModel(fileName) {
   return { fileName, stem, game, boundary, lattice, size, playerCount };
 }
 
-function runCommand(command, label) {
+function runCommand(command, label, timeoutMs = 0) {
   log(`RUN ${label}: ${command.join(' ')}`);
   if (dryRun) return;
-  const result = spawnSync(command[0], command.slice(1), { cwd: repoRoot, encoding: 'utf8', maxBuffer: 1024 * 1024 * 256 });
+  const result = spawnSync(command[0], command.slice(1), {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024 * 256,
+    timeout: timeoutMs
+  });
   logOutput(label, result);
   if (result.error) log(`[${label}:error] ${result.error.stack || result.error}`);
+  if (result.signal) log(`[${label}:signal] ${result.signal}`);
   if (result.status !== 0) throw new Error(`${label} failed with exit ${result.status}`);
 }
 
