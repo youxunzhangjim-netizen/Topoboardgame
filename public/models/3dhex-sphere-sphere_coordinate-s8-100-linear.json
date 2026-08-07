@@ -1,212 +1,221 @@
 {
   "schema": "topoboardgame.ml.linear_policy_value.v1",
-  "createdAt": "2026-07-19T04:10:54.092Z",
+  "createdAt": "2026-08-07T15:24:08.159Z",
   "modelType": "linear-logistic-policy-value",
   "weights": {
-    "bias": -0.022662976212135453,
-    "board_size": -0.009542314123048021,
-    "boundary:sphere": -0.022662976212135453,
-    "coord_0": 0.1307171935254691,
-    "coord_1": -0.19233659429964364,
-    "cross:3dhex:sphere": -0.022662976212135453,
-    "cross:3dhex:sphere:sphere_coordinate": -0.022662976212135453,
-    "cross:edge:sphere": -0.022662976212135453,
-    "dimension": -0.022662976212135453,
-    "game_is:3dhex": -0.022662976212135453,
-    "game:3dhex": -0.022662976212135453,
-    "hex_center_pressure": -0.1635058331109412,
-    "hex_closed_surface_goal": -0.022662976212135453,
-    "hex_edge_touch_count": -0.13896479020745814,
-    "hex_occupancy": 0.07742116685456564,
-    "hex_remaining_fraction": -0.09932259548032318,
-    "hex_stone_balance": 0.0018312789074590773,
-    "lattice:sphere_coordinate": -0.022662976212135453,
-    "legal_count_log": -0.3094619631492168,
-    "move_bias": -0.022662976212135453,
-    "move_center_closeness": -0.1635058331109412,
+    "bias": 0.023900947320344007,
+    "board_size": 0.010063565572072974,
+    "boundary:sphere": 0.023900947320344007,
+    "coord_0": 0.8002598696032558,
+    "coord_1": -0.8864967465465122,
+    "cross:3dhex:sphere": 0.023900947320344007,
+    "cross:3dhex:sphere:sphere_coordinate": 0.023900947320344007,
+    "cross:edge:sphere": 0.023900947320344007,
+    "dimension": 0.023900947320344007,
+    "game_is:3dhex": 0.023900947320344007,
+    "game:3dhex": 0.023900947320344007,
+    "hex_center_pressure": -0.3265418792105636,
+    "hex_closed_surface_goal": 0.023900947320344007,
+    "hex_edge_touch_count": 0.25136623866896807,
+    "hex_occupancy": 0.06600651594742889,
+    "hex_remaining_fraction": -0.040445935564740076,
+    "hex_stone_balance": 0.009652022893938976,
+    "lattice:sphere_coordinate": 0.023900947320344007,
+    "legal_count_log": -0.22537026904592028,
+    "move_bias": 0.023900947320344007,
+    "move_center_closeness": -0.3265418792105636,
     "move_corner_or_anchor": 0.0158572596830958,
-    "move_edge": -0.022662976212135453,
-    "move_near_edge": -0.022662976212135453,
-    "move_type:play": -0.022662976212135453,
-    "player:black": 0.9108134756818009,
-    "player:white": -0.937674811807018,
-    "topology:sphere": -0.022662976212135453
+    "move_edge": 0.023900947320344007,
+    "move_near_edge": 0.023900947320344007,
+    "move_type:play": 0.023900947320344007,
+    "player:black": 4.902174313697871,
+    "player:white": -4.942152019425996,
+    "topology:sphere": 0.023900947320344007
   },
   "training": {
-    "examples": 4465,
+    "examples": 1300,
     "epochs": 8,
     "lr": 0.04,
     "l2": 0.0005,
+    "warmStarted": true,
+    "baseModel": {
+      "schema": "topoboardgame.ml.linear_policy_value.v1",
+      "createdAt": "2026-07-19T04:10:54.092Z",
+      "modelType": "linear-logistic-policy-value",
+      "sourcePath": "local-models/3dhex-sphere-sphere_coordinate-s8-100-linear.json",
+      "trainingInput": "local-data/selfplay/3dhex-sphere-sphere_coordinate-s8-100.jsonl",
+      "examples": 4465
+    },
     "history": [
       {
         "epoch": 1,
-        "loss": 0.657466,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.60981,
-        "brier": 0.205805
+        "loss": 0.093799,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.036177,
+        "brier": 0.001344
       },
       {
         "epoch": 2,
-        "loss": 0.649345,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.636621,
-        "brier": 0.216534
+        "loss": 0.025873,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.019124,
+        "brier": 0.000375
       },
       {
         "epoch": 3,
-        "loss": 0.650128,
-        "examples": 4465,
-        "accuracy": 0.5151,
-        "logLoss": 0.754647,
-        "brier": 0.264529
+        "loss": 0.015819,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.013265,
+        "brier": 0.000183
       },
       {
         "epoch": 4,
-        "loss": 0.65338,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.637966,
-        "brier": 0.215768
+        "loss": 0.011687,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.010317,
+        "brier": 0.000111
       },
       {
         "epoch": 5,
-        "loss": 0.651178,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.609816,
-        "brier": 0.205808
+        "loss": 0.009376,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.008553,
+        "brier": 0.000078
       },
       {
         "epoch": 6,
-        "loss": 0.655477,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.626104,
-        "brier": 0.212137
+        "loss": 0.007937,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.007375,
+        "brier": 0.000057
       },
       {
         "epoch": 7,
-        "loss": 0.649612,
-        "examples": 4465,
-        "accuracy": 0.7037,
-        "logLoss": 0.61052,
-        "brier": 0.206223
+        "loss": 0.006948,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.00654,
+        "brier": 0.000045
       },
       {
         "epoch": 8,
-        "loss": 0.651324,
-        "examples": 4465,
-        "accuracy": 0.6782,
-        "logLoss": 0.681591,
-        "brier": 0.234193
+        "loss": 0.006226,
+        "examples": 1300,
+        "accuracy": 1,
+        "logLoss": 0.005927,
+        "brier": 0.000037
       }
     ],
     "featureCount": 28,
-    "input": "local-data/selfplay/3dhex-sphere-sphere_coordinate-s8-100.jsonl",
+    "input": "local-data/selfplay/week-robot-training/2026-08-07T14-37-57-585Z/3dhex-sphere-sphere_coordinate-s8.jsonl",
     "gameFilter": "3dhex",
     "modeFilter": "",
     "topWeights": [
       {
         "feature": "player:white",
-        "weight": -0.937675
+        "weight": -4.942152
       },
       {
         "feature": "player:black",
-        "weight": 0.910813
-      },
-      {
-        "feature": "legal_count_log",
-        "weight": -0.309462
+        "weight": 4.902174
       },
       {
         "feature": "coord_1",
-        "weight": -0.192337
-      },
-      {
-        "feature": "hex_center_pressure",
-        "weight": -0.163506
-      },
-      {
-        "feature": "move_center_closeness",
-        "weight": -0.163506
-      },
-      {
-        "feature": "hex_edge_touch_count",
-        "weight": -0.138965
+        "weight": -0.886497
       },
       {
         "feature": "coord_0",
-        "weight": 0.130717
+        "weight": 0.80026
       },
       {
-        "feature": "hex_remaining_fraction",
-        "weight": -0.099323
+        "feature": "hex_center_pressure",
+        "weight": -0.326542
+      },
+      {
+        "feature": "move_center_closeness",
+        "weight": -0.326542
+      },
+      {
+        "feature": "hex_edge_touch_count",
+        "weight": 0.251366
+      },
+      {
+        "feature": "legal_count_log",
+        "weight": -0.22537
       },
       {
         "feature": "hex_occupancy",
-        "weight": 0.077421
+        "weight": 0.066007
+      },
+      {
+        "feature": "hex_remaining_fraction",
+        "weight": -0.040446
       },
       {
         "feature": "bias",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "boundary:sphere",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "cross:3dhex:sphere",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "cross:3dhex:sphere:sphere_coordinate",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "cross:edge:sphere",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "dimension",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "game_is:3dhex",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "game:3dhex",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "hex_closed_surface_goal",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "lattice:sphere_coordinate",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "move_bias",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "move_edge",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "move_near_edge",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "move_type:play",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "topology:sphere",
-        "weight": -0.022663
+        "weight": 0.023901
       },
       {
         "feature": "move_corner_or_anchor",
@@ -214,11 +223,11 @@
       },
       {
         "feature": "board_size",
-        "weight": -0.009542
+        "weight": 0.010064
       },
       {
         "feature": "hex_stone_balance",
-        "weight": 0.001831
+        "weight": 0.009652
       }
     ]
   }
