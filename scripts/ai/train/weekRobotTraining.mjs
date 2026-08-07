@@ -133,6 +133,7 @@ function variantJobsFromLocalModels() {
           '--lattice', spec.lattice,
           '--size', String(spec.size),
           '--games', String(variantGames),
+          '--maxPlies', String(defaultVariantMaxPlies(spec)),
           '--depthA', String(defaultDepth(spec.game)),
           '--depthB', String(defaultDepth(spec.game)),
           '--record', 'moves',
@@ -255,6 +256,24 @@ function defaultLearningRate(game) {
   if (game.includes('go')) return 0.05;
   if (game.includes('reversi')) return 0.04;
   return 0.04;
+}
+
+function defaultVariantMaxPlies(spec) {
+  const game = spec.game || '';
+  if (game.includes('go')) {
+    if (game.startsWith('3d')) return num('variantMaxPlies3DGo', 80, 1, 1000);
+    if (game.startsWith('2d')) return num('variantMaxPlies2DGo', spec.size >= 19 ? 120 : 100, 1, 1000);
+    return num('variantMaxPliesGo', 100, 1, 1000);
+  }
+  if (game.includes('reversi')) return num('variantMaxPliesReversi', 120, 1, 1000);
+  if (game.includes('hex')) {
+    if (game.startsWith('4d')) return num('variantMaxPlies4DHex', 180, 1, 2000);
+    if (game.startsWith('3d')) return num('variantMaxPlies3DHex', 140, 1, 2000);
+    return num('variantMaxPlies2DHex', 120, 1, 2000);
+  }
+  if (game.includes('jump')) return num('variantMaxPliesJump', 160, 1, 2000);
+  if (game.includes('chess')) return num('variantMaxPliesChess', 160, 1, 1000);
+  return num('variantMaxPlies', 120, 1, 1000);
 }
 
 function defaultBoundary(game) {
